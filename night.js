@@ -28,7 +28,7 @@ function beginNight() {
   state.player.x=620;state.player.y=430;state.orders=[];state.respawns=[];state.spawnedCustomers=0;
   state.nightCustomerTarget=rollNightCustomerCount(state.popularity);
   for(let slot=0;slot<Math.min(2,state.nightCustomerTarget);slot++)spawnOrder(slot);
-  showToast(`밤 영업 시작! 오늘은 약 ${state.nightCustomerTarget}명의 손님이 방문합니다.`);audio.success();updateUI(true);
+  showToast(`밤 영업 시작! 오늘은 약 ${state.nightCustomerTarget}명의 손님이 방문합니다.`);audio.success();updateUI(true);saveGame();
 }
 
 function calculateLeftoverLoss(){
@@ -52,14 +52,22 @@ function endNight() {
   const unserved=Math.max(0,state.nightCustomerTarget-state.served);
   const serveRate=state.nightCustomerTarget?state.served/state.nightCustomerTarget:0;
   const beforePopularity=state.popularity;
+  state.popularityBeforeResult=beforePopularity;
   state.popularityDelta=state.served?Math.round(clamp(((avg-75)/7)*serveRate+(serveRate-.8)*3,-5,5)):-5;
   state.popularity=clamp(state.popularity+state.popularityDelta,0,100);
 
   const leftover=calculateLeftoverLoss();
   state.leftoverCount=leftover.count;state.wasteLoss=leftover.loss;state.money-=state.wasteLoss;
-  const netProfit=state.dailyRevenue-state.wasteLoss;
-
   state.phase="result";state.paused=true;state.mini=null;dom.miniOverlay.classList.remove("open");
+  renderNightResult();
+  dom.resultOverlay.classList.add("open");audio.serve();updateUI(true);saveGame();
+}
+
+function renderNightResult(){
+  const avg=avgSatisfaction();
+  const unserved=Math.max(0,state.nightCustomerTarget-state.served);
+  const beforePopularity=Number.isFinite(state.popularityBeforeResult)?state.popularityBeforeResult:state.popularity-state.popularityDelta;
+  const netProfit=state.dailyRevenue-state.wasteLoss;
   dom.servedResult.textContent=`${state.served} / ${state.nightCustomerTarget}명`;
   dom.satisfactionResult.textContent=`${avg}점`;
   dom.fiveStarResult.textContent=state.fiveStar;
@@ -70,7 +78,6 @@ function endNight() {
   const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 예상 손님 중 ${unserved}명을 받지 못했습니다.`:" 오늘의 손님을 모두 맞이했습니다.";
   dom.resultComment.textContent=`${tasteComment}${demandComment} 매출 ${state.dailyRevenue.toLocaleString()}원에서 재고 손실 ${state.wasteLoss.toLocaleString()}원이 차감되었습니다.`;
-  dom.resultOverlay.classList.add("open");audio.serve();updateUI(true);
 }
 
 function spawnOrder(slot) {
@@ -87,7 +94,7 @@ function spawnOrder(slot) {
 function selectOrder(id) {
   if(state.carrying){showToast("먼저 들고 있는 음식을 주문한 손님에게 가져다주세요.",true);return;}
   const order=state.orders.find(o=>o.id===id);if(!order)return;
-  state.selectedOrderId=id;audio.click();updateUI(true);
+  state.selectedOrderId=id;audio.click();updateUI(true);saveGame();
 }
 
 function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId)||null;}
@@ -116,7 +123,7 @@ function serveOrder(order) {
   state.dirtyDishes=Math.min(6,state.dirtyDishes+1);state.cleanliness=clamp(state.cleanliness-2.5-state.trash*.4,0,100);
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;state.selectedOrderId=state.orders[0]?.id||null;
   if(state.spawnedCustomers<state.nightCustomerTarget)state.respawns.push({slot:order.slot,time:2.2});
-  spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${satisfaction}점`);showToast(`${dish.name} 제공 · 만족도 ${satisfaction}점`);audio.serve();updateUI(true);
+  spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${satisfaction}점`);showToast(`${dish.name} 제공 · 만족도 ${satisfaction}점`);audio.serve();updateUI(true);saveGame();
 }
 
 function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}

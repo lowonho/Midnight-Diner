@@ -6,8 +6,8 @@ function resetDay(first=false) {
   state.inventory=Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0}]));
   state.prepRun=null; state.orders=[]; state.respawns=[]; state.carrying=null;
   state.served=0; state.satisfactionTotal=0; state.fiveStar=0; state.cleanliness=100; state.dirtyDishes=0; state.trash=0;
-  state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.popularityDelta=0;state.nightCustomerTarget=0;state.spawnedCustomers=0;
-  state.mini=null; state.player.x=620; state.player.y=430;
+  state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
+  state.mini=null;state.player.x=620;state.player.y=430;state.player.facing="down";state.player.moving=false;state.joyX=0;state.joyY=0;
   dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
   if(!first) showToast(`${state.day}일차 낮 준비를 시작합니다.`);
   buildMenuCards(); updateUI(true);

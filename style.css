@@ -126,6 +126,8 @@ kbd { min-width: 25px; padding: 2px 4px; text-align: center; border: 1px solid #
 @keyframes twinkle { 50%{opacity:.3} }
 .title-window > p { margin: 0 auto 19px; max-width: 560px; color:#e3cda9; line-height:1.65; font-size:clamp(11px,1.05vw,16px); text-shadow:1px 1px #000; }
 .title-start { width:min(280px,75%); margin:0 auto; padding:13px 18px; font-size:18px; }
+.title-continue { margin-top:11px; background:linear-gradient(#d9b977,#96602f); }
+.save-info { display:block; min-height:18px; margin:8px auto 0; color:#ad8b62; font-size:11px; }
 .text-button { margin-top:11px; border:0; background:transparent; color:#caa36d; text-decoration:underline; cursor:pointer; }
 
 .settings-window, .result-window { width:min(480px,90%); padding:25px; text-align:center; }
