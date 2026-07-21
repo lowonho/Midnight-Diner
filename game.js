@@ -77,7 +77,7 @@ const state = {
   day:1,
   phaseTime:null,
   money:0,
-  popularity:50,
+  popularity:0,
   popularityDelta:0,
   dailyRevenue:0,
   wasteLoss:0,
@@ -164,7 +164,7 @@ function showGameHud(show) {
 function startGame() {
   audio.init(); if(audio.ctx?.state==="suspended") audio.ctx.resume();
   state.screen="game"; state.phase="day"; state.paused=false; state.settingsFrom="game";
-  state.day=1; state.money=0; state.popularity=50; resetDay(true);
+  state.day=1; state.money=0; state.popularity=0; resetDay(true);
   dom.titleScreen.classList.remove("active");
   dom.gameScreen.classList.add("active");
   requestAnimationFrame(()=>phaserScene?.scale.refresh());
