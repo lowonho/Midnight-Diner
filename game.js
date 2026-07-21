@@ -52,19 +52,19 @@ const DISHES = [
 ];
 
 const STATIONS = {
-  fridge: { id:"fridge", label:"냉장고", x:260, y:290, w:82, h:190, ix:360, iy:430, facing:"left" },
-  sink: { id:"sink", label:"싱크대", x:350, y:475, w:100, h:64, ix:400, iy:445, facing:"down" },
-  board: { id:"board", label:"도마", x:458, y:475, w:96, h:64, ix:506, iy:445, facing:"down" },
-  gas: { id:"gas", label:"가스버너", x:562, y:475, w:104, h:66, ix:614, iy:445, facing:"down" },
-  grill: { id:"grill", label:"직화구이", x:674, y:475, w:112, h:66, ix:730, iy:445, facing:"down" },
-  fryer: { id:"fryer", label:"튀김기", x:794, y:475, w:86, h:66, ix:837, iy:445, facing:"down" },
-  dishwasher: { id:"dishwasher", label:"식기세척기", x:888, y:475, w:82, h:66, ix:929, iy:445, facing:"down" },
-  trash: { id:"trash", label:"쓰레기통", x:978, y:475, w:66, h:66, ix:1011, iy:445, facing:"down" }
+  fridge: { id:"fridge", label:"냉장고", x:250, y:210, w:82, h:190, ix:350, iy:390, facing:"left" },
+  sink: { id:"sink", label:"싱크대", x:350, y:300, w:100, h:64, ix:400, iy:390, facing:"up" },
+  board: { id:"board", label:"도마", x:458, y:300, w:96, h:64, ix:506, iy:390, facing:"up" },
+  gas: { id:"gas", label:"가스레인지", x:562, y:300, w:104, h:66, ix:614, iy:390, facing:"up" },
+  grill: { id:"grill", label:"직화구이", x:674, y:300, w:112, h:66, ix:730, iy:390, facing:"up" },
+  fryer: { id:"fryer", label:"튀김기", x:794, y:300, w:86, h:66, ix:837, iy:390, facing:"up" },
+  dishwasher: { id:"dishwasher", label:"식기세척기", x:888, y:300, w:82, h:66, ix:929, iy:390, facing:"up" },
+  trash: { id:"trash", label:"쓰레기통", x:978, y:300, w:66, h:66, ix:1011, iy:390, facing:"up" }
 };
 
 const CUSTOMER_SEATS = [455, 620, 785, 950];
 const CUSTOMER_SERVICE_Y = 475;
-const WALK_BOUNDS = { left:270, right:1020, top:315, bottom:465 };
+const WALK_BOUNDS = { left:270, right:1020, top:365, bottom:465 };
 const keys = new Set();
 let lastTime = performance.now();
 let nextOrderId = 1;
@@ -166,37 +166,6 @@ function startGame() {
   showGameHud(true); audio.startBgm(); audio.success();
 }
 
-function resetDay(first=false) {
-  state.phase="day"; state.phaseTime=120; state.selectedDishId="kimchi"; state.selectedOrderId=null;
-  state.inventory=Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0}]));
-  state.prepRun=null; state.orders=[]; state.respawns=[]; state.carrying=null;
-  state.served=0; state.satisfactionTotal=0; state.fiveStar=0; state.cleanliness=100; state.dirtyDishes=0; state.trash=0;
-  state.mini=null; state.player.x=620; state.player.y=430;
-  dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
-  if(!first) showToast(`${state.day}일차 낮 준비를 시작합니다.`);
-  buildMenuCards(); updateUI(true);
-}
-
-function beginNight() {
-  const total=Object.values(state.inventory).reduce((s,v)=>s+v.count,0);
-  if(total===0){ showToast("먼저 한 가지 이상의 메뉴를 준비하세요.",true); return; }
-  state.phase="night"; state.phaseTime=150; state.prepRun=null; state.selectedOrderId=null; state.carrying=null;
-  state.player.x=620; state.player.y=430; state.orders=[]; state.respawns=[];
-  for(let i=0;i<4;i++) spawnOrder(i);
-  showToast("밤 영업 시작! 맛있는 한 접시를 완성하세요."); audio.success(); updateUI(true);
-}
-
-function endNight() {
-  state.phase="result"; state.paused=true; state.mini=null; dom.miniOverlay.classList.remove("open");
-  dom.servedResult.textContent=state.served;
-  dom.satisfactionResult.textContent=`${avgSatisfaction()}점`;
-  dom.fiveStarResult.textContent=state.fiveStar;
-  dom.revenueResult.textContent=`${state.money.toLocaleString()}원`;
-  const avg=avgSatisfaction();
-  dom.resultComment.textContent=avg>=90?"손님들이 오늘의 안주를 오래 기억할 것 같습니다.":avg>=75?"정성스러운 한 접시가 손님들에게 잘 전해졌습니다.":"재료 준비와 조리 타이밍을 조금 더 다듬어 보세요.";
-  dom.resultOverlay.classList.add("open"); audio.serve(); updateUI(true);
-}
-
 function returnTitle() {
   state.screen="title"; state.phase="title"; state.paused=true; state.mini=null; state.orders=[]; state.carrying=null;
   dom.settingsOverlay.classList.remove("open"); dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
@@ -230,21 +199,6 @@ function buildMenuCards() {
   });
 }
 
-function spawnOrder(slot) {
-  const available=DISHES.filter(d=>state.inventory[d.id].count>0);
-  if(!available.length) return;
-  const dish=available[Math.floor(Math.random()*available.length)];
-  state.orders.push({ id:nextOrderId++, slot, dishId:dish.id, variant:Math.floor(Math.random()*6), entered:0, cookStep:0, cookScores:[] });
-  if(state.selectedOrderId==null) state.selectedOrderId=state.orders[state.orders.length-1].id;
-}
-
-function selectOrder(id) {
-  if(state.carrying){ showToast("먼저 들고 있는 음식을 주문한 손님에게 가져다주세요.",true); return; }
-  const order=state.orders.find(o=>o.id===id); if(!order) return;
-  state.selectedOrderId=id; audio.click(); updateUI(true);
-}
-
-function currentOrder() { return state.orders.find(o=>o.id===state.selectedOrderId) || null; }
 function currentRequirement() {
   if(state.phase==="day") {
     const dish=dishById(state.selectedDishId);
@@ -276,20 +230,6 @@ function interact() {
   const required=currentRequirement();
   if(station.id!==required){ showToast(`지금은 ${required?STATIONS[required].label:"주문 선택"} 단계입니다.`,true); return; }
   if(state.phase==="day") startPrepMini(station.id); else startCookMini(station.id);
-}
-
-function startPrepMini(stationId) {
-  const dish=dishById(state.selectedDishId);
-  if(!state.prepRun || state.prepRun.dishId!==dish.id) state.prepRun={dishId:dish.id,stepIndex:0,scores:[]};
-  const game={fridge:"collect",sink:"wash",board:"chop",gas:"heat"}[stationId];
-  startMini(game,stationId,{mode:"prep",dishId:dish.id});
-}
-function startCookMini(stationId) {
-  const order=currentOrder(); if(!order) return;
-  const dish=dishById(order.dishId);
-  if(state.inventory[dish.id].count<=0){ showToast(`${dish.name} 준비 재료가 모두 소진되었습니다.`,true); return; }
-  const step=dish.cook[order.cookStep];
-  startMini(step.game,stationId,{mode:"cook",orderId:order.id,dishId:dish.id});
 }
 
 function startMini(type,stationId,context) {
@@ -460,23 +400,6 @@ function completeMiniContext(m,score) {
   updateUI(true);
 }
 
-function tryDeliver() {
-  if(!state.carrying)return;
-  const order=state.orders.find(o=>o.id===state.carrying.orderId);if(!order)return;
-  const x=CUSTOMER_SEATS[order.slot], y=CUSTOMER_SERVICE_Y;
-  if(distance(state.player.x,state.player.y,x,y)>82){showToast("주문한 손님 앞까지 음식을 가져가세요.",true);return;}
-  serveOrder(order);
-}
-function serveOrder(order) {
-  const dish=dishById(order.dishId);const inv=state.inventory[dish.id];
-  const satisfaction=Math.round(clamp(inv.quality*.55+state.carrying.cookScore*.40+state.cleanliness*.05,0,100));
-  const stars=clamp(Math.ceil(satisfaction/20),1,5);const earned=Math.round(dish.price*(.75+satisfaction/200)/100)*100;
-  state.money+=earned;state.served++;state.satisfactionTotal+=satisfaction;if(stars===5)state.fiveStar++;
-  state.dirtyDishes=Math.min(6,state.dirtyDishes+1);state.cleanliness=clamp(state.cleanliness-2.5-state.trash*.4,0,100);
-  state.orders=state.orders.filter(o=>o.id!==order.id);state.respawns.push({slot:order.slot,time:2.2});state.carrying=null;state.selectedOrderId=state.orders[0]?.id||null;
-  spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${satisfaction}점`);showToast(`${dish.name} 제공 · 만족도 ${satisfaction}점`);audio.serve();updateUI(true);
-}
-
 function update(dt) {
   if(state.paused)return;
   if(["day","night"].includes(state.phase)){
@@ -524,8 +447,6 @@ function movePlayer(dx,dy) {
   const p=state.player;p.x=clamp(p.x+dx,WALK_BOUNDS.left,WALK_BOUNDS.right);p.y=clamp(p.y+dy,WALK_BOUNDS.top,WALK_BOUNDS.bottom);p.moving=true;
   if(Math.abs(dx)>Math.abs(dy))p.facing=dx>0?"right":"left";else p.facing=dy>0?"down":"up";
 }
-function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}
-
 function updateParticles(dt) {
   state.particles.forEach(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=20*dt;});state.particles=state.particles.filter(p=>p.life>0);
   state.popups.forEach(p=>{p.life-=dt;p.y-=25*dt;});state.popups=state.popups.filter(p=>p.life>0);
@@ -544,17 +465,6 @@ function updateUI(force=false) {
   dom.inventoryList.innerHTML=DISHES.map(d=>{const inv=state.inventory[d.id];return `<div class="inventory-row ${inv.count?"ready":""}"><i class="dot"></i><span>${d.name}<small>${inv.count?` · 품질 ${inv.quality}`:""}</small></span><strong>${inv.count}</strong></div>`;}).join("");
   if(state.phase==="day")updateDayObjective();else if(state.phase==="night")updateNightObjective();
   updatePrompt();
-}
-function updateDayObjective(){
-  const dish=dishById(state.selectedDishId);const run=state.prepRun&&state.prepRun.dishId===dish.id?state.prepRun:{stepIndex:0};const req=dish.prep[run.stepIndex];
-  dom.objectiveTitle.textContent="낮 준비";
-  dom.objectiveBody.innerHTML=`<div><strong>${dish.name}</strong> 3인분을 준비합니다.</div><div>${STATIONS[req].label} 앞으로 이동해 상호작용하세요.</div><div class="recipe-steps">${dish.prep.map((s,i)=>`<div class="recipe-step ${i<run.stepIndex?"done":i===run.stepIndex?"current":""}"><span>${i+1}</span><span>${STATIONS[s].label}</span></div>`).join("")}</div>`;
-}
-function updateNightObjective(){
-  const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
-  if(state.carrying){const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId);dom.objectiveBody.innerHTML=`<div><strong>${d.name}</strong> 완성!</div><div>${o?o.slot+1:"?"}번 손님 앞으로 직접 가져가면 자동으로 서빙됩니다.</div>`;return;}
-  if(!order){dom.objectiveBody.innerHTML="손님을 선택하세요.";return;}
-  const d=dishById(order.dishId),step=d.cook[order.cookStep];dom.objectiveBody.innerHTML=`<div><strong>${order.slot+1}번 손님 · ${d.name}</strong></div><div>낮에 준비한 재료로 <strong>${STATIONS[step.station].label}</strong>에서 바로 조리하세요.</div><div class="recipe-steps">${d.cook.map((s,i)=>`<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${STATIONS[s.station].label}</span></div>`).join("")}</div>`;
 }
 function updatePrompt(){
   if(state.paused||state.mini||!["day","night"].includes(state.phase)){dom.stationPrompt.classList.remove("show");return;}
