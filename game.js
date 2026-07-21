@@ -10,12 +10,12 @@ let carriedPlate = null;
 let carriedFood = null;
 
 const dom = Object.fromEntries([
-  "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeText","satisfactionText","moneyText",
+  "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
   "settingsButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
   "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniDescription","miniContent","miniFeedback",
-  "resultOverlay","servedResult","satisfactionResult","fiveStarResult","revenueResult","resultComment","nextDayButton",
+  "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -75,8 +75,15 @@ const state = {
   paused:true,
   settingsFrom:"title",
   day:1,
-  phaseTime:120,
+  phaseTime:null,
   money:0,
+  popularity:50,
+  popularityDelta:0,
+  dailyRevenue:0,
+  wasteLoss:0,
+  leftoverCount:0,
+  nightCustomerTarget:0,
+  spawnedCustomers:0,
   selectedDishId:"kimchi",
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
@@ -157,7 +164,7 @@ function showGameHud(show) {
 function startGame() {
   audio.init(); if(audio.ctx?.state==="suspended") audio.ctx.resume();
   state.screen="game"; state.phase="day"; state.paused=false; state.settingsFrom="game";
-  state.day=1; state.money=0; resetDay(true);
+  state.day=1; state.money=0; state.popularity=50; resetDay(true);
   dom.titleScreen.classList.remove("active");
   dom.gameScreen.classList.add("active");
   requestAnimationFrame(()=>phaserScene?.scale.refresh());
@@ -401,14 +408,14 @@ function completeMiniContext(m,score) {
 
 function update(dt) {
   if(state.paused)return;
-  if(["day","night"].includes(state.phase)){
-    state.phaseTime-=dt;
-    if(state.phaseTime<=0){state.phaseTime=0;if(state.phase==="day")beginNight();else endNight();}
-  }
   if(state.phase==="night"){
+    state.phaseTime-=dt;
+    if(state.phaseTime<=0){state.phaseTime=0;endNight();return;}
     state.orders.forEach(order=>order.entered=clamp(order.entered+dt*2.1,0,1));
     state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(r=>spawnOrder(r.slot));
     if(state.trash>=4)state.cleanliness=clamp(state.cleanliness-dt*.45,0,100);
+    const noActiveOrders=state.orders.length===0&&!state.carrying&&state.respawns.length===0;
+    if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){endNight();return;}
   }
   updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
 }
@@ -457,9 +464,9 @@ function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classLis
 function updateUI(force=false) {
   if(state.screen!=="game")return;
   dom.phaseName.textContent=state.phase==="day"?"낮 재료 준비":state.phase==="night"?"밤 영업":"영업 종료";
-  dom.dayText.textContent=state.day;dom.timeText.textContent=formatTime(state.phaseTime);dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
+  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase==="day"?"준비":"남은 시간";dom.timeText.textContent=state.phase==="day"?"제한 없음":formatTime(state.phaseTime);dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
   dom.phaseBadge.textContent=state.phase==="day"?"낮":"밤";dom.leftTitle.textContent=state.phase==="day"?"준비된 재료":"남은 준비 재료";
-  dom.phaseButton.style.display=state.phase==="day"?"block":"none";
+  dom.phaseButton.style.display=state.phase==="day"?"block":"none";dom.phaseButton.textContent="영업준비 완료";dom.phaseButton.disabled=state.phase==="day"&&(Object.values(state.inventory).every(item=>item.count===0)||!!state.prepRun||!!state.mini);
   dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
   [...dom.menuCards.children].forEach((card,i)=>{const d=DISHES[i],inv=state.inventory[d.id];card.classList.toggle("selected",state.phase==="day"&&state.selectedDishId===d.id);card.querySelector(".stock").textContent=inv.count;});
   dom.inventoryList.innerHTML=DISHES.map(d=>{const inv=state.inventory[d.id];return `<div class="inventory-row ${inv.count?"ready":""}"><i class="dot"></i><span>${d.name}<small>${inv.count?` · 품질 ${inv.quality}`:""}</small></span><strong>${inv.count}</strong></div>`;}).join("");

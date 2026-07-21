@@ -45,9 +45,10 @@
             <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
             <div class="hud-stats">
               <div><span>DAY</span><strong id="dayText">1</strong></div>
-              <div><span>TIME</span><strong id="timeText">02:00</strong></div>
+              <div><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
               <div><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
-              <div><span>매출</span><strong id="moneyText">0원</strong></div>
+              <div><span>인기도</span><strong id="popularityText">50</strong></div>
+              <div><span>보유금</span><strong id="moneyText">0원</strong></div>
               <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
             </div>
           </header>
@@ -58,7 +59,7 @@
               <span id="phaseBadge" class="badge">낮</span>
             </div>
             <div id="inventoryList" class="inventory-list"></div>
-            <button id="phaseButton" class="gold-button" type="button">밤 영업 시작</button>
+            <button id="phaseButton" class="gold-button" type="button">영업준비 완료</button>
           </aside>
 
           <aside id="rightHud" class="right-hud wood-panel hidden-hud">
@@ -110,10 +111,12 @@
               <p class="eyebrow">영업 종료</p>
               <h2 id="resultTitle">오늘의 정산</h2>
               <div class="result-grid">
-                <div><span>완성한 안주</span><strong id="servedResult">0</strong></div>
+                <div><span>서빙한 손님</span><strong id="servedResult">0</strong></div>
                 <div><span>평균 만족도</span><strong id="satisfactionResult">0점</strong></div>
                 <div><span>별 5개 접시</span><strong id="fiveStarResult">0</strong></div>
-                <div><span>오늘 매출</span><strong id="revenueResult">0원</strong></div>
+                <div><span>인기도 변화</span><strong id="popularityResult">-</strong></div>
+                <div><span>남은 재고 손실</span><strong id="wasteResult">0원</strong></div>
+                <div><span>오늘 순이익</span><strong id="revenueResult">0원</strong></div>
               </div>
               <div id="resultComment" class="result-comment"></div>
               <button id="nextDayButton" class="gold-button big" type="button">다음 날 준비</button>

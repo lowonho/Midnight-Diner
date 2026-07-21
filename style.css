@@ -63,7 +63,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .menu-card strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; font-size: clamp(8px,.78vw,12px); }
 .food-icon { width: min(48px,3.7vw); aspect-ratio: 1; margin: 1px auto 0; display: block; background: url("assets/food_sheet.png") no-repeat; background-size: 600% 100%; image-rendering: pixelated; }
 .menu-card .stock { position: absolute; right: 3px; bottom: 2px; min-width: 18px; padding: 1px 4px; border-radius: 9px; background: #2d1a11; color: #ffe7a8; text-align: center; font-size: clamp(7px,.66vw,10px); }
-.hud-stats { height: 75%; display: grid; grid-template-columns: .7fr 1.1fr 1.5fr 1.4fr .65fr; gap: 4px; }
+.hud-stats { height: 75%; display: grid; grid-template-columns: .65fr 1.05fr 1.35fr .85fr 1.25fr .55fr; gap: 4px; }
 .hud-stats > div { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #744522; border-radius: 5px; background: #160c08; }
 .hud-stats span { color: #b98d59; font-size: clamp(6px,.58vw,9px); }
 .hud-stats strong { color: #f7d58a; font-size: clamp(9px,.85vw,14px); white-space: nowrap; }
@@ -193,7 +193,7 @@ kbd { min-width: 25px; padding: 2px 4px; text-align: center; border: 1px solid #
   .left-hud,.right-hud { width:21%; }
   .controls-help { display:none; }
   .top-hud { grid-template-columns:14% 1fr 25%; }
-  .hud-stats { grid-template-columns:.7fr 1fr 1fr .6fr; }
+  .hud-stats { grid-template-columns:.7fr 1fr .8fr 1fr .6fr; }
   .hud-stats > div:nth-child(3) { display:none; }
   .station-prompt { bottom:18%; }
 }
