@@ -28,7 +28,9 @@ function loadImage(key, src) {
 Promise.all([
   loadImage("chef", "assets/chef_sheet.png"),
   loadImage("customers", "assets/customer_sheet.png"),
-  loadImage("food", "assets/food_sheet.png")
+  loadImage("food", "assets/food_sheet.png"),
+  loadImage("kitchenDay", "assets/kitchen-background-day.png"),
+  loadImage("kitchenNight", "assets/kitchen-background-night.png")
 ]).then(() => requestAnimationFrame(loop));
 
 const INGREDIENTS = {
@@ -50,20 +52,19 @@ const DISHES = [
 ];
 
 const STATIONS = {
-  // 냉장고는 예시 화면처럼 왼쪽 벽에 세로로 배치
-  fridge: { id:"fridge", label:"냉장고", x:195, y:205, w:105, h:230, ix:335, iy:405, facing:"left" },
-  // 나머지 집기는 모두 12시 방향 벽을 따라 일렬 배치
-  sink: { id:"sink", label:"싱크대", x:330, y:205, w:115, h:82, ix:388, iy:338, facing:"up" },
-  board: { id:"board", label:"도마", x:455, y:205, w:110, h:82, ix:510, iy:338, facing:"up" },
-  gas: { id:"gas", label:"가스버너", x:575, y:200, w:115, h:88, ix:633, iy:338, facing:"up" },
-  grill: { id:"grill", label:"직화구이", x:700, y:200, w:125, h:88, ix:763, iy:338, facing:"up" },
-  fryer: { id:"fryer", label:"튀김기", x:835, y:200, w:95, h:88, ix:883, iy:338, facing:"up" },
-  dishwasher: { id:"dishwasher", label:"식기세척기", x:940, y:200, w:80, h:88, ix:980, iy:338, facing:"up" },
-  trash: { id:"trash", label:"쓰레기통", x:1030, y:205, w:60, h:83, ix:1060, iy:338, facing:"up" }
+  fridge: { id:"fridge", label:"냉장고", x:260, y:290, w:82, h:190, ix:360, iy:430, facing:"left" },
+  sink: { id:"sink", label:"싱크대", x:350, y:475, w:100, h:64, ix:400, iy:445, facing:"down" },
+  board: { id:"board", label:"도마", x:458, y:475, w:96, h:64, ix:506, iy:445, facing:"down" },
+  gas: { id:"gas", label:"가스버너", x:562, y:475, w:104, h:66, ix:614, iy:445, facing:"down" },
+  grill: { id:"grill", label:"직화구이", x:674, y:475, w:112, h:66, ix:730, iy:445, facing:"down" },
+  fryer: { id:"fryer", label:"튀김기", x:794, y:475, w:86, h:66, ix:837, iy:445, facing:"down" },
+  dishwasher: { id:"dishwasher", label:"식기세척기", x:888, y:475, w:82, h:66, ix:929, iy:445, facing:"down" },
+  trash: { id:"trash", label:"쓰레기통", x:978, y:475, w:66, h:66, ix:1011, iy:445, facing:"down" }
 };
 
 const CUSTOMER_SEATS = [455, 620, 785, 950];
-const WALK_BOUNDS = { left:315, right:1090, top:325, bottom:610 };
+const CUSTOMER_SERVICE_Y = 475;
+const WALK_BOUNDS = { left:270, right:1020, top:315, bottom:465 };
 const keys = new Set();
 let lastTime = performance.now();
 let nextOrderId = 1;
@@ -95,8 +96,7 @@ const state = {
   mini:null,
   particles:[],
   popups:[],
-  autoInteractStation:null,
-  player:{ x:620, y:500, targetX:null, targetY:null, facing:"down", moving:false, frame:0, frameClock:0, speed:205 },
+  player:{ x:620, y:430, facing:"down", moving:false, frame:0, frameClock:0, speed:205 },
   audio:{ master:.70, bgm:.45, sfx:.75 }
 };
 
@@ -171,7 +171,7 @@ function resetDay(first=false) {
   state.inventory=Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0}]));
   state.prepRun=null; state.orders=[]; state.respawns=[]; state.carrying=null;
   state.served=0; state.satisfactionTotal=0; state.fiveStar=0; state.cleanliness=100; state.dirtyDishes=0; state.trash=0;
-  state.mini=null; state.player.x=620; state.player.y=500; state.player.targetX=null; state.player.targetY=null;
+  state.mini=null; state.player.x=620; state.player.y=430;
   dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
   if(!first) showToast(`${state.day}일차 낮 준비를 시작합니다.`);
   buildMenuCards(); updateUI(true);
@@ -181,7 +181,7 @@ function beginNight() {
   const total=Object.values(state.inventory).reduce((s,v)=>s+v.count,0);
   if(total===0){ showToast("먼저 한 가지 이상의 메뉴를 준비하세요.",true); return; }
   state.phase="night"; state.phaseTime=150; state.prepRun=null; state.selectedOrderId=null; state.carrying=null;
-  state.player.x=620; state.player.y=460; state.orders=[]; state.respawns=[];
+  state.player.x=620; state.player.y=430; state.orders=[]; state.respawns=[];
   for(let i=0;i<4;i++) spawnOrder(i);
   showToast("밤 영업 시작! 맛있는 한 접시를 완성하세요."); audio.success(); updateUI(true);
 }
@@ -463,7 +463,7 @@ function completeMiniContext(m,score) {
 function tryDeliver() {
   if(!state.carrying)return;
   const order=state.orders.find(o=>o.id===state.carrying.orderId);if(!order)return;
-  const x=CUSTOMER_SEATS[order.slot], y=585;
+  const x=CUSTOMER_SEATS[order.slot], y=CUSTOMER_SERVICE_Y;
   if(distance(state.player.x,state.player.y,x,y)>82){showToast("주문한 손님 앞까지 음식을 가져가세요.",true);return;}
   serveOrder(order);
 }
@@ -516,8 +516,7 @@ function updatePlayer(dt) {
   let vx=0,vy=0;
   if(keys.has("w")||keys.has("arrowup"))vy-=1;if(keys.has("s")||keys.has("arrowdown"))vy+=1;if(keys.has("a")||keys.has("arrowleft"))vx-=1;if(keys.has("d")||keys.has("arrowright"))vx+=1;
   if(Math.abs(state.joyX||0)>.05||Math.abs(state.joyY||0)>.05){vx=state.joyX;vy=state.joyY;}
-  if(vx||vy){p.targetX=null;p.targetY=null;state.autoInteractStation=null;const len=Math.hypot(vx,vy)||1;vx/=len;vy/=len;movePlayer(vx*p.speed*dt,vy*p.speed*dt);}
-  else if(p.targetX!=null){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d<5){p.targetX=null;p.targetY=null;p.moving=false;if(state.autoInteractStation){const id=state.autoInteractStation;state.autoInteractStation=null;if(nearStation(STATIONS[id]))interact();}}else movePlayer(dx/d*p.speed*dt,dy/d*p.speed*dt);}
+  if(vx||vy){const len=Math.hypot(vx,vy)||1;vx/=len;vy/=len;movePlayer(vx*p.speed*dt,vy*p.speed*dt);}
   else p.moving=false;
   if(p.moving){p.frameClock+=dt;if(p.frameClock>.13){p.frame=(p.frame+1)%4;p.frameClock=0;}}else p.frame=0;
 }
@@ -525,7 +524,7 @@ function movePlayer(dx,dy) {
   const p=state.player;p.x=clamp(p.x+dx,WALK_BOUNDS.left,WALK_BOUNDS.right);p.y=clamp(p.y+dy,WALK_BOUNDS.top,WALK_BOUNDS.bottom);p.moving=true;
   if(Math.abs(dx)>Math.abs(dy))p.facing=dx>0?"right":"left";else p.facing=dy>0?"down":"up";
 }
-function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],585)<64)serveOrder(order);}
+function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}
 
 function updateParticles(dt) {
   state.particles.forEach(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=20*dt;});state.particles=state.particles.filter(p=>p.life>0);
@@ -560,70 +559,19 @@ function updateNightObjective(){
 function updatePrompt(){
   if(state.paused||state.mini||!["day","night"].includes(state.phase)){dom.stationPrompt.classList.remove("show");return;}
   let text="";
-  if(state.phase==="night"&&state.carrying){const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],585)<95)text=`${order.slot+1}번 손님에게 ${dishById(state.carrying.dishId).name} 서빙`;}
+  if(state.phase==="night"&&state.carrying){const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<95)text=`${order.slot+1}번 손님에게 ${dishById(state.carrying.dishId).name} 서빙`;}
   const s=nearestStation();if(s){if(s.id==="dishwasher")text=state.dirtyDishes?"SPACE · 설거지하기":"씻을 그릇 없음";else if(s.id==="trash")text=state.trash?"SPACE · 쓰레기 정리":"쓰레기 없음";else text=`SPACE · ${s.label} 사용`;}
   dom.stationPrompt.textContent=text;dom.stationPrompt.classList.toggle("show",!!text);
 }
 
 function loop(now){const dt=Math.min(.033,(now-lastTime)/1000);lastTime=now;update(dt);draw();requestAnimationFrame(loop);}
-function draw(){ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawCustomers();drawGuidance();drawPlayer();drawParticles();drawLighting();}
+function draw(){ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawCustomers();drawGuidance();drawPlayer();drawParticles();}
 
 function drawKitchen(){
   const night=state.phase==="night"||state.phase==="result";
-
-  // 뒷벽과 바닥
-  ctx.fillStyle=night?"#252328":"#d3c09e";ctx.fillRect(0,0,W,720);
-  ctx.fillStyle=night?"#2c292a":"#dac8aa";ctx.fillRect(0,105,W,225);
-  ctx.strokeStyle=night?"rgba(137,111,88,.18)":"rgba(111,81,56,.19)";ctx.lineWidth=1;
-  for(let x=0;x<W;x+=42){ctx.beginPath();ctx.moveTo(x,105);ctx.lineTo(x,330);ctx.stroke();}
-  for(let y=105;y<330;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-
-  // 12시 방향 전체 조리대: 모든 집기가 한 줄로 벽에 붙어 보이도록 연결
-  ctx.fillStyle=night?"#4a3428":"#876143";ctx.fillRect(305,286,875,50);
-  ctx.fillStyle="#291912";ctx.fillRect(305,332,875,18);
-  for(let x=318;x<1170;x+=92){
-    ctx.fillStyle=night?"#32231c":"#68472f";
-    ctx.fillRect(x,288,78,43);
-    ctx.strokeStyle="#2b190f";ctx.strokeRect(x,288,78,43);
-    ctx.fillStyle="#b6814d";ctx.fillRect(x+37,307,5,3);
-  }
-
-  // 왼쪽 벽면과 냉장고 자리
-  ctx.fillStyle=night?"#392b25":"#aa8c67";ctx.fillRect(145,160,166,315);
-  ctx.strokeStyle=night?"#211815":"#765538";ctx.lineWidth=5;ctx.strokeRect(145,160,166,315);
-  ctx.fillStyle=night?"#2b201b":"#8a6b4b";ctx.fillRect(155,172,38,290);
-  for(let y=185;y<450;y+=44){ctx.strokeStyle="rgba(35,20,14,.35)";ctx.beginPath();ctx.moveTo(155,y);ctx.lineTo(193,y);ctx.stroke();}
-
-  // 오른쪽 벽의 집기장. 인터페이스가 이 장 위에 겹쳐 표시된다.
-  ctx.fillStyle=night?"#38251c":"#765033";ctx.fillRect(1080,145,184,350);
-  ctx.strokeStyle="#2b180f";ctx.lineWidth=6;ctx.strokeRect(1080,145,184,350);
-  ctx.fillStyle=night?"#281a14":"#55351f";ctx.fillRect(1092,160,160,92);
-  ctx.fillRect(1092,264,160,98);ctx.fillRect(1092,374,160,105);
-  ctx.strokeStyle="#a06e3b";ctx.lineWidth=2;
-  [252,362].forEach(y=>{ctx.beginPath();ctx.moveTo(1090,y);ctx.lineTo(1254,y);ctx.stroke();});
-  for(let i=0;i<5;i++){
-    ctx.fillStyle=i%2?"#b77b40":"#7d5330";
-    ctx.fillRect(1104+i*27,218-(i%2)*12,16,28+(i%2)*12);
-  }
-  ctx.fillStyle="#c08b50";ctx.fillRect(1130,414,7,5);ctx.fillRect(1207,414,7,5);
-
-  // 이동 가능한 바닥
-  ctx.fillStyle=night?"#3b302a":"#b99e78";ctx.fillRect(175,350,970,270);
-  for(let y=350;y<620;y+=48){for(let x=175;x<1145;x+=48){ctx.strokeStyle=night?"rgba(0,0,0,.2)":"rgba(93,67,43,.18)";ctx.strokeRect(x,y,48,48);}}
-
-  // 손님용 카운터와 의자
-  ctx.fillStyle="#3b2115";ctx.fillRect(335,575,690,45);
-  ctx.fillStyle="#74472a";ctx.fillRect(335,568,690,15);
-  CUSTOMER_SEATS.forEach(x=>{ctx.fillStyle="#522d20";ctx.fillRect(x-23,620,46,18);ctx.fillStyle="#2e1b13";ctx.fillRect(x-18,638,8,48);ctx.fillRect(x+10,638,8,48);});
-
-  // 중앙 창문
-  ctx.fillStyle=night?"#101723":"#8dc0d1";ctx.fillRect(500,125,330,64);
-  ctx.strokeStyle="#5b3b25";ctx.lineWidth=8;ctx.strokeRect(500,125,330,64);
-  ctx.beginPath();ctx.moveTo(665,125);ctx.lineTo(665,189);ctx.stroke();
-  if(night){ctx.fillStyle="#efd37c";for(let i=0;i<22;i++)ctx.fillRect(515+(i*47)%300,138+(i*23)%38,2,2);}else{ctx.fillStyle="rgba(255,243,183,.25)";ctx.fillRect(510,135,310,45);}
-
-  // 천장 조명
-  [385,665,945].forEach(x=>{ctx.strokeStyle="#4b3020";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,105);ctx.lineTo(x,148);ctx.stroke();ctx.fillStyle=night?"#e29a45":"#b77b3d";ctx.beginPath();ctx.ellipse(x,156,20,13,0,0,Math.PI*2);ctx.fill();if(night){const g=ctx.createRadialGradient(x,168,10,x,198,95);g.addColorStop(0,"rgba(255,179,78,.18)");g.addColorStop(1,"rgba(255,179,78,0)");ctx.fillStyle=g;ctx.fillRect(x-100,148,200,170);}});
+  const background=night?images.kitchenNight:images.kitchenDay;
+  if(background) ctx.drawImage(background,0,0,W,H);
+  else { ctx.fillStyle=night?"#17151a":"#b99e78";ctx.fillRect(0,0,W,H); }
 }
 
 function drawStations(){Object.values(STATIONS).forEach(drawStation);}
@@ -632,13 +580,13 @@ function drawStation(s){
   const working=state.mini?.stationId===s.id,t=performance.now()/1000;labelStation(s);
   ctx.fillStyle="#332117";ctx.fillRect(s.x,s.y,s.w,s.h);ctx.strokeStyle="#7f5130";ctx.lineWidth=4;ctx.strokeRect(s.x,s.y,s.w,s.h);
   if(s.id==="fridge"){
-    ctx.fillStyle="#7c8b82";ctx.fillRect(s.x+8,s.y+7,s.w-16,s.h-14);ctx.fillStyle="#b7c2b8";ctx.fillRect(s.x+16,s.y+18,s.w-32,70);ctx.fillRect(s.x+16,s.y+100,s.w-32,80);ctx.strokeStyle="#46554e";ctx.strokeRect(s.x+16,s.y+18,s.w-32,70);ctx.strokeRect(s.x+16,s.y+100,s.w-32,80);ctx.fillStyle="#2e3c37";ctx.fillRect(s.x+92,s.y+48,5,22);ctx.fillRect(s.x+92,s.y+132,5,22);
+    ctx.fillStyle="#7c8b82";ctx.fillRect(s.x+8,s.y+7,s.w-16,s.h-14);ctx.fillStyle="#b7c2b8";ctx.fillRect(s.x+14,s.y+18,s.w-28,64);ctx.fillRect(s.x+14,s.y+94,s.w-28,76);ctx.strokeStyle="#46554e";ctx.strokeRect(s.x+14,s.y+18,s.w-28,64);ctx.strokeRect(s.x+14,s.y+94,s.w-28,76);ctx.fillStyle="#2e3c37";ctx.fillRect(s.x+s.w-18,s.y+44,5,22);ctx.fillRect(s.x+s.w-18,s.y+124,5,22);
   } else if(s.id==="sink"){
     ctx.fillStyle="#a8a497";ctx.fillRect(s.x+8,s.y+10,s.w-16,48);ctx.fillStyle="#4e5b5b";ctx.beginPath();ctx.ellipse(s.x+s.w/2,s.y+32,42,18,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#c9c6b9";ctx.lineWidth=5;ctx.beginPath();ctx.arc(s.x+70,s.y+10,18,Math.PI,0);ctx.stroke();if(working){ctx.fillStyle="#b9e7ed";for(let i=0;i<7;i++)ctx.beginPath(),ctx.arc(s.x+30+i*12,s.y+35+Math.sin(t*8+i)*7,4,0,Math.PI*2),ctx.fill();}
   } else if(s.id==="board"){
-    ctx.fillStyle="#c99558";ctx.fillRect(s.x+15,s.y+14,s.w-30,46);ctx.strokeStyle="#6c3d20";ctx.strokeRect(s.x+15,s.y+14,s.w-30,46);ctx.save();ctx.translate(s.x+70,s.y+35);ctx.rotate(working?Math.sin(t*14)*.35:-.5);ctx.fillStyle="#cdd0cc";ctx.fillRect(-3,-28,7,44);ctx.fillStyle="#5f321e";ctx.fillRect(-4,16,9,18);ctx.restore();
+    ctx.fillStyle="#c99558";ctx.fillRect(s.x+15,s.y+14,s.w-30,46);ctx.strokeStyle="#6c3d20";ctx.strokeRect(s.x+15,s.y+14,s.w-30,46);ctx.save();ctx.translate(s.x+s.w*.62,s.y+35);ctx.rotate(working?Math.sin(t*14)*.35:-.5);ctx.fillStyle="#cdd0cc";ctx.fillRect(-3,-28,7,44);ctx.fillStyle="#5f321e";ctx.fillRect(-4,16,9,18);ctx.restore();
   } else if(s.id==="gas"){
-    ctx.fillStyle="#69645c";ctx.fillRect(s.x+8,s.y+10,s.w-16,52);ctx.fillStyle="#171717";ctx.beginPath();ctx.arc(s.x+65,s.y+36,28,0,Math.PI*2);ctx.fill();ctx.fillStyle=working?"#dd7433":"#41413d";ctx.beginPath();ctx.arc(s.x+65,s.y+36,18,0,Math.PI*2);ctx.fill();ctx.fillStyle="#97918a";ctx.beginPath();ctx.ellipse(s.x+65,s.y+22,38,12,0,0,Math.PI*2);ctx.fill();if(working)drawSteam(s.x+65,s.y+5,4);
+    ctx.fillStyle="#69645c";ctx.fillRect(s.x+8,s.y+10,s.w-16,52);ctx.fillStyle="#171717";ctx.beginPath();ctx.arc(s.x+s.w/2,s.y+36,26,0,Math.PI*2);ctx.fill();ctx.fillStyle=working?"#dd7433":"#41413d";ctx.beginPath();ctx.arc(s.x+s.w/2,s.y+36,17,0,Math.PI*2);ctx.fill();ctx.fillStyle="#97918a";ctx.beginPath();ctx.ellipse(s.x+s.w/2,s.y+22,36,12,0,0,Math.PI*2);ctx.fill();if(working)drawSteam(s.x+s.w/2,s.y+5,4);
   } else if(s.id==="grill"){
     ctx.fillStyle="#24211e";ctx.fillRect(s.x+9,s.y+10,s.w-18,54);ctx.strokeStyle="#7f7369";ctx.lineWidth=2;for(let i=0;i<7;i++){ctx.beginPath();ctx.moveTo(s.x+18+i*16,s.y+14);ctx.lineTo(s.x+18+i*16,s.y+60);ctx.stroke();}for(let i=0;i<4;i++){ctx.strokeStyle="#a66d3d";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(s.x+24,s.y+25+i*10);ctx.lineTo(s.x+112,s.y+25+i*10+(working?Math.sin(t*10+i)*2:0));ctx.stroke();}if(working){ctx.fillStyle="#ef762f";for(let i=0;i<5;i++)ctx.fillRect(s.x+25+i*20,s.y+52+Math.sin(t*9+i)*4,6,10);}
   } else if(s.id==="fryer"){
@@ -655,21 +603,9 @@ function drawCustomers(){if(state.phase!=="night"&&state.phase!=="result")return
 function drawGuidance(){const req=currentRequirement();if(!req||state.paused||state.mini)return;const s=STATIONS[req],t=performance.now()/1000,pulse=15+Math.sin(t*5)*5;ctx.strokeStyle="rgba(255,220,125,.92)";ctx.lineWidth=4;ctx.beginPath();ctx.arc(s.ix,s.iy-10,pulse,0,Math.PI*2);ctx.stroke();ctx.fillStyle="rgba(255,220,125,.92)";ctx.beginPath();ctx.moveTo(s.ix,s.iy-57-Math.sin(t*6)*5);ctx.lineTo(s.ix-10,s.iy-74-Math.sin(t*6)*5);ctx.lineTo(s.ix+10,s.iy-74-Math.sin(t*6)*5);ctx.fill();}
 function drawPlayer(){const p=state.player,dirs={down:0,left:1,right:2,up:3},row=dirs[p.facing]+(state.mini?4:0),frame=state.mini?Math.floor(performance.now()/110)%4:p.frame;if(images.chef)ctx.drawImage(images.chef,frame*48,row*64,48,64,p.x-33,p.y-73,66,88);else{ctx.fillStyle="#a44f3f";ctx.fillRect(p.x-20,p.y-55,40,55);}if(state.carrying){const d=dishById(state.carrying.dishId);ctx.fillStyle="#eee6d5";ctx.beginPath();ctx.ellipse(p.x,p.y-85,28,9,0,0,Math.PI*2);ctx.fill();drawFoodIcon(d.icon,p.x-18,p.y-108,36);}}
 function drawParticles(){state.particles.forEach(p=>{ctx.globalAlpha=clamp(p.life/.7,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);});ctx.globalAlpha=1;state.popups.forEach(p=>{ctx.globalAlpha=clamp(p.life,0,1);ctx.fillStyle="#ffe08c";ctx.strokeStyle="#4b2514";ctx.lineWidth=4;ctx.font="bold 21px Malgun Gothic";ctx.textAlign="center";ctx.strokeText(p.text,p.x,p.y);ctx.fillText(p.text,p.x,p.y);});ctx.textAlign="left";ctx.globalAlpha=1;}
-function drawLighting(){if(state.phase==="night"||state.phase==="result"){ctx.fillStyle="rgba(8,12,27,.28)";ctx.fillRect(0,0,W,H);const g=ctx.createRadialGradient(720,360,70,720,360,390);g.addColorStop(0,"rgba(255,181,78,.11)");g.addColorStop(1,"rgba(255,181,78,0)");ctx.fillStyle=g;ctx.fillRect(250,120,950,560);}else if(state.phase==="title"){ctx.fillStyle="rgba(9,5,4,.42)";ctx.fillRect(0,0,W,H);}else{const g=ctx.createLinearGradient(350,160,900,520);g.addColorStop(0,"rgba(255,247,204,.12)");g.addColorStop(1,"rgba(255,247,204,0)");ctx.fillStyle=g;ctx.fillRect(180,100,970,520);}}
 function drawFoodIcon(index,x,y,size){if(images.food)ctx.drawImage(images.food,index*64,0,64,64,x,y,size,size);else{ctx.fillStyle="#d69c4b";ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*.35,0,Math.PI*2);ctx.fill();}}
 function roundRect(c,x,y,w,h,r,fill,stroke){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);if(fill)c.fill();if(stroke)c.stroke();}
 
-function pointerToCanvas(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
-function handleCanvasPointer(e){if(state.paused||state.mini||!["day","night"].includes(state.phase))return;const p=pointerToCanvas(e);
-  if(state.phase==="night"){
-    const clicked=state.orders.find(o=>Math.abs(p.x-CUSTOMER_SEATS[o.slot])<55&&p.y>490&&p.y<690);if(clicked){selectOrder(clicked.id);return;}
-  }
-  const station=Object.values(STATIONS).find(s=>p.x>=s.x-10&&p.x<=s.x+s.w+10&&p.y>=s.y-35&&p.y<=s.y+s.h+35);
-  if(station){state.player.targetX=station.ix;state.player.targetY=station.iy;state.autoInteractStation=station.id;return;}
-  if(p.x>=WALK_BOUNDS.left&&p.x<=WALK_BOUNDS.right&&p.y>=WALK_BOUNDS.top&&p.y<=WALK_BOUNDS.bottom){state.player.targetX=p.x;state.player.targetY=p.y;state.autoInteractStation=null;}
-}
-
-canvas.addEventListener("pointerdown",handleCanvasPointer);
 dom.startButton.addEventListener("click",startGame);
 dom.titleSettingsButton.addEventListener("click",()=>openSettings("title"));
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
