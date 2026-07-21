@@ -2,11 +2,12 @@
 
 ## 실행 방법
 1. 압축을 해제합니다.
-2. `index.html`을 실행합니다.
-3. 브라우저에서 로컬 이미지가 제한되면 VS Code의 Live Server로 폴더를 실행합니다.
+2. VS Code의 Live Server 등 로컬 웹 서버로 폴더를 실행합니다.
+3. Phaser와 게임 에셋 로딩을 위해 `file://` 대신 `http://localhost` 주소로 접속합니다.
 
 ## JavaScript 구성
-- `game.js`: 공통 상태, 입력, 미니게임, UI 및 Canvas 렌더링
+- `phaser.min.js`: Phaser 3.90 게임 엔진
+- `game.js`: 공통 상태, 입력, 미니게임, UI 및 Phaser 렌더링 연결
 - `day.js`: 낮 준비 초기화, 재료 준비 및 목표 UI
 - `night.js`: 밤 영업, 주문, 조리, 서빙 및 정산
 

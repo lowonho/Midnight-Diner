@@ -36,7 +36,8 @@ button { -webkit-tap-highlight-color: transparent; }
   box-shadow: 0 0 0 3px #130b08, 0 24px 70px #000;
 }
 
-#gameCanvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; touch-action: none; }
+#gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; }
+#gameCanvas canvas { width: 100% !important; height: 100% !important; display: block; image-rendering: pixelated; }
 .hidden-hud { opacity: 0; pointer-events: none !important; }
 .wood-panel {
   color: var(--cream);

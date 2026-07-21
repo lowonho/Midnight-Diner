@@ -34,7 +34,7 @@
     <main id="gameScreen" class="app-screen game-screen" aria-label="심야식당 게임 화면">
       <section id="gameApp" class="game-app phase-title">
         <section class="game-frame" aria-label="심야식당 게임">
-          <canvas id="gameCanvas" width="1280" height="720" aria-label="캐릭터가 움직이는 식당 주방"></canvas>
+          <div id="gameCanvas" role="img" aria-label="캐릭터가 움직이는 식당 주방"></div>
 
           <header id="topHud" class="top-hud wood-panel hidden-hud">
             <div class="small-logo">
@@ -145,6 +145,7 @@
       </div>
     </section>
   </div>
+  <script src="phaser.min.js"></script>
   <script src="day.js"></script>
   <script src="night.js"></script>
   <script src="game.js"></script>

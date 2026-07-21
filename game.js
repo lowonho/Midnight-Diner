@@ -1,10 +1,13 @@
 "use strict";
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-ctx.imageSmoothingEnabled = false;
-const W = canvas.width;
-const H = canvas.height;
+const W = 1280;
+const H = 720;
+let ctx = null;
+let phaserScene = null;
+let frameTexture = null;
+let playerSprite = null;
+let carriedPlate = null;
+let carriedFood = null;
 
 const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeText","satisfactionText","moneyText",
@@ -17,21 +20,6 @@ const dom = Object.fromEntries([
 ].map(id => [id, document.getElementById(id)]));
 
 const images = {};
-function loadImage(key, src) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => { images[key] = img; resolve(); };
-    img.onerror = () => { images[key] = null; resolve(); };
-    img.src = src;
-  });
-}
-Promise.all([
-  loadImage("chef", "assets/chef_sheet.png"),
-  loadImage("customers", "assets/customer_sheet.png"),
-  loadImage("food", "assets/food_sheet.png"),
-  loadImage("kitchenDay", "assets/kitchen-background-day.png"),
-  loadImage("kitchenNight", "assets/kitchen-background-night.png")
-]).then(() => requestAnimationFrame(loop));
 
 const INGREDIENTS = {
   kimchi: ["김치", "부침가루", "대파"],
@@ -65,8 +53,6 @@ const STATIONS = {
 const CUSTOMER_SEATS = [455, 620, 785, 950];
 const CUSTOMER_SERVICE_Y = 475;
 const WALK_BOUNDS = { left:270, right:1020, top:365, bottom:465 };
-const keys = new Set();
-let lastTime = performance.now();
 let nextOrderId = 1;
 let toastTimer = 0;
 let joystickPointer = null;
@@ -96,7 +82,7 @@ const state = {
   mini:null,
   particles:[],
   popups:[],
-  player:{ x:620, y:430, facing:"down", moving:false, frame:0, frameClock:0, speed:205 },
+  player:{ x:620, y:430, facing:"down", moving:false, speed:205 },
   audio:{ master:.70, bgm:.45, sfx:.75 }
 };
 
@@ -163,6 +149,7 @@ function startGame() {
   state.day=1; state.money=0; resetDay(true);
   dom.titleScreen.classList.remove("active");
   dom.gameScreen.classList.add("active");
+  requestAnimationFrame(()=>phaserScene?.scale.refresh());
   showGameHud(true); audio.startBgm(); audio.success();
 }
 
@@ -225,6 +212,7 @@ function interact() {
   if(state.phase==="night" && state.carrying) { tryDeliver(); return; }
   const station=nearestStation();
   if(!station){ showToast("사용할 집기 가까이 이동하세요.",true); return; }
+  state.player.facing=station.facing;
   if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast("씻을 그릇이 없습니다.");return;} startMini("dishwasher",station.id,{utility:true}); return; }
   if(station.id==="trash") { if(state.trash<=0){showToast("버릴 쓰레기가 없습니다.");return;} startMini("trash",station.id,{utility:true}); return; }
   const required=currentRequirement();
@@ -407,6 +395,7 @@ function update(dt) {
     if(state.phaseTime<=0){state.phaseTime=0;if(state.phase==="day")beginNight();else endNight();}
   }
   if(state.phase==="night"){
+    state.orders.forEach(order=>order.entered=clamp(order.entered+dt*2.1,0,1));
     state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(r=>spawnOrder(r.slot));
     if(state.trash>=4)state.cleanliness=clamp(state.cleanliness-dt*.45,0,100);
   }
@@ -437,11 +426,11 @@ function updateMini(dt) {
 function updatePlayer(dt) {
   const p=state.player;if(state.mini||!["day","night"].includes(state.phase)){p.moving=false;return;}
   let vx=0,vy=0;
-  if(keys.has("w")||keys.has("arrowup"))vy-=1;if(keys.has("s")||keys.has("arrowdown"))vy+=1;if(keys.has("a")||keys.has("arrowleft"))vx-=1;if(keys.has("d")||keys.has("arrowright"))vx+=1;
+  const move=phaserScene?.moveKeys;
+  if(move?.up.isDown||move?.w.isDown)vy-=1;if(move?.down.isDown||move?.s.isDown)vy+=1;if(move?.left.isDown||move?.a.isDown)vx-=1;if(move?.right.isDown||move?.d.isDown)vx+=1;
   if(Math.abs(state.joyX||0)>.05||Math.abs(state.joyY||0)>.05){vx=state.joyX;vy=state.joyY;}
   if(vx||vy){const len=Math.hypot(vx,vy)||1;vx/=len;vy/=len;movePlayer(vx*p.speed*dt,vy*p.speed*dt);}
   else p.moving=false;
-  if(p.moving){p.frameClock+=dt;if(p.frameClock>.13){p.frame=(p.frame+1)%4;p.frameClock=0;}}else p.frame=0;
 }
 function movePlayer(dx,dy) {
   const p=state.player;p.x=clamp(p.x+dx,WALK_BOUNDS.left,WALK_BOUNDS.right);p.y=clamp(p.y+dy,WALK_BOUNDS.top,WALK_BOUNDS.bottom);p.moving=true;
@@ -474,8 +463,24 @@ function updatePrompt(){
   dom.stationPrompt.textContent=text;dom.stationPrompt.classList.toggle("show",!!text);
 }
 
-function loop(now){const dt=Math.min(.033,(now-lastTime)/1000);lastTime=now;update(dt);draw();requestAnimationFrame(loop);}
-function draw(){ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawCustomers();drawGuidance();drawPlayer();drawParticles();}
+function draw(){
+  if(!ctx)return;
+  ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawCustomers();drawGuidance();drawParticles();
+  frameTexture?.refresh();
+}
+
+function syncPhaserObjects(){
+  if(!playerSprite)return;
+  const p=state.player,dirs={down:0,left:1,right:2,up:3};
+  playerSprite.setPosition(p.x,p.y);
+  if(state.mini) playerSprite.play(`chef-work-${p.facing}`,true);
+  else if(p.moving) playerSprite.play(`chef-walk-${p.facing}`,true);
+  else { playerSprite.stop();playerSprite.setFrame(dirs[p.facing]*4); }
+  const carrying=state.carrying;
+  carriedPlate.setVisible(!!carrying).setPosition(p.x,p.y-85);
+  carriedFood.setVisible(!!carrying).setPosition(p.x,p.y-90);
+  if(carrying) carriedFood.setFrame(dishById(carrying.dishId).icon);
+}
 
 function drawKitchen(){
   const night=state.phase==="night"||state.phase==="result";
@@ -509,9 +514,8 @@ function drawStation(s){
 }
 function drawSteam(x,y,count){const t=performance.now()/700;ctx.strokeStyle="rgba(246,239,218,.7)";ctx.lineWidth=3;for(let i=0;i<count;i++){const ox=(i-count/2)*10,rise=((t+i*.23)%1)*25;ctx.globalAlpha=1-rise/25;ctx.beginPath();ctx.moveTo(x+ox,y-rise);ctx.bezierCurveTo(x+ox-6,y-rise-6,x+ox+6,y-rise-13,x+ox,y-rise-19);ctx.stroke();}ctx.globalAlpha=1;}
 
-function drawCustomers(){if(state.phase!=="night"&&state.phase!=="result")return;const t=performance.now()/1000;state.orders.forEach(order=>{order.entered=clamp(order.entered+.035,0,1);const x=CUSTOMER_SEATS[order.slot],y=lerp(700,603,order.entered),frame=Math.floor(t*2+order.id)%4;if(images.customers)ctx.drawImage(images.customers,frame*44,order.variant*60,44,60,x-27,y-62,54,74);else{ctx.fillStyle="#48352b";ctx.fillRect(x-20,y-55,40,55);}const selected=state.selectedOrderId===order.id;ctx.fillStyle=selected?"#fff0bd":"#efd9ae";roundRect(ctx,x-38,y-115,76,55,9,true,false);ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;roundRect(ctx,x-38,y-115,76,55,9,false,true);drawFoodIcon(dishById(order.dishId).icon,x-19,y-110,38);ctx.fillStyle="#3b2518";ctx.beginPath();ctx.moveTo(x-5,y-60);ctx.lineTo(x+6,y-50);ctx.lineTo(x+10,y-60);ctx.fill();if(selected){ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y-29,37+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();}ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";ctx.fillText(`${order.slot+1}`,x,y-122);ctx.textAlign="left";});}
+function drawCustomers(){if(state.phase!=="night"&&state.phase!=="result")return;const t=performance.now()/1000;state.orders.forEach(order=>{const x=CUSTOMER_SEATS[order.slot],entered=1-Math.pow(1-order.entered,3),y=lerp(700,603,entered),frame=Math.floor(t*2+order.id)%4;if(images.customers)ctx.drawImage(images.customers,frame*44,order.variant*60,44,60,x-27,y-62,54,74);else{ctx.fillStyle="#48352b";ctx.fillRect(x-20,y-55,40,55);}const selected=state.selectedOrderId===order.id;ctx.fillStyle=selected?"#fff0bd":"#efd9ae";roundRect(ctx,x-38,y-115,76,55,9,true,false);ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;roundRect(ctx,x-38,y-115,76,55,9,false,true);drawFoodIcon(dishById(order.dishId).icon,x-19,y-110,38);ctx.fillStyle="#3b2518";ctx.beginPath();ctx.moveTo(x-5,y-60);ctx.lineTo(x+6,y-50);ctx.lineTo(x+10,y-60);ctx.fill();if(selected){ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y-29,37+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();}ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";ctx.fillText(`${order.slot+1}`,x,y-122);ctx.textAlign="left";});}
 function drawGuidance(){const req=currentRequirement();if(!req||state.paused||state.mini)return;const s=STATIONS[req],t=performance.now()/1000,pulse=15+Math.sin(t*5)*5;ctx.strokeStyle="rgba(255,220,125,.92)";ctx.lineWidth=4;ctx.beginPath();ctx.arc(s.ix,s.iy-10,pulse,0,Math.PI*2);ctx.stroke();ctx.fillStyle="rgba(255,220,125,.92)";ctx.beginPath();ctx.moveTo(s.ix,s.iy-57-Math.sin(t*6)*5);ctx.lineTo(s.ix-10,s.iy-74-Math.sin(t*6)*5);ctx.lineTo(s.ix+10,s.iy-74-Math.sin(t*6)*5);ctx.fill();}
-function drawPlayer(){const p=state.player,dirs={down:0,left:1,right:2,up:3},row=dirs[p.facing]+(state.mini?4:0),frame=state.mini?Math.floor(performance.now()/110)%4:p.frame;if(images.chef)ctx.drawImage(images.chef,frame*48,row*64,48,64,p.x-33,p.y-73,66,88);else{ctx.fillStyle="#a44f3f";ctx.fillRect(p.x-20,p.y-55,40,55);}if(state.carrying){const d=dishById(state.carrying.dishId);ctx.fillStyle="#eee6d5";ctx.beginPath();ctx.ellipse(p.x,p.y-85,28,9,0,0,Math.PI*2);ctx.fill();drawFoodIcon(d.icon,p.x-18,p.y-108,36);}}
 function drawParticles(){state.particles.forEach(p=>{ctx.globalAlpha=clamp(p.life/.7,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);});ctx.globalAlpha=1;state.popups.forEach(p=>{ctx.globalAlpha=clamp(p.life,0,1);ctx.fillStyle="#ffe08c";ctx.strokeStyle="#4b2514";ctx.lineWidth=4;ctx.font="bold 21px Malgun Gothic";ctx.textAlign="center";ctx.strokeText(p.text,p.x,p.y);ctx.fillText(p.text,p.x,p.y);});ctx.textAlign="left";ctx.globalAlpha=1;}
 function drawFoodIcon(index,x,y,size){if(images.food)ctx.drawImage(images.food,index*64,0,64,64,x,y,size,size);else{ctx.fillStyle="#d69c4b";ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*.35,0,Math.PI*2);ctx.fill();}}
 function roundRect(c,x,y,w,h,r,fill,stroke){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);if(fill)c.fill();if(stroke)c.stroke();}
@@ -541,13 +545,79 @@ window.addEventListener("keydown",e=>{
   }
   if(e.code==="Space"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
-  keys.add(k);
 });
-window.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.transform=`translate(${px}px,${py}px)`;state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
 function endJoystick(e){if(e.pointerId!==joystickPointer)return;joystickPointer=null;state.joyX=0;state.joyY=0;dom.joystickKnob.style.transform="translate(0,0)";}
 dom.joystick.addEventListener("pointerdown",beginJoystick);dom.joystick.addEventListener("pointermove",moveJoystick);dom.joystick.addEventListener("pointerup",endJoystick);dom.joystick.addEventListener("pointercancel",endJoystick);
 
-buildMenuCards();showGameHud(false);dom.titleScreen.classList.add("active");dom.gameScreen.classList.remove("active");updateUI(true);draw();
+class DinerScene extends Phaser.Scene {
+  constructor(){super("DinerScene");}
+
+  preload(){
+    this.load.spritesheet("chef", "assets/chef_sheet.png", {frameWidth:48,frameHeight:64});
+    this.load.spritesheet("customers", "assets/customer_sheet.png", {frameWidth:44,frameHeight:60});
+    this.load.spritesheet("food", "assets/food_sheet.png", {frameWidth:64,frameHeight:64});
+    this.load.image("kitchenDay", "assets/kitchen-background-day.png");
+    this.load.image("kitchenNight", "assets/kitchen-background-night.png");
+  }
+
+  create(){
+    phaserScene=this;
+    images.customers=this.textures.get("customers").getSourceImage();
+    images.food=this.textures.get("food").getSourceImage();
+    images.kitchenDay=this.textures.get("kitchenDay").getSourceImage();
+    images.kitchenNight=this.textures.get("kitchenNight").getSourceImage();
+
+    frameTexture=this.textures.createCanvas("dinerFrame",W,H);
+    ctx=frameTexture.getContext();
+    ctx.imageSmoothingEnabled=false;
+    this.add.image(0,0,"dinerFrame").setOrigin(0).setDepth(0);
+
+    playerSprite=this.add.sprite(state.player.x,state.player.y,"chef",0)
+      .setOrigin(.5,73/88).setDisplaySize(66,88).setDepth(10);
+    carriedPlate=this.add.ellipse(state.player.x,state.player.y-85,56,18,0xeee6d5)
+      .setDepth(11).setVisible(false);
+    carriedFood=this.add.sprite(state.player.x,state.player.y-90,"food",0)
+      .setDisplaySize(36,36).setDepth(12).setVisible(false);
+
+    const directions=["down","left","right","up"];
+    directions.forEach((direction,row)=>{
+      this.anims.create({key:`chef-walk-${direction}`,frames:this.anims.generateFrameNumbers("chef",{start:row*4,end:row*4+3}),frameRate:8,repeat:-1});
+      this.anims.create({key:`chef-work-${direction}`,frames:this.anims.generateFrameNumbers("chef",{start:(row+4)*4,end:(row+4)*4+3}),frameRate:10,repeat:-1});
+    });
+
+    this.moveKeys=this.input.keyboard.addKeys({
+      up:Phaser.Input.Keyboard.KeyCodes.UP,
+      down:Phaser.Input.Keyboard.KeyCodes.DOWN,
+      left:Phaser.Input.Keyboard.KeyCodes.LEFT,
+      right:Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      w:Phaser.Input.Keyboard.KeyCodes.W,
+      a:Phaser.Input.Keyboard.KeyCodes.A,
+      s:Phaser.Input.Keyboard.KeyCodes.S,
+      d:Phaser.Input.Keyboard.KeyCodes.D
+    });
+
+    buildMenuCards();showGameHud(false);dom.titleScreen.classList.add("active");dom.gameScreen.classList.remove("active");updateUI(true);draw();syncPhaserObjects();
+  }
+
+  update(_time,delta){
+    update(Math.min(.033,delta/1000));
+    draw();
+    syncPhaserObjects();
+  }
+}
+
+const phaserGame=new Phaser.Game({
+  type:Phaser.AUTO,
+  width:W,
+  height:H,
+  parent:"gameCanvas",
+  backgroundColor:"#17100d",
+  pixelArt:true,
+  antialias:false,
+  roundPixels:false,
+  scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+  scene:DinerScene
+});
