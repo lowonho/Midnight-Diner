@@ -2,8 +2,8 @@
 
 ## 실행 방법
 1. 압축을 해제합니다.
-2. VS Code의 Live Server 등 로컬 웹 서버로 폴더를 실행합니다.
-3. Phaser와 게임 에셋 로딩을 위해 `file://` 대신 `http://localhost` 주소로 접속합니다.
+2. `index.html`을 직접 열거나 VS Code의 Live Server로 실행합니다.
+3. 배포 환경과 동일한 테스트가 필요할 때는 Live Server 사용을 권장합니다.
 
 ## JavaScript 구성
 - `phaser.min.js`: Phaser 3.90 게임 엔진

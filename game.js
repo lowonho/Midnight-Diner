@@ -20,6 +20,17 @@ const dom = Object.fromEntries([
 ].map(id => [id, document.getElementById(id)]));
 
 const images = {};
+function loadNativeImage(key,src){
+  return new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>{images[key]=image;resolve(image);};
+    image.onerror=()=>reject(new Error(`이미지를 불러오지 못했습니다: ${src}`));
+    image.src=src;
+  });
+}
+
+dom.startButton.disabled=true;
+dom.startButton.textContent="게임 불러오는 중…";
 
 const INGREDIENTS = {
   kimchi: ["김치", "부침가루", "대파"],
@@ -456,11 +467,32 @@ function updateUI(force=false) {
   updatePrompt();
 }
 function updatePrompt(){
-  if(state.paused||state.mini||!["day","night"].includes(state.phase)){dom.stationPrompt.classList.remove("show");return;}
-  let text="";
-  if(state.phase==="night"&&state.carrying){const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<95)text=`${order.slot+1}번 손님에게 ${dishById(state.carrying.dishId).name} 서빙`;}
-  const s=nearestStation();if(s){if(s.id==="dishwasher")text=state.dirtyDishes?"SPACE · 설거지하기":"씻을 그릇 없음";else if(s.id==="trash")text=state.trash?"SPACE · 쓰레기 정리":"쓰레기 없음";else text=`SPACE · ${s.label} 사용`;}
-  dom.stationPrompt.textContent=text;dom.stationPrompt.classList.toggle("show",!!text);
+  const prompt=dom.stationPrompt;
+  const hide=(mobileAction=false)=>{prompt.classList.remove("show");prompt.disabled=true;dom.actionButton.classList.toggle("available",mobileAction);};
+  if(state.paused||!["day","night"].includes(state.phase)){hide();return;}
+  if(state.mini){hide(true);return;}
+  let text="",x=0,y=0;
+  if(state.phase==="night"&&state.carrying){
+    const order=state.orders.find(o=>o.id===state.carrying.orderId);
+    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+      text=`SPACE · ${order.slot+1}번 손님에게 서빙`;
+      x=CUSTOMER_SEATS[order.slot];y=520;
+    }
+  }else{
+    const station=nearestStation();
+    if(station){
+      const required=currentRequirement();
+      if(station.id==="dishwasher"&&state.dirtyDishes>0)text="SPACE · 설거지하기";
+      else if(station.id==="trash"&&state.trash>0)text="SPACE · 쓰레기 정리";
+      else if(station.id===required)text=`SPACE · ${station.label} 사용`;
+      if(text){x=station.ix;y=station.y+station.h+60;}
+    }
+  }
+  if(!text){hide();return;}
+  prompt.textContent=text;prompt.disabled=false;
+  prompt.style.left=`${x/W*100}%`;prompt.style.top=`${y/H*100}%`;
+  prompt.classList.add("show");
+  dom.actionButton.classList.add("available");
 }
 
 function draw(){
@@ -528,6 +560,7 @@ dom.returnTitleButton.addEventListener("click",returnTitle);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",()=>{state.day++;state.paused=false;resetDay(false);});
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
+dom.stationPrompt.addEventListener("click",interact);
 
 [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;audio.apply();}));
 
@@ -555,20 +588,11 @@ dom.joystick.addEventListener("pointerdown",beginJoystick);dom.joystick.addEvent
 class DinerScene extends Phaser.Scene {
   constructor(){super("DinerScene");}
 
-  preload(){
-    this.load.spritesheet("chef", "assets/chef_sheet.png", {frameWidth:48,frameHeight:64});
-    this.load.spritesheet("customers", "assets/customer_sheet.png", {frameWidth:44,frameHeight:60});
-    this.load.spritesheet("food", "assets/food_sheet.png", {frameWidth:64,frameHeight:64});
-    this.load.image("kitchenDay", "assets/kitchen-background-day.png");
-    this.load.image("kitchenNight", "assets/kitchen-background-night.png");
-  }
-
   create(){
     phaserScene=this;
-    images.customers=this.textures.get("customers").getSourceImage();
-    images.food=this.textures.get("food").getSourceImage();
-    images.kitchenDay=this.textures.get("kitchenDay").getSourceImage();
-    images.kitchenNight=this.textures.get("kitchenNight").getSourceImage();
+    this.textures.addSpriteSheet("chef",images.chef,{frameWidth:48,frameHeight:64});
+    this.textures.addSpriteSheet("customers",images.customers,{frameWidth:44,frameHeight:60});
+    this.textures.addSpriteSheet("food",images.food,{frameWidth:64,frameHeight:64});
 
     frameTexture=this.textures.createCanvas("dinerFrame",W,H);
     ctx=frameTexture.getContext();
@@ -599,6 +623,7 @@ class DinerScene extends Phaser.Scene {
       d:Phaser.Input.Keyboard.KeyCodes.D
     });
 
+    dom.startButton.disabled=false;dom.startButton.textContent="게임 시작";
     buildMenuCards();showGameHud(false);dom.titleScreen.classList.add("active");dom.gameScreen.classList.remove("active");updateUI(true);draw();syncPhaserObjects();
   }
 
@@ -609,15 +634,29 @@ class DinerScene extends Phaser.Scene {
   }
 }
 
-const phaserGame=new Phaser.Game({
-  type:Phaser.AUTO,
-  width:W,
-  height:H,
-  parent:"gameCanvas",
-  backgroundColor:"#17100d",
-  pixelArt:true,
-  antialias:false,
-  roundPixels:false,
-  scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
-  scene:DinerScene
+function bootPhaser(){
+  return new Phaser.Game({
+    type:Phaser.CANVAS,
+    width:W,
+    height:H,
+    parent:"gameCanvas",
+    backgroundColor:"#17100d",
+    pixelArt:true,
+    antialias:false,
+    roundPixels:false,
+    scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+    scene:DinerScene
+  });
+}
+
+Promise.all([
+  loadNativeImage("chef","assets/chef_sheet.png"),
+  loadNativeImage("customers","assets/customer_sheet.png"),
+  loadNativeImage("food","assets/food_sheet.png"),
+  loadNativeImage("kitchenDay","assets/kitchen-background-day.png"),
+  loadNativeImage("kitchenNight","assets/kitchen-background-night.png")
+]).then(bootPhaser).catch(error=>{
+  console.error(error);
+  dom.startButton.textContent="에셋 로딩 실패";
+  dom.pauseMessage.textContent="게임 이미지를 불러오지 못했습니다. 파일 위치를 확인해 주세요.";
 });
