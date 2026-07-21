@@ -29,10 +29,6 @@ function loadNativeImage(key,src){
   });
 }
 
-dom.startButton.disabled=true;
-dom.startButton.textContent="게임 불러오는 중…";
-dom.continueButton.disabled=true;
-
 const INGREDIENTS = {
   kimchi: ["김치", "부침가루", "대파"],
   skewer: ["닭고기", "대파", "파프리카"],
@@ -69,11 +65,6 @@ let nextOrderId = 1;
 let toastTimer = 0;
 let joystickPointer = null;
 let bgmTimer = null;
-let gameReady = false;
-let autosaveElapsed = 0;
-
-const SAVE_KEY="midnightDiner.save.v1";
-const SAVE_VERSION=1;
 
 const state = {
   screen:"title",
@@ -119,85 +110,10 @@ function shuffle(arr) { return [...arr].sort(() => Math.random()-.5); }
 function formatTime(sec) { sec=Math.max(0,Math.ceil(sec)); return `${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`; }
 function avgSatisfaction() { return state.served ? Math.round(state.satisfactionTotal/state.served) : 0; }
 
-function readSaveData(){
-  try{
-    const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;
-    const data=JSON.parse(raw);
-    if(data.version!==SAVE_VERSION||!data.state||!["day","night","result"].includes(data.state.phase)||!Number.isFinite(data.state.day)||!data.state.inventory)throw new Error("지원하지 않는 저장 데이터");
-    return data;
-  }catch(error){
-    console.warn("저장 데이터를 읽지 못했습니다.",error);
-    try{localStorage.removeItem(SAVE_KEY);}catch(_error){}
-    return null;
-  }
-}
-
-function savePhaseLabel(phase){return phase==="day"?"낮 준비":phase==="night"?"밤 영업":"영업 정산";}
-
-function updateContinueButton(){
-  const data=readSaveData();
-  dom.continueButton.disabled=!gameReady||!data;
-  if(!data){dom.continueButton.textContent="이어하기";dom.saveInfo.textContent="저장 데이터가 없습니다.";return;}
-  dom.continueButton.textContent="이어하기";
-  dom.saveInfo.textContent=`DAY ${data.state.day} · ${savePhaseLabel(data.state.phase)} · 인기도 ${data.state.popularity}`;
-}
-
-function saveGame(){
-  if(state.screen!=="game"||!["day","night","result"].includes(state.phase)||state.mini)return false;
-  try{
-    const snapshot=JSON.parse(JSON.stringify(state));
-    snapshot.screen="game";snapshot.settingsFrom="game";snapshot.paused=snapshot.phase==="result";
-    snapshot.mini=null;snapshot.particles=[];snapshot.popups=[];snapshot.joyX=0;snapshot.joyY=0;snapshot.player.moving=false;
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:SAVE_VERSION,savedAt:Date.now(),nextOrderId,state:snapshot}));
-    updateContinueButton();
-    return true;
-  }catch(error){console.warn("게임을 저장하지 못했습니다.",error);return false;}
-}
-
-function clearSaveData(){
-  try{localStorage.removeItem(SAVE_KEY);}catch(error){console.warn("저장 데이터를 삭제하지 못했습니다.",error);}
-  updateContinueButton();
-}
-
-function openGameScreen(){
-  dom.settingsOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
-  dom.titleScreen.classList.remove("active");dom.gameScreen.classList.add("active");
-  requestAnimationFrame(()=>phaserScene?.scale.refresh());showGameHud(true);
-}
-
 function syncAudioControls(){
   [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>{
     const value=Math.round(state.audio[key]*100);input.value=value;label.textContent=`${value}%`;
   });
-}
-
-function continueGame(){
-  const data=readSaveData();if(!data){updateContinueButton();return;}
-  const saved=data.state;
-  const savedAudio={...state.audio,...(saved.audio||{})};
-  Object.assign(state,saved);
-  const numericDefaults={day:1,money:0,popularity:0,popularityBeforeResult:0,popularityDelta:0,dailyRevenue:0,wasteLoss:0,leftoverCount:0,nightCustomerTarget:0,spawnedCustomers:0,served:0,satisfactionTotal:0,fiveStar:0,cleanliness:100,dirtyDishes:0,trash:0};
-  Object.entries(numericDefaults).forEach(([key,fallback])=>{if(!Number.isFinite(state[key]))state[key]=fallback;});
-  state.audio=savedAudio;
-  state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,...(saved.inventory?.[dish.id]||{})}]));
-  state.orders=Array.isArray(saved.orders)?saved.orders:[];state.respawns=Array.isArray(saved.respawns)?saved.respawns:[];
-  state.player={x:620,y:430,facing:"down",moving:false,speed:205,...(saved.player||{}),moving:false};
-  state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;
-  if(state.phase==="day")state.phaseTime=null;
-  else if(!Number.isFinite(state.phaseTime))state.phaseTime=0;
-  nextOrderId=Math.max(Number(data.nextOrderId)||1,...state.orders.map(order=>(Number(order.id)||0)+1));
-
-  audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
-  dom.resultOverlay.classList.toggle("open",state.phase==="result");
-  buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
-  if(state.phase==="result")renderNightResult();
-  else audio.startBgm();
-  audio.success();
-}
-
-function startNewGame(){
-  if(readSaveData()&&!window.confirm("기존 이어하기 데이터를 지우고 새 게임을 시작할까요?"))return;
-  clearSaveData();startGame();saveGame();
 }
 
 const audio = {
@@ -247,21 +163,6 @@ const audio = {
 
 function showGameHud(show) {
   [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle("hidden-hud",!show));
-}
-
-function startGame() {
-  audio.init(); if(audio.ctx?.state==="suspended") audio.ctx.resume();
-  state.screen="game"; state.phase="day"; state.paused=false; state.settingsFrom="game";
-  state.day=1;state.money=0;state.popularity=0;nextOrderId=1;resetDay(true);
-  openGameScreen();audio.startBgm();audio.success();
-}
-
-function returnTitle() {
-  saveGame();state.screen="title";state.paused=true;state.mini=null;
-  dom.settingsOverlay.classList.remove("open"); dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
-  dom.gameScreen.classList.remove("active");
-  dom.titleScreen.classList.add("active");
-  showGameHud(false);audio.stopBgm();updateContinueButton();
 }
 
 function openSettings(from=state.screen) {
@@ -504,7 +405,7 @@ function update(dt) {
     if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){endNight();return;}
   }
   updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
-  if(!state.mini){autosaveElapsed+=dt;if(autosaveElapsed>=5){autosaveElapsed=0;saveGame();}}
+  updateAutosave(dt);
 }
 
 function updateMini(dt) {
@@ -646,12 +547,8 @@ function drawParticles(){state.particles.forEach(p=>{ctx.globalAlpha=clamp(p.lif
 function drawFoodIcon(index,x,y,size){if(images.food)ctx.drawImage(images.food,index*64,0,64,64,x,y,size,size);else{ctx.fillStyle="#d69c4b";ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*.35,0,Math.PI*2);ctx.fill();}}
 function roundRect(c,x,y,w,h,r,fill,stroke){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);if(fill)c.fill();if(stroke)c.stroke();}
 
-dom.startButton.addEventListener("click",startNewGame);
-dom.continueButton.addEventListener("click",continueGame);
-dom.titleSettingsButton.addEventListener("click",()=>openSettings("title"));
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
-dom.returnTitleButton.addEventListener("click",returnTitle);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",()=>{state.day++;state.paused=false;resetDay(false);saveGame();});
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
@@ -674,9 +571,6 @@ window.addEventListener("keydown",e=>{
   if(e.code==="Space"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
-window.addEventListener("pagehide",()=>saveGame());
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveGame();});
-
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.transform=`translate(${px}px,${py}px)`;state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
 function endJoystick(e){if(e.pointerId!==joystickPointer)return;joystickPointer=null;state.joyX=0;state.joyY=0;dom.joystickKnob.style.transform="translate(0,0)";}
@@ -720,7 +614,7 @@ class DinerScene extends Phaser.Scene {
       d:Phaser.Input.Keyboard.KeyCodes.D
     });
 
-    gameReady=true;dom.startButton.disabled=false;dom.startButton.textContent="새 게임";updateContinueButton();
+    markTitleGameReady();
     buildMenuCards();showGameHud(false);dom.titleScreen.classList.add("active");dom.gameScreen.classList.remove("active");updateUI(true);draw();syncPhaserObjects();
   }
 
@@ -746,6 +640,9 @@ function bootPhaser(){
   });
 }
 
+initializeSaveSystem();
+initializeTitleScreen();
+
 Promise.all([
   loadNativeImage("chef","assets/chef_sheet.png"),
   loadNativeImage("customers","assets/customer_sheet.png"),
@@ -754,7 +651,5 @@ Promise.all([
   loadNativeImage("kitchenNight","assets/kitchen-background-night.png")
 ]).then(bootPhaser).catch(error=>{
   console.error(error);
-  dom.startButton.textContent="에셋 로딩 실패";
-  dom.continueButton.disabled=true;
-  dom.pauseMessage.textContent="게임 이미지를 불러오지 못했습니다. 파일 위치를 확인해 주세요.";
+  markTitleLoadFailed();
 });
