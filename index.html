@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#120b08" />
+  <title>심야식당 - 낮의 준비, 밤의 한 접시</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="appRoot" class="app-root">
+    <section id="titleScreen" class="app-screen title-screen active" aria-labelledby="gameTitle">
+      <div class="title-backdrop" aria-hidden="true">
+        <div class="store-awning"></div>
+        <span class="title-lamp lamp-one"></span>
+        <span class="title-lamp lamp-two"></span>
+        <span class="title-steam steam-one"></span>
+        <span class="title-steam steam-two"></span>
+        <div class="street-glow"></div>
+      </div>
+      <div class="title-window">
+        <div class="title-logo" id="gameTitle">
+          <span class="logo-spark">✦</span>
+          <small>낮의 준비 · 밤의 한 접시</small>
+          <strong>심야식당</strong>
+          <em>오늘도 영업합니다</em>
+        </div>
+        <p>낮에는 재료를 정성껏 준비하고, 밤에는 손님에게 맛있는 안주를 내어주세요.<br />게임 시작을 누르면 주방 화면으로 전환됩니다.</p>
+        <button id="startButton" class="gold-button title-start" type="button">게임 시작</button>
+        <button id="titleSettingsButton" class="text-button" type="button">설정</button>
+      </div>
+    </section>
+
+    <main id="gameScreen" class="app-screen game-screen" aria-label="심야식당 게임 화면">
+      <section id="gameApp" class="game-app phase-title">
+        <section class="game-frame" aria-label="심야식당 게임">
+          <canvas id="gameCanvas" width="1280" height="720" aria-label="캐릭터가 움직이는 식당 주방"></canvas>
+
+          <header id="topHud" class="top-hud wood-panel hidden-hud">
+            <div class="small-logo">
+              <span>✦</span>
+              <strong>심야식당</strong>
+              <small id="phaseName">낮 준비</small>
+            </div>
+            <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
+            <div class="hud-stats">
+              <div><span>DAY</span><strong id="dayText">1</strong></div>
+              <div><span>TIME</span><strong id="timeText">02:00</strong></div>
+              <div><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
+              <div><span>매출</span><strong id="moneyText">0원</strong></div>
+              <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
+            </div>
+          </header>
+
+          <aside id="leftHud" class="left-hud wood-panel hidden-hud">
+            <div class="panel-heading">
+              <strong id="leftTitle">오늘의 준비</strong>
+              <span id="phaseBadge" class="badge">낮</span>
+            </div>
+            <div id="inventoryList" class="inventory-list"></div>
+            <button id="phaseButton" class="gold-button" type="button">밤 영업 시작</button>
+          </aside>
+
+          <aside id="rightHud" class="right-hud wood-panel hidden-hud">
+            <div class="panel-heading">
+              <strong id="objectiveTitle">현재 목표</strong>
+              <span class="phase-dot"></span>
+            </div>
+            <div id="objectiveBody" class="objective-body"></div>
+            <div class="cleanliness-box">
+              <div><span>청결도</span><strong id="cleanlinessText">100</strong></div>
+              <div class="clean-track"><i id="cleanlinessBar"></i></div>
+              <small id="cleaningText">설거지 0 · 쓰레기 0</small>
+            </div>
+            <div class="controls-help">
+              <div><kbd>WASD</kbd><span>이동</span></div>
+              <div><kbd>SPACE</kbd><span>상호작용</span></div>
+              <div><kbd>1~4</kbd><span>손님 선택</span></div>
+              <div><kbd>ESC</kbd><span>설정 / 일시정지</span></div>
+            </div>
+          </aside>
+
+          <div id="stationPrompt" class="station-prompt" aria-live="polite"></div>
+          <div id="toast" class="toast" aria-live="polite"></div>
+
+          <div id="mobileControls" class="mobile-controls hidden-hud" aria-label="모바일 조작">
+            <div id="joystick" class="joystick" aria-label="이동 조이스틱">
+              <div id="joystickKnob" class="joystick-knob"></div>
+            </div>
+            <button id="actionButton" class="action-button" type="button">ACTION</button>
+          </div>
+
+          <section id="miniOverlay" class="overlay mini-overlay" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
+            <div class="mini-window wood-panel">
+              <div class="mini-heading">
+                <div>
+                  <p id="miniStation" class="eyebrow">조리대</p>
+                  <h2 id="miniTitle">미니게임</h2>
+                </div>
+                <div id="miniTimer" class="mini-timer">8.0</div>
+              </div>
+              <p id="miniDescription" class="mini-description"></p>
+              <div id="miniContent" class="mini-content"></div>
+              <div id="miniFeedback" class="mini-feedback" aria-live="polite"></div>
+            </div>
+          </section>
+
+          <section id="resultOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+            <div class="result-window wood-panel">
+              <p class="eyebrow">영업 종료</p>
+              <h2 id="resultTitle">오늘의 정산</h2>
+              <div class="result-grid">
+                <div><span>완성한 안주</span><strong id="servedResult">0</strong></div>
+                <div><span>평균 만족도</span><strong id="satisfactionResult">0점</strong></div>
+                <div><span>별 5개 접시</span><strong id="fiveStarResult">0</strong></div>
+                <div><span>오늘 매출</span><strong id="revenueResult">0원</strong></div>
+              </div>
+              <div id="resultComment" class="result-comment"></div>
+              <button id="nextDayButton" class="gold-button big" type="button">다음 날 준비</button>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <section id="settingsOverlay" class="global-overlay settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-window wood-panel">
+        <p class="eyebrow">PAUSE MENU</p>
+        <h2 id="settingsTitle">설정</h2>
+        <p id="pauseMessage" class="pause-message">게임이 일시정지되었습니다.</p>
+        <label class="volume-row" for="masterVolume">
+          <span>전체 볼륨</span><strong id="masterVolumeValue">70%</strong>
+          <input id="masterVolume" type="range" min="0" max="100" value="70" />
+        </label>
+        <label class="volume-row" for="bgmVolume">
+          <span>배경음악</span><strong id="bgmVolumeValue">45%</strong>
+          <input id="bgmVolume" type="range" min="0" max="100" value="45" />
+        </label>
+        <label class="volume-row" for="sfxVolume">
+          <span>효과음</span><strong id="sfxVolumeValue">75%</strong>
+          <input id="sfxVolume" type="range" min="0" max="100" value="75" />
+        </label>
+        <button id="resumeButton" class="gold-button big" type="button">게임으로 돌아가기</button>
+        <button id="returnTitleButton" class="dark-button" type="button">타이틀 화면으로</button>
+      </div>
+    </section>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
