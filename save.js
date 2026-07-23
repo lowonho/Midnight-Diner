@@ -109,7 +109,9 @@ function restoreGameState(data){
   state.orders=Array.isArray(saved.orders)?saved.orders.map(normalizeStoryOrder):[];
   state.respawns=Array.isArray(saved.respawns)?saved.respawns:[];
   state.departures=[];
-  state.player={x:620,y:430,facing:"down",moving:false,speed:205,...(saved.player||{}),moving:false};
+  state.player={x:620,y:448,facing:"down",moving:false,speed:205,...(saved.player||{}),moving:false};
+  state.player.x=clamp(state.player.x,WALK_BOUNDS.left,WALK_BOUNDS.right);
+  state.player.y=clamp(state.player.y,WALK_BOUNDS.top,WALK_BOUNDS.bottom);
   state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";
   state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;
   if(state.phase==="day")state.phaseTime=null;

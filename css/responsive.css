@@ -4,7 +4,7 @@
   .controls-help { display: none; }
   .top-hud { grid-template-columns: 14% 1fr 25%; }
   .hud-stats { grid-template-columns: .7fr 1fr .8fr 1fr .6fr; }
-  .hud-stats > div:nth-child(3) { display: none; }
+  .hud-stats .stat-satisfaction { display: none; }
   .station-prompt { bottom: 18%; }
 }
 
@@ -12,7 +12,7 @@
   .small-logo { display: none; }
   .top-hud { grid-template-columns: 1fr 27%; }
   .menu-card strong { font-size: 7px; }
-  .left-hud, .right-hud { width: 21%; padding: .6%; }
+  .left-hud, .right-hud { width: 19.5%; padding: .6%; }
   .objective-body { font-size: 7px; }
   .inventory-row { min-height: 18px; font-size: 7px; }
   .gold-button { padding: 5px; font-size: 8px; }

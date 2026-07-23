@@ -507,14 +507,17 @@ function runStoryQaFromQuery(){
   if(!sceneId||!STORY_SCENES[sceneId])return false;
   const qaScene=STORY_SCENES[sceneId];
   state.story=createStoryState();
+  normalizeDayPrepState();
   state.screen="game";state.phase=qaScene.moment==="nightEnd"?"result":qaScene.moment==="nightStart"?"night":"day";
   state.day=qaScene.day||1;state.paused=false;
   openGameScreen();buildMenuCards();updateUI(true);syncPhaserObjects();
   if(params.get("qa-order")==="1"&&state.phase==="night"){
     state.phaseTime=NIGHT_DURATION;state.orders=[];state.respawns=[];state.spawnedCustomers=0;state.nightCustomerTarget=4;
+    state.selectedMenus=["kimchi"];
     state.inventory.kimchi={count:4,quality:85};
     if(qaScene.character&&STORY_GUEST_IDS.includes(qaScene.character))revealCharacterName(qaScene.character,false);
     prepareStoryNight();spawnOrder(0);
+    updateUI(true);
   }
   playStoryScenes([sceneId]);
   const lineIndex=Math.max(0,Number(params.get("qa-line"))||0);

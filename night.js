@@ -19,7 +19,7 @@ function reservedStock(dishId){
   const dish=dishById(dishId);
   return state.orders.filter(order=>order.dishId===dishId&&order.cookStep<dish.cook.length).length;
 }
-function hasOrderableStock(){return DISHES.some(dish=>state.inventory[dish.id].count>reservedStock(dish.id));}
+function hasOrderableStock(){return DISHES.some(dish=>state.selectedMenus.includes(dish.id)&&state.inventory[dish.id].count>reservedStock(dish.id));}
 
 function beginNight() {
   const total=Object.values(state.inventory).reduce((sum,item)=>sum+item.count,0);
@@ -36,7 +36,7 @@ function beginNight() {
     return;
   }
   state.phase="night";state.phaseTime=NIGHT_DURATION;state.prepRun=null;state.selectedOrderId=null;state.carrying=null;
-  state.player.x=620;state.player.y=430;state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
+  state.player.x=620;state.player.y=448;state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
   const plannedGuests=state.story.pendingNightGuests.length;
   state.nightCustomerTarget=Math.max(rollNightCustomerCount(state.popularity),plannedGuests);
   const initialCustomers=Math.min(CUSTOMER_SEATS.length,state.nightCustomerTarget,Math.max(2,plannedGuests));
@@ -99,7 +99,7 @@ function renderNightResult(){
 
 function spawnOrder(slot) {
   if(state.spawnedCustomers>=state.nightCustomerTarget)return false;
-  const available=DISHES.filter(dish=>state.inventory[dish.id].count>reservedStock(dish.id));
+  const available=DISHES.filter(dish=>state.selectedMenus.includes(dish.id)&&state.inventory[dish.id].count>reservedStock(dish.id));
   if(!available.length)return false;
   const dish=available[Math.floor(Math.random()*available.length)];
   const order=decorateStoryOrder({id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),entered:0,cookStep:0,cookScores:[]});
@@ -118,6 +118,22 @@ function selectOrder(id) {
 }
 
 function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId)||null;}
+
+function renderNightOrderList(){
+  const signature=`open|${state.selectedOrderId}|${state.carrying?.orderId||0}|${state.orders.map(order=>`${order.id}:${order.cookStep}`).join(",")}`;
+  if(dom.inventoryList.dataset.signature===signature)return;
+  dom.inventoryList.dataset.signature=signature;
+  if(!state.orders.length){
+    dom.inventoryList.innerHTML='<div class="order-empty">현재 대기 중인 주문이 없습니다.</div>';
+    return;
+  }
+  dom.inventoryList.innerHTML=`<div class="order-list">${state.orders.map(order=>{
+    const dish=dishById(order.dishId),selected=order.id===state.selectedOrderId;
+    const status=state.carrying?.orderId===order.id?"완성 · 제공 대기":order.cookStep?`조리 ${order.cookStep}/${dish.cook.length}`:"조리 대기";
+    return `<button class="order-row ${selected?"selected":""}" data-order-id="${order.id}" type="button"><span>${order.slot+1}</span><strong>${dish.name}</strong>${order.specialRecipe?'<small class="special-order">특별</small>':""}<em>${status}</em></button>`;
+  }).join("")}</div>`;
+  dom.inventoryList.querySelectorAll("[data-order-id]").forEach(button=>button.addEventListener("click",()=>selectOrder(Number(button.dataset.orderId))));
+}
 
 function startCookMini(stationId) {
   const order=currentOrder();if(!order)return;
@@ -205,5 +221,5 @@ function updateNightObjective(){
   if(!order){dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>다음 손님을 기다리고 있습니다.</div>`;return;}
   const d=dishById(order.dishId),step=d.cook[order.cookStep];
   const special=order.specialRecipe?" · 특별 조리":"";
-  dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${storyOrderLabel(order)} · ${d.name}${special}</strong></div><div><strong>${STATIONS[step.station].label}</strong>에서 조리하세요.</div><div class="recipe-steps">${d.cook.map((s,i)=>`<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${STATIONS[s.station].label}</span></div>`).join("")}</div>`;
+  dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${storyOrderLabel(order)} · ${d.name}${special}</strong></div><div><strong>${stationById(step.station).label}</strong>에서 조리하세요.</div><div class="recipe-steps">${d.cook.map((s,i)=>`<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${stationById(s.station).label}</span></div>`).join("")}</div>`;
 }

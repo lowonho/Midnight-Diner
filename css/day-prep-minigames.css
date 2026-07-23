@@ -48,6 +48,11 @@
   border-radius: 15px 38px 19px 34px;
   background: repeating-linear-gradient(105deg,#b9472f 0 22px,#d55f35 23px 40px,#8fa14b 41px 47px);
 }
+.tofu-shape {
+  border-color: #b8aa85;
+  border-radius: 9px;
+  background: #eee5c9;
+}
 .cut-line {
   position: absolute;
   top: -5px;

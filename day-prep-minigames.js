@@ -46,8 +46,10 @@ function dayPrepAssetMarkup(key,className,alt=""){
   return `<img class="prep-asset ${className}" src="${dayPrepAssets[key].src}" alt="${alt}" draggable="false" />`;
 }
 
-function timingAssetKey(taskId,successes){
-  return taskId==="cutRadish"?`radish${successes}`:`kimchiCut${successes}`;
+function timingAssetKey(ingredient,successes){
+  if(ingredient==="radish")return `radish${successes}`;
+  if(ingredient==="kimchi")return `kimchiCut${successes}`;
+  return `${ingredient}${successes}`;
 }
 
 function isDayPrepMini(mini=state.mini){
@@ -57,12 +59,12 @@ function isDayPrepMini(mini=state.mini){
 function startDayPrepMini(task){
   state.mini={
     type:`day-prep-${task.id}`,
-    stationId:task.stationId,
+    stationId:"prepTable",
     context:{mode:"dayPrep",taskId:task.id},
     complete:false,
     data:{}
   };
-  dom.miniStation.textContent=STATIONS[task.stationId].label;
+  dom.miniStation.textContent=`준비 테이블 · ${task.objectLabel}`;
   dom.miniFeedback.textContent="";
   dom.miniContent.innerHTML="";
   dom.miniClose.hidden=false;
@@ -76,22 +78,44 @@ function startDayPrepMini(task){
 
 function setupDayPrepTiming(taskId){
   const m=state.mini,config=DAY_PREP_MINI_CONFIG[taskId];
-  m.data={mode:"timing",taskId,marker:0,direction:1,successes:0,...config};
-  dom.miniTitle.textContent=config.title;
-  dom.miniDescription.textContent=taskId==="cutRadish"
-    ?"[1/1] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
-    :"[1/2] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 3번 썹니다.";
+  startCuttingMinigame({
+    taskId,
+    ingredient:taskId==="cutRadish"?"radish":"kimchi",
+    requiredHits:config.total,
+    hitZoneWidth:config.zoneWidth,
+    speed:config.speed,
+    zoneStarts:config.zoneStarts,
+    title:config.title,
+    onComplete:taskId==="prepareKimchi"
+      ?()=>{state.kimchiPrep.cuttingComplete=true;setTimeout(()=>{if(state.mini===m&&!m.complete)setupKimchiFry();},320);}
+      :()=>finishDayPrepTask(taskId,"무 썰기 완료"),
+    description:taskId==="cutRadish"
+      ?"[1/1] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
+      :"[1/2] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 3번 썹니다."
+  });
+}
+
+// 두부 썰기 등 후속 조리는 같은 함수에 설정만 전달해 연결할 수 있습니다.
+function startCuttingMinigame(options){
+  const m=state.mini;
+  const width={wide:.24,normal:.18,narrow:.14}[options.hitZoneWidth]??options.hitZoneWidth??.18;
+  const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
+  const defaults=[.18,.56,.32,.66,.42];
+  const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
+  m.data={mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete};
+  dom.miniTitle.textContent=options.title;
+  dom.miniDescription.textContent=options.description;
   renderDayPrepTiming();
 }
 
 function renderDayPrepTiming(){
-  const m=state.mini,data=m.data,isRadish=data.taskId==="cutRadish";
+  const m=state.mini,data=m.data,isRadish=data.ingredient==="radish";
   const zoneLeft=data.zoneStarts[data.successes];
-  const objectAssetKey=timingAssetKey(data.taskId,data.successes);
+  const objectAssetKey=timingAssetKey(data.ingredient,data.successes);
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   dom.miniContent.innerHTML=`
-    <div class="prep-work-object ${isRadish?"radish-shape":"kimchi-shape"} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${isRadish?"무":"김치"}">
-      ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 김치")}
+    <div class="prep-work-object ${data.ingredient}-shape ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${data.ingredient}">
+      ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
       ${Array.from({length:data.total},(_,index)=>`<i class="cut-line ${index<data.successes?"done":""}" style="left:${(index+1)/(data.total+1)*100}%"></i>`).join("")}
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
     </div>
@@ -187,7 +211,7 @@ function dayPrepPrimaryAction(){
   data.successes++;
   const work=dom.miniContent.querySelector("#prepWorkObject");
   work?.classList.add("slice-hit");
-  const nextAssetKey=timingAssetKey(data.taskId,data.successes);
+  const nextAssetKey=timingAssetKey(data.ingredient,data.successes);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
   dom.miniContent.querySelector(`.cut-line:nth-child(${data.successes})`)?.classList.add("done");
@@ -196,10 +220,7 @@ function dayPrepPrimaryAction(){
   if(progress)progress.textContent=`진행 ${data.successes} / ${data.total}`;
   dom.miniFeedback.textContent="절단 성공";
   if(data.successes>=data.total){
-    if(data.taskId==="prepareKimchi"){
-      state.kimchiPrep.cuttingComplete=true;
-      setTimeout(()=>{if(state.mini===m&&!m.complete)setupKimchiFry();},320);
-    }else finishDayPrepTask("cutRadish","무 썰기 완료");
+    if(typeof data.onComplete==="function")data.onComplete();
     return;
   }
   setTimeout(()=>{if(state.mini===m&&!m.complete)renderDayPrepTiming();},180);
