@@ -294,13 +294,24 @@ function setupMini() {
 
 function renderIngredientChoices() {
   const m=state.mini; if(!m||m.type!=="collect"||m.data.showing) return;
-  const pool=shuffle([...new Set([...m.data.target,"달걀","양파","버섯","소금"])]).slice(0,6);
+  const pool=buildIngredientChoicePool(m.data.target);
   const wrap=dom.miniContent.querySelector("#ingredientChoices"); wrap.innerHTML="";
   pool.forEach(name=>{ const b=document.createElement("button");b.type="button";b.className="choice-button";b.textContent=name;b.addEventListener("click",()=>{
     const expected=m.data.target[m.data.input.length];
     if(name===expected){m.data.input.push(name);b.classList.add("correct");b.disabled=true;audio.click();dom.miniFeedback.textContent=`${m.data.input.length} / ${m.data.target.length}`;if(m.data.input.length===m.data.target.length) finishMini(Math.max(70,100-m.data.errors*15));}
     else {m.data.errors++;b.classList.add("wrong");setTimeout(()=>b.classList.remove("wrong"),250);audio.bad();dom.miniFeedback.textContent="순서가 달라요!";}
   });wrap.appendChild(b);});
+}
+
+function buildIngredientChoicePool(target,choiceCount=6){
+  const required=[...new Set(target)];
+  const allIngredients=[...new Set([
+    ...Object.values(INGREDIENTS).flat(),
+    "달걀","양파","버섯","소금"
+  ])];
+  const distractors=shuffle(allIngredients.filter(name=>!required.includes(name)))
+    .slice(0,Math.max(0,choiceCount-required.length));
+  return shuffle([...required,...distractors]);
 }
 
 function renderBubbleGrid() {
