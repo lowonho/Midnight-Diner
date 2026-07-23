@@ -1,0 +1,28 @@
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 17px 0;
+}
+.result-grid div {
+  padding: 12px 8px;
+  border: 1px solid #704221;
+  border-radius: 7px;
+  background: #160c08;
+}
+.result-grid span {
+  display: block;
+  color: #af8c60;
+  font-size: 11px;
+}
+.result-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #ffe09a;
+  font-size: 20px;
+}
+.result-comment {
+  margin: 13px 0;
+  color: #d9bf97;
+  line-height: 1.5;
+}

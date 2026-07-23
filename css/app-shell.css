@@ -1,0 +1,48 @@
+.app-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #070504;
+}
+
+.app-screen { display: none; width: 100%; height: 100%; }
+.app-screen.active { display: grid; }
+.game-screen.active { place-items: center; }
+
+.game-app {
+  width: 100vw;
+  height: 100vh;
+  min-height: 480px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 18%, #332015 0, #100b08 52%, #050403 100%);
+}
+
+.game-frame {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 2px solid #5d3920;
+  background: #17100d;
+  box-shadow: 0 0 0 3px #130b08, 0 24px 70px #000;
+}
+
+#gameCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+#gameCanvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.hidden-hud { opacity: 0; pointer-events: none !important; }

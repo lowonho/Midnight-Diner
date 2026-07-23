@@ -1,0 +1,100 @@
+.station-prompt {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 55%;
+  min-width: 170px;
+  max-width: 58%;
+  padding: 8px 13px;
+  border: 2px solid #a66c36;
+  border-radius: 9px;
+  background: rgba(25,14,9,.94);
+  color: #ffe2a1;
+  box-shadow: 0 4px 12px rgba(0,0,0,.45);
+  opacity: 0;
+  transform: translate(-50%,-50%) translateY(8px);
+  transition: opacity .16s, transform .16s;
+  pointer-events: none;
+  cursor: pointer;
+  font-size: clamp(10px,.9vw,14px);
+  font-weight: 700;
+  text-align: center;
+}
+.station-prompt.show {
+  opacity: 1;
+  transform: translate(-50%,-50%);
+  pointer-events: auto;
+}
+.station-prompt.show:hover {
+  border-color: #e0a34e;
+  background: rgba(51,28,16,.97);
+}
+.station-prompt.show:active { transform: translate(-50%,-46%); }
+
+.toast {
+  position: absolute;
+  z-index: 25;
+  left: 50%;
+  top: 18%;
+  padding: 9px 16px;
+  border: 2px solid #c48845;
+  border-radius: 8px;
+  background: rgba(34,18,11,.96);
+  color: #ffe3a4;
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
+  transition: .2s;
+  pointer-events: none;
+  font-weight: 700;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.bad { color: #ffb5a7; border-color: #a64f42; }
+
+.mobile-controls {
+  position: absolute;
+  z-index: 9;
+  left: 2.5%;
+  right: 2.5%;
+  bottom: 2.2%;
+  display: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  transition: opacity .25s;
+  pointer-events: none;
+}
+.joystick {
+  width: 108px;
+  height: 108px;
+  border: 2px solid rgba(228,173,88,.55);
+  border-radius: 50%;
+  background: rgba(22,12,8,.45);
+  pointer-events: auto;
+  touch-action: none;
+}
+.joystick-knob {
+  width: 48px;
+  height: 48px;
+  margin: 28px;
+  border: 2px solid #d59a4d;
+  border-radius: 50%;
+  background: rgba(239,205,139,.75);
+  transform: translate(0,0);
+}
+.action-button {
+  width: 90px;
+  height: 90px;
+  border: 3px solid #e0a34e;
+  border-radius: 50%;
+  background: rgba(90,48,25,.82);
+  color: #ffe09a;
+  opacity: 0;
+  transform: scale(.82);
+  transition: opacity .16s,transform .16s;
+  pointer-events: none;
+  font-weight: 900;
+}
+.action-button.available {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}

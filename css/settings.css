@@ -1,0 +1,25 @@
+.pause-message { margin: 0 0 17px; color: #c9ae85; }
+.volume-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  margin: 15px 0;
+  color: #ead7b5;
+  text-align: left;
+}
+.volume-row strong { color: #ffd78d; }
+.volume-row input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: #d79843;
+}
+.dark-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #754725;
+  border-radius: 7px;
+  background: #160d09;
+  color: #d9b77c;
+  cursor: pointer;
+}

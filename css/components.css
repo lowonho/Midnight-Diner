@@ -1,0 +1,105 @@
+.wood-panel {
+  color: var(--cream);
+  background:
+    linear-gradient(rgba(35,20,14,.97), rgba(21,12,8,.97)),
+    repeating-linear-gradient(90deg, transparent 0 28px, rgba(255,255,255,.02) 28px 30px);
+  border: 2px solid #8c592f;
+  box-shadow: inset 0 0 0 2px #28150e, inset 0 0 0 4px #ca8b42, 0 6px 18px rgba(0,0,0,.5);
+  border-radius: 8px;
+}
+
+.square-button {
+  border: 1px solid #a86e36;
+  border-radius: 5px;
+  background: #21130d;
+  color: #f1c875;
+  cursor: pointer;
+}
+
+.badge {
+  padding: 2px 7px;
+  border: 1px solid #8e5c32;
+  border-radius: 9px;
+  background: #170e0a;
+  color: #f2cc87;
+  font-size: clamp(7px,.65vw,10px);
+}
+
+.gold-button {
+  width: 100%;
+  display: block;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 2px solid #b27636;
+  border-radius: 7px;
+  color: #24150f;
+  font-weight: 800;
+  background: linear-gradient(#ffe099,#c9883e);
+  box-shadow: inset 0 0 0 2px #fff0bf,0 3px 0 #6e3a1f;
+  cursor: pointer;
+}
+.gold-button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 2px #fff0bf,0 1px 0 #6e3a1f;
+}
+.gold-button.big { padding: 12px 18px; font-size: 17px; }
+.gold-button:disabled { opacity: .5; filter: grayscale(.8); cursor: default; }
+
+kbd {
+  min-width: 25px;
+  padding: 2px 4px;
+  text-align: center;
+  border: 1px solid #83512d;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #140b08;
+  color: #f0c879;
+  font-size: inherit;
+}
+
+.overlay {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(8,5,4,.72);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .24s, visibility .24s;
+}
+.overlay.open { opacity: 1; visibility: visible; }
+
+.global-overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(8,5,4,.78);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .22s, visibility .22s;
+}
+.global-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+.settings-window, .result-window {
+  width: min(480px,90%);
+  padding: 25px;
+  text-align: center;
+}
+.eyebrow {
+  margin: 0 0 5px;
+  color: #c89654;
+  font-size: 11px;
+  letter-spacing: .2em;
+}
+.settings-window h2, .result-window h2, .mini-window h2 {
+  margin: 0 0 14px;
+  color: #ffe09a;
+}
