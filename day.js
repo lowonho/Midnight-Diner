@@ -4,13 +4,23 @@
 function resetDay(first=false) {
   state.phase="day"; state.phaseTime=null; state.selectedDishId="kimchi"; state.selectedOrderId=null;
   state.inventory=Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0}]));
-  state.prepRun=null; state.orders=[]; state.respawns=[]; state.carrying=null;
+  state.prepRun=null; state.orders=[]; state.respawns=[]; state.departures=[]; state.carrying=null;
+  if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
   state.served=0; state.satisfactionTotal=0; state.fiveStar=0; state.cleanliness=100; state.dirtyDishes=0; state.trash=0;
   state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
   state.mini=null;state.player.x=620;state.player.y=430;state.player.facing="down";state.player.moving=false;state.joyX=0;state.joyY=0;
   dom.resultOverlay.classList.remove("open"); dom.miniOverlay.classList.remove("open");
   if(!first) showToast(`${state.day}일차 낮 준비를 시작합니다.`);
   buildMenuCards(); updateUI(true);
+}
+
+function advanceToNextDay(){
+  if(storyIsActive())return;
+  state.day++;
+  state.paused=false;
+  resetDay(false);
+  saveGame();
+  queueStoryMoments(["dayStart"]);
 }
 
 function startPrepMini(stationId) {

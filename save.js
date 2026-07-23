@@ -2,7 +2,7 @@
 
 // 브라우저 저장소와 게임 상태 직렬화/복원을 전담합니다.
 const SAVE_KEY="midnightDiner.save.v1";
-const SAVE_VERSION=1;
+const SAVE_VERSION=2;
 let autosaveElapsed=0;
 let saveSystemInitialized=false;
 
@@ -18,7 +18,7 @@ function initializeSaveSystem(){
 function readSaveData(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;
-    const data=JSON.parse(raw);
+    const data=migrateSaveData(JSON.parse(raw));
     const validInventory=data.state?.inventory&&typeof data.state.inventory==="object";
     if(data.version!==SAVE_VERSION||!data.state||!["day","night","result"].includes(data.state.phase)||!Number.isFinite(data.state.day)||!validInventory){
       throw new Error("지원하지 않는 저장 데이터");
@@ -31,12 +31,49 @@ function readSaveData(){
   }
 }
 
-function saveGame(){
-  if(state.screen!=="game"||!["day","night","result"].includes(state.phase)||state.mini)return false;
+function migrateSaveData(data){
+  if(!data||typeof data!=="object")throw new Error("저장 데이터 형식이 올바르지 않습니다.");
+  if(data.version===1&&data.state){
+    const story=normalizeStoryState(data.state.story);
+    story.prologueComplete=true;
+    story.legacyImported=true;
+    revealNamesFromLegacyProgress(data.state,story);
+    data.state.story=story;
+    data.state.departures=[];
+    data.state.orders=Array.isArray(data.state.orders)?data.state.orders.map(normalizeStoryOrder):[];
+    data.version=SAVE_VERSION;
+  }
+  return data;
+}
+
+function revealNamesFromLegacyProgress(savedState,story){
+  const currentDay=Math.max(1,Math.floor(Number(savedState.day)||1));
+  const pendingMomentByPhase={day:"dayStart",night:"nightStart",result:"nightEnd"};
+  const momentOrder={newGame:0,dayStart:1,nightStart:2,nightEnd:3};
+  const pendingOrder=momentOrder[pendingMomentByPhase[savedState.phase]]??1;
+
+  Object.entries(STORY_EVENT_SCHEDULE).forEach(([moment,days])=>{
+    Object.entries(days).forEach(([scheduledDay,sceneIds])=>{
+      const sceneDay=Number(scheduledDay);
+      const momentPassed=sceneDay<currentDay||(sceneDay===currentDay&&momentOrder[moment]<pendingOrder);
+      sceneIds.forEach(sceneId=>{
+        const scene=STORY_SCENES[sceneId];
+        if(!scene||(!momentPassed&&!story.completed[sceneId]))return;
+        scene.lines.forEach(line=>{
+          if(line.reveal&&story.guestState[line.reveal])story.guestState[line.reveal].nameRevealed=true;
+        });
+      });
+    });
+  });
+}
+
+function saveGame(allowDuringStory=false){
+  if(state.screen!=="game"||!["day","night","result"].includes(state.phase)||state.mini||(storyIsActive()&&!allowDuringStory))return false;
   try{
     const snapshot=JSON.parse(JSON.stringify(state));
     snapshot.screen="game";snapshot.settingsFrom="game";snapshot.paused=snapshot.phase==="result";
-    snapshot.mini=null;snapshot.particles=[];snapshot.popups=[];snapshot.joyX=0;snapshot.joyY=0;snapshot.player.moving=false;
+    snapshot.mini=null;snapshot.particles=[];snapshot.popups=[];snapshot.departures=[];snapshot.joyX=0;snapshot.joyY=0;snapshot.player.moving=false;
+    snapshot.story=normalizeStoryState(snapshot.story);
     localStorage.setItem(SAVE_KEY,JSON.stringify({version:SAVE_VERSION,savedAt:Date.now(),nextOrderId,state:snapshot}));
     autosaveElapsed=0;
     return true;
@@ -64,11 +101,13 @@ function restoreGameState(data){
   });
 
   state.audio=savedAudio;
+  state.story=normalizeStoryState(saved.story);
   state.inventory=Object.fromEntries(DISHES.map(dish=>[
     dish.id,{count:0,quality:0,...(saved.inventory?.[dish.id]||{})}
   ]));
-  state.orders=Array.isArray(saved.orders)?saved.orders:[];
+  state.orders=Array.isArray(saved.orders)?saved.orders.map(normalizeStoryOrder):[];
   state.respawns=Array.isArray(saved.respawns)?saved.respawns:[];
+  state.departures=[];
   state.player={x:620,y:430,facing:"down",moving:false,speed:205,...(saved.player||{}),moving:false};
   state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";
   state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;

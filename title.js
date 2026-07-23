@@ -57,18 +57,20 @@ function continueGame(){
   if(state.phase==="result")renderNightResult();
   else audio.startBgm();
   audio.success();
+  setTimeout(resumeStoryForCurrentPhase,0);
 }
 
 function startNewGame(){
   if(readSaveData()&&!window.confirm("기존 이어하기 데이터를 지우고 새 게임을 시작할까요?"))return;
-  clearSaveData();startGame();saveGame();
+  clearSaveData();startGame();saveGame(true);
 }
 
 function startGame(){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();
   state.screen="game";state.phase="day";state.paused=false;state.settingsFrom="game";
-  state.day=1;state.money=0;state.popularity=0;nextOrderId=1;resetDay(true);
+  state.day=1;state.money=0;state.popularity=0;state.story=createStoryState();state.departures=[];nextOrderId=1;resetDay(true);
   openGameScreen();audio.startBgm();audio.success();
+  queueStoryMoments(["newGame","dayStart"]);
 }
 
 function returnTitle(){

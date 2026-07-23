@@ -70,6 +70,10 @@
               <span class="phase-dot"></span>
             </div>
             <div id="objectiveBody" class="objective-body"></div>
+            <div class="relationship-box">
+              <div class="relationship-heading"><span>인연 기록</span><small>이름을 알게 된 손님</small></div>
+              <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 이름을 아는 손님이 없습니다.</span></div>
+            </div>
             <div class="cleanliness-box">
               <div><span>청결도</span><strong id="cleanlinessText">100</strong></div>
               <div class="clean-track"><i id="cleanlinessBar"></i></div>
@@ -92,6 +96,26 @@
             </div>
             <button id="actionButton" class="action-button" type="button">ACTION</button>
           </div>
+
+          <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySpeaker">
+            <div class="story-scene-meta">
+              <span id="storyDayLabel">DAY 1</span>
+              <strong id="storySceneTitle">비를 피한 곳</strong>
+            </div>
+            <div id="storyPortraitWrap" class="story-portrait-wrap" aria-hidden="true">
+              <div id="storyPortrait" class="story-portrait"></div>
+              <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
+            </div>
+            <div class="story-dialogue-box">
+              <div class="story-speaker-row">
+                <strong id="storySpeaker">이야기</strong>
+                <span id="storyRelationBadge" class="story-relation-badge"></span>
+              </div>
+              <p id="storyText" class="story-text" aria-live="polite"></p>
+              <div id="storyChoices" class="story-choices" aria-label="대화 선택지"></div>
+              <button id="storyNextButton" class="story-next" type="button">계속 <span>▼</span></button>
+            </div>
+          </section>
 
           <section id="miniOverlay" class="overlay mini-overlay" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
             <div class="mini-window wood-panel">
@@ -151,6 +175,8 @@
     </section>
   </div>
   <script src="phaser.min.js"></script>
+  <script src="story-data.js"></script>
+  <script src="story.js"></script>
   <script src="day.js"></script>
   <script src="night.js"></script>
   <script src="save.js"></script>
