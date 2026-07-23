@@ -102,6 +102,7 @@ function restoreGameState(data){
 
   state.audio=savedAudio;
   state.story=normalizeStoryState(saved.story);
+  normalizeDayPrepState();
   state.inventory=Object.fromEntries(DISHES.map(dish=>[
     dish.id,{count:0,quality:0,...(saved.inventory?.[dish.id]||{})}
   ]));

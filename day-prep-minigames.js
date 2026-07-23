@@ -1,0 +1,260 @@
+"use strict";
+
+// Day 1 준비 미니게임 전용 모듈. 기존 영업 중 조리 미니게임과 상태를 분리합니다.
+const DAY_PREP_MINI_CONFIG = {
+  cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.16,zoneStarts:[.14,.55,.29,.67],speed:.72},
+  prepareKimchi:{title:"두부김치 · 김치 준비하기",total:3,zoneWidth:.24,zoneStarts:[.51,.18,.62],speed:.68},
+  fryKimchi:{total:5,allowedDirections:["left","right"]},
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
+};
+
+// 아래 경로에 파일을 추가하면 CSS 프로토타입 대신 자동으로 이미지가 사용됩니다.
+// 누락된 선택 에셋은 로딩 실패로 취급하지 않고 기존 CSS 도형으로 대체합니다.
+const DAY_PREP_ASSET_PATHS = Object.freeze({
+  radish0:"assets/prep/radish/radish-0.png",
+  radish1:"assets/prep/radish/radish-1.png",
+  radish2:"assets/prep/radish/radish-2.png",
+  radish3:"assets/prep/radish/radish-3.png",
+  radish4:"assets/prep/radish/radish-4.png",
+  kimchiCut0:"assets/prep/kimchi/kimchi-cut-0.png",
+  kimchiCut1:"assets/prep/kimchi/kimchi-cut-1.png",
+  kimchiCut2:"assets/prep/kimchi/kimchi-cut-2.png",
+  kimchiCut3:"assets/prep/kimchi/kimchi-cut-3.png",
+  anchovyBody:"assets/prep/anchovy/anchovy-body.png",
+  anchovyHead:"assets/prep/anchovy/anchovy-head.png",
+  fryingPan:"assets/prep/kimchi/frying-pan.png",
+  fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
+  knife:"assets/prep/effects/knife.png"
+});
+const dayPrepAssets={};
+
+function loadDayPrepAssets(){
+  return Promise.all(Object.entries(DAY_PREP_ASSET_PATHS).map(([key,src])=>new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>{dayPrepAssets[key]={src,image};resolve(image);};
+    image.onerror=()=>resolve(null);
+    image.src=src;
+  }))).then(()=>dayPrepAssets);
+}
+
+function hasDayPrepAsset(key){
+  return !!dayPrepAssets[key];
+}
+
+function dayPrepAssetMarkup(key,className,alt=""){
+  if(!hasDayPrepAsset(key))return "";
+  return `<img class="prep-asset ${className}" src="${dayPrepAssets[key].src}" alt="${alt}" draggable="false" />`;
+}
+
+function timingAssetKey(taskId,successes){
+  return taskId==="cutRadish"?`radish${successes}`:`kimchiCut${successes}`;
+}
+
+function isDayPrepMini(mini=state.mini){
+  return mini?.context?.mode==="dayPrep";
+}
+
+function startDayPrepMini(task){
+  state.mini={
+    type:`day-prep-${task.id}`,
+    stationId:task.stationId,
+    context:{mode:"dayPrep",taskId:task.id},
+    complete:false,
+    data:{}
+  };
+  dom.miniStation.textContent=STATIONS[task.stationId].label;
+  dom.miniFeedback.textContent="";
+  dom.miniContent.innerHTML="";
+  dom.miniClose.hidden=false;
+  dom.miniOverlay.classList.add("open");
+
+  if(task.id==="cutRadish")setupDayPrepTiming("cutRadish");
+  else if(task.id==="cleanAnchovy")setupAnchovyPrep();
+  else if(state.kimchiPrep.cuttingComplete)setupKimchiFry();
+  else setupDayPrepTiming("prepareKimchi");
+}
+
+function setupDayPrepTiming(taskId){
+  const m=state.mini,config=DAY_PREP_MINI_CONFIG[taskId];
+  m.data={mode:"timing",taskId,marker:0,direction:1,successes:0,...config};
+  dom.miniTitle.textContent=config.title;
+  dom.miniDescription.textContent=taskId==="cutRadish"
+    ?"[1/1] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
+    :"[1/2] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 3번 썹니다.";
+  renderDayPrepTiming();
+}
+
+function renderDayPrepTiming(){
+  const m=state.mini,data=m.data,isRadish=data.taskId==="cutRadish";
+  const zoneLeft=data.zoneStarts[data.successes];
+  const objectAssetKey=timingAssetKey(data.taskId,data.successes);
+  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  dom.miniContent.innerHTML=`
+    <div class="prep-work-object ${isRadish?"radish-shape":"kimchi-shape"} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${isRadish?"무":"김치"}">
+      ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 김치")}
+      ${Array.from({length:data.total},(_,index)=>`<i class="cut-line ${index<data.successes?"done":""}" style="left:${(index+1)/(data.total+1)*100}%"></i>`).join("")}
+      <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
+    </div>
+    <div class="prep-timing-bar">
+      <i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${data.zoneWidth*100}%"></i>
+      <i id="dayPrepMarker" class="prep-timing-marker" style="left:${data.marker*100}%"></i>
+    </div>
+    <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
+    <button class="mini-action" id="dayPrepAction" type="button">Space · 썰기</button>`;
+  dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",dayPrepPrimaryAction);
+}
+
+function setupAnchovyPrep(){
+  const m=state.mini,config=DAY_PREP_MINI_CONFIG.cleanAnchovy;
+  const slots=shuffle(Array.from({length:10},(_,index)=>index)).slice(0,config.total);
+  m.data={mode:"anchovy",cleaned:0,total:config.total,items:slots.map((slot,index)=>({
+    id:index,cleaned:false,x:8+(slot%5)*18+Math.random()*4,y:10+Math.floor(slot/5)*48+Math.random()*5,
+    rotation:-22+Math.random()*44,scale:.82+Math.random()*.3,flip:Math.random()>.5?-1:1
+  }))};
+  dom.miniTitle.textContent=config.title;
+  dom.miniDescription.textContent="멸치의 작은 원형 머리를 클릭하세요. 몸통을 누르면 같은 멸치를 다시 시도합니다.";
+  renderAnchovyPrep();
+}
+
+function renderAnchovyPrep(){
+  const data=state.mini.data;
+  dom.miniTimer.textContent=`${data.cleaned} / ${data.total}`;
+  dom.miniContent.innerHTML=`
+    <div class="anchovy-work-area" id="anchovyWorkArea">
+      ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
+        <button class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</button>
+        <button class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</button>
+      </div>`).join("")}
+    </div>
+    <div class="cut-count">진행 ${data.cleaned} / ${data.total}</div>`;
+  dom.miniContent.querySelectorAll(".anchovy-body").forEach(button=>button.addEventListener("click",()=>{
+    dom.miniFeedback.textContent="몸통이 아니라 머리를 클릭하세요.";
+  }));
+  dom.miniContent.querySelectorAll(".anchovy-head").forEach(button=>button.addEventListener("click",()=>cleanAnchovyHead(button)));
+}
+
+function cleanAnchovyHead(button){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="anchovy")return;
+  const wrapper=button.closest(".anchovy"),item=m.data.items.find(entry=>entry.id===Number(wrapper.dataset.id));
+  if(!item||item.cleaned)return;
+  item.cleaned=true;m.data.cleaned++;
+  wrapper.classList.add("cleaned");button.disabled=true;
+  dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
+  dom.miniContent.querySelector(".cut-count").textContent=`진행 ${m.data.cleaned} / ${m.data.total}`;
+  dom.miniFeedback.textContent="머리 손질 성공";
+  if(m.data.cleaned===m.data.total)finishDayPrepTask("cleanAnchovy","멸치 손질 완료");
+}
+
+function setupKimchiFry(){
+  const m=state.mini,config=DAY_PREP_MINI_CONFIG.fryKimchi;
+  m.data={mode:"direction",successes:0,total:config.total,allowedDirections:[...config.allowedDirections],target:null};
+  dom.miniTitle.textContent="두부김치 · 김치 준비하기";
+  dom.miniDescription.textContent="[2/2] 화면에 표시된 ← 또는 → 방향키를 누르세요. 틀리면 같은 화살표가 유지됩니다.";
+  chooseKimchiDirection();
+  renderKimchiFry();
+}
+
+function chooseKimchiDirection(){
+  const data=state.mini.data;
+  data.target=data.allowedDirections[Math.floor(Math.random()*data.allowedDirections.length)];
+}
+
+function renderKimchiFry(){
+  const data=state.mini.data,arrow=data.target==="left"?"←":"→";
+  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  dom.miniContent.innerHTML=`
+    <div class="fry-work-area" id="fryWorkArea">
+      <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
+        ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
+        <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
+      </div>
+      <strong class="direction-prompt" aria-label="${data.target} 방향">${arrow}</strong>
+    </div>
+    <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
+    <div class="prep-direction-buttons">
+      ${data.allowedDirections.map(direction=>`<button type="button" data-direction="${direction}">${direction==="left"?"←":"→"}</button>`).join("")}
+    </div>`;
+  dom.miniContent.querySelectorAll("[data-direction]").forEach(button=>button.addEventListener("click",()=>dayPrepDirectionInput(button.dataset.direction)));
+}
+
+function dayPrepPrimaryAction(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="timing")return;
+  const data=m.data,zoneStart=data.zoneStarts[data.successes],zoneEnd=zoneStart+data.zoneWidth;
+  if(data.marker<zoneStart||data.marker>zoneEnd){
+    dom.miniFeedback.textContent="절단선을 놓쳤습니다. 현재 단계에서 다시 시도하세요.";
+    return;
+  }
+  data.successes++;
+  const work=dom.miniContent.querySelector("#prepWorkObject");
+  work?.classList.add("slice-hit");
+  const nextAssetKey=timingAssetKey(data.taskId,data.successes);
+  const objectImage=work?.querySelector(".prep-object-asset");
+  if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
+  dom.miniContent.querySelector(`.cut-line:nth-child(${data.successes})`)?.classList.add("done");
+  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  const progress=dom.miniContent.querySelector(".cut-count");
+  if(progress)progress.textContent=`진행 ${data.successes} / ${data.total}`;
+  dom.miniFeedback.textContent="절단 성공";
+  if(data.successes>=data.total){
+    if(data.taskId==="prepareKimchi"){
+      state.kimchiPrep.cuttingComplete=true;
+      setTimeout(()=>{if(state.mini===m&&!m.complete)setupKimchiFry();},320);
+    }else finishDayPrepTask("cutRadish","무 썰기 완료");
+    return;
+  }
+  setTimeout(()=>{if(state.mini===m&&!m.complete)renderDayPrepTiming();},180);
+}
+
+function dayPrepDirectionInput(direction){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="direction")return;
+  const data=m.data;
+  if(!data.allowedDirections.includes(direction))return;
+  if(direction!==data.target){
+    dom.miniFeedback.textContent="방향이 다릅니다. 같은 화살표를 다시 확인하세요.";
+    return;
+  }
+  data.successes++;
+  dom.miniFeedback.textContent="볶기 성공";
+  const work=dom.miniContent.querySelector("#fryWorkArea");
+  work?.classList.add(direction==="left"?"toss-left":"toss-right");
+  if(data.successes>=data.total){
+    state.kimchiPrep.fryingComplete=true;
+    finishDayPrepTask("prepareKimchi","김치 준비 완료");
+    return;
+  }
+  chooseKimchiDirection();
+  setTimeout(()=>{if(state.mini===m&&!m.complete)renderKimchiFry();},170);
+}
+
+function updateDayPrepMini(dt){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="timing")return;
+  const data=m.data;
+  data.marker+=data.direction*data.speed*dt;
+  if(data.marker>=1){data.marker=1;data.direction=-1;}
+  if(data.marker<=0){data.marker=0;data.direction=1;}
+  const marker=dom.miniContent.querySelector("#dayPrepMarker");
+  if(marker)marker.style.left=`${data.marker*100}%`;
+}
+
+function finishDayPrepTask(taskId,message){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
+  m.complete=true;
+  completeDayPrepTask(taskId);
+  dom.miniTimer.textContent="완료";
+  dom.miniFeedback.textContent=message;
+  dom.miniContent.classList.add("prep-complete-flash");
+  setTimeout(()=>{if(state.mini===m)closeDayPrepMini(true);},520);
+}
+
+function closeDayPrepMini(completed=false){
+  if(!isDayPrepMini())return;
+  state.mini=null;
+  state.joyX=0;state.joyY=0;state.player.moving=false;
+  dom.miniOverlay.classList.remove("open");
+  dom.miniClose.hidden=true;
+  dom.miniContent.classList.remove("prep-complete-flash");
+  dom.miniContent.innerHTML="";
+  updateUI(true);
+  saveGame();
+  if(completed!==true)showToast("준비 작업을 닫았습니다. 다시 상호작용해 이어갈 수 있습니다.");
+}

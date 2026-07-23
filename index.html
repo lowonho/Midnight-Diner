@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/story.css" />
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="css/minigames.css" />
+  <link rel="stylesheet" href="css/day-prep-minigames.css" />
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -134,7 +135,10 @@
                   <p id="miniStation" class="eyebrow">조리대</p>
                   <h2 id="miniTitle">미니게임</h2>
                 </div>
-                <div id="miniTimer" class="mini-timer">8.0</div>
+                <div class="mini-heading-actions">
+                  <div id="miniTimer" class="mini-timer">8.0</div>
+                  <button id="miniClose" class="mini-close" type="button" aria-label="미니게임 닫기" hidden>닫기 <kbd>ESC</kbd></button>
+                </div>
               </div>
               <p id="miniDescription" class="mini-description"></p>
               <div id="miniContent" class="mini-content"></div>
@@ -188,6 +192,7 @@
   <script src="story-data.js"></script>
   <script src="story.js"></script>
   <script src="day.js"></script>
+  <script src="day-prep-minigames.js"></script>
   <script src="night.js"></script>
   <script src="save.js"></script>
   <script src="title.js"></script>

@@ -15,7 +15,7 @@ const dom = Object.fromEntries([
   "relationshipList",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
-  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniDescription","miniContent","miniFeedback",
+  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
@@ -44,7 +44,7 @@ const DISHES = [
   { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], cook:[{station:"grill", game:"grill"}], price:7200 },
   { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], cook:[{station:"gas", game:"stir"}], price:8200 },
   { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], cook:[{station:"gas", game:"heat"}], price:8800 },
-  { id:"oden", name:"오뎅탕", icon:4, prep:["fridge","sink","board","gas"], cook:[{station:"gas", game:"heat"}], price:7800 },
+  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","gas"], cook:[{station:"gas", game:"heat"}], price:7800 },
   { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
 ];
 
@@ -86,6 +86,9 @@ const state = {
   nightCustomerTarget:0,
   spawnedCustomers:0,
   selectedDishId:"kimchi",
+  selectedMenus:[],
+  prepProgress:{cutRadish:false,cleanAnchovy:false,prepareKimchi:false},
+  kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
   prepRun:null,
@@ -188,8 +191,11 @@ function buildMenuCards() {
   DISHES.forEach(dish=>{
     const b=document.createElement("button"); b.type="button"; b.className="menu-card"; b.dataset.id=dish.id;
     b.innerHTML=`<strong>${dish.name}</strong><span class="food-icon" style="background-position:${dish.icon*20}% 0"></span><span class="stock">0</span>`;
+    const day1Locked=state.day===1&&state.phase==="day";
+    b.disabled=day1Locked;
+    b.classList.toggle("locked",day1Locked&&!state.selectedMenus?.includes(dish.id));
     b.addEventListener("click",()=>{
-      if(state.phase!=="day" || state.paused || state.mini) return;
+      if(state.phase!=="day" || state.paused || state.mini || isDay1PrepDay()) return;
       state.selectedDishId=dish.id; state.prepRun=null; audio.click(); updateUI(true);saveGame();
     });
     dom.menuCards.appendChild(b);
@@ -198,6 +204,7 @@ function buildMenuCards() {
 
 function currentRequirement() {
   if(state.phase==="day") {
+    if(isDay1PrepDay())return currentDay1PrepTask()?.stationId||null;
     const dish=dishById(state.selectedDishId);
     if(!state.prepRun || state.prepRun.dishId!==dish.id) return dish.prep[0];
     return dish.prep[state.prepRun.stepIndex] || null;
@@ -242,6 +249,7 @@ function startMini(type,stationId,context) {
   state.mini={type,stationId,context:context||{},time:8,score:0,data:{},complete:false};
   dom.miniStation.textContent=STATIONS[stationId].label;
   dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add("open");
+  dom.miniClose.hidden=true;
   setupMini(); audio.click();
 }
 
@@ -464,7 +472,9 @@ function update(dt) {
 }
 
 function updateMini(dt) {
-  const m=state.mini;if(!m||m.complete)return;m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);
+  const m=state.mini;if(!m||m.complete)return;
+  if(isDayPrepMini(m)){updateDayPrepMini(dt);return;}
+  m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);
   if(m.type==="chop"||m.type==="flip"||m.type==="fry"||(m.type==="grill"&&m.data.phase==="timing")){
     m.data.marker+=m.data.dir*m.data.speed*dt;if(m.data.marker>=1){m.data.marker=1;m.data.dir=-1;}if(m.data.marker<=0){m.data.marker=0;m.data.dir=1;}
     const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
@@ -509,9 +519,9 @@ function updateUI(force=false) {
   dom.phaseName.textContent=state.phase==="day"?"낮 재료 준비":state.phase==="night"?"밤 영업":"영업 종료";
   dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase==="day"?"준비":"남은 시간";dom.timeText.textContent=state.phase==="day"?"제한 없음":formatTime(state.phaseTime);dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
   dom.phaseBadge.textContent=state.phase==="day"?"낮":"밤";dom.leftTitle.textContent=state.phase==="day"?"준비된 재료":"남은 준비 재료";
-  dom.phaseButton.style.display=state.phase==="day"?"block":"none";dom.phaseButton.textContent="영업준비 완료";dom.phaseButton.disabled=state.phase==="day"&&(Object.values(state.inventory).every(item=>item.count===0)||!!state.prepRun||!!state.mini);
+  dom.phaseButton.style.display=state.phase==="day"?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase==="day"&&(isDay1PrepDay()?!day1PrepComplete():(Object.values(state.inventory).every(item=>item.count===0)||!!state.prepRun||!!state.mini));
   dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
-  [...dom.menuCards.children].forEach((card,i)=>{const d=DISHES[i],inv=state.inventory[d.id];card.classList.toggle("selected",state.phase==="day"&&state.selectedDishId===d.id);card.querySelector(".stock").textContent=inv.count;});
+  [...dom.menuCards.children].forEach((card,i)=>{const d=DISHES[i],inv=state.inventory[d.id];const selected=state.phase==="day"&&(isDay1PrepDay()?state.selectedMenus.includes(d.id):state.selectedDishId===d.id);card.classList.toggle("selected",selected);card.querySelector(".stock").textContent=inv.count;});
   dom.inventoryList.innerHTML=DISHES.map(d=>{const inv=state.inventory[d.id];return `<div class="inventory-row ${inv.count?"ready":""}"><i class="dot"></i><span>${d.name}<small>${inv.count?` · 품질 ${inv.quality}`:""}</small></span><strong>${inv.count}</strong></div>`;}).join("");
   if(state.phase==="day")updateDayObjective();else if(state.phase==="night")updateNightObjective();
   updateRelationshipUI();
@@ -663,7 +673,8 @@ dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
-dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
+dom.actionButton.addEventListener("click",()=>{if(state.mini){if(isDayPrepMini(state.mini))dayPrepPrimaryAction();else miniAction();}else interact();});
+dom.miniClose.addEventListener("click",closeDayPrepMini);
 dom.stationPrompt.addEventListener("click",interact);
 
 [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;audio.apply();}));
@@ -672,6 +683,12 @@ window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
   if(state.mini){
+    if(isDayPrepMini(state.mini)){
+      if(k==="escape")closeDayPrepMini();
+      else if(e.code==="Space")dayPrepPrimaryAction();
+      else if(k==="arrowleft"||k==="arrowright")dayPrepDirectionInput(k.replace("arrow",""));
+      return;
+    }
     if(e.code==="Space")miniAction();
     if(state.mini?.type==="stir"){const map={arrowleft:"←",arrowup:"↑",arrowright:"→",arrowdown:"↓"};if(map[k])arrowInput(map[k]);}
     if(state.mini?.type==="heat"){if(k==="arrowleft"||k==="a")state.mini.data.velocity-=.16;if(k==="arrowright"||k==="d")state.mini.data.velocity+=.16;}
@@ -766,7 +783,8 @@ Promise.all([
   loadNativeImage("customers","assets/customer_sheet.png"),
   loadNativeImage("food","assets/food_sheet.png"),
   loadNativeImage("kitchenDay","assets/kitchen-background-day.png"),
-  loadNativeImage("kitchenNight","assets/kitchen-background-night.png")
+  loadNativeImage("kitchenNight","assets/kitchen-background-night.png"),
+  loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);
   markTitleLoadFailed();

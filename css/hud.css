@@ -59,6 +59,10 @@
 }
 .menu-card:hover { transform: translateY(-2px); filter: brightness(1.05); }
 .menu-card.selected { outline: 3px solid #fff1a8; transform: translateY(2px); }
+.menu-card:disabled { cursor: default; }
+.menu-card:disabled:hover { filter: none; transform: none; }
+.menu-card:disabled.selected { transform: translateY(2px); }
+.menu-card.locked { filter: grayscale(.72) brightness(.62); opacity: .72; }
 .menu-card strong {
   display: block;
   overflow: hidden;
@@ -173,6 +177,17 @@
   line-height: 1.45;
 }
 .objective-body strong { color: #ffd787; }
+.prep-checklist { display: grid; gap: 3px; }
+.prep-checklist strong:not(:first-child) { margin-top: 4px; }
+.prep-checklist .done { color: #9dbb70; text-decoration: line-through; }
+.prep-checklist .prep-total {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(224,163,77,.25);
+  color: #ffe09a;
+  font-weight: 800;
+}
+.prep-checklist small { color: #c8ab7e; line-height: 1.35; }
 
 .relationship-box {
   margin-top: 7px;
