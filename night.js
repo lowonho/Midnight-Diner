@@ -14,6 +14,7 @@ function rollNightCustomerCount(popularity){
   const center=expectedCustomerCenter(popularity);
   return clamp(Math.round(center+(Math.random()+Math.random()-1)*2),min,max);
 }
+function wasteLossForDish(dish){return Math.round(dish.price*LEFTOVER_LOSS_RATE/100)*100;}
 function reservedStock(dishId){
   const dish=dishById(dishId);
   return state.orders.filter(order=>order.dishId===dishId&&order.cookStep<dish.cook.length).length;
@@ -45,16 +46,16 @@ function beginNight() {
 }
 
 function calculateLeftoverLoss(){
-  let count=0,loss=0;
+  let count=state.discardedCount||0,loss=state.discardLoss||0;
   DISHES.forEach(dish=>{
     const portions=state.inventory[dish.id].count;
     count+=portions;
-    loss+=Math.round(dish.price*LEFTOVER_LOSS_RATE/100)*100*portions;
+    loss+=wasteLossForDish(dish)*portions;
   });
   if(state.carrying){
     const dish=dishById(state.carrying.dishId);
     count++;
-    loss+=Math.round(dish.price*LEFTOVER_LOSS_RATE/100)*100;
+    loss+=wasteLossForDish(dish);
   }
   return {count,loss};
 }
@@ -86,13 +87,14 @@ function renderNightResult(){
   dom.satisfactionResult.textContent=`${avg}점`;
   dom.fiveStarResult.textContent=state.fiveStar;
   dom.popularityResult.textContent=`${beforePopularity} → ${state.popularity} (${state.popularityDelta>=0?"+":""}${state.popularityDelta})`;
-  dom.wasteResult.textContent=state.leftoverCount?`${state.wasteLoss.toLocaleString()}원 · ${state.leftoverCount}인분`:"0원";
+  const discardNote=state.discardedCount?` (직접 폐기 ${state.discardedCount}인분)`:"";
+  dom.wasteResult.textContent=state.leftoverCount?`${state.wasteLoss.toLocaleString()}원 · ${state.leftoverCount}인분${discardNote}`:"0원";
   dom.revenueResult.textContent=`${netProfit.toLocaleString()}원`;
   dom.nextDayButton.textContent=state.day===30&&state.story?.endingSeen?"자유 영업 시작":"다음 날 준비";
 
   const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 예상 손님 중 ${unserved}명을 받지 못했습니다.`:" 오늘의 손님을 모두 맞이했습니다.";
-  dom.resultComment.textContent=`${tasteComment}${demandComment} 매출 ${state.dailyRevenue.toLocaleString()}원에서 재고 손실 ${state.wasteLoss.toLocaleString()}원이 차감되었습니다.`;
+  dom.resultComment.textContent=`${tasteComment}${demandComment} 매출 ${state.dailyRevenue.toLocaleString()}원에서 폐기·재고 손실 ${state.wasteLoss.toLocaleString()}원이 차감되었습니다.`;
 }
 
 function spawnOrder(slot) {
@@ -133,6 +135,39 @@ function tryDeliver() {
   serveOrder(order);
 }
 
+function discardCarriedDish(){
+  if(state.phase!=="night"||!state.carrying)return false;
+  const carrying=state.carrying;
+  const order=state.orders.find(item=>item.id===carrying.orderId);
+  const dish=dishById(carrying.dishId);
+  if(!order||!dish){
+    state.carrying=null;
+    showToast("완성 음식의 주문 정보를 찾지 못해 손에서 내려놓았습니다.",true);
+    updateUI(true);saveGame();
+    return false;
+  }
+
+  const inventory=state.inventory[dish.id];
+  if(!inventory||inventory.count<=0){
+    showToast(`${dish.name} 재조리에 쓸 준비 재료가 없어 폐기할 수 없습니다.`,true);
+    return false;
+  }
+
+  order.cookStep=0;
+  order.cookScores=[];
+  state.selectedOrderId=order.id;
+  state.carrying=null;
+  state.discardedCount=(state.discardedCount||0)+1;
+  state.discardLoss=(state.discardLoss||0)+wasteLossForDish(dish);
+  state.trash=Math.min(6,state.trash+1);
+  state.dirtyDishes=Math.min(6,state.dirtyDishes+1);
+  state.cleanliness=clamp(state.cleanliness-1,0,100);
+  spawnPopup(STATIONS.trash.ix,STATIONS.trash.iy-55,"폐기");
+  showToast(`${dish.name} 완성품을 폐기했습니다. 남은 준비 재료로 다시 조리하세요.`);
+  audio.bad();updateUI(true);saveGame();
+  return true;
+}
+
 function serveOrder(order) {
   const dish=dishById(order.dishId),inv=state.inventory[dish.id];
   const satisfaction=Math.round(clamp(inv.quality*.55+state.carrying.cookScore*.40+state.cleanliness*.05,0,100));
@@ -158,7 +193,15 @@ function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)re
 function updateNightObjective(){
   const progress=`손님 ${state.served} / ${state.nightCustomerTarget}명 · 남은 시간 ${formatTime(state.phaseTime)}`;
   const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
-  if(state.carrying){const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId);dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성!</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;return;}
+  if(state.carrying){
+    const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId),inv=state.inventory[d.id];
+    const expected=Math.round(clamp(inv.quality*.55+state.carrying.cookScore*.40+state.cleanliness*.05,0,100));
+    const retry=inv.count>0
+      ?"마음에 들지 않으면 쓰레기통에서 폐기하고 다시 조리할 수 있습니다."
+      :"재조리할 준비 재료가 없어 이 음식은 폐기할 수 없습니다.";
+    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성 · 조리 ${state.carrying.cookScore}점 · 예상 만족도 ${expected}점</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div><div>${retry}</div>`;
+    return;
+  }
   if(!order){dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>다음 손님을 기다리고 있습니다.</div>`;return;}
   const d=dishById(order.dishId),step=d.cook[order.cookStep];
   const special=order.specialRecipe?" · 특별 조리":"";

@@ -92,7 +92,7 @@ function restoreGameState(data){
 
   const numericDefaults={
     day:1,money:0,popularity:0,popularityBeforeResult:0,popularityDelta:0,
-    dailyRevenue:0,wasteLoss:0,leftoverCount:0,nightCustomerTarget:0,
+    dailyRevenue:0,wasteLoss:0,leftoverCount:0,discardedCount:0,discardLoss:0,nightCustomerTarget:0,
     spawnedCustomers:0,served:0,satisfactionTotal:0,fiveStar:0,
     cleanliness:100,dirtyDishes:0,trash:0
   };

@@ -81,6 +81,8 @@ const state = {
   dailyRevenue:0,
   wasteLoss:0,
   leftoverCount:0,
+  discardedCount:0,
+  discardLoss:0,
   nightCustomerTarget:0,
   spawnedCustomers:0,
   selectedDishId:"kimchi",
@@ -217,8 +219,16 @@ function nearestStation() {
 
 function interact() {
   if(storyDialogueIsActive() || state.paused || state.mini || !["day","night"].includes(state.phase)) return;
-  if(state.phase==="night" && state.carrying) { tryDeliver(); return; }
   const station=nearestStation();
+  if(state.phase==="night" && state.carrying) {
+    if(station?.id==="trash"){
+      state.player.facing=station.facing;
+      discardCarriedDish();
+      return;
+    }
+    tryDeliver();
+    return;
+  }
   if(!station){ showToast("사용할 집기 가까이 이동하세요.",true); return; }
   state.player.facing=station.facing;
   if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast("씻을 그릇이 없습니다.");return;} startMini("dishwasher",station.id,{utility:true}); return; }
@@ -515,7 +525,12 @@ function updatePrompt(){
   let text="",x=0,y=0;
   if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
-    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+    const station=nearestStation();
+    const dish=dishById(state.carrying.dishId);
+    if(station?.id==="trash"&&dish&&state.inventory[dish.id]?.count>0){
+      text=`SPACE · ${dish.name} 폐기`;
+      x=station.ix;y=station.y+station.h+60;
+    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
       text=`SPACE · ${order.slot+1}번 손님에게 서빙`;
       x=CUSTOMER_SEATS[order.slot];y=520;
     }
