@@ -190,6 +190,9 @@ kbd { min-width: 25px; padding: 2px 4px; text-align: center; border: 1px solid #
 .choice-button.wrong { background:linear-gradient(#eaa292,#a84b42); }
 .sequence-view { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; min-height:50px; }
 .sequence-chip { padding:8px 12px; border:2px solid #936039; border-radius:8px; background:#f1d39f; color:#2d1b11; font-weight:800; }
+.arrow-sequence-chip { min-width:42px; text-align:center; transition:transform .16s ease,background .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease; }
+.arrow-sequence-chip.current { transform:scale(1.08); border-color:#f4c663; background:#ffe4a4; box-shadow:0 0 0 3px rgba(244,198,99,.2),0 0 14px rgba(244,198,99,.38); }
+.arrow-sequence-chip.correct { transform:scale(.72); border-color:#574332; background:#695847; color:#b9a58b; opacity:.62; box-shadow:inset 0 2px 5px rgba(0,0,0,.35); }
 .progress-track { position:relative; width:100%; height:28px; border:2px solid #79502e; border-radius:8px; background:#1a0f0a; overflow:hidden; }
 .progress-zone { position:absolute; top:0; bottom:0; background:rgba(135,167,83,.85); }
 .progress-perfect { position:absolute; top:0; bottom:0; background:rgba(255,224,133,.72); }
@@ -201,7 +204,8 @@ kbd { min-width: 25px; padding: 2px 4px; text-align: center; border: 1px solid #
 .heat-target { position:absolute; top:0; bottom:0; left:43%; width:20%; border-left:3px solid #eff3a6; border-right:3px solid #eff3a6; background:rgba(224,236,136,.22); }
 .heat-needle { position:absolute; top:2px; bottom:2px; width:7px; background:#fff4c0; border:1px solid #5b2b17; transform:translateX(-50%); }
 .arrow-grid { display:grid; grid-template-columns:repeat(4,70px); gap:8px; }
-.arrow-button { height:55px; font-size:25px; }
+.arrow-button { height:55px; font-size:25px; transition:transform .12s ease,filter .12s ease,background .12s ease; }
+.arrow-button.pressed,.arrow-button:active { transform:scale(.86); filter:brightness(.68) saturate(.72); }
 .grill-targets { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; }
 .sauce-target { min-height:72px; border:2px dashed #c28a48; border-radius:12px; background:#24140d; color:#d1ac77; font-size:22px; cursor:pointer; }
 .sauce-target.done { background:#8c4a29; color:#ffe6a7; border-style:solid; }

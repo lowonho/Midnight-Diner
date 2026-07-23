@@ -323,14 +323,23 @@ function renderBubbleGrid() {
 
 function renderArrowGame() {
   const m=state.mini; if(!m) return;
-  dom.miniContent.innerHTML=`<div class="sequence-view" id="arrowSequence">${m.data.arrows.map((a,i)=>`<span class="sequence-chip" data-i="${i}">${a}</span>`).join("")}</div><div class="arrow-grid" id="arrowGrid"></div>`;
+  dom.miniContent.innerHTML=`<div class="sequence-view" id="arrowSequence">${m.data.arrows.map((a,i)=>`<span class="sequence-chip arrow-sequence-chip ${i===m.data.index?"current":""}" data-i="${i}">${a}</span>`).join("")}</div><div class="cut-count" id="arrowProgress">진행 ${m.data.index} / ${m.data.arrows.length}</div><div class="arrow-grid" id="arrowGrid"></div>`;
   const grid=dom.miniContent.querySelector("#arrowGrid");
-  ["←","↑","→","↓"].forEach(a=>{const b=document.createElement("button");b.type="button";b.className="arrow-button";b.textContent=a;b.addEventListener("click",()=>arrowInput(a));grid.appendChild(b);});
+  ["←","↑","→","↓"].forEach(a=>{const b=document.createElement("button");b.type="button";b.className="arrow-button";b.dataset.arrow=a;b.textContent=a;b.addEventListener("click",()=>arrowInput(a));grid.appendChild(b);});
 }
 function arrowInput(a) {
   const m=state.mini; if(!m||m.type!=="stir")return;
+  const pressed=dom.miniContent.querySelector(`.arrow-button[data-arrow="${a}"]`);
+  if(pressed){pressed.classList.remove("pressed");void pressed.offsetWidth;pressed.classList.add("pressed");setTimeout(()=>pressed.classList.remove("pressed"),150);}
   const expected=m.data.arrows[m.data.index];
-  if(a===expected){dom.miniContent.querySelector(`[data-i="${m.data.index}"]`).classList.add("correct");m.data.index++;audio.click();if(m.data.index===m.data.arrows.length)finishMini(Math.max(70,100-m.data.errors*12));}
+  if(a===expected){
+    const completed=dom.miniContent.querySelector(`[data-i="${m.data.index}"]`);
+    completed.classList.remove("current");completed.classList.add("correct");
+    m.data.index++;
+    const next=dom.miniContent.querySelector(`[data-i="${m.data.index}"]`);if(next)next.classList.add("current");
+    const progress=dom.miniContent.querySelector("#arrowProgress");if(progress)progress.textContent=`진행 ${m.data.index} / ${m.data.arrows.length}`;
+    audio.click();if(m.data.index===m.data.arrows.length)finishMini(Math.max(70,100-m.data.errors*12));
+  }
   else{m.data.errors++;audio.bad();dom.miniFeedback.textContent="볶는 방향이 엇갈렸어요.";}
 }
 
