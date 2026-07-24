@@ -1,13 +1,50 @@
 "use strict";
 
+// 게임 로직·캔버스 드로잉이 사용하는 논리 좌표계 (기존 값 유지)
 const W = 1280;
 const H = 720;
+
+// 실제 렌더 해상도 = 배경 에셋 원본 기준 1920 x 1080 (16:9)
+const VIEW_W = 1920;
+const VIEW_H = 1080;
+// 논리 좌표(1280x720) → 화면 좌표(1920x1080) 배율. 가로·세로 모두 정확히 1.5.
+const VIEW_SCALE = VIEW_W / W;
+const toView = value => value * VIEW_SCALE;
+
+const DEPTH = { background:0, overlay:40, player:50, plate:51, food:52, ambient:60 };
+
+// 배경 레이어 배치표 — 좌표·크기는 전달받은 스펙 그대로, 스케일 1.0.
+//
+// [depth 주의] 스펙 문서는 창밖 풍경을 depth 0(화면벽 뒤)에 두라고 되어 있지만,
+// 실제 bg_wall_back.png 에는 창문 구멍이 뚫려 있지 않고 전 영역이 불투명하다.
+// 풍경을 벽 뒤에 두면 완전히 가려지므로, 벽(10/11)과 창틀(20) 사이인 depth 15에 배치한다.
+// 창밖 풍경이 901x155 → 962x215 로 확장된 이유("창틀 안쪽으로 벽이 비쳐 보이는 문제 방지")도
+// 풍경이 벽 위에 올라가는 구성을 전제로 하며, 확장분은 창틀 테두리 뒤에 숨는다.
+const BACKGROUND_LAYERS = [
+  { key:"bg_wall_back",           image:"bgWallBack",       x:302,  y:0,   depth:10 },
+  { key:"bg_wall_left",           image:"bgWallLeft",       x:0,    y:0,   depth:11 },
+  { key:"bg_wall_right",          image:"bgWallRight",      x:1610, y:0,   depth:11 },
+  { key:"bg_window_view_night",   image:"bgWindowViewNight",x:464,  y:130, depth:15 },
+  { key:"bg_window_view_day",     image:"bgWindowViewDay",  x:464,  y:130, depth:15 },
+  { key:"bg_window",              image:"bgWindow",         x:464,  y:130, depth:20 },
+  { key:"bg_floor",               image:"bgFloor",          x:0,    y:545, depth:30 }
+];
+
+// 창틀 유리 구멍 안쪽(하늘 부분) 영역. 별 반짝임 fx 를 뿌리는 범위.
+const STAR_FIELD = { x:500, y:160, w:900, h:72 };
+const STAR_COUNT = 18;
+
 let ctx = null;
 let phaserScene = null;
 let frameTexture = null;
 let playerSprite = null;
 let carriedPlate = null;
 let carriedFood = null;
+let bgContainer = null;
+let bgStarLayer = null;
+let bgAmbient = null;
+const bgLayers = {};
+let timeOfDay = null;
 
 const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
@@ -634,29 +671,95 @@ function updatePrompt(){
 
 function draw(){
   if(!ctx)return;
-  ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawFrontFixtures();drawPrepObjects();drawCustomers();drawGuidance();drawParticles();
+  // 프레임 캔버스는 1920x1080 이지만, 드로잉 코드는 1280x720 논리 좌표를 그대로 쓴다.
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,VIEW_W,VIEW_H);
+  ctx.setTransform(VIEW_SCALE,0,0,VIEW_SCALE,0,0);
+  syncBackgroundPhase();drawStations();drawFrontFixtures();drawPrepObjects();drawCustomers();drawGuidance();drawParticles();
   frameTexture?.refresh();
 }
 
 function syncPhaserObjects(){
   if(!playerSprite)return;
   const p=state.player,dirs={down:0,left:1,right:2,up:3};
-  playerSprite.setPosition(p.x,p.y);
+  playerSprite.setPosition(toView(p.x),toView(p.y));
   if(state.mini) playerSprite.play(`chef-work-${p.facing}`,true);
   else if(p.moving) playerSprite.play(`chef-walk-${p.facing}`,true);
   else { playerSprite.stop();playerSprite.setFrame(dirs[p.facing]*4); }
   const carrying=state.carrying;
-  carriedPlate.setVisible(!!carrying).setPosition(p.x,p.y-85);
-  carriedFood.setVisible(!!carrying).setPosition(p.x,p.y-90);
+  carriedPlate.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y-85));
+  carriedFood.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y-90));
   if(carrying) carriedFood.setFrame(dishById(carrying.dishId).icon);
 }
 
-function drawKitchen(){
-  const night=state.phase==="night"||state.phase==="result";
-  const background=night?images.kitchenNight:images.kitchenDay;
-  if(background) ctx.drawImage(background,0,0,W,H);
-  else { ctx.fillStyle=night?"#17151a":"#b99e78";ctx.fillRect(0,0,W,H); }
+function createBackground(scene){
+  BACKGROUND_LAYERS.forEach(layer=>{
+    if(!scene.textures.exists(layer.key)) scene.textures.addImage(layer.key,images[layer.image]);
+    bgLayers[layer.key]=scene.add.image(layer.x,layer.y,layer.key).setOrigin(0,0).setDepth(layer.depth);
+  });
+
+  bgStarLayer=scene.add.container(0,0).setDepth(16);
+  for(let i=0;i<STAR_COUNT;i++){
+    const star=scene.add.circle(
+      STAR_FIELD.x+Math.random()*STAR_FIELD.w,
+      STAR_FIELD.y+Math.random()*STAR_FIELD.h,
+      1+Math.random()*1.7,0xfff3cf,0
+    );
+    scene.tweens.add({
+      targets:star,alpha:{from:0,to:.3+Math.random()*.45},
+      duration:900+Math.random()*1300,delay:Math.random()*2600,
+      hold:200+Math.random()*700,yoyo:true,repeat:-1,ease:"Sine.easeInOut"
+    });
+    bgStarLayer.add(star);
+  }
+
+  // 야간 앰비언트 — 화면 전체에 주황빛 야간 톤을 덮는다.
+  // fillAlpha 는 1 로 두고 오브젝트 alpha 로만 세기를 조절한다 (둘은 곱해지므로 fillAlpha 0 이면 영원히 안 보임).
+  // depth 60 = 배경·집기·캐릭터보다 위. DOM HUD 는 캔버스 밖이라 영향 없음.
+  bgAmbient=scene.add.rectangle(0,0,VIEW_W,VIEW_H,0x2a1608,1).setOrigin(0,0).setDepth(DEPTH.ambient).setAlpha(0);
+
+  // 배경 전체를 하나의 컨테이너로 묶어 관리. 컨테이너 내부는 추가 순서 = 그리기 순서.
+  bgContainer=scene.add.container(0,0).setDepth(DEPTH.background);
+  bgContainer.add([
+    bgLayers.bg_wall_back,
+    bgLayers.bg_wall_left,
+    bgLayers.bg_wall_right,
+    bgLayers.bg_window_view_night,
+    bgLayers.bg_window_view_day,
+    bgStarLayer,
+    bgLayers.bg_window,
+    bgLayers.bg_floor
+  ]);
+
+  timeOfDay=timeOfDay||"day";
+  applyTimeOfDay(timeOfDay,true);
 }
+
+// 외부에서 호출하는 낮/밤 전환 API. setTimeOfDay('day') / setTimeOfDay('night')
+function setTimeOfDay(mode,instant=false){
+  if(mode!=="day"&&mode!=="night")return;
+  if(timeOfDay===mode)return;
+  timeOfDay=mode;
+  applyTimeOfDay(mode,instant);
+}
+function applyTimeOfDay(mode,instant=false){
+  const dayView=bgLayers.bg_window_view_day;
+  if(!dayView||!phaserScene)return;
+  const dayAlpha=mode==="day"?1:0;
+  const ambientAlpha=mode==="day"?0:.22;
+  phaserScene.tweens.killTweensOf(dayView);
+  phaserScene.tweens.killTweensOf(bgAmbient);
+  if(instant){dayView.setAlpha(dayAlpha);bgAmbient.setAlpha(ambientAlpha);}
+  else{
+    phaserScene.tweens.add({targets:dayView,alpha:dayAlpha,duration:900,ease:"Sine.easeInOut"});
+    phaserScene.tweens.add({targets:bgAmbient,alpha:ambientAlpha,duration:900,ease:"Sine.easeInOut"});
+  }
+  bgStarLayer.setVisible(mode==="night");
+}
+function syncBackgroundPhase(){
+  setTimeOfDay(state.phase==="night"||state.phase==="result"?"night":"day");
+}
+window.setTimeOfDay=setTimeOfDay;
 
 function drawStations(){Object.values(STATIONS).forEach(drawStation);}
 function labelStation(s){ctx.fillStyle="#1a0e09";roundRect(ctx,s.x+8,s.y-25,s.w-16,23,5,true,false);ctx.strokeStyle="#9a6235";ctx.lineWidth=2;roundRect(ctx,s.x+8,s.y-25,s.w-16,23,5,false,true);ctx.fillStyle="#f0c87b";ctx.font="bold 13px Malgun Gothic";ctx.textAlign="center";ctx.fillText(s.label,s.x+s.w/2,s.y-9);ctx.textAlign="left";}
@@ -842,17 +945,19 @@ class DinerScene extends Phaser.Scene {
     this.textures.addSpriteSheet("customers",images.customers,{frameWidth:44,frameHeight:60});
     this.textures.addSpriteSheet("food",images.food,{frameWidth:64,frameHeight:64});
 
-    frameTexture=this.textures.createCanvas("dinerFrame",W,H);
+    createBackground(this);
+
+    frameTexture=this.textures.createCanvas("dinerFrame",VIEW_W,VIEW_H);
     ctx=frameTexture.getContext();
     ctx.imageSmoothingEnabled=false;
-    this.add.image(0,0,"dinerFrame").setOrigin(0).setDepth(0);
+    this.add.image(0,0,"dinerFrame").setOrigin(0).setDepth(DEPTH.overlay);
 
-    playerSprite=this.add.sprite(state.player.x,state.player.y,"chef",0)
-      .setOrigin(.5,73/88).setDisplaySize(66,88).setDepth(10);
-    carriedPlate=this.add.ellipse(state.player.x,state.player.y-85,56,18,0xeee6d5)
-      .setDepth(11).setVisible(false);
-    carriedFood=this.add.sprite(state.player.x,state.player.y-90,"food",0)
-      .setDisplaySize(36,36).setDepth(12).setVisible(false);
+    playerSprite=this.add.sprite(toView(state.player.x),toView(state.player.y),"chef",0)
+      .setOrigin(.5,73/88).setDisplaySize(toView(66),toView(88)).setDepth(DEPTH.player);
+    carriedPlate=this.add.ellipse(toView(state.player.x),toView(state.player.y-85),toView(56),toView(18),0xeee6d5)
+      .setDepth(DEPTH.plate).setVisible(false);
+    carriedFood=this.add.sprite(toView(state.player.x),toView(state.player.y-90),"food",0)
+      .setDisplaySize(toView(36),toView(36)).setDepth(DEPTH.food).setVisible(false);
 
     const directions=["down","left","right","up"];
     directions.forEach((direction,row)=>{
@@ -886,13 +991,14 @@ class DinerScene extends Phaser.Scene {
 function bootPhaser(){
   return new Phaser.Game({
     type:Phaser.CANVAS,
-    width:W,
-    height:H,
+    width:VIEW_W,
+    height:VIEW_H,
     parent:"gameCanvas",
     backgroundColor:"#17100d",
-    pixelArt:true,
-    antialias:false,
-    roundPixels:false,
+    // 배경이 픽셀아트가 아닌 일러스트 톤이므로 스무딩 유지
+    pixelArt:false,
+    antialias:true,
+    roundPixels:true,
     scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
     scene:DinerScene
   });
@@ -906,8 +1012,13 @@ Promise.all([
   loadNativeImage("chef","assets/chef_sheet.png"),
   loadNativeImage("customers","assets/customer_sheet.png"),
   loadNativeImage("food","assets/food_sheet.png"),
-  loadNativeImage("kitchenDay","assets/kitchen-background-day.png"),
-  loadNativeImage("kitchenNight","assets/kitchen-background-night.png"),
+  loadNativeImage("bgWallBack","assets/bg/bg_wall_back.png"),
+  loadNativeImage("bgWallLeft","assets/bg/bg_wall_left.png"),
+  loadNativeImage("bgWallRight","assets/bg/bg_wall_right.png"),
+  loadNativeImage("bgWindowViewNight","assets/bg/bg_window_view_night.png"),
+  loadNativeImage("bgWindowViewDay","assets/bg/bg_window_view_day.png"),
+  loadNativeImage("bgWindow","assets/bg/bg_window.png"),
+  loadNativeImage("bgFloor","assets/bg/bg_floor.png"),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);
