@@ -312,17 +312,18 @@ function moveWhiskPointer(event){
 }
 
 function setupChickenSkewer(){
-  state.mini.data={mode:"skewer",sequence:["chicken","greenOnion","chicken","greenOnion","chicken"],placed:[],used:[],selectedPiece:null};
-  dom.miniTitle.textContent="닭꼬치 · 꼬치에 꽂기";
-  dom.miniDescription.textContent="닭 → 대파 → 닭 → 대파 → 닭 순서로 재료를 드래그해 꼬치 슬롯에 놓으세요.";
+  state.mini.data={mode:"skewer",sequence:["chicken","greenOnion","chicken","greenOnion","chicken"],placed:[],used:[],selectedPiece:null,completedSkewers:0,totalSkewers:4};
+  dom.miniTitle.textContent="닭꼬치 4개 조립";
+  dom.miniDescription.textContent="닭 → 대파 → 닭 → 대파 → 닭 순서로 재료를 꽂아 숯불에 올릴 꼬치 4개를 만드세요.";
   renderChickenSkewer();
 }
 
 function renderChickenSkewer(){
   const data=state.mini.data;
-  dom.miniTimer.textContent=`${data.placed.length} / ${data.sequence.length}`;
+  dom.miniTimer.textContent=`꼬치 ${data.completedSkewers+1} / ${data.totalSkewers} · ${data.placed.length} / ${data.sequence.length}`;
   dom.miniContent.innerHTML=`
     <div class="skewer-prep-scene">
+      <div class="skewer-batch-progress" aria-label="완성된 닭꼬치 수">${Array.from({length:data.totalSkewers},(_,index)=>`<span class="batch-skewer ${index<data.completedSkewers?"done":index===data.completedSkewers?"current":""}"><i></i><b></b><em></em><b></b><em></em><b></b></span>`).join("")}</div>
       <div class="skewer-sources">${data.sequence.map((ingredient,index)=>`<button type="button" draggable="true" class="skewer-piece ${ingredient} ${data.used.includes(index)?"used":""}" data-piece-index="${index}" data-ingredient="${ingredient}" ${data.used.includes(index)?"disabled":""}>${ingredient==="chicken"?"닭":"대파"}</button>`).join("")}</div>
       <div class="skewer-stick"><i></i>${data.sequence.map((ingredient,index)=>`<button type="button" class="skewer-slot ${index<data.placed.length?ingredient:""} ${index===data.placed.length?"current":""}" data-slot-index="${index}">${index<data.placed.length?(ingredient==="chicken"?"닭":"대파"):index+1}</button>`).join("")}</div>
     </div>
@@ -344,7 +345,12 @@ function placeSkewerPiece(pieceIndex,slotIndex){
   if(data.used.includes(pieceIndex))return;
   if(slotIndex!==data.placed.length||ingredient!==expected){dom.miniFeedback.textContent=`다음에는 ${expected==="chicken"?"닭":"대파"}을 ${data.placed.length+1}번 슬롯에 놓으세요.`;audio.bad();return;}
   data.used.push(pieceIndex);data.placed.push(ingredient);data.selectedPiece=null;audio.click();dom.miniFeedback.textContent="재료를 꼬치에 꽂았습니다.";
-  if(data.placed.length>=data.sequence.length){finishDayPrepTask("assembleChickenSkewer","닭꼬치 조립 완료");return;}
+  if(data.placed.length>=data.sequence.length){
+    data.completedSkewers++;
+    if(data.completedSkewers>=data.totalSkewers){finishDayPrepTask("assembleChickenSkewer","닭꼬치 4개 조립 완료");return;}
+    data.placed=[];data.used=[];data.selectedPiece=null;
+    dom.miniFeedback.textContent=`${data.completedSkewers}개 완성! 다음 꼬치를 같은 순서로 꽂으세요.`;
+  }
   renderChickenSkewer();
 }
 

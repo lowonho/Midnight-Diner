@@ -389,6 +389,14 @@
 .whisk-progress { width: 100%; height: 18px; overflow: hidden; border: 2px solid #79502e; border-radius: 9px; background: #180e09; }
 .whisk-progress i { display: block; width: 0; height: 100%; background: linear-gradient(90deg,#b46b3f,#e7c166,#7e9d50); transition: width .08s linear; }
 .skewer-prep-scene { width: 100%; display: grid; gap: 18px; }
+.skewer-batch-progress { min-height: 46px; display: grid; grid-template-columns: repeat(4,1fr); align-items: center; gap: 8px; }
+.batch-skewer { position: relative; height: 34px; display: flex; align-items: center; justify-content: center; gap: 2px; opacity: .28; transition: opacity .18s ease,transform .18s ease; }
+.batch-skewer > i { position: absolute; z-index: 0; left: 3%; right: 0; top: 50%; height: 3px; border-radius: 3px; background: #d6ad70; }
+.batch-skewer > b,.batch-skewer > em { position: relative; z-index: 1; width: 15px; height: 18px; border-radius: 5px; }
+.batch-skewer > b { background: #d88e78; }
+.batch-skewer > em { background: linear-gradient(#8fb45f,#e4deba); }
+.batch-skewer.current { opacity: .72; transform: translateY(-2px); }
+.batch-skewer.done { opacity: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
 .skewer-sources { min-height: 70px; display: flex; justify-content: center; gap: 8px; }
 .skewer-piece { min-width: 62px; padding: 10px 8px; border: 2px solid #87542e; border-radius: 11px; color: #382116; cursor: grab; font-weight: 800; }
 .skewer-piece.chicken { background: #e5a28b; }

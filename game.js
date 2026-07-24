@@ -289,7 +289,7 @@ function setupMini() {
     dom.miniContent.querySelector("#heatUp").addEventListener("click",()=>{m.data.velocity+=.16;audio.click();});
   } else if(m.type==="twoSideCook") {
     const isSkewer=dish.id==="skewer";
-    set(isSkewer?"닭꼬치 양면 굽기":"김치전 양면 굽기",isSkewer?"앞면과 뒷면을 충분히 익힌 뒤 초록 구간에서 Space를 누르세요.":"양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",26);
+    set(isSkewer?"닭꼬치 숯불 직화구이":"김치전 양면 굽기",isSkewer?"닭꼬치 4개를 숯불 위에서 함께 굽습니다. 앞면과 뒷면이 초록 구간에 들어오면 Space를 누르세요.":"양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",26);
     m.data={phase:"cook",side:0,marker:0,dir:1,speed:.22,hits:[],dishStyle:isSkewer?"skewer":"pancake"};
     renderTwoSideCook();
   } else if(m.type==="flip") {
@@ -384,6 +384,12 @@ function renderGrillGame() {
   }
 }
 
+function charcoalSkewerMarkup(){
+  const coals=Array.from({length:9},()=>"<i></i>").join("");
+  const skewers=Array.from({length:4},(_,index)=>`<span class="grill-skewer skewer-${index+1}"><i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b></span>`).join("");
+  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 4개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
+}
+
 function renderTwoSideCook(){
   const m=state.mini;if(!m||m.type!=="twoSideCook")return;
   const data=m.data,isSkewer=data.dishStyle==="skewer";
@@ -391,7 +397,7 @@ function renderTwoSideCook(){
     const sideLabel=data.side===0?"앞면":"뒷면";
     dom.miniDescription.textContent=`${sideLabel}이 충분히 익어 포인터가 오른쪽 초록 구간에 들어오면 Space를 누르세요.`;
     dom.miniContent.innerHTML=`
-      <div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} side-${data.side}"><i class="cook-food">${isSkewer?'<b></b><em></em><b></b><em></em><b></b>':""}</i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
+      <div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} side-${data.side}">${isSkewer?charcoalSkewerMarkup():'<i class="cook-food"></i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>'}</div>
       <div class="doneness-gauge"><i class="doneness-green"></i><i id="miniMarker" class="progress-marker"></i></div>
       <div class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</div>
       <button class="mini-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
@@ -406,7 +412,7 @@ function renderTwoSideCook(){
       <div class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</div>
       <div class="rebound-controls"><button id="reboundUp" type="button">↑ 꾹 누르기</button><button id="reboundDown" type="button">↓ 반동 뒤집기</button></div>`;
   }else{
-    dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping"><i class="cook-food">${isSkewer?'<b></b><em></em><b></b><em></em><b></b>':""}</i></div><div class="cut-count">${isSkewer?"꼬치":"김치전"} 뒤집는 중…</div>`;
+    dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping">${isSkewer?charcoalSkewerMarkup():'<i class="cook-food"></i>'}</div><div class="cut-count">${isSkewer?"꼬치 4개":"김치전"} 뒤집는 중…</div>`;
   }
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click",miniAction);
   const reboundUp=dom.miniContent.querySelector("#reboundUp"),reboundDown=dom.miniContent.querySelector("#reboundDown");

@@ -124,7 +124,8 @@ function completeDayPrepTask(taskId){
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented);
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
       // 기존 영업·주문·정산 호환용 내부 준비 수량이며 준비 화면에는 노출하지 않습니다.
-      state.inventory[dish.id]={count:3,quality:100};
+      const prepYield=Math.max(1,Math.floor(Number(dish.prepYield)||3));
+      state.inventory[dish.id]={count:prepYield,quality:100};
     }
   });
   updateUI(true);saveGame();
