@@ -94,6 +94,28 @@ const COUNTER_LAYOUT = {
   ]
 };
 
+/* ------------------------------------------------------------
+   2-1. 게임 판정용 논리 좌표
+   ------------------------------------------------------------
+   위 COUNTER_LAYOUT 은 에셋 배치용 VIEW(1920x1080) 좌표입니다.
+   게임 규칙(state.player, 준비물 배치, 프롬프트 위치)은 논리(1280x720)
+   좌표를 쓰므로 같은 카운터를 논리 좌표로도 한 벌 적어 둡니다.
+
+     register  VIEW x   0~363 , 바닥선 1013 → 논리 x   0~242 , y 500~675
+     griddle   VIEW x 336~663 , 바닥선 1017 → 논리 x 224~442 , y 454~678
+     bar_table VIEW x 630~1920, 바닥선 1012 → 논리 x 420~1280, y 500~675
+
+   ix / iy 는 요리사가 서는 자리(카운터 위쪽 = 주방측)이며 손으로 맞춘 값입니다.
+   카운터를 옮기면 COUNTER_LAYOUT 과 이 표를 같이 고쳐야 합니다.
+   (toLogic() 로 자동 파생시키는 건 다음 단계 과제입니다)
+   ------------------------------------------------------------ */
+
+const FRONT_STATIONS = {
+  register:{id:"register",label:"계산대",x:0,  y:500,w:242,h:175,ix:245,iy:470,facing:"down"},
+  griddle: {id:"griddle", label:"철판",  x:224,y:454,w:218,h:224,ix:333,iy:470,facing:"down"},
+  counter: {id:"counter", label:"카운터",x:420,y:500,w:860,h:175,ix:700,iy:470,facing:"down"}
+};
+
 // 명패 글자. 다국어 대응을 위해 이미지 합성이 아니라 텍스트로 올립니다.
 const COUNTER_LABEL_STYLE = {
   fontFamily:'"Malgun Gothic","Apple SD Gothic Neo",sans-serif',

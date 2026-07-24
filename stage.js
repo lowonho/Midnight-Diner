@@ -34,6 +34,10 @@ const VIEW_H = 1080;
 const VIEW_SCALE = VIEW_W / W;
 const toView = value => value * VIEW_SCALE;
 
+// 화면 좌표 → 논리 좌표. 에셋 스펙(1920x1080)으로 받은 값을
+// 게임 판정 좌표로 옮길 때 씁니다. 배율 계산은 이 두 줄이 전부입니다.
+const toLogic = value => value / VIEW_SCALE;
+
 
 /* ------------------------------------------------------------
    2. 레이어 순서
