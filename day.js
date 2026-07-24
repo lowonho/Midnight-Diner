@@ -6,7 +6,6 @@ const PREP_TASKS={
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish"},
   cutFishCake:{id:"cutFishCake",menuId:"oden",label:"어묵 썰기",objectLabel:"어묵 바구니",objectKind:"fishCake"},
   cleanAnchovy:{id:"cleanAnchovy",menuId:"oden",label:"멸치 손질",objectLabel:"멸치 바구니",objectKind:"anchovy"},
-  assembleOden:{id:"assembleOden",menuId:"oden",label:"냄비에 재료 넣기",objectLabel:"육수 냄비",objectKind:"pot"},
   prepareKimchi:{id:"prepareKimchi",menuId:"tofu",label:"김치 준비하기",objectLabel:"김치통",objectKind:"kimchi"}
 };
 

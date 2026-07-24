@@ -6,8 +6,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutFishCake:{title:"어묵탕 · 어묵 썰기",total:5,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68,.43],speed:.8},
   prepareKimchi:{title:"두부김치 · 김치 준비하기",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
   fryKimchi:{total:11,allowedDirections:["left","right"]},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5},
-  assembleOden:{title:"어묵탕 · 냄비에 재료 넣기",ingredients:["radish","fishCake","anchovy"]}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
 
 // 아래 경로에 파일을 추가하면 CSS 프로토타입 대신 자동으로 이미지가 사용됩니다.
@@ -75,7 +74,6 @@ function startDayPrepMini(task){
   if(task.id==="cutRadish")setupDayPrepTiming("cutRadish");
   else if(task.id==="cutFishCake")setupDayPrepTiming("cutFishCake");
   else if(task.id==="cleanAnchovy")setupAnchovyPrep();
-  else if(task.id==="assembleOden")setupOdenPot();
   else if(state.kimchiPrep.cuttingComplete)setupKimchiFry();
   else setupDayPrepTiming("prepareKimchi");
 }
@@ -92,7 +90,7 @@ function setupDayPrepTiming(taskId){
     title:config.title,
     onComplete:taskId==="prepareKimchi"
       ?()=>{state.kimchiPrep.cuttingComplete=true;setTimeout(()=>{if(state.mini===m&&!m.complete)setupKimchiFry();},320);}
-      :()=>finishDayPrepTask(taskId,taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료"),
+      :()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료"),
     description:taskId==="cutRadish"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
       :taskId==="cutFishCake"
@@ -146,28 +144,26 @@ function setupAnchovyPrep(){
   renderAnchovyPrep();
 }
 
-function setupOdenPot(){
-  const config=DAY_PREP_MINI_CONFIG.assembleOden;
-  state.mini.data={mode:"odenPot",index:0,ingredients:[...config.ingredients]};
-  dom.miniTitle.textContent=config.title;
-  dom.miniDescription.textContent="손질한 무, 어묵, 멸치를 차례로 냄비에 넣으세요.";
-  renderOdenPot();
-}
-
-function renderOdenPot(){
-  const data=state.mini.data;
-  const labels={radish:"무",fishCake:"어묵",anchovy:"멸치"};
-  const nextIngredient=data.ingredients[data.index],isComplete=!nextIngredient;
-  dom.miniTimer.textContent=`${data.index} / ${data.ingredients.length}`;
+function showOdenIngredientDrop(taskId,ingredient,message){
+  const m=state.mini;
+  const ingredientOrder=["radish","fishCake","anchovy"];
+  const completedIngredients=ingredientOrder.filter(item=>item===ingredient||(
+    item==="radish"&&state.prepProgress.cutRadish||
+    item==="fishCake"&&state.prepProgress.cutFishCake||
+    item==="anchovy"&&state.prepProgress.cleanAnchovy
+  ));
+  m.data={mode:"potDrop",taskId,ingredient,message};
+  dom.miniTitle.textContent="어묵탕 · 냄비에 넣기";
+  dom.miniDescription.textContent=`손질을 마친 ${ingredient==="radish"?"무":ingredient==="fishCake"?"어묵":"멸치"}를 육수 냄비에 넣습니다.`;
+  dom.miniTimer.textContent="냄비";
   dom.miniContent.innerHTML=`
     <div class="oden-pot-scene">
-      <div class="oden-pot-ingredients">${data.ingredients.map((ingredient,index)=>`<i class="pot-ingredient ${ingredient} ${index<data.index?"in-pot":""}" aria-label="${labels[ingredient]}"></i>`).join("")}</div>
-      <div class="oden-broth">${data.ingredients.slice(0,data.index).map(ingredient=>`<i class="broth-piece ${ingredient}"></i>`).join("")}</div>
+      <div class="oden-pot-ingredients"><i class="pot-ingredient ${ingredient} dropping"></i></div>
+      <div class="oden-broth">${completedIngredients.map(item=>`<i class="broth-piece ${item} ${item===ingredient?"just-added":""}"></i>`).join("")}</div>
       <div class="oden-pot"><i class="pot-rim"></i></div>
     </div>
-    <div class="cut-count">${isComplete?"무 · 어묵 · 멸치 넣기 완료":`${labels[nextIngredient]} 넣기`}</div>
-    ${isComplete?"":`<button class="mini-action" id="dayPrepAction" type="button">${labels[nextIngredient]} 냄비에 넣기</button>`}`;
-  dom.miniContent.querySelector("#dayPrepAction")?.addEventListener("click",dayPrepPrimaryAction);
+    <div class="cut-count">손질한 재료를 냄비에 넣는 중</div>`;
+  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(taskId,message);},650);
 }
 
 function renderAnchovyPrep(){
@@ -196,7 +192,7 @@ function cleanAnchovyHead(button){
   dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
   dom.miniContent.querySelector(".cut-count").textContent=`진행 ${m.data.cleaned} / ${m.data.total}`;
   dom.miniFeedback.textContent="머리 손질 성공";
-  if(m.data.cleaned===m.data.total)finishDayPrepTask("cleanAnchovy","멸치 손질 완료");
+  if(m.data.cleaned===m.data.total)showOdenIngredientDrop("cleanAnchovy","anchovy","멸치 손질 완료");
 }
 
 function setupKimchiFry(){
@@ -230,11 +226,6 @@ function renderKimchiFry(){
 
 function dayPrepPrimaryAction(){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
-  if(m.data.mode==="odenPot"){
-    m.data.index++;audio.click();
-    if(m.data.index>=m.data.ingredients.length){renderOdenPot();setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleOden","어묵탕 냄비 준비 완료");},350);return;}
-    renderOdenPot();return;
-  }
   if(m.data.mode!=="timing")return;
   const data=m.data,zoneStart=data.zoneStarts[data.successes],zoneEnd=zoneStart+data.zoneWidth;
   if(data.marker<zoneStart||data.marker>zoneEnd){

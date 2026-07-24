@@ -44,7 +44,7 @@ const DISHES = [
   { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"grill", game:"grill"}], price:7200 },
   { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"stir"}], price:8200 },
   { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"fridge", game:"plateKimchi"},{station:"board", game:"chop"}], price:8800 },
-  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cutFishCake","cleanAnchovy","assembleOden"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
+  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cutFishCake","cleanAnchovy"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
   { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
 ];
 
@@ -713,8 +713,6 @@ function drawPrepObjects(){
       ctx.fillStyle="#dba65d";ctx.save();ctx.translate(item.x,item.y-9);ctx.rotate(-.1);roundRect(ctx,-27,-10,54,20,4,true,false);ctx.restore();
     }else if(item.task.objectKind==="anchovy"){
       ctx.fillStyle="#9aa3a2";for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(item.x-19+i*18,item.y-8+(i%2)*5,17,5,.12,0,Math.PI*2);ctx.fill();}
-    }else if(item.task.objectKind==="pot"){
-      ctx.fillStyle="#343536";ctx.beginPath();ctx.ellipse(item.x,item.y-3,31,15,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#8b8d88";ctx.stroke();ctx.fillStyle="#b87839";ctx.beginPath();ctx.ellipse(item.x,item.y-6,25,9,0,0,Math.PI*2);ctx.fill();
     }else{
       ctx.fillStyle="#a7432d";roundRect(ctx,item.x-30,item.y-22,60,25,7,true,false);ctx.fillStyle="#83964d";ctx.fillRect(item.x-24,item.y-18,48,4);
     }

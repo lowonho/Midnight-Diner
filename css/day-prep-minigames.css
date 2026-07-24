@@ -212,6 +212,7 @@
 .pot-ingredient,.broth-piece { display: block; position: relative; }
 .pot-ingredient { width: 70px; height: 30px; transition: transform .2s ease,opacity .2s ease; }
 .pot-ingredient.in-pot { opacity: 0; transform: translateY(80px) scale(.7); }
+.pot-ingredient.dropping { animation: prep-ingredient-drop .5s ease-in forwards; }
 .pot-ingredient.radish { border-radius: 45%; background: #eee7cc; }
 .pot-ingredient.fishCake { border-radius: 7px; background: #daa054; transform: rotate(-8deg); }
 .pot-ingredient.anchovy { width: 74px; height: 20px; border-radius: 60% 35% 35% 60%; background: #8f9a9b; }
@@ -348,6 +349,7 @@
 @keyframes prep-toss-left { 50% { transform: translateX(-11px) rotate(-1deg); } }
 @keyframes prep-toss-right { 50% { transform: translateX(11px) rotate(1deg); } }
 @keyframes prep-pot-drop { from { opacity:0; transform:translateY(-55px) rotate(15deg); } to { opacity:1; transform:translateY(0); } }
+@keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(95px) rotate(12deg) scale(.65); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(-18px) translateY(-50%); } 50% { opacity:1; transform:translateX(9px) translateY(-50%); } 100% { opacity:0; transform:translateX(16px) translateY(-50%); } }
 
 @media (max-width:600px) {
