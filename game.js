@@ -396,16 +396,25 @@ function renderTwoSideCook(){
       <div class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</div>
       <button class="mini-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
   }else if(data.phase==="flip"){
-    dom.miniDescription.textContent="포인터가 가운데 뒤집기 구간에 들어오면 Space를 눌러 김치전을 뒤집으세요.";
+    dom.miniDescription.textContent="↑를 꾹 눌러 팬을 당긴 뒤, 반동 게이지가 충분히 차면 ↓를 눌러 뒤집으세요.";
     dom.miniContent.innerHTML=`
-      <div class="two-side-pan pancake-cook flip-ready"><i class="cook-food"></i></div>
-      <div class="progress-track"><i class="progress-zone" style="left:40%;width:20%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div>
-      <div class="cut-count">팬 뒤집기 타이밍</div>
-      <button class="mini-action" id="miniAction" type="button">Space · 뒤집기</button>`;
+      <div class="flip-rebound-scene">
+        <div class="two-side-pan pancake-cook flip-ready" id="reboundPan"><i class="cook-food"></i></div>
+        <div class="rebound-arrow" id="reboundArrow">↑</div>
+      </div>
+      <div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
+      <div class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</div>
+      <div class="rebound-controls"><button id="reboundUp" type="button">↑ 꾹 누르기</button><button id="reboundDown" type="button">↓ 반동 뒤집기</button></div>`;
   }else{
     dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping"><i class="cook-food">${isSkewer?'<b></b><em></em><b></b><em></em><b></b>':""}</i></div><div class="cut-count">${isSkewer?"꼬치":"김치전"} 뒤집는 중…</div>`;
   }
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click",miniAction);
+  const reboundUp=dom.miniContent.querySelector("#reboundUp"),reboundDown=dom.miniContent.querySelector("#reboundDown");
+  if(reboundUp){
+    reboundUp.addEventListener("pointerdown",event=>{event.preventDefault();reboundUp.setPointerCapture(event.pointerId);setPancakeFlipCharge(true);});
+    ["pointerup","pointercancel","pointerleave"].forEach(type=>reboundUp.addEventListener(type,()=>setPancakeFlipCharge(false)));
+  }
+  reboundDown?.addEventListener("click",releasePancakeFlip);
 }
 
 function twoSideCookAction(){
@@ -416,16 +425,49 @@ function twoSideCookAction(){
     data.hits.push(Math.round(clamp(100-Math.abs(data.marker-.76)*300,25,100)));audio.click();
     if(data.side===1){finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));return;}
     if(data.dishStyle==="pancake"){
-      data.phase="flip";data.marker=0;data.dir=1;data.speed=.88;renderTwoSideCook();
+      data.phase="flip";data.flipCharge=0;data.charging=false;renderTwoSideCook();
     }else{
       startTwoSideFlipAnimation(m);
     }
     return;
   }
   if(data.phase==="flip"){
-    data.hits.push(Math.round(clamp(100-Math.abs(data.marker-.5)*260,25,100)));
-    startTwoSideFlipAnimation(m);
+    dom.miniFeedback.textContent="↑를 누르고 반동을 모은 뒤 ↓로 뒤집으세요.";
   }
+}
+
+function setPancakeFlipCharge(charging){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.data.phase!=="flip"||m.complete)return false;
+  m.data.charging=!!charging;
+  dom.miniContent.querySelector("#reboundUp")?.classList.toggle("holding",m.data.charging);
+  dom.miniContent.querySelector("#reboundArrow")?.classList.toggle("holding",m.data.charging);
+  return true;
+}
+
+function updatePancakeFlipCharge(dt){
+  const data=state.mini.data;
+  if(data.charging)data.flipCharge=clamp((data.flipCharge||0)+48*dt,0,100);
+  else data.flipCharge=clamp((data.flipCharge||0)-4*dt,0,100);
+  const charge=Math.round(data.flipCharge),pan=dom.miniContent.querySelector("#reboundPan");
+  const bar=dom.miniContent.querySelector("#reboundGaugeBar"),label=dom.miniContent.querySelector("#reboundLabel");
+  if(bar)bar.style.width=`${charge}%`;
+  if(label)label.textContent=`반동 충전 ${charge}% · ${charge<40?"더 당기세요":charge<=88?"↓로 뒤집기!":"반동이 너무 강해요"}`;
+  if(pan)pan.style.transform=`translateY(${-Math.min(26,charge*.26)}px) rotate(${Math.min(3,charge*.03)}deg)`;
+}
+
+function releasePancakeFlip(){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.data.phase!=="flip"||m.complete)return false;
+  const data=m.data,charge=data.flipCharge||0;data.charging=false;
+  if(charge<40){
+    const pan=dom.miniContent.querySelector("#reboundPan");
+    pan?.classList.remove("rebound-fail");if(pan){void pan.offsetWidth;pan.classList.add("rebound-fail");}
+    data.flipCharge=Math.max(0,charge-18);dom.miniFeedback.textContent="반동이 부족합니다. ↑를 조금 더 오래 눌러주세요.";audio.bad();
+    return false;
+  }
+  data.hits.push(Math.round(clamp(100-Math.abs(charge-72)*2.4,35,100)));
+  dom.miniFeedback.textContent=charge>90?"강한 반동으로 뒤집었습니다!":"반동을 이용해 깔끔하게 뒤집었습니다!";
+  startTwoSideFlipAnimation(m);audio.success();
+  return true;
 }
 
 function startTwoSideFlipAnimation(m){
@@ -564,12 +606,14 @@ function updateMini(dt) {
   const m=state.mini;if(!m||m.complete)return;
   if(isDayPrepMini(m)){updateDayPrepMini(dt);return;}
   if(!m.data.tofuStyle){m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);}
-  if(m.type==="chop"||m.type==="flip"||m.type==="fry"||(m.type==="grill"&&m.data.phase==="timing")||(m.type==="twoSideCook"&&m.data.phase==="flip")){
+  if(m.type==="chop"||m.type==="flip"||m.type==="fry"||(m.type==="grill"&&m.data.phase==="timing")){
     m.data.marker+=m.data.dir*m.data.speed*dt;if(m.data.marker>=1){m.data.marker=1;m.data.dir=-1;}if(m.data.marker<=0){m.data.marker=0;m.data.dir=1;}
     const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
   }else if(m.type==="twoSideCook"&&m.data.phase==="cook"){
     m.data.marker=Math.min(1,m.data.marker+m.data.speed*dt);
     const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
+  }else if(m.type==="twoSideCook"&&m.data.phase==="flip"){
+    updatePancakeFlipCharge(dt);
   }else if(m.type==="heat"){
     m.data.total+=dt;m.data.velocity+=.035*dt;m.data.velocity*=.985;m.data.value=clamp(m.data.value+m.data.velocity*dt,0,1);
     if(m.data.value===0||m.data.value===1)m.data.velocity*=-.45;
@@ -701,6 +745,10 @@ window.addEventListener("keydown",e=>{
       else if(k==="arrowleft"||k==="arrowright")dayPrepDirectionInput(k.replace("arrow",""));
       return;
     }
+    if(state.mini?.type==="twoSideCook"&&state.mini.data.phase==="flip"){
+      if(k==="arrowup"){setPancakeFlipCharge(true);return;}
+      if(k==="arrowdown"){releasePancakeFlip();return;}
+    }
     if(e.code==="Space")miniAction();
     if(state.mini?.type==="stir"){const map={arrowleft:"←",arrowup:"↑",arrowright:"→",arrowdown:"↓"};if(map[k])arrowInput(map[k]);}
     if(state.mini?.type==="heat"){if(k==="arrowleft"||k==="a")state.mini.data.velocity-=.16;if(k==="arrowright"||k==="d")state.mini.data.velocity+=.16;}
@@ -715,6 +763,9 @@ window.addEventListener("keydown",e=>{
   }
   if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
+});
+window.addEventListener("keyup",e=>{
+  if(e.key.toLowerCase()==="arrowup"&&state.mini?.type==="twoSideCook"&&state.mini.data.phase==="flip")setPancakeFlipCharge(false);
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.transform=`translate(${px}px,${py}px)`;state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}

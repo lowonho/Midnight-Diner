@@ -205,11 +205,25 @@
 .two-side-pan.side-1 .cook-food { filter:brightness(.82) saturate(1.12); }
 .two-side-pan.flipping .cook-food { animation:two-side-food-flip .6s ease-in-out; }
 .two-side-pan.flip-ready { animation:pan-ready .8s ease-in-out infinite alternate; }
+.flip-rebound-scene { position:relative; width:100%; height:190px; display:flex; align-items:center; justify-content:center; }
+.flip-rebound-scene .two-side-pan { position:absolute; margin:0; transition:transform .08s linear; }
+.flip-rebound-scene .two-side-pan.flip-ready { animation:none; }
+.rebound-arrow { position:absolute; z-index:5; right:12%; top:45%; color:#ffe09a; font-size:52px; font-weight:900; text-shadow:0 3px #6a3c20; transition:transform .12s,color .12s; }
+.rebound-arrow.holding { color:#fff4bd; animation:rebound-arrow-pull .45s ease-in-out infinite alternate; }
+.rebound-gauge { position:relative; width:100%; height:25px; overflow:hidden; border:2px solid #79502e; border-radius:8px; background:#180e09; }
+.rebound-gauge > i { display:block; width:0; height:100%; background:linear-gradient(90deg,#b34b3b,#d6a746 42%,#79a052 62% 86%,#bd563c); transition:width .06s linear; }
+.rebound-sweet-zone { position:absolute; inset-block:0; left:58%; width:30%; border-inline:3px solid rgba(244,255,178,.75); pointer-events:none; }
+.rebound-controls { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+.rebound-controls button { min-height:50px; border:2px solid #89562e; border-radius:9px; background:linear-gradient(#edca8f,#b8773a); color:#2d1b11; cursor:pointer; font-size:17px; font-weight:900; }
+.rebound-controls button.holding { background:linear-gradient(#fff0af,#cf8740); transform:translateY(2px); }
+.two-side-pan.rebound-fail { animation:rebound-fail .35s ease; }
 .cook-steam { position:absolute; z-index:3; top:4px; width:20px; height:44px; border-left:4px solid rgba(245,237,215,.58); border-radius:50%; animation:serving-oden-steam 1.3s ease-in-out infinite; }
 .cook-steam.steam-one { left:105px; }
 .cook-steam.steam-two { left:177px; animation-delay:.45s; }
 @keyframes two-side-food-flip { 0% { transform:translateY(0) rotateX(0); } 50% { transform:translateY(-75px) rotateX(90deg) scale(.82); } 100% { transform:translateY(0) rotateX(180deg); } }
 @keyframes pan-ready { from { transform:rotate(-1deg); } to { transform:rotate(1deg) translateY(-3px); } }
+@keyframes rebound-arrow-pull { from { transform:translateY(0) scale(1); } to { transform:translateY(-13px) scale(1.1); } }
+@keyframes rebound-fail { 0%,100% { margin-left:0; } 30% { margin-left:-13px; } 65% { margin-left:10px; } }
 .cut-count { color: #f3d495; font-size: 18px; font-weight: 800; }
 
 .heat-wrap {
