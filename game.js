@@ -1,7 +1,7 @@
 "use strict";
 
-const W = 1280;
-const H = 720;
+// 화면 크기 · 좌표 배율(W, H, VIEW_*, toView) · 레이어 순서(STAGE_DEPTH) ·
+// 배경 에셋 · 낮밤 전환은 stage.js 가 담당합니다.
 let ctx = null;
 let phaserScene = null;
 let frameTexture = null;
@@ -634,28 +634,22 @@ function updatePrompt(){
 
 function draw(){
   if(!ctx)return;
-  ctx.clearRect(0,0,W,H);drawKitchen();drawStations();drawFrontFixtures();drawPrepObjects();drawCustomers();drawGuidance();drawParticles();
+  beginStageFrame(ctx);syncStageTimeOfDay(state.phase);
+  drawStations();drawFrontFixtures();drawPrepObjects();drawCustomers();drawGuidance();drawParticles();
   frameTexture?.refresh();
 }
 
 function syncPhaserObjects(){
   if(!playerSprite)return;
   const p=state.player,dirs={down:0,left:1,right:2,up:3};
-  playerSprite.setPosition(p.x,p.y);
+  playerSprite.setPosition(toView(p.x),toView(p.y));
   if(state.mini) playerSprite.play(`chef-work-${p.facing}`,true);
   else if(p.moving) playerSprite.play(`chef-walk-${p.facing}`,true);
   else { playerSprite.stop();playerSprite.setFrame(dirs[p.facing]*4); }
   const carrying=state.carrying;
-  carriedPlate.setVisible(!!carrying).setPosition(p.x,p.y-85);
-  carriedFood.setVisible(!!carrying).setPosition(p.x,p.y-90);
+  carriedPlate.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y-85));
+  carriedFood.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y-90));
   if(carrying) carriedFood.setFrame(dishById(carrying.dishId).icon);
-}
-
-function drawKitchen(){
-  const night=state.phase==="night"||state.phase==="result";
-  const background=night?images.kitchenNight:images.kitchenDay;
-  if(background) ctx.drawImage(background,0,0,W,H);
-  else { ctx.fillStyle=night?"#17151a":"#b99e78";ctx.fillRect(0,0,W,H); }
 }
 
 function drawStations(){Object.values(STATIONS).forEach(drawStation);}
@@ -842,17 +836,17 @@ class DinerScene extends Phaser.Scene {
     this.textures.addSpriteSheet("customers",images.customers,{frameWidth:44,frameHeight:60});
     this.textures.addSpriteSheet("food",images.food,{frameWidth:64,frameHeight:64});
 
-    frameTexture=this.textures.createCanvas("dinerFrame",W,H);
-    ctx=frameTexture.getContext();
-    ctx.imageSmoothingEnabled=false;
-    this.add.image(0,0,"dinerFrame").setOrigin(0).setDepth(0);
+    createStage(this);
 
-    playerSprite=this.add.sprite(state.player.x,state.player.y,"chef",0)
-      .setOrigin(.5,73/88).setDisplaySize(66,88).setDepth(10);
-    carriedPlate=this.add.ellipse(state.player.x,state.player.y-85,56,18,0xeee6d5)
-      .setDepth(11).setVisible(false);
-    carriedFood=this.add.sprite(state.player.x,state.player.y-90,"food",0)
-      .setDisplaySize(36,36).setDepth(12).setVisible(false);
+    frameTexture=createStageFrameTexture(this,"dinerFrame");
+    ctx=frameTexture.getContext();
+
+    playerSprite=this.add.sprite(toView(state.player.x),toView(state.player.y),"chef",0)
+      .setOrigin(.5,73/88).setDisplaySize(toView(66),toView(88)).setDepth(STAGE_DEPTH.player);
+    carriedPlate=this.add.ellipse(toView(state.player.x),toView(state.player.y-85),toView(56),toView(18),0xeee6d5)
+      .setDepth(STAGE_DEPTH.plate).setVisible(false);
+    carriedFood=this.add.sprite(toView(state.player.x),toView(state.player.y-90),"food",0)
+      .setDisplaySize(toView(36),toView(36)).setDepth(STAGE_DEPTH.food).setVisible(false);
 
     const directions=["down","left","right","up"];
     directions.forEach((direction,row)=>{
@@ -884,18 +878,8 @@ class DinerScene extends Phaser.Scene {
 }
 
 function bootPhaser(){
-  return new Phaser.Game({
-    type:Phaser.CANVAS,
-    width:W,
-    height:H,
-    parent:"gameCanvas",
-    backgroundColor:"#17100d",
-    pixelArt:true,
-    antialias:false,
-    roundPixels:false,
-    scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
-    scene:DinerScene
-  });
+  // 화면 크기·렌더 품질 설정은 stage.js 의 stageGameConfig() 에 있습니다.
+  return new Phaser.Game(stageGameConfig(DinerScene));
 }
 
 initializeStoryUI();
@@ -906,8 +890,7 @@ Promise.all([
   loadNativeImage("chef","assets/chef_sheet.png"),
   loadNativeImage("customers","assets/customer_sheet.png"),
   loadNativeImage("food","assets/food_sheet.png"),
-  loadNativeImage("kitchenDay","assets/kitchen-background-day.png"),
-  loadNativeImage("kitchenNight","assets/kitchen-background-night.png"),
+  loadStageAssets(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);
