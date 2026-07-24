@@ -208,6 +208,7 @@
 .prep-menu-group + .prep-menu-group { margin-top: 5px; }
 .prep-checklist strong:not(:first-child) { margin-top: 4px; }
 .prep-checklist .done { color: #9dbb70; text-decoration: line-through; }
+.prep-checklist .disabled { color: #8f826f; opacity: .78; }
 .prep-checklist .prep-total {
   margin-top: 5px;
   padding-top: 5px;

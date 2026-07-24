@@ -28,7 +28,8 @@ const dom = Object.fromEntries([
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
   "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
-  "joystick","joystickKnob","actionButton"
+  "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
+  "devTools","devDayButtons","devStateText","joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
 const images = {};
@@ -41,23 +42,16 @@ function loadNativeImage(key,src){
   });
 }
 
-const INGREDIENTS = {
-  kimchi: ["김치", "부침가루", "대파"],
-  skewer: ["닭고기", "대파", "파프리카"],
-  yakisoba: ["면", "양배추", "당근"],
-  tofu: ["두부", "김치", "돼지고기"],
-  oden: ["어묵", "무", "대파"],
-  teriyaki: ["닭고기", "전분", "데리야끼 소스"]
-};
+const INGREDIENTS=Object.fromEntries(MENU_DATA.map(menu=>[menu.id,[...(menu.ingredients||[])]]));
 
-const DISHES = [
-  { id:"kimchi", name:"김치전", icon:0, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"flip"}], price:6200 },
-  { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"grill", game:"grill"}], price:7200 },
-  { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"stir"}], price:8200 },
-  { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"fridge", game:"plateKimchi"},{station:"board", game:"chop"}], price:8800 },
-  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cutFishCake","cleanAnchovy"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
-  { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
-];
+// 기존 조리 코드는 DISHES 형식을 유지하고, 원본은 MENU_DATA 한곳에서 관리합니다.
+const DISHES = MENU_DATA.map(menu=>({
+  ...menu,
+  name:menu.displayName,
+  prepTasks:[...menu.requiredPrepTasks],
+  prep:[...(menu.prep||[])],
+  cook:[...(menu.cook||[])]
+}));
 
 // 집기 좌표는 kitchen.js(STATIONS) / counter.js(FRONT_STATIONS),
 // 좌석은 customers.js, 이동 범위는 player.js 에 있습니다.
@@ -86,7 +80,8 @@ const state = {
   spawnedCustomers:0,
   selectedDishId:"kimchi",
   selectedMenus:[],
-  prepProgress:{cutRadish:false,cleanAnchovy:false,prepareKimchi:false},
+  menuSelectionDraft:[],
+  prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
@@ -191,7 +186,9 @@ function buildMenuCards() {
   selectedDishes().forEach(dish=>{
     const b=document.createElement("button"); b.type="button"; b.className="menu-card"; b.dataset.id=dish.id;
     const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
-    b.innerHTML=`<strong>${dish.name}</strong><span class="food-icon" style="background-position:${dish.icon*20}% 0"></span>${dish.menuTag?`<small class="menu-tag">${dish.menuTag}</small>`:""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
+    const required=getCurrentDayData().requiredMenus.includes(dish.id);
+    const icon=dish.icon==null?'<span class="food-icon menu-icon-placeholder">🍽</span>':`<span class="food-icon" style="background-position:${dish.icon*20}% 0"></span>`;
+    b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
     b.disabled=true;
     dom.menuCards.appendChild(b);
   });
@@ -535,19 +532,22 @@ function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classLis
 function updateUI(force=false) {
   if(state.screen!=="game")return;
   dom.gameApp.classList.remove("phase-title");
-  dom.gameApp.classList.toggle("phase-prep",state.phase==="day");
-  dom.gameApp.classList.toggle("phase-open",state.phase==="night");
-  dom.gameApp.classList.toggle("phase-result",state.phase==="result");
-  dom.phaseName.textContent=state.phase==="day"?"낮 재료 준비":state.phase==="night"?"밤 영업":"영업 종료";
-  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase==="day"?"준비":"남은 시간";dom.timeText.textContent=state.phase==="day"?"제한 없음":formatTime(state.phaseTime);dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
-  dom.phaseBadge.textContent=state.phase==="day"?"준비":state.phase==="night"?"영업 중":"정산";dom.leftTitle.textContent=state.phase==="day"?"오늘의 준비":"현재 주문";
-  dom.phaseButton.style.display=state.phase==="day"?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase==="day"&&(!prepComplete()||!!state.mini);
+  dom.gameApp.classList.toggle("phase-prep",state.phase===GAME_PHASES.PREP);
+  dom.gameApp.classList.toggle("phase-open",state.phase===GAME_PHASES.OPEN);
+  dom.gameApp.classList.toggle("phase-result",state.phase===GAME_PHASES.RESULT);
+  const phaseLabels={[GAME_PHASES.MENU_SELECT]:"메뉴 선택",[GAME_PHASES.PREP]:"낮 재료 준비",[GAME_PHASES.OPEN]:"밤 영업",[GAME_PHASES.RESULT]:"영업 종료"};
+  dom.phaseName.textContent=phaseLabels[state.phase]||"영업 준비";
+  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase===GAME_PHASES.PREP?"준비":"남은 시간";dom.timeText.textContent=state.phase===GAME_PHASES.PREP?"제한 없음":state.phase===GAME_PHASES.OPEN?formatTime(state.phaseTime):"-";dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
+  dom.phaseBadge.textContent=state.phase===GAME_PHASES.PREP?"준비":state.phase===GAME_PHASES.OPEN?"영업 중":state.phase===GAME_PHASES.MENU_SELECT?"선택":"정산";dom.leftTitle.textContent=state.phase===GAME_PHASES.PREP?"오늘의 준비":"현재 주문";
+  dom.phaseButton.style.display=state.phase===GAME_PHASES.PREP?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase===GAME_PHASES.PREP&&(!prepComplete()||!!state.mini);
   dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
-  if(state.phase==="day"){renderPrepChecklist();updateDayObjective();}
-  else if(state.phase==="night"){renderNightOrderList();updateNightObjective();}
+  if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
+  else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
+  else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
+  updateDevTools();
   updateRelationshipUI();
   updatePrompt();
 }
@@ -623,6 +623,7 @@ dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
+dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini){if(isDayPrepMini(state.mini))dayPrepPrimaryAction();else miniAction();}else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
 dom.stationPrompt.addEventListener("click",interact);

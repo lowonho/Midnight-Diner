@@ -19,7 +19,10 @@ function reservedStock(dishId){
   const dish=dishById(dishId);
   return state.orders.filter(order=>order.dishId===dishId&&order.cookStep<dish.cook.length).length;
 }
-function hasOrderableStock(){return DISHES.some(dish=>state.selectedMenus.includes(dish.id)&&state.inventory[dish.id].count>reservedStock(dish.id));}
+function orderableDishes(){
+  return DISHES.filter(dish=>dish.isImplemented&&state.selectedMenus.includes(dish.id)&&state.inventory[dish.id]?.count>reservedStock(dish.id));
+}
+function hasOrderableStock(){return orderableDishes().length>0;}
 
 function beginNight() {
   const total=Object.values(state.inventory).reduce((sum,item)=>sum+item.count,0);
@@ -91,7 +94,8 @@ function renderNightResult(){
   const discardNote=state.discardedCount?` (직접 폐기 ${state.discardedCount}인분)`:"";
   dom.wasteResult.textContent=state.leftoverCount?`${state.wasteLoss.toLocaleString()}원 · ${state.leftoverCount}인분${discardNote}`:"0원";
   dom.revenueResult.textContent=`${netProfit.toLocaleString()}원`;
-  dom.nextDayButton.textContent=state.day===30&&state.story?.endingSeen?"자유 영업 시작":"다음 날 준비";
+  dom.nextDayButton.textContent=state.day>=DayManager.maxDay?"Day 7 완료":"다음 날 준비";
+  dom.nextDayButton.disabled=state.day>=DayManager.maxDay;
 
   const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 예상 손님 중 ${unserved}명을 받지 못했습니다.`:" 오늘의 손님을 모두 맞이했습니다.";
@@ -100,7 +104,7 @@ function renderNightResult(){
 
 function spawnOrder(slot) {
   if(state.spawnedCustomers>=state.nightCustomerTarget)return false;
-  const available=DISHES.filter(dish=>state.selectedMenus.includes(dish.id)&&state.inventory[dish.id].count>reservedStock(dish.id));
+  const available=orderableDishes();
   if(!available.length)return false;
   const dish=available[Math.floor(Math.random()*available.length)];
   const order=decorateStoryOrder({id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),entered:0,cookStep:0,cookScores:[]});

@@ -15,7 +15,7 @@ function initializeTitleScreen(){
 }
 
 function savePhaseLabel(phase){
-  return phase==="day"?"낮 준비":phase==="night"?"밤 영업":"영업 정산";
+  return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 정산";
 }
 
 function updateContinueButton(){
@@ -53,6 +53,7 @@ function continueGame(){
 
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
   dom.resultOverlay.classList.toggle("open",state.phase==="result");
+  dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
   if(state.phase==="result")renderNightResult();
   else audio.startBgm();
@@ -67,15 +68,15 @@ function startNewGame(){
 
 function startGame(){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();
-  state.screen="game";state.phase="day";state.paused=false;state.settingsFrom="game";
-  state.day=1;state.money=0;state.popularity=0;state.story=createStoryState();state.departures=[];nextOrderId=1;resetDay(true);
+  state.screen="game";state.phase=GAME_PHASES.PREP;state.paused=false;state.settingsFrom="game";
+  state.day=DayManager.setDay(1);state.money=0;state.popularity=0;state.story=createStoryState();state.departures=[];nextOrderId=1;resetDay(true);
   openGameScreen();audio.startBgm();audio.success();
   queueStoryMoments(["newGame","dayStart"]);
 }
 
 function returnTitle(){
   saveGame();state.screen="title";state.paused=true;state.mini=null;
-  dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
+  dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
   showGameHud(false);audio.stopBgm();updateContinueButton();
 }

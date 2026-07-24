@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="css/minigames.css" />
   <link rel="stylesheet" href="css/day-prep-minigames.css" />
+  <link rel="stylesheet" href="css/menu-select.css" />
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -101,6 +102,19 @@
           <button id="stationPrompt" class="station-prompt" type="button" aria-live="polite" disabled></button>
           <div id="toast" class="toast" aria-live="polite"></div>
 
+          <section id="menuSelectOverlay" class="overlay menu-select-overlay" role="dialog" aria-modal="true" aria-labelledby="menuSelectTitle">
+            <div class="menu-select-window wood-panel">
+              <p class="eyebrow">TODAY'S MENU</p>
+              <h2 id="menuSelectTitle">오늘의 메뉴 선택</h2>
+              <p id="menuSelectDescription" class="menu-select-description"></p>
+              <div id="menuSelectGrid" class="menu-select-grid"></div>
+              <div class="menu-select-footer">
+                <strong id="menuSelectCount">선택 0 / 0</strong>
+                <button id="menuSelectConfirm" class="gold-button" type="button">선택 완료</button>
+              </div>
+            </div>
+          </section>
+
           <div id="mobileControls" class="mobile-controls hidden-hud" aria-label="모바일 조작">
             <div id="joystick" class="joystick" aria-label="이동 조이스틱">
               <div id="joystickKnob" class="joystick-knob"></div>
@@ -185,6 +199,11 @@
         </label>
         <button id="resumeButton" class="gold-button big" type="button">게임으로 돌아가기</button>
         <button id="returnTitleButton" class="dark-button" type="button">타이틀 화면으로</button>
+        <details id="devTools" class="dev-tools">
+          <summary>개발 도구 · Day 테스트</summary>
+          <div id="devDayButtons" class="dev-day-buttons"></div>
+          <pre id="devStateText" class="dev-state-text"></pre>
+        </details>
       </div>
     </section>
   </div>
@@ -202,6 +221,7 @@
   <script src="player.js"></script>      <!-- 요리사 위치 · 이동 범위 · 스프라이트 -->
   <script src="chef-walk-area.js"></script> <!-- 요리사 이동 가능 영역(사다리꼴) · F1 디버그 -->
   <script src="customers.js"></script>   <!-- 손님 좌석 · 말풍선 -->
+  <script src="game-data.js"></script>   <!-- Day1~Day7 · 메뉴 · 상태 데이터 -->
   <script src="prep.js"></script>        <!-- 낮 준비물 -->
   <script src="fx.js"></script>          <!-- 파티클 · 팝업 · 안내 화살표 -->
   <script src="story-data.js"></script>
