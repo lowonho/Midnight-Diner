@@ -36,7 +36,8 @@ function beginNight() {
     return;
   }
   state.phase="night";state.phaseTime=NIGHT_DURATION;state.prepRun=null;state.selectedOrderId=null;state.carrying=null;
-  state.player.x=620;state.player.y=448;state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
+  resetPlayerPosition();   // 시작 좌표는 player.js PLAYER_START
+  state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
   const plannedGuests=state.story.pendingNightGuests.length;
   state.nightCustomerTarget=Math.max(rollNightCustomerCount(state.popularity),plannedGuests);
   const initialCustomers=Math.min(CUSTOMER_SEATS.length,state.nightCustomerTarget,Math.max(2,plannedGuests));
