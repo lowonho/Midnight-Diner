@@ -18,6 +18,7 @@
 
 const chefSheetImages = {};              // 표의 key → HTMLImageElement
 const chefRegisteredAnims = new Set();   // 실제로 등록된 애니메이션 키
+const chefAnimScales = {};               // 애니메이션 키 → 크기 보정 계수 (1.0 = 보정 없음)
 
 
 /* ------------------------------------------------------------
@@ -69,6 +70,9 @@ function registerChefTextures(scene){
    ------------------------------------------------------------
    프레임 인덱스는 dirs 배열 순서와 cols 로 계산합니다.
    예) walk(cols 8, dirs down/up/side) → down 0~7 · up 8~15 · side 16~23
+
+   동시에 표의 heights 로 애니메이션마다 크기 보정 계수를 미리 계산해 둡니다.
+   시트마다 캐릭터 키가 달라서 방향을 바꿀 때 크기가 튀는 걸 막습니다.
    ------------------------------------------------------------ */
 
 function registerChefAnims(scene){
@@ -87,8 +91,27 @@ function registerChefAnims(scene){
         });
       }
       chefRegisteredAnims.add(animKey);
+
+      // 실측 키가 없으면 보정하지 않습니다. 확대는 흐려지므로 축소만 합니다.
+      const measured=entry.heights?.[dir];
+      chefAnimScales[animKey]=measured?Math.min(1,CHEF_TARGET_H/measured):1;
     });
   });
+}
+
+
+/* ------------------------------------------------------------
+   3-1. 애니메이션별 최종 배율
+   ------------------------------------------------------------
+   원본 시트의 방향별 크기 차이를 지운 뒤 CHEF_SCALE 을 곱합니다.
+   그래서 CHEF_SCALE 은 "캐릭터를 얼마나 키울까"만 뜻하게 됩니다.
+
+   요리사 origin 이 (0.5, 1.0) = 발바닥이라 배율을 바꿔도 발이 제자리에
+   붙어 있습니다. 위치 보정이 따로 필요 없습니다.
+   ------------------------------------------------------------ */
+
+function chefAnimScale(animKey){
+  return CHEF_SCALE*(chefAnimScales[animKey]??1);
 }
 
 

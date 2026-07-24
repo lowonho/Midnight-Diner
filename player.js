@@ -40,7 +40,13 @@ if(document.readyState==="loading"){
    ------------------------------------------------------------ */
 
 // 낮/밤이 시작될 때 서 있는 자리. day.js / night.js 도 이 값을 씁니다.
-const PLAYER_START = { x:620, y:448, facing:"down", speed:205 };
+//
+// speed = 논리 좌표 기준 초당 이동 거리. 205 → 280 으로 올렸습니다.
+// 주방 가로 폭(논리 235~1030)을 가로지르는 데 약 3.9초 → 약 2.8초 걸립니다.
+// [주의] 이 값만 올리면 걷기 모션이 그대로라 발이 미끄러져 보입니다.
+//        chef-anim-table.js 의 walk / walk_carry fps 를 같은 비율로 맞춰 두세요.
+//        (지금은 speed 280 ↔ fps 16 조합입니다)
+const PLAYER_START = { x:620, y:448, facing:"down", speed:280 };
 
 // 요리사가 걸어다닐 수 있는 범위.
 //   bottom 486 = 카운터 바 테이블 상판(논리 y 500)보다 위.
@@ -53,7 +59,9 @@ const WALK_BOUNDS = { left:235, right:1030, top:410, bottom:486 };
 // (setDisplaySize 로 가로세로를 따로 주면 비율이 깨집니다)
 //   frameW/H = 1× 셀 크기 · w/h = 화면에 보이는 캐릭터 크기(배율 1.0 기준)
 //   anchorY 1 = 발바닥. 발끝이 state.player.y 에 정확히 놓입니다.
-const PLAYER_SPRITE = { frameW:192, frameH:320, w:100, h:268, anchorX:.5, anchorY:1 };
+//   h 233 = CHEF_TARGET_H. 시트·방향마다 233~269.5 로 제각각인 걸 가장 작은
+//           걷기 뒷모습에 맞춘 값입니다. 배율 계산은 chef-anims.js 가 합니다.
+const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY:1 };
 
 // 음식을 들었을 때 손에 들리는 접시·음식.
 // 화면상 위치는 chef-carry-temp.js 의 CHEF_HAND_ANCHOR 가 덮어씁니다.
@@ -84,9 +92,12 @@ function createPlayer(scene){
   registerChefTextures(scene);   // chef-anims.js
   registerChefAnims(scene);      // chef-anims.js
 
+  // 배율은 방향마다 다릅니다. 첫 프레임부터 어긋나지 않게 시작 방향 기준으로 겁니다.
+  // (이후 매 프레임 syncPhaserObjects 가 현재 모션에 맞춰 다시 겁니다)
+  const startFacing=CHEF_FACING[start.facing]||CHEF_FACING.down;
   playerSprite=scene.add.sprite(toView(start.x),toView(start.y),CHEF_TEXTURE_PREFIX+"idle",0)
     .setOrigin(CHEF_ORIGIN.x,CHEF_ORIGIN.y)
-    .setScale(CHEF_SCALE)
+    .setScale(chefAnimScale(chefAnimKey("idle",startFacing.dir,false)))
     .setDepth(STAGE_DEPTH.player);
 
   carriedPlate=scene.add.ellipse(
@@ -169,6 +180,9 @@ function syncPhaserObjects(){
   // play(key, true) 는 같은 키가 이미 재생 중이면 무시합니다. 매 프레임 다시 걸리지 않습니다.
   const animKey=chefAnimKey(action,facing.dir,carrying);
   if(animKey) playerSprite.play(animKey,true);
+  // 시트마다 캐릭터 키가 달라서 방향·모션별로 배율을 맞춰 줍니다. (chef-anims.js)
+  // 이걸 빼면 걷다 멈출 때, 방향을 바꿀 때 캐릭터 크기가 튑니다.
+  playerSprite.setScale(chefAnimScale(animKey));
 
   const held=state.carrying;
   carriedPlate.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));

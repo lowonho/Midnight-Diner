@@ -38,10 +38,26 @@ const CHEF_FRAME = { w:192, h:320 };
 // (0.5, 1.0) = 가로 중앙 · 발바닥. 발끝이 state.player.y 에 정확히 놓입니다.
 const CHEF_ORIGIN = { x:0.5, y:1.0 };
 
-// 화면(1920×1080) 기준 배율. 1.0 이면 캐릭터 키가 약 268px 입니다.
+// 화면(1920×1080) 기준 배율. 1.0 이면 캐릭터 키가 CHEF_TARGET_H(233px) 입니다.
 // 크기를 조절할 일이 생기면 이 값 하나만 고치세요.
 // setDisplaySize 로 가로세로를 따로 주면 비율이 깨지므로 쓰지 않습니다.
 const CHEF_SCALE = 1.0;
+
+// 모든 방향·모션을 맞출 캐릭터 키 (1× 화면 픽셀).
+//
+// [왜 필요한가]
+// 받은 시트는 방향마다 캐릭터 크기가 다릅니다. 특히 char_chef_walk 은
+// down 267 · up 233 · side 256 으로 뒷모습이 34px(약 13%) 작습니다.
+// 나머지 3장은 268~269.5 로 균일하고요. 그대로 쓰면 방향을 바꿀 때마다,
+// 또 걷다 멈출 때마다(walk up 233 → idle up 268) 캐릭터가 커졌다 작아집니다.
+//
+// 그래서 표의 heights 실측값으로 시트·방향마다 배율을 따로 계산해서
+// 화면상 키를 항상 이 값으로 맞춥니다. 기준은 가장 작은 walk 뒷모습(233)이라
+// 어떤 방향도 확대되지 않습니다. (확대하면 흐려지므로 축소만 씁니다)
+//
+// 시트 자체가 균일하게 다시 나오면 heights 를 지우거나 전부 같은 값으로
+// 맞추면 됩니다. 그러면 배율 보정이 저절로 1.0 이 됩니다.
+const CHEF_TARGET_H = 233;
 
 
 /* ------------------------------------------------------------
@@ -53,16 +69,26 @@ const CHEF_SCALE = 1.0;
    dirs   : 행 순서. 시트의 0행부터 차례로 대응합니다.
    fps    : 재생 속도
    repeat : -1 무한반복 / 0 한 번만
+   heights: 방향별 캐릭터 실측 키 (1× 픽셀, 알파 기준). 크기를 CHEF_TARGET_H 로
+            맞추는 데만 씁니다. 생략하면 그 시트는 배율 보정 없이 원본 크기입니다.
+            값은 손으로 재지 말고 node tools/measure-chef-frames.js 로 뽑으세요.
 
    [행 순서] 4장 모두 0행 down(정면) · 1행 up(뒷모습) · 2행 side(왼쪽 향함).
    side 는 왼쪽을 향해 그려져 있어서 오른쪽은 flipX 로 뒤집어 씁니다.
+
+   [fps 와 이동 속도] walk 계열 fps 는 PLAYER_START.speed 와 짝입니다.
+   속도만 올리면 발이 미끄러져 보이므로 같이 손봐야 합니다. (player.js §1 참고)
    ------------------------------------------------------------ */
 
 const CHEF_ANIM_TABLE = [
-  { key:"idle",       file:"char_chef_idle",       cols:6, dirs:["down","up","side"], fps:6,  repeat:-1 },
-  { key:"walk",       file:"char_chef_walk",       cols:8, dirs:["down","up","side"], fps:12, repeat:-1 },
-  { key:"idle_carry", file:"char_chef_idle_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:-1 },
-  { key:"walk_carry", file:"char_chef_walk_carry", cols:8, dirs:["down","up","side"], fps:12, repeat:-1 }
+  { key:"idle",       file:"char_chef_idle",       cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+    heights:{ down:268,   up:268,   side:268   } },
+  { key:"walk",       file:"char_chef_walk",       cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+    heights:{ down:267,   up:233,   side:256   } },
+  { key:"idle_carry", file:"char_chef_idle_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+    heights:{ down:268,   up:268,   side:268   } },
+  { key:"walk_carry", file:"char_chef_walk_carry", cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+    heights:{ down:269.5, up:269.5, side:269.5 } }
 
   // 시트가 나오면 주석만 풀면 됩니다. (에셋 없이 풀면 로딩이 실패합니다)
   // { key:"dash",         file:"char_chef_dash",         cols:6, dirs:["down","up","side"], fps:16, repeat:-1 },
