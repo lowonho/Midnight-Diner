@@ -81,16 +81,29 @@ const CHEF_TARGET_H = 233;
    ------------------------------------------------------------ */
 
 const CHEF_ANIM_TABLE = [
-  { key:"idle",       file:"char_chef_idle",       cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+  // 평소 정지. 6프레임 내내 눈을 뜨고 있고 숨쉬는 정도만 움직입니다.
+  { key:"idle2",       file:"char_chef_idle2",       cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
     heights:{ down:268,   up:268,   side:268   } },
-  { key:"walk",       file:"char_chef_walk",       cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
-    heights:{ down:267,   up:233,   side:256   } },
-  { key:"idle_carry", file:"char_chef_idle_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+  { key:"idle2_carry", file:"char_chef_idle2_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
     heights:{ down:268,   up:268,   side:268   } },
-  { key:"walk_carry", file:"char_chef_walk_carry", cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+
+  // 간헐적 정지. 3번째 프레임에서 눈을 감습니다.
+  // repeat 0 = 한 번만 재생 → 한 사이클이 눈 깜빡임 한 번이 됩니다.
+  // 이 시트를 계속 돌리면 쉬지 않고 깜빡여서 이상하므로 반복시키지 마세요.
+  // 언제 끼워 넣을지는 chef-anims.js 의 chefIdleAction() 이 정합니다.
+  { key:"idle1",       file:"char_chef_idle1",       cols:6, dirs:["down","up","side"], fps:6,  repeat:0,
+    heights:{ down:268,   up:268,   side:268   } },
+  { key:"idle1_carry", file:"char_chef_idle1_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:0,
+    heights:{ down:268,   up:268,   side:268   } },
+
+  { key:"walk",        file:"char_chef_walk",        cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+    heights:{ down:267,   up:233,   side:251   } },
+  { key:"walk_carry",  file:"char_chef_walk_carry",  cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
     heights:{ down:269.5, up:269.5, side:269.5 } }
 
   // 시트가 나오면 주석만 풀면 됩니다. (에셋 없이 풀면 로딩이 실패합니다)
+  // 아래 9종은 받은 에셋 묶음(v5)에 이미 들어 있습니다. 쓸 때가 되면
+  // assets/character/sprites/ 에 넣고 node tools/build-chef-sprites.js 를 돌리세요.
   // { key:"dash",         file:"char_chef_dash",         cols:6, dirs:["down","up","side"], fps:16, repeat:-1 },
   // { key:"dash_carry",   file:"char_chef_dash_carry",   cols:6, dirs:["down","up","side"], fps:16, repeat:-1 },
   // { key:"pay",          file:"char_chef_pay",          cols:6, dirs:["down"],             fps:10, repeat:0  },
@@ -104,7 +117,29 @@ const CHEF_ANIM_TABLE = [
 
 
 /* ------------------------------------------------------------
-   3. 이동 방향 → 시트 방향
+   3. 정지 모션 섞기 (눈 깜빡임)
+   ------------------------------------------------------------
+   정지 시트가 두 벌입니다. idle1 은 재생할 때마다 눈을 한 번 감기 때문에
+   그것만 계속 돌리면 쉬지 않고 깜빡거립니다. 그래서 평소에는 눈을 뜬
+   idle2 를 돌리고, 가끔 idle1 을 한 사이클만 끼워 넣습니다.
+
+   gap 은 깜빡임과 깜빡임 사이 간격(ms)이고 이 범위에서 무작위로 정해집니다.
+   실제 사람은 3~6초에 한 번쯤 깜빡입니다. 너무 자주면 불안해 보이고
+   너무 뜸하면 인형처럼 보이니 이 표만 만져서 맞추세요.
+
+   깜빡임 자체의 길이는 idle1 의 cols / fps 로 자동 계산됩니다. (6 / 6 = 1초)
+   ------------------------------------------------------------ */
+
+const CHEF_IDLE = {
+  main:     "idle2",   // 평소에 도는 시트
+  accent:   "idle1",   // 가끔 한 사이클만 끼워 넣는 시트
+  minGapMs: 2800,
+  maxGapMs: 7000
+};
+
+
+/* ------------------------------------------------------------
+   4. 이동 방향 → 시트 방향
    ------------------------------------------------------------
    state.player.facing 은 down/left/right/up 4방향인데
    시트는 down/up/side 3방향이라 여기서 이어 붙입니다.

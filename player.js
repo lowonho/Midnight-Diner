@@ -73,8 +73,13 @@ const PLAYER_CARRY = {
 
 // 재생 속도·프레임 구성은 chef-anim-table.js 로 옮겼습니다.
 // mini = 미니게임(조리) 중에 쓸 모션. 전용 작업 시트(cook1/cook2)가 아직
-// 없어서 idle 로 대신합니다. 시트가 나오면 이 값만 바꾸면 됩니다.
-const PLAYER_ANIM = { mini:"idle" };
+// 없어서 평소 정지 모션으로 대신합니다. 시트가 나오면 이 값만 바꾸면 됩니다.
+// (조리 중에는 눈 깜빡임을 섞지 않습니다 — 화면 앞에 미니게임 UI 가 덮여 있습니다)
+//
+// [주의] 여기서 CHEF_IDLE.main 을 쓰면 안 됩니다. chef-anim-table.js 는 이 파일이
+//        document.write 로 주입하는 거라 player.js 최상단이 실행될 때는 아직 없습니다.
+//        표의 key 를 문자열로 적고, 표를 고치면 여기도 같이 고치세요.
+const PLAYER_ANIM = { mini:"idle2" };
 
 
 /* ------------------------------------------------------------
@@ -95,9 +100,9 @@ function createPlayer(scene){
   // 배율은 방향마다 다릅니다. 첫 프레임부터 어긋나지 않게 시작 방향 기준으로 겁니다.
   // (이후 매 프레임 syncPhaserObjects 가 현재 모션에 맞춰 다시 겁니다)
   const startFacing=CHEF_FACING[start.facing]||CHEF_FACING.down;
-  playerSprite=scene.add.sprite(toView(start.x),toView(start.y),CHEF_TEXTURE_PREFIX+"idle",0)
+  playerSprite=scene.add.sprite(toView(start.x),toView(start.y),CHEF_TEXTURE_PREFIX+CHEF_IDLE.main,0)
     .setOrigin(CHEF_ORIGIN.x,CHEF_ORIGIN.y)
-    .setScale(chefAnimScale(chefAnimKey("idle",startFacing.dir,false)))
+    .setScale(chefAnimScale(chefAnimKey(CHEF_IDLE.main,startFacing.dir,false)))
     .setDepth(STAGE_DEPTH.player);
 
   carriedPlate=scene.add.ellipse(
@@ -174,7 +179,10 @@ function syncPhaserObjects(){
   // 들고 있는지는 기존 state.carrying 을 읽습니다. (임시 파일이 강제 ON 을 얹을 수 있음)
   const carrying=(typeof chefCarryActive==="function")?chefCarryActive():!!state.carrying;
   // 정지→idle / 이동→walk. 정지해도 facing 은 그대로라 마지막 방향이 유지됩니다.
-  const action=state.mini?PLAYER_ANIM.mini:(p.moving?"walk":"idle");
+  // 정지 중에는 chefIdleAction() 이 평소 모션과 눈 깜빡임 모션을 번갈아 골라 줍니다.
+  const idling=!state.mini&&!p.moving;
+  const action=idling?chefIdleAction():(state.mini?PLAYER_ANIM.mini:"walk");
+  if(!idling) chefIdleLeave();
 
   playerSprite.setFlipX(facing.flipX);
   // play(key, true) 는 같은 키가 이미 재생 중이면 무시합니다. 매 프레임 다시 걸리지 않습니다.

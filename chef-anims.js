@@ -128,6 +128,57 @@ function chefAnimScale(animKey){
    호출부를 고칠 필요가 없습니다.
    ------------------------------------------------------------ */
 
+/* ------------------------------------------------------------
+   4-1. 정지 중 눈 깜빡임 타이밍
+   ------------------------------------------------------------
+   player.js 가 "지금 정지 상태"일 때 chefIdleAction() 을 불러서
+   idle2(평소) 인지 idle1(깜빡임) 인지 받아 갑니다.
+
+   Phaser 의 애니메이션 완료 이벤트를 쓰지 않고 시간으로만 판단합니다.
+   방향이 바뀌면 애니메이션 키가 갈아끼워져서 완료 이벤트가 씹히는데,
+   시간 기준이면 그런 경우에도 깜빡임 길이가 그대로 유지됩니다.
+
+   걷다가 멈춘 직후에는 바로 깜빡이지 않게 간격을 다시 잽니다.
+   (멈추자마자 눈을 감으면 걸음이 끊긴 것처럼 보입니다)
+   ------------------------------------------------------------ */
+
+const chefIdleState = { idling:false, accentUntil:0, nextAccentAt:0 };
+
+// 깜빡임 한 번의 길이(ms). 표의 프레임 수 ÷ fps 라서 시트가 바뀌면 같이 따라갑니다.
+function chefIdleAccentMs(){
+  const entry=CHEF_ANIM_TABLE.find(row=>row.key===CHEF_IDLE.accent);
+  return entry?entry.cols/entry.fps*1000:1000;
+}
+
+function chefIdleGapMs(){
+  return CHEF_IDLE.minGapMs+Math.random()*(CHEF_IDLE.maxGapMs-CHEF_IDLE.minGapMs);
+}
+
+function chefIdleAction(nowMs){
+  const now=nowMs??performance.now();
+
+  // 정지 상태로 막 들어옴 → 첫 깜빡임까지 간격을 새로 잡습니다
+  if(!chefIdleState.idling){
+    chefIdleState.idling=true;
+    chefIdleState.accentUntil=0;
+    chefIdleState.nextAccentAt=now+chefIdleGapMs();
+  }
+
+  if(now<chefIdleState.accentUntil) return CHEF_IDLE.accent;   // 깜빡이는 중
+
+  if(now>=chefIdleState.nextAccentAt){                          // 깜빡일 차례
+    chefIdleState.accentUntil=now+chefIdleAccentMs();
+    chefIdleState.nextAccentAt=chefIdleState.accentUntil+chefIdleGapMs();
+    return CHEF_IDLE.accent;
+  }
+
+  return CHEF_IDLE.main;
+}
+
+// 움직이거나 미니게임에 들어가면 player.js 가 불러 줍니다.
+function chefIdleLeave(){ chefIdleState.idling=false; }
+
+
 function chefAnimKey(action,dir,carrying){
   const bases=carrying?[`${action}_carry`,action]:[action];
   for(const base of bases){
