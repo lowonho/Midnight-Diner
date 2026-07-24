@@ -42,7 +42,8 @@
   width: 100% !important;
   height: 100% !important;
   display: block;
-  image-rendering: pixelated;
+  /* 배경이 1920x1080 일러스트 에셋이므로 다운스케일 시 스무딩 유지 */
+  image-rendering: auto;
 }
 
 .hidden-hud { opacity: 0; pointer-events: none !important; }
