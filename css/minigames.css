@@ -55,6 +55,8 @@
   color: #642b20;
 }
 .kimchi-plating span { font-size: 42px; }
+.kimchi-plating .plated-tofu { display:flex; gap:3px; font-size:0; }
+.plated-tofu i { width:28px; height:28px; border:2px solid #cfc39e; border-radius:5px; background:#fff8df; box-shadow:inset 0 5px rgba(255,255,255,.5); }
 
 .serving-oden-pot {
   position: relative;
@@ -182,6 +184,32 @@
   background: #fff1be;
   transform: translateX(-50%);
 }
+.doneness-gauge {
+  position: relative;
+  width: 100%;
+  height: 34px;
+  overflow: hidden;
+  border: 2px solid #79502e;
+  border-radius: 9px;
+  background: linear-gradient(90deg,#a33c32 0 34%,#d5a63f 48% 67%,#6f9c4d 68% 82%,#d5a63f 83% 92%,#a33c32 100%);
+}
+.doneness-green { position:absolute; inset-block:0; left:68%; width:14%; border-inline:3px solid rgba(245,255,182,.8); background:rgba(153,201,90,.18); }
+.two-side-pan { position: relative; width: 300px; height: 150px; margin-bottom: 30px; border: 9px solid #56524d; border-radius: 50%; background: #242321; box-shadow: inset 0 0 0 5px #121211,0 10px 16px rgba(0,0,0,.25); }
+.two-side-pan::after { content:""; position:absolute; left:50%; top:138px; width:25px; height:82px; border-radius:0 0 12px 12px; background:#4b4641; transform:translateX(-50%); }
+.two-side-pan .cook-food { position:absolute; z-index:2; inset:25px 38px; display:flex; align-items:center; justify-content:center; gap:3px; border-radius:50%; transition:filter .25s ease,transform .25s ease; }
+.pancake-cook .cook-food { background:radial-gradient(circle at 35% 32%,#b85a3b 0 4%,transparent 5%),radial-gradient(circle at 65% 58%,#8b9b48 0 4%,transparent 5%),repeating-linear-gradient(115deg,#d69b55 0 28px,#bb613c 29px 34px); box-shadow:inset 0 0 0 4px rgba(112,58,31,.25); }
+.skewer-cook .cook-food { inset:45px 26px; border-radius:10px; background:linear-gradient(175deg,transparent 45%,#d5ae70 46% 52%,transparent 53%); }
+.skewer-cook .cook-food b,.skewer-cook .cook-food em { width:38px; height:35px; border-radius:10px; transform:rotate(-4deg); }
+.skewer-cook .cook-food b { background:linear-gradient(#d89165,#a95b41); }
+.skewer-cook .cook-food em { background:linear-gradient(#86a857,#e4ddaf); }
+.two-side-pan.side-1 .cook-food { filter:brightness(.82) saturate(1.12); }
+.two-side-pan.flipping .cook-food { animation:two-side-food-flip .6s ease-in-out; }
+.two-side-pan.flip-ready { animation:pan-ready .8s ease-in-out infinite alternate; }
+.cook-steam { position:absolute; z-index:3; top:4px; width:20px; height:44px; border-left:4px solid rgba(245,237,215,.58); border-radius:50%; animation:serving-oden-steam 1.3s ease-in-out infinite; }
+.cook-steam.steam-one { left:105px; }
+.cook-steam.steam-two { left:177px; animation-delay:.45s; }
+@keyframes two-side-food-flip { 0% { transform:translateY(0) rotateX(0); } 50% { transform:translateY(-75px) rotateX(90deg) scale(.82); } 100% { transform:translateY(0) rotateX(180deg); } }
+@keyframes pan-ready { from { transform:rotate(-1deg); } to { transform:rotate(1deg) translateY(-3px); } }
 .cut-count { color: #f3d495; font-size: 18px; font-weight: 800; }
 
 .heat-wrap {

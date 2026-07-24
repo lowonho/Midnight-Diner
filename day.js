@@ -31,7 +31,7 @@ function selectedPrepTasks(){
 
 function selectedPrepTasksForChecklist(){
   const tasks=selectedDishes().flatMap(dish=>(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(Boolean));
-  return [...new Map(tasks.map(task=>[task.id,task])).values()];
+  return [...new Map(tasks.map(task=>[task.id,task])).values()].sort((a,b)=>(a.prepOrder??999)-(b.prepOrder??999));
 }
 
 function normalizeDayPrepState(){
@@ -41,7 +41,9 @@ function normalizeDayPrepState(){
   const valid=[...new Set([...dayData.requiredMenus,...saved])].slice(0,dayData.maxSelectedMenus);
   state.selectedMenus=valid;
   state.menuSelectionDraft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft.filter(id=>allowed.has(id)):[];
+  const legacyKimchiReady=!!state.prepProgress?.prepareKimchi;
   state.prepProgress={...createDayPrepProgress(),...(state.prepProgress||{})};
+  if(legacyKimchiReady){state.prepProgress.cutTofuKimchi=true;state.prepProgress.fryTofuKimchi=true;}
   state.kimchiPrep={...createKimchiPrepProgress(),...(state.kimchiPrep||{})};
 }
 
@@ -103,10 +105,8 @@ function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
   if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
-  const dish=dishById(task.menuId),dishTasks=(dish?.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(Boolean);
-  const taskIndex=dishTasks.findIndex(item=>item.id===task.id);
-  const previousTask=dishTasks.slice(0,taskIndex).find(item=>!state.prepProgress[item.id]);
-  if(previousTask){showToast(`먼저 ${previousTask.label} 작업을 완료하세요.`,true);return;}
+  const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!state.prepProgress[item.id]);
+  if(dependency){showToast(`먼저 ${dependency.label} 작업을 완료하세요.`,true);return;}
   startDayPrepMini(task);
 }
 
@@ -120,9 +120,6 @@ function completeDayPrepTask(taskId){
   const task=PREP_TASKS[taskId];
   if(!task||state.prepProgress[taskId])return;
   state.prepProgress[taskId]=true;
-  if(taskId==="prepareKimchi"){
-    state.kimchiPrep.cuttingComplete=true;state.kimchiPrep.fryingComplete=true;
-  }
   selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented);
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
@@ -134,15 +131,13 @@ function completeDayPrepTask(taskId){
 }
 
 function renderPrepChecklist(){
-  const dishes=selectedDishes(),tasks=selectedPrepTasksForChecklist(),actionable=selectedPrepTasks();
+  const tasks=selectedPrepTasksForChecklist(),actionable=selectedPrepTasks();
   const signature=`prep|${state.selectedMenus.join(",")}|${tasks.map(task=>Number(!!state.prepProgress[task.id])).join("")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
-  const claimedTaskIds=new Set();
-  dom.inventoryList.innerHTML=`<div class="prep-checklist">${dishes.map(dish=>{
-    const dishTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(task=>task&&!claimedTaskIds.has(task.id));
-    dishTasks.forEach(task=>claimedTaskIds.add(task.id));
-    return `<section class="prep-menu-group"><strong>[${dish.name}]</strong>${dishTasks.length?dishTasks.map(task=>`<div class="${state.prepProgress[task.id]?"done":task.isImplemented?"":"disabled"}">${state.prepProgress[task.id]?"☑":task.isImplemented?"☐":"–"} ${task.label}</div>`).join(""):'<div class="disabled">공통 준비 작업에 포함</div>'}</section>`;
+  dom.inventoryList.innerHTML=`<div class="prep-checklist">${tasks.map((task,index)=>{
+    const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];
+    return `<div class="prep-task-row ${done?"done":task.isImplemented?"":"disabled"}"><span>${index+1}</span><strong>${dish?.name||task.menuId}</strong><div>${done?"☑":task.isImplemented?"☐":"–"} ${task.label}</div></div>`;
   }).join("")}<div class="prep-total">준비 완료 ${actionable.filter(task=>state.prepProgress[task.id]).length} / ${actionable.length}</div></div>`;
 }
 

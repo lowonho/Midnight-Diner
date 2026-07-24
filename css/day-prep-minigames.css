@@ -48,6 +48,17 @@
   border-radius: 15px 38px 19px 34px;
   background: repeating-linear-gradient(105deg,#b9472f 0 22px,#d55f35 23px 40px,#8fa14b 41px 47px);
 }
+.chicken-shape {
+  border-color: #9d5f52;
+  border-radius: 34px 18px 30px 22px;
+  background: repeating-linear-gradient(105deg,#e9aa94 0 27px,#cf806f 28px 31px,#f0b9a4 32px 56px);
+}
+.greenOnion-shape {
+  height: 58px;
+  border-color: #688248;
+  border-radius: 28px 8px 8px 28px;
+  background: linear-gradient(90deg,#f0e8c9 0 42%,#a9c36e 43% 68%,#5f914c 69%);
+}
 .tofu-shape {
   border-color: #b8aa85;
   border-radius: 9px;
@@ -351,6 +362,45 @@
   font-size: 25px;
   font-weight: 800;
 }
+.batter-prep-scene { width: 100%; display: grid; grid-template-columns: 1fr 190px; align-items: center; gap: 16px; }
+.batter-ingredients { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.batter-ingredient { min-height: 92px; padding: 8px; border: 2px solid #89562e; border-radius: 9px; background: #e5c58e; color: #3d2517; cursor: pointer; }
+.batter-ingredient i,.batter-ingredient span { display: block; }
+.batter-ingredient i { position: relative; width: 48px; height: 48px; margin: 0 auto 5px; }
+.batter-ingredient.flour i { border-radius: 5px 5px 12px 12px; background: #eee3c8; box-shadow: inset 0 0 0 4px #c7a875; }
+.batter-ingredient.water i { width: 32px; border-radius: 45% 45% 50% 50%; background: linear-gradient(#cde7ef,#74b7ce); }
+.batter-ingredient.kimchi i { border-radius: 8px 20px 10px 18px; background: repeating-linear-gradient(110deg,#b9472f 0 10px,#d66135 11px 18px,#83964d 19px 22px); }
+.batter-ingredient.added { opacity: .42; }
+.batter-ingredient.pouring { animation: batter-pour .4s ease forwards; }
+.mixing-bowl { position: relative; width: 180px; height: 92px; overflow: hidden; border: 8px solid #a9afb0; border-top-width: 4px; border-radius: 14px 14px 85px 85px; background: #60676a; box-shadow: inset 0 7px rgba(255,255,255,.2); }
+.mixing-bowl .batter-fill { position: absolute; left: 15px; right: 15px; bottom: 9px; height: 0; border-radius: 50%; background: #e7d6a7; transition: height .25s ease; }
+.mixing-bowl.ingredient-step-1 .batter-fill { height: 26px; }
+.mixing-bowl.ingredient-step-2 .batter-fill { height: 40px; background: #dbc995; }
+.mixing-bowl.ingredient-step-3 .batter-fill { height: 50px; background: repeating-linear-gradient(105deg,#d5bd87 0 16px,#bd5138 17px 22px); }
+.whisk-work-area { position: relative; width: min(390px,100%); height: 210px; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; }
+.whisk-bowl { --batter-x:0px; --batter-y:0px; position: relative; width: 300px; height: 170px; overflow: hidden; border: 10px solid #a9afb0; border-top-width: 5px; border-radius: 18px 18px 145px 145px; background: #555d60; box-shadow: inset 0 9px rgba(255,255,255,.18); }
+.mixed-batter { position: absolute; left: 24px; right: 24px; bottom: 16px; height: 105px; border-radius: 50%; background: repeating-linear-gradient(110deg,#d5bd87 0 25px,#b94d35 26px 31px); transform: translate(var(--batter-x),var(--batter-y)); transition: background .18s ease; }
+.whisk-bowl.stage-1 .mixed-batter { background: repeating-linear-gradient(115deg,#d5bd87 0 34px,#bc5b42 35px 39px); }
+.whisk-bowl.stage-2 .mixed-batter { background: repeating-linear-gradient(120deg,#d2b47d 0 45px,#b9654c 46px 49px); }
+.whisk-bowl.stage-3 .mixed-batter { background: #c69568; }
+.whisk-bowl.stage-4 .mixed-batter { background: #bd855e; box-shadow: inset 0 6px rgba(255,226,169,.18); }
+.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 35%; width: 22px; height: 82px; border: 4px solid #d7dad8; border-top: 0; border-radius: 0 0 50% 50%; transform: translate(-50%,-50%) rotate(18deg); pointer-events: none; }
+.whisk-tool::before { content:""; position:absolute; left:5px; top:-55px; width:7px; height:60px; border-radius:5px; background:#b6bab8; }
+.whisk-progress { width: 100%; height: 18px; overflow: hidden; border: 2px solid #79502e; border-radius: 9px; background: #180e09; }
+.whisk-progress i { display: block; width: 0; height: 100%; background: linear-gradient(90deg,#b46b3f,#e7c166,#7e9d50); transition: width .08s linear; }
+.skewer-prep-scene { width: 100%; display: grid; gap: 18px; }
+.skewer-sources { min-height: 70px; display: flex; justify-content: center; gap: 8px; }
+.skewer-piece { min-width: 62px; padding: 10px 8px; border: 2px solid #87542e; border-radius: 11px; color: #382116; cursor: grab; font-weight: 800; }
+.skewer-piece.chicken { background: #e5a28b; }
+.skewer-piece.greenOnion { background: linear-gradient(#9ec26b,#e8e1bd); }
+.skewer-piece.selected { outline: 3px solid #ffe08d; transform: translateY(-4px); }
+.skewer-piece.used { opacity: .25; }
+.skewer-stick { position: relative; min-height: 85px; display: flex; justify-content: center; align-items: center; gap: 4px; }
+.skewer-stick > i { position: absolute; left: 7%; right: 3%; top: 50%; height: 5px; border-radius: 5px; background: #d6ad70; transform: rotate(-2deg); }
+.skewer-slot { position: relative; z-index: 1; width: 70px; height: 52px; border: 2px dashed #bc9868; border-radius: 10px; background: rgba(255,239,198,.12); color: #e4c99e; }
+.skewer-slot.current { border-color: #ffe08d; box-shadow: 0 0 12px rgba(255,224,141,.4); }
+.skewer-slot.chicken { border-style: solid; background: #d88e78; color: #3a2118; }
+.skewer-slot.greenOnion { border-style: solid; background: linear-gradient(#8fb45f,#e4deba); color: #304020; }
 .fry-work-area.toss-left { animation: prep-toss-left .16s ease; }
 .fry-work-area.toss-right { animation: prep-toss-right .16s ease; }
 .prep-complete-flash { filter: brightness(1.12); }
@@ -361,6 +411,7 @@
 @keyframes prep-toss-right { 50% { transform: translateX(11px) rotate(1deg); } }
 @keyframes prep-pot-drop { from { opacity:0; transform:translateY(-55px) rotate(15deg); } to { opacity:1; transform:translateY(0); } }
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(95px) rotate(12deg) scale(.65); } }
+@keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(42px) rotate(38deg); } 100% { opacity:.25; transform:translateX(58px) translateY(24px) rotate(52deg); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(-18px) translateY(-50%); } 50% { opacity:1; transform:translateX(9px) translateY(-50%); } 100% { opacity:0; transform:translateX(16px) translateY(-50%); } }
 
 @media (max-width:600px) {
@@ -372,4 +423,9 @@
   .frying-pan::after { top: 94px; height: 68px; }
   .kimchi-direction-chip { min-width: 25px; padding: 4px 3px; font-size: 18px; }
   .mini-close { font-size: 10px; }
+  .batter-prep-scene { grid-template-columns: 1fr; }
+  .batter-ingredients { grid-template-columns: repeat(3,1fr); }
+  .mixing-bowl { margin: 0 auto; }
+  .skewer-sources { flex-wrap: wrap; }
+  .skewer-slot { width: 52px; }
 }

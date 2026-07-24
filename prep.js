@@ -32,7 +32,7 @@ const PREP_LAYOUT = {
   rightLimit: 990,
   reach: 62,       // 이 거리 안에 들어와야 손질을 시작할 수 있습니다
   labelDy: -26,    // 이름표는 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다
-  boxW: 96, boxH: 42
+  boxW: 72, boxH: 42
 };
 
 
@@ -88,6 +88,16 @@ function drawPrepObjects(){
       ctx.fillStyle="#dba65d";ctx.save();ctx.translate(item.x,item.y-9);ctx.rotate(-.1);roundRect(ctx,-27,-10,54,20,4,true,false);ctx.restore();
     }else if(item.task.objectKind==="anchovy"){
       ctx.fillStyle="#9aa3a2";for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(item.x-19+i*18,item.y-8+(i%2)*5,17,5,.12,0,Math.PI*2);ctx.fill();}
+    }else if(item.task.objectKind==="chicken"){
+      ctx.fillStyle="#e6a68e";roundRect(ctx,item.x-25,item.y-20,50,24,9,true,false);
+    }else if(item.task.objectKind==="greenOnion"){
+      ctx.fillStyle="#6f9d4f";ctx.fillRect(item.x-28,item.y-16,56,9);ctx.fillStyle="#e9e1bd";ctx.fillRect(item.x-28,item.y-7,56,9);
+    }else if(item.task.objectKind==="pan"){
+      ctx.fillStyle="#45433f";ctx.beginPath();ctx.ellipse(item.x,item.y-8,28,14,0,0,Math.PI*2);ctx.fill();ctx.fillRect(item.x+24,item.y-12,22,7);
+    }else if(item.task.objectKind==="batter"){
+      ctx.fillStyle="#d7c6a2";ctx.beginPath();ctx.ellipse(item.x,item.y-7,29,17,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#ead8a9";ctx.beginPath();ctx.ellipse(item.x,item.y-10,22,10,0,0,Math.PI*2);ctx.fill();
+    }else if(item.task.objectKind==="skewer"){
+      ctx.strokeStyle="#d8b274";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(item.x-30,item.y);ctx.lineTo(item.x+31,item.y-17);ctx.stroke();
     }else{
       ctx.fillStyle="#a7432d";roundRect(ctx,item.x-30,item.y-22,60,25,7,true,false);ctx.fillStyle="#83964d";ctx.fillRect(item.x-24,item.y-18,48,4);
     }

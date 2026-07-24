@@ -1,10 +1,13 @@
 "use strict";
 
-// Day 1 준비 미니게임 전용 모듈. 기존 영업 중 조리 미니게임과 상태를 분리합니다.
+// 날짜별 준비 미니게임 모듈. 메뉴 Task ID별 진행 상태를 서로 분리합니다.
 const DAY_PREP_MINI_CONFIG = {
   cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.12,zoneStarts:[.14,.55,.29,.67],speed:.78},
   cutFishCake:{title:"어묵탕 · 어묵 썰기",total:5,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68,.43],speed:.8},
-  prepareKimchi:{title:"두부김치 · 김치 준비하기",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
+  cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
+  cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.22,.58,.39],speed:.78},
+  cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:4,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68],speed:.8},
+  cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   fryKimchi:{total:11,allowedDirections:["left","right"]},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
@@ -21,6 +24,16 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   kimchiCut1:"assets/prep/kimchi/kimchi-cut-1.png",
   kimchiCut2:"assets/prep/kimchi/kimchi-cut-2.png",
   kimchiCut3:"assets/prep/kimchi/kimchi-cut-3.png",
+  chicken0:"assets/prep/chicken/chicken-0.png",
+  chicken1:"assets/prep/chicken/chicken-1.png",
+  chicken2:"assets/prep/chicken/chicken-2.png",
+  chicken3:"assets/prep/chicken/chicken-3.png",
+  chicken4:"assets/prep/chicken/chicken-4.png",
+  greenOnion0:"assets/prep/green-onion/green-onion-0.png",
+  greenOnion1:"assets/prep/green-onion/green-onion-1.png",
+  greenOnion2:"assets/prep/green-onion/green-onion-2.png",
+  greenOnion3:"assets/prep/green-onion/green-onion-3.png",
+  greenOnion4:"assets/prep/green-onion/green-onion-4.png",
   anchovyBody:"assets/prep/anchovy/anchovy-body.png",
   anchovyHead:"assets/prep/anchovy/anchovy-head.png",
   fryingPan:"assets/prep/kimchi/frying-pan.png",
@@ -71,31 +84,32 @@ function startDayPrepMini(task){
   dom.miniClose.hidden=false;
   dom.miniOverlay.classList.add("open");
 
-  if(task.id==="cutRadish")setupDayPrepTiming("cutRadish");
-  else if(task.id==="cutFishCake")setupDayPrepTiming("cutFishCake");
-  else if(task.id==="cleanAnchovy")setupAnchovyPrep();
-  else if(state.kimchiPrep.cuttingComplete)setupKimchiFry();
-  else setupDayPrepTiming("prepareKimchi");
+  if(task.miniGame==="cut")setupDayPrepTiming(task.id);
+  else if(task.miniGame==="anchovy")setupAnchovyPrep();
+  else if(task.miniGame==="kimchiFry")setupKimchiFry(task.id);
+  else if(task.miniGame==="batter")setupKimchiBatter();
+  else if(task.miniGame==="skewer")setupChickenSkewer();
 }
 
 function setupDayPrepTiming(taskId){
   const m=state.mini,config=DAY_PREP_MINI_CONFIG[taskId];
+  const ingredient=config.ingredient||(taskId==="cutRadish"?"radish":"fishCake");
   startCuttingMinigame({
     taskId,
-    ingredient:taskId==="cutRadish"?"radish":taskId==="cutFishCake"?"fishCake":"kimchi",
+    ingredient,
     requiredHits:config.total,
     hitZoneWidth:config.zoneWidth,
     speed:config.speed,
     zoneStarts:config.zoneStarts,
     title:config.title,
-    onComplete:taskId==="prepareKimchi"
-      ?()=>{state.kimchiPrep.cuttingComplete=true;setTimeout(()=>{if(state.mini===m&&!m.complete)setupKimchiFry();},320);}
-      :()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료"),
+    onComplete:taskId==="cutRadish"||taskId==="cutFishCake"
+      ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
+      :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:taskId==="cutRadish"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
       :taskId==="cutFishCake"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 눌러 어묵을 5조각으로 써세요."
-      :"[1/2] 포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 3번 썹니다."
+      :`포인터가 초록 구간에 들어왔을 때 Space를 누르세요. ${PREP_TASKS[taskId].label} 작업입니다.`
   });
 }
 
@@ -195,12 +209,12 @@ function cleanAnchovyHead(button){
   if(m.data.cleaned===m.data.total)showOdenIngredientDrop("cleanAnchovy","anchovy","멸치 손질 완료");
 }
 
-function setupKimchiFry(){
+function setupKimchiFry(taskId="fryTofuKimchi"){
   const m=state.mini,config=DAY_PREP_MINI_CONFIG.fryKimchi;
   const sequence=Array.from({length:config.total},()=>config.allowedDirections[Math.floor(Math.random()*config.allowedDirections.length)]);
-  m.data={mode:"direction",successes:0,total:config.total,allowedDirections:[...config.allowedDirections],sequence};
-  dom.miniTitle.textContent="두부김치 · 김치 준비하기";
-  dom.miniDescription.textContent="[2/2] 팬 아래에 표시된 방향을 왼쪽부터 순서대로 누르세요. 맞게 누른 화살표는 검게 변합니다.";
+  m.data={mode:"direction",taskId,successes:0,total:config.total,allowedDirections:[...config.allowedDirections],sequence};
+  dom.miniTitle.textContent="두부김치 · 김치 볶기";
+  dom.miniDescription.textContent="썰어 둔 두부김치용 김치를 팬에서 볶습니다. 표시된 방향을 왼쪽부터 순서대로 누르세요.";
   renderKimchiFry();
 }
 
@@ -222,6 +236,116 @@ function renderKimchiFry(){
       ${data.allowedDirections.map(direction=>`<button type="button" data-direction="${direction}">${direction==="left"?"←":"→"}</button>`).join("")}
     </div>`;
   dom.miniContent.querySelectorAll("[data-direction]").forEach(button=>button.addEventListener("click",()=>dayPrepDirectionInput(button.dataset.direction)));
+}
+
+function setupKimchiBatter(){
+  state.mini.data={mode:"batterIngredients",step:0,ingredients:[
+    {id:"flour",label:"밀가루 봉투"},{id:"water",label:"물"},{id:"kimchi",label:"썰어 둔 김치"}
+  ]};
+  dom.miniTitle.textContent="김치전 · 반죽 만들기";
+  dom.miniDescription.textContent="밀가루 → 물 → 썰어 둔 김치 순서로 믹스볼에 넣으세요.";
+  renderKimchiBatterIngredients();
+}
+
+function renderKimchiBatterIngredients(){
+  const data=state.mini.data,current=data.ingredients[data.step];
+  dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;
+  dom.miniContent.innerHTML=`
+    <div class="batter-prep-scene">
+      <div class="batter-ingredients">${data.ingredients.map((item,index)=>`<button type="button" class="batter-ingredient ${item.id} ${index<data.step?"added":""}" data-batter-ingredient="${item.id}" ${index<data.step?"disabled":""}><i></i><span>${item.label}</span></button>`).join("")}</div>
+      <div class="mixing-bowl ingredient-step-${data.step}"><i class="batter-fill"></i></div>
+    </div>
+    <div class="cut-count">다음 재료 · ${current?.label||"거품기"}</div>`;
+  dom.miniContent.querySelectorAll("[data-batter-ingredient]").forEach(button=>button.addEventListener("click",()=>addBatterIngredient(button.dataset.batterIngredient,button)));
+}
+
+function addBatterIngredient(ingredientId,button){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="batterIngredients")return;
+  const expected=m.data.ingredients[m.data.step];
+  if(ingredientId!==expected.id){dom.miniFeedback.textContent=`먼저 ${expected.label}을 넣으세요.`;audio.bad();return;}
+  button.classList.add("pouring");button.disabled=true;m.data.step++;audio.click();
+  dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter();
+    else renderKimchiBatterIngredients();
+  },420);
+}
+
+function setupWhiskBatter(){
+  const m=state.mini;
+  m.data={mode:"whisk",progress:0,pointerActive:false,lastAngle:null};
+  dom.miniTitle.textContent="김치전 · 거품기로 섞기";
+  dom.miniDescription.textContent="믹스볼 안에서 마우스를 누른 채 원을 그리세요. 거품기와 반죽이 움직이며 섞입니다.";
+  dom.miniTimer.textContent="0%";
+  dom.miniContent.innerHTML=`
+    <div class="whisk-work-area" id="whiskWorkArea">
+      <div class="whisk-bowl stage-0" id="whiskBowl"><i class="mixed-batter"></i><i class="whisk-tool" id="whiskTool"></i></div>
+    </div>
+    <div class="whisk-progress"><i id="whiskProgressBar"></i></div>
+    <div class="cut-count" id="whiskProgressText">반죽 진행도 0%</div>`;
+  const work=dom.miniContent.querySelector("#whiskWorkArea");
+  work.addEventListener("pointerdown",event=>{m.data.pointerActive=true;m.data.lastAngle=null;work.setPointerCapture(event.pointerId);moveWhiskPointer(event);});
+  work.addEventListener("pointermove",moveWhiskPointer);
+  ["pointerup","pointercancel"].forEach(type=>work.addEventListener(type,()=>{m.data.pointerActive=false;m.data.lastAngle=null;}));
+}
+
+function moveWhiskPointer(event){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="whisk"||!m.data.pointerActive)return;
+  const work=dom.miniContent.querySelector("#whiskWorkArea"),bowl=dom.miniContent.querySelector("#whiskBowl"),whisk=dom.miniContent.querySelector("#whiskTool");
+  if(!work||!bowl||!whisk)return;
+  const rect=work.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top,cx=rect.width/2,cy=rect.height/2;
+  const dx=x-cx,dy=y-cy,radius=Math.hypot(dx,dy),angle=Math.atan2(dy,dx);
+  whisk.style.left=`${clamp(x/rect.width*100,8,92)}%`;whisk.style.top=`${clamp(y/rect.height*100,8,92)}%`;
+  bowl.style.setProperty("--batter-x",`${clamp(dx*.045,-7,7)}px`);bowl.style.setProperty("--batter-y",`${clamp(dy*.045,-6,6)}px`);
+  if(m.data.lastAngle!=null&&radius>35&&radius<Math.min(rect.width,rect.height)*.48){
+    const delta=Math.atan2(Math.sin(angle-m.data.lastAngle),Math.cos(angle-m.data.lastAngle));
+    if(Math.abs(delta)<1.2)m.data.progress=clamp(m.data.progress+Math.abs(delta)*6,0,100);
+  }
+  m.data.lastAngle=angle;
+  const progress=Math.round(m.data.progress),stage=Math.min(4,Math.floor(progress/25));
+  bowl.className=`whisk-bowl stage-${stage}`;
+  dom.miniContent.querySelector("#whiskProgressBar").style.width=`${progress}%`;
+  dom.miniContent.querySelector("#whiskProgressText").textContent=`반죽 진행도 ${progress}%`;
+  dom.miniTimer.textContent=`${progress}%`;
+  if(progress>=100)finishDayPrepTask("mixKimchiBatter","김치전 반죽 완성");
+}
+
+function setupChickenSkewer(){
+  state.mini.data={mode:"skewer",sequence:["chicken","greenOnion","chicken","greenOnion","chicken"],placed:[],used:[],selectedPiece:null};
+  dom.miniTitle.textContent="닭꼬치 · 꼬치에 꽂기";
+  dom.miniDescription.textContent="닭 → 대파 → 닭 → 대파 → 닭 순서로 재료를 드래그해 꼬치 슬롯에 놓으세요.";
+  renderChickenSkewer();
+}
+
+function renderChickenSkewer(){
+  const data=state.mini.data;
+  dom.miniTimer.textContent=`${data.placed.length} / ${data.sequence.length}`;
+  dom.miniContent.innerHTML=`
+    <div class="skewer-prep-scene">
+      <div class="skewer-sources">${data.sequence.map((ingredient,index)=>`<button type="button" draggable="true" class="skewer-piece ${ingredient} ${data.used.includes(index)?"used":""}" data-piece-index="${index}" data-ingredient="${ingredient}" ${data.used.includes(index)?"disabled":""}>${ingredient==="chicken"?"닭":"대파"}</button>`).join("")}</div>
+      <div class="skewer-stick"><i></i>${data.sequence.map((ingredient,index)=>`<button type="button" class="skewer-slot ${index<data.placed.length?ingredient:""} ${index===data.placed.length?"current":""}" data-slot-index="${index}">${index<data.placed.length?(ingredient==="chicken"?"닭":"대파"):index+1}</button>`).join("")}</div>
+    </div>
+    <div class="cut-count">순서 · 닭 → 대파 → 닭 → 대파 → 닭</div>`;
+  dom.miniContent.querySelectorAll("[data-piece-index]").forEach(piece=>{
+    piece.addEventListener("dragstart",event=>{event.dataTransfer.setData("text/plain",piece.dataset.pieceIndex);event.dataTransfer.effectAllowed="move";});
+    piece.addEventListener("click",()=>{data.selectedPiece=Number(piece.dataset.pieceIndex);dom.miniContent.querySelectorAll(".skewer-piece").forEach(item=>item.classList.toggle("selected",item===piece));});
+  });
+  dom.miniContent.querySelectorAll("[data-slot-index]").forEach(slot=>{
+    slot.addEventListener("dragover",event=>event.preventDefault());
+    slot.addEventListener("drop",event=>{event.preventDefault();placeSkewerPiece(Number(event.dataTransfer.getData("text/plain")),Number(slot.dataset.slotIndex));});
+    slot.addEventListener("click",()=>{if(data.selectedPiece!=null)placeSkewerPiece(data.selectedPiece,Number(slot.dataset.slotIndex));});
+  });
+}
+
+function placeSkewerPiece(pieceIndex,slotIndex){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="skewer")return;
+  const data=m.data,ingredient=data.sequence[pieceIndex],expected=data.sequence[data.placed.length];
+  if(data.used.includes(pieceIndex))return;
+  if(slotIndex!==data.placed.length||ingredient!==expected){dom.miniFeedback.textContent=`다음에는 ${expected==="chicken"?"닭":"대파"}을 ${data.placed.length+1}번 슬롯에 놓으세요.`;audio.bad();return;}
+  data.used.push(pieceIndex);data.placed.push(ingredient);data.selectedPiece=null;audio.click();dom.miniFeedback.textContent="재료를 꼬치에 꽂았습니다.";
+  if(data.placed.length>=data.sequence.length){finishDayPrepTask("assembleChickenSkewer","닭꼬치 조립 완료");return;}
+  renderChickenSkewer();
 }
 
 function dayPrepPrimaryAction(){
@@ -273,8 +397,7 @@ function dayPrepDirectionInput(direction){
     setTimeout(()=>work.classList.remove(tossClass),170);
   }
   if(data.successes>=data.total){
-    state.kimchiPrep.fryingComplete=true;
-    finishDayPrepTask("prepareKimchi","김치 준비 완료");
+    finishDayPrepTask(data.taskId,"두부김치용 김치 볶기 완료");
     return;
   }
 }
