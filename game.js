@@ -59,14 +59,28 @@ const STATIONS = {
   dishwasher: {id:"dishwasher",label:"식기세척기",x:884,y:300,w:82,h:68,ix:925,iy:420,facing:"up"},
   trash: {id:"trash",label:"쓰레기통",x:974,y:300,w:68,h:68,ix:1008,iy:420,facing:"up"}
 };
+// 카운터 3종의 위치·크기는 counter.js 의 실제 에셋 배치(VIEW 1920x1080)를
+// 논리 좌표(1280x720)로 옮긴 값입니다. VIEW / 1.5 = 논리.
+//   register  VIEW x   0~363 , 바닥선 1013 → 논리 x   0~242 , y 500~675
+//   griddle   VIEW x 336~663 , 바닥선 1017 → 논리 x 224~442 , y 454~678
+//   bar_table VIEW x 630~1920, 바닥선 1012 → 논리 x 420~1280, y 500~675
+// ix/iy 는 요리사가 서는 자리(카운터 위쪽 = 주방측)입니다.
 const FRONT_STATIONS={
-  register:{id:"register",label:"계산대",x:205,y:526,w:120,h:84,ix:265,iy:486,facing:"down"},
-  griddle:{id:"griddle",label:"철판",x:335,y:526,w:112,h:84,ix:391,iy:486,facing:"down"},
-  counter:{id:"counter",label:"카운터",x:447,y:526,w:625,h:84,ix:760,iy:486,facing:"down"}
+  register:{id:"register",label:"계산대",x:0,y:500,w:242,h:175,ix:245,iy:470,facing:"down"},
+  griddle:{id:"griddle",label:"철판",x:224,y:454,w:218,h:224,ix:333,iy:470,facing:"down"},
+  counter:{id:"counter",label:"카운터",x:420,y:500,w:860,h:175,ix:700,iy:470,facing:"down"}
 };
 
-const CUSTOMER_SEATS = [455, 620, 785, 950];
+// 의자 5개 중 앞의 4개 중심 x (VIEW 726/924/1122/1320 + 폭 88 의 중심 ÷ 1.5).
+// 5번 의자(논리 1041)는 빈자리로 둡니다.
+const CUSTOMER_SEATS = [513, 645, 777, 909];
 const CUSTOMER_SERVICE_Y = 475;
+// 손님이 의자에 앉았을 때의 기준 y.
+// 머리·어깨가 의자 등받이(VIEW 878)보다 위로 올라오도록 맞춘 값입니다.
+const CUSTOMER_SEAT_Y = 607;
+const CUSTOMER_ENTER_Y = 700;
+// 캐릭터 스프라이트가 카운터 에셋보다 작아서 의자에 맞춰 키웠습니다. (원래 54x74)
+const CUSTOMER_SPRITE = { w:83, h:113, anchor:.838 };
 const WALK_BOUNDS = { left:235, right:1030, top:410, bottom:486 };
 let nextOrderId = 1;
 let toastTimer = 0;
@@ -225,8 +239,10 @@ function nearestStation() {
 function prepObjectLayout(){
   const tasks=selectedPrepTasks(),count=tasks.length;
   if(!count)return [];
-  const counter=FRONT_STATIONS.counter,left=counter.x+40,right=counter.x+counter.w-140,step=count===1?0:(right-left)/(count-1);
-  return tasks.map((task,index)=>({task,x:count===1?(left+right)/2:left+step*index,y:526,ix:count===1?(left+right)/2:left+step*index,iy:478}));
+  // 준비물은 바 테이블 상판 위(논리 y 522 근처)에 올립니다.
+  // 오른쪽 끝은 요리사 이동 한계(WALK_BOUNDS.right)를 넘지 않게 잘라 둡니다.
+  const counter=FRONT_STATIONS.counter,left=counter.x+50,right=Math.min(counter.x+counter.w-140,WALK_BOUNDS.right-40),step=count===1?0:(right-left)/(count-1);
+  return tasks.map((task,index)=>({task,x:count===1?(left+right)/2:left+step*index,y:540,ix:count===1?(left+right)/2:left+step*index,iy:482}));
 }
 
 function nearestPrepObject(){
@@ -608,7 +624,7 @@ function updatePrompt(){
       x=station.ix;y=station.y+station.h+60;
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
       text=`E · ${order.slot+1}번 손님에게 서빙`;
-      x=CUSTOMER_SEATS[order.slot];y=520;
+      x=CUSTOMER_SEATS[order.slot];y=470;
     }
   }else{
     if(state.phase==="day"){
@@ -680,15 +696,11 @@ function drawStation(s){
 function drawSteam(x,y,count){const t=performance.now()/700;ctx.strokeStyle="rgba(246,239,218,.7)";ctx.lineWidth=3;for(let i=0;i<count;i++){const ox=(i-count/2)*10,rise=((t+i*.23)%1)*25;ctx.globalAlpha=1-rise/25;ctx.beginPath();ctx.moveTo(x+ox,y-rise);ctx.bezierCurveTo(x+ox-6,y-rise-6,x+ox+6,y-rise-13,x+ox,y-rise-19);ctx.stroke();}ctx.globalAlpha=1;}
 
 function drawFrontFixtures(){
-  // 계산대, 철판, 긴 카운터는 두 상태에서 같은 좌표를 사용합니다.
-  const register=FRONT_STATIONS.register,griddle=FRONT_STATIONS.griddle,counter=FRONT_STATIONS.counter;
-  ctx.fillStyle="#3a2418";ctx.fillRect(register.x,register.y,register.w,register.h);ctx.strokeStyle="#8d5a31";ctx.lineWidth=4;ctx.strokeRect(register.x,register.y,register.w,register.h);
-  ctx.fillStyle="#b18a56";ctx.fillRect(register.x+13,register.y-16,register.w-28,22);ctx.fillStyle="#211712";ctx.fillRect(register.x+26,register.y-34,register.w-54,24);
-  drawFixtureLabel(register.label,register.x+register.w/2,register.y+register.h+16);
-  ctx.fillStyle="#3b2a20";ctx.fillRect(griddle.x,griddle.y,griddle.w,griddle.h);ctx.strokeStyle="#8d5a31";ctx.strokeRect(griddle.x,griddle.y,griddle.w,griddle.h);ctx.fillStyle="#25282a";ctx.fillRect(griddle.x+13,griddle.y-12,griddle.w-26,26);drawFixtureLabel(griddle.label,griddle.x+griddle.w/2,griddle.y+griddle.h+16);
-  ctx.fillStyle="#4a2d1b";ctx.fillRect(counter.x,counter.y,counter.w,counter.h);ctx.strokeStyle="#9b6335";ctx.strokeRect(counter.x,counter.y,counter.w,counter.h);ctx.fillStyle="#8e6238";ctx.fillRect(counter.x,counter.y-14,counter.w,20);
+  // 계산대 · 철판 · 바 테이블 · 의자 · 명패는 counter.js 가 실제 에셋으로 그립니다.
+  // (이전의 사각형 플레이스홀더 드로잉은 제거했습니다)
+  // 여기 남은 것은 아직 에셋이 없는 영업중 간판뿐입니다.
   if(state.phase==="night"){
-    ctx.fillStyle="#263619";roundRect(ctx,1078,525,95,78,7,true,false);ctx.strokeStyle="#c18a3f";ctx.lineWidth=4;roundRect(ctx,1078,525,95,78,7,false,true);ctx.fillStyle="#b8d86d";ctx.font="bold 22px Malgun Gothic";ctx.textAlign="center";ctx.fillText("영업중",1125,570);ctx.textAlign="left";
+    ctx.fillStyle="#263619";roundRect(ctx,1105,588,100,74,7,true,false);ctx.strokeStyle="#c18a3f";ctx.lineWidth=4;roundRect(ctx,1105,588,100,74,7,false,true);ctx.fillStyle="#b8d86d";ctx.font="bold 22px Malgun Gothic";ctx.textAlign="center";ctx.fillText("영업중",1155,632);ctx.textAlign="left";
   }
 }
 
@@ -711,7 +723,8 @@ function drawPrepObjects(){
     }else{
       ctx.fillStyle="#a7432d";roundRect(ctx,item.x-30,item.y-22,60,25,7,true,false);ctx.fillStyle="#83964d";ctx.fillRect(item.x-24,item.y-18,48,4);
     }
-    ctx.globalAlpha=1;drawFixtureLabel(item.task.objectLabel,item.x,item.y+55);
+    // 라벨은 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다.
+    ctx.globalAlpha=1;drawFixtureLabel(item.task.objectLabel,item.x,item.y-26);
     if(done){ctx.fillStyle="#91b961";ctx.beginPath();ctx.arc(item.x+34,item.y-18,15,0,Math.PI*2);ctx.fill();ctx.fillStyle="#17200e";ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.fillText("✓",item.x+34,item.y-12);ctx.fillStyle="#d9e8b5";ctx.font="bold 11px Malgun Gothic";ctx.fillText("준비 완료",item.x,item.y+18);ctx.textAlign="left";}
     ctx.restore();
   });
@@ -721,29 +734,31 @@ function drawCustomers(){
   if(state.phase!=="night"&&state.phase!=="result")return;
   const t=performance.now()/1000;
   state.orders.forEach(order=>{
-    const x=CUSTOMER_SEATS[order.slot],entered=1-Math.pow(1-order.entered,3),y=lerp(700,603,entered);
+    const x=CUSTOMER_SEATS[order.slot],entered=1-Math.pow(1-order.entered,3),y=lerp(CUSTOMER_ENTER_Y,CUSTOMER_SEAT_Y,entered);
     drawCustomerSprite(order.variant,x,y,Math.floor(t*2+order.id)%4,1);
     const selected=state.selectedOrderId===order.id;
-    ctx.fillStyle=selected?"#fff0bd":"#efd9ae";roundRect(ctx,x-38,y-115,76,55,9,true,false);
-    ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;roundRect(ctx,x-38,y-115,76,55,9,false,true);
-    drawFoodIcon(dishById(order.dishId).icon,x-19,y-110,38);
-    ctx.fillStyle="#3b2518";ctx.beginPath();ctx.moveTo(x-5,y-60);ctx.lineTo(x+6,y-50);ctx.lineTo(x+10,y-60);ctx.fill();
-    if(selected){ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y-29,37+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();}
+    // 손님 스프라이트가 커져서 주문 말풍선을 머리 위로 30px 더 올렸습니다.
+    ctx.fillStyle=selected?"#fff0bd":"#efd9ae";roundRect(ctx,x-38,y-145,76,55,9,true,false);
+    ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;roundRect(ctx,x-38,y-145,76,55,9,false,true);
+    drawFoodIcon(dishById(order.dishId).icon,x-19,y-140,38);
+    ctx.fillStyle="#3b2518";ctx.beginPath();ctx.moveTo(x-5,y-90);ctx.lineTo(x+6,y-80);ctx.lineTo(x+10,y-90);ctx.fill();
+    if(selected){ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y-52,46+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();}
     ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,y-122);ctx.textAlign="left";
-    if(order.bubble&&order.bubbleTime>0&&entered>.85)drawCustomerSpeech(order.bubble,x,y-145);
+    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,y-152);ctx.textAlign="left";
+    if(order.bubble&&order.bubbleTime>0&&entered>.85)drawCustomerSpeech(order.bubble,x,y-175);
   });
   state.departures.forEach((item,index)=>{
-    const x=CUSTOMER_SEATS[item.slot],alpha=clamp(item.life/3.2,0,1),y=603-Math.min(16,(3.2-item.life)*5);
+    const x=CUSTOMER_SEATS[item.slot],alpha=clamp(item.life/3.2,0,1),y=CUSTOMER_SEAT_Y-Math.min(16,(3.2-item.life)*5);
     drawCustomerSprite(item.variant,x,y,(Math.floor(t*2)+index)%4,alpha);
-    drawCustomerSpeech(item.bubble,x,y-105,alpha);
+    drawCustomerSpeech(item.bubble,x,y-135,alpha);
   });
 }
 
 function drawCustomerSprite(variant,x,y,frame,alpha=1){
   ctx.save();ctx.globalAlpha=alpha;
-  if(images.customers)ctx.drawImage(images.customers,frame*44,variant*60,44,60,x-27,y-62,54,74);
-  else{ctx.fillStyle="#48352b";ctx.fillRect(x-20,y-55,40,55);}
+  const cw=CUSTOMER_SPRITE.w,chh=CUSTOMER_SPRITE.h;
+  if(images.customers)ctx.drawImage(images.customers,frame*44,variant*60,44,60,x-cw/2,y-chh*CUSTOMER_SPRITE.anchor,cw,chh);
+  else{ctx.fillStyle="#48352b";ctx.fillRect(x-cw*.37,y-chh*.75,cw*.74,chh*.75);}
   ctx.restore();
 }
 
@@ -837,6 +852,7 @@ class DinerScene extends Phaser.Scene {
     this.textures.addSpriteSheet("food",images.food,{frameWidth:64,frameHeight:64});
 
     createStage(this);
+    createCounter(this);
 
     frameTexture=createStageFrameTexture(this,"dinerFrame");
     ctx=frameTexture.getContext();
@@ -870,10 +886,12 @@ class DinerScene extends Phaser.Scene {
     setTimeout(runStoryQaFromQuery,0);
   }
 
-  update(_time,delta){
+  update(time,delta){
     update(Math.min(.033,delta/1000));
     draw();
     syncPhaserObjects();
+    // 카운터 연출은 VIEW 좌표를 쓰므로 플레이어 위치를 변환해서 넘깁니다.
+    updateCounter(time,delta,{x:toView(state.player.x),y:toView(state.player.y)});
   }
 }
 
@@ -891,6 +909,7 @@ Promise.all([
   loadNativeImage("customers","assets/customer_sheet.png"),
   loadNativeImage("food","assets/food_sheet.png"),
   loadStageAssets(),
+  loadCounterAssets(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);
