@@ -210,26 +210,3 @@ function confirmMenuSelection(){
   updateUI(true);saveGame();
   return true;
 }
-
-function setDebugDay(day){
-  if(state.screen!=="game")return false;
-  state.day=DayManager.setDay(day);state.paused=false;
-  resetDay(false);saveGame();updateDevTools();
-  return true;
-}
-
-function updateDevTools(){
-  if(!dom.devDayButtons||!dom.devStateText)return;
-  if(!dom.devDayButtons.children.length){
-    for(let day=DayManager.minDay;day<=DayManager.maxDay;day++){
-      const button=document.createElement("button");button.type="button";button.textContent=`D${day}`;button.dataset.debugDay=day;
-      button.addEventListener("click",()=>{if(setDebugDay(day))closeSettings();});dom.devDayButtons.appendChild(button);
-    }
-  }
-  [...dom.devDayButtons.children].forEach(button=>button.classList.toggle("active",Number(button.dataset.debugDay)===state.day));
-  const data=getCurrentDayData();
-  const names=ids=>ids.map(id=>dishById(id)?.name||id).join(", ")||"없음";
-  dom.devStateText.textContent=`phase: ${state.phase}\nrequired: ${names(data.requiredMenus)}\noptional: ${names(data.optionalMenus)}\nselected: ${names(state.selectedMenus)}\nmax: ${data.maxSelectedMenus}\nspecial: ${data.specialMenu?names([data.specialMenu]):"없음"}`;
-}
-
-window.midnightDinerDebug=Object.freeze({setDay:setDebugDay,getDayData:day=>DayManager.getDayData(day),getSelectedMenus:()=>[...state.selectedMenus]});

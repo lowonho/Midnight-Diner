@@ -29,7 +29,7 @@ const dom = Object.fromEntries([
   "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "devTools","devDayButtons","devStateText","joystick","joystickKnob","actionButton"
+  "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
 const images = {};
@@ -547,7 +547,6 @@ function updateUI(force=false) {
   if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
   else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
   else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
-  updateDevTools();
   updateRelationshipUI();
   updatePrompt();
 }

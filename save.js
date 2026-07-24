@@ -68,6 +68,8 @@ function revealNamesFromLegacyProgress(savedState,story){
 }
 
 function saveGame(allowDuringStory=false){
+  // QA_REMOVE: qa-mode.js와 함께 제거하면 됩니다. QA 이동은 실제 세이브를 덮어쓰지 않습니다.
+  if(window.QA_MODE?.enabled)return false;
   if(state.screen!=="game"||!Object.values(GAME_PHASES).includes(state.phase)||state.mini||(storyIsActive()&&!allowDuringStory))return false;
   try{
     const snapshot=JSON.parse(JSON.stringify(state));
