@@ -592,16 +592,23 @@ function updatePrompt(){
 
 function draw(){
   if(!ctx)return;
-  beginStageFrame(ctx);syncStageTimeOfDay(state.phase);
-  // ↓ 그리는 순서가 곧 레이어 순서입니다. 프레임 캔버스 한 장을 공유하므로
-  //   여기 순서를 바꾸면 앞뒤 관계가 바뀝니다. 각 함수의 내용은 해당 파일에 있습니다.
-  drawStations();      // kitchen.js   주방 집기
-  drawSignage();       // signage.js   영업중 간판
-  drawPrepObjects();   // prep.js      낮 준비물
-  drawCustomers();     // customers.js 손님
-  drawGuidance();      // fx.js        안내 화살표
-  drawParticles();     // fx.js        파티클·팝업
-  commitFrame();       // draw-utils.js
+  syncStageTimeOfDay(state.phase);
+
+  // 프레임 캔버스는 요리사를 사이에 두고 앞뒤 두 장입니다. (draw-utils.js)
+  // 같은 층 안에서는 그리는 순서가 곧 앞뒤 관계입니다.
+
+  beginBackLayer();      // ── 요리사(25)보다 뒤 ──────────────
+  drawStations();        // kitchen.js   주방 집기 몸통
+
+  beginFrontLayer();     // ── 요리사·카운터보다 앞 ───────────
+  drawStationLabels();   // kitchen.js   집기 이름표 (요리사에 가리면 안 됨)
+  drawSignage();         // signage.js   영업중 간판
+  drawPrepObjects();     // prep.js      낮 준비물
+  drawCustomers();       // customers.js 손님
+  drawGuidance();        // fx.js        안내 화살표
+  drawParticles();       // fx.js        파티클·팝업
+
+  commitFrame();         // draw-utils.js
 }
 
 // syncPhaserObjects()  → player.js
@@ -677,7 +684,9 @@ class DinerScene extends Phaser.Scene {
     draw();
     syncPhaserObjects();
     // 카운터 연출은 VIEW 좌표를 쓰므로 플레이어 위치를 변환해서 넘깁니다.
-    updateCounter(time,delta,{x:toView(state.player.x),y:toView(state.player.y)});
+    // 마지막 인자는 영업 중 여부. 준비 시간에는 수저통을 치웁니다.
+    updateCounter(time,delta,{x:toView(state.player.x),y:toView(state.player.y)},
+      state.phase==="night"||state.phase==="result");
   }
 }
 

@@ -109,9 +109,11 @@ function restoreGameState(data){
   state.orders=Array.isArray(saved.orders)?saved.orders.map(normalizeStoryOrder):[];
   state.respawns=Array.isArray(saved.respawns)?saved.respawns:[];
   state.departures=[];
-  state.player={x:620,y:448,facing:"down",moving:false,speed:205,...(saved.player||{}),moving:false};
-  state.player.x=clamp(state.player.x,WALK_BOUNDS.left,WALK_BOUNDS.right);
-  state.player.y=clamp(state.player.y,WALK_BOUNDS.top,WALK_BOUNDS.bottom);
+  // speed 는 세이브 값을 쓰지 않고 항상 PLAYER_START 를 따릅니다.
+  // 진행 상황이 아니라 밸런스 상수라서, 값을 조정하면 기존 세이브에도 바로 적용돼야 합니다.
+  // (이 줄이 없으면 예전 세이브가 옛날 speed 를 그대로 되살립니다)
+  state.player={...PLAYER_START,moving:false,...(saved.player||{}),moving:false,speed:PLAYER_START.speed};
+  clampChefToWalkArea(state.player);   // chef-walk-area.js — 예전 세이브 위치를 새 영역으로 보정
   state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";
   state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;
   if(state.phase==="day")state.phaseTime=null;

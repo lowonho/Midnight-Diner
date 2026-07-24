@@ -1,0 +1,191 @@
+"use strict";
+
+/* ============================================================
+   요리사 스프라이트시트 정의표
+   ------------------------------------------------------------
+   담당 범위: 시트 파일 · 격자 규격 · 프레임 구성 · 재생 속도
+
+   담당 범위가 아님: 언제 어떤 모션을 재생할지 → player.js
+                     들고 있는 물건의 위치 → chef-carry-temp.js
+
+   [새 모션 추가하는 법]
+   1) 1× WebP 를 assets/character/sprites/ 에 넣고
+      node tools/build-chef-sprites.js 를 돌린다 (2× PNG 를 넣으면 자동 변환됨)
+   2) 아래 CHEF_ANIM_TABLE 에 한 줄 추가한다
+   그게 전부입니다. 프레임 인덱스는 dirs 순서 × cols 로 자동 계산되므로
+   손으로 적지 마세요.
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   1. 공통 규격
+   ------------------------------------------------------------ */
+
+const CHEF_SHEET_DIR = "assets/character/sprites/";
+
+// 게임이 읽는 건 tools/build-chef-sprites.js 가 만든 1× WebP 입니다.
+// 같은 폴더의 2× PNG 가 원본(마스터)이며 지우면 안 됩니다.
+// [주의] 확장자만 ".png" 로 바꾸면 안 됩니다. PNG 는 2× 라서 셀 크기가
+//        384×640 이 되어 격자가 통째로 어긋납니다. 되돌리려면 변환을 다시 돌리세요.
+const CHEF_SHEET_EXT = ".webp";
+
+// Phaser 텍스처 키 = CHEF_TEXTURE_PREFIX + 표의 key
+const CHEF_TEXTURE_PREFIX = "chef_";
+
+// 1× 셀 크기. 4장 모두 동일합니다.
+const CHEF_FRAME = { w:192, h:320 };
+
+// (0.5, 1.0) = 가로 중앙 · 발바닥. 발끝이 state.player.y 에 정확히 놓입니다.
+const CHEF_ORIGIN = { x:0.5, y:1.0 };
+
+// 화면(1920×1080) 기준 배율. 1.0 이면 캐릭터 키가 CHEF_TARGET_H(233px) 입니다.
+// 크기를 조절할 일이 생기면 이 값 하나만 고치세요.
+// setDisplaySize 로 가로세로를 따로 주면 비율이 깨지므로 쓰지 않습니다.
+const CHEF_SCALE = 1.0;
+
+// 모든 방향·모션을 맞출 캐릭터 키 (1× 화면 픽셀).
+//
+// [왜 필요한가]
+// 받은 시트는 방향마다 캐릭터 크기가 다릅니다. 특히 char_chef_walk 은
+// down 267 · up 233 · side 256 으로 뒷모습이 34px(약 13%) 작습니다.
+// 나머지 3장은 268~269.5 로 균일하고요. 그대로 쓰면 방향을 바꿀 때마다,
+// 또 걷다 멈출 때마다(walk up 233 → idle up 268) 캐릭터가 커졌다 작아집니다.
+//
+// 그래서 표의 heights 실측값으로 시트·방향마다 배율을 따로 계산해서
+// 화면상 키를 항상 이 값으로 맞춥니다. 기준은 가장 작은 walk 뒷모습(233)이라
+// 어떤 방향도 확대되지 않습니다. (확대하면 흐려지므로 축소만 씁니다)
+//
+// 시트 자체가 균일하게 다시 나오면 heights 를 지우거나 전부 같은 값으로
+// 맞추면 됩니다. 그러면 배율 보정이 저절로 1.0 이 됩니다.
+const CHEF_TARGET_H = 233;
+
+
+/* 원근 보정 — 앞으로 나올수록 커지고 뒤로 갈수록 작아집니다.
+   ------------------------------------------------------------
+   기준은 chef-walk-area.js 의 사다리꼴입니다. 그 바닥의 앞변/뒷변 폭 비율이
+   이 방의 실제 원근이라서(앞변 1856px ÷ 뒷변 1415px = 약 1.31배),
+   따로 숫자를 지어내지 않고 그 값을 그대로 끌어다 씁니다.
+   덕분에 F1 디버그로 영역을 조정하면 원근도 같이 따라옵니다.
+
+   amount = 그 원근을 몇 %나 적용할지
+     0     끔 (어디서나 같은 크기)
+     0.5   약 1.16배 차이
+     0.75  약 1.23배 차이   ← 현재값
+     1     약 1.31배 차이 — 바닥과 완전히 같은 비율
+
+   pivot = 크기가 1.0 으로 유지되는 지점 (0 = 맨 뒤, 1 = 맨 앞)
+     0.5   앞뒤로 균등하게 벌어짐
+     0.35  뒤쪽은 거의 그대로 두고 앞쪽만 더 커짐   ← 현재값
+
+   pivot 을 앞으로 당겨 놓은 이유: "앞에 있을 때 더 크게"가 목적이라
+   amount 를 올릴 때 뒤쪽까지 같이 작아지면 안 되기 때문입니다.
+   지금 조합(0.75 / 0.35)의 결과는 이렇습니다.
+
+     맨 뒤   ×0.929  → 키 216 px   (amount 0.5 일 때와 사실상 동일)
+     중간    ×1.031  → 키 240 px
+     맨 앞   ×1.146  → 키 267 px   (전보다 17 px 더 큼)
+
+   앞을 더 키우려면 amount 를 올리고, 그때 뒤가 작아지는 게 싫으면
+   pivot 을 같이 내리세요. */
+const CHEF_PERSPECTIVE = { amount: 0.75, pivot: 0.35 };
+
+
+/* ------------------------------------------------------------
+   2. 시트 표
+   ------------------------------------------------------------
+   key    : 모션 이름. 애니메이션 키는 chef_{key}_{방향} 이 됩니다.
+   file   : 확장자 뺀 파일명
+   cols   : 한 방향당 프레임 수 (= 시트의 열 수)
+   dirs   : 행 순서. 시트의 0행부터 차례로 대응합니다.
+   fps    : 재생 속도
+   repeat : -1 무한반복 / 0 한 번만
+   heights: 방향별 캐릭터 실측 키 (1× 픽셀, 알파 기준). 크기를 CHEF_TARGET_H 로
+            맞추는 데만 씁니다. 생략하면 그 시트는 배율 보정 없이 원본 크기입니다.
+            값은 손으로 재지 말고 node tools/measure-chef-frames.js 로 뽑으세요.
+
+   [행 순서] 4장 모두 0행 down(정면) · 1행 up(뒷모습) · 2행 side(왼쪽 향함).
+   side 는 왼쪽을 향해 그려져 있어서 오른쪽은 flipX 로 뒤집어 씁니다.
+
+   [fps 와 이동 속도] walk 계열 fps 는 PLAYER_START.speed 와 짝입니다.
+   속도만 올리면 발이 미끄러져 보이므로 같이 손봐야 합니다. (player.js §1 참고)
+   ------------------------------------------------------------ */
+
+const CHEF_ANIM_TABLE = [
+  // 평소 정지. 6프레임 내내 눈을 뜨고 있고 숨쉬는 정도만 움직입니다.
+  { key:"idle2",       file:"char_chef_idle2",       cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+    heights:{ down:268,   up:268,   side:268   } },
+  { key:"idle2_carry", file:"char_chef_idle2_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:-1,
+    heights:{ down:268,   up:268,   side:268   } },
+
+  // 간헐적 정지. 3번째 프레임에서 눈을 감습니다.
+  // repeat 0 = 한 번만 재생 → 한 사이클이 눈 깜빡임 한 번이 됩니다.
+  // 이 시트를 계속 돌리면 쉬지 않고 깜빡여서 이상하므로 반복시키지 마세요.
+  // 언제 끼워 넣을지는 chef-anims.js 의 chefIdleAction() 이 정합니다.
+  { key:"idle1",       file:"char_chef_idle1",       cols:6, dirs:["down","up","side"], fps:6,  repeat:0,
+    heights:{ down:268,   up:268,   side:268   } },
+  { key:"idle1_carry", file:"char_chef_idle1_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:0,
+    heights:{ down:268,   up:268,   side:268   } },
+
+  // fps 18 = speed 306 과 짝. 속도를 바꾸면 이 둘도 같이 바꾸세요. (위 [fps 와 이동 속도] 참고)
+  { key:"walk",        file:"char_chef_walk",        cols:8, dirs:["down","up","side"], fps:18, repeat:-1,
+    heights:{ down:267,   up:233,   side:251   } },
+  { key:"walk_carry",  file:"char_chef_walk_carry",  cols:8, dirs:["down","up","side"], fps:18, repeat:-1,
+    heights:{ down:269.5, up:269.5, side:269.5 } }
+
+  // 시트가 나오면 주석만 풀면 됩니다. (에셋 없이 풀면 로딩이 실패합니다)
+  // 아래 9종은 받은 에셋 묶음(v5)에 이미 들어 있습니다. 쓸 때가 되면
+  // assets/character/sprites/ 에 넣고 node tools/build-chef-sprites.js 를 돌리세요.
+  // { key:"dash",         file:"char_chef_dash",         cols:6, dirs:["down","up","side"], fps:16, repeat:-1 },
+  // { key:"dash_carry",   file:"char_chef_dash_carry",   cols:6, dirs:["down","up","side"], fps:16, repeat:-1 },
+  // { key:"pay",          file:"char_chef_pay",          cols:6, dirs:["down"],             fps:10, repeat:0  },
+  // { key:"clean",        file:"char_chef_clean",        cols:8, dirs:["down"],             fps:10, repeat:-1 },
+  // { key:"cook1",        file:"char_chef_cook1",        cols:8, dirs:["up"],               fps:10, repeat:-1 },
+  // { key:"cook2",        file:"char_chef_cook2",        cols:8, dirs:["down"],             fps:10, repeat:-1 },
+  // { key:"other1_wash",  file:"char_chef_other1_wash",  cols:6, dirs:["up"],               fps:10, repeat:-1 },
+  // { key:"other1_fridge",file:"char_chef_other1_fridge",cols:6, dirs:["side"],             fps:10, repeat:0  },
+  // { key:"other2",       file:"char_chef_other2",       cols:6, dirs:["side"],             fps:10, repeat:0  }
+];
+
+
+/* ------------------------------------------------------------
+   3. 정지 모션 섞기 (눈 깜빡임)
+   ------------------------------------------------------------
+   정지 시트가 두 벌입니다. idle1 은 재생할 때마다 눈을 한 번 감기 때문에
+   그것만 계속 돌리면 쉬지 않고 깜빡거립니다. 그래서 평소에는 눈을 뜬
+   idle2 를 돌리고, 가끔 idle1 을 한 사이클만 끼워 넣습니다.
+
+   gap 은 깜빡임과 깜빡임 사이 간격(ms)이고 이 범위에서 무작위로 정해집니다.
+   실제 사람은 3~6초에 한 번쯤 깜빡입니다. 너무 자주면 불안해 보이고
+   너무 뜸하면 인형처럼 보이니 이 표만 만져서 맞추세요.
+
+   깜빡임 자체의 길이는 idle1 의 cols / fps 로 자동 계산됩니다. (6 / 6 = 1초)
+   ------------------------------------------------------------ */
+
+const CHEF_IDLE = {
+  main:     "idle2",   // 평소에 도는 시트
+  accent:   "idle1",   // 가끔 한 사이클만 끼워 넣는 시트
+  // 깜빡임과 깜빡임 사이 간격(ms). 이 범위에서 매번 무작위로 뽑습니다.
+  // 2800~7000 은 너무 뜸해서 절반으로 줄였습니다.
+  // 깜빡임 한 번 자체는 idle1 의 cols/fps = 6/6 = 1초라, 실제 주기는
+  // 여기에 1초를 더한 값입니다. (평균 약 2.5 + 1 = 3.5초마다 한 번)
+  // 더 자주 깜빡이게 하려면 두 값을 같이 낮추세요. 너무 낮추면 눈을 떠는 시간이
+  // 1초 깜빡임보다 짧아져서 계속 감고 있는 것처럼 보입니다.
+  minGapMs: 1400,
+  maxGapMs: 3600
+};
+
+
+/* ------------------------------------------------------------
+   4. 이동 방향 → 시트 방향
+   ------------------------------------------------------------
+   state.player.facing 은 down/left/right/up 4방향인데
+   시트는 down/up/side 3방향이라 여기서 이어 붙입니다.
+   좌우 반전 시 머리 리본이 반대편으로 가는 건 의도된 허용 범위입니다.
+   ------------------------------------------------------------ */
+
+const CHEF_FACING = {
+  down:  { dir:"down", flipX:false },
+  up:    { dir:"up",   flipX:false },
+  left:  { dir:"side", flipX:false },
+  right: { dir:"side", flipX:true  }
+};

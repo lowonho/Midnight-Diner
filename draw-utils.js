@@ -24,18 +24,32 @@
    createFrameCanvas() 는 Phaser 씬이 만들어진 뒤 한 번만 호출됩니다.
    ------------------------------------------------------------ */
 
+/* 캔버스는 요리사를 사이에 두고 두 장입니다.
+     back  요리사 뒤 (주방 집기)
+     front 요리사 앞 (손님·준비물·간판·이펙트)
+   ctx 는 "지금 그리고 있는 쪽"을 가리킵니다. 요소 파일들은 ctx 만 쓰면 되고
+   어느 층에 그릴지는 game.js 의 draw() 가 정합니다. */
 let ctx = null;
-let frameTexture = null;
+let backTexture = null, frontTexture = null;
+let backCtx = null, frontCtx = null;
 
 function createFrameCanvas(scene){
-  frameTexture = createStageFrameTexture(scene,"dinerFrame");
-  ctx = frameTexture.getContext();
+  backTexture  = createStageFrameTexture(scene,"dinerFrameBack", STAGE_DEPTH.backOverlay);
+  frontTexture = createStageFrameTexture(scene,"dinerFrameFront",STAGE_DEPTH.overlay);
+  backCtx  = backTexture.getContext();
+  frontCtx = frontTexture.getContext();
+  ctx = frontCtx;
   return ctx;
 }
 
+// 층을 바꾸고 그 층을 지웁니다. 그린 순서가 곧 그 층 안에서의 앞뒤입니다.
+function beginBackLayer(){  ctx=backCtx;  beginStageFrame(ctx); }
+function beginFrontLayer(){ ctx=frontCtx; beginStageFrame(ctx); }
+
 // 한 프레임 드로잉이 끝난 뒤 호출. 캔버스 내용을 텍스처에 반영합니다.
 function commitFrame(){
-  frameTexture?.refresh();
+  backTexture?.refresh();
+  frontTexture?.refresh();
 }
 
 
