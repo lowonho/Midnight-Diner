@@ -60,21 +60,61 @@ const COUNTER_ASSETS = [
 
 const COUNTER_GROUND_Y = 1012;   // 카운터 3종이 바닥에 닿는 선
 
+/* 카운터 전체 크기 조절 (한 값으로 통째로)
+   ------------------------------------------------------------
+   아래 COUNTER_LAYOUT 은 에셋 스펙 그대로의 "설계값"입니다.
+   그 값대로 놓으면 화면 좌우 끝에 바닥이 몇 px 보여서 카운터가
+   떠 있는 것처럼 보입니다. 그래서 그룹 전체를 살짝 키웁니다.
+
+     scale   1.04  좌우 끝이 화면 밖으로 나가 잘립니다
+     anchorX 960   화면 가로 중앙 기준으로 좌우로 벌어집니다
+     groundY 1012  바닥선 고정. 위로만 커집니다
+
+   [측정] scale 1.0 일 때
+     계산대 왼쪽 끝   VIEW    3.5  → 화면 왼쪽에 4px 바닥이 보임
+     바 테이블 오른쪽 VIEW 1912.5 → 화면 오른쪽에 8px (상판은 35px) 바닥
+   scale 1.04 면 -34.8 / 1950.6 이 되어 확실히 잘려 나갑니다.
+
+   크기를 더 키우거나 줄이려면 scale 만 만지세요.
+   단, FRONT_STATIONS(논리 좌표 사본)는 이 값을 따라가야 합니다.
+   customers.js 의 좌석과 상호작용 판정은 자동으로 따라옵니다.
+   ------------------------------------------------------------ */
+const COUNTER_FIT = { scale:1.04, anchorX:960, groundY:COUNTER_GROUND_Y };
+
+const fitX    = x => COUNTER_FIT.anchorX + (x-COUNTER_FIT.anchorX)*COUNTER_FIT.scale;
+const fitY    = y => COUNTER_FIT.groundY + (y-COUNTER_FIT.groundY)*COUNTER_FIT.scale;
+const fitSize = v => v*COUNTER_FIT.scale;
+
 const COUNTER_LAYOUT = {
   // 계산대 본체 (화면 왼쪽 밖으로 잘려 나감 — 의도됨 §2-4)
   register: { x:0,   y:1013, w:363,  h:222 },
 
   // 철판. surface(애니메이션)와 front(정지)는 반드시 같은 값을 써야 합니다. (§1-3)
-  griddle:  { x:336, y:1017, w:327,  h:336 },
+  //
+  // x 는 스펙값 336 이 아니라 317 입니다.
+  // 336 으로 놓으면 계산대 앞면 오른쪽 끝(VIEW 321.5)과 15px 벌어져
+  // 사이에 바닥이 보입니다. 19 만큼 왼쪽으로 당겨 붙였습니다.
+  // (계산대 상판과는 겹치지만 §2-4 대로 의도된 겹침입니다)
+  griddle:  { x:317, y:1017, w:327,  h:336 },
 
   // 바 테이블 (화면 오른쪽 끝까지)
   barTable: { x:630, y:1012, w:1290, h:262 },
 
-  // 계산대 위 POS 세트
-  pos:      { x:14,  y:888,  w:191,  h:223 },
+  // 계산대 위 POS 세트.
+  // 스펙값(191x223)은 카운터에 비해 너무 커서 0.75 배로 줄였습니다.
+  // 줄인 만큼 왼쪽에 여백이 생겨 x 도 14 → 52 로 옮겼습니다.
+  pos:      { x:52,  y:884,  w:143,  h:167 },
 
   // 철판 김. 알파가 매우 낮아 ADD 블렌드가 필요합니다. (§3-2)
-  steam:    { x:340, y:882,  w:310,  h:140 },
+  //
+  // 스펙값 (340, 882) 은 김이 음식과 같은 높이에 깔려서 음식 사이사이에
+  // 파묻혀 보였습니다. y 를 59 올려 김이 음식 위로 피어오르게 했습니다.
+  //   김   화면 y 705 ~ 815  (음식 봉우리보다 76px 위까지)
+  //   음식 화면 y 781 ~ 855
+  // 김의 아랫단을 음식 봉우리 아래에 걸쳐 두어야 음식에서 나는 것처럼 보입니다.
+  // 너무 올리면 허공에 뜬 것처럼 끊겨 보입니다.
+  // x 329 는 김의 중심(464.7)을 음식 중심(464.7)에 맞춘 값입니다.
+  steam:    { x:329, y:823,  w:310,  h:140 },
 
   // 의자 5개 — 같은 에셋 재사용. 바닥선 1042 로 카운터(1012)보다 앞쪽입니다.
   chairSize: { w:88, h:172, y:1042 },
@@ -90,9 +130,17 @@ const COUNTER_LAYOUT = {
   plateSize: { w:94, h:46 },
   plates: [
     { id:"plate_register", x:88,  y:890, text:"계산대", zone:"register" },
-    { id:"plate_griddle",  x:434, y:937, text:"철판",   zone:"griddle"  }
+    // 철판을 19 왼쪽으로 당긴 만큼 같이 옮겼습니다. (스펙값 434)
+    { id:"plate_griddle",  x:415, y:937, text:"철판",   zone:"griddle"  }
   ]
 };
+
+// 의자 5개의 최종 중심 x (COUNTER_FIT 적용 후 VIEW 좌표).
+// customers.js 의 좌석이 이 값에서 파생됩니다. 의자를 옮기거나
+// COUNTER_FIT.scale 을 바꾸면 손님도 자동으로 따라옵니다.
+const COUNTER_CHAIR_CENTERS = COUNTER_LAYOUT.chairs.map(
+  chair => fitX(chair.x) + fitSize(COUNTER_LAYOUT.chairSize.w)/2
+);
 
 /* ------------------------------------------------------------
    2-1. 게임 판정용 논리 좌표
@@ -101,19 +149,21 @@ const COUNTER_LAYOUT = {
    게임 규칙(state.player, 준비물 배치, 프롬프트 위치)은 논리(1280x720)
    좌표를 쓰므로 같은 카운터를 논리 좌표로도 한 벌 적어 둡니다.
 
-     register  VIEW x   0~363 , 바닥선 1013 → 논리 x   0~242 , y 500~675
-     griddle   VIEW x 336~663 , 바닥선 1017 → 논리 x 224~442 , y 454~678
-     bar_table VIEW x 630~1920, 바닥선 1012 → 논리 x 420~1280, y 500~675
+   COUNTER_FIT(1.04) 적용 후의 실제 화면 위치를 논리 좌표로 옮긴 값입니다.
+
+     register  VIEW x  -38~327 , 상단 782 → 논리 x  -25~218 , y 521~675
+     griddle   VIEW x  291~631 , 상단 668 → 논리 x  194~421 , y 445~678
+     bar_table VIEW x  617~1958, 상단 740 → 논리 x  411~1305, y 493~675
 
    ix / iy 는 요리사가 서는 자리(카운터 위쪽 = 주방측)이며 손으로 맞춘 값입니다.
-   카운터를 옮기면 COUNTER_LAYOUT 과 이 표를 같이 고쳐야 합니다.
+   COUNTER_FIT.scale 이나 COUNTER_LAYOUT 을 바꾸면 이 표도 같이 고쳐야 합니다.
    (toLogic() 로 자동 파생시키는 건 다음 단계 과제입니다)
    ------------------------------------------------------------ */
 
 const FRONT_STATIONS = {
-  register:{id:"register",label:"계산대",x:0,  y:500,w:242,h:175,ix:245,iy:470,facing:"down"},
-  griddle: {id:"griddle", label:"철판",  x:224,y:454,w:218,h:224,ix:333,iy:470,facing:"down"},
-  counter: {id:"counter", label:"카운터",x:420,y:500,w:860,h:175,ix:700,iy:470,facing:"down"}
+  register:{id:"register",label:"계산대",x:0,  y:521,w:218,h:154,ix:245,iy:470,facing:"down"},
+  griddle: {id:"griddle", label:"철판",  x:194,y:445,w:227,h:233,ix:320,iy:470,facing:"down"},
+  counter: {id:"counter", label:"카운터",x:411,y:493,w:869,h:182,ix:700,iy:470,facing:"down"}
 };
 
 // 명패 글자. 다국어 대응을 위해 이미지 합성이 아니라 텍스트로 올립니다.
@@ -162,9 +212,29 @@ const COUNTER_DEPTH = {
    ------------------------------------------------------------ */
 
 const GRIDDLE_IDLE_FRAME = 0;      // §3-1 빈 철판 프레임이 없어 0번을 정지 상태로 씁니다.
-const GRIDDLE_COOK_FPS   = 9;
+
+/* 조리 루프에 쓸 프레임
+   ------------------------------------------------------------
+   8프레임 중 2 / 3 / 6 번은 뒤집기라 음식이 철판 밖으로 크게 솟구칩니다.
+   (프레임 안 음식 윗선: 0=85, 1=85, 2=60, 3=6, 4=84, 5=84, 6=55, 7=84)
+   전부 이어 붙이면 상판 위 음식 덩어리가 통째로 오르내려서 산만합니다.
+
+   그래서 평상시 루프는 음식 높이가 84~85 로 거의 같은 프레임만 씁니다.
+   → 지글거리는 느낌만 남고 덩어리가 튀지 않습니다.
+
+   뒤집기는 따로 빼 뒀습니다. 나중에 실제 조리 이벤트가 붙으면
+   counterPlayGriddleToss() 로 한 번씩 섞어 주세요.
+   ------------------------------------------------------------ */
+const GRIDDLE_COOK_FRAMES = [0,1,4,5,7];
+const GRIDDLE_TOSS_FRAMES = [2,6,3,6,2];
+const GRIDDLE_COOK_FPS   = 7;
+const GRIDDLE_TOSS_FPS   = 12;
+
 const STEAM_FPS          = 10;
-const STEAM_FADE_MS      = 200;    // 김이 켜지고 꺼지는 시간
+const STEAM_FADE_MS      = 200;
+// 김은 항상 나옵니다. 조리 중일 때만 조금 진해집니다.
+const STEAM_ALPHA_IDLE   = 0.70;
+const STEAM_ALPHA_COOK   = 1.00;
 const COOK_SWITCH_HOLD   = 0.20;   // 경계에서 깜빡이지 않도록 0.2초 완충 (§4-2)
 
 const POS_PULSE_FPS      = 10;
@@ -181,18 +251,32 @@ const COUNTER_FLOAT = {
   activeScale: 1.03
 };
 
-/* 상호작용 판정 영역 (VIEW 좌표).
-   요리사는 카운터 위쪽(주방측)에서 접근합니다. 아래쪽이 아닙니다. (§4-2)
-   요리사 이동 범위는 game.js WALK_BOUNDS = 논리 235~1030 / 410~486
-   → VIEW 로는 x 352~1545, y 615~729 입니다. 그 아래쪽 띠만 잡습니다.
+/* 상호작용 판정
+   ------------------------------------------------------------
+   처음에는 넓은 사각형이었는데, 카운터 앞을 지나가기만 해도 철판이
+   달아올라 산만했습니다. 그래서 주방 집기와 같은 방식으로 바꿨습니다.
 
-   요리사가 갈 수 있는 왼쪽 끝이 VIEW x 352 라, 계산대(0~363)와 철판(336~663)은
-   서 있을 자리가 거의 붙어 있습니다. 두 영역이 겹치면 계산대 앞에서도 철판이
-   달아오르므로 x 412 를 경계로 딱 나눠 둡니다. */
-const COUNTER_ZONES = {
-  register: { x:338, y:655, w:74,  h:95 },
-  griddle:  { x:412, y:655, w:278, h:95 }
-};
+     주방 집기(kitchen.js) : ix / iy 에서 STATION_REACH(논리 40) 안
+     카운터              : ix / iy 에서 COUNTER_REACH(VIEW 55) 안
+
+   ix / iy 는 FRONT_STATIONS 에 있는 "요리사가 서는 자리"입니다.
+   즉 E 를 누를 수 있는 위치에 실제로 섰을 때만 켜집니다.
+
+   [반경 55 인 이유] 계산대 ix VIEW 367.5, 철판 ix VIEW 480 으로 112 밖에
+   안 떨어져 있습니다. 60 을 넘기면 두 판정이 겹쳐서 계산대 앞에서도
+   철판이 달아오릅니다.
+   ------------------------------------------------------------ */
+const COUNTER_REACH = 55;
+
+// FRONT_STATIONS 의 상호작용 지점을 VIEW 좌표로. (판정은 VIEW 로 합니다)
+function counterStandPoint(station){
+  return { x:toView(station.ix), y:toView(station.iy) };
+}
+function withinCounterReach(playerView,station){
+  if(!playerView)return false;
+  const p=counterStandPoint(station);
+  return Math.hypot(playerView.x-p.x,playerView.y-p.y)<=COUNTER_REACH;
+}
 
 
 /* ------------------------------------------------------------
@@ -260,16 +344,18 @@ function createCounter(scene){
   counter.pos=placeCounterSprite(scene,"counter_pos_set",L.pos,COUNTER_DEPTH.pos);
   counter.pos.setFrame(0);
 
+  // 김은 처음부터 계속 돕니다. 조리 중일 때만 진해집니다.
   counter.steam=placeCounterSprite(scene,"counter_steam",L.steam,COUNTER_DEPTH.steam);
-  counter.steam.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setVisible(false);
+  counter.steam.setBlendMode(Phaser.BlendModes.ADD).setAlpha(STEAM_ALPHA_IDLE);
+  counter.steam.play("counter_steam_loop");
 
   counter.chairs=L.chairs.map(data=>{
-    const image=scene.add.image(data.x,L.chairSize.y,"counter_chair")
+    const image=scene.add.image(fitX(data.x),fitY(L.chairSize.y),"counter_chair")
       .setOrigin(0,1)
-      .setDisplaySize(L.chairSize.w,L.chairSize.h)
+      .setDisplaySize(fitSize(L.chairSize.w),fitSize(L.chairSize.h))
       .setDepth(COUNTER_DEPTH.chair)
       .setFlipX(!!data.flipX);
-    return { id:data.id, image, groundY:L.chairSize.y };
+    return { id:data.id, image, groundY:fitY(L.chairSize.y) };
   });
 
   counter.plates=L.plates.map(data=>createCounterPlate(scene,data));
@@ -282,24 +368,26 @@ function createCounter(scene){
   counter.ready=true;
 }
 
+// 배치는 전부 COUNTER_FIT 을 통과시킵니다. 설계값을 그대로 쓰지 마세요.
 function placeCounterImage(scene,key,box,depth){
-  return scene.add.image(box.x,box.y,key)
-    .setOrigin(0,1).setDisplaySize(box.w,box.h).setDepth(depth);
+  return scene.add.image(fitX(box.x),fitY(box.y),key)
+    .setOrigin(0,1).setDisplaySize(fitSize(box.w),fitSize(box.h)).setDepth(depth);
 }
 function placeCounterSprite(scene,key,box,depth){
-  return scene.add.sprite(box.x,box.y,key)
-    .setOrigin(0,1).setDisplaySize(box.w,box.h).setDepth(depth);
+  return scene.add.sprite(fitX(box.x),fitY(box.y),key)
+    .setOrigin(0,1).setDisplaySize(fitSize(box.w),fitSize(box.h)).setDepth(depth);
 }
 
 function createCounterPlate(scene,data){
-  const size=COUNTER_LAYOUT.plateSize;
-  const plate=scene.add.image(0,0,"counter_nameplate").setOrigin(0,1).setDisplaySize(size.w,size.h);
-  const label=scene.add.text(size.w/2,-size.h/2,data.text,COUNTER_LABEL_STYLE).setOrigin(.5,.5);
+  const w=fitSize(COUNTER_LAYOUT.plateSize.w),h=fitSize(COUNTER_LAYOUT.plateSize.h);
+  const baseY=fitY(data.y);
+  const plate=scene.add.image(0,0,"counter_nameplate").setOrigin(0,1).setDisplaySize(w,h);
+  const label=scene.add.text(w/2,-h/2,data.text,COUNTER_LABEL_STYLE).setOrigin(.5,.5);
   // 글자가 명패와 같이 움직여야 하므로 컨테이너로 묶습니다. (§4-3)
-  const container=scene.add.container(data.x,data.y,[plate,label]).setDepth(COUNTER_DEPTH.nameplate);
+  const container=scene.add.container(fitX(data.x),baseY,[plate,label]).setDepth(COUNTER_DEPTH.nameplate);
   return {
     id:data.id, container, plate, label, zone:data.zone,
-    baseY:data.y, phase:Math.random()*Math.PI*2,
+    baseY, phase:Math.random()*Math.PI*2,
     amp:COUNTER_FLOAT.idle.amp, freq:COUNTER_FLOAT.idle.freq,
     active:false
   };
@@ -309,8 +397,16 @@ function createCounterAnimations(scene){
   if(!scene.anims.exists("counter_griddle_cooking")){
     scene.anims.create({
       key:"counter_griddle_cooking",
-      frames:scene.anims.generateFrameNumbers("counter_griddle_surface",{start:0,end:7}),
+      frames:scene.anims.generateFrameNumbers("counter_griddle_surface",{frames:GRIDDLE_COOK_FRAMES}),
       frameRate:GRIDDLE_COOK_FPS, repeat:-1
+    });
+  }
+  // 뒤집기. 지금은 아무도 부르지 않고, 실제 조리 이벤트가 붙으면 씁니다.
+  if(!scene.anims.exists("counter_griddle_toss")){
+    scene.anims.create({
+      key:"counter_griddle_toss",
+      frames:scene.anims.generateFrameNumbers("counter_griddle_surface",{frames:GRIDDLE_TOSS_FRAMES}),
+      frameRate:GRIDDLE_TOSS_FPS, repeat:0
     });
   }
   if(!scene.anims.exists("counter_steam_loop")){
@@ -367,32 +463,36 @@ function scheduleCounterPosBlink(){
    조건을 바꾸고 싶으면 counterCookingTest 만 교체하면 됩니다.
    ------------------------------------------------------------ */
 
-let counterCookingTest = playerView =>
-  !!playerView && rectContains(COUNTER_ZONES.griddle,playerView.x,playerView.y);
+let counterCookingTest = playerView => withinCounterReach(playerView,FRONT_STATIONS.griddle);
 
 function counterSetCookingTest(fn){ counterCookingTest=fn; }
-
-function rectContains(rect,x,y){
-  return x>=rect.x && x<=rect.x+rect.w && y>=rect.y && y<=rect.y+rect.h;
-}
 
 function setCounterCooking(on){
   if(counter.cooking===on)return;
   counter.cooking=on;
   const scene=counter.scene;
-  scene.tweens.killTweensOf(counter.steam);
-  if(on){
-    counter.griddleSurface.play("counter_griddle_cooking");
-    counter.steam.setVisible(true).play("counter_steam_loop");
-    scene.tweens.add({targets:counter.steam,alpha:1,duration:STEAM_FADE_MS,ease:"Sine.easeOut"});
-  }else{
+  if(on) counter.griddleSurface.play("counter_griddle_cooking");
+  else{
     counter.griddleSurface.stop();
     counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
-    scene.tweens.add({
-      targets:counter.steam,alpha:0,duration:STEAM_FADE_MS,ease:"Sine.easeIn",
-      onComplete:()=>{ counter.steam.stop(); counter.steam.setVisible(false); }
-    });
   }
+  // 김은 끄지 않고 진하기만 바꿉니다.
+  scene.tweens.killTweensOf(counter.steam);
+  scene.tweens.add({
+    targets:counter.steam,
+    alpha:on?STEAM_ALPHA_COOK:STEAM_ALPHA_IDLE,
+    duration:STEAM_FADE_MS, ease:"Sine.easeInOut"
+  });
+}
+
+// 뒤집기 1회 재생 후 조리 루프(또는 정지)로 복귀. 실제 조리 이벤트용 훅입니다.
+function counterPlayGriddleToss(){
+  if(!counter.griddleSurface)return;
+  counter.griddleSurface.play("counter_griddle_toss");
+  counter.griddleSurface.once("animationcomplete",()=>{
+    if(counter.cooking)counter.griddleSurface.play("counter_griddle_cooking");
+    else counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+  });
 }
 
 
@@ -415,7 +515,7 @@ function updateCounter(time,delta,playerView){
     if(counter.pendingCookTime>=COOK_SWITCH_HOLD){ setCounterCooking(want); counter.pendingCook=null; }
   }
 
-  counter.nearRegister=!!playerView && rectContains(COUNTER_ZONES.register,playerView.x,playerView.y);
+  counter.nearRegister=withinCounterReach(playerView,FRONT_STATIONS.register);
 
   // 명패 둥실. 진폭·주기를 부드럽게 보간하고, 위상은 누적해서 튀지 않게 합니다.
   counter.plates.forEach(p=>{
@@ -451,16 +551,21 @@ function drawCounterDebug(playerView){
   const g=counter.debugGraphics; if(!g)return;
   g.clear();
   const L=COUNTER_LAYOUT;
-  const box=(rect,color)=>{g.lineStyle(2,color,.9);g.strokeRect(rect.x,rect.y-rect.h,rect.w,rect.h);};
+  // 설계값이 아니라 COUNTER_FIT 을 통과한 실제 위치를 그립니다.
+  const box=(rect,color)=>{
+    g.lineStyle(2,color,.9);
+    g.strokeRect(fitX(rect.x),fitY(rect.y)-fitSize(rect.h),fitSize(rect.w),fitSize(rect.h));
+  };
   box(L.register,0xff8844); box(L.griddle,0xff4466); box(L.barTable,0xffcc44);
   box(L.pos,0x8888ff); box(L.steam,0x66ddff);
   L.chairs.forEach(c=>box({x:c.x,y:L.chairSize.y,w:L.chairSize.w,h:L.chairSize.h},0x66ff88));
   L.plates.forEach(p=>box({x:p.x,y:p.y,w:L.plateSize.w,h:L.plateSize.h},0xffffff));
 
-  g.lineStyle(3,0x00ff00,.95);
-  g.strokeRect(COUNTER_ZONES.griddle.x,COUNTER_ZONES.griddle.y,COUNTER_ZONES.griddle.w,COUNTER_ZONES.griddle.h);
-  g.lineStyle(3,0x00aaff,.95);
-  g.strokeRect(COUNTER_ZONES.register.x,COUNTER_ZONES.register.y,COUNTER_ZONES.register.w,COUNTER_ZONES.register.h);
+  // 상호작용 판정: ix/iy 를 중심으로 한 반경 원
+  const griddleStand=counterStandPoint(FRONT_STATIONS.griddle);
+  const registerStand=counterStandPoint(FRONT_STATIONS.register);
+  g.lineStyle(3,0x00ff00,.95); g.strokeCircle(griddleStand.x,griddleStand.y,COUNTER_REACH);
+  g.lineStyle(3,0x00aaff,.95); g.strokeCircle(registerStand.x,registerStand.y,COUNTER_REACH);
 
   g.lineStyle(2,0xffffff,1);
   g.beginPath(); g.moveTo(0,COUNTER_GROUND_Y); g.lineTo(1920,COUNTER_GROUND_Y); g.strokePath();
@@ -485,5 +590,5 @@ function bindCounterKeys(scene){
 window.counterDebug=counterDebug;
 window.counterPlayPosPulse=counterPlayPosPulse;
 window.counterSetCookingTest=counterSetCookingTest;
+window.counterPlayGriddleToss=counterPlayGriddleToss;
 window.COUNTER_LAYOUT=COUNTER_LAYOUT;
-window.COUNTER_ZONES=COUNTER_ZONES;
