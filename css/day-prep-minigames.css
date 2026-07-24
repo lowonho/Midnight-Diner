@@ -172,16 +172,16 @@
 
 .fry-work-area {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 110px;
+  min-height: 190px;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
 }
 .frying-pan {
   position: relative;
-  width: 220px;
-  height: 100px;
-  margin-left: 65px;
+  width: 330px;
+  height: 150px;
+  margin-bottom: 35px;
   border: 8px solid #57534d;
   border-radius: 50%;
   background: #292724;
@@ -190,12 +190,13 @@
 .frying-pan::after {
   content: "";
   position: absolute;
-  right: -88px;
-  top: 40px;
-  width: 90px;
-  height: 18px;
-  border-radius: 0 12px 12px 0;
+  left: 50%;
+  top: 138px;
+  width: 24px;
+  height: 86px;
+  border-radius: 0 0 12px 12px;
   background: #4b4641;
+  transform: translateX(-50%);
 }
 .frying-kimchi {
   position: absolute;
@@ -212,19 +213,39 @@
 .frying-pan-asset {
   position: absolute;
   z-index: 1;
-  inset: -28px -95px -28px -35px;
-  width: calc(100% + 130px);
-  height: calc(100% + 56px);
+  inset: -35px -50px -70px;
+  width: calc(100% + 100px);
+  height: calc(100% + 105px);
   object-fit: contain;
+  transform: rotate(90deg);
 }
 .frying-kimchi.has-prep-asset { z-index: 2; background: none; }
 .frying-kimchi-asset { width: 100%; height: 100%; object-fit: contain; }
-.direction-prompt {
-  color: #ffe19a;
-  font-size: 74px;
-  line-height: 1;
+.kimchi-direction-sequence {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+.kimchi-direction-chip {
+  min-width: 29px;
+  padding: 5px 4px;
+  border: 2px solid #9a673e;
+  border-radius: 6px;
+  background: #efd19a;
+  color: #603c24;
   text-align: center;
-  text-shadow: 0 3px #6d381e;
+  font-size: 22px;
+  font-weight: 900;
+  transition: background .12s ease,color .12s ease,transform .12s ease;
+}
+.kimchi-direction-chip.current { transform: translateY(-3px); box-shadow: 0 3px #d29a4f; }
+.kimchi-direction-chip.done {
+  border-color: #050505;
+  background: #c2ab82;
+  color: #090909;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
 }
 .prep-direction-buttons { display: flex; gap: 10px; }
 .prep-direction-buttons button {
@@ -250,8 +271,9 @@
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: 58px; }
   .anchovy-work-area { height: 155px; }
-  .fry-work-area { grid-template-columns: 1fr 64px; }
-  .frying-pan { width: 150px; height: 76px; margin-left: 15px; }
-  .direction-prompt { font-size: 52px; }
+  .fry-work-area { min-height: 145px; }
+  .frying-pan { width: 230px; height: 105px; margin-bottom: 30px; }
+  .frying-pan::after { top: 94px; height: 68px; }
+  .kimchi-direction-chip { min-width: 25px; padding: 4px 3px; font-size: 18px; }
   .mini-close { font-size: 10px; }
 }

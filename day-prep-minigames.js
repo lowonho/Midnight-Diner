@@ -2,9 +2,9 @@
 
 // Day 1 준비 미니게임 전용 모듈. 기존 영업 중 조리 미니게임과 상태를 분리합니다.
 const DAY_PREP_MINI_CONFIG = {
-  cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.16,zoneStarts:[.14,.55,.29,.67],speed:.72},
-  prepareKimchi:{title:"두부김치 · 김치 준비하기",total:3,zoneWidth:.24,zoneStarts:[.51,.18,.62],speed:.68},
-  fryKimchi:{total:5,allowedDirections:["left","right"]},
+  cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.12,zoneStarts:[.14,.55,.29,.67],speed:.78},
+  prepareKimchi:{title:"두부김치 · 김치 준비하기",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
+  fryKimchi:{total:14,allowedDirections:["left","right"]},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
 
@@ -171,20 +171,15 @@ function cleanAnchovyHead(button){
 
 function setupKimchiFry(){
   const m=state.mini,config=DAY_PREP_MINI_CONFIG.fryKimchi;
-  m.data={mode:"direction",successes:0,total:config.total,allowedDirections:[...config.allowedDirections],target:null};
+  const sequence=Array.from({length:config.total},()=>config.allowedDirections[Math.floor(Math.random()*config.allowedDirections.length)]);
+  m.data={mode:"direction",successes:0,total:config.total,allowedDirections:[...config.allowedDirections],sequence};
   dom.miniTitle.textContent="두부김치 · 김치 준비하기";
-  dom.miniDescription.textContent="[2/2] 화면에 표시된 ← 또는 → 방향키를 누르세요. 틀리면 같은 화살표가 유지됩니다.";
-  chooseKimchiDirection();
+  dom.miniDescription.textContent="[2/2] 팬 아래에 표시된 방향을 왼쪽부터 순서대로 누르세요. 맞게 누른 화살표는 검게 변합니다.";
   renderKimchiFry();
 }
 
-function chooseKimchiDirection(){
-  const data=state.mini.data;
-  data.target=data.allowedDirections[Math.floor(Math.random()*data.allowedDirections.length)];
-}
-
 function renderKimchiFry(){
-  const data=state.mini.data,arrow=data.target==="left"?"←":"→";
+  const data=state.mini.data;
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   dom.miniContent.innerHTML=`
     <div class="fry-work-area" id="fryWorkArea">
@@ -192,7 +187,9 @@ function renderKimchiFry(){
         ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
         <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
       </div>
-      <strong class="direction-prompt" aria-label="${data.target} 방향">${arrow}</strong>
+    </div>
+    <div class="kimchi-direction-sequence" aria-label="볶기 방향 순서">
+      ${data.sequence.map((direction,index)=>`<span class="kimchi-direction-chip ${index<data.successes?"done":index===data.successes?"current":""}" data-sequence-index="${index}">${direction==="left"?"←":"→"}</span>`).join("")}
     </div>
     <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
     <div class="prep-direction-buttons">
@@ -230,21 +227,29 @@ function dayPrepDirectionInput(direction){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="direction")return;
   const data=m.data;
   if(!data.allowedDirections.includes(direction))return;
-  if(direction!==data.target){
-    dom.miniFeedback.textContent="방향이 다릅니다. 같은 화살표를 다시 확인하세요.";
+  if(direction!==data.sequence[data.successes]){
+    dom.miniFeedback.textContent="방향이 다릅니다. 검게 변하지 않은 첫 화살표부터 다시 확인하세요.";
     return;
   }
+  const completed=dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`);
+  completed?.classList.remove("current");completed?.classList.add("done");
   data.successes++;
   dom.miniFeedback.textContent="볶기 성공";
+  dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`)?.classList.add("current");
+  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  const progress=dom.miniContent.querySelector(".cut-count");
+  if(progress)progress.textContent=`진행 ${data.successes} / ${data.total}`;
   const work=dom.miniContent.querySelector("#fryWorkArea");
-  work?.classList.add(direction==="left"?"toss-left":"toss-right");
+  if(work){
+    const tossClass=direction==="left"?"toss-left":"toss-right";
+    work.classList.remove("toss-left","toss-right");void work.offsetWidth;work.classList.add(tossClass);
+    setTimeout(()=>work.classList.remove(tossClass),170);
+  }
   if(data.successes>=data.total){
     state.kimchiPrep.fryingComplete=true;
     finishDayPrepTask("prepareKimchi","김치 준비 완료");
     return;
   }
-  chooseKimchiDirection();
-  setTimeout(()=>{if(state.mini===m&&!m.complete)renderKimchiFry();},170);
 }
 
 function updateDayPrepMini(dt){

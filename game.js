@@ -43,7 +43,7 @@ const DISHES = [
   { id:"kimchi", name:"김치전", icon:0, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"flip"}], price:6200 },
   { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"grill", game:"grill"}], price:7200 },
   { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"stir"}], price:8200 },
-  { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"pan", game:"heat"}], price:8800 },
+  { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"fridge", game:"plateKimchi"},{station:"board", game:"chop"}], price:8800 },
   { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cleanAnchovy"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
   { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
 ];
@@ -294,8 +294,14 @@ function setupMini() {
   } else if(m.type==="wash") {
     set("재료 씻기","떠오르는 물방울을 모두 눌러 재료를 깨끗하게 씻으세요.",8);
     m.data={remaining:12}; renderBubbleGrid();
+  } else if(m.type==="plateKimchi") {
+    set("볶음김치 담기","영업 준비 때 볶아 둔 김치를 냉장고에서 꺼내 접시에 담으세요.",8);
+    m.data={};
+    dom.miniContent.innerHTML=`<div class="kimchi-plating"><span aria-hidden="true">🥬</span><strong>준비된 볶음김치</strong></div><button class="mini-action" id="miniAction" type="button">접시에 담기</button>`;
+    dom.miniContent.querySelector("#miniAction").addEventListener("click",()=>finishMini(100));
   } else if(m.type==="chop") {
-    set("정밀 손질","움직이는 칼 표시가 노란 중심에 들어왔을 때 SPACE 또는 썰기 버튼을 누르세요.",10);
+    const isTofu=m.context.mode==="cook"&&m.context.dishId==="tofu";
+    set(isTofu?"두부 썰기":"정밀 손질",isTofu?"도마에서 두부를 먹기 좋은 크기로 썰어 접시에 올리세요. 칼 표시가 노란 중심에 들어왔을 때 누르세요.":"움직이는 칼 표시가 노란 중심에 들어왔을 때 SPACE 또는 썰기 버튼을 누르세요.",10);
     m.data={marker:0,dir:1,speed:.92,hits:[],cuts:0};
     dom.miniContent.innerHTML=`<div class="progress-track"><i class="progress-zone" style="left:38%;width:24%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">0 / 5회</div><button class="mini-action" id="miniAction" type="button">썰기</button>`;
     dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);

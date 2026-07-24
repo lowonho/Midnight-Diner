@@ -42,6 +42,20 @@
   font-weight: 700;
 }
 
+.kimchi-plating {
+  min-width: 240px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px solid #79502e;
+  border-radius: 50%;
+  background: #eee3c8;
+  color: #642b20;
+}
+.kimchi-plating span { font-size: 42px; }
+
 .choice-grid {
   width: 100%;
   display: grid;
