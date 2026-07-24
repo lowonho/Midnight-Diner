@@ -69,7 +69,7 @@ function qaRefreshPanel(message=""){
     `필수: ${qaMenuNames(data.requiredMenus)}`,
     `선택: ${qaMenuNames(data.optionalMenus)}`,
     `확정: ${qaMenuNames(state.selectedMenus||[])}`,
-    `최대: ${data.maxSelectedMenus}`,
+    `선택 범위: ${data.minSelectedMenus}~${data.maxSelectedMenus}`,
     data.specialMenu?`특별: ${qaMenuNames([data.specialMenu])}`:"특별: 없음",
     message
   ].filter(Boolean).join("\n");

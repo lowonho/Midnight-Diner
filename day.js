@@ -48,7 +48,7 @@ function normalizeDayPrepState(){
 function setSelectedMenus(menuIds){
   const dayData=getCurrentDayData(),allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
   const unique=[...new Set(menuIds)].filter(id=>allowed.has(id)&&dishById(id));
-  if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length>dayData.maxSelectedMenus||!unique.length)return false;
+  if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length<dayData.minSelectedMenus||unique.length>dayData.maxSelectedMenus)return false;
   state.selectedMenus=unique;
   state.prepProgress=createDayPrepProgress();
   state.kimchiPrep=createKimchiPrepProgress();
@@ -174,8 +174,8 @@ function renderMenuSelection(){
   state.menuSelectionDraft=[...new Set([...dayData.requiredMenus,...draft.filter(id=>available.includes(id))])].slice(0,dayData.maxSelectedMenus);
   dom.menuSelectTitle.textContent=`Day ${state.day} · 오늘의 메뉴 선택`;
   dom.menuSelectDescription.textContent=dayData.isSpecialDay
-    ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다.`
-    :`필수 메뉴를 포함해 최대 ${dayData.maxSelectedMenus}개를 선택하세요.`;
+    ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${dayData.maxSelectedMenus}개를 선택하세요.`
+    :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${dayData.maxSelectedMenus}개를 선택하세요.`;
   const signature=`${state.day}|${state.menuSelectionDraft.join(",")}`;
   if(dom.menuSelectGrid.dataset.signature!==signature){
     dom.menuSelectGrid.dataset.signature=signature;
@@ -186,8 +186,8 @@ function renderMenuSelection(){
     }).join("");
     dom.menuSelectGrid.querySelectorAll("[data-menu-id]").forEach(button=>button.addEventListener("click",()=>toggleMenuSelection(button.dataset.menuId)));
   }
-  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} / ${dayData.maxSelectedMenus}`;
-  dom.menuSelectConfirm.disabled=!state.menuSelectionDraft.length||!dayData.requiredMenus.every(id=>state.menuSelectionDraft.includes(id));
+  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} · 최소 ${dayData.minSelectedMenus} / 최대 ${dayData.maxSelectedMenus}`;
+  dom.menuSelectConfirm.disabled=state.menuSelectionDraft.length<dayData.minSelectedMenus||!dayData.requiredMenus.every(id=>state.menuSelectionDraft.includes(id));
   dom.menuSelectOverlay.classList.add("open");
 }
 
