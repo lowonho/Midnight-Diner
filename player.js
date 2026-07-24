@@ -16,6 +16,26 @@
 
 
 /* ------------------------------------------------------------
+   0. 요리사 전용 파일 로드
+   ------------------------------------------------------------
+   index.html 을 수정하지 않기로 해서 <script> 태그를 여기서 넣습니다.
+   document.write 는 문서 파싱 중에만 순서가 보장되므로 이 파일 최상단에
+   있어야 하고, 여기 적힌 순서대로 실행됩니다.
+   (표 → 등록 → 임시 carry 순. 뒤 파일이 앞 파일의 상수를 씁니다)
+
+   index.html 을 고칠 수 있게 되면 이 블록을 지우고
+   <script> 3줄을 player.js 앞에 넣으면 됩니다.
+   ------------------------------------------------------------ */
+
+if(document.readyState==="loading"){
+  ["chef-anim-table.js","chef-anims.js","chef-carry-temp.js"]
+    .forEach(src=>document.write(`<script src="${src}"><\/script>`));
+}else{
+  console.error("player.js 가 파싱 단계 밖에서 실행됐습니다. 요리사 스프라이트 파일을 주입하지 못했습니다.");
+}
+
+
+/* ------------------------------------------------------------
    1. 배치·크기
    ------------------------------------------------------------ */
 
@@ -28,17 +48,25 @@ const PLAYER_START = { x:620, y:448, facing:"down", speed:205 };
 //   left   235 = 왼쪽 벽·냉장고 앞까지.
 const WALK_BOUNDS = { left:235, right:1030, top:410, bottom:486 };
 
-// 스프라이트. 원본 시트는 48x64 셀이고 화면에는 66x88 로 키워 씁니다.
-// anchorY 73/88 = 발끝이 아니라 발목쯤이 기준점입니다.
-const PLAYER_SPRITE = { frameW:48, frameH:64, w:66, h:88, anchorX:.5, anchorY:73/88 };
+// 스프라이트. 규격·배율·프레임 구성은 chef-anim-table.js 에 있습니다.
+// 아래 값은 참고용이고 실제 크기는 CHEF_SCALE 로만 조절합니다.
+// (setDisplaySize 로 가로세로를 따로 주면 비율이 깨집니다)
+//   frameW/H = 1× 셀 크기 · w/h = 화면에 보이는 캐릭터 크기(배율 1.0 기준)
+//   anchorY 1 = 발바닥. 발끝이 state.player.y 에 정확히 놓입니다.
+const PLAYER_SPRITE = { frameW:192, frameH:320, w:100, h:268, anchorX:.5, anchorY:1 };
 
-// 음식을 들었을 때 머리 위에 뜨는 접시·음식.
+// 음식을 들었을 때 손에 들리는 접시·음식.
+// 화면상 위치는 chef-carry-temp.js 의 CHEF_HAND_ANCHOR 가 덮어씁니다.
+// dy 는 그 파일을 지웠을 때 쓰이는 기본값입니다.
 const PLAYER_CARRY = {
   plate: { dy:-85, w:56, h:18, color:0xeee6d5 },
   food:  { dy:-90, size:36 }
 };
 
-const PLAYER_ANIM = { walkFps:8, workFps:10, rows:["down","left","right","up"] };
+// 재생 속도·프레임 구성은 chef-anim-table.js 로 옮겼습니다.
+// mini = 미니게임(조리) 중에 쓸 모션. 전용 작업 시트(cook1/cook2)가 아직
+// 없어서 idle 로 대신합니다. 시트가 나오면 이 값만 바꾸면 됩니다.
+const PLAYER_ANIM = { mini:"idle" };
 
 
 /* ------------------------------------------------------------
@@ -53,9 +81,12 @@ let playerKeys = null;
 function createPlayer(scene){
   const start=state.player;
 
-  playerSprite=scene.add.sprite(toView(start.x),toView(start.y),"chef",0)
-    .setOrigin(PLAYER_SPRITE.anchorX,PLAYER_SPRITE.anchorY)
-    .setDisplaySize(toView(PLAYER_SPRITE.w),toView(PLAYER_SPRITE.h))
+  registerChefTextures(scene);   // chef-anims.js
+  registerChefAnims(scene);      // chef-anims.js
+
+  playerSprite=scene.add.sprite(toView(start.x),toView(start.y),CHEF_TEXTURE_PREFIX+"idle",0)
+    .setOrigin(CHEF_ORIGIN.x,CHEF_ORIGIN.y)
+    .setScale(CHEF_SCALE)
     .setDepth(STAGE_DEPTH.player);
 
   carriedPlate=scene.add.ellipse(
@@ -67,10 +98,7 @@ function createPlayer(scene){
     .setDisplaySize(toView(PLAYER_CARRY.food.size),toView(PLAYER_CARRY.food.size))
     .setDepth(STAGE_DEPTH.food).setVisible(false);
 
-  PLAYER_ANIM.rows.forEach((direction,row)=>{
-    scene.anims.create({key:`chef-walk-${direction}`,frames:scene.anims.generateFrameNumbers("chef",{start:row*4,end:row*4+3}),frameRate:PLAYER_ANIM.walkFps,repeat:-1});
-    scene.anims.create({key:`chef-work-${direction}`,frames:scene.anims.generateFrameNumbers("chef",{start:(row+4)*4,end:(row+4)*4+3}),frameRate:PLAYER_ANIM.workFps,repeat:-1});
-  });
+  if(typeof createChefCarry==="function") createChefCarry(scene);   // chef-carry-temp.js — 지우면 이 줄도 무시됨
 
   playerKeys=scene.input.keyboard.addKeys({
     up:Phaser.Input.Keyboard.KeyCodes.UP,
@@ -127,14 +155,26 @@ function resetPlayerPosition(){
 
 function syncPhaserObjects(){
   if(!playerSprite)return;
-  const p=state.player,dirs={down:0,left:1,right:2,up:3};
+  const p=state.player;
   playerSprite.setPosition(toView(p.x),toView(p.y));
-  if(state.mini) playerSprite.play(`chef-work-${p.facing}`,true);
-  else if(p.moving) playerSprite.play(`chef-walk-${p.facing}`,true);
-  else { playerSprite.stop();playerSprite.setFrame(dirs[p.facing]*4); }
 
-  const carrying=state.carrying;
-  carriedPlate.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));
-  carriedFood.setVisible(!!carrying).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));
-  if(carrying) carriedFood.setFrame(dishById(carrying.dishId).icon);
+  // 4방향 facing 을 시트의 3방향(down/up/side)+좌우반전으로 옮깁니다.
+  const facing=CHEF_FACING[p.facing]||CHEF_FACING.down;
+  // 들고 있는지는 기존 state.carrying 을 읽습니다. (임시 파일이 강제 ON 을 얹을 수 있음)
+  const carrying=(typeof chefCarryActive==="function")?chefCarryActive():!!state.carrying;
+  // 정지→idle / 이동→walk. 정지해도 facing 은 그대로라 마지막 방향이 유지됩니다.
+  const action=state.mini?PLAYER_ANIM.mini:(p.moving?"walk":"idle");
+
+  playerSprite.setFlipX(facing.flipX);
+  // play(key, true) 는 같은 키가 이미 재생 중이면 무시합니다. 매 프레임 다시 걸리지 않습니다.
+  const animKey=chefAnimKey(action,facing.dir,carrying);
+  if(animKey) playerSprite.play(animKey,true);
+
+  const held=state.carrying;
+  carriedPlate.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));
+  carriedFood.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));
+  if(held) carriedFood.setFrame(dishById(held.dishId).icon);
+
+  // 손 위치·앞뒤 관계는 임시 파일이 덮어씁니다. 파일을 지우면 위 기본값으로 돌아갑니다.
+  if(typeof syncChefCarry==="function") syncChefCarry(playerSprite,carriedPlate,carriedFood,facing);
 }

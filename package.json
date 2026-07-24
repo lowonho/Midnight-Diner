@@ -1,0 +1,20 @@
+{
+  "name": "midnight-diner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "심야식당 Phaser 프로토타입. 게임은 빌드 없이 index.html 로 바로 실행됩니다. 여기 의존성은 에셋 변환 스크립트 전용입니다.",
+  "type": "commonjs",
+  "scripts": {
+    "build:counter": "node tools/build-counter-webp.js",
+    "build:chef": "node tools/build-chef-sprites.js",
+    "verify:chef": "node tools/build-chef-sprites.js --verify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lowonho/Midnight-Diner.git"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  }
+}
