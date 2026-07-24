@@ -77,7 +77,18 @@
 .fishCake-shape {
   border-color: #9b6635;
   border-radius: 13px;
-  background: repeating-linear-gradient(105deg,#d99c4d 0 34px,#e8b767 35px 58px,#c88239 59px 62px);
+  background: linear-gradient(105deg,#d99c4d,#e8b767 48%,#c88239);
+}
+.fishCake-shape .fishcake-diagonal {
+  top: -17px;
+  bottom: -17px;
+  transform-origin: center;
+}
+.fishCake-shape .fishcake-diagonal.slash-forward { transform: rotate(28deg); }
+.fishCake-shape .fishcake-diagonal.slash-back { transform: rotate(-28deg); }
+.fishCake-shape .fishcake-diagonal.done {
+  border-color: #704326;
+  box-shadow: 2px 0 rgba(255,222,152,.45);
 }
 .cut-line {
   position: absolute;

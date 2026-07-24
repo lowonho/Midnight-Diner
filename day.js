@@ -141,8 +141,8 @@ function updateDayObjective(){
       <strong>준비할 작업</strong>
       <div>완료 ${completed} · 남음 ${Math.max(0,tasks.length-completed)}</div>
       <strong>조작</strong>
-      <div>WASD 이동 · SPACE 상호작용 · ESC 메뉴</div>
+      <div>WASD 이동 · E 상호작용 · ESC 메뉴</div>
       <strong>현재 상호작용 대상</strong>
-      <div>${nearby?`SPACE — ${nearby.task.objectLabel}`:"재료 가까이 이동하세요"}</div>
+      <div>${nearby?`E — ${nearby.task.objectLabel}`:"재료 가까이 이동하세요"}</div>
     </div>`;
 }

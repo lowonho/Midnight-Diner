@@ -56,6 +56,43 @@
 }
 .kimchi-plating span { font-size: 42px; }
 
+.serving-oden-pot {
+  position: relative;
+  width: 210px;
+  height: 100px;
+  margin: 18px 0 5px;
+  border: 7px solid #564b42;
+  border-top: 0;
+  border-radius: 10px 10px 62px 62px;
+  background: linear-gradient(90deg,#413a35,#75685c 50%,#413a35);
+  box-shadow: 0 8px 12px rgba(0,0,0,.3),inset 0 -8px rgba(0,0,0,.14);
+}
+.serving-oden-broth {
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  top: -14px;
+  height: 42px;
+  overflow: hidden;
+  border: 6px solid #7c7065;
+  border-radius: 50%;
+  background: #b87532;
+  box-shadow: inset 0 3px 5px rgba(255,208,112,.3);
+}
+.serving-radish,.serving-fishcake,.serving-green-onion { position:absolute; display:block; }
+.serving-radish { left:36px; top:12px; width:42px; height:18px; border-radius:50%; background:#eee5c9; transform:rotate(-8deg); }
+.serving-fishcake { width:48px; height:17px; border-radius:5px; background:#dda355; }
+.serving-fishcake.fishcake-one { left:88px; top:7px; transform:rotate(12deg); }
+.serving-fishcake.fishcake-two { left:118px; top:22px; transform:rotate(-7deg); }
+.serving-green-onion { left:81px; top:23px; width:18px; height:9px; border-radius:50%; background:#72954b; }
+.serving-pot-handle { position:absolute; top:20px; width:32px; height:18px; border:7px solid #51463e; background:#2e2926; }
+.serving-pot-handle.left { left:-39px; border-radius:12px 0 0 12px; }
+.serving-pot-handle.right { right:-39px; border-radius:0 12px 12px 0; }
+.oden-steam { position:absolute; z-index:2; top:-52px; width:22px; height:45px; border-left:5px solid rgba(245,237,215,.62); border-radius:50%; animation: serving-oden-steam 1.5s ease-in-out infinite; }
+.oden-steam.steam-one { left:72px; }
+.oden-steam.steam-two { left:127px; animation-delay:.55s; }
+@keyframes serving-oden-steam { 0% { opacity:0; transform:translateY(12px) translateX(0); } 45% { opacity:.8; } 100% { opacity:0; transform:translateY(-12px) translateX(9px); } }
+
 .choice-grid {
   width: 100%;
   display: grid;

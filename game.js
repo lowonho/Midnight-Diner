@@ -311,9 +311,10 @@ function setupMini() {
       :`<div class="progress-track"><i class="progress-zone" style="left:38%;width:24%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">0 / 5회</div><button class="mini-action" id="miniAction" type="button">썰기</button>`;
     dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
   } else if(m.type==="heat") {
-    set(m.context.mode==="prep"?"육수 온도 맞추기":"화력 조절","약불과 강불을 조절해 온도를 적정 구간에 오래 유지하세요.",8);
+    const isOden=m.context.mode==="cook"&&m.context.dishId==="oden";
+    set(m.context.mode==="prep"?"육수 온도 맞추기":isOden?"어묵탕 끓이기":"화력 조절",isOden?"작은 냄비의 어묵탕이 맛있게 끓도록 약불과 강불을 조절하세요.":"약불과 강불을 조절해 온도를 적정 구간에 오래 유지하세요.",8);
     m.data={value:.25,velocity:.08,inZone:0,total:0};
-    dom.miniContent.innerHTML=`<div class="heat-wrap"><button id="heatDown" class="heat-button" type="button">−</button><div class="heat-gauge"><i class="heat-target"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button">＋</button></div><div class="cut-count">적정 온도 유지: <span id="zoneTime">0.0</span>초</div>`;
+    dom.miniContent.innerHTML=`${isOden?`<div class="serving-oden-pot" aria-label="작은 냄비에서 끓고 있는 어묵탕"><i class="oden-steam steam-one"></i><i class="oden-steam steam-two"></i><div class="serving-oden-broth"><i class="serving-radish"></i><i class="serving-fishcake fishcake-one"></i><i class="serving-fishcake fishcake-two"></i><i class="serving-green-onion"></i></div><i class="serving-pot-handle left"></i><i class="serving-pot-handle right"></i></div>`:""}<div class="heat-wrap"><button id="heatDown" class="heat-button" type="button">−</button><div class="heat-gauge"><i class="heat-target"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button">＋</button></div><div class="cut-count">적정 온도 유지: <span id="zoneTime">0.0</span>초</div>`;
     dom.miniContent.querySelector("#heatDown").addEventListener("click",()=>{m.data.velocity-=.16;audio.click();});
     dom.miniContent.querySelector("#heatUp").addEventListener("click",()=>{m.data.velocity+=.16;audio.click();});
   } else if(m.type==="flip") {
@@ -603,23 +604,23 @@ function updatePrompt(){
     const station=nearestStation();
     const dish=dishById(state.carrying.dishId);
     if(station?.id==="trash"&&dish&&state.inventory[dish.id]?.count>0){
-      text=`SPACE · ${dish.name} 폐기`;
+      text=`E · ${dish.name} 폐기`;
       x=station.ix;y=station.y+station.h+60;
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
-      text=`SPACE · ${order.slot+1}번 손님에게 서빙`;
+      text=`E · ${order.slot+1}번 손님에게 서빙`;
       x=CUSTOMER_SEATS[order.slot];y=520;
     }
   }else{
     if(state.phase==="day"){
       const prepObject=nearestPrepObject();
-      if(prepObject){text=`SPACE · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
+      if(prepObject){text=`E · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
     }else{
       const station=nearestStation();
       if(station){
       const required=currentRequirement();
-      if(station.id==="dishwasher"&&state.dirtyDishes>0)text="SPACE · 설거지하기";
-      else if(station.id==="trash"&&state.trash>0)text="SPACE · 쓰레기 정리";
-      else if(station.id===required)text=`SPACE · ${station.label} 사용`;
+      if(station.id==="dishwasher"&&state.dirtyDishes>0)text="E · 설거지하기";
+      else if(station.id==="trash"&&state.trash>0)text="E · 쓰레기 정리";
+      else if(station.id===required)text=`E · ${station.label} 사용`;
       if(text){x=station.ix;y=station.y+station.h+60;}
       }
     }
@@ -818,13 +819,13 @@ window.addEventListener("keydown",e=>{
     return;
   }
   if(storyDialogueIsActive()){
-    if(e.code==="Space"||k==="enter")storyAdvance();
+    if(k==="e"||k==="enter")storyAdvance();
     return;
   }
   if(k==="escape"){
     if(dom.settingsOverlay.classList.contains("open"))closeSettings();else if(state.screen==="game")openSettings("game");return;
   }
-  if(e.code==="Space"){interact();return;}
+  if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
