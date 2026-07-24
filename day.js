@@ -4,7 +4,9 @@
 const DEFAULT_SELECTED_MENUS=["oden","tofu"];
 const PREP_TASKS={
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish"},
+  cutFishCake:{id:"cutFishCake",menuId:"oden",label:"어묵 썰기",objectLabel:"어묵 바구니",objectKind:"fishCake"},
   cleanAnchovy:{id:"cleanAnchovy",menuId:"oden",label:"멸치 손질",objectLabel:"멸치 바구니",objectKind:"anchovy"},
+  assembleOden:{id:"assembleOden",menuId:"oden",label:"냄비에 재료 넣기",objectLabel:"육수 냄비",objectKind:"pot"},
   prepareKimchi:{id:"prepareKimchi",menuId:"tofu",label:"김치 준비하기",objectLabel:"김치통",objectKind:"kimchi"}
 };
 
@@ -87,6 +89,10 @@ function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
   if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
+  const dish=dishById(task.menuId),dishTasks=(dish?.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(Boolean);
+  const taskIndex=dishTasks.findIndex(item=>item.id===task.id);
+  const previousTask=dishTasks.slice(0,taskIndex).find(item=>!state.prepProgress[item.id]);
+  if(previousTask){showToast(`먼저 ${previousTask.label} 작업을 완료하세요.`,true);return;}
   startDayPrepMini(task);
 }
 

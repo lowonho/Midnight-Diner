@@ -44,7 +44,7 @@ const DISHES = [
   { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"grill", game:"grill"}], price:7200 },
   { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"stir"}], price:8200 },
   { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"fridge", game:"plateKimchi"},{station:"board", game:"chop"}], price:8800 },
-  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cleanAnchovy"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
+  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cutFishCake","cleanAnchovy","assembleOden"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
   { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
 ];
 
@@ -301,9 +301,14 @@ function setupMini() {
     dom.miniContent.querySelector("#miniAction").addEventListener("click",()=>finishMini(100));
   } else if(m.type==="chop") {
     const isTofu=m.context.mode==="cook"&&m.context.dishId==="tofu";
-    set(isTofu?"두부 썰기":"정밀 손질",isTofu?"도마에서 두부를 먹기 좋은 크기로 썰어 접시에 올리세요. 칼 표시가 노란 중심에 들어왔을 때 누르세요.":"움직이는 칼 표시가 노란 중심에 들어왔을 때 SPACE 또는 썰기 버튼을 누르세요.",10);
-    m.data={marker:0,dir:1,speed:.92,hits:[],cuts:0};
-    dom.miniContent.innerHTML=`<div class="progress-track"><i class="progress-zone" style="left:38%;width:24%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">0 / 5회</div><button class="mini-action" id="miniAction" type="button">썰기</button>`;
+    set(isTofu?"두부 썰기":"정밀 손질",isTofu?"무와 김치를 썰 때처럼 포인터가 초록 구간에 들어왔을 때 누르세요. 세로 5번, 마지막에 가로 1번 썹니다.":"움직이는 칼 표시가 노란 중심에 들어왔을 때 SPACE 또는 썰기 버튼을 누르세요.",10);
+    m.data=isTofu
+      ?{marker:0,dir:1,speed:.78,hits:[],cuts:0,total:6,tofuStyle:true,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
+      :{marker:0,dir:1,speed:.92,hits:[],cuts:0};
+    if(isTofu)dom.miniTimer.textContent="0 / 6";
+    dom.miniContent.innerHTML=isTofu
+      ?`<div class="prep-work-object tofu-shape tofu-cook-object" id="tofuCookObject" aria-label="두부">${Array.from({length:5},(_,index)=>`<i class="cut-line" data-tofu-cut="${index}" style="left:${(index+1)/6*100}%"></i>`).join("")}<i class="cut-line tofu-horizontal-line" data-tofu-cut="5"></i><i class="knife-effect"></i></div><div class="prep-timing-bar"><i class="prep-success-zone" id="tofuSuccessZone" style="left:${m.data.zoneStarts[0]*100}%;width:${m.data.zoneWidth*100}%"></i><i id="miniMarker" class="prep-timing-marker"></i></div><div class="cut-count">세로 썰기 · 0 / 6</div><button class="mini-action" id="miniAction" type="button">두부 썰기</button>`
+      :`<div class="progress-track"><i class="progress-zone" style="left:38%;width:24%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">0 / 5회</div><button class="mini-action" id="miniAction" type="button">썰기</button>`;
     dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
   } else if(m.type==="heat") {
     set(m.context.mode==="prep"?"육수 온도 맞추기":"화력 조절","약불과 강불을 조절해 온도를 적정 구간에 오래 유지하세요.",8);
@@ -420,11 +425,17 @@ function renderTrash() {
 function miniAction() {
   const m=state.mini; if(!m)return;
   if(["chop","flip","fry"].includes(m.type)){
+    if(m.type==="chop"&&m.data.tofuStyle){tofuChopAction(m);return;}
     const target=m.type==="fry"?.74:.5;
     const dist=Math.abs(m.data.marker-target);
     const score=Math.round(clamp(100-dist*260,25,100));
     if(m.type==="chop"){
       m.data.hits.push(score);m.data.cuts++;audio.click();dom.miniContent.querySelector(".cut-count").textContent=`${m.data.cuts} / 5회`;
+      const tofuObject=dom.miniContent.querySelector("#tofuCookObject");
+      if(tofuObject){
+        tofuObject.querySelector(`[data-tofu-cut="${m.data.cuts-1}"]`)?.classList.add("done");
+        tofuObject.classList.remove("slice-hit");void tofuObject.offsetWidth;tofuObject.classList.add("slice-hit");
+      }
       m.data.marker=0;m.data.dir=1;m.data.speed+=.08;
       if(m.data.cuts>=5)finishMini(Math.round(m.data.hits.reduce((a,b)=>a+b,0)/m.data.hits.length));
     }else if(m.type==="flip"){
@@ -435,6 +446,26 @@ function miniAction() {
   }else if(m.type==="grill" && m.data.phase==="timing"){
     const dist=Math.abs(m.data.marker-.5);m.data.timingScore=Math.round(clamp(100-dist*260,25,100));m.data.phase="sauce";audio.click();renderGrillGame();
   }
+}
+
+function tofuChopAction(m){
+  const data=m.data,zoneStart=data.zoneStarts[data.cuts],zoneEnd=zoneStart+data.zoneWidth;
+  if(data.marker<zoneStart||data.marker>zoneEnd){
+    dom.miniFeedback.textContent="절단선을 놓쳤습니다. 초록 구간에서 다시 썰어주세요.";audio.bad();return;
+  }
+  const center=zoneStart+data.zoneWidth/2;
+  data.hits.push(Math.round(clamp(100-Math.abs(data.marker-center)*300,70,100)));
+  const tofuObject=dom.miniContent.querySelector("#tofuCookObject");
+  tofuObject?.querySelector(`[data-tofu-cut="${data.cuts}"]`)?.classList.add("done");
+  tofuObject?.classList.remove("slice-hit");if(tofuObject){void tofuObject.offsetWidth;tofuObject.classList.add("slice-hit");}
+  data.cuts++;audio.click();
+  dom.miniTimer.textContent=`${data.cuts} / ${data.total}`;
+  dom.miniContent.querySelector(".cut-count").textContent=data.cuts<5?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===5?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`;
+  if(data.cuts>=data.total){finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));return;}
+  if(data.cuts===5)tofuObject?.classList.add("horizontal-cut");
+  const successZone=dom.miniContent.querySelector("#tofuSuccessZone");
+  if(successZone)successZone.style.left=`${data.zoneStarts[data.cuts]*100}%`;
+  data.marker=0;data.dir=1;data.speed+=.05;dom.miniFeedback.textContent="절단 성공";
 }
 
 function finishMini(score) {
@@ -502,7 +533,7 @@ function update(dt) {
 function updateMini(dt) {
   const m=state.mini;if(!m||m.complete)return;
   if(isDayPrepMini(m)){updateDayPrepMini(dt);return;}
-  m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);
+  if(!m.data.tofuStyle){m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);}
   if(m.type==="chop"||m.type==="flip"||m.type==="fry"||(m.type==="grill"&&m.data.phase==="timing")){
     m.data.marker+=m.data.dir*m.data.speed*dt;if(m.data.marker>=1){m.data.marker=1;m.data.dir=-1;}if(m.data.marker<=0){m.data.marker=0;m.data.dir=1;}
     const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
@@ -678,8 +709,12 @@ function drawPrepObjects(){
     ctx.fillStyle="#6d4528";roundRect(ctx,item.x-48,item.y-10,96,42,8,true,false);ctx.strokeStyle="#b57a3e";ctx.lineWidth=3;roundRect(ctx,item.x-48,item.y-10,96,42,8,false,true);
     if(item.task.objectKind==="radish"){
       ctx.fillStyle="#e8e0c4";ctx.beginPath();ctx.ellipse(item.x,item.y-8,28,12,-.12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#769351";ctx.fillRect(item.x+20,item.y-21,12,15);
+    }else if(item.task.objectKind==="fishCake"){
+      ctx.fillStyle="#dba65d";ctx.save();ctx.translate(item.x,item.y-9);ctx.rotate(-.1);roundRect(ctx,-27,-10,54,20,4,true,false);ctx.restore();
     }else if(item.task.objectKind==="anchovy"){
       ctx.fillStyle="#9aa3a2";for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(item.x-19+i*18,item.y-8+(i%2)*5,17,5,.12,0,Math.PI*2);ctx.fill();}
+    }else if(item.task.objectKind==="pot"){
+      ctx.fillStyle="#343536";ctx.beginPath();ctx.ellipse(item.x,item.y-3,31,15,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#8b8d88";ctx.stroke();ctx.fillStyle="#b87839";ctx.beginPath();ctx.ellipse(item.x,item.y-6,25,9,0,0,Math.PI*2);ctx.fill();
     }else{
       ctx.fillStyle="#a7432d";roundRect(ctx,item.x-30,item.y-22,60,25,7,true,false);ctx.fillStyle="#83964d";ctx.fillRect(item.x-24,item.y-18,48,4);
     }

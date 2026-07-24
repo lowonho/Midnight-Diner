@@ -51,7 +51,33 @@
 .tofu-shape {
   border-color: #b8aa85;
   border-radius: 9px;
-  background: #eee5c9;
+  background: linear-gradient(135deg,#fff9e8,#e7dcc0);
+  box-shadow: inset 0 9px rgba(255,255,255,.42),0 8px 15px rgba(0,0,0,.22);
+}
+.tofu-cook-object { width: 180px; height: 180px; }
+.tofu-horizontal-line {
+  left: -5px !important;
+  right: -5px;
+  top: 50%;
+  bottom: auto;
+  width: auto;
+  height: 3px;
+  border-left: 0;
+  border-top: 3px dashed #763d2d;
+}
+.tofu-horizontal-line.done { border-top-style: solid; border-top-color: #65804a; }
+.tofu-cook-object.horizontal-cut .knife-effect {
+  top: 50%;
+  left: -14px;
+  width: 205px;
+  height: 12px;
+  transform: translateY(-50%);
+}
+.tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: tofu-knife-horizontal .16s ease; }
+.fishCake-shape {
+  border-color: #9b6635;
+  border-radius: 13px;
+  background: repeating-linear-gradient(105deg,#d99c4d 0 34px,#e8b767 35px 58px,#c88239 59px 62px);
 }
 .cut-line {
   position: absolute;
@@ -170,6 +196,60 @@
 .anchovy-body-asset,
 .anchovy-head-asset { width: 100%; height: 100%; object-fit: contain; }
 
+.oden-pot-scene {
+  position: relative;
+  width: min(420px,100%);
+  height: 190px;
+}
+.oden-pot-ingredients {
+  position: absolute;
+  inset: 5px 50px auto;
+  height: 66px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+.pot-ingredient,.broth-piece { display: block; position: relative; }
+.pot-ingredient { width: 70px; height: 30px; transition: transform .2s ease,opacity .2s ease; }
+.pot-ingredient.in-pot { opacity: 0; transform: translateY(80px) scale(.7); }
+.pot-ingredient.radish { border-radius: 45%; background: #eee7cc; }
+.pot-ingredient.fishCake { border-radius: 7px; background: #daa054; transform: rotate(-8deg); }
+.pot-ingredient.anchovy { width: 74px; height: 20px; border-radius: 60% 35% 35% 60%; background: #8f9a9b; }
+.pot-ingredient.anchovy::after { content:""; position:absolute; right:-14px; top:3px; border-block:7px solid transparent; border-left:15px solid #718083; }
+.oden-pot {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 4px;
+  width: 280px;
+  height: 92px;
+  border: 8px solid #55595a;
+  border-top: 0;
+  border-radius: 12px 12px 70px 70px;
+  background: linear-gradient(90deg,#292c2d,#565a59 50%,#292c2d);
+  transform: translateX(-50%);
+}
+.pot-rim { position:absolute; left:-15px; right:-15px; top:-12px; height:25px; border:7px solid #777b78; border-radius:50%; background:#3a2a20; }
+.oden-broth {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 78px;
+  width: 260px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  border-radius: 50%;
+  background: #a76a32;
+  transform: translateX(-50%);
+}
+.broth-piece { width: 45px; height: 17px; animation: prep-pot-drop .22s ease; }
+.broth-piece.radish { border-radius:50%; background:#eee7cc; }
+.broth-piece.fishCake { border-radius:4px; background:#dfa457; transform:rotate(8deg); }
+.broth-piece.anchovy { border-radius:60%; background:#899596; }
+
 .fry-work-area {
   width: 100%;
   min-height: 190px;
@@ -267,9 +347,12 @@
 @keyframes prep-knife-hit { 0% { opacity: 0; transform: translateY(-18px) rotate(15deg); } 50% { opacity: 1; transform: translateY(9px) rotate(8deg); } 100% { opacity: 0; transform: translateY(16px) rotate(8deg); } }
 @keyframes prep-toss-left { 50% { transform: translateX(-11px) rotate(-1deg); } }
 @keyframes prep-toss-right { 50% { transform: translateX(11px) rotate(1deg); } }
+@keyframes prep-pot-drop { from { opacity:0; transform:translateY(-55px) rotate(15deg); } to { opacity:1; transform:translateY(0); } }
+@keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(-18px) translateY(-50%); } 50% { opacity:1; transform:translateX(9px) translateY(-50%); } 100% { opacity:0; transform:translateX(16px) translateY(-50%); } }
 
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: 58px; }
+  .tofu-cook-object { width: 150px; height: 150px; }
   .anchovy-work-area { height: 155px; }
   .fry-work-area { min-height: 145px; }
   .frying-pan { width: 230px; height: 105px; margin-bottom: 30px; }
