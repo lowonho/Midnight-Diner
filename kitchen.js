@@ -59,7 +59,10 @@ function nearestStation(){
    game.js 의 draw() 가 레이어 순서에 맞춰 drawStations() 를 부릅니다.
    ------------------------------------------------------------ */
 
+// 집기 몸통은 요리사 뒤(back 층), 이름표는 요리사 앞(front 층)에 그립니다.
+// 이름표까지 뒤로 보내면 집기 앞에 선 요리사가 이름표를 가려서 안 보입니다.
 function drawStations(){ Object.values(STATIONS).forEach(drawStation); }
+function drawStationLabels(){ Object.values(STATIONS).forEach(labelStation); }
 
 function labelStation(s){
   ctx.fillStyle="#1a0e09";roundRect(ctx,s.x+8,s.y-25,s.w-16,23,5,true,false);
@@ -69,7 +72,7 @@ function labelStation(s){
 }
 
 function drawStation(s){
-  const working=state.mini?.stationId===s.id,t=performance.now()/1000;labelStation(s);
+  const working=state.mini?.stationId===s.id,t=performance.now()/1000;
   ctx.fillStyle="#332117";ctx.fillRect(s.x,s.y,s.w,s.h);ctx.strokeStyle="#7f5130";ctx.lineWidth=4;ctx.strokeRect(s.x,s.y,s.w,s.h);
   if(s.id==="fridge"){
     ctx.fillStyle="#7c8b82";ctx.fillRect(s.x+8,s.y+7,s.w-16,s.h-14);ctx.fillStyle="#b7c2b8";ctx.fillRect(s.x+14,s.y+18,s.w-28,64);ctx.fillRect(s.x+14,s.y+94,s.w-28,76);ctx.strokeStyle="#46554e";ctx.strokeRect(s.x+14,s.y+18,s.w-28,64);ctx.strokeRect(s.x+14,s.y+94,s.w-28,76);ctx.fillStyle="#2e3c37";ctx.fillRect(s.x+s.w-18,s.y+44,5,22);ctx.fillRect(s.x+s.w-18,s.y+124,5,22);

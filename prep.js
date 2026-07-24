@@ -24,6 +24,12 @@ const PREP_LAYOUT = {
   iy: 482,         // 요리사가 서는 높이 (카운터 위쪽 = 주방측)
   marginLeft: 50,  // 바 테이블 왼쪽 끝에서 띄우는 거리
   marginRight: 140,
+  // 바 테이블 이미지의 왼쪽 끝(논리 411)은 철판(논리 194~421)에 가려져 있어서,
+  // 거기서부터 놓으면 첫 준비물이 철판 위로 올라갑니다. (실측 8px 겹침)
+  // 그래서 왼쪽 시작을 철판 오른쪽 끝에서 다시 잡습니다.
+  griddleGap: 14,  // 철판 오른쪽 끝에서 준비물 상자까지 띄우는 거리
+  // 오른쪽 한계. 더 오른쪽으로 가면 우측 HUD 패널 아래에 깔립니다.
+  rightLimit: 990,
   reach: 62,       // 이 거리 안에 들어와야 손질을 시작할 수 있습니다
   labelDy: -26,    // 이름표는 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다
   boxW: 96, boxH: 42
@@ -37,10 +43,12 @@ const PREP_LAYOUT = {
 function prepObjectLayout(){
   const tasks=selectedPrepTasks(),count=tasks.length;
   if(!count)return [];
-  const counter=FRONT_STATIONS.counter;
-  const left=counter.x+PREP_LAYOUT.marginLeft;
-  // 오른쪽 끝은 요리사 이동 한계를 넘지 않게 잘라 둡니다. 넘으면 닿을 수 없습니다.
-  const right=Math.min(counter.x+counter.w-PREP_LAYOUT.marginRight,WALK_BOUNDS.right-40);
+  const L=PREP_LAYOUT;
+  const counter=FRONT_STATIONS.counter,griddle=FRONT_STATIONS.griddle;
+  // 바 상판 위이면서, 철판 오른쪽 끝을 넘어선 지점부터 놓습니다.
+  const griddleRight=griddle.x+griddle.w;
+  const left=Math.max(counter.x+L.marginLeft, griddleRight+L.boxW/2+L.griddleGap);
+  const right=Math.min(counter.x+counter.w-L.marginRight, L.rightLimit);
   const step=count===1?0:(right-left)/(count-1);
   return tasks.map((task,index)=>{
     const x=count===1?(left+right)/2:left+step*index;

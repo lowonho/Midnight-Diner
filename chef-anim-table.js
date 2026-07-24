@@ -60,6 +60,36 @@ const CHEF_SCALE = 1.0;
 const CHEF_TARGET_H = 233;
 
 
+/* 원근 보정 — 앞으로 나올수록 커지고 뒤로 갈수록 작아집니다.
+   ------------------------------------------------------------
+   기준은 chef-walk-area.js 의 사다리꼴입니다. 그 바닥의 앞변/뒷변 폭 비율이
+   이 방의 실제 원근이라서(앞변 1856px ÷ 뒷변 1415px = 약 1.31배),
+   따로 숫자를 지어내지 않고 그 값을 그대로 끌어다 씁니다.
+   덕분에 F1 디버그로 영역을 조정하면 원근도 같이 따라옵니다.
+
+   amount = 그 원근을 몇 %나 적용할지
+     0     끔 (어디서나 같은 크기)
+     0.5   약 1.16배 차이
+     0.75  약 1.23배 차이   ← 현재값
+     1     약 1.31배 차이 — 바닥과 완전히 같은 비율
+
+   pivot = 크기가 1.0 으로 유지되는 지점 (0 = 맨 뒤, 1 = 맨 앞)
+     0.5   앞뒤로 균등하게 벌어짐
+     0.35  뒤쪽은 거의 그대로 두고 앞쪽만 더 커짐   ← 현재값
+
+   pivot 을 앞으로 당겨 놓은 이유: "앞에 있을 때 더 크게"가 목적이라
+   amount 를 올릴 때 뒤쪽까지 같이 작아지면 안 되기 때문입니다.
+   지금 조합(0.75 / 0.35)의 결과는 이렇습니다.
+
+     맨 뒤   ×0.929  → 키 216 px   (amount 0.5 일 때와 사실상 동일)
+     중간    ×1.031  → 키 240 px
+     맨 앞   ×1.146  → 키 267 px   (전보다 17 px 더 큼)
+
+   앞을 더 키우려면 amount 를 올리고, 그때 뒤가 작아지는 게 싫으면
+   pivot 을 같이 내리세요. */
+const CHEF_PERSPECTIVE = { amount: 0.75, pivot: 0.35 };
+
+
 /* ------------------------------------------------------------
    2. 시트 표
    ------------------------------------------------------------
@@ -96,9 +126,10 @@ const CHEF_ANIM_TABLE = [
   { key:"idle1_carry", file:"char_chef_idle1_carry", cols:6, dirs:["down","up","side"], fps:6,  repeat:0,
     heights:{ down:268,   up:268,   side:268   } },
 
-  { key:"walk",        file:"char_chef_walk",        cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+  // fps 18 = speed 306 과 짝. 속도를 바꾸면 이 둘도 같이 바꾸세요. (위 [fps 와 이동 속도] 참고)
+  { key:"walk",        file:"char_chef_walk",        cols:8, dirs:["down","up","side"], fps:18, repeat:-1,
     heights:{ down:267,   up:233,   side:251   } },
-  { key:"walk_carry",  file:"char_chef_walk_carry",  cols:8, dirs:["down","up","side"], fps:16, repeat:-1,
+  { key:"walk_carry",  file:"char_chef_walk_carry",  cols:8, dirs:["down","up","side"], fps:18, repeat:-1,
     heights:{ down:269.5, up:269.5, side:269.5 } }
 
   // 시트가 나오면 주석만 풀면 됩니다. (에셋 없이 풀면 로딩이 실패합니다)
@@ -133,8 +164,14 @@ const CHEF_ANIM_TABLE = [
 const CHEF_IDLE = {
   main:     "idle2",   // 평소에 도는 시트
   accent:   "idle1",   // 가끔 한 사이클만 끼워 넣는 시트
-  minGapMs: 2800,
-  maxGapMs: 7000
+  // 깜빡임과 깜빡임 사이 간격(ms). 이 범위에서 매번 무작위로 뽑습니다.
+  // 2800~7000 은 너무 뜸해서 절반으로 줄였습니다.
+  // 깜빡임 한 번 자체는 idle1 의 cols/fps = 6/6 = 1초라, 실제 주기는
+  // 여기에 1초를 더한 값입니다. (평균 약 2.5 + 1 = 3.5초마다 한 번)
+  // 더 자주 깜빡이게 하려면 두 값을 같이 낮추세요. 너무 낮추면 눈을 떠는 시간이
+  // 1초 깜빡임보다 짧아져서 계속 감고 있는 것처럼 보입니다.
+  minGapMs: 1400,
+  maxGapMs: 3600
 };
 
 

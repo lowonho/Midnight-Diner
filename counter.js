@@ -42,13 +42,39 @@ const COUNTER_ASSETS = [
   { key:"counter_register",        file:"counter_register_body" },
   { key:"counter_griddle_front",   file:"counter_griddle_front" },
   { key:"counter_chair",           file:"prop_chair" },
+  { key:"counter_condiment",       file:"prop_condiment_set" },
   { key:"counter_nameplate",       file:"ui_nameplate" },
   { key:"counter_griddle_surface", file:"counter_griddle_surface_cook", sheet:{ frameWidth:256, frameHeight:263 }, frames:8 },
   { key:"counter_pos_set",         file:"fix_pos_set",                  sheet:{ frameWidth:382, frameHeight:446 }, frames:6 },
   { key:"counter_steam",           file:"fx_griddle_cook",              sheet:{ frameWidth:620, frameHeight:280 }, frames:8 }
 ];
 
-// counter_griddle_body.png 은 front + surface 를 합친 통합본이라 사용하지 않습니다. (§1-2)
+/* 분리 에셋 (선택)
+   ------------------------------------------------------------
+   철판을 "본체(정지) + 음식(애니메이션)" 두 장으로 나눈 버전입니다.
+   assets/counter/ 에 두 파일이 있으면 자동으로 이쪽을 씁니다.
+   없으면 위의 통합본(surface + front)으로 그대로 돌아갑니다.
+
+     fix_griddle                    512x526   철판 본체 한 장 (정지)
+     food_griddle_stir_fry_cook  4096x526x8   음식만 8프레임 가로 배열
+
+   프레임 규격은 파일에서 읽습니다. 폭/8 × 높이. 해상도가 바뀌어도 됩니다.
+
+   [정렬 실측] 두 파일 다 512x526 = 통합본 격자(256x263)의 정확히 2배이고
+   내용 위치도 일치합니다. 그래서 통합본과 같은 좌표를 그대로 씁니다.
+     본체 내용 y 170~517   (통합본 85~258 의 2배 = 170~516)
+     음식 바닥 y 281~283   (통합본 조리면 바닥 141 의 2배 = 282)
+
+   [분리하면 좋은 점] 상판이 정지 이미지가 되어, 뒤집기 프레임에서 음식이
+   튀어도 철판 자체는 움직이지 않습니다. 음식만 따로 조절할 수도 있습니다.
+   ------------------------------------------------------------ */
+const COUNTER_SPLIT_ASSETS = [
+  { key:"counter_griddle_body", file:"fix_griddle" },
+  { key:"counter_griddle_food", file:"food_griddle_stir_fry_cook", frames:8 }
+];
+
+// 분리 에셋을 쓸 때 안 받아도 되는 통합본 키
+const COUNTER_COMBINED_KEYS = ["counter_griddle_surface","counter_griddle_front"];
 
 
 /* ------------------------------------------------------------
@@ -97,24 +123,46 @@ const COUNTER_LAYOUT = {
   // (계산대 상판과는 겹치지만 §2-4 대로 의도된 겹침입니다)
   griddle:  { x:317, y:1017, w:327,  h:336 },
 
+  /* 분리 에셋을 쓸 때의 배치. 위 griddle 을 대신합니다.
+     두 파일 모두 통합본 격자의 2배 캔버스라 세로·크기는 griddle 과 같습니다.
+
+     [x 가 다른 이유] 음식 시트는 프레임 안에서 왼쪽으로 치우쳐 있습니다.
+     512 기준 중심이 조리면은 276.5, 음식은 239.0 으로 36px 어긋납니다.
+     그대로 놓으면 음식이 철판 왼쪽에 쏠려 보여서 음식만 오른쪽으로 밀었습니다.
+       body 317  →  조리면 중심 화면 474.9
+       food 340  →  음식   중심 화면 474.0   (23 = 36px × 0.664 ÷ 1.04)
+     음식 위치만 조정하려면 griddleFood.x 만 고치면 됩니다.
+     (단, 김도 음식 중심에 맞춰져 있으니 steam.x 도 같이 옮겨야 합니다) */
+  griddleBody: { x:317, y:1017, w:327, h:336 },
+  griddleFood: { x:340, y:1017, w:327, h:336 },
+
   // 바 테이블 (화면 오른쪽 끝까지)
   barTable: { x:630, y:1012, w:1290, h:262 },
 
-  // 계산대 위 POS 세트.
-  // 스펙값(191x223)은 카운터에 비해 너무 커서 0.75 배로 줄였습니다.
-  // 줄인 만큼 왼쪽에 여백이 생겨 x 도 14 → 52 로 옮겼습니다.
-  pos:      { x:52,  y:884,  w:143,  h:167 },
+  /* 계산대 위 POS 세트.
+     스펙값(191x223)은 카운터에 비해 너무 커서 0.75 배로 줄였습니다.
+     줄인 만큼 왼쪽에 여백이 생겨 x 도 14 → 52 로 옮겼습니다.
 
-  // 철판 김. 알파가 매우 낮아 ADD 블렌드가 필요합니다. (§3-2)
-  //
-  // 스펙값 (340, 882) 은 김이 음식과 같은 높이에 깔려서 음식 사이사이에
-  // 파묻혀 보였습니다. y 를 59 올려 김이 음식 위로 피어오르게 했습니다.
-  //   김   화면 y 705 ~ 815  (음식 봉우리보다 76px 위까지)
-  //   음식 화면 y 781 ~ 855
-  // 김의 아랫단을 음식 봉우리 아래에 걸쳐 두어야 음식에서 나는 것처럼 보입니다.
-  // 너무 올리면 허공에 뜬 것처럼 끊겨 보입니다.
-  // x 329 는 김의 중심(464.7)을 음식 중심(464.7)에 맞춘 값입니다.
-  steam:    { x:329, y:823,  w:310,  h:140 },
+     [y 를 뒤로 뺀 이유] 계산대 상판은 화면 y 782(뒷변) ~ 891(앞변) 입니다.
+     스펙값(884)이면 POS 밑동이 878 로 앞변에서 13px 밖에 안 떨어져서
+     상판 밖으로 튀어나온 것처럼 보였습니다.
+     860 으로 24 올려 밑동을 853 에 두면 앞쪽에 38px 여유가 생깁니다. */
+  pos:      { x:52,  y:860,  w:143,  h:167 },
+
+  /* 철판 김. 알파가 매우 낮아 ADD 블렌드가 필요합니다. (§3-2)
+     크기·위치를 음식 덩어리에 맞춰 잡은 값입니다. (실측 기준, 화면 좌표)
+
+                     x 범위        폭     중심     y 범위
+       음식(조리루프)  409 ~ 539   130   474.0   807 ~ 856
+       김             391 ~ 557   165   474.1   750 ~ 845
+
+     - 중심 x 를 음식에 맞춥니다. griddleFood.x 를 옮기면 여기도 같이 옮기세요.
+     - 폭은 음식보다 좌우 17px 씩만 넓힙니다. 김은 퍼지니까 딱 맞추면 좁아 보이고,
+       스펙값(310)처럼 넓으면 음식 없는 철판 가장자리에서 연기가 납니다.
+     - 아랫단(845)을 음식 덩어리(807~856) 안에 넣습니다. 위로 띄우면
+       음식과 끊겨서 허공에 뜬 것처럼 보입니다.
+     크기를 바꾸면 w/h 를 같은 비율로 바꾸세요. (620:280 = 2.214) */
+  steam:    { x:358, y:852,  w:270,  h:122 },
 
   // 의자 5개 — 같은 에셋 재사용. 바닥선 1042 로 카운터(1012)보다 앞쪽입니다.
   chairSize: { w:88, h:172, y:1042 },
@@ -124,6 +172,19 @@ const COUNTER_LAYOUT = {
     { id:"chair_3", x:1122, flipX:false },
     { id:"chair_4", x:1320, flipX:true  },
     { id:"chair_5", x:1518, flipX:false }   // 빈자리
+  ],
+
+  /* 수저통 3개 — 같은 에셋 재사용. 영업 중에만 나옵니다.
+     예전에는 바 테이블 그림에 그려져 있어서 준비 시간에도 놓여 있었습니다.
+     에셋이 분리되면서 영업 시작/종료에 맞춰 켜고 끌 수 있게 됐습니다.
+
+     x 는 손님 사이 빈자리입니다. (의자 중심 화면 762·968·1174·1380·1586)
+     y 859 = 바 상판 위. 수저통 밑동이 화면 y 847 에 닿습니다. */
+  condimentSize: { w:56, h:75, y:859 },
+  condiments: [
+    { id:"condiment_1", x:865  },   // 1번·2번 손님 사이
+    { id:"condiment_2", x:1238 },   // 3번·4번 손님 사이
+    { id:"condiment_3", x:1634 }    // 5번 자리 오른쪽
   ],
 
   // 명패 2개 — 같은 에셋 재사용. 글자는 이미지가 아니라 런타임 텍스트입니다. (§2-6)
@@ -201,6 +262,7 @@ const COUNTER_DEPTH = {
   griddleFront:   34,   // surface 와 겹치는 픽셀이 0 이라 순서는 결과에 영향 없음
   pos:            35,
   steam:          36,
+  condiment:      37,   // 바 상판 위. 손님(프레임 캔버스 40)보다는 뒤
   chair:          42,   // 프레임 캔버스(40) 위 = 손님 앞
   nameplate:      44,
   debug:          58    // 앰비언트(60) 아래
@@ -294,9 +356,29 @@ function loadCounterImage(asset){
   });
 }
 
-// game.js 의 에셋 로딩 Promise.all 에 넣어서 사용합니다.
+// 분리 에셋은 없어도 됩니다. 실패해도 통과시키고 통합본으로 돌아갑니다.
+function loadCounterSplitImage(asset){
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>{counterImages[asset.key]=image;resolve(asset.key);};
+    image.onerror=()=>resolve(null);
+    image.src=`${COUNTER_ASSET_DIR}${asset.file}${COUNTER_EXT}`;
+  });
+}
+
+/* game.js 의 에셋 로딩 Promise.all 에 넣어서 사용합니다.
+   분리 에셋을 먼저 확인하고, 있으면 통합본 2장은 아예 받지 않습니다.
+   (둘 다 받으면 쓰지도 않는 240KB 를 매번 내려받게 됩니다) */
 function loadCounterAssets(){
-  return Promise.all(COUNTER_ASSETS.map(loadCounterImage));
+  return Promise.all(COUNTER_SPLIT_ASSETS.map(loadCounterSplitImage)).then(()=>{
+    const skip=counterHasSplitGriddle()?COUNTER_COMBINED_KEYS:[];
+    return Promise.all(COUNTER_ASSETS.filter(a=>!skip.includes(a.key)).map(loadCounterImage));
+  });
+}
+
+// 분리 에셋 두 장이 다 있는지
+function counterHasSplitGriddle(){
+  return COUNTER_SPLIT_ASSETS.every(asset=>!!counterImages[asset.key]);
 }
 
 
@@ -307,9 +389,12 @@ function loadCounterAssets(){
 const counter = {
   scene:null,
   ready:false,
-  barTable:null, register:null, griddleSurface:null, griddleFront:null,
+  splitGriddle:false,   // 분리 에셋(본체+음식)을 쓰는 중인가
+  barTable:null, register:null, griddleBody:null, griddleSurface:null, griddleFront:null,
   pos:null, steam:null,
   chairs:[],      // { id, image, groundY } — 나중에 y 기준 깊이 정렬용
+  condiments:[],  // 수저통. 영업 중에만 보입니다
+  open:false,     // 영업 중인가
   plates:[],      // { id, container, plate, label, baseY, phase, amp, freq, active, zone }
   cooking:false,
   forceCook:false,        // G 키 강제 조리 (플레이어 판정과 OR)
@@ -324,10 +409,23 @@ function createCounter(scene){
   counter.scene=scene;
 
   COUNTER_ASSETS.forEach(asset=>{
-    if(scene.textures.exists(asset.key))return;
+    if(scene.textures.exists(asset.key)||!counterImages[asset.key])return;   // 안 받은 통합본은 건너뜀
     if(asset.sheet) scene.textures.addSpriteSheet(asset.key,counterImages[asset.key],asset.sheet);
     else scene.textures.addImage(asset.key,counterImages[asset.key]);
   });
+
+  // 분리 에셋. 프레임 규격은 파일 크기에서 읽으므로 해상도가 달라도 됩니다.
+  counter.splitGriddle=counterHasSplitGriddle();
+  if(counter.splitGriddle){
+    COUNTER_SPLIT_ASSETS.forEach(asset=>{
+      if(scene.textures.exists(asset.key))return;
+      const image=counterImages[asset.key];
+      if(asset.frames)
+        scene.textures.addSpriteSheet(asset.key,image,{frameWidth:image.width/asset.frames,frameHeight:image.height});
+      else
+        scene.textures.addImage(asset.key,image);
+    });
+  }
 
   createCounterAnimations(scene);
 
@@ -336,10 +434,18 @@ function createCounter(scene){
   counter.barTable=placeCounterImage(scene,"counter_bar_table",L.barTable,COUNTER_DEPTH.barTable);
   counter.register=placeCounterImage(scene,"counter_register",L.register,COUNTER_DEPTH.register);
 
-  // 철판 위/아래는 같은 좌표·같은 배율이어야 이음새가 보이지 않습니다. (§1-3)
-  counter.griddleSurface=placeCounterSprite(scene,"counter_griddle_surface",L.griddle,COUNTER_DEPTH.griddleSurface);
-  counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
-  counter.griddleFront=placeCounterImage(scene,"counter_griddle_front",L.griddle,COUNTER_DEPTH.griddleFront);
+  if(counter.splitGriddle){
+    // 본체(정지) 위에 음식(애니메이션)만 얹습니다. 조리면은 움직이지 않습니다.
+    counter.griddleBody=placeCounterImage(scene,"counter_griddle_body",L.griddleBody,COUNTER_DEPTH.griddleSurface);
+    counter.griddleSurface=placeCounterSprite(scene,"counter_griddle_food",L.griddleFood,COUNTER_DEPTH.griddleFront);
+    counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+    counter.griddleFront=null;
+  }else{
+    // 철판 위/아래는 같은 좌표·같은 배율이어야 이음새가 보이지 않습니다. (§1-3)
+    counter.griddleSurface=placeCounterSprite(scene,"counter_griddle_surface",L.griddle,COUNTER_DEPTH.griddleSurface);
+    counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+    counter.griddleFront=placeCounterImage(scene,"counter_griddle_front",L.griddle,COUNTER_DEPTH.griddleFront);
+  }
 
   counter.pos=placeCounterSprite(scene,"counter_pos_set",L.pos,COUNTER_DEPTH.pos);
   counter.pos.setFrame(0);
@@ -358,9 +464,20 @@ function createCounter(scene){
     return { id:data.id, image, groundY:fitY(L.chairSize.y) };
   });
 
+  // 수저통은 영업 중에만 보입니다. 시작 상태는 꺼짐.
+  counter.condiments=L.condiments.map(data=>
+    scene.add.image(fitX(data.x),fitY(L.condimentSize.y),"counter_condiment")
+      .setOrigin(0,1)
+      .setDisplaySize(fitSize(L.condimentSize.w),fitSize(L.condimentSize.h))
+      .setDepth(COUNTER_DEPTH.condiment)
+      .setVisible(false)
+  );
+
   counter.plates=L.plates.map(data=>createCounterPlate(scene,data));
 
   counter.debugGraphics=scene.add.graphics().setDepth(COUNTER_DEPTH.debug).setVisible(false);
+
+  applyCounterOpenState();   // 시작은 "치운 상태" (타이틀·낮)
 
   scheduleCounterPosBlink();
   bindCounterKeys(scene);
@@ -394,10 +511,12 @@ function createCounterPlate(scene,data){
 }
 
 function createCounterAnimations(scene){
+  // 분리 에셋이면 음식 시트, 아니면 통합 상판 시트에서 프레임을 뽑습니다.
+  const cookKey=counter.splitGriddle?"counter_griddle_food":"counter_griddle_surface";
   if(!scene.anims.exists("counter_griddle_cooking")){
     scene.anims.create({
       key:"counter_griddle_cooking",
-      frames:scene.anims.generateFrameNumbers("counter_griddle_surface",{frames:GRIDDLE_COOK_FRAMES}),
+      frames:scene.anims.generateFrameNumbers(cookKey,{frames:GRIDDLE_COOK_FRAMES}),
       frameRate:GRIDDLE_COOK_FPS, repeat:-1
     });
   }
@@ -405,7 +524,7 @@ function createCounterAnimations(scene){
   if(!scene.anims.exists("counter_griddle_toss")){
     scene.anims.create({
       key:"counter_griddle_toss",
-      frames:scene.anims.generateFrameNumbers("counter_griddle_surface",{frames:GRIDDLE_TOSS_FRAMES}),
+      frames:scene.anims.generateFrameNumbers(cookKey,{frames:GRIDDLE_TOSS_FRAMES}),
       frameRate:GRIDDLE_TOSS_FPS, repeat:0
     });
   }
@@ -502,12 +621,37 @@ function counterPlayGriddleToss(){
    playerView = { x, y } VIEW 좌표. 플레이어가 없으면 null 을 주세요.
    ------------------------------------------------------------ */
 
-function updateCounter(time,delta,playerView){
+/* open = 영업 중인가.
+   준비 시간에는 카운터를 "치운 상태"로 둡니다.
+     수저통  치움 (예전에는 바 테이블 그림에 박혀 있어 항상 놓여 있었습니다)
+     음식    치움 (영업 전에 철판에 볶음면이 올라가 있으면 안 됩니다)
+     김      치움
+
+   음식은 분리 에셋일 때만 숨깁니다. 통합본은 조리면 그림이 같이 들어 있어서
+   숨기면 철판에 구멍이 뚫립니다. 그때는 0번 프레임 정지로만 둡니다. */
+function applyCounterOpenState(){
+  const open=counter.open;
+  counter.condiments.forEach(item=>item.setVisible(open));
+  if(counter.splitGriddle)counter.griddleSurface?.setVisible(open);
+  counter.steam?.setVisible(open);
+}
+
+function counterSetOpen(open){
+  open=!!open;
+  if(counter.open===open)return;
+  counter.open=open;
+  if(!open)setCounterCooking(false);   // 닫으면 조리도 멈춥니다
+  applyCounterOpenState();
+}
+
+function updateCounter(time,delta,playerView,open){
   if(!counter.ready)return;
   const dt=Math.min(.05,(delta||0)/1000);
+  if(open!==undefined)counterSetOpen(open);
 
   // 철판: 0.2초 완충을 두어 경계에서 톡톡 튀지 않게 합니다.
-  const want=counter.forceCook || counterCookingTest(playerView);
+  // 영업 전에는 철판에 음식 자체가 없으므로 판정도 하지 않습니다.
+  const want=counter.open && (counter.forceCook || counterCookingTest(playerView));
   if(want===counter.cooking){ counter.pendingCook=null; counter.pendingCookTime=0; }
   else{
     if(counter.pendingCook!==want){ counter.pendingCook=want; counter.pendingCookTime=0; }
@@ -559,6 +703,7 @@ function drawCounterDebug(playerView){
   box(L.register,0xff8844); box(L.griddle,0xff4466); box(L.barTable,0xffcc44);
   box(L.pos,0x8888ff); box(L.steam,0x66ddff);
   L.chairs.forEach(c=>box({x:c.x,y:L.chairSize.y,w:L.chairSize.w,h:L.chairSize.h},0x66ff88));
+  L.condiments.forEach(c=>box({x:c.x,y:L.condimentSize.y,w:L.condimentSize.w,h:L.condimentSize.h},0xffaa66));
   L.plates.forEach(p=>box({x:p.x,y:p.y,w:L.plateSize.w,h:L.plateSize.h},0xffffff));
 
   // 상호작용 판정: ix/iy 를 중심으로 한 반경 원
@@ -591,4 +736,5 @@ window.counterDebug=counterDebug;
 window.counterPlayPosPulse=counterPlayPosPulse;
 window.counterSetCookingTest=counterSetCookingTest;
 window.counterPlayGriddleToss=counterPlayGriddleToss;
+window.counterSetOpen=counterSetOpen;
 window.COUNTER_LAYOUT=COUNTER_LAYOUT;

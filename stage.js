@@ -43,13 +43,26 @@ const toLogic = value => value / VIEW_SCALE;
    2. 레이어 순서
    ------------------------------------------------------------ */
 
+/* 요리사는 카운터 "뒤"에 서 있어야 합니다.
+   그래서 프레임 캔버스를 앞뒤 두 장으로 나눴습니다.
+
+     backOverlay 20 : 요리사보다 뒤 — 주방 집기
+     player      25 : 요리사
+     (31~36)        : 카운터 3종·POS·김  → counter.js COUNTER_DEPTH
+     overlay     40 : 요리사보다 앞 — 손님·준비물·간판·이펙트
+     (42~44)        : 의자·명패          → counter.js COUNTER_DEPTH
+
+   요리사가 카운터(31~36)보다 아래라서, 카운터 앞변까지 내려가면
+   허리 아래가 카운터에 가려집니다. 손님(40)은 카운터보다 앞이라
+   그대로 보입니다. */
 const STAGE_DEPTH = {
-  background: 0,   // 배경 컨테이너. 내부 순서는 BACKGROUND_LAYERS 참고
-  overlay:   40,   // 집기·손님·이펙트를 그리는 프레임 캔버스
-  player:    50,
-  plate:     51,
-  food:      52,
-  ambient:   60    // 야간 톤 오버레이 (화면 전체를 덮음)
+  background:  0,   // 배경 컨테이너. 내부 순서는 BACKGROUND_LAYERS 참고
+  backOverlay:20,   // 요리사 뒤에 그리는 프레임 캔버스
+  player:     25,
+  plate:      26,
+  food:       27,
+  overlay:    40,   // 요리사 앞에 그리는 프레임 캔버스
+  ambient:    60    // 야간 톤 오버레이 (화면 전체를 덮음)
 };
 
 
@@ -182,10 +195,10 @@ function createStarLayer(scene){
 
 // 집기·손님·이펙트를 그리는 프레임 캔버스. 1920x1080 으로 만들고
 // 드로잉 쪽은 beginStageFrame() 이 걸어주는 배율 위에서 논리 좌표를 씁니다.
-function createStageFrameTexture(scene,key){
+function createStageFrameTexture(scene,key,depth=STAGE_DEPTH.overlay){
   const texture=scene.textures.createCanvas(key,VIEW_W,VIEW_H);
   texture.getContext().imageSmoothingEnabled=false;
-  scene.add.image(0,0,key).setOrigin(0).setDepth(STAGE_DEPTH.overlay);
+  scene.add.image(0,0,key).setOrigin(0).setDepth(depth);
   return texture;
 }
 

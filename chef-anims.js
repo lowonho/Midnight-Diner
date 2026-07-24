@@ -116,6 +116,40 @@ function chefAnimScale(animKey){
 
 
 /* ------------------------------------------------------------
+   3-2. 원근 보정 배율
+   ------------------------------------------------------------
+   화면 y(발밑)를 받아서 "앞으로 나올수록 크게" 배율을 돌려줍니다.
+   설정은 chef-anim-table.js 의 CHEF_PERSPECTIVE 하나뿐입니다.
+
+   기준 비율은 chef-walk-area.js 사다리꼴의 앞변/뒷변 폭에서 뽑습니다.
+   매 프레임 다시 재기 때문에 F1 디버그로 영역을 조정하면 즉시 따라옵니다.
+
+   t-pivot 승을 쓰는 이유: 원근은 덧셈이 아니라 곱셈이라 등비로 벌어져야
+   자연스럽고, 이렇게 하면 t=pivot 인 지점이 정확히 1.0 이 됩니다.
+   pivot 을 앞으로 당기면 뒤쪽은 그대로 두고 앞쪽만 더 키울 수 있습니다.
+
+   chef-walk-area.js 를 지워도 그냥 1.0(보정 없음)로 떨어지고 죽지 않습니다.
+   ------------------------------------------------------------ */
+
+function chefPerspectiveScale(viewY){
+  if(!CHEF_PERSPECTIVE.amount) return 1;
+  if(typeof CHEF_WALK_AREA==="undefined"||typeof chefWalkLimitsAt!=="function") return 1;
+
+  const span=CHEF_WALK_AREA.bottomY-CHEF_WALK_AREA.topY;
+  if(!(span>0)) return 1;
+
+  const far=chefWalkLimitsAt(CHEF_WALK_AREA.topY);      // 뒤쪽 = 좁음
+  const near=chefWalkLimitsAt(CHEF_WALK_AREA.bottomY);  // 앞쪽 = 넓음
+  const farW=far.right-far.left, nearW=near.right-near.left;
+  if(!(farW>0)||!(nearW>0)) return 1;
+
+  const t=Math.min(1,Math.max(0,(viewY-CHEF_WALK_AREA.topY)/span));   // 0 뒤 ~ 1 앞
+  const ratio=1+(nearW/farW-1)*CHEF_PERSPECTIVE.amount;
+  return Math.pow(ratio,t-(CHEF_PERSPECTIVE.pivot??0.5));
+}
+
+
+/* ------------------------------------------------------------
    4. 애니메이션 키 조립
    ------------------------------------------------------------
    carrying 여부로 if 를 12개 쓰지 않도록 베이스 키를 한 번만 조립합니다.

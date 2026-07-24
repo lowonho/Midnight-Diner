@@ -41,12 +41,13 @@ if(document.readyState==="loading"){
 
 // 낮/밤이 시작될 때 서 있는 자리. day.js / night.js 도 이 값을 씁니다.
 //
-// speed = 논리 좌표 기준 초당 이동 거리. 205 → 280 으로 올렸습니다.
-// 주방 가로 폭(논리 235~1030)을 가로지르는 데 약 3.9초 → 약 2.8초 걸립니다.
-// [주의] 이 값만 올리면 걷기 모션이 그대로라 발이 미끄러져 보입니다.
+// speed = 논리 좌표 기준 초당 이동 거리. 205 → 280 → 360 → 306 으로 조정했습니다.
+// (360 이 조금 빨라서 15% 줄인 값입니다)
+// 주방을 가로지르는 데 약 2.6초 걸립니다.
+// [주의] 이 값만 바꾸면 걷기 모션이 그대로라 발이 미끄러져 보입니다.
 //        chef-anim-table.js 의 walk / walk_carry fps 를 같은 비율로 맞춰 두세요.
-//        (지금은 speed 280 ↔ fps 16 조합입니다)
-const PLAYER_START = { x:620, y:448, facing:"down", speed:280 };
+//        비율은 fps = speed × 0.0583 입니다. (지금은 speed 306 ↔ fps 18 조합)
+const PLAYER_START = { x:620, y:448, facing:"down", speed:306 };
 
 // 요리사가 걸어다닐 수 있는 범위.
 //   bottom 486 = 카운터 바 테이블 상판(논리 y 500)보다 위.
@@ -148,8 +149,8 @@ function updatePlayer(dt){
 
 function movePlayer(dx,dy){
   const p=state.player;
-  p.x=clamp(p.x+dx,WALK_BOUNDS.left,WALK_BOUNDS.right);
-  p.y=clamp(p.y+dy,WALK_BOUNDS.top,WALK_BOUNDS.bottom);
+  p.x+=dx; p.y+=dy;
+  clampChefToWalkArea(p);   // chef-walk-area.js — 사다리꼴 영역으로 잘라냅니다
   p.moving=true;
   if(Math.abs(dx)>Math.abs(dy))p.facing=dx>0?"right":"left";
   else p.facing=dy>0?"down":"up";
@@ -190,7 +191,9 @@ function syncPhaserObjects(){
   if(animKey) playerSprite.play(animKey,true);
   // 시트마다 캐릭터 키가 달라서 방향·모션별로 배율을 맞춰 줍니다. (chef-anims.js)
   // 이걸 빼면 걷다 멈출 때, 방향을 바꿀 때 캐릭터 크기가 튑니다.
-  playerSprite.setScale(chefAnimScale(animKey));
+  // 거기에 원근 보정을 곱합니다 — 앞으로 나올수록 커집니다.
+  // origin 이 발바닥이라 배율이 변해도 발은 제자리에 붙어 있습니다.
+  playerSprite.setScale(chefAnimScale(animKey)*chefPerspectiveScale(toView(p.y)));
 
   const held=state.carrying;
   carriedPlate.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));
