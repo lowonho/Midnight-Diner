@@ -423,13 +423,13 @@
 
 /* Day 3 · 볶음우동 채칼 */
 .mandoline-scene { position:relative; width:min(430px,100%); height:190px; overflow:hidden; border:2px solid #6f472c; border-radius:16px; background:linear-gradient(#d8c295 0 66%,#5a3825 67%); box-shadow:inset 0 0 24px rgba(44,25,14,.25); }
-.mandoline-board { position:absolute; z-index:2; left:50%; top:12px; width:112px; height:145px; border:5px solid #735034; border-radius:13px; background:linear-gradient(90deg,#e5d2a9,#b99361 48%,#e1c99c); transform:translateX(-50%) rotate(8deg); box-shadow:0 7px 9px rgba(0,0,0,.32); }
-.mandoline-blade { position:absolute; left:7px; right:7px; top:72px; height:13px; border-block:3px solid #6f7371; background:linear-gradient(#f6f8f4,#a8aeaa); transform:rotate(-3deg); }
-.mandoline-ingredient { position:absolute; z-index:4; left:50%; top:42px; width:82px; height:60px; transform:translateX(-50%); transition:transform .08s; }
+.mandoline-board { position:absolute; z-index:2; left:50%; top:38px; width:270px; height:92px; border:5px solid #735034; border-radius:13px; background:linear-gradient(#e5d2a9,#b99361 48%,#e1c99c); transform:translateX(-50%) rotate(-3deg); box-shadow:0 7px 9px rgba(0,0,0,.32); }
+.mandoline-blade { position:absolute; top:7px; bottom:7px; left:126px; width:14px; border-inline:3px solid #6f7371; background:linear-gradient(90deg,#f6f8f4,#a8aeaa); transform:rotate(2deg); }
+.mandoline-ingredient { position:absolute; z-index:4; left:50%; top:53px; width:82px; height:60px; transform:translateX(-50%); transition:transform .08s; }
 .mandoline-ingredient.cabbage { border:4px solid #627f3f; border-radius:48% 44% 50% 42%; background:radial-gradient(circle at 37% 36%,#d9e8a7 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#9fbd67 0 8px,#7fa653 9px 14px); }
 .mandoline-ingredient.carrot { height:78px; border-radius:45% 45% 22% 22%; background:linear-gradient(90deg,#d86e26,#f49a3d 46%,#c95c20); transform:translateX(-50%) rotate(7deg); }
-.mandoline-ingredient.move-up { animation:mandoline-up .11s ease; }
-.mandoline-ingredient.move-down { animation:mandoline-down .11s ease; }
+.mandoline-ingredient.move-left { animation:mandoline-left .11s ease; }
+.mandoline-ingredient.move-right { animation:mandoline-right .11s ease; }
 .shredded-pile { position:absolute; z-index:3; left:50%; bottom:4px; width:230px; height:56px; transform:translateX(-50%); }
 .shredded-pile i { position:absolute; left:var(--shred-x); bottom:var(--shred-y); width:48px; height:5px; border-radius:5px; transform:rotate(var(--shred-turn)); animation:shred-drop .14s ease; }
 .shredded-pile.cabbage i { background:#b9d57e; }
@@ -499,8 +499,8 @@
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(95px) rotate(12deg) scale(.65); } }
 @keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(42px) rotate(38deg); } 100% { opacity:.25; transform:translateX(58px) translateY(24px) rotate(52deg); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(-18px) translateY(-50%); } 50% { opacity:1; transform:translateX(9px) translateY(-50%); } 100% { opacity:0; transform:translateX(16px) translateY(-50%); } }
-@keyframes mandoline-up { 50% { transform:translate(-50%,-25px) rotate(-4deg); } }
-@keyframes mandoline-down { 50% { transform:translate(-50%,30px) rotate(5deg); } }
+@keyframes mandoline-left { 50% { transform:translate(-125%,-3px) rotate(-5deg); } }
+@keyframes mandoline-right { 50% { transform:translate(25%,3px) rotate(5deg); } }
 @keyframes shred-drop { from { opacity:0; transform:translateY(-28px) rotate(-15deg); } to { opacity:1; } }
 @keyframes coat-wrong { 25% { transform:translateX(-8px); } 55% { transform:translateX(7px); } 80% { transform:translateX(-4px); } }
 

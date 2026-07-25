@@ -372,9 +372,9 @@ function placeSkewerPiece(pieceIndex,slotIndex){
 function setupDay3Mandoline(taskId){
   const m=state.mini,config=DAY3_MANDOLINE_CONFIG[taskId];
   if(Number(state.day)!==3||!config)return;
-  m.data={mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,successInputs:0,totalInputs:config.cycles*2,expected:"up"};
+  m.data={mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,successInputs:0,totalInputs:config.cycles*2,expected:"left"};
   dom.miniTitle.textContent=`볶음우동 · ${config.label} 채썰기`;
-  dom.miniDescription.textContent=`↑와 ↓를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
+  dom.miniDescription.textContent=`←와 →를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
   renderDay3Mandoline();
 }
 
@@ -387,7 +387,7 @@ function renderDay3Mandoline(){
       <div class="mandoline-ingredient ${data.ingredient}" id="mandolineIngredient"><i></i></div>
       <div class="shredded-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${Array.from({length:data.successInputs},(_,index)=>`<i style="--shred-x:${14+(index%7)*11}%;--shred-y:${(index%3)*7}px;--shred-turn:${-18+(index%5)*9}deg"></i>`).join("")}</div>
     </div>
-    <div class="mandoline-key-guide"><button type="button" data-mandoline-direction="up" class="${data.expected==="up"?"expected":""}">↑</button><span>번갈아</span><button type="button" data-mandoline-direction="down" class="${data.expected==="down"?"expected":""}">↓</button></div>
+    <div class="mandoline-key-guide"><button type="button" data-mandoline-direction="left" class="${data.expected==="left"?"expected":""}">←</button><span>번갈아</span><button type="button" data-mandoline-direction="right" class="${data.expected==="right"?"expected":""}">→</button></div>
     <div class="cut-count" id="mandolineProgress">${data.label} · 왕복 ${completedCycles} / ${data.cycles}</div>`;
   dom.miniContent.querySelectorAll("[data-mandoline-direction]").forEach(button=>button.addEventListener("click",()=>day3MandolineInput(button.dataset.mandolineDirection)));
 }
@@ -395,10 +395,10 @@ function renderDay3Mandoline(){
 function day3MandolineInput(direction){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="day3Mandoline")return false;
   const data=m.data;
-  if(direction!==data.expected){dom.miniFeedback.textContent=`지금은 ${data.expected==="up"?"↑":"↓"} 차례입니다.`;return false;}
-  data.successInputs++;data.expected=direction==="up"?"down":"up";audio.click();
+  if(direction!==data.expected){dom.miniFeedback.textContent=`지금은 ${data.expected==="left"?"←":"→"} 차례입니다.`;return false;}
+  data.successInputs++;data.expected=direction==="left"?"right":"left";audio.click();
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
-  ingredient?.classList.remove("move-up","move-down");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(direction==="up"?"move-up":"move-down");}
+  ingredient?.classList.remove("move-left","move-right");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(direction==="left"?"move-left":"move-right");}
   if(data.successInputs>=data.totalInputs){
     if(data.taskId==="sliceYakisobaCabbage"){
       completeDayPrepTask("sliceYakisobaCabbage");

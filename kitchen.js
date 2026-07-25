@@ -45,7 +45,8 @@ const STATION_REACH = 40;
 
 function nearestStation(){
   let best=null, bestD=999;
-  Object.values(STATIONS).forEach(s=>{
+  const counterStations=typeof FRONT_STATIONS!=="undefined"&&FRONT_STATIONS.griddle?[FRONT_STATIONS.griddle]:[];
+  [...Object.values(STATIONS),...counterStations].forEach(s=>{
     const d=distance(state.player.x,state.player.y,s.ix,s.iy);
     if(d<bestD){best=s;bestD=d;}
   });
