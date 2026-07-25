@@ -29,8 +29,12 @@ function selectedPrepTasks(){
   return selectedPrepTasksForChecklist().filter(task=>task.isImplemented);
 }
 
+function prepTaskAvailableToday(task){
+  return !!task&&(!task.dayOnly||Number(task.dayOnly)===Number(state.day));
+}
+
 function selectedPrepTasksForChecklist(){
-  const tasks=selectedDishes().flatMap(dish=>(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(Boolean));
+  const tasks=selectedDishes().flatMap(dish=>(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(prepTaskAvailableToday));
   return [...new Map(tasks.map(task=>[task.id,task])).values()].sort((a,b)=>(a.prepOrder??999)-(b.prepOrder??999));
 }
 
@@ -104,6 +108,7 @@ function prepComplete(){
 function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
+  if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
   if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
   const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!state.prepProgress[item.id]);
   if(dependency){showToast(`먼저 ${dependency.label} 작업을 완료하세요.`,true);return;}
@@ -121,13 +126,14 @@ function completeDayPrepTask(taskId){
   if(!task||state.prepProgress[taskId])return;
   state.prepProgress[taskId]=true;
   selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
-    const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented);
+    const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented&&prepTaskAvailableToday(item));
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
       // 기존 영업·주문·정산 호환용 내부 준비 수량이며 준비 화면에는 노출하지 않습니다.
       const prepYield=Math.max(1,Math.floor(Number(dish.prepYield)||3));
       state.inventory[dish.id]={count:prepYield,quality:100};
     }
   });
+  if(Number(state.day)===3&&prepComplete())showToast("Day 3 준비 완료 · 영업을 시작할 수 있습니다.");
   updateUI(true);saveGame();
 }
 
@@ -136,7 +142,12 @@ function renderPrepChecklist(){
   const signature=`prep|${state.selectedMenus.join(",")}|${tasks.map(task=>Number(!!state.prepProgress[task.id])).join("")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
-  dom.inventoryList.innerHTML=`<div class="prep-checklist">${tasks.map((task,index)=>{
+  const day3Progress=Number(state.day)===3?(()=>{
+    const yakisoba=tasks.filter(task=>task.menuId==="yakisoba"),shrimp=tasks.filter(task=>task.menuId==="shrimpTempura");
+    const count=items=>items.filter(task=>state.prepProgress[task.id]).length;
+    return `<div class="day3-prep-progress"><strong>Day 3 준비 진행도</strong><span>볶음우동 <b>${count(yakisoba)}/${yakisoba.length}</b></span><span>새우튀김 <b>${count(shrimp)}/${shrimp.length}</b></span><span class="overall">전체 준비 <b>${count(tasks)}/${tasks.length}</b></span></div>`;
+  })():"";
+  dom.inventoryList.innerHTML=`<div class="prep-checklist">${day3Progress}${tasks.map((task,index)=>{
     const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];
     return `<div class="prep-task-row ${done?"done":task.isImplemented?"":"disabled"}"><span>${index+1}</span><strong>${dish?.name||task.menuId}</strong><div>${done?"☑":task.isImplemented?"☐":"–"} ${task.label}</div></div>`;
   }).join("")}<div class="prep-total">준비 완료 ${actionable.filter(task=>state.prepProgress[task.id]).length} / ${actionable.length}</div></div>`;

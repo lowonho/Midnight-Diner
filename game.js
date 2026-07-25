@@ -723,7 +723,7 @@ function updateUI(force=false) {
   dom.phaseName.textContent=phaseLabels[state.phase]||"영업 준비";
   dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase===GAME_PHASES.PREP?"준비":"남은 시간";dom.timeText.textContent=state.phase===GAME_PHASES.PREP?"제한 없음":state.phase===GAME_PHASES.OPEN?formatTime(state.phaseTime):"-";dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
   dom.phaseBadge.textContent=state.phase===GAME_PHASES.PREP?"준비":state.phase===GAME_PHASES.OPEN?"영업 중":state.phase===GAME_PHASES.MENU_SELECT?"선택":"정산";dom.leftTitle.textContent=state.phase===GAME_PHASES.PREP?"오늘의 준비":"현재 주문";
-  dom.phaseButton.style.display=state.phase===GAME_PHASES.PREP?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase===GAME_PHASES.PREP&&(!prepComplete()||!!state.mini);
+  dom.phaseButton.style.display=state.phase===GAME_PHASES.PREP?"block":"none";dom.phaseButton.textContent=Number(state.day)===3&&prepComplete()?"Day 3 준비 완료 · 영업 시작":"영업 시작";dom.phaseButton.disabled=state.phase===GAME_PHASES.PREP&&(!prepComplete()||!!state.mini);
   dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
@@ -819,6 +819,8 @@ window.addEventListener("keydown",e=>{
   if(state.mini){
     if(isDayPrepMini(state.mini)){
       if(k==="escape")closeDayPrepMini();
+      else if(state.mini.data.mode==="day3Mandoline"&&(k==="arrowup"||k==="arrowdown"))day3MandolineInput(k.replace("arrow",""));
+      else if(state.mini.data.mode==="breadcrumbCoat"&&/^[a-z]$/.test(k))breadcrumbCoatInput(k);
       else if(e.code==="Space"){
         if(e.repeat&&state.mini.data.requiresDoubleTap)return;
         dayPrepPrimaryAction();

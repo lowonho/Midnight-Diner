@@ -421,6 +421,75 @@
 .fry-work-area.toss-right { animation: prep-toss-right .16s ease; }
 .prep-complete-flash { filter: brightness(1.12); }
 
+/* Day 3 · 볶음우동 채칼 */
+.mandoline-scene { position:relative; width:min(430px,100%); height:190px; overflow:hidden; border:2px solid #6f472c; border-radius:16px; background:linear-gradient(#d8c295 0 66%,#5a3825 67%); box-shadow:inset 0 0 24px rgba(44,25,14,.25); }
+.mandoline-board { position:absolute; z-index:2; left:50%; top:12px; width:112px; height:145px; border:5px solid #735034; border-radius:13px; background:linear-gradient(90deg,#e5d2a9,#b99361 48%,#e1c99c); transform:translateX(-50%) rotate(8deg); box-shadow:0 7px 9px rgba(0,0,0,.32); }
+.mandoline-blade { position:absolute; left:7px; right:7px; top:72px; height:13px; border-block:3px solid #6f7371; background:linear-gradient(#f6f8f4,#a8aeaa); transform:rotate(-3deg); }
+.mandoline-ingredient { position:absolute; z-index:4; left:50%; top:42px; width:82px; height:60px; transform:translateX(-50%); transition:transform .08s; }
+.mandoline-ingredient.cabbage { border:4px solid #627f3f; border-radius:48% 44% 50% 42%; background:radial-gradient(circle at 37% 36%,#d9e8a7 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#9fbd67 0 8px,#7fa653 9px 14px); }
+.mandoline-ingredient.carrot { height:78px; border-radius:45% 45% 22% 22%; background:linear-gradient(90deg,#d86e26,#f49a3d 46%,#c95c20); transform:translateX(-50%) rotate(7deg); }
+.mandoline-ingredient.move-up { animation:mandoline-up .11s ease; }
+.mandoline-ingredient.move-down { animation:mandoline-down .11s ease; }
+.shredded-pile { position:absolute; z-index:3; left:50%; bottom:4px; width:230px; height:56px; transform:translateX(-50%); }
+.shredded-pile i { position:absolute; left:var(--shred-x); bottom:var(--shred-y); width:48px; height:5px; border-radius:5px; transform:rotate(var(--shred-turn)); animation:shred-drop .14s ease; }
+.shredded-pile.cabbage i { background:#b9d57e; }
+.shredded-pile.carrot i { background:#f09a42; }
+.mandoline-key-guide { display:flex; align-items:center; justify-content:center; gap:12px; }
+.mandoline-key-guide button { width:62px; height:48px; border:2px solid #765033; border-radius:9px; background:#2b1a11; color:#d4b47d; font-size:28px; font-weight:900; }
+.mandoline-key-guide button.expected { border-color:#ffe08d; background:#c27b3b; color:#27160d; box-shadow:0 0 12px rgba(255,224,141,.36); }
+.mandoline-key-guide span { color:#c7a875; font-size:12px; font-weight:800; }
+
+/* Day 3 · 볶음우동 소스 */
+.sauce-recipe { width:100%; display:grid; grid-template-columns:1.5fr repeat(3,1fr); gap:5px; align-items:center; padding:8px 10px; border:2px solid #80512e; border-radius:9px; background:#20120c; color:#ead0a0; font-size:12px; }
+.sauce-recipe strong { color:#ffe09a; }
+.yakisoba-sauce-work { width:100%; display:grid; grid-template-columns:1fr 130px; align-items:end; gap:14px; }
+.sauce-bottles { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.sauce-bottle { min-height:100px; padding:7px 4px; border:2px solid #7b4e2e; border-radius:13px 13px 8px 8px; background:#d8b67e; color:#302016; cursor:pointer; }
+.sauce-bottle i { display:block; width:42px; height:54px; margin:0 auto 5px; border:3px solid #482b1c; border-radius:7px 7px 14px 14px; background:#744027; box-shadow:inset 7px 0 rgba(255,255,255,.12); }
+.sauce-bottle.oyster i { background:#4c3328; }
+.sauce-bottle.chili i { background:#b94425; }
+.sauce-bottle strong,.sauce-bottle small { display:block; }
+.sauce-mixing-bowl { position:relative; height:95px; overflow:hidden; border:7px solid #88765e; border-top-width:4px; border-radius:12px 12px 55px 55px; background:#c8b38f; text-align:center; box-shadow:0 7px 8px rgba(0,0,0,.3); }
+.sauce-mixing-bowl i { position:absolute; left:5px; right:5px; bottom:4px; height:var(--sauce-height); border-radius:8px 8px 45px 45px; background:linear-gradient(#a8512b,#5e281d); transition:height .16s; }
+.sauce-mixing-bowl span { position:relative; z-index:2; top:30px; color:#fff0c2; font-weight:900; text-shadow:0 2px #4d281b; }
+.sauce-measure-list { width:100%; display:grid; gap:5px; }
+.sauce-measure { display:grid; grid-template-columns:20px 1fr auto auto; align-items:center; gap:6px; min-height:28px; padding:4px 7px; border:1px solid #69462e; border-radius:7px; background:#24150e; color:#d9bd8e; }
+.sauce-measure.exact { border-color:#789a51; color:#cce3a0; }
+.sauce-measure.over { border-color:#bd5c46; background:#351812; color:#ffb49a; }
+.sauce-measure button { padding:4px 7px; border:1px solid #d17a58; border-radius:5px; background:#6c3024; color:#ffe0ca; cursor:pointer; font-size:11px; font-weight:800; }
+
+/* Day 3 · 새우 튀김옷 */
+.shrimp-coat-order { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; color:#a9906f; }
+.shrimp-coat-order span { padding:5px 8px; border:1px solid #735037; border-radius:7px; background:#24160f; font-weight:800; }
+.shrimp-coat-order span.current { border-color:#ffe08d; color:#ffe09a; }
+.shrimp-coat-order span.done { border-color:#789a51; color:#bcd88b; }
+.prep-shrimp,.breadcrumb-shrimp { position:relative; width:126px; height:69px; border:0; background:transparent; cursor:grab; }
+.prep-shrimp::before,.breadcrumb-shrimp::before { content:""; position:absolute; left:17px; top:9px; width:72px; height:43px; border:12px solid #e99876; border-left-color:transparent; border-radius:50%; transform:rotate(12deg); }
+.prep-shrimp::after,.breadcrumb-shrimp::after { content:""; position:absolute; right:10px; top:29px; border-block:14px solid transparent; border-left:25px solid #dc8268; transform:rotate(-8deg); }
+.prep-shrimp i,.breadcrumb-shrimp i { position:absolute; z-index:2; left:15px; top:7px; width:13px; height:13px; border-radius:50%; background:#352019; }
+.prep-shrimp.selected { filter:drop-shadow(0 0 8px #ffe08d); transform:translateY(-4px); }
+.prep-shrimp.coat-1::before { border-color:#e4d4af;border-left-color:transparent; }
+.prep-shrimp.coat-2::before { border-color:#f0c75d;border-left-color:transparent; }
+.shrimp-coat-containers { width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+.coat-container { min-height:92px; border:3px solid #806044; border-radius:15px 15px 32px 32px; background:#bd9f78; color:#39251a; cursor:pointer; font-weight:900; }
+.coat-container i { display:block; width:70%; height:36px; margin:0 auto 7px; border-radius:50%; background:#eee0bc; box-shadow:inset 0 -9px rgba(116,79,43,.12); }
+.coat-container.egg i { background:#efbd4f; }
+.coat-container.breadcrumbs i { background:radial-gradient(circle,#8f6236 0 2px,transparent 3px),#dfbd79; background-size:10px 9px; }
+.coat-container.wrong { animation:coat-wrong .3s ease; border-color:#c55243; }
+
+/* Day 3 · 빵가루 교차 입력 */
+.breadcrumb-key-pair { display:flex; align-items:center; justify-content:center; gap:18px; }
+.breadcrumb-key-pair button { width:88px; height:72px; border:3px solid #745038; border-radius:13px; background:#281810; color:#d6b885; font-size:38px; font-weight:900; }
+.breadcrumb-key-pair button.expected { border-color:#ffe08d; background:#c67d3a; color:#28170d; box-shadow:0 0 15px rgba(255,224,141,.34); }
+.breadcrumb-key-pair span { color:#d0ad72; font-size:26px; }
+.breadcrumb-shrimp { width:170px; height:90px; cursor:default; transition:filter .15s; }
+.breadcrumb-shrimp.stage-1 { filter:sepia(.25) brightness(1.05); }
+.breadcrumb-shrimp.stage-2 { filter:sepia(.55) saturate(.85) brightness(1.1); }
+.breadcrumb-shrimp.stage-3 { filter:sepia(.8) saturate(.75) brightness(1.2); }
+.breadcrumb-shrimp b { position:absolute; z-index:4; left:var(--crumb-x); top:var(--crumb-y); width:7px; height:5px; border-radius:50%; background:#e3bd71; transform:rotate(var(--crumb-turn)); }
+.breadcrumb-progress { width:100%; height:22px; overflow:hidden; border:2px solid #785033; border-radius:8px; background:#1d110b; }
+.breadcrumb-progress i { display:block; height:100%; background:linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition:width .12s; }
+
 @keyframes prep-slice-hit { 50% { transform: translateX(5px) rotate(.8deg); } }
 @keyframes tough-second-tap { from { transform:scale(1); } to { transform:scale(1.08); } }
 @keyframes prep-knife-hit { 0% { opacity: 0; transform: translateY(-18px) rotate(15deg); } 50% { opacity: 1; transform: translateY(9px) rotate(8deg); } 100% { opacity: 0; transform: translateY(16px) rotate(8deg); } }
@@ -430,6 +499,10 @@
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(95px) rotate(12deg) scale(.65); } }
 @keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(42px) rotate(38deg); } 100% { opacity:.25; transform:translateX(58px) translateY(24px) rotate(52deg); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(-18px) translateY(-50%); } 50% { opacity:1; transform:translateX(9px) translateY(-50%); } 100% { opacity:0; transform:translateX(16px) translateY(-50%); } }
+@keyframes mandoline-up { 50% { transform:translate(-50%,-25px) rotate(-4deg); } }
+@keyframes mandoline-down { 50% { transform:translate(-50%,30px) rotate(5deg); } }
+@keyframes shred-drop { from { opacity:0; transform:translateY(-28px) rotate(-15deg); } to { opacity:1; } }
+@keyframes coat-wrong { 25% { transform:translateX(-8px); } 55% { transform:translateX(7px); } 80% { transform:translateX(-4px); } }
 
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: 58px; }
@@ -445,4 +518,10 @@
   .mixing-bowl { margin: 0 auto; }
   .skewer-sources { flex-wrap: wrap; }
   .skewer-slot { width: 52px; }
+  .sauce-recipe { grid-template-columns:1fr; text-align:center; }
+  .yakisoba-sauce-work { grid-template-columns:1fr; }
+  .sauce-mixing-bowl { width:130px; margin:0 auto; }
+  .shrimp-coat-order { gap:3px; font-size:10px; }
+  .shrimp-coat-order span { padding:4px; }
+  .breadcrumb-key-pair button { width:70px; height:60px; }
 }

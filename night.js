@@ -25,6 +25,9 @@ function orderableDishes(){
 function hasOrderableStock(){return orderableDishes().length>0;}
 
 function beginNight() {
+  if(Number(state.day)===3&&state.phase===GAME_PHASES.PREP&&!prepComplete()){
+    showToast("Day 3의 준비 작업 5개를 모두 완료해야 영업을 시작할 수 있습니다.",true);return;
+  }
   const total=Object.values(state.inventory).reduce((sum,item)=>sum+item.count,0);
   if(state.prepRun){showToast("진행 중인 음식 준비를 먼저 마쳐주세요.",true);return;}
   if(total===0){showToast("먼저 한 가지 이상의 메뉴를 준비하세요.",true);return;}

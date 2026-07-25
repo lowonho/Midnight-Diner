@@ -12,6 +12,12 @@ const DAY_PREP_MINI_CONFIG = {
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
 
+const DAY3_MANDOLINE_CONFIG=Object.freeze({
+  sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:6},
+  sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:5}
+});
+const BREADCRUMB_KEY_PAIRS=Object.freeze([["a","d"],["q","e"],["f","j"],["z","c"],["j","l"]]);
+
 // 아래 경로에 파일을 추가하면 CSS 프로토타입 대신 자동으로 이미지가 사용됩니다.
 // 누락된 선택 에셋은 로딩 실패로 취급하지 않고 기존 CSS 도형으로 대체합니다.
 const DAY_PREP_ASSET_PATHS = Object.freeze({
@@ -71,6 +77,7 @@ function isDayPrepMini(mini=state.mini){
 }
 
 function startDayPrepMini(task){
+  if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
   state.mini={
     type:`day-prep-${task.id}`,
     stationId:"prepTable",
@@ -89,6 +96,10 @@ function startDayPrepMini(task){
   else if(task.miniGame==="kimchiFry")setupKimchiFry(task.id);
   else if(task.miniGame==="batter")setupKimchiBatter();
   else if(task.miniGame==="skewer")setupChickenSkewer();
+  else if(task.miniGame==="mandoline")setupDay3Mandoline(task.id);
+  else if(task.miniGame==="yakisobaSauce")setupYakisobaSauce();
+  else if(task.miniGame==="shrimpCoat")setupShrimpCoat();
+  else if(task.miniGame==="breadcrumbCoat")setupBreadcrumbCoat();
 }
 
 function setupDayPrepTiming(taskId){
@@ -356,6 +367,174 @@ function placeSkewerPiece(pieceIndex,slotIndex){
     dom.miniFeedback.textContent=`${data.completedSkewers}개 완성! 다음 꼬치를 같은 순서로 꽂으세요.`;
   }
   renderChickenSkewer();
+}
+
+function setupDay3Mandoline(taskId){
+  const m=state.mini,config=DAY3_MANDOLINE_CONFIG[taskId];
+  if(Number(state.day)!==3||!config)return;
+  m.data={mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,successInputs:0,totalInputs:config.cycles*2,expected:"up"};
+  dom.miniTitle.textContent=`볶음우동 · ${config.label} 채썰기`;
+  dom.miniDescription.textContent=`↑와 ↓를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
+  renderDay3Mandoline();
+}
+
+function renderDay3Mandoline(){
+  const data=state.mini.data,completedCycles=Math.floor(data.successInputs/2);
+  dom.miniTimer.textContent=`왕복 ${completedCycles} / ${data.cycles}`;
+  dom.miniContent.innerHTML=`
+    <div class="mandoline-scene ${data.ingredient}" id="mandolineScene">
+      <div class="mandoline-board"><i class="mandoline-blade"></i></div>
+      <div class="mandoline-ingredient ${data.ingredient}" id="mandolineIngredient"><i></i></div>
+      <div class="shredded-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${Array.from({length:data.successInputs},(_,index)=>`<i style="--shred-x:${14+(index%7)*11}%;--shred-y:${(index%3)*7}px;--shred-turn:${-18+(index%5)*9}deg"></i>`).join("")}</div>
+    </div>
+    <div class="mandoline-key-guide"><button type="button" data-mandoline-direction="up" class="${data.expected==="up"?"expected":""}">↑</button><span>번갈아</span><button type="button" data-mandoline-direction="down" class="${data.expected==="down"?"expected":""}">↓</button></div>
+    <div class="cut-count" id="mandolineProgress">${data.label} · 왕복 ${completedCycles} / ${data.cycles}</div>`;
+  dom.miniContent.querySelectorAll("[data-mandoline-direction]").forEach(button=>button.addEventListener("click",()=>day3MandolineInput(button.dataset.mandolineDirection)));
+}
+
+function day3MandolineInput(direction){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="day3Mandoline")return false;
+  const data=m.data;
+  if(direction!==data.expected){dom.miniFeedback.textContent=`지금은 ${data.expected==="up"?"↑":"↓"} 차례입니다.`;return false;}
+  data.successInputs++;data.expected=direction==="up"?"down":"up";audio.click();
+  const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
+  ingredient?.classList.remove("move-up","move-down");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(direction==="up"?"move-up":"move-down");}
+  if(data.successInputs>=data.totalInputs){
+    if(data.taskId==="sliceYakisobaCabbage"){
+      completeDayPrepTask("sliceYakisobaCabbage");
+      dom.miniTimer.textContent="완료";dom.miniFeedback.textContent="양배추 채썰기 완료 · 당근으로 전환합니다.";
+      dom.miniContent.classList.add("prep-complete-flash");
+      setTimeout(()=>{if(state.mini===m&&!m.complete){dom.miniContent.classList.remove("prep-complete-flash");setupDay3Mandoline("sliceYakisobaCarrot");}},420);
+    }else finishDayPrepTask("sliceYakisobaCarrot","볶음우동 채소 손질 완료");
+    return true;
+  }
+  setTimeout(()=>{if(state.mini===m&&!m.complete&&m.data===data)renderDay3Mandoline();},110);
+  return true;
+}
+
+function setupYakisobaSauce(){
+  const m=state.mini;if(Number(state.day)!==3)return;
+  m.data={mode:"yakisobaSauce",finishing:false,sauces:[
+    {id:"soy",label:"간장",target:200,step:50,amount:0},
+    {id:"oyster",label:"굴소스",target:100,step:25,amount:0},
+    {id:"chili",label:"고추기름",target:30,step:10,amount:0}
+  ]};
+  dom.miniTitle.textContent="볶음우동 · 소스 제조";
+  dom.miniDescription.textContent="레시피와 정확히 같은 양이 되도록 소스통을 클릭하세요. 초과한 소스는 한 번씩 덜어낼 수 있습니다.";
+  renderYakisobaSauce();
+}
+
+function renderYakisobaSauce(){
+  const data=state.mini.data,totalRatio=data.sauces.reduce((sum,item)=>sum+Math.min(item.amount/item.target,1),0)/data.sauces.length;
+  dom.miniTimer.textContent=`${data.sauces.filter(item=>item.amount===item.target).length} / 3`;
+  dom.miniContent.innerHTML=`
+    <div class="sauce-recipe"><strong>볶음우동 소스 레시피</strong>${data.sauces.map(item=>`<span>${item.label} ${item.target}g</span>`).join("")}</div>
+    <div class="yakisoba-sauce-work">
+      <div class="sauce-bottles">${data.sauces.map(item=>`<button type="button" class="sauce-bottle ${item.id}" data-sauce-id="${item.id}" ${data.finishing?"disabled":""}><i></i><strong>${item.label}</strong><small>+${item.step}g</small></button>`).join("")}</div>
+      <div class="sauce-mixing-bowl" style="--sauce-height:${Math.round(totalRatio*65)}%"><i></i><span>소스볼</span></div>
+    </div>
+    <div class="sauce-measure-list">${data.sauces.map(item=>{
+      const status=item.amount===item.target?"exact":item.amount>item.target?"over":"under";
+      return `<div class="sauce-measure ${status}"><span>${item.amount===item.target?"✓":item.amount>item.target?"!":"○"}</span><strong>${item.label}</strong><b>${item.amount} / ${item.target}g</b>${item.amount>item.target?`<button type="button" data-sauce-undo="${item.id}">한 번 덜어내기</button>`:""}</div>`;
+    }).join("")}</div>`;
+  dom.miniContent.querySelectorAll("[data-sauce-id]").forEach(button=>button.addEventListener("click",()=>addYakisobaSauce(button.dataset.sauceId)));
+  dom.miniContent.querySelectorAll("[data-sauce-undo]").forEach(button=>button.addEventListener("click",()=>undoYakisobaSauce(button.dataset.sauceUndo)));
+}
+
+function addYakisobaSauce(id){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="yakisobaSauce"||m.data.finishing)return;
+  const sauce=m.data.sauces.find(item=>item.id===id);if(!sauce)return;
+  sauce.amount+=sauce.step;audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 투입`;
+  checkYakisobaSauceComplete(m);
+}
+
+function undoYakisobaSauce(id){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="yakisobaSauce"||m.data.finishing)return;
+  const sauce=m.data.sauces.find(item=>item.id===id);if(!sauce||sauce.amount<=sauce.target)return;
+  sauce.amount=Math.max(0,sauce.amount-sauce.step);audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 덜어냈습니다.`;
+  checkYakisobaSauceComplete(m);
+}
+
+function checkYakisobaSauceComplete(m){
+  const complete=m.data.sauces.every(item=>item.amount===item.target);
+  if(complete)m.data.finishing=true;
+  renderYakisobaSauce();
+  if(complete){
+    dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";audio.success();
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("mixYakisobaSauce","볶음우동 소스 제조 완료");},360);
+  }
+}
+
+function setupShrimpCoat(){
+  const m=state.mini;if(Number(state.day)!==3)return;
+  m.data={mode:"shrimpCoat",step:0,selectedShrimp:false,sequence:[
+    {id:"flour",label:"밀가루"},{id:"egg",label:"계란물"},{id:"breadcrumbs",label:"빵가루"}
+  ]};
+  dom.miniTitle.textContent="새우튀김 · 튀김옷 입히기";
+  dom.miniDescription.textContent="새우를 밀가루 → 계란물 → 빵가루 순서로 옮기세요. 새우를 드래그하거나 용기를 클릭할 수 있습니다.";
+  renderShrimpCoat();
+}
+
+function renderShrimpCoat(){
+  const data=state.mini.data,current=data.sequence[data.step];
+  dom.miniTimer.textContent=`${data.step} / ${data.sequence.length}`;
+  dom.miniContent.innerHTML=`
+    <div class="shrimp-coat-order">${data.sequence.map((item,index)=>`<span class="${index<data.step?"done":index===data.step?"current":""}">${index<data.step?"✓ ":""}${item.label}</span>`).join("<b>→</b>")}</div>
+    <button type="button" draggable="true" class="prep-shrimp coat-${data.step} ${data.selectedShrimp?"selected":""}" id="prepShrimp" aria-label="튀김옷을 입힐 새우"><i></i></button>
+    <div class="shrimp-coat-containers">${data.sequence.map(item=>`<button type="button" class="coat-container ${item.id}" data-coat-id="${item.id}"><i></i><strong>${item.label}</strong></button>`).join("")}</div>
+    <div class="cut-count">다음 순서 · ${current?.label||"빵가루 코팅"}</div>`;
+  const shrimp=dom.miniContent.querySelector("#prepShrimp");
+  shrimp.addEventListener("click",()=>{data.selectedShrimp=!data.selectedShrimp;shrimp.classList.toggle("selected",data.selectedShrimp);dom.miniFeedback.textContent=data.selectedShrimp?"새우를 선택했습니다. 다음 용기를 누르세요.":"새우 선택을 해제했습니다.";});
+  shrimp.addEventListener("dragstart",event=>{event.dataTransfer.setData("text/plain","shrimp");event.dataTransfer.effectAllowed="move";});
+  dom.miniContent.querySelectorAll("[data-coat-id]").forEach(container=>{
+    container.addEventListener("click",()=>applyShrimpCoat(container.dataset.coatId,container));
+    container.addEventListener("dragover",event=>event.preventDefault());
+    container.addEventListener("drop",event=>{event.preventDefault();applyShrimpCoat(container.dataset.coatId,container);});
+  });
+}
+
+function applyShrimpCoat(coatId,container){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return;
+  const data=m.data,expected=data.sequence[data.step];
+  if(coatId!==expected.id){
+    container?.classList.remove("wrong");if(container){void container.offsetWidth;container.classList.add("wrong");setTimeout(()=>container.classList.remove("wrong"),300);}
+    dom.miniFeedback.textContent=`순서가 달라요. 지금은 ${expected.label} 차례입니다.`;audio.bad();return;
+  }
+  data.step++;data.selectedShrimp=false;audio.click();dom.miniFeedback.textContent=`${expected.label} 입히기 완료`;
+  if(data.step>=data.sequence.length){
+    completeDayPrepTask("coatShrimpBatter");
+    dom.miniFeedback.textContent="기본 튀김옷 완료 · 빵가루를 고르게 코팅합니다.";
+    setTimeout(()=>{if(state.mini===m&&!m.complete)setupBreadcrumbCoat();},420);
+  }else renderShrimpCoat();
+}
+
+function setupBreadcrumbCoat(){
+  const m=state.mini;if(Number(state.day)!==3)return;
+  const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
+  m.data={mode:"breadcrumbCoat",keys:[...pair],expectedIndex:0,successes:0,total:14};
+  dom.miniTitle.textContent="새우튀김 · 빵가루 코팅";
+  dom.miniDescription.textContent="화면에 표시된 두 키를 번갈아 눌러 새우에 빵가루를 고르게 붙이세요.";
+  renderBreadcrumbCoat();
+}
+
+function renderBreadcrumbCoat(){
+  const data=state.mini.data,progress=Math.round(data.successes/data.total*100),stage=progress>=100?3:progress>=70?2:progress>=35?1:0;
+  dom.miniTimer.textContent=`${progress}%`;
+  dom.miniContent.innerHTML=`
+    <div class="breadcrumb-key-pair">${data.keys.map((key,index)=>`<button type="button" data-breadcrumb-key="${key}" class="${index===data.expectedIndex?"expected":""}">${key.toUpperCase()}</button>`).join("<span>↔</span>")}</div>
+    <div class="breadcrumb-shrimp stage-${stage}" id="breadcrumbShrimp"><i></i>${Array.from({length:Math.ceil(progress/7)},(_,index)=>`<b style="--crumb-x:${23+(index%7)*15}px;--crumb-y:${14+(index%4)*11}px;--crumb-turn:${index*19}deg"></b>`).join("")}</div>
+    <div class="breadcrumb-progress"><i style="width:${progress}%"></i></div>
+    <div class="cut-count">빵가루 코팅 ${progress}% · ${data.successes} / ${data.total}</div>`;
+  dom.miniContent.querySelectorAll("[data-breadcrumb-key]").forEach(button=>button.addEventListener("click",()=>breadcrumbCoatInput(button.dataset.breadcrumbKey)));
+}
+
+function breadcrumbCoatInput(key){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="breadcrumbCoat")return false;
+  const data=m.data,normalized=String(key).toLowerCase();
+  if(normalized!==data.keys[data.expectedIndex]){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
+  data.successes++;data.expectedIndex=data.expectedIndex===0?1:0;audio.click();
+  if(data.successes>=data.total){finishDayPrepTask("coatShrimpBreadcrumbs","새우튀김 빵가루 코팅 완료");return true;}
+  dom.miniFeedback.textContent="좋아요! 반대쪽 키를 누르세요.";renderBreadcrumbCoat();return true;
 }
 
 function dayPrepPrimaryAction(){
