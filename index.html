@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="css/minigames.css" />
   <link rel="stylesheet" href="css/day-prep-minigames.css" />
+  <link rel="stylesheet" href="css/menu-select.css" />
+  <link rel="stylesheet" href="css/qa-mode.css" />
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -39,6 +41,7 @@
         <p>낮에는 재료를 정성껏 준비하고, 밤에는 손님에게 맛있는 안주를 내어주세요.<br />새 게임을 시작하거나 마지막 자동 저장부터 이어서 플레이하세요.</p>
         <button id="startButton" class="gold-button title-start" type="button">새 게임</button>
         <button id="continueButton" class="gold-button title-start title-continue" type="button" disabled>이어하기</button>
+        <button id="qaModeButton" class="dark-button title-start qa-title-button" type="button">QA 모드</button><!-- QA_REMOVE -->
         <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
         <button id="titleSettingsButton" class="text-button" type="button">설정</button>
       </div>
@@ -100,6 +103,19 @@
 
           <button id="stationPrompt" class="station-prompt" type="button" aria-live="polite" disabled></button>
           <div id="toast" class="toast" aria-live="polite"></div>
+
+          <section id="menuSelectOverlay" class="overlay menu-select-overlay" role="dialog" aria-modal="true" aria-labelledby="menuSelectTitle">
+            <div class="menu-select-window wood-panel">
+              <p class="eyebrow">TODAY'S MENU</p>
+              <h2 id="menuSelectTitle">오늘의 메뉴 선택</h2>
+              <p id="menuSelectDescription" class="menu-select-description"></p>
+              <div id="menuSelectGrid" class="menu-select-grid"></div>
+              <div class="menu-select-footer">
+                <strong id="menuSelectCount">선택 0 / 0</strong>
+                <button id="menuSelectConfirm" class="gold-button" type="button">선택 완료</button>
+              </div>
+            </div>
+          </section>
 
           <div id="mobileControls" class="mobile-controls hidden-hud" aria-label="모바일 조작">
             <div id="joystick" class="joystick" aria-label="이동 조이스틱">
@@ -202,6 +218,7 @@
   <script src="player.js"></script>      <!-- 요리사 위치 · 이동 범위 · 스프라이트 -->
   <script src="chef-walk-area.js"></script> <!-- 요리사 이동 가능 영역(사다리꼴) · F1 디버그 -->
   <script src="customers.js"></script>   <!-- 손님 좌석 · 말풍선 -->
+  <script src="game-data.js"></script>   <!-- Day1~Day7 · 메뉴 · 상태 데이터 -->
   <script src="prep.js"></script>        <!-- 낮 준비물 -->
   <script src="fx.js"></script>          <!-- 파티클 · 팝업 · 안내 화살표 -->
   <script src="story-data.js"></script>
@@ -209,6 +226,7 @@
   <script src="day.js"></script>
   <script src="day-prep-minigames.js"></script>
   <script src="night.js"></script>
+  <script src="qa-mode.js"></script>    <!-- QA 전용: ?qa=1, 제거 시 이 줄과 QA CSS/저장 훅 삭제 -->
   <script src="save.js"></script>
   <script src="title.js"></script>
   <script src="game.js"></script>

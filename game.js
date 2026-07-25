@@ -28,6 +28,7 @@ const dom = Object.fromEntries([
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
   "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
+  "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -41,23 +42,16 @@ function loadNativeImage(key,src){
   });
 }
 
-const INGREDIENTS = {
-  kimchi: ["김치", "부침가루", "대파"],
-  skewer: ["닭고기", "대파", "파프리카"],
-  yakisoba: ["면", "양배추", "당근"],
-  tofu: ["두부", "김치", "돼지고기"],
-  oden: ["어묵", "무", "대파"],
-  teriyaki: ["닭고기", "전분", "데리야끼 소스"]
-};
+const INGREDIENTS=Object.fromEntries(MENU_DATA.map(menu=>[menu.id,[...(menu.ingredients||[])]]));
 
-const DISHES = [
-  { id:"kimchi", name:"김치전", icon:0, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"flip"}], price:6200 },
-  { id:"skewer", name:"닭꼬치", icon:1, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"grill", game:"grill"}], price:7200 },
-  { id:"yakisoba", name:"야끼소바", icon:2, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"pan", game:"stir"}], price:8200 },
-  { id:"tofu", name:"두부김치", icon:3, prep:["fridge","sink","board"], prepTasks:["prepareKimchi"], menuTag:"필수", openFlow:["fridge","board","counter"], cook:[{station:"fridge", game:"plateKimchi"},{station:"board", game:"chop"}], price:8800 },
-  { id:"oden", name:"어묵탕", icon:4, prep:["fridge","sink","board","pot"], prepTasks:["cutRadish","cutFishCake","cleanAnchovy"], menuTag:"필수", openFlow:["fridge","pot","counter"], cook:[{station:"pot", game:"heat"}], price:7800 },
-  { id:"teriyaki", name:"데리야끼", icon:5, prep:["fridge","sink","board"], prepTasks:[], cook:[{station:"fryer", game:"fry"},{station:"grill", game:"grill"}], price:9500 }
-];
+// 기존 조리 코드는 DISHES 형식을 유지하고, 원본은 MENU_DATA 한곳에서 관리합니다.
+const DISHES = MENU_DATA.map(menu=>({
+  ...menu,
+  name:menu.displayName,
+  prepTasks:[...menu.requiredPrepTasks],
+  prep:[...(menu.prep||[])],
+  cook:[...(menu.cook||[])]
+}));
 
 // 집기 좌표는 kitchen.js(STATIONS) / counter.js(FRONT_STATIONS),
 // 좌석은 customers.js, 이동 범위는 player.js 에 있습니다.
@@ -86,7 +80,8 @@ const state = {
   spawnedCustomers:0,
   selectedDishId:"kimchi",
   selectedMenus:[],
-  prepProgress:{cutRadish:false,cleanAnchovy:false,prepareKimchi:false},
+  menuSelectionDraft:[],
+  prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
@@ -191,7 +186,9 @@ function buildMenuCards() {
   selectedDishes().forEach(dish=>{
     const b=document.createElement("button"); b.type="button"; b.className="menu-card"; b.dataset.id=dish.id;
     const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
-    b.innerHTML=`<strong>${dish.name}</strong><span class="food-icon" style="background-position:${dish.icon*20}% 0"></span>${dish.menuTag?`<small class="menu-tag">${dish.menuTag}</small>`:""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
+    const required=getCurrentDayData().requiredMenus.includes(dish.id);
+    const icon=dish.icon==null?'<span class="food-icon menu-icon-placeholder">🍽</span>':`<span class="food-icon" style="background-position:${dish.icon*20}% 0"></span>`;
+    b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
     b.disabled=true;
     dom.menuCards.appendChild(b);
   });
@@ -268,9 +265,9 @@ function setupMini() {
     set("재료 씻기","떠오르는 물방울을 모두 눌러 재료를 깨끗하게 씻으세요.",8);
     m.data={remaining:12}; renderBubbleGrid();
   } else if(m.type==="plateKimchi") {
-    set("볶음김치 담기","영업 준비 때 볶아 둔 김치를 냉장고에서 꺼내 접시에 담으세요.",8);
+    set("두부김치 플레이팅","영업 준비 때 볶아 둔 김치를 두부와 함께 접시에 담으세요.",8);
     m.data={};
-    dom.miniContent.innerHTML=`<div class="kimchi-plating"><span aria-hidden="true">🥬</span><strong>준비된 볶음김치</strong></div><button class="mini-action" id="miniAction" type="button">접시에 담기</button>`;
+    dom.miniContent.innerHTML=`<div class="kimchi-plating"><span class="plated-kimchi" aria-hidden="true">🥬</span><span class="plated-tofu" aria-hidden="true"><i></i><i></i><i></i></span><strong>볶음김치 + 두부</strong></div><button class="mini-action" id="miniAction" type="button">함께 플레이팅</button>`;
     dom.miniContent.querySelector("#miniAction").addEventListener("click",()=>finishMini(100));
   } else if(m.type==="chop") {
     const isTofu=m.context.mode==="cook"&&m.context.dishId==="tofu";
@@ -290,6 +287,11 @@ function setupMini() {
     dom.miniContent.innerHTML=`${isOden?`<div class="serving-oden-pot" aria-label="작은 냄비에서 끓고 있는 어묵탕"><i class="oden-steam steam-one"></i><i class="oden-steam steam-two"></i><div class="serving-oden-broth"><i class="serving-radish"></i><i class="serving-fishcake fishcake-one"></i><i class="serving-fishcake fishcake-two"></i><i class="serving-green-onion"></i></div><i class="serving-pot-handle left"></i><i class="serving-pot-handle right"></i></div>`:""}<div class="heat-wrap"><button id="heatDown" class="heat-button" type="button">−</button><div class="heat-gauge"><i class="heat-target"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button">＋</button></div><div class="cut-count">적정 온도 유지: <span id="zoneTime">0.0</span>초</div>`;
     dom.miniContent.querySelector("#heatDown").addEventListener("click",()=>{m.data.velocity-=.16;audio.click();});
     dom.miniContent.querySelector("#heatUp").addEventListener("click",()=>{m.data.velocity+=.16;audio.click();});
+  } else if(m.type==="twoSideCook") {
+    const isSkewer=dish.id==="skewer";
+    set(isSkewer?"닭꼬치 숯불 직화구이":"김치전 양면 굽기",isSkewer?"앞면이 익으면 꼬치마다 ← →를 빠르게 눌러 하나씩 뒤집으세요.":"양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",26);
+    m.data={phase:"cook",side:0,marker:0,dir:1,speed:.22,hits:[],dishStyle:isSkewer?"skewer":"pancake",flipErrors:0};
+    renderTwoSideCook();
   } else if(m.type==="flip") {
     set("김치전 뒤집기","두 번의 타이밍을 정확히 맞추세요. 첫 번째는 반죽 펼치기, 두 번째는 뒤집기입니다.",9);
     m.data={marker:0,dir:1,speed:.78,round:0,hits:[]};
@@ -382,6 +384,172 @@ function renderGrillGame() {
   }
 }
 
+function charcoalSkewerMarkup(data){
+  const coals=Array.from({length:9},()=>"<i></i>").join("");
+  const flipped=data?.flippedSkewers||0;
+  const skewers=Array.from({length:4},(_,index)=>`<span class="grill-skewer skewer-${index+1} ${index<flipped?"flipped":""} ${data?.phase==="skewerFlip"&&index===flipped?"current":""}"><i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b></span>`).join("");
+  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 4개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
+}
+
+function renderTwoSideCook(){
+  const m=state.mini;if(!m||m.type!=="twoSideCook")return;
+  const data=m.data,isSkewer=data.dishStyle==="skewer";
+  if(data.phase==="cook"){
+    const sideLabel=data.side===0?"앞면":"뒷면";
+    dom.miniDescription.textContent=`${sideLabel}이 충분히 익어 포인터가 오른쪽 초록 구간에 들어오면 Space를 누르세요.`;
+    dom.miniContent.innerHTML=`
+      <div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} side-${data.side}">${isSkewer?charcoalSkewerMarkup(data):'<i class="cook-food"></i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>'}</div>
+      <div class="doneness-gauge"><i class="doneness-green"></i><i id="miniMarker" class="progress-marker"></i></div>
+      <div class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</div>
+      <button class="mini-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
+  }else if(data.phase==="skewerFlip"||data.phase==="skewerTurning"){
+    const current=Math.min(data.flippedSkewers||0,3);
+    dom.miniDescription.textContent="현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";
+    dom.miniContent.innerHTML=`
+      <div class="two-side-pan skewer-cook skewer-flip-ready side-0">${charcoalSkewerMarkup(data)}</div>
+      <div class="skewer-flip-sequence" aria-label="꼬치 뒤집기 진행도">${Array.from({length:4},(_,index)=>`<span class="skewer-flip-pair ${index<(data.flippedSkewers||0)?"done":index===current?"current":""}"><b>←</b><b>→</b></span>`).join("")}</div>
+      <div class="cut-count" id="skewerFlipLabel">꼬치 ${(data.flippedSkewers||0)+1} / 4 · <strong>${data.flipStep===1?"→":"←"}</strong> 입력</div>
+      <div class="skewer-flip-controls"><button id="skewerFlipLeft" type="button">← 왼쪽</button><button id="skewerFlipRight" type="button">→ 오른쪽</button></div>`;
+  }else if(data.phase==="flip"){
+    dom.miniDescription.textContent="↑를 꾹 눌러 팬을 당긴 뒤, 반동 게이지가 충분히 차면 ↓를 눌러 뒤집으세요.";
+    dom.miniContent.innerHTML=`
+      <div class="flip-rebound-scene">
+        <div class="two-side-pan pancake-cook flip-ready" id="reboundPan"><i class="cook-food"></i></div>
+        <div class="rebound-arrow" id="reboundArrow">↑</div>
+      </div>
+      <div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
+      <div class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</div>
+      <div class="rebound-controls"><button id="reboundUp" type="button">↑ 꾹 누르기</button><button id="reboundDown" type="button">↓ 반동 뒤집기</button></div>`;
+  }else{
+    dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping">${isSkewer?charcoalSkewerMarkup(data):'<i class="cook-food"></i>'}</div><div class="cut-count">${isSkewer?"꼬치 4개":"김치전"} 뒤집는 중…</div>`;
+  }
+  dom.miniContent.querySelector("#miniAction")?.addEventListener("click",miniAction);
+  dom.miniContent.querySelector("#skewerFlipLeft")?.addEventListener("click",()=>skewerFlipInput("left"));
+  dom.miniContent.querySelector("#skewerFlipRight")?.addEventListener("click",()=>skewerFlipInput("right"));
+  const reboundUp=dom.miniContent.querySelector("#reboundUp"),reboundDown=dom.miniContent.querySelector("#reboundDown");
+  if(reboundUp){
+    reboundUp.addEventListener("pointerdown",event=>{event.preventDefault();reboundUp.setPointerCapture(event.pointerId);setPancakeFlipCharge(true);});
+    ["pointerup","pointercancel","pointerleave"].forEach(type=>reboundUp.addEventListener(type,()=>setPancakeFlipCharge(false)));
+  }
+  reboundDown?.addEventListener("click",releasePancakeFlip);
+}
+
+function twoSideCookAction(){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.complete)return;
+  const data=m.data;
+  if(data.phase==="cook"){
+    if(data.marker<.58){dom.miniFeedback.textContent="아직 충분히 익지 않았습니다. 오른쪽 초록 구간까지 기다리세요.";audio.bad();return;}
+    data.hits.push(Math.round(clamp(100-Math.abs(data.marker-.76)*300,25,100)));audio.click();
+    if(data.side===1){finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));return;}
+    if(data.dishStyle==="pancake"){
+      data.phase="flip";data.flipCharge=0;data.charging=false;renderTwoSideCook();
+    }else{
+      beginSkewerFlip(m);
+    }
+    return;
+  }
+  if(data.phase==="flip"){
+    dom.miniFeedback.textContent="↑를 누르고 반동을 모은 뒤 ↓로 뒤집으세요.";
+  }
+}
+
+function beginSkewerFlip(m){
+  Object.assign(m.data,{phase:"skewerFlip",flippedSkewers:0,flipStep:0,flipWindow:0});
+  dom.miniFeedback.textContent="첫 번째 꼬치부터 ← →!";
+  renderTwoSideCook();
+}
+
+function updateSkewerFlipPrompt(data){
+  const label=dom.miniContent.querySelector("#skewerFlipLabel");
+  if(label)label.innerHTML=`꼬치 ${(data.flippedSkewers||0)+1} / 4 · <strong>${data.flipStep===1?"→":"←"}</strong> 입력`;
+  const pair=dom.miniContent.querySelector(".skewer-flip-pair.current");
+  pair?.classList.toggle("left-done",data.flipStep===1);
+}
+
+function skewerFlipInput(direction){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.data.phase!=="skewerFlip"||m.complete)return false;
+  const data=m.data,expected=data.flipStep===0?"left":"right";
+  if(direction!==expected){
+    data.flipErrors=(data.flipErrors||0)+1;
+    data.flipStep=direction==="left"?1:0;
+    data.flipWindow=direction==="left"?.7:0;
+    dom.miniFeedback.textContent=direction==="left"?"다시 시작 · 이제 →!":"순서가 엇갈렸어요. ←부터 다시!";
+    updateSkewerFlipPrompt(data);audio.bad();return false;
+  }
+  if(direction==="left"){
+    data.flipStep=1;data.flipWindow=.7;
+    dom.miniFeedback.textContent="좋아요, 빠르게 →!";
+    updateSkewerFlipPrompt(data);audio.click();return true;
+  }
+  data.flipStep=0;data.flipWindow=0;
+  const completedIndex=data.flippedSkewers;
+  const skewer=dom.miniContent.querySelector(`.grill-skewer.skewer-${completedIndex+1}`);
+  const pairs=dom.miniContent.querySelectorAll(".skewer-flip-pair");
+  skewer?.classList.remove("current");skewer?.classList.add("turning");
+  pairs[completedIndex]?.classList.remove("current","left-done");pairs[completedIndex]?.classList.add("done");
+  data.flippedSkewers++;
+  setTimeout(()=>{skewer?.classList.remove("turning");skewer?.classList.add("flipped");},300);
+  audio.success();
+  if(data.flippedSkewers>=4){
+    data.phase="skewerFinishing";
+    dom.miniFeedback.textContent="꼬치 4개 뒤집기 완료!";
+    setTimeout(()=>{
+      if(state.mini!==m||m.complete)return;
+      data.phase="cook";data.side=1;data.marker=0;data.dir=1;data.speed=.24;
+      dom.miniFeedback.textContent="뒤집기 완료 · 뒷면을 익히세요.";renderTwoSideCook();
+    },300);
+  }else{
+    dom.miniContent.querySelector(`.grill-skewer.skewer-${data.flippedSkewers+1}`)?.classList.add("current");
+    pairs[data.flippedSkewers]?.classList.add("current");
+    dom.miniFeedback.textContent=`${data.flippedSkewers+1}번째 꼬치도 바로 ← →!`;
+    updateSkewerFlipPrompt(data);
+  }
+  return true;
+}
+
+function setPancakeFlipCharge(charging){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.data.phase!=="flip"||m.complete)return false;
+  m.data.charging=!!charging;
+  dom.miniContent.querySelector("#reboundUp")?.classList.toggle("holding",m.data.charging);
+  dom.miniContent.querySelector("#reboundArrow")?.classList.toggle("holding",m.data.charging);
+  return true;
+}
+
+function updatePancakeFlipCharge(dt){
+  const data=state.mini.data;
+  if(data.charging)data.flipCharge=clamp((data.flipCharge||0)+48*dt,0,100);
+  else data.flipCharge=clamp((data.flipCharge||0)-4*dt,0,100);
+  const charge=Math.round(data.flipCharge),pan=dom.miniContent.querySelector("#reboundPan");
+  const bar=dom.miniContent.querySelector("#reboundGaugeBar"),label=dom.miniContent.querySelector("#reboundLabel");
+  if(bar)bar.style.width=`${charge}%`;
+  if(label)label.textContent=`반동 충전 ${charge}% · ${charge<40?"더 당기세요":charge<=88?"↓로 뒤집기!":"반동이 너무 강해요"}`;
+  if(pan)pan.style.transform=`translateY(${-Math.min(26,charge*.26)}px) rotate(${Math.min(3,charge*.03)}deg)`;
+}
+
+function releasePancakeFlip(){
+  const m=state.mini;if(!m||m.type!=="twoSideCook"||m.data.phase!=="flip"||m.complete)return false;
+  const data=m.data,charge=data.flipCharge||0;data.charging=false;
+  if(charge<40){
+    const pan=dom.miniContent.querySelector("#reboundPan");
+    pan?.classList.remove("rebound-fail");if(pan){void pan.offsetWidth;pan.classList.add("rebound-fail");}
+    data.flipCharge=Math.max(0,charge-18);dom.miniFeedback.textContent="반동이 부족합니다. ↑를 조금 더 오래 눌러주세요.";audio.bad();
+    return false;
+  }
+  data.hits.push(Math.round(clamp(100-Math.abs(charge-72)*2.4,35,100)));
+  dom.miniFeedback.textContent=charge>90?"강한 반동으로 뒤집었습니다!":"반동을 이용해 깔끔하게 뒤집었습니다!";
+  startTwoSideFlipAnimation(m);audio.success();
+  return true;
+}
+
+function startTwoSideFlipAnimation(m){
+  m.data.phase="flipping";renderTwoSideCook();audio.click();
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    m.data.phase="cook";m.data.side=1;m.data.marker=0;m.data.dir=1;m.data.speed=.24;
+    dom.miniFeedback.textContent="뒤집기 완료 · 뒷면을 익히세요.";renderTwoSideCook();
+  },620);
+}
+
 function renderPlates() {
   const m=state.mini; if(!m)return;
   dom.miniContent.innerHTML=`<div class="plate-grid" id="plateGrid"></div><div class="cut-count">접시를 반짝이게 닦아주세요</div>`;
@@ -398,6 +566,7 @@ function renderTrash() {
 
 function miniAction() {
   const m=state.mini; if(!m)return;
+  if(m.type==="twoSideCook"){twoSideCookAction();return;}
   if(["chop","flip","fry"].includes(m.type)){
     if(m.type==="chop"&&m.data.tofuStyle){tofuChopAction(m);return;}
     const target=m.type==="fry"?.74:.5;
@@ -511,6 +680,18 @@ function updateMini(dt) {
   if(m.type==="chop"||m.type==="flip"||m.type==="fry"||(m.type==="grill"&&m.data.phase==="timing")){
     m.data.marker+=m.data.dir*m.data.speed*dt;if(m.data.marker>=1){m.data.marker=1;m.data.dir=-1;}if(m.data.marker<=0){m.data.marker=0;m.data.dir=1;}
     const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
+  }else if(m.type==="twoSideCook"&&m.data.phase==="cook"){
+    m.data.marker=Math.min(1,m.data.marker+m.data.speed*dt);
+    const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
+  }else if(m.type==="twoSideCook"&&m.data.phase==="flip"){
+    updatePancakeFlipCharge(dt);
+  }else if(m.type==="twoSideCook"&&m.data.phase==="skewerFlip"&&m.data.flipStep===1){
+    m.data.flipWindow-=dt;
+    if(m.data.flipWindow<=0){
+      m.data.flipStep=0;m.data.flipWindow=0;m.data.flipErrors=(m.data.flipErrors||0)+1;
+      dom.miniFeedback.textContent="조금 늦었어요. 현재 꼬치를 ←부터 다시!";
+      updateSkewerFlipPrompt(m.data);audio.bad();
+    }
   }else if(m.type==="heat"){
     m.data.total+=dt;m.data.velocity+=.035*dt;m.data.velocity*=.985;m.data.value=clamp(m.data.value+m.data.velocity*dt,0,1);
     if(m.data.value===0||m.data.value===1)m.data.velocity*=-.45;
@@ -535,19 +716,21 @@ function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classLis
 function updateUI(force=false) {
   if(state.screen!=="game")return;
   dom.gameApp.classList.remove("phase-title");
-  dom.gameApp.classList.toggle("phase-prep",state.phase==="day");
-  dom.gameApp.classList.toggle("phase-open",state.phase==="night");
-  dom.gameApp.classList.toggle("phase-result",state.phase==="result");
-  dom.phaseName.textContent=state.phase==="day"?"낮 재료 준비":state.phase==="night"?"밤 영업":"영업 종료";
-  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase==="day"?"준비":"남은 시간";dom.timeText.textContent=state.phase==="day"?"제한 없음":formatTime(state.phaseTime);dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
-  dom.phaseBadge.textContent=state.phase==="day"?"준비":state.phase==="night"?"영업 중":"정산";dom.leftTitle.textContent=state.phase==="day"?"오늘의 준비":"현재 주문";
-  dom.phaseButton.style.display=state.phase==="day"?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase==="day"&&(!prepComplete()||!!state.mini);
+  dom.gameApp.classList.toggle("phase-prep",state.phase===GAME_PHASES.PREP);
+  dom.gameApp.classList.toggle("phase-open",state.phase===GAME_PHASES.OPEN);
+  dom.gameApp.classList.toggle("phase-result",state.phase===GAME_PHASES.RESULT);
+  const phaseLabels={[GAME_PHASES.MENU_SELECT]:"메뉴 선택",[GAME_PHASES.PREP]:"낮 재료 준비",[GAME_PHASES.OPEN]:"밤 영업",[GAME_PHASES.RESULT]:"영업 종료"};
+  dom.phaseName.textContent=phaseLabels[state.phase]||"영업 준비";
+  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase===GAME_PHASES.PREP?"준비":"남은 시간";dom.timeText.textContent=state.phase===GAME_PHASES.PREP?"제한 없음":state.phase===GAME_PHASES.OPEN?formatTime(state.phaseTime):"-";dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
+  dom.phaseBadge.textContent=state.phase===GAME_PHASES.PREP?"준비":state.phase===GAME_PHASES.OPEN?"영업 중":state.phase===GAME_PHASES.MENU_SELECT?"선택":"정산";dom.leftTitle.textContent=state.phase===GAME_PHASES.PREP?"오늘의 준비":"현재 주문";
+  dom.phaseButton.style.display=state.phase===GAME_PHASES.PREP?"block":"none";dom.phaseButton.textContent="영업 시작";dom.phaseButton.disabled=state.phase===GAME_PHASES.PREP&&(!prepComplete()||!!state.mini);
   dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
-  if(state.phase==="day"){renderPrepChecklist();updateDayObjective();}
-  else if(state.phase==="night"){renderNightOrderList();updateNightObjective();}
+  if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
+  else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
+  else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
   updateRelationshipUI();
   updatePrompt();
 }
@@ -623,6 +806,7 @@ dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
+dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini){if(isDayPrepMini(state.mini))dayPrepPrimaryAction();else miniAction();}else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
 dom.stationPrompt.addEventListener("click",interact);
@@ -635,9 +819,21 @@ window.addEventListener("keydown",e=>{
   if(state.mini){
     if(isDayPrepMini(state.mini)){
       if(k==="escape")closeDayPrepMini();
-      else if(e.code==="Space")dayPrepPrimaryAction();
+      else if(e.code==="Space"){
+        if(e.repeat&&state.mini.data.requiresDoubleTap)return;
+        dayPrepPrimaryAction();
+      }
       else if(k==="arrowleft"||k==="arrowright")dayPrepDirectionInput(k.replace("arrow",""));
       return;
+    }
+    if(state.mini?.type==="twoSideCook"&&state.mini.data.phase==="skewerFlip"){
+      if(e.repeat)return;
+      if(k==="arrowleft"){skewerFlipInput("left");return;}
+      if(k==="arrowright"){skewerFlipInput("right");return;}
+    }
+    if(state.mini?.type==="twoSideCook"&&state.mini.data.phase==="flip"){
+      if(k==="arrowup"){setPancakeFlipCharge(true);return;}
+      if(k==="arrowdown"){releasePancakeFlip();return;}
     }
     if(e.code==="Space")miniAction();
     if(state.mini?.type==="stir"){const map={arrowleft:"←",arrowup:"↑",arrowright:"→",arrowdown:"↓"};if(map[k])arrowInput(map[k]);}
@@ -653,6 +849,9 @@ window.addEventListener("keydown",e=>{
   }
   if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
+});
+window.addEventListener("keyup",e=>{
+  if(e.key.toLowerCase()==="arrowup"&&state.mini?.type==="twoSideCook"&&state.mini.data.phase==="flip")setPancakeFlipCharge(false);
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.transform=`translate(${px}px,${py}px)`;state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}

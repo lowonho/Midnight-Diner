@@ -1,0 +1,25 @@
+.qa-mode-panel {
+  position: fixed; z-index: 250; left: 12px; top: 12px; width: min(330px,calc(100vw - 24px));
+  border: 2px solid #f0b94f; border-radius: 8px; background: rgba(24,15,10,.96); color: #f7dfad;
+  box-shadow: 0 8px 30px rgba(0,0,0,.5); font: 12px/1.45 "Malgun Gothic",sans-serif;
+}
+.qa-title-button { width: min(280px,75%); margin: 11px auto 0; padding: 13px 18px; border-color: #d49b3f; color: #f5cb78; font-size: 18px; }
+.qa-title-button::before { content: "🛠 "; }
+.qa-mode-panel header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #5a321d; }
+.qa-mode-panel header strong { color: #ffd875; letter-spacing: .08em; }
+.qa-mode-panel header span { padding: 1px 6px; border-radius: 10px; background: #9a3e35; color: white; font-size: 10px; }
+.qa-mode-panel header button { margin-left: auto; }
+.qa-mode-body { padding: 10px; }
+.qa-mode-panel.collapsed .qa-mode-body { display: none; }
+.qa-day-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 7px; }
+.qa-day-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin: 8px 0; }
+.qa-mode-panel button { border: 1px solid #946037; border-radius: 4px; padding: 5px; background: #ead2a5; color: #3e2416; cursor: pointer; }
+.qa-mode-panel button:disabled { cursor: default; opacity: .4; }
+.qa-day-grid button.active { outline: 2px solid #ffd875; background: #fff0bd; }
+.qa-mode-panel pre { min-height: 96px; margin: 8px 0; padding: 8px; overflow: auto; border-radius: 4px; background: #120b08; color: #d8c29f; white-space: pre-wrap; font: 11px/1.45 Consolas,monospace; }
+.qa-mode-panel small { display: block; color: #bda582; }
+.qa-mode-panel .qa-exit { width: 100%; margin-top: 8px; background: #70402b; color: #f7dfad; }
+
+@media (max-width:600px) {
+  .qa-mode-panel { left: 6px; top: 6px; width: calc(100vw - 12px); }
+}

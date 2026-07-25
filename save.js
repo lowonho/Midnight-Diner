@@ -20,7 +20,7 @@ function readSaveData(){
     const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;
     const data=migrateSaveData(JSON.parse(raw));
     const validInventory=data.state?.inventory&&typeof data.state.inventory==="object";
-    if(data.version!==SAVE_VERSION||!data.state||!["day","night","result"].includes(data.state.phase)||!Number.isFinite(data.state.day)||!validInventory){
+    if(data.version!==SAVE_VERSION||!data.state||!Object.values(GAME_PHASES).includes(data.state.phase)||!Number.isFinite(data.state.day)||!validInventory){
       throw new Error("지원하지 않는 저장 데이터");
     }
     return data;
@@ -48,7 +48,7 @@ function migrateSaveData(data){
 
 function revealNamesFromLegacyProgress(savedState,story){
   const currentDay=Math.max(1,Math.floor(Number(savedState.day)||1));
-  const pendingMomentByPhase={day:"dayStart",night:"nightStart",result:"nightEnd"};
+  const pendingMomentByPhase={menuSelect:"dayStart",day:"dayStart",night:"nightStart",result:"nightEnd"};
   const momentOrder={newGame:0,dayStart:1,nightStart:2,nightEnd:3};
   const pendingOrder=momentOrder[pendingMomentByPhase[savedState.phase]]??1;
 
@@ -68,7 +68,9 @@ function revealNamesFromLegacyProgress(savedState,story){
 }
 
 function saveGame(allowDuringStory=false){
-  if(state.screen!=="game"||!["day","night","result"].includes(state.phase)||state.mini||(storyIsActive()&&!allowDuringStory))return false;
+  // QA_REMOVE: qa-mode.js와 함께 제거하면 됩니다. QA 이동은 실제 세이브를 덮어쓰지 않습니다.
+  if(window.QA_MODE?.enabled)return false;
+  if(state.screen!=="game"||!Object.values(GAME_PHASES).includes(state.phase)||state.mini||(storyIsActive()&&!allowDuringStory))return false;
   try{
     const snapshot=JSON.parse(JSON.stringify(state));
     snapshot.screen="game";snapshot.settingsFrom="game";snapshot.paused=snapshot.phase==="result";
@@ -89,6 +91,7 @@ function restoreGameState(data){
   const saved=data.state;
   const savedAudio={...state.audio,...(saved.audio||{})};
   Object.assign(state,saved);
+  state.day=DayManager.setDay(saved.day);
 
   const numericDefaults={
     day:1,money:0,popularity:0,popularityBeforeResult:0,popularityDelta:0,
@@ -116,7 +119,7 @@ function restoreGameState(data){
   clampChefToWalkArea(state.player);   // chef-walk-area.js — 예전 세이브 위치를 새 영역으로 보정
   state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";
   state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;
-  if(state.phase==="day")state.phaseTime=null;
+  if(state.phase===GAME_PHASES.PREP||state.phase===GAME_PHASES.MENU_SELECT)state.phaseTime=null;
   else if(!Number.isFinite(state.phaseTime))state.phaseTime=0;
   nextOrderId=Math.max(Number(data.nextOrderId)||1,...state.orders.map(order=>(Number(order.id)||0)+1));
   autosaveElapsed=0;

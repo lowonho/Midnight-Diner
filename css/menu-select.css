@@ -1,0 +1,20 @@
+.menu-select-overlay { z-index: 35; background: rgba(8,5,3,.82); }
+.menu-select-window { width: min(720px,92%); padding: 24px; }
+.menu-select-window h2 { margin: 3px 0 8px; color: #f7dfad; }
+.menu-select-description { margin: 0 0 16px; color: #d8c29f; }
+.menu-select-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.menu-select-option {
+  min-height: 108px; padding: 12px 8px; border: 2px solid #7d5030; border-radius: 8px;
+  background: #ead2a5; color: #3e2416; cursor: pointer;
+}
+.menu-select-option strong,.menu-select-option small { display: block; }
+.menu-select-option small { margin-top: 7px; color: #76523a; }
+.menu-select-option.selected { outline: 3px solid #f4c65f; background: #fff0bd; }
+.menu-select-option.required { border-color: #d3a23c; }
+.menu-select-option:disabled { cursor: not-allowed; opacity: .86; }
+.menu-select-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.menu-select-footer strong { color: #f7dfad; }
+@media (max-width:700px) {
+  .menu-select-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .menu-select-option { min-height: 78px; }
+}

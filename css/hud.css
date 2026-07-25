@@ -208,6 +208,11 @@
 .prep-menu-group + .prep-menu-group { margin-top: 5px; }
 .prep-checklist strong:not(:first-child) { margin-top: 4px; }
 .prep-checklist .done { color: #9dbb70; text-decoration: line-through; }
+.prep-checklist .disabled { color: #8f826f; opacity: .78; }
+.prep-task-row { display:grid; grid-template-columns:16px 1fr; gap:1px 5px; padding:3px 0; border-bottom:1px solid rgba(224,163,77,.1); }
+.prep-task-row > span { grid-row:1 / 3; color:#b99563; font-size:10px; }
+.prep-task-row > strong { color:#e7c98f; font-size:10px; }
+.prep-task-row > div { grid-column:2; }
 .prep-checklist .prep-total {
   margin-top: 5px;
   padding-top: 5px;
