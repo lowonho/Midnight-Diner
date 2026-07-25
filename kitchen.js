@@ -43,11 +43,24 @@ const STATION_REACH = 40;
    2. 상호작용 판정
    ------------------------------------------------------------ */
 
-function nearestStation(){
+function stationApproachDistance(station){
+  const player=state.player;
+  const closestX=clamp(player.x,station.x,station.x+station.w);
+  let yDistance=Math.abs(player.y-station.iy);
+  // 집기가 바라보는 쪽으로 기준점을 지나 더 밀착한 위치도 접근 영역입니다.
+  if(station.facing==="up"&&player.y<=station.iy)yDistance=0;
+  if(station.facing==="down"&&player.y>=station.iy)yDistance=0;
+  return Math.hypot(player.x-closestX,yDistance);
+}
+
+function nearestStation(preferredId=null){
   let best=null, bestD=999;
   const counterStations=typeof FRONT_STATIONS!=="undefined"&&FRONT_STATIONS.griddle?[FRONT_STATIONS.griddle]:[];
-  [...Object.values(STATIONS),...counterStations].forEach(s=>{
-    const d=distance(state.player.x,state.player.y,s.ix,s.iy);
+  const stations=[...Object.values(STATIONS),...counterStations];
+  const preferred=preferredId?stations.find(station=>station.id===preferredId):null;
+  if(preferred&&stationApproachDistance(preferred)<STATION_REACH)return preferred;
+  stations.forEach(s=>{
+    const d=stationApproachDistance(s);
     if(d<bestD){best=s;bestD=d;}
   });
   return bestD<STATION_REACH?best:null;

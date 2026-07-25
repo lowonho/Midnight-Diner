@@ -60,7 +60,10 @@ function nearestPrepObject(){
   if(state.phase!=="day")return null;
   let best=null,bestDistance=Infinity;
   prepObjectLayout().forEach(item=>{
-    const itemDistance=distance(state.player.x,state.player.y,item.ix,item.iy);
+    const closestX=clamp(state.player.x,item.x-PREP_LAYOUT.boxW/2,item.x+PREP_LAYOUT.boxW/2);
+    // 준비 카운터 쪽으로 기준점을 지나 끝까지 붙어도 같은 접근으로 봅니다.
+    const yDistance=state.player.y>=item.iy?0:item.iy-state.player.y;
+    const itemDistance=Math.hypot(state.player.x-closestX,yDistance);
     if(itemDistance<bestDistance){best=item;bestDistance=itemDistance;}
   });
   return bestDistance<PREP_LAYOUT.reach?best:null;

@@ -218,7 +218,8 @@ function interact() {
     startPrepTask(prepObject.task.id);
     return;
   }
-  const station=nearestStation();
+  const required=currentRequirement();
+  const station=nearestStation(required);
   if(state.phase==="night" && state.carrying) {
     if(station?.id==="trash"){
       state.player.facing=station.facing;
@@ -232,7 +233,6 @@ function interact() {
   state.player.facing=station.facing;
   if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast("씻을 그릇이 없습니다.");return;} startMini("dishwasher",station.id,{utility:true}); return; }
   if(station.id==="trash") { if(state.trash<=0){showToast("버릴 쓰레기가 없습니다.");return;} startMini("trash",station.id,{utility:true}); return; }
-  const required=currentRequirement();
   if(station.id!==required){ showToast(`지금은 ${required?stationById(required).label:"주문 선택"} 단계입니다.`,true); return; }
   startCookMini(station.id);
 }
@@ -805,9 +805,9 @@ function updatePrompt(){
       const prepObject=nearestPrepObject();
       if(prepObject){text=`E · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
     }else{
-      const station=nearestStation();
-      if(station){
       const required=currentRequirement();
+      const station=nearestStation(required);
+      if(station){
       if(station.id==="dishwasher"&&state.dirtyDishes>0)text="E · 설거지하기";
       else if(station.id==="trash"&&state.trash>0)text="E · 쓰레기 정리";
       else if(station.id===required)text=`E · ${station.label} 사용`;

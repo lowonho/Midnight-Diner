@@ -337,7 +337,9 @@ function counterStandPoint(station){
 function withinCounterReach(playerView,station){
   if(!playerView)return false;
   const p=counterStandPoint(station);
-  return Math.hypot(playerView.x-p.x,playerView.y-p.y)<=COUNTER_REACH;
+  const closestX=clamp(playerView.x,toView(station.x),toView(station.x+station.w));
+  const yDistance=station.facing==="down"&&playerView.y>=p.y?0:Math.abs(playerView.y-p.y);
+  return Math.hypot(playerView.x-closestX,yDistance)<=COUNTER_REACH;
 }
 
 
