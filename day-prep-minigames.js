@@ -6,7 +6,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutFishCake:{title:"어묵탕 · 어묵 썰기",total:5,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68,.43],speed:.8},
   cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.22,.58,.39],speed:.78},
-  cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:4,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68],speed:.8},
+  cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:4,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68],speed:.8,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   fryKimchi:{total:11,allowedDirections:["left","right"]},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
@@ -101,11 +101,14 @@ function setupDayPrepTiming(taskId){
     hitZoneWidth:config.zoneWidth,
     speed:config.speed,
     zoneStarts:config.zoneStarts,
+    requiresDoubleTap:!!config.requiresDoubleTap,
     title:config.title,
     onComplete:taskId==="cutRadish"||taskId==="cutFishCake"
       ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
       :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
-    description:taskId==="cutRadish"
+    description:config.requiresDoubleTap
+      ?"포인터가 초록 구간에 들어왔을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
+      :taskId==="cutRadish"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
       :taskId==="cutFishCake"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 눌러 어묵을 5조각으로 써세요."
@@ -120,7 +123,7 @@ function startCuttingMinigame(options){
   const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
   const defaults=[.18,.56,.32,.66,.42];
   const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
-  m.data={mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete};
+  m.data={mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0};
   dom.miniTitle.textContent=options.title;
   dom.miniDescription.textContent=options.description;
   renderDayPrepTiming();
@@ -141,8 +144,9 @@ function renderDayPrepTiming(){
       <i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${data.zoneWidth*100}%"></i>
       <i id="dayPrepMarker" class="prep-timing-marker" style="left:${data.marker*100}%"></i>
     </div>
+    ${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
     <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
-    <button class="mini-action" id="dayPrepAction" type="button">Space · 썰기</button>`;
+    <button class="mini-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button>`;
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",dayPrepPrimaryAction);
 }
 
@@ -358,12 +362,32 @@ function dayPrepPrimaryAction(){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
   if(m.data.mode!=="timing")return;
   const data=m.data,zoneStart=data.zoneStarts[data.successes],zoneEnd=zoneStart+data.zoneWidth;
+  if(data.requiresDoubleTap&&data.tapStep===1){
+    data.tapStep=0;data.tapWindow=0;
+    completeDayPrepCut(m);return;
+  }
   if(data.marker<zoneStart||data.marker>zoneEnd){
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 현재 단계에서 다시 시도하세요.";
+    audio.bad();
     return;
   }
+  if(data.requiresDoubleTap){
+    data.tapStep=1;data.tapWindow=.42;
+    const work=dom.miniContent.querySelector("#prepWorkObject");
+    work?.classList.add("tough-first-hit");
+    dom.miniContent.querySelector("#toughCutHint")?.classList.add("first-done");
+    const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 한 번 더!";
+    dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";audio.click();
+    return;
+  }
+  completeDayPrepCut(m);
+}
+
+function completeDayPrepCut(m){
+  const data=m.data;
   data.successes++;
   const work=dom.miniContent.querySelector("#prepWorkObject");
+  work?.classList.remove("tough-first-hit");
   work?.classList.add("slice-hit");
   const nextAssetKey=timingAssetKey(data.ingredient,data.successes);
   const objectImage=work?.querySelector(".prep-object-asset");
@@ -372,7 +396,7 @@ function dayPrepPrimaryAction(){
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   const progress=dom.miniContent.querySelector(".cut-count");
   if(progress)progress.textContent=`진행 ${data.successes} / ${data.total}`;
-  dom.miniFeedback.textContent="절단 성공";
+  dom.miniFeedback.textContent=data.requiresDoubleTap?"질긴 고기 절단 성공!":"절단 성공";audio.success();
   if(data.successes>=data.total){
     if(typeof data.onComplete==="function")data.onComplete();
     return;
@@ -411,6 +435,17 @@ function dayPrepDirectionInput(direction){
 function updateDayPrepMini(dt){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="timing")return;
   const data=m.data;
+  if(data.requiresDoubleTap&&data.tapStep===1){
+    data.tapWindow-=dt;
+    if(data.tapWindow<=0){
+      data.tapStep=0;data.tapWindow=0;
+      dom.miniContent.querySelector("#prepWorkObject")?.classList.remove("tough-first-hit");
+      dom.miniContent.querySelector("#toughCutHint")?.classList.remove("first-done");
+      const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 빠르게 2번";
+      dom.miniFeedback.textContent="두 번째 입력이 늦었어요. 초록 구간에서 다시 두 번!";audio.bad();
+    }
+    return;
+  }
   data.marker+=data.direction*data.speed*dt;
   if(data.marker>=1){data.marker=1;data.direction=-1;}
   if(data.marker<=0){data.marker=0;data.direction=1;}

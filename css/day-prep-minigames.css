@@ -111,6 +111,7 @@
 }
 .cut-line.done { border-left-style: solid; border-color: #65804a; opacity: 1; }
 .prep-work-object.slice-hit { animation: prep-slice-hit .16s ease; }
+.prep-work-object.tough-first-hit { transform:translateY(3px); filter:drop-shadow(0 4px 5px rgba(0,0,0,.35)); }
 .prep-work-object.has-prep-asset .cut-line { opacity: .35; }
 .prep-work-object.has-prep-asset .cut-line.done { opacity: .65; }
 .knife-effect {
@@ -133,6 +134,13 @@
 }
 .knife-asset { width: 100%; height: 100%; object-fit: contain; }
 .prep-work-object.slice-hit .knife-effect { animation: prep-knife-hit .16s ease; }
+.prep-work-object.tough-first-hit .knife-effect { opacity:.88; transform:translateY(7px) rotate(15deg); }
+
+.tough-cut-hint { display:flex; align-items:center; justify-content:center; gap:8px; }
+.tough-cut-hint span { padding:6px 10px; border:2px solid #7b5132; border-radius:7px; background:#21140e; color:#d5b783; font-size:13px; font-weight:900; transition:transform .1s,background .1s,color .1s; }
+.tough-cut-hint::after { content:"빠르게!"; color:#e8bd72; font-size:12px; font-weight:900; }
+.tough-cut-hint.first-done span:first-child { background:#769950; color:#fff7cf; transform:translateY(2px); }
+.tough-cut-hint.first-done span:last-child { border-color:#ffe08d; background:#c77c37; color:#29170c; animation:tough-second-tap .22s ease-in-out infinite alternate; }
 
 .prep-timing-bar {
   position: relative;
@@ -414,6 +422,7 @@
 .prep-complete-flash { filter: brightness(1.12); }
 
 @keyframes prep-slice-hit { 50% { transform: translateX(5px) rotate(.8deg); } }
+@keyframes tough-second-tap { from { transform:scale(1); } to { transform:scale(1.08); } }
 @keyframes prep-knife-hit { 0% { opacity: 0; transform: translateY(-18px) rotate(15deg); } 50% { opacity: 1; transform: translateY(9px) rotate(8deg); } 100% { opacity: 0; transform: translateY(16px) rotate(8deg); } }
 @keyframes prep-toss-left { 50% { transform: translateX(-11px) rotate(-1deg); } }
 @keyframes prep-toss-right { 50% { transform: translateX(11px) rotate(1deg); } }
