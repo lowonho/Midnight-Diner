@@ -22,11 +22,11 @@ let phaserScene = null;
 
 const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
-  "settingsButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
+  "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
-  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniDescription","miniContent","miniFeedback",
+  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
   "joystick","joystickKnob","actionButton"
@@ -181,6 +181,16 @@ function closeSettings() {
   audio.click();
 }
 
+/* 반짝임(fx_perfect_sparkle)을 달 음식인지. 메뉴 카드·손님 말풍선·요리사 손
+   세 군데가 같은 기준을 씁니다.
+     · 그날의 특별음식 (DAY_DATA.specialMenu — day.js 메뉴 선택 화면의 "특별음식")
+     · 이야기 손님의 특별 조리 주문 (order.specialRecipe)
+   조리 점수와는 무관합니다. 점수로 그림이 바뀌는 건 _perfect 프랍 쪽입니다. */
+function isSpecialFood(dishId,order=null){
+  if(order?.specialRecipe) return true;
+  return !!dishId && getCurrentDayData()?.specialMenu===dishId;
+}
+
 function buildMenuCards() {
   dom.menuCards.innerHTML="";
   selectedDishes().forEach(dish=>{
@@ -188,8 +198,10 @@ function buildMenuCards() {
     const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
     const required=getCurrentDayData().requiredMenus.includes(dish.id);
     // 음식 그림은 food-props.js 가 메뉴 id 로 찾아 줍니다. (표에 없는 메뉴만 자리표시)
+    // 특별음식이면 sparkle 클래스가 붙고 반짝임은 CSS 가 돌립니다. (css/hud.css)
     const iconUrl=foodPropUrl(dish.id);
-    const icon=iconUrl?`<span class="food-icon" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
+    const sparkle=isSpecialFood(dish.id)?" sparkle":"";
+    const icon=iconUrl?`<span class="food-icon${sparkle}" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
     b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
     b.disabled=true;
     dom.menuCards.appendChild(b);
@@ -525,7 +537,9 @@ function updatePancakeFlipCharge(dt){
   const bar=dom.miniContent.querySelector("#reboundGaugeBar"),label=dom.miniContent.querySelector("#reboundLabel");
   if(bar)bar.style.width=`${charge}%`;
   if(label)label.textContent=`반동 충전 ${charge}% · ${charge<40?"더 당기세요":charge<=88?"↓로 뒤집기!":"반동이 너무 강해요"}`;
-  if(pan)pan.style.transform=`translateY(${-Math.min(26,charge*.26)}px) rotate(${Math.min(3,charge*.03)}deg)`;
+  // 들어올리는 거리는 --upx(화면 크기 비례 단위, css/base.css) 배수로 줍니다.
+  // px 로 주면 창을 줄였을 때 팬만 크게 튑니다.
+  if(pan)pan.style.transform=`translateY(calc(${-Math.min(26,charge*.26)} * var(--upx))) rotate(${Math.min(3,charge*.03)}deg)`;
 }
 
 function releasePancakeFlip(){
@@ -654,6 +668,10 @@ function completeMiniContext(m,score) {
 function update(dt) {
   if(state.paused){
     if(state.mini){updateMini(dt);updateUI(false);}
+    // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
+    // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
+    // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
+    else updatePrompt();
     return;
   }
   if(state.phase==="night"){
@@ -755,8 +773,10 @@ function updatePrompt(){
     }
   }else{
     if(state.phase==="day"){
+      // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
+      // 판정은 prep.js 가 이름표 강조에 쓰는 것과 같은 함수입니다.
       const prepObject=nearestPrepObject();
-      if(prepObject){text=`E · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
+      if(prepObject&&prepObjectUsable(prepObject,prepObject)){text=`E · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
     }else{
       const station=nearestStation();
       if(station){
@@ -769,7 +789,9 @@ function updatePrompt(){
     }
   }
   if(!text){hide();return;}
-  prompt.textContent=text;prompt.disabled=false;
+  // 화면에는 키캡 'E' 만 보입니다. 설명 문구는 스크린리더용으로만 남깁니다.
+  // (textContent 로 넣으면 index.html 의 키캡 span 이 지워집니다)
+  prompt.setAttribute("aria-label",text);prompt.disabled=false;
   prompt.style.left=`${x/W*100}%`;prompt.style.top=`${y/H*100}%`;
   prompt.classList.add("show");
   dom.actionButton.classList.add("available");
@@ -806,12 +828,16 @@ function draw(){
 // drawFoodProp (음식 그림) → food-props.js
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
+// 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
+dom.codexButton.addEventListener("click",()=>{audio.click();showToast("도감은 준비 중입니다.");});
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini){if(isDayPrepMini(state.mini))dayPrepPrimaryAction();else miniAction();}else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
+// 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.
+dom.miniPause.addEventListener("click",()=>openSettings("game"));
 dom.stationPrompt.addEventListener("click",interact);
 
 [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;audio.apply();}));

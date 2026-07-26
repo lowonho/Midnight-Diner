@@ -13,17 +13,22 @@
 
 const OPEN_SIGN = {
   x:1105, y:588, w:100, h:74, radius:7,
-  bg:"#263619", line:"#c18a3f", text:"#b8d86d",
-  font:"bold 22px Malgun Gothic", label:"영업중",
-  textDy:44
+  line:"#c18a3f",
+  font:"bold 22px Malgun Gothic",
+  textDy:44,
+  // 낮(day)에는 빨간 '영업전', 밤(night)에는 초록 '영업중'. 그 외 페이즈는 간판을 숨깁니다.
+  states:{
+    day:{ bg:"#361a15", text:"#e2553c", label:"영업전" },
+    night:{ bg:"#263619", text:"#b8d86d", label:"영업중" }
+  }
 };
 
 function drawSignage(){
-  if(state.phase!=="night")return;
-  const S=OPEN_SIGN;
-  ctx.fillStyle=S.bg;roundRect(ctx,S.x,S.y,S.w,S.h,S.radius,true,false);
+  const S=OPEN_SIGN,mode=S.states[state.phase];
+  if(!mode)return;
+  ctx.fillStyle=mode.bg;roundRect(ctx,S.x,S.y,S.w,S.h,S.radius,true,false);
   ctx.strokeStyle=S.line;ctx.lineWidth=4;roundRect(ctx,S.x,S.y,S.w,S.h,S.radius,false,true);
-  ctx.fillStyle=S.text;ctx.font=S.font;ctx.textAlign="center";
-  ctx.fillText(S.label,S.x+S.w/2,S.y+S.textDy);
+  ctx.fillStyle=mode.text;ctx.font=S.font;ctx.textAlign="center";
+  ctx.fillText(mode.label,S.x+S.w/2,S.y+S.textDy);
   ctx.textAlign="left";
 }

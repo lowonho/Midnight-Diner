@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="css/minigames.css" />
   <link rel="stylesheet" href="css/day-prep-minigames.css" />
+  <link rel="stylesheet" href="css/minigame-frame.css" /><!-- 미니게임 공용 패널 규격 (위 두 파일보다 뒤에 두어야 합니다) -->
   <link rel="stylesheet" href="css/menu-select.css" />
   <link rel="stylesheet" href="css/qa-mode.css" />
   <link rel="stylesheet" href="css/results.css" />
@@ -52,8 +53,8 @@
         <section class="game-frame" aria-label="심야식당 게임">
           <div id="gameCanvas" role="img" aria-label="캐릭터가 움직이는 식당 주방"></div>
 
-          <header id="topHud" class="top-hud wood-panel hidden-hud">
-            <div class="small-logo">
+          <header id="topHud" class="top-hud hidden-hud">
+            <div class="small-logo wood-panel">
               <span>✦</span>
               <strong>심야식당</strong>
               <small id="phaseName">낮 준비</small>
@@ -64,7 +65,8 @@
               <div class="stat-time"><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
               <div class="stat-satisfaction"><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
               <div><span>인기도</span><strong id="popularityText">0</strong></div>
-              <div><span>보유금</span><strong id="moneyText">0원</strong></div>
+              <div class="stat-money"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
+              <button id="codexButton" class="square-button" type="button" aria-label="도감 열기">📖</button>
               <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
             </div>
           </header>
@@ -101,7 +103,13 @@
             </div>
           </aside>
 
-          <button id="stationPrompt" class="station-prompt" type="button" aria-live="polite" disabled></button>
+          <!-- 상호작용 안내. 글자 대신 키캡 'E' 하나만 띄웁니다.
+               무엇을 만지는지는 대상 위 이름표(둥실 강조)가 이미 알려 줍니다.
+               설명 문구는 game.js 가 aria-label 로만 넣어 스크린리더에 남깁니다. -->
+          <button id="stationPrompt" class="station-prompt" type="button" disabled>
+            <span class="prompt-arrow" aria-hidden="true"></span>
+            <span class="keycap" aria-hidden="true">E</span>
+          </button>
           <div id="toast" class="toast" aria-live="polite"></div>
 
           <section id="menuSelectOverlay" class="overlay menu-select-overlay" role="dialog" aria-modal="true" aria-labelledby="menuSelectTitle">
@@ -129,14 +137,12 @@
               <span id="storyDayLabel">DAY 1</span>
               <strong id="storySceneTitle">비를 피한 곳</strong>
             </div>
-            <div id="storyPortraitWrap" class="story-portrait-wrap" aria-hidden="true">
-              <div id="storyPortrait" class="story-portrait"></div>
-              <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
-            </div>
+            <div id="storyStage" class="story-stage" aria-hidden="true"></div>
             <div class="story-dialogue-box">
               <div class="story-speaker-row">
                 <strong id="storySpeaker">이야기</strong>
                 <span id="storyRelationBadge" class="story-relation-badge"></span>
+                <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
               </div>
               <p id="storyText" class="story-text" aria-live="polite"></p>
               <div id="storyChoices" class="story-choices" aria-label="대화 선택지"></div>
@@ -144,22 +150,37 @@
             </div>
           </section>
 
+          <!-- 미니게임 공용 프레임. 모든 미니게임이 이 4개 패널을 그대로 씁니다.
+               크기·위치는 css/minigame-frame.css 상단 변수 한 곳에서 관리합니다. -->
           <section id="miniOverlay" class="overlay mini-overlay" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
-            <div class="mini-window wood-panel">
-              <div class="mini-heading">
-                <div>
-                  <p id="miniStation" class="eyebrow">조리대</p>
-                  <h2 id="miniTitle">미니게임</h2>
-                </div>
-                <div class="mini-heading-actions">
-                  <div id="miniTimer" class="mini-timer">8.0</div>
-                  <button id="miniClose" class="mini-close" type="button" aria-label="미니게임 닫기" hidden>닫기 <kbd>ESC</kbd></button>
-                </div>
-              </div>
-              <p id="miniDescription" class="mini-description"></p>
+            <!-- 1. 뒤에 깔리는 가장 큰 패널 -->
+            <div class="mini-window wood-panel" aria-hidden="true"></div>
+
+            <!-- 3. 게임 메인 플레이 영역 -->
+            <div class="mini-stage">
               <div id="miniContent" class="mini-content"></div>
-              <div id="miniFeedback" class="mini-feedback" aria-live="polite"></div>
+              <div id="miniTimer" class="mini-timer">8.0</div>
             </div>
+
+            <!-- 하단 TIP 줄. 미니게임 설명과 진행 피드백이 여기 모입니다. -->
+            <div class="mini-tip">
+              <span class="mini-tip-label" aria-hidden="true">TIP</span>
+              <div class="mini-tip-body">
+                <p id="miniDescription" class="mini-description"></p>
+                <p id="miniFeedback" class="mini-feedback" aria-live="polite"></p>
+              </div>
+              <span class="mini-esc-hint"><kbd>ESC</kbd> 나가기</span>
+            </div>
+
+            <!-- 2. 미니게임 타이틀 패널 -->
+            <div class="mini-title-panel wood-panel">
+              <p id="miniStation" class="eyebrow">조리대</p>
+              <h2 id="miniTitle">미니게임</h2>
+            </div>
+
+            <!-- 4. 닫기 버튼 / 닫을 수 없는 미니게임이면 일시정지 버튼 -->
+            <button id="miniClose" class="mini-icon-button mini-close" type="button" aria-label="미니게임 닫기" title="닫기 (ESC)" hidden>✕</button>
+            <button id="miniPause" class="mini-icon-button mini-pause" type="button" aria-label="일시정지" title="일시정지">❚❚</button>
           </section>
 
           <section id="resultOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">

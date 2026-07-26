@@ -86,10 +86,19 @@ const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY
 //                       29px 뒤라서, 그대로 두면 음식이 어깨·가슴에 겹칩니다.
 //                       앞으로 밀어 뻗은 손 위에 오게 합니다.
 //   dy     chef-carry-temp.js 를 지웠을 때 쓰이는 기본 높이(발바닥 기준).
+//
+// steam/sparkle = 음식 위에 겹치는 연출(food-props.js FOOD_FX).
+//   음식 크기에 대한 비율로 적어서 원근 보정이 음식과 함께 걸립니다.
+//   steam.w   음식 폭 대비 김 스프라이트 폭. 0.55 면 김 꼭대기가 턱 바로 아래에서
+//             멈춥니다. 0.7 을 넘기면 얼굴을 가려서 지저분해 보입니다.
+//   steam.dy  음식 세로 크기 대비 김 밑동 위치 (0 = 음식 중심, 양수 = 아래쪽).
+//             0.05 = 그릇 안에서 피어오르는 높이.
+//   sparkle 은 시트 규격이 프랍과 같아서 음식과 같은 크기·같은 자리입니다.
 const PLAYER_CARRY = {
   food: {
     dy:-80, w:72,
-    hand:{ down:{x:0,y:14}, up:{x:0,y:-22}, side:{x:-29,y:14} }
+    hand:{ down:{x:0,y:14}, up:{x:0,y:-22}, side:{x:-29,y:14} },
+    steam:{ w:0.55, dy:0.05 }
   }
 };
 
@@ -110,6 +119,8 @@ const PLAYER_ANIM = { mini:"idle2" };
 
 let playerSprite = null;
 let carriedFood = null;
+let carriedSteam = null;
+let carriedSparkle = null;
 let playerKeys = null;
 
 function createPlayer(scene){
@@ -133,6 +144,13 @@ function createPlayer(scene){
       foodPropTextureKey(FOOD_PROPS[0].id))
     .setDepth(STAGE_DEPTH.food).setVisible(false);
   sizeFoodPropSprite(carriedFood,carriedFoodViewWidth(start.y));
+
+  // 김·반짝임은 만들자마자 반복 재생을 걸어 두고 보이기만 껐다 켭니다.
+  // 위치·크기·깊이는 매 프레임 syncCarriedFoodFx() 가 음식에 맞춥니다.
+  carriedSteam=createFoodFxSprite(scene,"steam",STAGE_DEPTH.food);       // food-props.js
+  carriedSparkle=createFoodFxSprite(scene,"sparkle",STAGE_DEPTH.food);
+  // 김은 밑동 기준이라야 "음식 표면에서 피어오른다"가 됩니다. 반짝임은 음식과 같은 중심.
+  carriedSteam?.setOrigin(.5,1);
 
   if(typeof createChefCarry==="function") createChefCarry(scene);   // chef-carry-temp.js — 지우면 이 줄도 무시됨
 
@@ -170,6 +188,7 @@ function movePlayer(dx,dy){
   const p=state.player;
   p.x+=dx; p.y+=dy;
   clampChefToWalkArea(p);   // chef-walk-area.js — 사다리꼴 영역으로 잘라냅니다
+  blockPlayerAtStations(p); // kitchen.js       — 쓰레기통은 통과하지 못합니다
   p.moving=true;
   if(Math.abs(dx)>Math.abs(dy))p.facing=dx>0?"right":"left";
   else p.facing=dy>0?"down":"up";
@@ -234,4 +253,43 @@ function syncPhaserObjects(){
 
   // 손 위치·앞뒤 관계는 임시 파일이 덮어씁니다. 파일을 지우면 위 기본값으로 돌아갑니다.
   if(typeof syncChefCarry==="function") syncChefCarry(playerSprite,carriedFood,facing);
+
+  // 연출은 음식이 최종 위치로 옮겨진 뒤에 맞춥니다. 그래야 손 위치를 누가 정하든 따라갑니다.
+  syncCarriedFoodFx(held);
+}
+
+
+/* 음식 위에 겹치는 김·반짝임을 음식 스프라이트에 맞춥니다.
+   음식의 화면 크기·위치·깊이에서 전부 끌어오므로 원근 보정과 앞뒤 관계
+   (뒷모습일 때 몸 뒤로 가는 것 포함)가 자동으로 따라옵니다.
+
+   [깊이] 음식과 "같은" depth 를 씁니다. 더 크게 주면 뒷모습일 때 음식만
+   몸 뒤로 가고 연출은 몸 앞에 남아 등에서 김이 나는 그림이 됩니다.
+   같은 depth 안에서는 만든 순서(음식 → 김 → 반짝임)대로 겹칩니다. */
+function syncCarriedFoodFx(held){
+  const visible=!!held&&carriedFood.visible;
+  const foodW=carriedFood.displayWidth,foodH=carriedFood.displayHeight;
+
+  if(carriedSteam){
+    const S=PLAYER_CARRY.food.steam;
+    const width=foodW*S.w;
+    carriedSteam.setVisible(visible)
+      .setPosition(carriedFood.x,carriedFood.y+foodH*S.dy)
+      .setDisplaySize(width,width*(carriedSteam.height/carriedSteam.width))
+      .setDepth(carriedFood.depth);
+  }
+
+  if(carriedSparkle){
+    // 시트 규격이 프랍과 같아서 음식과 완전히 같은 사각형입니다.
+    const special=(typeof isSpecialFood==="function")&&isSpecialFood(held?.dishId,carriedOrder(held));
+    carriedSparkle.setVisible(visible&&!!special)
+      .setPosition(carriedFood.x,carriedFood.y)
+      .setDisplaySize(foodW,foodH)
+      .setDepth(carriedFood.depth);
+  }
+}
+
+// 들고 있는 접시의 주문. 이야기 손님의 특별 조리 여부를 보려고 찾습니다.
+function carriedOrder(held){
+  return held?state.orders.find(order=>order.id===held.orderId)||null:null;
 }

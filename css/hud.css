@@ -1,3 +1,5 @@
+/* 상단 HUD 자체는 배경이 없습니다. 레퍼런스처럼 메뉴판 뒤가 비어 보여야 해서
+   패널 배경(.wood-panel)은 좌측 타이틀 판(.small-logo)과 우측 스탯 칸이 각자 갖습니다. */
 .top-hud {
   position: absolute;
   z-index: 5;
@@ -6,10 +8,13 @@
   top: 1.5%;
   height: 14.7%;
   display: grid;
-  grid-template-columns: 14% 1fr 24%;
+  grid-template-columns: 13% 1fr 18.5%;
   align-items: center;
   gap: .8%;
   padding: .65% .85%;
+  background: none;
+  border: 0;
+  box-shadow: none;
   transition: opacity .25s ease;
 }
 .small-logo {
@@ -18,107 +23,138 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border-right: 1px solid rgba(224,163,77,.4);
+  padding: 0 calc(6 * var(--upx));
   line-height: 1.05;
 }
-.small-logo > span {
-  position: absolute;
-  margin: -32px 0 0 -85px;
-  color: var(--gold-bright);
-}
+/* 장식용 ✦ 는 패널 밖으로 튀어나가 떠 보여서 숨깁니다. */
+.small-logo > span { display: none; }
 .small-logo strong {
   color: var(--gold-bright);
   font-family: Georgia, serif;
-  font-size: clamp(16px,1.9vw,29px);
+  font-size: calc(29 * var(--upx));
   letter-spacing: -.08em;
   text-shadow: 2px 2px #4b2415;
 }
 .small-logo small {
   margin-top: .5em;
   color: #d7ad6c;
-  font-size: clamp(8px,.7vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 
+/* 하루 최대 5개까지 선택되므로 5장이 가운데 정렬로 들어가는 폭을 기준으로 잡았습니다.
+   (상단 HUD 가운데 칸 ≈ 65% 폭 · 카드 5장 + 간격 4개) */
 .menu-cards {
   height: 90%;
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(86px,132px));
+  grid-template-columns: repeat(auto-fit,minmax(calc(110 * var(--upx)),calc(200 * var(--upx))));
   justify-content: center;
-  gap: 7px;
+  gap: calc(10 * var(--upx));
 }
+/* 카드 높이(.menu-cards 의 90%)는 이름표+음식 그림보다 항상 조금 큽니다.
+   그냥 두면 내용이 위에 붙고 남는 높이가 전부 아래로 몰려 음식이 아래쪽으로
+   쏠려 보여서, 세로 가운데 정렬로 위아래 여백을 같게 나눕니다.
+   (가로는 stretch 를 유지해야 이름이 길 때 strong 의 말줄임이 동작합니다) */
 .menu-card {
   position: relative;
   min-width: 0;
-  padding: 4px 2px 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: calc(5 * var(--upx)) calc(4 * var(--upx));
   border: 2px solid #946037;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--upx));
   background: linear-gradient(#efcf98,#c58d4d);
   color: #2c1b11;
-  box-shadow: inset 0 0 0 2px #f7dfad, inset 0 -8px rgba(91,47,24,.12);
+  box-shadow: inset 0 0 0 2px #f7dfad, inset 0 calc(-8 * var(--upx)) rgba(91,47,24,.12);
   cursor: pointer;
   transition: transform .12s, filter .12s;
 }
 .menu-card:hover { transform: translateY(-2px); filter: brightness(1.05); }
-.menu-card.selected { outline: 3px solid #fff1a8; transform: translateY(2px); }
+.menu-card.selected { outline: calc(3 * var(--upx)) solid #fff1a8; transform: translateY(2px); }
 .menu-card:disabled { cursor: default; }
 .menu-card:disabled:hover { filter: none; transform: none; }
 .menu-card:disabled.selected { transform: translateY(2px); }
 .menu-card.locked { filter: grayscale(.72) brightness(.62); opacity: .72; }
 .menu-card strong {
+  flex: none;
   display: block;
   overflow: hidden;
-  font-size: clamp(8px,.78vw,12px);
+  font-size: calc(15 * var(--upx));
+  line-height: 1.25;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 /* 음식 그림은 가로형(264x152)입니다. background-image 는 메뉴별로 달라서
    game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
+/* flex: none — 세로 flex 안에서 그림이 눌려 비율이 깨지지 않게 합니다.
+   margin 은 위아래를 같게 둬야 가운데 정렬이 한쪽으로 치우치지 않습니다. */
 .food-icon {
-  width: min(76px,5.9vw);
+  position: relative;
+  flex: none;
+  width: calc(160 * var(--upx));
   aspect-ratio: 264 / 152;
   display: block;
-  margin: 1px auto 0;
+  margin: calc(2 * var(--upx)) auto;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
 }
+
+/* 특별음식 반짝임. 시트가 프랍과 같은 264x152 규격이라 아이콘 위에 그대로 덮습니다.
+   프레임 전환은 CSS 가 하고 JS 는 관여하지 않습니다.
+   [값 맞추기] 6프레임 · 8fps = 0.75s. food-props.js 의 FOOD_FX.sparkle 과 같아야 합니다.
+   background-size 600% 기준 background-position 0%~100% 가 프레임 0~5 이고,
+   steps(6) 이 그 여섯 지점에 정확히 서도록 끝값을 120% 로 둡니다. */
+.food-icon.sparkle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("../assets/food/fx_perfect_sparkle.webp") no-repeat 0 0 / 600% 100%;
+  animation: food-sparkle .75s steps(6) infinite;
+  pointer-events: none;
+}
+@keyframes food-sparkle { to { background-position-x: 120%; } }
+@media (prefers-reduced-motion: reduce) {
+  .food-icon.sparkle::after { animation: none; }
+}
 .menu-icon-placeholder {
   display: grid;
   place-items: center;
-  font-size: clamp(14px,1.4vw,22px);
+  font-size: calc(22 * var(--upx));
 }
 .menu-card .stock {
   position: absolute;
-  right: 3px;
-  bottom: 2px;
-  min-width: 18px;
-  padding: 1px 4px;
-  border-radius: 9px;
+  right: calc(4 * var(--upx));
+  bottom: calc(3 * var(--upx));
+  min-width: calc(20 * var(--upx));
+  padding: 1px calc(5 * var(--upx));
+  border-radius: calc(9 * var(--upx));
   background: #2d1a11;
   color: #ffe7a8;
   text-align: center;
-  font-size: clamp(7px,.66vw,10px);
+  font-size: calc(12 * var(--upx));
 }
 .menu-tag,
 .order-count {
   position: absolute;
-  bottom: 2px;
-  padding: 1px 5px;
-  border-radius: 8px;
+  bottom: calc(3 * var(--upx));
+  padding: 1px calc(6 * var(--upx));
+  border-radius: calc(8 * var(--upx));
   background: #2d1a11;
   color: #ffe7a8;
-  font-size: clamp(6px,.58vw,9px);
+  font-size: calc(11 * var(--upx));
   font-weight: 800;
 }
-.menu-tag { left: 3px; }
-.order-count { right: 3px; background: #5b3420; }
+.menu-tag { left: calc(4 * var(--upx)); }
+.order-count { right: calc(4 * var(--upx)); background: #5b3420; }
 
+/* 칸 순서: DAY · 남은시간 · 만족도 · 인기도 · 보유금 · 도감 · 설정 */
 .hud-stats {
-  height: 75%;
+  height: 60%;
   display: grid;
-  grid-template-columns: .65fr 1.05fr 1.35fr .85fr 1.25fr .55fr;
-  gap: 4px;
+  grid-template-columns: .6fr .95fr 1.2fr .75fr 1.15fr .45fr .45fr;
+  gap: calc(3 * var(--upx));
 }
 .hud-stats > div {
   min-width: 0;
@@ -127,14 +163,30 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #744522;
-  border-radius: 5px;
+  border-radius: calc(4 * var(--upx));
   background: #160c08;
 }
-.hud-stats span { color: #b98d59; font-size: clamp(6px,.58vw,9px); }
+.hud-stats span { color: #b98d59; font-size: calc(8 * var(--upx)); }
 .hud-stats strong {
   color: #f7d58a;
-  font-size: clamp(9px,.85vw,14px);
+  font-size: calc(12 * var(--upx));
   white-space: nowrap;
+}
+.hud-stats .square-button { font-size: calc(14 * var(--upx)); line-height: 1; }
+
+/* 보유금: '보유금' 글자 대신 동전 아이콘을 금액 왼쪽에 둡니다. */
+.stat-money {
+  flex-direction: row;
+  gap: calc(4 * var(--upx));
+  padding: 0 calc(4 * var(--upx));
+}
+.coin-icon {
+  flex: none;
+  width: calc(14 * var(--upx));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffeeb4 0 16%, #f2c964 46%, #c9862f 78%, #8b5417 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,241,196,.5), 0 1px 2px rgba(0,0,0,.55);
 }
 
 .left-hud, .right-hud {
@@ -156,7 +208,8 @@
   display: none;
   pointer-events: none;
 }
-.phase-prep .hud-stats { grid-template-columns: .8fr .8fr 1.25fr .55fr; }
+/* 낮에는 남은시간·만족도 칸이 숨겨져 DAY · 인기도 · 보유금 · 도감 · 설정 5칸입니다. */
+.phase-prep .hud-stats { grid-template-columns: .75fr .75fr 1.2fr .5fr .5fr; }
 .phase-prep .right-hud { min-height: 24%; }
 .phase-open .left-hud { min-height: 28%; }
 
@@ -164,36 +217,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+  padding-bottom: calc(6 * var(--upx));
+  margin-bottom: calc(6 * var(--upx));
   border-bottom: 1px solid rgba(224,163,77,.4);
   color: #efc77b;
-  font-size: clamp(10px,.95vw,15px);
+  font-size: calc(15 * var(--upx));
 }
 .phase-dot {
-  width: 9px;
-  height: 9px;
+  width: calc(9 * var(--upx));
+  height: calc(9 * var(--upx));
   border-radius: 50%;
   background: #e9c467;
-  box-shadow: 0 0 8px #e9c467;
+  box-shadow: 0 0 calc(8 * var(--upx)) #e9c467;
 }
 
-.inventory-list { display: grid; gap: 3px; }
+.inventory-list { display: grid; gap: calc(3 * var(--upx)); }
 .inventory-row {
-  min-height: 23px;
+  min-height: calc(23 * var(--upx));
   display: grid;
-  grid-template-columns: 12px 1fr auto;
+  grid-template-columns: calc(12 * var(--upx)) 1fr auto;
   align-items: center;
-  gap: 5px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  gap: calc(5 * var(--upx));
+  padding: 2px calc(4 * var(--upx));
+  border-radius: calc(3 * var(--upx));
   background: rgba(255,255,255,.025);
   color: #ead5ae;
-  font-size: clamp(8px,.72vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .inventory-row .dot {
-  width: 8px;
-  height: 8px;
+  width: calc(8 * var(--upx));
+  height: calc(8 * var(--upx));
   margin: auto;
   border: 1px solid #a96f40;
   border-radius: 2px;
@@ -204,44 +257,44 @@
 .inventory-row strong { color: #ffe09a; }
 
 .objective-body {
-  min-height: 90px;
+  min-height: calc(90 * var(--upx));
   color: #ead8b8;
-  font-size: clamp(8px,.76vw,12px);
+  font-size: calc(12 * var(--upx));
   line-height: 1.45;
 }
 .objective-body strong { color: #ffd787; }
-.prep-checklist { display: grid; gap: 3px; }
-.prep-menu-group { display: grid; gap: 3px; }
-.prep-menu-group + .prep-menu-group { margin-top: 5px; }
-.prep-checklist strong:not(:first-child) { margin-top: 4px; }
+.prep-checklist { display: grid; gap: calc(3 * var(--upx)); }
+.prep-menu-group { display: grid; gap: calc(3 * var(--upx)); }
+.prep-menu-group + .prep-menu-group { margin-top: calc(5 * var(--upx)); }
+.prep-checklist strong:not(:first-child) { margin-top: calc(4 * var(--upx)); }
 .prep-checklist .done { color: #9dbb70; text-decoration: line-through; }
 .prep-checklist .disabled { color: #8f826f; opacity: .78; }
-.prep-task-row { display:grid; grid-template-columns:16px 1fr; gap:1px 5px; padding:3px 0; border-bottom:1px solid rgba(224,163,77,.1); }
-.prep-task-row > span { grid-row:1 / 3; color:#b99563; font-size:10px; }
-.prep-task-row > strong { color:#e7c98f; font-size:10px; }
+.prep-task-row { display:grid; grid-template-columns:calc(16 * var(--upx)) 1fr; gap:1px calc(5 * var(--upx)); padding:calc(3 * var(--upx)) 0; border-bottom:1px solid rgba(224,163,77,.1); }
+.prep-task-row > span { grid-row:1 / 3; color:#b99563; font-size:calc(10 * var(--upx)); }
+.prep-task-row > strong { color:#e7c98f; font-size:calc(10 * var(--upx)); }
 .prep-task-row > div { grid-column:2; }
 .prep-checklist .prep-total {
-  margin-top: 5px;
-  padding-top: 5px;
+  margin-top: calc(5 * var(--upx));
+  padding-top: calc(5 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #ffe09a;
   font-weight: 800;
 }
 .prep-checklist small { color: #c8ab7e; line-height: 1.35; }
-.prep-summary { display: grid; gap: 3px; }
-.prep-summary strong:not(:first-child) { margin-top: 6px; }
+.prep-summary { display: grid; gap: calc(3 * var(--upx)); }
+.prep-summary strong:not(:first-child) { margin-top: calc(6 * var(--upx)); }
 .prep-summary div { color: #d8c19e; }
 
-.order-list { display: grid; gap: 5px; }
+.order-list { display: grid; gap: calc(5 * var(--upx)); }
 .order-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: calc(20 * var(--upx)) 1fr auto;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: calc(4 * var(--upx));
+  padding: calc(6 * var(--upx));
   border: 1px solid #57351f;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--upx));
   background: #170e0a;
   color: #d8bb89;
   cursor: pointer;
@@ -252,49 +305,49 @@
 .order-row strong { overflow: hidden; color: #f1ce8b; text-overflow: ellipsis; white-space: nowrap; }
 .order-row em { grid-column: 2 / 4; color: #a98b67; font-size: .88em; font-style: normal; }
 .special-order { color: #e7a76a; }
-.order-empty { color: #a98b67; font-size: clamp(8px,.72vw,11px); line-height: 1.45; }
+.order-empty { color: #a98b67; font-size: calc(11 * var(--upx)); line-height: 1.45; }
 
 .relationship-box {
-  margin-top: 7px;
-  padding-top: 7px;
+  margin-top: calc(7 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
 }
 .relationship-heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 5px;
-  margin-bottom: 4px;
+  gap: calc(5 * var(--upx));
+  margin-bottom: calc(4 * var(--upx));
   color: #e8c47d;
-  font-size: clamp(8px,.7vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .relationship-heading small {
   color: #8f765b;
-  font-size: clamp(6px,.52vw,8px);
+  font-size: calc(8 * var(--upx));
   text-align: right;
 }
 .relationship-list {
-  max-height: 92px;
+  max-height: calc(92 * var(--upx));
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--upx));
   overflow: auto;
   scrollbar-width: thin;
 }
 .relationship-empty {
   color: #8f765b;
-  font-size: clamp(7px,.6vw,9px);
+  font-size: calc(9 * var(--upx));
   line-height: 1.35;
 }
 .relationship-row {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 4px;
-  padding: 3px 5px;
+  gap: calc(4 * var(--upx));
+  padding: calc(3 * var(--upx)) calc(5 * var(--upx));
   border: 1px solid #4e3020;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--upx));
   background: #160d09;
-  font-size: clamp(7px,.62vw,10px);
+  font-size: calc(10 * var(--upx));
 }
 .relationship-row strong {
   overflow: hidden;
@@ -308,36 +361,36 @@
   white-space: nowrap;
 }
 
-.recipe-steps { display: grid; gap: 3px; margin-top: 6px; }
+.recipe-steps { display: grid; gap: calc(3 * var(--upx)); margin-top: calc(6 * var(--upx)); }
 .recipe-step {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 5px;
+  gap: calc(6 * var(--upx));
+  padding: calc(3 * var(--upx)) calc(5 * var(--upx));
   border: 1px solid #51301e;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--upx));
   background: #160d09;
 }
 .recipe-step.done { color: #99b56b; text-decoration: line-through; }
 .recipe-step.current { border-color: #e0a74e; color: #ffe4a0; }
 
 .cleanliness-box {
-  margin-top: 8px;
-  padding-top: 7px;
+  margin-top: calc(8 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
 }
 .cleanliness-box > div:first-child {
   display: flex;
   justify-content: space-between;
   color: #d8b67e;
-  font-size: clamp(8px,.72vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .clean-track {
-  height: 8px;
-  margin: 4px 0;
+  height: calc(8 * var(--upx));
+  margin: calc(4 * var(--upx)) 0;
   overflow: hidden;
   border: 1px solid #56321d;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--upx));
   background: #120a07;
 }
 .clean-track i {
@@ -347,16 +400,16 @@
   background: linear-gradient(90deg,#9bb667,#d8b25e);
   transition: width .2s;
 }
-.cleanliness-box small { color: #a98b67; font-size: clamp(7px,.66vw,10px); }
+.cleanliness-box small { color: #a98b67; font-size: calc(10 * var(--upx)); }
 
 .controls-help {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 7px;
+  gap: calc(4 * var(--upx));
+  margin-top: calc(8 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #c6aa7e;
-  font-size: clamp(7px,.65vw,10px);
+  font-size: calc(10 * var(--upx));
 }
-.controls-help div { display: flex; align-items: center; gap: 4px; }
+.controls-help div { display: flex; align-items: center; gap: calc(4 * var(--upx)); }

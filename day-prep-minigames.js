@@ -301,7 +301,9 @@ function moveWhiskPointer(event){
   const rect=work.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top,cx=rect.width/2,cy=rect.height/2;
   const dx=x-cx,dy=y-cy,radius=Math.hypot(dx,dy),angle=Math.atan2(dy,dx);
   whisk.style.left=`${clamp(x/rect.width*100,8,92)}%`;whisk.style.top=`${clamp(y/rect.height*100,8,92)}%`;
-  bowl.style.setProperty("--batter-x",`${clamp(dx*.045,-7,7)}px`);bowl.style.setProperty("--batter-y",`${clamp(dy*.045,-6,6)}px`);
+  // 반죽 출렁임도 화면 크기 비례 단위(--upx, css/base.css)로 줍니다.
+  bowl.style.setProperty("--batter-x",`calc(${clamp(dx*.045,-7,7)} * var(--upx))`);
+  bowl.style.setProperty("--batter-y",`calc(${clamp(dy*.045,-6,6)} * var(--upx))`);
   if(m.data.lastAngle!=null&&radius>35&&radius<Math.min(rect.width,rect.height)*.48){
     const delta=Math.atan2(Math.sin(angle-m.data.lastAngle),Math.cos(angle-m.data.lastAngle));
     if(Math.abs(delta)<1.2)m.data.progress=clamp(m.data.progress+Math.abs(delta)*6,0,100);

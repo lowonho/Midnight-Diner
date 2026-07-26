@@ -1,20 +1,20 @@
 .menu-select-overlay { z-index: 35; background: rgba(8,5,3,.82); }
-.menu-select-window { width: min(720px,92%); padding: 24px; }
-.menu-select-window h2 { margin: 3px 0 8px; color: #f7dfad; }
-.menu-select-description { margin: 0 0 16px; color: #d8c29f; }
-.menu-select-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.menu-select-window { width: min(calc(720 * var(--upx)),92%); padding: calc(24 * var(--upx)); }
+.menu-select-window h2 { margin: calc(3 * var(--upx)) 0 calc(8 * var(--upx)); color: #f7dfad; }
+.menu-select-description { margin: 0 0 calc(16 * var(--upx)); color: #d8c29f; }
+.menu-select-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: calc(10 * var(--upx)); }
 .menu-select-option {
-  min-height: 108px; padding: 12px 8px; border: 2px solid #7d5030; border-radius: 8px;
+  min-height: calc(108 * var(--upx)); padding: calc(12 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #7d5030; border-radius: calc(8 * var(--upx));
   background: #ead2a5; color: #3e2416; cursor: pointer;
 }
 .menu-select-option strong,.menu-select-option small { display: block; }
-.menu-select-option small { margin-top: 7px; color: #76523a; }
-.menu-select-option.selected { outline: 3px solid #f4c65f; background: #fff0bd; }
+.menu-select-option small { margin-top: calc(7 * var(--upx)); color: #76523a; }
+.menu-select-option.selected { outline: calc(3 * var(--upx)) solid #f4c65f; background: #fff0bd; }
 .menu-select-option.required { border-color: #d3a23c; }
 .menu-select-option:disabled { cursor: not-allowed; opacity: .86; }
-.menu-select-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.menu-select-footer { display: flex; align-items: center; justify-content: space-between; gap: calc(16 * var(--upx)); margin-top: calc(18 * var(--upx)); }
 .menu-select-footer strong { color: #f7dfad; }
 @media (max-width:700px) {
   .menu-select-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .menu-select-option { min-height: 78px; }
+  .menu-select-option { min-height: calc(78 * var(--upx)); }
 }
