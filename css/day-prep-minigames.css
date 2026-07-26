@@ -459,10 +459,31 @@
 .sauce-measure button { padding:4px 7px; border:1px solid #d17a58; border-radius:5px; background:#6c3024; color:#ffe0ca; cursor:pointer; font-size:11px; font-weight:800; }
 
 /* Day 3 · 새우 튀김옷 */
+.mini-window:has(.shrimp-coat-screen) { width:min(880px,94%); }
 .shrimp-coat-order { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; color:#a9906f; }
 .shrimp-coat-order span { padding:5px 8px; border:1px solid #735037; border-radius:7px; background:#24160f; font-weight:800; }
 .shrimp-coat-order span.current { border-color:#ffe08d; color:#ffe09a; }
 .shrimp-coat-order span.done { border-color:#789a51; color:#bcd88b; }
+.shrimp-coat-screen { width:100%; display:grid; grid-template-columns:minmax(0,1fr) 150px; gap:12px; align-items:stretch; }
+.shrimp-coat-workbench { min-height:210px; display:flex; align-items:center; justify-content:center; gap:5px; padding:12px 8px; border:2px solid #70472c; border-radius:14px; background:linear-gradient(#754723 0 72%,#4b2b19 73%); box-shadow:inset 0 0 18px rgba(0,0,0,.3); }
+.shrimp-coat-station { flex:1; min-width:0; display:grid; justify-items:center; gap:7px; padding:9px 5px; border:2px solid #765034; border-radius:12px; background:#291810; color:#b99b70; opacity:.48; }
+.shrimp-coat-station.current { border-color:#e3a94c; color:#ffe0a0; opacity:1; box-shadow:0 0 13px rgba(227,169,76,.35); }
+.shrimp-coat-station.done { border-color:#769650; color:#bcd88b; opacity:.82; }
+.shrimp-coat-station > strong { font-size:13px; white-space:nowrap; }
+.shrimp-coat-station > small { min-height:17px; font-size:11px; font-weight:900; }
+.coat-bowl { position:relative; width:100%; height:112px; overflow:hidden; display:flex; align-items:center; justify-content:center; border:5px solid #9c805d; border-top-width:3px; border-radius:14px 14px 48px 48px; background:#e8dfc5; }
+.coat-bowl.egg { background:#e9b94a; }
+.coat-bowl.breadcrumbs { background:radial-gradient(circle,#95663a 0 2px,transparent 3px),#d8ad61; background-size:10px 9px; }
+.coat-bowl > span { color:#654a30; font-size:11px; font-weight:900; }
+.coat-bowl .breadcrumb-shrimp { transform:scale(.72); }
+.coat-flow-arrow { flex:0 0 auto; color:#edb653; font-size:26px; font-style:normal; font-weight:900; }
+.shrimp-coat-controls { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px 8px; border:2px solid #765034; border-radius:12px; background:#1f130d; color:#d8bc8c; text-align:center; }
+.shrimp-coat-controls > strong { color:#ffe09a; }
+.shrimp-coat-controls > small { line-height:1.45; }
+.shrimp-coat-controls > b { color:#ffe09a; }
+.shrimp-coat-controls .breadcrumb-key-pair { gap:5px; }
+.shrimp-coat-controls .breadcrumb-key-pair button { width:52px; height:52px; font-size:25px; }
+.shrimp-coat-controls .breadcrumb-key-pair span { font-size:16px; }
 .prep-shrimp,.breadcrumb-shrimp { position:relative; width:126px; height:69px; border:0; background:transparent; cursor:grab; }
 .prep-shrimp::before,.breadcrumb-shrimp::before { content:""; position:absolute; left:17px; top:9px; width:72px; height:43px; border:12px solid #e99876; border-left-color:transparent; border-radius:50%; transform:rotate(12deg); }
 .prep-shrimp::after,.breadcrumb-shrimp::after { content:""; position:absolute; right:10px; top:29px; border-block:14px solid transparent; border-left:25px solid #dc8268; transform:rotate(-8deg); }
@@ -486,9 +507,19 @@
 .breadcrumb-shrimp.stage-1 { filter:sepia(.25) brightness(1.05); }
 .breadcrumb-shrimp.stage-2 { filter:sepia(.55) saturate(.85) brightness(1.1); }
 .breadcrumb-shrimp.stage-3 { filter:sepia(.8) saturate(.75) brightness(1.2); }
+.breadcrumb-shrimp.coating-flour::before { border-color:#e4d4af; border-left-color:transparent; }
+.breadcrumb-shrimp.coating-egg::before { border-color:#efbd4f; border-left-color:transparent; }
 .breadcrumb-shrimp b { position:absolute; z-index:4; left:var(--crumb-x); top:var(--crumb-y); width:7px; height:5px; border-radius:50%; background:#e3bd71; transform:rotate(var(--crumb-turn)); }
 .breadcrumb-progress { width:100%; height:22px; overflow:hidden; border:2px solid #785033; border-radius:8px; background:#1d110b; }
 .breadcrumb-progress i { display:block; height:100%; background:linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition:width .12s; }
+@media (max-width:700px) {
+  .shrimp-coat-screen { grid-template-columns:1fr; }
+  .shrimp-coat-workbench { min-height:175px; padding:8px 4px; }
+  .shrimp-coat-station { padding:6px 3px; }
+  .coat-bowl { height:88px; }
+  .coat-bowl .breadcrumb-shrimp { transform:scale(.58); }
+  .shrimp-coat-controls { padding:8px; }
+}
 
 /* Day 4 · 떡 불리기 */
 .day4-prep-flow { width:100%; padding:7px 9px; border:1px solid #735037; border-radius:9px; background:#1d120d; }
@@ -496,6 +527,7 @@
 .tteok-soak-scene { width:min(430px,100%); min-height:190px; padding:14px; display:grid; grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:14px; border:2px solid #65432d; border-radius:14px; background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 20px rgba(0,0,0,.28); }
 .tteok-source,.water-source { min-height:105px; border:2px solid #785033; border-radius:13px; background:#d2ae73; color:#352116; cursor:pointer; font-weight:900; }
 .tteok-source i { display:block; width:62px; height:48px; margin:0 auto 7px; border-radius:12px; background:repeating-linear-gradient(25deg,#f0e2bf 0 9px,#d6c59e 10px 13px); }
+.tteok-source.udon-source i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
 .water-source i { display:block; width:42px; height:64px; margin:0 auto 7px; border:4px solid #55727b; border-radius:8px 8px 17px 17px; background:linear-gradient(transparent 20%,#83c5d9 21%); }
 .tteok-source.added,.water-source.added { opacity:.42; }
 .soaking-bowl { position:relative; height:110px; overflow:hidden; border:8px solid #98a3a5; border-top-width:4px; border-radius:15px 15px 85px 85px; background:#596264; }
@@ -503,6 +535,7 @@
 .soaking-bowl.has-water .water-fill { height:72px; }
 .soaking-bowl span { position:absolute; z-index:2; inset:16px 10px 8px; display:flex; flex-wrap:wrap; justify-content:center; align-content:center; gap:5px; color:#cbd2cf; }
 .soaking-bowl b { width:28px; height:10px; border-radius:7px; background:#f1e3bf; transform:rotate(-12deg); box-shadow:0 2px 2px rgba(0,0,0,.2); }
+.soaking-bowl.udon-bowl b { width:35px; height:14px; border:4px double #f1dfb4; border-radius:50%; background:transparent; box-shadow:none; }
 .soak-state-asset { position:absolute; z-index:3; inset:0; width:100%; height:100%; object-fit:contain; }
 .soaking-bowl:has(.soak-state-asset) span,.soaking-bowl:has(.soak-state-asset) .water-fill { visibility:hidden; }
 

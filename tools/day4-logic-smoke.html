@@ -32,7 +32,8 @@ try{
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
   assert(SAUCE_RECIPES.yakisoba.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="200/50,100/25,30/10","Day 3 sauce recipe regression");
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
-  assert(selectedPrepTasks().length===5,"Day 3 prep task regression");
+  assert(selectedPrepTasks().length===6,"Day 3 prep task regression");
+  assert(selectedPrepTasks()[0].id==="soakUdon","Yakisoba udon soak must be first");
   state.day=1;state.selectedMenus=["oden","tofu"];
   assert(selectedPrepTasks().length===5,"Day 1 prep task regression");
   renderPotatoStarchShake=()=>{};
