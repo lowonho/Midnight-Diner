@@ -491,7 +491,9 @@
 .breadcrumb-progress i { display:block; height:100%; background:linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition:width .12s; }
 
 /* Day 4 · 떡 불리기 */
-.tteok-soak-scene { width:100%; min-height:190px; display:grid; grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:14px; }
+.day4-prep-flow { width:100%; padding:7px 9px; border:1px solid #735037; border-radius:9px; background:#1d120d; }
+.day4-prep-flow b { color:#8e7355; }
+.tteok-soak-scene { width:min(430px,100%); min-height:190px; padding:14px; display:grid; grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:14px; border:2px solid #65432d; border-radius:14px; background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 20px rgba(0,0,0,.28); }
 .tteok-source,.water-source { min-height:105px; border:2px solid #785033; border-radius:13px; background:#d2ae73; color:#352116; cursor:pointer; font-weight:900; }
 .tteok-source i { display:block; width:62px; height:48px; margin:0 auto 7px; border-radius:12px; background:repeating-linear-gradient(25deg,#f0e2bf 0 9px,#d6c59e 10px 13px); }
 .water-source i { display:block; width:42px; height:64px; margin:0 auto 7px; border:4px solid #55727b; border-radius:8px 8px 17px 17px; background:linear-gradient(transparent 20%,#83c5d9 21%); }
@@ -536,7 +538,8 @@
 .mandoline-potato-asset { width:100%; height:100%; object-fit:contain; }
 .mandoline-ingredient.potato:has(.mandoline-potato-asset) { border:0; background:transparent; }
 .shredded-pile.potato i { width:58px; height:8px; background:#e7c36c; }
-.potato-starch-scene { position:relative; width:min(420px,100%); height:180px; display:flex; align-items:center; justify-content:center; }
+.potato-key-pair { width:100%; padding:4px 0; }
+.potato-starch-scene { position:relative; width:min(420px,100%); height:145px; display:flex; align-items:center; justify-content:center; border:2px solid #65432d; border-radius:14px; background:linear-gradient(#21150f 0 70%,#54351f 71%); }
 .potato-basket { position:relative; width:250px; height:105px; overflow:hidden; border:8px solid #a86f32; border-top-width:4px; border-radius:16px 16px 85px 85px; background:repeating-linear-gradient(90deg,#68421f 0 7px,#bc8040 8px 13px); }
 .potato-basket > i { position:absolute; inset:8px; border-radius:10px 10px 70px 70px; background:#3b281b; }
 .potato-starch-asset { position:absolute; z-index:4; inset:0; width:100%; height:100%; object-fit:contain; }

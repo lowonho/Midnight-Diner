@@ -872,9 +872,9 @@ window.addEventListener("keydown",e=>{
       else if(state.mini.data.mode==="day3Mandoline"&&(k==="arrowleft"||k==="arrowright"))day3MandolineInput(k.replace("arrow",""));
       else if(state.mini.data.mode==="day4Mandoline"&&(k==="arrowup"||k==="arrowdown"))day3MandolineInput(k.replace("arrow",""));
       else if(state.mini.data.mode==="breadcrumbCoat"&&/^[a-z]$/.test(k))breadcrumbCoatInput(k);
+      else if(state.mini.data.mode==="potatoStarch"&&/^[a-z]$/.test(k))potatoStarchInput(k,e.repeat);
       else if(e.code==="Space"){
         if(state.mini.data.mode==="rapidCut"){rapidCutKeyDown(e.repeat);return;}
-        if(state.mini.data.mode==="potatoStarch"){potatoStarchInput(e.repeat);return;}
         if(e.repeat&&state.mini.data.requiresDoubleTap)return;
         dayPrepPrimaryAction();
       }

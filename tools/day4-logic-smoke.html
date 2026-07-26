@@ -8,6 +8,8 @@
 const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:{data:{}},kimchiPrep:{}};
+const dom={miniFeedback:{textContent:""},miniContent:{querySelector:()=>null},miniTimer:{textContent:""}};
+const audio={click(){},success(){},bad(){}};
 </script>
 <script src="../day.js"></script>
 <script src="../day-prep-minigames.js"></script>
@@ -33,6 +35,11 @@ try{
   assert(selectedPrepTasks().length===5,"Day 3 prep task regression");
   state.day=1;state.selectedMenus=["oden","tofu"];
   assert(selectedPrepTasks().length===5,"Day 1 prep task regression");
-  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 12";
+  renderPotatoStarchShake=()=>{};
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{mode:"potatoStarch",taskId:"shakeFriesStarch",keys:["a","d"],expectedIndex:0,presses:0,total:12}};
+  assert(!potatoStarchInput("d",false)&&state.mini.data.presses===0,"Wrong random key must be ignored");
+  assert(potatoStarchInput("a",false)&&state.mini.data.presses===1&&state.mini.data.expectedIndex===1,"First random key input");
+  assert(potatoStarchInput("d",false)&&state.mini.data.presses===2&&state.mini.data.expectedIndex===0,"Alternating random key input");
+  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 15";
 }catch(error){document.title="DAY4_LOGIC_FAIL";document.body.textContent=`DAY4_LOGIC_FAIL ${error.stack||error}`;}
 </script>
