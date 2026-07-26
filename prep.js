@@ -22,14 +22,22 @@
 const PREP_LAYOUT = {
   y: 540,          // 준비물이 놓이는 높이. 바 상판(논리 y 500~522) 위입니다.
   iy: 482,         // 요리사가 서는 높이 (카운터 위쪽 = 주방측)
-  marginLeft: 50,  // 바 테이블 왼쪽 끝에서 띄우는 거리
-  marginRight: 140,
+  marginLeft: 50,  // 바 테이블 왼쪽 끝에서 띄우는 거리 (의자 기준을 못 쓸 때의 대비값)
   // 바 테이블 이미지의 왼쪽 끝(논리 411)은 철판(논리 194~421)에 가려져 있어서,
   // 거기서부터 놓으면 첫 준비물이 철판 위로 올라갑니다. (실측 8px 겹침)
   // 그래서 왼쪽 시작을 철판 오른쪽 끝에서 다시 잡습니다.
   griddleGap: 14,  // 철판 오른쪽 끝에서 준비물 상자까지 띄우는 거리
-  // 오른쪽 한계. 더 오른쪽으로 가면 우측 HUD 패널 아래에 깔립니다.
-  rightLimit: 990,
+  // 왼쪽 시작은 1번 의자보다 이만큼 왼쪽입니다.
+  // (의자 중심 = counter.js COUNTER_CHAIR_CENTERS. VIEW 좌표라 toLogic 으로 옮깁니다)
+  chairLeadIn: 30,
+  // 오른쪽 끝은 간판(signage.js OPEN_SIGN, 논리 x 1105~) 앞까지 씁니다.
+  // 간판은 논리 y 588 부터라 준비물 상자(530~572)와 세로로 겹치지 않아서
+  // 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
+  signOverlap: 10,
+  rightLimitFallback: 1090,  // 간판이 없을 때의 오른쪽 한계
+  // 개수가 적을 때 화면 끝까지 억지로 벌리지 않도록 간격 상한을 둡니다.
+  // 남는 폭은 좌우로 나눠 가운데 정렬합니다.
+  maxStep: 172,
   reach: 62,       // 이 거리 안에 들어와야 손질을 시작할 수 있습니다
   labelDy: -26,    // 이름표는 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다
   boxW: 72, boxH: 42
@@ -40,18 +48,32 @@ const PREP_LAYOUT = {
    2. 배치 계산 · 상호작용 판정
    ------------------------------------------------------------ */
 
+// 준비물을 놓을 수 있는 좌우 한계(상자 중심 기준).
+function prepObjectRange(){
+  const L=PREP_LAYOUT;
+  const counter=FRONT_STATIONS.counter,griddle=FRONT_STATIONS.griddle;
+  // 왼쪽: 1번 의자보다 약간 왼쪽. 단 철판 위로는 절대 올라가지 않습니다.
+  const chairLead=(typeof COUNTER_CHAIR_CENTERS!=="undefined"&&COUNTER_CHAIR_CENTERS.length)
+    ? toLogic(COUNTER_CHAIR_CENTERS[0])-L.chairLeadIn
+    : counter.x+L.marginLeft;
+  const left=Math.max(chairLead, griddle.x+griddle.w+L.boxW/2+L.griddleGap);
+  // 오른쪽: 간판 앞. 바 테이블 오른쪽 끝은 넘지 않습니다.
+  const signLimit=(typeof OPEN_SIGN!=="undefined")
+    ? OPEN_SIGN.x+L.signOverlap
+    : L.rightLimitFallback;
+  const right=Math.min(counter.x+counter.w-L.boxW/2, signLimit);
+  return { left, right:Math.max(left,right) };
+}
+
 function prepObjectLayout(){
   const tasks=selectedPrepTasks(),count=tasks.length;
   if(!count)return [];
   const L=PREP_LAYOUT;
-  const counter=FRONT_STATIONS.counter,griddle=FRONT_STATIONS.griddle;
-  // 바 상판 위이면서, 철판 오른쪽 끝을 넘어선 지점부터 놓습니다.
-  const griddleRight=griddle.x+griddle.w;
-  const left=Math.max(counter.x+L.marginLeft, griddleRight+L.boxW/2+L.griddleGap);
-  const right=Math.min(counter.x+counter.w-L.marginRight, L.rightLimit);
-  const step=count===1?0:(right-left)/(count-1);
+  const {left,right}=prepObjectRange();
+  const step=count===1?0:Math.min((right-left)/(count-1), L.maxStep);
+  const start=left+(right-left-step*(count-1))/2;
   return tasks.map((task,index)=>{
-    const x=count===1?(left+right)/2:left+step*index;
+    const x=start+step*index;
     return { task, x, y:PREP_LAYOUT.y, ix:x, iy:PREP_LAYOUT.iy };
   });
 }

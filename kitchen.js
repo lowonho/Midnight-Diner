@@ -88,6 +88,33 @@ function nearestStation(){
   return bestD<STATION_REACH?best:null;
 }
 
+/* "지금 이 집기에 E 를 누를 수 있는가"
+   ------------------------------------------------------------
+   가까이 서 있는 것만으로는 부족합니다. game.js 의 updatePrompt() 가
+   실제로 "E · …" 프롬프트를 띄우는 조건과 같아야, 이름표가 크게
+   둥실대는 순간 = 정말 쓸 수 있는 순간이 됩니다.
+
+     낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
+     밤 · 들고 감  쓰레기통에 폐기할 때만
+     밤          설거지·쓰레기 정리는 쌓였을 때, 나머지는 현재 조리 단계 집기만
+     미니게임 중   그 집기만 (프롬프트는 숨지만 사용 중이므로 계속 강조)
+
+   [주의] 판정 규칙 자체는 game.js 가 주인입니다. 그쪽 조건이 바뀌면
+   여기도 같이 고쳐야 이름표와 프롬프트가 어긋나지 않습니다.
+   ------------------------------------------------------------ */
+function stationUsable(s,near){
+  if(state.mini)return state.mini.stationId===s.id;
+  if(state.paused||near?.id!==s.id||state.phase!=="night")return false;
+  if(state.carrying){
+    if(s.id!=="trash")return false;
+    const dish=dishById(state.carrying.dishId);
+    return !!dish&&state.inventory[dish.id]?.count>0;
+  }
+  if(s.id==="dishwasher")return state.dirtyDishes>0;
+  if(s.id==="trash")     return state.trash>0;
+  return s.id===currentRequirement();
+}
+
 
 /* ------------------------------------------------------------
    3. 드로잉
@@ -99,7 +126,7 @@ function nearestStation(){
 // 이름표까지 뒤로 보내면 집기 앞에 선 요리사가 이름표를 가려서 안 보입니다.
 function drawStations(){ Object.values(STATIONS).forEach(drawStation); }
 
-// 둥실 계산에 필요한 delta 와 "지금 쓸 수 있는 집기"는 9개가 공유하므로
+// 둥실 계산에 필요한 delta 와 "가장 가까운 집기"는 9개가 공유하므로
 // 여기서 한 번만 구해서 넘깁니다. (nearestStation 을 9번 돌 필요가 없습니다)
 function drawStationLabels(){
   const now=performance.now();
@@ -111,11 +138,11 @@ function drawStationLabels(){
 }
 
 /* 이름표 한 장.
-   앞쪽 명패와 같은 규칙으로, 요리사가 그 집기를 쓸 수 있는 자리에 섰거나
-   실제로 사용 중일 때 크게·밝게 둥실댑니다. (counter.js §4-3 과 같은 조건) */
+   E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
+   앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고) */
 function labelStation(s,delta,near){
   const f=stationFloatState(s.id);
-  const active=state.mini?.stationId===s.id||near?.id===s.id;
+  const active=stationUsable(s,near);
   const target=active?STATION_FLOAT.active:STATION_FLOAT.idle;
   const k=STATION_FLOAT.lerp;
 

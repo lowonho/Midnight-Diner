@@ -41,17 +41,19 @@
   font-size: clamp(8px,.7vw,11px);
 }
 
+/* 하루 최대 5개까지 선택되므로 5장이 가운데 정렬로 들어가는 폭을 기준으로 잡았습니다.
+   (상단 HUD 가운데 칸 ≈ 65% 폭 · 카드 5장 + 간격 4개) */
 .menu-cards {
   height: 90%;
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(86px,132px));
+  grid-template-columns: repeat(auto-fit,minmax(110px,200px));
   justify-content: center;
-  gap: 7px;
+  gap: 10px;
 }
 .menu-card {
   position: relative;
   min-width: 0;
-  padding: 4px 2px 3px;
+  padding: 6px 4px 5px;
   border: 2px solid #946037;
   border-radius: 6px;
   background: linear-gradient(#efcf98,#c58d4d);
@@ -69,7 +71,7 @@
 .menu-card strong {
   display: block;
   overflow: hidden;
-  font-size: clamp(8px,.78vw,12px);
+  font-size: clamp(9px,.98vw,15px);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -78,10 +80,10 @@
    game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
 .food-icon {
   position: relative;
-  width: min(76px,5.9vw);
+  width: min(160px,11.5vw);
   aspect-ratio: 264 / 152;
   display: block;
-  margin: 1px auto 0;
+  margin: 2px auto 1px;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -111,29 +113,29 @@
 }
 .menu-card .stock {
   position: absolute;
-  right: 3px;
-  bottom: 2px;
-  min-width: 18px;
-  padding: 1px 4px;
+  right: 4px;
+  bottom: 3px;
+  min-width: 20px;
+  padding: 1px 5px;
   border-radius: 9px;
   background: #2d1a11;
   color: #ffe7a8;
   text-align: center;
-  font-size: clamp(7px,.66vw,10px);
+  font-size: clamp(8px,.78vw,12px);
 }
 .menu-tag,
 .order-count {
   position: absolute;
-  bottom: 2px;
-  padding: 1px 5px;
+  bottom: 3px;
+  padding: 1px 6px;
   border-radius: 8px;
   background: #2d1a11;
   color: #ffe7a8;
-  font-size: clamp(6px,.58vw,9px);
+  font-size: clamp(7px,.7vw,11px);
   font-weight: 800;
 }
-.menu-tag { left: 3px; }
-.order-count { right: 3px; background: #5b3420; }
+.menu-tag { left: 4px; }
+.order-count { right: 4px; background: #5b3420; }
 
 /* 칸 순서: DAY · 남은시간 · 만족도 · 인기도 · 보유금 · 도감 · 설정 */
 .hud-stats {
