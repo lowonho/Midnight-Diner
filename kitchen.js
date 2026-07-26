@@ -10,22 +10,25 @@
               → game.js / day.js / night.js
 
    [좌표계] 논리 좌표 1280x720. 프레임 캔버스(draw-utils.js)에 그립니다.
-   [현재 상태] 에셋이 아직 없어 전부 캔버스 도형으로 그린 플레이스홀더입니다.
-              에셋이 들어오면 counter.js 처럼 Phaser 이미지로 교체하면 됩니다.
+   [현재 상태] 9종 전부 그림 에셋입니다. (§1-1)
+              에셋을 못 불러왔을 때만 §3 의 캔버스 도형으로 대신 그립니다.
    ============================================================ */
 
 
 /* ------------------------------------------------------------
    1. 배치표
    ------------------------------------------------------------
-   [단위] 이 표만 VIEW 좌표(1920x1080)입니다.
-   에셋 스펙(asset_regions_detail v4 · 본체 9종)이 VIEW 로 들어오기 때문에
-   받은 숫자를 그대로 옮겨 적고, 게임이 쓰는 논리 좌표(1280x720)는
-   아래에서 toLogic() 으로 한 번에 만듭니다. (chef-walk-area.js 와 같은 방식)
+   [단위] 이 절은 전부 VIEW 좌표(1920x1080)입니다.
+   에셋 스펙과 실측값이 VIEW 로 들어오기 때문에 받은 숫자를 그대로 적고,
+   게임이 쓰는 논리 좌표(1280x720)는 아래에서 toLogic() 으로 한 번에
+   만듭니다. (chef-walk-area.js 와 같은 방식)
 
-   box   [x, y, w, h]  집기 몸통 사각형 — 스펙값 그대로
    stand [x, y]        요리사가 서는 상호작용 지점 (발끝 기준)
    facing              그 자리에서 요리사가 바라보는 방향
+
+   집기 몸통 사각형은 손으로 적지 않습니다. §1-1 STATION_ART 의 배치값
+   (가로 중심·폭·접지선)에서 계산합니다. 그림과 판정 사각형이 따로 놀면
+   이름표가 집기에서 떠 보이기 때문에 한 곳에서만 정합니다.
 
    [stand y 640] 뒤쪽 조리대는 전부 같은 줄에 섭니다.
    요리사 이동 영역 상한이 y=614(chef-walk-area.js) 라서 조리대 접지선
@@ -34,39 +37,126 @@
 
    [쓰레기통] 뒤쪽 조리대 줄에서 빠져나와 오른쪽 앞 바닥에 놓입니다.
    (레퍼런스 이미지 배치) 그래서 stand 도 뒤쪽 줄이 아니라 쓰레기통
-   왼쪽 옆(1575,730)이고, 바라보는 방향만 오른쪽입니다.
+   왼쪽 옆(1591,730)이고, 바라보는 방향만 오른쪽입니다.
    앞뒤 겹침 처리는 §3 의 trashInFront() 를 보세요.
    ------------------------------------------------------------ */
 
 const STATION_SPEC = {
-  fridge:     {label:"냉장고",    box:[ 229,233,231,393], stand:[ 344,640], facing:"up"},
-  sink:       {label:"싱크대",    box:[ 439,374,219,231], stand:[ 548,640], facing:"up"},
-  board:      {label:"도마",      box:[ 655,392,185,225], stand:[ 747,640], facing:"up"},
-  pot:        {label:"냄비",      box:[ 824,405,142,208], stand:[ 895,640], facing:"up"},
-  pan:        {label:"후라이팬",  box:[ 971,405,133,208], stand:[1037,640], facing:"up"},
-  grill:      {label:"직화구이",  box:[1098,405,192,208], stand:[1194,640], facing:"up"},
-  fryer:      {label:"튀김기",    box:[1294,405,123,208], stand:[1355,640], facing:"up"},
-  dishwasher: {label:"식기세척기",box:[1420,374,119,234], stand:[1479,640], facing:"up"},
-  // 폭 117 → 124. 에셋(prop_trash_closed)의 몸통 비율 264:374 에 맞춘 값입니다.
-  // 스펙 박스 그대로 두면 그림이 가로로 눌립니다. 세로·밑동·중심은 스펙 그대로입니다.
+  fridge:     {label:"냉장고",    stand:[ 344,640], facing:"up"},
+  sink:       {label:"싱크대",    stand:[ 548,640], facing:"up"},
+  board:      {label:"도마",      stand:[ 747,640], facing:"up"},
+  pot:        {label:"냄비",      stand:[ 895,640], facing:"up"},
+  pan:        {label:"후라이팬",  stand:[1037,640], facing:"up"},
+  grill:      {label:"직화구이",  stand:[1194,640], facing:"up"},
+  fryer:      {label:"튀김기",    stand:[1355,640], facing:"up"},
+  dishwasher: {label:"식기세척기",stand:[1479,640], facing:"up"},
   // labelDy = 이름표를 내릴 거리(VIEW). 다른 집기는 몸통 위에 떠 있지만
   //           쓰레기통은 키가 작아 그러면 허공에 뜬 것처럼 보입니다.
   //           앞쪽 계산대·철판 명패(counter.js)처럼 몸통에 걸치게 내립니다.
   //           22 = 이름표 아랫변이 몸통 윗변보다 19 아래. 열린 뚜껑은
   //           이름표 뒤로 24 솟아 올라와 열린 게 그대로 보입니다.
-  // x 1673 = 오른쪽 벽에 딱 붙인 자리입니다. 밑동 높이(y 786)에서 바닥이
-  // 끝나는 지점이 x 1797 이고(bg_floor 실측 = 걷기영역 벽 사선과 일치),
-  // 거기서 폭 124 를 뺀 값입니다. 더 밀면 밑동이 벽 속으로 들어갑니다.
-  // 아래로도 못 내립니다 — 바 테이블 상판 뒷변이 y 780 이라 이미 6 걸쳐 있습니다.
-  trash:      {label:"쓰레기통",  box:[1673,611,124,175], stand:[1591,730], facing:"right", labelDy:22}
+  trash:      {label:"쓰레기통",  stand:[1591,730], facing:"right", labelDy:22}
 };
 
+
+/* ------------------------------------------------------------
+   1-1. 집기 에셋 9종
+   ------------------------------------------------------------
+   [파일] assets/utensils/counter/<이름>.webp
+   PNG 가 원본이고 WebP 는 빌드 산출물입니다. (npm run build:utensils)
+   WebP 를 못 읽는 브라우저면 자동으로 같은 이름의 PNG 로 되돌립니다.
+   WebP 는 화면에서 쓰는 크기에 맞춰 줄여서 굽습니다. 아래 값은 전부
+   원본 PNG 좌표라서 어느 쪽을 불러도 배치는 똑같습니다.
+
+   canvas [w, h]        원본 캔버스 크기 (에셋 px)
+   body   [x, y, w, h]  캔버스 안에서 집기가 실제로 그려진 영역 (에셋 px)
+                        npm run verify:utensils 가 "불투명 영역" 으로 찍어 줍니다.
+   cx                   몸통을 놓을 가로 중심 (VIEW)
+   w                    몸통을 그릴 폭 (VIEW)
+   ground               밑동이 바닥에 닿는 선 (VIEW). 생략하면 뒤쪽 조리대 줄.
+
+   [들뜸 방지] 뒤쪽 8종은 ground 를 적지 않습니다. 전부 STATION_GROUND_Y
+   한 줄에 발을 딛기 때문에, 이 값 하나만 움직이면 줄 전체가 같이 움직입니다.
+   에셋마다 캔버스 여백이 다르지만 body 밑변을 기준으로 맞추므로
+   여백 차이가 높이 차이로 새지 않습니다.
+
+   [각도 유지] 배율은 w/body.w 하나뿐이고 세로도 같은 배율을 씁니다.
+   가로세로를 따로 맞추면 그림이 눌리거나 늘어나서 원근이 틀어집니다.
+   그래서 몸통 높이는 배치값이 아니라 에셋 비율이 정합니다.
+
+   [폭을 정한 기준] 조리대 6종(싱크대~튀김기)은 조작 손잡이 띠가 한 줄에
+   오도록 맞췄습니다. 이 띠가 곧 상판 높이라, 여기가 어긋나면 같은 줄에
+   선 집기들이 저마다 다른 높이의 가구처럼 보입니다.
+   좌우로는 서로 파고들지 않는 선까지만 넓혔습니다.
+
+   [상태] active = 그 집기를 쓰는 중일 때 갈아 끼우는 그림.
+   없는 집기는 idle 한 장으로 버팁니다. 두 장은 같은 캔버스에 그려져
+   있어야 몸통이 제자리에 있고 문·물줄기만 바뀝니다.
+   ------------------------------------------------------------ */
+
+// 뒤쪽 조리대 8종이 바닥에 닿는 선(VIEW).
+// 614 = 요리사 이동 영역 상한(chef-walk-area.js topY)과 같은 값입니다.
+// 요리사가 더 뒤로 못 가는 선 = 조리대 앞면이 바닥에 닿는 선이라야
+// 요리사가 집기 속으로 파고들어 보이지 않습니다.
+const STATION_GROUND_Y = 614;
+
+const STATION_ART_DIR = "assets/utensils/counter/";
+
+const STATION_ART = {
+  fridge:     {state:{idle:"fix_fridge_closed", active:"fix_fridge_open"},
+               canvas:[982,1283], body:[112,32,758,1219], cx: 349, w:226},
+  sink:       {state:{idle:"fix_sink_dry", active:"fix_sink_water"},
+               canvas:[810, 869], body:[ 32,33,746, 804], cx: 551, w:212},
+  board:      {state:{idle:"fix_prep_table"},
+               canvas:[745, 843], body:[ 32,32,681, 779], cx: 748, w:174},
+  pot:        {state:{idle:"fix_stove_module_a"},
+               canvas:[846,1106], body:[ 32,32,782,1042], cx: 897, w:146},
+  pan:        {state:{idle:"fix_stove_module_b"},
+               canvas:[760,1200], body:[ 32,32,696,1136], cx:1039, w:134},
+  grill:      {state:{idle:"fix_grill_counter"},
+               canvas:[937,1015], body:[ 32,32,873, 951], cx:1196, w:184},
+  fryer:      {state:{idle:"fix_fryer_counter_no_basket"},
+               canvas:[534, 768], body:[ 32,32,470, 704], cx:1360, w:134},
+  dishwasher: {state:{idle:"fix_dishwasher_idle"},
+               canvas:[702,1129], body:[ 32,32,638,1065], cx:1496, w:124},
+  // 쓰레기통만 뒤쪽 줄이 아니라 오른쪽 앞 바닥에 서 있어 ground 를 따로 줍니다.
+  // cx 1735 = 오른쪽 벽에 딱 붙인 자리입니다. 밑동 높이(y 786)에서 바닥이
+  // 끝나는 지점이 x 1797 이고(bg_floor 실측 = 걷기영역 벽 사선과 일치),
+  // 거기서 폭의 절반(62)을 뺀 값입니다. 더 밀면 밑동이 벽 속으로 들어갑니다.
+  // ground 도 더 못 내립니다 — 바 테이블 상판 뒷변이 y 780 이라 이미 6 걸쳐 있습니다.
+  trash:      {state:{idle:"prop_trash_closed", active:"prop_trash_open"},
+               canvas:[320, 560], body:[ 28,167,264, 374], cx:1735, w:124, ground:786}
+};
+
+/* 배치값 → 화면 사각형(논리 좌표).
+   body  집기 몸통. 판정·이름표가 쓰는 사각형입니다.
+   canvas 그림 한 장을 통째로 얹을 자리. 몸통보다 큽니다(냉장고 위 소품,
+          쓰레기통 열린 뚜껑, 수도꼭지 …). 이 여백까지 같이 확대해야
+          몸통이 제자리에 있으면서 위로 삐져나온 부분이 살아납니다.
+   VIEW 픽셀에 딱 떨어지게 반올림합니다 — 미리 줄여 둔 캔버스와 1:1 로
+   맞아야 그릴 때 다시 확대/축소가 걸리지 않습니다. */
+function stationArtLayout(art){
+  const [canvasW,canvasH]=art.canvas, [bodyX,bodyY,bodyW,bodyH]=art.body;
+  const scale=art.w/bodyW;                                    // VIEW px / 에셋 px
+  const ground=art.ground??STATION_GROUND_Y;
+  const snap=value=>toLogic(Math.round(value));
+  return {
+    body:  {x:snap(art.cx-art.w/2),                 y:snap(ground-bodyH*scale),
+            w:snap(art.w),                          h:snap(bodyH*scale)},
+    canvas:{x:snap(art.cx-(bodyX+bodyW/2)*scale),   y:snap(ground-(bodyY+bodyH)*scale),
+            w:snap(canvasW*scale),                  h:snap(canvasH*scale)}
+  };
+}
+
 // 게임 로직·드로잉이 쓰는 논리 좌표(1280x720) 사본.
-// 좌표를 고칠 일이 있으면 위 STATION_SPEC 만 고치면 됩니다.
+// 좌표를 고칠 일이 있으면 위 STATION_SPEC / STATION_ART 만 고치면 됩니다.
+const STATION_LAYOUT = Object.fromEntries(
+  Object.entries(STATION_ART).map(([id,art])=>[id,stationArtLayout(art)]));
+
 const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])=>[id,{
   id, label:spec.label, facing:spec.facing,
-  x:toLogic(spec.box[0]), y:toLogic(spec.box[1]),
-  w:toLogic(spec.box[2]), h:toLogic(spec.box[3]),
+  x:STATION_LAYOUT[id].body.x, y:STATION_LAYOUT[id].body.y,
+  w:STATION_LAYOUT[id].body.w, h:STATION_LAYOUT[id].body.h,
   ix:toLogic(spec.stand[0]), iy:toLogic(spec.stand[1]),
   labelDy:toLogic(spec.labelDy||0)
 }]));
@@ -84,76 +174,45 @@ const STATION_REACH = 55;
 
 
 /* ------------------------------------------------------------
-   1-1. 쓰레기통 에셋 (9종 중 유일하게 그림입니다)
+   1-2. 에셋 불러오기 · 미리 줄여 두기
    ------------------------------------------------------------
-   나머지 8종은 아직 캔버스 도형 플레이스홀더입니다. (§3)
-   에셋이 더 들어오면 이 블록과 같은 방식으로 하나씩 옮기면 됩니다.
+   "화면에 나올 크기 그대로" 한 번만 줄여서 캔버스에 담아 둡니다.
+   매 프레임 원본을 축소하면 프레임마다 리샘플링이 돌아갑니다.
+   한 번 줄여 두면 이후에는 1:1 복사만 하면 됩니다.
 
-   [파일] assets/utensils/counter/prop_trash_{closed,open}.webp
-   PNG 가 원본이고 WebP 는 빌드 산출물입니다. (npm run build:utensils)
-   WebP 를 못 읽는 브라우저면 자동으로 같은 이름의 PNG 로 되돌립니다.
-
-   [정렬] 두 장 다 320x560 같은 캔버스에, 밑동(y 540)과 좌우(x 28~291)가
-   똑같이 맞춰져 있습니다. 그래서 한 번 구한 사각형에 두 장을 그대로
-   갈아 끼우면 몸통은 제자리에 있고 뚜껑만 위로 열립니다.
-   body = 닫힘 상태의 불투명 영역. npm run verify:utensils 가 찍어 줍니다.
-
-   [배율] 집기 몸통(STATIONS.trash) 높이에 body 높이를 맞춥니다.
-   가로는 중심 정렬. 세로 기준으로 잡아야 바닥에 닿는 선이 어긋나지 않습니다.
+   drawImage 가 원본 크기를 알아서 맞춰 주므로, WebP(줄여 구운 것)를
+   불러왔든 PNG(원본)로 되돌아갔든 결과는 같습니다.
    ------------------------------------------------------------ */
 
-const TRASH_ART = {
-  dir:"assets/utensils/counter/",
-  file:{closed:"prop_trash_closed", open:"prop_trash_open"},
-  canvas:{w:320,h:560},
-  body:{x:28,y:167,w:264,h:374}
-};
+const stationArt = {};   // "<집기id>_<상태>" → 미리 줄여 둔 캔버스
 
-// 뚜껑이 열려 있는 시간. 음식을 폐기하는 순간 이 시간만큼 열렸다 닫힙니다.
-const TRASH_OPEN_MS = 420;
-
-/* 화면에 그릴 사각형(논리 좌표)을 한 번만 계산해 둡니다.
-   VIEW 픽셀에 딱 떨어지게 반올림합니다 — 아래 미리 그려 둔 캔버스와
-   1:1 로 맞아야 확대/축소 없이 그려집니다. */
-const TRASH_RECT = (()=>{
-  const s=STATIONS.trash,A=TRASH_ART;
-  const scale=s.h/A.body.h;                                   // 논리 px / 에셋 px
-  const snap=value=>toLogic(Math.round(toView(value)));
-  return {
-    x:snap(s.x+s.w/2-(A.body.x+A.body.w/2)*scale),            // 가로 중심 맞춤
-    y:snap(s.y+s.h-(A.body.y+A.body.h)*scale),                // 밑동 맞춤
-    w:snap(A.canvas.w*scale), h:snap(A.canvas.h*scale)
-  };
-})();
-
-// 상태별로 "화면에 나올 크기 그대로" 미리 축소해 둔 캔버스.
-// 매 프레임 320x560 원본을 축소하면 프레임마다 리샘플링이 돌아갑니다.
-// 한 번만 줄여 두고 이후에는 1:1 복사만 합니다.
-const trashArt = {};
-
-function prerenderTrashArt(image){
+function prerenderStationArt(id,image){
+  const rect=STATION_LAYOUT[id].canvas;
   const canvas=document.createElement("canvas");
-  canvas.width=Math.round(toView(TRASH_RECT.w));
-  canvas.height=Math.round(toView(TRASH_RECT.h));
+  canvas.width=Math.round(toView(rect.w));
+  canvas.height=Math.round(toView(rect.h));
   const g=canvas.getContext("2d");
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
   g.drawImage(image,0,0,canvas.width,canvas.height);
   return canvas;
 }
 
-function loadTrashArt(key,file,ext=".webp"){
+function loadStationArt(id,stateKey,file,ext=".webp"){
   const image=new Image();
-  image.onload=()=>{trashArt[key]=prerenderTrashArt(image);};
+  image.onload=()=>{stationArt[`${id}_${stateKey}`]=prerenderStationArt(id,image);};
   image.onerror=()=>{
-    if(ext===".webp"){loadTrashArt(key,file,".png");return;}   // WebP 미지원 브라우저
-    console.warn(`쓰레기통 에셋을 불러오지 못했습니다: ${file} (도형 플레이스홀더로 그립니다)`);
+    if(ext===".webp"){loadStationArt(id,stateKey,file,".png");return;}   // WebP 미지원 브라우저
+    console.warn(`집기 에셋을 불러오지 못했습니다: ${file} (도형 플레이스홀더로 그립니다)`);
   };
-  image.src=`${TRASH_ART.dir}${file}${ext}`;
+  image.src=`${STATION_ART_DIR}${file}${ext}`;
 }
-Object.entries(TRASH_ART.file).forEach(([key,file])=>loadTrashArt(key,file));
+
+Object.entries(STATION_ART).forEach(([id,art])=>
+  Object.entries(art.state).forEach(([stateKey,file])=>loadStationArt(id,stateKey,file)));
+
 
 /* ------------------------------------------------------------
-   1-2. 쓰레기통 통과 막기
+   1-3. 쓰레기통 통과 막기
    ------------------------------------------------------------
    요리사가 뒤에서 앞으로 쓰레기통을 뚫고 지나가지 못하게 합니다.
    뒤쪽 조리대 8종은 이동 영역 상한(chef-walk-area.js topY)이 이미 막고
@@ -197,6 +256,10 @@ function blockPlayerAtStations(player){
      TRASH_OPEN_MS 동안 열렸다 닫힙니다.
    폐기 시점을 night.js 에서 알려 주는 대신 카운터 변화를 여기서 읽습니다.
    게임 로직 파일을 건드리지 않고 연출만 이 파일 안에서 끝내려는 것입니다. */
+
+// 뚜껑이 열려 있는 시간. 음식을 폐기하는 순간 이 시간만큼 열렸다 닫힙니다.
+const TRASH_OPEN_MS = 420;
+
 let trashOpenUntil = 0;
 let trashDiscardSeen = null;
 
@@ -320,11 +383,12 @@ function labelStation(s,near){
 }
 
 /* 집기 하나.
+   에셋을 불러왔으면 그림 한 장으로 끝나고, 아래 도형은 전부 예비용입니다.
    ------------------------------------------------------------
-   [비율로 그리는 이유] 에셋 스펙이 집기마다 가로세로를 다르게 줍니다.
+   [비율로 그리는 이유] 집기마다 가로세로가 다릅니다.
    (냄비 95x139, 직화구이 128x139, 냉장고 154x262 …)
    그래서 픽셀 상수 대신 몸통 크기에 대한 비율로 그립니다.
-   §1 의 box 값만 고쳐도 그림이 알아서 따라옵니다.
+   §1-1 의 배치값만 고쳐도 도형이 알아서 따라옵니다.
 
    조리대 6종(싱크대~튀김기)은 "상판 + 하부장" 두 단으로 나눕니다.
    상판 비율 STATION_TOP_RATIO 위쪽에 조리 도구를, 아래에 하부장을 그립니다. */
@@ -332,7 +396,7 @@ function labelStation(s,near){
 const STATION_TOP_RATIO = {sink:.46,board:.46,pot:.45,pan:.45,grill:.45,fryer:.45};
 
 function drawStation(s){
-  if(s.id==="trash"&&drawTrashArt())return;   // 에셋이 준비됐으면 도형 대신 그림 한 장
+  if(drawStationArt(s))return;                // 에셋이 준비됐으면 도형 대신 그림 한 장
 
   const working=state.mini?.stationId===s.id,t=performance.now()/1000;
   ctx.fillStyle="#332117";ctx.fillRect(s.x,s.y,s.w,s.h);ctx.strokeStyle="#7f5130";ctx.lineWidth=4;ctx.strokeRect(s.x,s.y,s.w,s.h);
@@ -369,13 +433,23 @@ function drawStation(s){
   }
 }
 
-/* 쓰레기통 그림 한 장. 그렸으면 true, 아직 못 불러왔으면 false 를 돌려주고
-   도형 플레이스홀더로 넘깁니다. (§1-1)
+/* 지금 이 집기를 그릴 상태.
+   active = 쓰는 중일 때 갈아 끼우는 그림 (냉장고 문 열림 · 싱크대 물줄기 ·
+   쓰레기통 뚜껑 열림). 그 그림이 없는 집기는 아래 drawStationArt 가
+   idle 로 되돌립니다. */
+function stationArtState(id){
+  if(id==="trash")return trashIsOpen()?"active":"idle";
+  return state.mini?.stationId===id?"active":"idle";
+}
+
+/* 집기 그림 한 장. 그렸으면 true, 아직 못 불러왔으면 false 를 돌려주고
+   도형 플레이스홀더로 넘깁니다. (§1-2)
    미리 축소해 둔 캔버스를 같은 크기로 얹기만 하므로 배율 계산이 없습니다. */
-function drawTrashArt(){
-  const art=trashArt[trashIsOpen()?"open":"closed"];
+function drawStationArt(s){
+  const art=stationArt[`${s.id}_${stationArtState(s.id)}`]??stationArt[`${s.id}_idle`];
   if(!art)return false;
-  ctx.drawImage(art,TRASH_RECT.x,TRASH_RECT.y,TRASH_RECT.w,TRASH_RECT.h);
+  const r=STATION_LAYOUT[s.id].canvas;
+  ctx.drawImage(art,r.x,r.y,r.w,r.h);
   return true;
 }
 
