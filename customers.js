@@ -81,6 +81,8 @@ function drawCustomers(){
     roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
     // 주문 표시라 아직 조리 전입니다. 완벽 조리 그림은 쓰지 않습니다.
     drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
+    // 특별음식이면 같은 사각형에 반짝임을 겹칩니다. (시트 규격이 프랍과 같음)
+    if(isSpecialFood(order.dishId,order))drawFoodFx("sparkle",x,y+H.iconY,H.iconW,H.iconH);
     ctx.fillStyle="#3b2518";ctx.beginPath();
     ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
 

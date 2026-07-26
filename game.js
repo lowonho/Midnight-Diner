@@ -181,6 +181,16 @@ function closeSettings() {
   audio.click();
 }
 
+/* 반짝임(fx_perfect_sparkle)을 달 음식인지. 메뉴 카드·손님 말풍선·요리사 손
+   세 군데가 같은 기준을 씁니다.
+     · 그날의 특별음식 (DAY_DATA.specialMenu — day.js 메뉴 선택 화면의 "특별음식")
+     · 이야기 손님의 특별 조리 주문 (order.specialRecipe)
+   조리 점수와는 무관합니다. 점수로 그림이 바뀌는 건 _perfect 프랍 쪽입니다. */
+function isSpecialFood(dishId,order=null){
+  if(order?.specialRecipe) return true;
+  return !!dishId && getCurrentDayData()?.specialMenu===dishId;
+}
+
 function buildMenuCards() {
   dom.menuCards.innerHTML="";
   selectedDishes().forEach(dish=>{
@@ -188,8 +198,10 @@ function buildMenuCards() {
     const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
     const required=getCurrentDayData().requiredMenus.includes(dish.id);
     // 음식 그림은 food-props.js 가 메뉴 id 로 찾아 줍니다. (표에 없는 메뉴만 자리표시)
+    // 특별음식이면 sparkle 클래스가 붙고 반짝임은 CSS 가 돌립니다. (css/hud.css)
     const iconUrl=foodPropUrl(dish.id);
-    const icon=iconUrl?`<span class="food-icon" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
+    const sparkle=isSpecialFood(dish.id)?" sparkle":"";
+    const icon=iconUrl?`<span class="food-icon${sparkle}" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
     b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
     b.disabled=true;
     dom.menuCards.appendChild(b);

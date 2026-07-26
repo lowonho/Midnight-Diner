@@ -75,6 +75,7 @@
 /* 음식 그림은 가로형(264x152)입니다. background-image 는 메뉴별로 달라서
    game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
 .food-icon {
+  position: relative;
   width: min(76px,5.9vw);
   aspect-ratio: 264 / 152;
   display: block;
@@ -82,6 +83,24 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+}
+
+/* 특별음식 반짝임. 시트가 프랍과 같은 264x152 규격이라 아이콘 위에 그대로 덮습니다.
+   프레임 전환은 CSS 가 하고 JS 는 관여하지 않습니다.
+   [값 맞추기] 6프레임 · 8fps = 0.75s. food-props.js 의 FOOD_FX.sparkle 과 같아야 합니다.
+   background-size 600% 기준 background-position 0%~100% 가 프레임 0~5 이고,
+   steps(6) 이 그 여섯 지점에 정확히 서도록 끝값을 120% 로 둡니다. */
+.food-icon.sparkle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("../assets/food/fx_perfect_sparkle.webp") no-repeat 0 0 / 600% 100%;
+  animation: food-sparkle .75s steps(6) infinite;
+  pointer-events: none;
+}
+@keyframes food-sparkle { to { background-position-x: 120%; } }
+@media (prefers-reduced-motion: reduce) {
+  .food-icon.sparkle::after { animation: none; }
 }
 .menu-icon-placeholder {
   display: grid;

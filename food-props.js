@@ -122,9 +122,12 @@ function loadFoodPropImage(file){
   });
 }
 
-// game.js 의 에셋 로딩 Promise.all 에 넣어서 씁니다.
+// game.js 의 에셋 로딩 Promise.all 에 넣어서 씁니다. 연출 시트도 같이 받습니다.
 function loadFoodPropAssets(){
-  return Promise.all(foodPropVariants().map(loadFoodPropImage));
+  return Promise.all([
+    ...foodPropVariants().map(loadFoodPropImage),
+    ...Object.keys(FOOD_FX).map(loadFoodFxImage)
+  ]);
 }
 
 // Phaser 씬 생성 시 한 번. 요리사가 들고 있는 음식 스프라이트가 이 텍스처를 씁니다.
@@ -132,6 +135,7 @@ function registerFoodPropTextures(scene){
   Object.entries(foodPropImages).forEach(([key,image])=>{
     if(!scene.textures.exists(key))scene.textures.addImage(key,image);
   });
+  registerFoodFxTextures(scene);
 }
 
 
@@ -168,4 +172,93 @@ function setFoodPropTexture(sprite,dishId,perfect=false){
 // 가로 폭만 주면 비율에 맞는 세로를 계산해 크기를 잡습니다.
 function sizeFoodPropSprite(sprite,width){
   return sprite?sprite.setDisplaySize(width,width/FOOD_PROP_ASPECT):sprite;
+}
+
+
+/* ------------------------------------------------------------
+   5. 연출 스프라이트시트 (김 · 반짝임)
+   ------------------------------------------------------------
+   가로 한 줄 배열 시트입니다. 프레임 크기는 적지 않고 이미지 폭을
+   frames 로 나눠 씁니다 — 에셋을 다른 해상도로 다시 뽑아도 그대로 됩니다.
+
+     steam    8프레임  요리사가 음식을 들고 있는 동안 피어오릅니다.
+     sparkle  6프레임  프랍 캔버스(264x152)와 규격이 같아서 음식 위에
+                       같은 사각형으로 겹치면 정확히 맞습니다.
+
+   세 군데(메뉴 카드 DOM · 손님 말풍선 캔버스 · 요리사 손 Phaser)에서
+   같은 시트를 씁니다. 그래서 fps 도 여기 한곳에서 정합니다.
+   (CSS 는 keyframes 시간을 직접 못 읽으므로 hud.css 에 같은 값을 적어 뒀습니다)
+   ------------------------------------------------------------ */
+
+const FOOD_FX_DIR = "assets/food/";
+
+/* blend:"ADD" = 흰 김이 배경 위로 은은하게 빛나게. 그냥 겹치면 원본 알파가
+   낮아서 축소했을 때 거의 안 보입니다. (Canvas 렌더러에서는 'lighter')
+   반짝임은 별이 이미 불투명해서 기본 합성 그대로 씁니다. */
+const FOOD_FX = {
+  steam:   { file:"fx_steam_loop",      frames:8, fps:10, key:"foodFx_steam", blend:"ADD" },
+  sparkle: { file:"fx_perfect_sparkle", frames:6, fps:8,  key:"foodFx_sparkle" }
+};
+
+const foodFxImages = {};   // 이름 → HTMLImageElement
+
+function loadFoodFxImage(name){
+  const fx=FOOD_FX[name];
+  return new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>{foodFxImages[name]=image;resolve(image);};
+    image.onerror=()=>reject(new Error(`음식 연출 시트를 불러오지 못했습니다: ${fx.file}${FOOD_PROP_EXT}`));
+    image.src=`${FOOD_FX_DIR}${fx.file}${FOOD_PROP_EXT}`;
+  });
+}
+
+// HTML/CSS 에서 쓸 경로. 메뉴 카드 반짝임(css/hud.css)이 씁니다.
+function foodFxUrl(name){
+  const fx=FOOD_FX[name];
+  return fx?`${FOOD_FX_DIR}${fx.file}${FOOD_PROP_EXT}`:null;
+}
+
+// 지금 시각의 프레임 번호. 어디서 그리든 같은 박자로 돕니다.
+function foodFxFrame(name){
+  const fx=FOOD_FX[name];
+  return fx?Math.floor(performance.now()/1000*fx.fps)%fx.frames:0;
+}
+
+/* 프레임 캔버스용. drawFoodProp 과 같은 (centerX, centerY, maxW, maxH) 를 주면
+   같은 자리에 겹칩니다. 반짝임 시트는 프랍과 비율이 같아 정확히 포개집니다. */
+function drawFoodFx(name,centerX,centerY,maxW,maxH){
+  const image=foodFxImages[name];
+  const fx=FOOD_FX[name];
+  if(!image||!fx)return;
+  const fw=image.width/fx.frames,fh=image.height;
+  const scale=Math.min(maxW/fw,maxH/fh);
+  const w=fw*scale,h=fh*scale;
+  ctx.drawImage(image,foodFxFrame(name)*fw,0,fw,fh,centerX-w/2,centerY-h/2,w,h);
+}
+
+// Phaser 스프라이트시트 + 반복 애니메이션 등록. registerFoodPropTextures 가 부릅니다.
+function registerFoodFxTextures(scene){
+  Object.entries(FOOD_FX).forEach(([name,fx])=>{
+    const image=foodFxImages[name];
+    if(!image)return;
+    if(!scene.textures.exists(fx.key))
+      scene.textures.addSpriteSheet(fx.key,image,{frameWidth:image.width/fx.frames,frameHeight:image.height});
+    if(!scene.anims.exists(fx.key))
+      scene.anims.create({
+        key:fx.key,
+        frames:scene.anims.generateFrameNumbers(fx.key,{start:0,end:fx.frames-1}),
+        frameRate:fx.fps,
+        repeat:-1
+      });
+  });
+}
+
+// 연출 스프라이트 하나를 만들어 재생까지 걸어 둡니다. (숨겨진 채로 계속 돕니다)
+function createFoodFxSprite(scene,name,depth){
+  const fx=FOOD_FX[name];
+  if(!fx||!scene.textures.exists(fx.key))return null;
+  const sprite=scene.add.sprite(0,0,fx.key,0).setDepth(depth).setVisible(false);
+  if(fx.blend&&Phaser.BlendModes[fx.blend]!=null)sprite.setBlendMode(Phaser.BlendModes[fx.blend]);
+  if(scene.anims.exists(fx.key))sprite.play(fx.key);
+  return sprite;
 }
