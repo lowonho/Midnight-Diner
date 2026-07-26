@@ -67,9 +67,12 @@ const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY
 // 음식을 들었을 때 손에 들리는 접시·음식.
 // 화면상 위치는 chef-carry-temp.js 의 CHEF_HAND_ANCHOR 가 덮어씁니다.
 // dy 는 그 파일을 지웠을 때 쓰이는 기본값입니다.
+//
+// food.w = 음식 그림의 가로 폭(논리 좌표). 세로는 그림 비율(264:152)에서
+// 자동으로 나옵니다 — 62 → 약 36. 접시(56)보다 살짝 넓게 걸치는 크기입니다.
 const PLAYER_CARRY = {
   plate: { dy:-85, w:56, h:18, color:0xeee6d5 },
-  food:  { dy:-90, size:36 }
+  food:  { dy:-90, w:62 }
 };
 
 // 재생 속도·프레임 구성은 chef-anim-table.js 로 옮겼습니다.
@@ -111,9 +114,13 @@ function createPlayer(scene){
       toView(PLAYER_CARRY.plate.w),toView(PLAYER_CARRY.plate.h),PLAYER_CARRY.plate.color)
     .setDepth(STAGE_DEPTH.plate).setVisible(false);
 
-  carriedFood=scene.add.sprite(toView(start.x),toView(start.y+PLAYER_CARRY.food.dy),"food",0)
-    .setDisplaySize(toView(PLAYER_CARRY.food.size),toView(PLAYER_CARRY.food.size))
+  // 음식 그림은 메뉴별 단일 텍스처입니다. (food-props.js)
+  // 크기는 여기서 한 번만 잡고, 이후에는 텍스처만 갈아끼웁니다 — 10종이 모두
+  // 같은 원본 크기라서 그림이 바뀌어도 화면 크기가 튀지 않습니다.
+  carriedFood=scene.add.sprite(toView(start.x),toView(start.y+PLAYER_CARRY.food.dy),
+      foodPropTextureKey(FOOD_PROPS[0].id))
     .setDepth(STAGE_DEPTH.food).setVisible(false);
+  sizeFoodPropSprite(carriedFood,toView(PLAYER_CARRY.food.w));
 
   if(typeof createChefCarry==="function") createChefCarry(scene);   // chef-carry-temp.js — 지우면 이 줄도 무시됨
 
@@ -198,7 +205,8 @@ function syncPhaserObjects(){
   const held=state.carrying;
   carriedPlate.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));
   carriedFood.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));
-  if(held) carriedFood.setFrame(dishById(held.dishId).icon);
+  // 조리 점수가 높으면 완벽 조리 그림으로 바뀝니다. (그 그림이 있는 메뉴만)
+  if(held) setFoodPropTexture(carriedFood,held.dishId,foodPropIsPerfect(held.cookScore));
 
   // 손 위치·앞뒤 관계는 임시 파일이 덮어씁니다. 파일을 지우면 위 기본값으로 돌아갑니다.
   if(typeof syncChefCarry==="function") syncChefCarry(playerSprite,carriedPlate,carriedFood,facing);

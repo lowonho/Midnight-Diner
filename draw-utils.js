@@ -86,13 +86,9 @@ function drawFixtureLabel(text,x,y){
   ctx.textAlign="left";
 }
 
-// 음식 아이콘 스프라이트시트(64x64 x 6). images.food 는 game.js 가 로드합니다.
-const FOOD_ICON_FRAME = 64;
-
-function drawFoodIcon(index,x,y,size){
-  if(images.food)ctx.drawImage(images.food,index*FOOD_ICON_FRAME,0,FOOD_ICON_FRAME,FOOD_ICON_FRAME,x,y,size,size);
-  else{ctx.fillStyle="#d69c4b";ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*.35,0,Math.PI*2);ctx.fill();}
-}
+// 음식 그림은 food-props.js 로 옮겼습니다. 캔버스에 그리는 함수는
+// 그 파일의 drawFoodProp(dishId, centerX, centerY, maxW, maxH, perfect) 입니다.
+// (예전 drawFoodIcon(index, ...) 은 스프라이트시트 인덱스를 받았습니다)
 
 // 캔버스 텍스트 줄바꿈. 호출 전에 ctx.font 를 먼저 설정해야 합니다.
 function wrapCanvasText(text,maxWidth,maxLines){

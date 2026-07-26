@@ -187,7 +187,9 @@ function buildMenuCards() {
     const b=document.createElement("button"); b.type="button"; b.className="menu-card"; b.dataset.id=dish.id;
     const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
     const required=getCurrentDayData().requiredMenus.includes(dish.id);
-    const icon=dish.icon==null?'<span class="food-icon menu-icon-placeholder">🍽</span>':`<span class="food-icon" style="background-position:${dish.icon*20}% 0"></span>`;
+    // 음식 그림은 food-props.js 가 메뉴 id 로 찾아 줍니다. (표에 없는 메뉴만 자리표시)
+    const iconUrl=foodPropUrl(dish.id);
+    const icon=iconUrl?`<span class="food-icon" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
     b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
     b.disabled=true;
     dom.menuCards.appendChild(b);
@@ -800,7 +802,8 @@ function draw(){
 // drawPrepObjects → prep.js
 // drawCustomers/Sprite/Speech → customers.js
 // drawGuidance/drawParticles → fx.js
-// drawFixtureLabel/drawFoodIcon/roundRect/wrapCanvasText → draw-utils.js
+// drawFixtureLabel/roundRect/wrapCanvasText → draw-utils.js
+// drawFoodProp (음식 그림) → food-props.js
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
@@ -865,7 +868,7 @@ class DinerScene extends Phaser.Scene {
     phaserScene=this;
     this.textures.addSpriteSheet("chef",images.chef,{frameWidth:48,frameHeight:64});
     this.textures.addSpriteSheet("customers",images.customers,{frameWidth:44,frameHeight:60});
-    this.textures.addSpriteSheet("food",images.food,{frameWidth:64,frameHeight:64});
+    registerFoodPropTextures(this);   // food-props.js — 음식 그림 8종(+완벽 조리 변형)
 
     // 배경 → 카운터 → 프레임 캔버스 → 요리사 순서로 만듭니다.
     createStage(this);        // stage.js
@@ -901,7 +904,7 @@ initializeTitleScreen();
 Promise.all([
   loadNativeImage("chef","assets/chef_sheet.png"),
   loadNativeImage("customers","assets/customer_sheet.png"),
-  loadNativeImage("food","assets/food_sheet.png"),
+  loadFoodPropAssets(),
   loadStageAssets(),
   loadCounterAssets(),
   loadDayPrepAssets()

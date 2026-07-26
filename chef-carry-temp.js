@@ -61,11 +61,11 @@ const CHEF_HAND_ANCHOR = {
    이동키(방향키/WASD)·상호작용키(E)·주문키(1~4)와 겹치지 않는 키만 골랐습니다.
    ------------------------------------------------------------ */
 
-const chefCarryDebug = { forced:false, hud:false, foodFrame:0 };
+// foodIndex = FOOD_PROPS 표(food-props.js)의 몇 번째 메뉴를 들고 있는지.
+const chefCarryDebug = { forced:false, hud:false, foodIndex:0 };
 
 let chefCarryKeys = null;
 let chefCarryText = null;
-let chefCarryFoodFrames = 1;
 
 
 /* ------------------------------------------------------------
@@ -82,9 +82,6 @@ function createChefCarry(scene){
     l:Phaser.Input.Keyboard.KeyCodes.L,
     o:Phaser.Input.Keyboard.KeyCodes.O
   });
-
-  // 음식 시트가 몇 프레임인지 알아둡니다 (V 키 순환 범위)
-  if(scene.textures.exists("food")) chefCarryFoodFrames=Math.max(1,scene.textures.get("food").frameTotal-1);
 
   chefCarryText=scene.add.text(16,16,"",{
     fontFamily:"monospace",fontSize:"22px",color:"#ffe9a8",
@@ -134,8 +131,8 @@ function syncChefCarry(chefSprite,plate,food,facing){
   plate.setDepth(behind?STAGE_DEPTH.player-2:STAGE_DEPTH.plate);
   food.setDepth(behind?STAGE_DEPTH.player-1:STAGE_DEPTH.food);
 
-  // 강제 carry 중에는 실제 주문이 없으므로 디버그용 프레임을 씁니다.
-  if(!state.carrying) food.setFrame(chefCarryDebug.foodFrame);
+  // 강제 carry 중에는 실제 주문이 없으므로 V 키로 고른 메뉴 그림을 씁니다.
+  if(!state.carrying) setFoodPropTexture(food,chefCarryDebugFood()?.id);
 
   updateChefCarryText(facing);
 }
@@ -145,12 +142,17 @@ function syncChefCarry(chefSprite,plate,food,facing){
    6. 디버그 입력 · 화면 표시
    ------------------------------------------------------------ */
 
+// V 키로 고른 메뉴. 이름은 game-data.js 의 MENU_DATA 에서 가져옵니다.
+function chefCarryDebugFood(){
+  return FOOD_PROPS[chefCarryDebug.foodIndex]||FOOD_PROPS[0]||null;
+}
+
 function readChefCarryDebugKeys(facing){
   if(!chefCarryKeys)return;
   const Just=Phaser.Input.Keyboard.JustDown;
 
   if(Just(chefCarryKeys.c)){ chefCarryDebug.forced=!chefCarryDebug.forced; chefCarryDebug.hud=true; }
-  if(Just(chefCarryKeys.v)){ chefCarryDebug.foodFrame=(chefCarryDebug.foodFrame+1)%chefCarryFoodFrames; chefCarryDebug.hud=true; }
+  if(Just(chefCarryKeys.v)){ chefCarryDebug.foodIndex=(chefCarryDebug.foodIndex+1)%FOOD_PROPS.length; chefCarryDebug.hud=true; }
 
   const anchor=CHEF_HAND_ANCHOR[facing.dir];
   if(anchor){
@@ -170,9 +172,11 @@ function updateChefCarryText(facing){
   if(!chefCarryDebug.hud){ chefCarryText.setVisible(false); return; }
 
   const a=CHEF_HAND_ANCHOR[facing.dir]||{x:0,y:0};
+  const food=chefCarryDebugFood();
+  const foodName=food?(menuDataById(food.id)?.displayName||food.id):"-";
   chefCarryText.setVisible(true).setText([
     "[임시] carry 디버그",
-    `C 강제carry ${chefCarryDebug.forced?"ON":"OFF"}   V 음식 ${chefCarryDebug.foodFrame}`,
+    `C 강제carry ${chefCarryDebug.forced?"ON":"OFF"}   V 음식 ${foodName}`,
     `IJKL 앵커 1px 이동   O 콘솔 출력`,
     `${facing.dir}${facing.flipX?" (flipX)":""}   x ${a.x}   y ${a.y}`
   ].join("\n"));

@@ -6,6 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "build:counter": "node tools/build-counter-webp.js",
+    "build:food": "node tools/build-food-webp.js",
+    "verify:food": "node tools/build-food-webp.js --verify",
     "build:chef": "node tools/build-chef-sprites.js",
     "verify:chef": "node tools/build-chef-sprites.js --verify"
   },
