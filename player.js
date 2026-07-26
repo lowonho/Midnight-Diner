@@ -64,12 +64,33 @@ const WALK_BOUNDS = { left:235, right:1030, top:410, bottom:486 };
 //           걷기 뒷모습에 맞춘 값입니다. 배율 계산은 chef-anims.js 가 합니다.
 const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY:1 };
 
-// 음식을 들었을 때 손에 들리는 접시·음식.
+// 음식을 들었을 때 손에 들리는 음식 그림.
+// 접시는 따로 그리지 않습니다 — 음식 에셋에 그릇이 함께 그려져 있습니다.
 // 화면상 위치는 chef-carry-temp.js 의 CHEF_HAND_ANCHOR 가 덮어씁니다.
-// dy 는 그 파일을 지웠을 때 쓰이는 기본값입니다.
+//
+//   w      음식 그림의 가로 폭(논리 좌표). 세로는 그림 비율(264:152)에서
+//          자동으로 나옵니다 — 72 → 약 41.
+//   hand   손 앵커(CHEF_HAND_ANCHOR)에서 음식 그림 중심까지의 보정.
+//          실측값인 앵커 표는 건드리지 않고 여기서만 맞춥니다. 단위는 앵커와
+//          같은 1× 셀 픽셀이고, 요리사 배율이 곱해집니다.
+//          x 는 side 에서만 씁니다. 음수 = 요리사가 보는 방향(앞).
+//          좌우 반전은 앵커와 함께 자동 처리됩니다.
+//
+//          down  y +14  그림 캔버스 아래쪽 여백(16/152) 때문에 앵커에 그대로
+//                       두면 떠 보입니다. 14 면 손바닥이 그릇 아래 테두리에
+//                       걸립니다. 20 을 넘으면 음식이 얼굴을 가립니다.
+//          up    y -22  뒷모습은 음식이 몸에 가려지는데(아래 depth 참고) 앵커
+//                       표의 up 이 down 보다 12px 낮아서 그대로 두면 손보다
+//                       아래로 내려가 어색합니다. 반대로 올려 손 위에 얹습니다.
+//          side  x -29  앵커 표의 side x(-25.5)는 실제 측면 carry 포즈의 손보다
+//                       29px 뒤라서, 그대로 두면 음식이 어깨·가슴에 겹칩니다.
+//                       앞으로 밀어 뻗은 손 위에 오게 합니다.
+//   dy     chef-carry-temp.js 를 지웠을 때 쓰이는 기본 높이(발바닥 기준).
 const PLAYER_CARRY = {
-  plate: { dy:-85, w:56, h:18, color:0xeee6d5 },
-  food:  { dy:-90, size:36 }
+  food: {
+    dy:-80, w:72,
+    hand:{ down:{x:0,y:14}, up:{x:0,y:-22}, side:{x:-29,y:14} }
+  }
 };
 
 // 재생 속도·프레임 구성은 chef-anim-table.js 로 옮겼습니다.
@@ -88,7 +109,6 @@ const PLAYER_ANIM = { mini:"idle2" };
    ------------------------------------------------------------ */
 
 let playerSprite = null;
-let carriedPlate = null;
 let carriedFood = null;
 let playerKeys = null;
 
@@ -106,14 +126,13 @@ function createPlayer(scene){
     .setScale(chefAnimScale(chefAnimKey(CHEF_IDLE.main,startFacing.dir,false)))
     .setDepth(STAGE_DEPTH.player);
 
-  carriedPlate=scene.add.ellipse(
-      toView(start.x),toView(start.y+PLAYER_CARRY.plate.dy),
-      toView(PLAYER_CARRY.plate.w),toView(PLAYER_CARRY.plate.h),PLAYER_CARRY.plate.color)
-    .setDepth(STAGE_DEPTH.plate).setVisible(false);
-
-  carriedFood=scene.add.sprite(toView(start.x),toView(start.y+PLAYER_CARRY.food.dy),"food",0)
-    .setDisplaySize(toView(PLAYER_CARRY.food.size),toView(PLAYER_CARRY.food.size))
+  // 음식 그림은 메뉴별 단일 텍스처입니다. (food-props.js)
+  // 크기는 syncPhaserObjects 가 매 프레임 원근 보정과 함께 다시 잡습니다.
+  // 그림 10종이 모두 같은 원본 크기라서 텍스처만 갈아끼우면 됩니다.
+  carriedFood=scene.add.sprite(toView(start.x),toView(start.y+PLAYER_CARRY.food.dy),
+      foodPropTextureKey(FOOD_PROPS[0].id))
     .setDepth(STAGE_DEPTH.food).setVisible(false);
+  sizeFoodPropSprite(carriedFood,carriedFoodViewWidth(start.y));
 
   if(typeof createChefCarry==="function") createChefCarry(scene);   // chef-carry-temp.js — 지우면 이 줄도 무시됨
 
@@ -157,6 +176,14 @@ function movePlayer(dx,dy){
 }
 
 // 요리사를 시작 자리로 되돌립니다. day.js / night.js 가 단계 전환 때 씁니다.
+/* 손에 든 음식의 화면 폭(VIEW). 원근 보정은 요리사와 같은 함수를 씁니다.
+   (chefAnimScale 은 시트마다 다른 캐릭터 키를 맞추는 값이라 곱하지 않습니다 —
+    그걸 곱하면 모션이 바뀔 때마다 음식 크기가 같이 튑니다) */
+function carriedFoodViewWidth(logicY){
+  const perspective=(typeof chefPerspectiveScale==="function")?chefPerspectiveScale(toView(logicY)):1;
+  return toView(PLAYER_CARRY.food.w)*perspective;
+}
+
 function resetPlayerPosition(){
   const p=state.player;
   p.x=PLAYER_START.x;p.y=PLAYER_START.y;p.facing=PLAYER_START.facing;p.moving=false;
@@ -196,10 +223,15 @@ function syncPhaserObjects(){
   playerSprite.setScale(chefAnimScale(animKey)*chefPerspectiveScale(toView(p.y)));
 
   const held=state.carrying;
-  carriedPlate.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.plate.dy));
   carriedFood.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));
-  if(held) carriedFood.setFrame(dishById(held.dishId).icon);
+  if(held){
+    // 조리 점수가 높으면 완벽 조리 그림으로 바뀝니다. (그 그림이 있는 메뉴만)
+    setFoodPropTexture(carriedFood,held.dishId,foodPropIsPerfect(held.cookScore));
+    // 음식도 요리사와 같은 원근 배율을 받아야 합니다. 안 걸면 앞으로 걸어나올 때
+    // 요리사만 커져서 손에 든 음식이 상대적으로 작아집니다.
+    sizeFoodPropSprite(carriedFood,carriedFoodViewWidth(p.y));
+  }
 
   // 손 위치·앞뒤 관계는 임시 파일이 덮어씁니다. 파일을 지우면 위 기본값으로 돌아갑니다.
-  if(typeof syncChefCarry==="function") syncChefCarry(playerSprite,carriedPlate,carriedFood,facing);
+  if(typeof syncChefCarry==="function") syncChefCarry(playerSprite,carriedFood,facing);
 }

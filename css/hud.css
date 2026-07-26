@@ -72,14 +72,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 음식 그림은 가로형(264x152)입니다. background-image 는 메뉴별로 달라서
+   game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
 .food-icon {
-  width: min(48px,3.7vw);
-  aspect-ratio: 1;
+  width: min(76px,5.9vw);
+  aspect-ratio: 264 / 152;
   display: block;
   margin: 1px auto 0;
-  background: url("../assets/food_sheet.png") no-repeat;
-  background-size: 600% 100%;
-  image-rendering: pixelated;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.menu-icon-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: clamp(14px,1.4vw,22px);
 }
 .menu-card .stock {
   position: absolute;
