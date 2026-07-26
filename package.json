@@ -8,6 +8,8 @@
     "build:counter": "node tools/build-counter-webp.js",
     "build:food": "node tools/build-food-webp.js",
     "verify:food": "node tools/build-food-webp.js --verify",
+    "build:utensils": "node tools/build-utensils-webp.js",
+    "verify:utensils": "node tools/build-utensils-webp.js --verify",
     "build:chef": "node tools/build-chef-sprites.js",
     "verify:chef": "node tools/build-chef-sprites.js --verify"
   },

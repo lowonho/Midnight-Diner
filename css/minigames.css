@@ -1,46 +1,7 @@
-.mini-overlay { z-index: 40; background: rgba(8,5,3,.55); }
-.mini-window {
-  width: min(570px,91%);
-  min-height: 320px;
-  padding: 22px;
-}
-.mini-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-.mini-heading h2 { text-align: left; }
-.mini-timer {
-  min-width: 65px;
-  padding: 7px 9px;
-  border: 1px solid #8d5a30;
-  border-radius: 8px;
-  background: #150c08;
-  color: #ffe098;
-  text-align: center;
-  font-weight: 800;
-}
-.mini-description {
-  min-height: 43px;
-  margin: 0 0 12px;
-  color: #d7c09c;
-  line-height: 1.45;
-}
-.mini-content {
-  min-height: 170px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-.mini-feedback {
-  min-height: 24px;
-  margin-top: 8px;
-  color: #ffe09a;
-  text-align: center;
-  font-weight: 700;
-}
+/* 공용 프레임(.mini-overlay / .mini-window / .mini-title-panel / .mini-stage /
+   .mini-content / .mini-timer / .mini-feedback / 닫기·일시정지 버튼)은
+   css/minigame-frame.css 에서 한 번에 관리합니다. 이 파일은 각 미니게임의
+   플레이 영역 내부 요소만 담습니다. */
 
 .kimchi-plating {
   min-width: 240px;

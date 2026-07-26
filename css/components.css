@@ -99,7 +99,7 @@ kbd {
   font-size: 11px;
   letter-spacing: .2em;
 }
-.settings-window h2, .result-window h2, .mini-window h2 {
+.settings-window h2, .result-window h2 {
   margin: 0 0 14px;
   color: #ffe09a;
 }

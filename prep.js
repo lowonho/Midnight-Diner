@@ -38,7 +38,10 @@ const PREP_LAYOUT = {
   // 개수가 적을 때 화면 끝까지 억지로 벌리지 않도록 간격 상한을 둡니다.
   // 남는 폭은 좌우로 나눠 가운데 정렬합니다.
   maxStep: 172,
-  reach: 62,       // 이 거리 안에 들어와야 손질을 시작할 수 있습니다
+  // 상호작용 판정 범위. 원이 아니라 세로로 긴 영역입니다. (→ nearestPrepObject 주석)
+  reach: 62,       // 준비물 좌우로 이만큼 안에 서야 손질을 시작할 수 있습니다
+  reachBack: 62,   // 서는 자리(iy)보다 뒤(주방 쪽)로 이만큼까지
+  reachFrontFallback: 130,  // 바 테이블 쪽 한계. 이동 영역을 못 읽을 때의 대비값
   labelDy: -26,    // 이름표는 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다
   boxW: 72, boxH: 42
 };
@@ -78,14 +81,42 @@ function prepObjectLayout(){
   });
 }
 
+/* 바 테이블 쪽 판정 한계 (iy 에서 아래로 몇 논리 px 까지 인정할지).
+   ------------------------------------------------------------
+   요리사가 바 테이블에 딱 붙어 설 수 있는 자리까지 전부 포함시킵니다.
+   이동 영역 하한(chef-walk-area.js bottomY)이 곧 "가장 가까이 붙은 자리"라
+   그 값에서 구합니다. 하한을 옮기면 판정도 알아서 따라옵니다. */
+function prepReachFront(){
+  const L=PREP_LAYOUT;
+  if(typeof CHEF_WALK_AREA==="undefined")return L.reachFrontFallback;
+  return Math.max(L.reach, toLogic(CHEF_WALK_AREA.bottomY)-L.iy);
+}
+
+/* 상호작용 판정
+   ------------------------------------------------------------
+   원(iy 중심 반경 62)이었는데, 바 테이블에 완전히 붙으면 오히려
+   상호작용이 끊겼습니다. 서는 자리 iy(논리 482)와 이동 영역 하한
+   (VIEW 899 = 논리 599)이 117 이나 떨어져 있어서, 가장 가까이 다가간
+   자리가 반경 62 밖으로 나가 버렸기 때문입니다.
+
+   그래서 세로로 긴 영역으로 바꿨습니다.
+     가로  준비물 중심에서 ±reach.        (원일 때의 최대 폭과 같습니다)
+     세로  iy 뒤로 reachBack ~ 바 테이블까지 전부.
+
+   준비물은 바 테이블 위에 가로 한 줄로 놓이므로, 어느 것을 고를지는
+   가로 거리만으로 정합니다. 세로 위치로는 구분되지 않습니다.
+   ------------------------------------------------------------ */
 function nearestPrepObject(){
   if(state.phase!=="day")return null;
-  let best=null,bestDistance=Infinity;
+  const L=PREP_LAYOUT,front=prepReachFront();
+  let best=null,bestDx=Infinity;
   prepObjectLayout().forEach(item=>{
-    const itemDistance=distance(state.player.x,state.player.y,item.ix,item.iy);
-    if(itemDistance<bestDistance){best=item;bestDistance=itemDistance;}
+    const dy=state.player.y-item.iy;     // 양수 = 요리사가 바 테이블 쪽
+    if(dy<-L.reachBack||dy>front)return;
+    const dx=Math.abs(state.player.x-item.ix);
+    if(dx<L.reach&&dx<bestDx){best=item;bestDx=dx;}
   });
-  return bestDistance<PREP_LAYOUT.reach?best:null;
+  return best;
 }
 
 /* "지금 이 준비물에 E 를 누를 수 있는가" — 이름표 둥실 강조 조건입니다.

@@ -1,20 +1,3 @@
-.mini-heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.mini-close {
-  min-height: 38px;
-  padding: 6px 9px;
-  border: 1px solid #80502e;
-  border-radius: 7px;
-  background: #28160e;
-  color: #e5c38d;
-  cursor: pointer;
-  font-weight: 700;
-}
-.mini-close kbd { margin-left: 3px; font-size: 10px; }
-
 .prep-work-object {
   position: relative;
   width: 300px;
@@ -439,7 +422,6 @@
   .frying-pan { width: 230px; height: 105px; margin-bottom: 30px; }
   .frying-pan::after { top: 94px; height: 68px; }
   .kimchi-direction-chip { min-width: 25px; padding: 4px 3px; font-size: 18px; }
-  .mini-close { font-size: 10px; }
   .batter-prep-scene { grid-template-columns: 1fr; }
   .batter-ingredients { grid-template-columns: repeat(3,1fr); }
   .mixing-bowl { margin: 0 auto; }
