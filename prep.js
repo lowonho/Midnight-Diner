@@ -88,6 +88,28 @@ function nearestPrepObject(){
   return bestDistance<PREP_LAYOUT.reach?best:null;
 }
 
+/* "지금 이 준비물에 E 를 누를 수 있는가" — 이름표 둥실 강조 조건입니다.
+   ------------------------------------------------------------
+   가까이 서 있는 것만으로는 부족합니다. E 를 눌러 실제로 손질이
+   시작되는 조건, 즉 day.js 의 startPrepTask() 가 통과시키는 조건과
+   같아야 합니다.
+
+     이미 손질함    "이미 준비한 재료입니다" 로 막힙니다
+     선행 작업 남음  "먼저 … 작업을 완료하세요" 로 막힙니다
+                   (예: 두부김치는 자르기 → 볶기 순서)
+     미니게임 중     그 준비물만 (프롬프트는 숨지만 손질 중이므로 계속 강조)
+
+   [주의] 판정 규칙 자체는 day.js 가 주인입니다. startPrepTask() 의
+   조건이 바뀌면 여기도 같이 고쳐야 이름표와 실제 동작이 어긋나지 않습니다.
+   주방 집기 쪽 같은 역할은 kitchen.js 의 stationUsable() 입니다.
+   ------------------------------------------------------------ */
+function prepObjectUsable(item,near){
+  if(state.mini)return state.mini.context?.taskId===item.task.id;
+  if(state.paused||near?.task.id!==item.task.id)return false;
+  if(state.prepProgress?.[item.task.id])return false;
+  return !(item.task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
+}
+
 
 /* ------------------------------------------------------------
    3. 드로잉
@@ -96,6 +118,8 @@ function nearestPrepObject(){
 function drawPrepObjects(){
   if(state.phase!=="day")return;
   const L=PREP_LAYOUT;
+  // 가장 가까운 준비물은 전부가 공유하므로 여기서 한 번만 구합니다.
+  const near=nearestPrepObject();
   prepObjectLayout().forEach(item=>{
     const done=!!state.prepProgress[item.task.id];
     ctx.save();ctx.globalAlpha=done?0.48:1;
@@ -125,7 +149,9 @@ function drawPrepObjects(){
     }
 
     ctx.globalAlpha=1;
-    drawFixtureLabel(item.task.objectLabel,item.x,item.y+L.labelDy);
+    // 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
+    drawFixtureLabel(item.task.objectLabel,item.x,item.y+L.labelDy,
+      labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)));
 
     if(done){
       ctx.fillStyle="#91b961";ctx.beginPath();ctx.arc(item.x+34,item.y-18,15,0,Math.PI*2);ctx.fill();

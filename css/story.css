@@ -14,7 +14,10 @@
   /* 세로 % 패딩은 프레임 '가로'를 기준으로 계산됩니다(16:9 → 세로 비율 × .5625).
      위 8.7% ≈ 높이의 15.5%로, 상단 HUD 바로 아래에서 시작합니다. */
   padding: 8.7% 4.5% 1.7%;
-  background: linear-gradient(180deg,rgba(7,5,4,.30),rgba(7,5,4,.12) 42%,rgba(7,5,4,.78));
+  /* 대화 중에는 뒤 플레이 화면을 확실히 눌러 둡니다. 예전 값(.30/.12/.78)은
+     가운데가 거의 비어 있어서 주방·손님이 그대로 읽혔고, 배우와 대사보다
+     뒤가 더 눈에 띄었습니다. 아래쪽이 가장 어두운 건 대사창 가독성 때문입니다. */
+  background: linear-gradient(180deg,rgba(6,4,3,.68),rgba(6,4,3,.58) 42%,rgba(6,4,3,.90));
   opacity: 0;
   visibility: hidden;
   transition: opacity .2s,visibility .2s;

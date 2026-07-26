@@ -39,40 +39,8 @@ const STATIONS = {
 const STATION_REACH = 40;
 
 
-/* 이름표 둥실 (counter.js 의 COUNTER_FLOAT 과 같은 연출)
-   ------------------------------------------------------------
-   앞쪽 계산대·철판 명패는 counter.js 가 Phaser 컨테이너를 흔들지만,
-   주방 이름표는 프레임 캔버스에 매 프레임 다시 그리는 도형이라
-   같은 움직임을 여기서 직접 계산합니다.
-
-   [진폭이 counter.js 와 다른 이유] 저쪽은 VIEW(1920x1080) 좌표,
-   여기는 논리(1280x720) 좌표라서 같은 크기로 보이려면 1.5 로 나눠야
-   합니다. 2 → 1.3 / 7 → 4.7 이 그 값입니다.
-   주기(freq)는 ms 당 라디안이라 좌표계와 무관하게 같습니다.
-   연출을 바꿀 때는 두 파일을 같이 고치세요.
-   ------------------------------------------------------------ */
-const STATION_FLOAT = {
-  idle:   { amp:1.3, freq:0.0018 },   // 약 1.3px / 3.5초
-  active: { amp:4.7, freq:0.0040 },   // 약 4.7px / 1.6초
-  lerp:   0.05,                       // 진폭·주기·배율 보간 계수
-  activeScale: 1.03,
-  idleText:   "#f0c87b", activeText:  "#fff2d2",
-  idleLine:   "#9a6235", activeLine:  "#d69a52"
-};
-
-// 이름표별 둥실 상태. 위상은 누적시켜서 진폭이 바뀌어도 튀지 않습니다.
-// 시작 위상을 흩어 놓아야 9개가 한 몸처럼 오르내리지 않습니다.
-const stationFloats = {};
-let stationFloatLast = 0;
-
-function stationFloatState(id){
-  return stationFloats[id] || (stationFloats[id] = {
-    phase:Math.random()*Math.PI*2,
-    amp:STATION_FLOAT.idle.amp,
-    freq:STATION_FLOAT.idle.freq,
-    scale:1
-  });
-}
+// 이름표 둥실 값(진폭·주기·강조색)은 낮 준비물과 공유합니다.
+// → draw-utils.js 의 LABEL_FLOAT / labelFloatStep()
 
 
 /* ------------------------------------------------------------
@@ -126,42 +94,31 @@ function stationUsable(s,near){
 // 이름표까지 뒤로 보내면 집기 앞에 선 요리사가 이름표를 가려서 안 보입니다.
 function drawStations(){ Object.values(STATIONS).forEach(drawStation); }
 
-// 둥실 계산에 필요한 delta 와 "가장 가까운 집기"는 9개가 공유하므로
-// 여기서 한 번만 구해서 넘깁니다. (nearestStation 을 9번 돌 필요가 없습니다)
+// "가장 가까운 집기"는 9개가 공유하므로 여기서 한 번만 구해서 넘깁니다.
+// (nearestStation 을 9번 돌 필요가 없습니다)
 function drawStationLabels(){
-  const now=performance.now();
-  // 첫 프레임과 탭 복귀 직후를 대비해 상한을 둡니다. 안 두면 위상이 크게 튑니다.
-  const delta=stationFloatLast?Math.min(50,now-stationFloatLast):16;
-  stationFloatLast=now;
   const near=nearestStation();
-  Object.values(STATIONS).forEach(s=>labelStation(s,delta,near));
+  Object.values(STATIONS).forEach(s=>labelStation(s,near));
 }
 
 /* 이름표 한 장.
    E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
-   앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고) */
-function labelStation(s,delta,near){
-  const f=stationFloatState(s.id);
+   앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
+   둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
+function labelStation(s,near){
   const active=stationUsable(s,near);
-  const target=active?STATION_FLOAT.active:STATION_FLOAT.idle;
-  const k=STATION_FLOAT.lerp;
-
-  f.amp +=(target.amp -f.amp )*k;
-  f.freq+=(target.freq-f.freq)*k;
-  f.scale+=((active?STATION_FLOAT.activeScale:1)-f.scale)*k;
-  f.phase+=f.freq*delta;
+  const f=labelFloatStep(`station_${s.id}`,active);
 
   const x=s.x+8,w=s.w-16,h=23;
-  const y=s.y-25+Math.sin(f.phase)*f.amp;
-  const cx=x+w/2,cy=y+h/2;
+  const y=s.y-25+f.dy;
+  const cx=x+w/2;
 
   ctx.save();
-  // 명패가 커질 때 중심이 고정되도록 중심으로 옮겼다가 되돌립니다.
-  ctx.translate(cx,cy);ctx.scale(f.scale,f.scale);ctx.translate(-cx,-cy);
+  applyLabelScale(f.scale,cx,y+h/2);
   ctx.fillStyle="#1a0e09";roundRect(ctx,x,y,w,h,5,true,false);
-  ctx.strokeStyle=active?STATION_FLOAT.activeLine:STATION_FLOAT.idleLine;
+  ctx.strokeStyle=active?LABEL_FLOAT.activeLine:FIXTURE_LABEL.line;
   ctx.lineWidth=2;roundRect(ctx,x,y,w,h,5,false,true);
-  ctx.fillStyle=active?STATION_FLOAT.activeText:STATION_FLOAT.idleText;
+  ctx.fillStyle=active?LABEL_FLOAT.activeText:FIXTURE_LABEL.text;
   ctx.font="bold 13px Malgun Gothic";ctx.textAlign="center";
   ctx.fillText(s.label,cx,y+16);ctx.textAlign="left";
   ctx.restore();

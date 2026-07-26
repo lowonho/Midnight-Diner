@@ -666,6 +666,10 @@ function completeMiniContext(m,score) {
 function update(dt) {
   if(state.paused){
     if(state.mini){updateMini(dt);updateUI(false);}
+    // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
+    // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
+    // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
+    else updatePrompt();
     return;
   }
   if(state.phase==="night"){
@@ -781,7 +785,9 @@ function updatePrompt(){
     }
   }
   if(!text){hide();return;}
-  prompt.textContent=text;prompt.disabled=false;
+  // 화면에는 키캡 'E' 만 보입니다. 설명 문구는 스크린리더용으로만 남깁니다.
+  // (textContent 로 넣으면 index.html 의 키캡 span 이 지워집니다)
+  prompt.setAttribute("aria-label",text);prompt.disabled=false;
   prompt.style.left=`${x/W*100}%`;prompt.style.top=`${y/H*100}%`;
   prompt.classList.add("show");
   dom.actionButton.classList.add("available");

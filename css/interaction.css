@@ -1,35 +1,112 @@
+/* 상호작용 안내 = 키캡 'E' 한 개
+   ------------------------------------------------------------
+   예전에는 "E · 무 바구니" 처럼 글자를 띄웠습니다. 대상 위에 이미
+   이름표가 떠 있어서 같은 말이 두 번 나왔고, 대상을 가리기도 했습니다.
+   지금은 역할을 나눴습니다.
+     무엇을  → 대상 위 이름표 (가능할 때 크게 둥실댐)
+     어떻게  → 이 키캡 (E 를 누르는 모습)
+   설명 문구는 game.js 가 aria-label 로 넣어 스크린리더에는 남습니다.
+   ------------------------------------------------------------ */
 .station-prompt {
   position: absolute;
   z-index: 7;
   left: 50%;
   top: 55%;
-  min-width: 170px;
-  max-width: 58%;
-  padding: 8px 13px;
-  border: 2px solid #a66c36;
-  border-radius: 9px;
-  background: rgba(25,14,9,.94);
-  color: #ffe2a1;
-  box-shadow: 0 4px 12px rgba(0,0,0,.45);
+  /* 크기를 확정해 둬야 responsive.css 의 bottom 값과 top 이 같이 걸려도
+     버튼이 세로로 늘어나지 않습니다. (over-constrained → bottom 무시) */
+  width: max-content;
+  height: max-content;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
   opacity: 0;
-  transform: translate(-50%,-50%) translateY(8px);
+  /* 앵커(game.js 가 style.top 으로 넣는 지점)의 "위쪽"에 통째로 놓습니다.
+     가운데 정렬(-50%)이면 아래 절반이 대상 이름표를 덮습니다.
+     -100% 로 바닥을 앵커에 맞추고 8px 더 띄워, 이름표가 둥실 올라온
+     순간(최대 4.7px)이나 키캡이 눌려 내려앉는 순간(5px)에도 겹치지 않습니다.
+     이 8px 은 나타날 때 떠오르는 거리이기도 합니다. */
+  transform: translate(-50%,-100%) translateY(0);
   transition: opacity .16s, transform .16s;
   pointer-events: none;
   cursor: pointer;
-  font-size: clamp(10px,.9vw,14px);
-  font-weight: 700;
-  text-align: center;
 }
 .station-prompt.show {
   opacity: 1;
-  transform: translate(-50%,-50%);
+  transform: translate(-50%,-100%) translateY(-8px);
   pointer-events: auto;
 }
-.station-prompt.show:hover {
-  border-color: #e0a34e;
-  background: rgba(51,28,16,.97);
+
+/* 키캡 위 화살표.
+   키캡만 덩그러니 떠 있으면 무엇을 가리키는 건지 읽히지 않아서 얹었습니다.
+   색·모양은 게임 안 안내 화살표(fx.js FX_GUIDE)와 맞췄습니다.
+   키가 내려앉는 구간에 화살표도 같이 내려찍어서, 둘이 한 동작으로 보입니다. */
+.station-prompt .prompt-arrow {
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 11px solid rgba(255,220,125,.92);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.55));
+  animation: prompt-arrow-dip 1.5s ease-in-out infinite;
 }
-.station-prompt.show:active { transform: translate(-50%,-46%); }
+
+/* 키캡과 같은 1.5초 주기 · 같은 구간이어야 어긋나 보이지 않습니다.
+   내려찍을 때 살짝 밝아지면서 "지금 눌렀다" 가 강조됩니다. */
+@keyframes prompt-arrow-dip {
+  0%,52%   { transform: translateY(0);   opacity: .9; }
+  64%,78%  { transform: translateY(6px); opacity: 1; }
+  92%,100% { transform: translateY(0);   opacity: .9; }
+}
+
+/* 키캡. 아래로 깔린 두꺼운 그림자가 키의 옆면(높이) 역할을 합니다.
+   누르는 연출은 그 옆면을 줄이면서 같은 만큼 아래로 내려앉히는 게 전부입니다. */
+.station-prompt .keycap {
+  display: grid;
+  place-items: center;
+  width: clamp(30px,2.7vw,42px);
+  height: clamp(30px,2.7vw,42px);
+  border: 2px solid #7d4f26;
+  border-radius: 9px;
+  background: linear-gradient(#fff0cc,#f0cf92 45%,#dcab63);
+  box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5);
+  color: #40230f;
+  font-family: "Malgun Gothic",sans-serif;
+  font-size: clamp(14px,1.25vw,19px);
+  font-weight: 900;
+  line-height: 1;
+  animation: keycap-press 1.5s ease-in-out infinite;
+}
+
+/* 절반 넘게 가만히 있다가 한 번 눌렀다 놓습니다.
+   쉼 없이 오르내리면 이름표 둥실과 겹쳐 화면이 산만해집니다. */
+@keyframes keycap-press {
+  0%,52%   { transform: translateY(0);   box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5); }
+  64%,78%  { transform: translateY(5px); box-shadow: 0 1px 0 #7d4f26, 0 3px 6px  rgba(0,0,0,.4); }
+  92%,100% { transform: translateY(0);   box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5); }
+}
+
+.station-prompt.show:hover .keycap {
+  border-color: #e0a34e;
+  background: linear-gradient(#fff8e2,#f6dda6 45%,#e6bb74);
+}
+/* 실제로 누르는(모바일 탭) 동안은 눌린 모습으로 고정합니다. */
+.station-prompt.show:active .keycap {
+  animation: none;
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 #7d4f26, 0 3px 6px rgba(0,0,0,.4);
+}
+.station-prompt.show:active .prompt-arrow {
+  animation: none;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-prompt .keycap,
+  .station-prompt .prompt-arrow { animation: none; }
+}
 
 .toast {
   position: absolute;
