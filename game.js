@@ -537,7 +537,9 @@ function updatePancakeFlipCharge(dt){
   const bar=dom.miniContent.querySelector("#reboundGaugeBar"),label=dom.miniContent.querySelector("#reboundLabel");
   if(bar)bar.style.width=`${charge}%`;
   if(label)label.textContent=`반동 충전 ${charge}% · ${charge<40?"더 당기세요":charge<=88?"↓로 뒤집기!":"반동이 너무 강해요"}`;
-  if(pan)pan.style.transform=`translateY(${-Math.min(26,charge*.26)}px) rotate(${Math.min(3,charge*.03)}deg)`;
+  // 들어올리는 거리는 --upx(화면 크기 비례 단위, css/base.css) 배수로 줍니다.
+  // px 로 주면 창을 줄였을 때 팬만 크게 튑니다.
+  if(pan)pan.style.transform=`translateY(calc(${-Math.min(26,charge*.26)} * var(--upx))) rotate(${Math.min(3,charge*.03)}deg)`;
 }
 
 function releasePancakeFlip(){

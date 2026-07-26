@@ -2,7 +2,7 @@
    대사창 높이는 내용과 무관하게 항상 최대치로 고정되고, 남는 세로 공간을 무대가 전부 사용합니다. */
 .story-overlay {
   /* 선택지는 가로 한 줄이므로 이 높이 하나만 자리를 예약하면 됩니다(두 줄 줄바꿈까지 여유). */
-  --story-choice-h: clamp(40px,3vw,50px);
+  --story-choice-h: calc(50 * var(--upx));
   --story-text-lines: 2;
   position: absolute;
   z-index: 45;
@@ -10,7 +10,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8 * var(--upx));
   /* 세로 % 패딩은 프레임 '가로'를 기준으로 계산됩니다(16:9 → 세로 비율 × .5625).
      위 8.7% ≈ 높이의 15.5%로, 상단 HUD 바로 아래에서 시작합니다. */
   padding: 8.7% 4.5% 1.7%;
@@ -31,19 +31,19 @@
   max-width: 70%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
+  gap: calc(10 * var(--upx));
+  padding: calc(7 * var(--upx)) calc(12 * var(--upx));
   border: 1px solid rgba(224,163,77,.65);
-  border-radius: 6px;
+  border-radius: calc(6 * var(--upx));
   background: rgba(22,12,8,.88);
-  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  box-shadow: 0 calc(4 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
 }
 .story-scene-meta span {
   color: #c79550;
-  font-size: clamp(8px,.68vw,11px);
+  font-size: calc(11 * var(--upx));
   letter-spacing: .12em;
 }
-.story-scene-meta strong { color: #ffe09a; font-size: clamp(10px,.95vw,15px); }
+.story-scene-meta strong { color: #ffe09a; font-size: calc(15 * var(--upx)); }
 
 /* 배우 무대: 주인공은 항상 왼쪽 끝, 대화 상대는 등장 순서대로 오른쪽 끝까지 균등 배치됩니다.
    위치와 폭은 story.js가 --actor-x / --actor-w 로 넣어 주며, 인원이 늘면 부드럽게 다시 벌어집니다. */
@@ -64,7 +64,7 @@
   justify-content: center;
   opacity: 0;
   transform: translate(-50%,6%);
-  filter: brightness(.42) saturate(.55) drop-shadow(0 10px 14px rgba(0,0,0,.8));
+  filter: brightness(.42) saturate(.55) drop-shadow(0 calc(10 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.8));
   transition: left .3s ease,width .3s ease,opacity .25s ease,transform .25s ease,filter .25s ease;
 }
 .story-actor.entered { opacity: 1; transform: translate(-50%,0); }
@@ -72,7 +72,7 @@
 .story-actor.entered.is-active {
   z-index: 5;
   transform: translate(-50%,-3.2%);
-  filter: brightness(1.06) saturate(1.05) drop-shadow(0 16px 20px rgba(0,0,0,.85));
+  filter: brightness(1.06) saturate(1.05) drop-shadow(0 calc(16 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.85));
 }
 
 .story-portrait {
@@ -80,16 +80,16 @@
   width: auto;
   max-width: 100%;
   aspect-ratio: 3 / 4;
-  border: 3px solid #9c6435;
+  border: calc(3 * var(--upx)) solid #9c6435;
   border-bottom: 0;
-  border-radius: 12px 12px 0 0;
+  border-radius: calc(12 * var(--upx)) calc(12 * var(--upx)) 0 0;
   background-color: #24140e;
   background-image: url("../assets/customer_sheet.png");
   background-repeat: no-repeat;
   background-size: 400% 600%;
   background-position: 0 var(--portrait-y,0%);
   image-rendering: pixelated;
-  box-shadow: inset 0 0 0 3px #2a170f;
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #2a170f;
 }
 .story-portrait.chef {
   background-image: url("../assets/chef_sheet.png");
@@ -116,8 +116,13 @@
 .story-portrait.role::after {
   content: "✦";
   color: #f1c778;
-  font: 700 clamp(38px,4vw,76px)/1 Georgia,serif;
-  text-shadow: 0 3px #3d2115;
+  /* font 단축 속성에 calc() 를 넣으면 슬래시(줄높이) 구분이 브라우저마다
+     달리 해석될 수 있어 개별 속성으로 풀어 씁니다. */
+  font-weight: 700;
+  font-size: calc(76 * var(--upx));
+  line-height: 1;
+  font-family: Georgia, serif;
+  text-shadow: 0 calc(3 * var(--upx)) #3d2115;
 }
 
 .story-reveal-notice {
@@ -126,15 +131,15 @@
   top: 50%;
   width: max-content;
   max-width: 40%;
-  padding: 5px 9px;
+  padding: calc(5 * var(--upx)) calc(9 * var(--upx));
   border: 1px solid #e3b65f;
-  border-radius: 12px;
+  border-radius: calc(12 * var(--upx));
   background: #23140d;
   color: #ffe6a6;
   opacity: 0;
-  transform: translateY(calc(-50% + 6px));
+  transform: translateY(calc(-50% + calc(6 * var(--upx))));
   transition: .2s;
-  font-size: clamp(9px,.75vw,12px);
+  font-size: calc(12 * var(--upx));
   pointer-events: none;
 }
 .story-reveal-notice.show { opacity: 1; transform: translateY(-50%); }
@@ -145,50 +150,50 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  padding: 26px 44px 22px;
-  border: 3px solid #8f5b31;
-  border-radius: 10px;
+  padding: calc(26 * var(--upx)) calc(44 * var(--upx)) calc(22 * var(--upx));
+  border: calc(3 * var(--upx)) solid #8f5b31;
+  border-radius: calc(10 * var(--upx));
   background: linear-gradient(rgba(33,19,13,.97),rgba(18,10,7,.98));
-  box-shadow: inset 0 0 0 3px #25130c,inset 0 0 0 5px #c1843e,0 10px 28px rgba(0,0,0,.75);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #25130c,inset 0 0 0 calc(5 * var(--upx)) #c1843e,0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.75);
 }
 .story-speaker-row {
   position: relative;
   flex: none;
-  min-height: 36px;
+  min-height: calc(36 * var(--upx));
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  gap: calc(12 * var(--upx));
+  padding-bottom: calc(8 * var(--upx));
+  margin-bottom: calc(12 * var(--upx));
   border-bottom: 1px solid rgba(224,163,77,.35);
 }
 .story-speaker-row strong {
   color: #ffe09a;
-  font-size: clamp(18px,1.7vw,27px);
+  font-size: calc(27 * var(--upx));
   letter-spacing: -.03em;
 }
 .story-speaker-row strong.revealed { animation: nameReveal .5s ease; }
 @keyframes nameReveal {
-  0% { color: #fff; transform: scale(1.12); text-shadow: 0 0 16px #ffe09a; }
+  0% { color: #fff; transform: scale(1.12); text-shadow: 0 0 calc(16 * var(--upx)) #ffe09a; }
   100% { color: #ffe09a; transform: scale(1); text-shadow: none; }
 }
 
 .story-relation-badge {
-  padding: 2px 7px;
+  padding: 2px calc(7 * var(--upx));
   border: 1px solid #6e7549;
-  border-radius: 10px;
+  border-radius: calc(10 * var(--upx));
   color: #b8c985;
-  font-size: 10px;
+  font-size: calc(10 * var(--upx));
 }
 .story-relation-badge:empty { display: none; }
 .story-text {
   flex: none;
   height: calc(1.7em * var(--story-text-lines));
   margin: 0;
-  padding-right: 8px;
+  padding-right: calc(8 * var(--upx));
   overflow-y: auto;
   color: #f1e0c2;
-  font-size: clamp(13px,1.18vw,18px);
+  font-size: calc(18 * var(--upx));
   line-height: 1.7;
   word-break: keep-all;
 }
@@ -199,9 +204,9 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 10px;
+  gap: calc(10 * var(--upx));
   height: var(--story-choice-h);
-  margin-top: 16px;
+  margin-top: calc(16 * var(--upx));
 }
 .story-choice {
   min-width: 0;
@@ -210,12 +215,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
+  padding: calc(4 * var(--upx)) calc(10 * var(--upx));
   border: 1px solid #9a6537;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--upx));
   background: rgba(103,58,31,.5);
   color: #f6dca9;
-  font-size: clamp(12px,1.05vw,17px);
+  font-size: calc(17 * var(--upx));
   line-height: 1.3;
   text-align: center;
   word-break: keep-all;
@@ -228,10 +233,10 @@
 }
 .story-next {
   position: absolute;
-  right: 40px;
-  bottom: 24px;
-  min-width: 72px;
-  padding: 6px 10px;
+  right: calc(40 * var(--upx));
+  bottom: calc(24 * var(--upx));
+  min-width: calc(72 * var(--upx));
+  padding: calc(6 * var(--upx)) calc(10 * var(--upx));
   border: 0;
   background: transparent;
   color: #dcb574;
@@ -239,9 +244,9 @@
 }
 .story-next span {
   display: inline-block;
-  margin-left: 4px;
+  margin-left: calc(4 * var(--upx));
   animation: storyNext 1s steps(2) infinite;
 }
 @keyframes storyNext {
-  50% { transform: translateY(3px); opacity: .45; }
+  50% { transform: translateY(calc(3 * var(--upx))); opacity: .45; }
 }

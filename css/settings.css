@@ -1,9 +1,9 @@
-.pause-message { margin: 0 0 17px; color: #c9ae85; }
+.pause-message { margin: 0 0 calc(17 * var(--upx)); color: #c9ae85; }
 .volume-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px 12px;
-  margin: 15px 0;
+  gap: calc(8 * var(--upx)) calc(12 * var(--upx));
+  margin: calc(15 * var(--upx)) 0;
   color: #ead7b5;
   text-align: left;
 }
@@ -15,10 +15,10 @@
 }
 .dark-button {
   width: 100%;
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: calc(10 * var(--upx));
+  padding: calc(10 * var(--upx));
   border: 1px solid #754725;
-  border-radius: 7px;
+  border-radius: calc(7 * var(--upx));
   background: #160d09;
   color: #d9b77c;
   cursor: pointer;

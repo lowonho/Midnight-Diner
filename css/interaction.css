@@ -18,7 +18,7 @@
   height: max-content;
   display: grid;
   justify-items: center;
-  gap: 4px;
+  gap: calc(4 * var(--upx));
   padding: 0;
   border: 0;
   background: none;
@@ -29,14 +29,14 @@
      올라온 순간(최대 4.7px)과 키캡이 눌려 내려앉는 순간(5px)을 다 빼도
      여유가 남는 선에서, 대상에 최대한 붙여 둔 값입니다.
      숨김 상태는 8px 아래라 나타날 때 11px 떠오릅니다. */
-  transform: translate(-50%,-100%) translateY(8px);
+  transform: translate(-50%,-100%) translateY(calc(8 * var(--upx)));
   transition: opacity .16s, transform .16s;
   pointer-events: none;
   cursor: pointer;
 }
 .station-prompt.show {
   opacity: 1;
-  transform: translate(-50%,-100%) translateY(-3px);
+  transform: translate(-50%,-100%) translateY(calc(-3 * var(--upx)));
   pointer-events: auto;
 }
 
@@ -47,10 +47,10 @@
 .station-prompt .prompt-arrow {
   width: 0;
   height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 11px solid rgba(255,220,125,.92);
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,.55));
+  border-left: calc(9 * var(--upx)) solid transparent;
+  border-right: calc(9 * var(--upx)) solid transparent;
+  border-top: calc(11 * var(--upx)) solid rgba(255,220,125,.92);
+  filter: drop-shadow(0 2px calc(3 * var(--upx)) rgba(0,0,0,.55));
   animation: prompt-arrow-dip 1.5s ease-in-out infinite;
 }
 
@@ -63,9 +63,9 @@
    구간 퍼센트는 keycap-press 와 맞춰야 어긋나 보이지 않습니다. */
 @keyframes prompt-arrow-dip {
   0%       { transform: translateY(0);   opacity: .88; }
-  26%      { transform: translateY(3px); opacity: .96; }
+  26%      { transform: translateY(calc(3 * var(--upx))); opacity: .96; }
   52%      { transform: translateY(0);   opacity: .88; }
-  64%,78%  { transform: translateY(7px); opacity: 1; }
+  64%,78%  { transform: translateY(calc(7 * var(--upx))); opacity: 1; }
   92%,100% { transform: translateY(0);   opacity: .88; }
 }
 
@@ -74,15 +74,15 @@
 .station-prompt .keycap {
   display: grid;
   place-items: center;
-  width: clamp(30px,2.7vw,42px);
-  height: clamp(30px,2.7vw,42px);
+  width: calc(42 * var(--upx));
+  height: calc(42 * var(--upx));
   border: 2px solid #7d4f26;
-  border-radius: 9px;
+  border-radius: calc(9 * var(--upx));
   background: linear-gradient(#fff0cc,#f0cf92 45%,#dcab63);
-  box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5);
+  box-shadow: 0 calc(6 * var(--upx)) 0 #7d4f26, 0 calc(10 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.5);
   color: #40230f;
   font-family: "Malgun Gothic",sans-serif;
-  font-size: clamp(14px,1.25vw,19px);
+  font-size: calc(19 * var(--upx));
   font-weight: 900;
   line-height: 1;
   animation: keycap-press 1.5s ease-in-out infinite;
@@ -91,9 +91,9 @@
 /* 절반 넘게 가만히 있다가 한 번 눌렀다 놓습니다.
    쉼 없이 오르내리면 이름표 둥실과 겹쳐 화면이 산만해집니다. */
 @keyframes keycap-press {
-  0%,52%   { transform: translateY(0);   box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5); }
-  64%,78%  { transform: translateY(5px); box-shadow: 0 1px 0 #7d4f26, 0 3px 6px  rgba(0,0,0,.4); }
-  92%,100% { transform: translateY(0);   box-shadow: 0 6px 0 #7d4f26, 0 10px 12px rgba(0,0,0,.5); }
+  0%,52%   { transform: translateY(0);   box-shadow: 0 calc(6 * var(--upx)) 0 #7d4f26, 0 calc(10 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.5); }
+  64%,78%  { transform: translateY(calc(5 * var(--upx))); box-shadow: 0 1px 0 #7d4f26, 0 calc(3 * var(--upx)) calc(6 * var(--upx))  rgba(0,0,0,.4); }
+  92%,100% { transform: translateY(0);   box-shadow: 0 calc(6 * var(--upx)) 0 #7d4f26, 0 calc(10 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.5); }
 }
 
 .station-prompt.show:hover .keycap {
@@ -103,12 +103,12 @@
 /* 실제로 누르는(모바일 탭) 동안은 눌린 모습으로 고정합니다. */
 .station-prompt.show:active .keycap {
   animation: none;
-  transform: translateY(5px);
-  box-shadow: 0 1px 0 #7d4f26, 0 3px 6px rgba(0,0,0,.4);
+  transform: translateY(calc(5 * var(--upx)));
+  box-shadow: 0 1px 0 #7d4f26, 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.4);
 }
 .station-prompt.show:active .prompt-arrow {
   animation: none;
-  transform: translateY(7px);
+  transform: translateY(calc(7 * var(--upx)));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -121,13 +121,13 @@
   z-index: 25;
   left: 50%;
   top: 18%;
-  padding: 9px 16px;
+  padding: calc(9 * var(--upx)) calc(16 * var(--upx));
   border: 2px solid #c48845;
-  border-radius: 8px;
+  border-radius: calc(8 * var(--upx));
   background: rgba(34,18,11,.96);
   color: #ffe3a4;
   opacity: 0;
-  transform: translateX(-50%) translateY(-12px);
+  transform: translateX(-50%) translateY(calc(-12 * var(--upx)));
   transition: .2s;
   pointer-events: none;
   font-weight: 700;
@@ -148,8 +148,8 @@
   pointer-events: none;
 }
 .joystick {
-  width: 108px;
-  height: 108px;
+  width: calc(108 * var(--upx));
+  height: calc(108 * var(--upx));
   border: 2px solid rgba(228,173,88,.55);
   border-radius: 50%;
   background: rgba(22,12,8,.45);
@@ -157,18 +157,18 @@
   touch-action: none;
 }
 .joystick-knob {
-  width: 48px;
-  height: 48px;
-  margin: 28px;
+  width: calc(48 * var(--upx));
+  height: calc(48 * var(--upx));
+  margin: calc(28 * var(--upx));
   border: 2px solid #d59a4d;
   border-radius: 50%;
   background: rgba(239,205,139,.75);
   transform: translate(0,0);
 }
 .action-button {
-  width: 90px;
-  height: 90px;
-  border: 3px solid #e0a34e;
+  width: calc(90 * var(--upx));
+  height: calc(90 * var(--upx));
+  border: calc(3 * var(--upx)) solid #e0a34e;
   border-radius: 50%;
   background: rgba(90,48,25,.82);
   color: #ffe09a;

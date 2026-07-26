@@ -188,6 +188,7 @@ function movePlayer(dx,dy){
   const p=state.player;
   p.x+=dx; p.y+=dy;
   clampChefToWalkArea(p);   // chef-walk-area.js — 사다리꼴 영역으로 잘라냅니다
+  blockPlayerAtStations(p); // kitchen.js       — 쓰레기통은 통과하지 못합니다
   p.moving=true;
   if(Math.abs(dx)>Math.abs(dy))p.facing=dx>0?"right":"left";
   else p.facing=dy>0?"down":"up";

@@ -47,7 +47,18 @@ const STATION_SPEC = {
   grill:      {label:"직화구이",  box:[1098,405,192,208], stand:[1194,640], facing:"up"},
   fryer:      {label:"튀김기",    box:[1294,405,123,208], stand:[1355,640], facing:"up"},
   dishwasher: {label:"식기세척기",box:[1420,374,119,234], stand:[1479,640], facing:"up"},
-  trash:      {label:"쓰레기통",  box:[1660,611,117,175], stand:[1575,730], facing:"right"}
+  // 폭 117 → 124. 에셋(prop_trash_closed)의 몸통 비율 264:374 에 맞춘 값입니다.
+  // 스펙 박스 그대로 두면 그림이 가로로 눌립니다. 세로·밑동·중심은 스펙 그대로입니다.
+  // labelDy = 이름표를 내릴 거리(VIEW). 다른 집기는 몸통 위에 떠 있지만
+  //           쓰레기통은 키가 작아 그러면 허공에 뜬 것처럼 보입니다.
+  //           앞쪽 계산대·철판 명패(counter.js)처럼 몸통에 걸치게 내립니다.
+  //           22 = 이름표 아랫변이 몸통 윗변보다 19 아래. 열린 뚜껑은
+  //           이름표 뒤로 24 솟아 올라와 열린 게 그대로 보입니다.
+  // x 1673 = 오른쪽 벽에 딱 붙인 자리입니다. 밑동 높이(y 786)에서 바닥이
+  // 끝나는 지점이 x 1797 이고(bg_floor 실측 = 걷기영역 벽 사선과 일치),
+  // 거기서 폭 124 를 뺀 값입니다. 더 밀면 밑동이 벽 속으로 들어갑니다.
+  // 아래로도 못 내립니다 — 바 테이블 상판 뒷변이 y 780 이라 이미 6 걸쳐 있습니다.
+  trash:      {label:"쓰레기통",  box:[1673,611,124,175], stand:[1591,730], facing:"right", labelDy:22}
 };
 
 // 게임 로직·드로잉이 쓰는 논리 좌표(1280x720) 사본.
@@ -56,7 +67,8 @@ const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])
   id, label:spec.label, facing:spec.facing,
   x:toLogic(spec.box[0]), y:toLogic(spec.box[1]),
   w:toLogic(spec.box[2]), h:toLogic(spec.box[3]),
-  ix:toLogic(spec.stand[0]), iy:toLogic(spec.stand[1])
+  ix:toLogic(spec.stand[0]), iy:toLogic(spec.stand[1]),
+  labelDy:toLogic(spec.labelDy||0)
 }]));
 
 /* 이 거리(논리 좌표) 안에 들어와야 집기를 쓸 수 있습니다.
@@ -69,6 +81,134 @@ const STATION_REACH = 55;
 
 // 이름표 둥실 값(진폭·주기·강조색)은 낮 준비물과 공유합니다.
 // → draw-utils.js 의 LABEL_FLOAT / labelFloatStep()
+
+
+/* ------------------------------------------------------------
+   1-1. 쓰레기통 에셋 (9종 중 유일하게 그림입니다)
+   ------------------------------------------------------------
+   나머지 8종은 아직 캔버스 도형 플레이스홀더입니다. (§3)
+   에셋이 더 들어오면 이 블록과 같은 방식으로 하나씩 옮기면 됩니다.
+
+   [파일] assets/utensils/counter/prop_trash_{closed,open}.webp
+   PNG 가 원본이고 WebP 는 빌드 산출물입니다. (npm run build:utensils)
+   WebP 를 못 읽는 브라우저면 자동으로 같은 이름의 PNG 로 되돌립니다.
+
+   [정렬] 두 장 다 320x560 같은 캔버스에, 밑동(y 540)과 좌우(x 28~291)가
+   똑같이 맞춰져 있습니다. 그래서 한 번 구한 사각형에 두 장을 그대로
+   갈아 끼우면 몸통은 제자리에 있고 뚜껑만 위로 열립니다.
+   body = 닫힘 상태의 불투명 영역. npm run verify:utensils 가 찍어 줍니다.
+
+   [배율] 집기 몸통(STATIONS.trash) 높이에 body 높이를 맞춥니다.
+   가로는 중심 정렬. 세로 기준으로 잡아야 바닥에 닿는 선이 어긋나지 않습니다.
+   ------------------------------------------------------------ */
+
+const TRASH_ART = {
+  dir:"assets/utensils/counter/",
+  file:{closed:"prop_trash_closed", open:"prop_trash_open"},
+  canvas:{w:320,h:560},
+  body:{x:28,y:167,w:264,h:374}
+};
+
+// 뚜껑이 열려 있는 시간. 음식을 폐기하는 순간 이 시간만큼 열렸다 닫힙니다.
+const TRASH_OPEN_MS = 420;
+
+/* 화면에 그릴 사각형(논리 좌표)을 한 번만 계산해 둡니다.
+   VIEW 픽셀에 딱 떨어지게 반올림합니다 — 아래 미리 그려 둔 캔버스와
+   1:1 로 맞아야 확대/축소 없이 그려집니다. */
+const TRASH_RECT = (()=>{
+  const s=STATIONS.trash,A=TRASH_ART;
+  const scale=s.h/A.body.h;                                   // 논리 px / 에셋 px
+  const snap=value=>toLogic(Math.round(toView(value)));
+  return {
+    x:snap(s.x+s.w/2-(A.body.x+A.body.w/2)*scale),            // 가로 중심 맞춤
+    y:snap(s.y+s.h-(A.body.y+A.body.h)*scale),                // 밑동 맞춤
+    w:snap(A.canvas.w*scale), h:snap(A.canvas.h*scale)
+  };
+})();
+
+// 상태별로 "화면에 나올 크기 그대로" 미리 축소해 둔 캔버스.
+// 매 프레임 320x560 원본을 축소하면 프레임마다 리샘플링이 돌아갑니다.
+// 한 번만 줄여 두고 이후에는 1:1 복사만 합니다.
+const trashArt = {};
+
+function prerenderTrashArt(image){
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.round(toView(TRASH_RECT.w));
+  canvas.height=Math.round(toView(TRASH_RECT.h));
+  const g=canvas.getContext("2d");
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
+  g.drawImage(image,0,0,canvas.width,canvas.height);
+  return canvas;
+}
+
+function loadTrashArt(key,file,ext=".webp"){
+  const image=new Image();
+  image.onload=()=>{trashArt[key]=prerenderTrashArt(image);};
+  image.onerror=()=>{
+    if(ext===".webp"){loadTrashArt(key,file,".png");return;}   // WebP 미지원 브라우저
+    console.warn(`쓰레기통 에셋을 불러오지 못했습니다: ${file} (도형 플레이스홀더로 그립니다)`);
+  };
+  image.src=`${TRASH_ART.dir}${file}${ext}`;
+}
+Object.entries(TRASH_ART.file).forEach(([key,file])=>loadTrashArt(key,file));
+
+/* ------------------------------------------------------------
+   1-2. 쓰레기통 통과 막기
+   ------------------------------------------------------------
+   요리사가 뒤에서 앞으로 쓰레기통을 뚫고 지나가지 못하게 합니다.
+   뒤쪽 조리대 8종은 이동 영역 상한(chef-walk-area.js topY)이 이미 막고
+   있어서 따로 필요 없습니다. 쓰레기통만 영역 한가운데에 서 있습니다.
+
+   막는 범위는 "바닥에 닿는 자리"입니다. 그림 전체가 아니라 밑동에서
+   TRASH_FOOT_DEPTH 만큼만 잡습니다. 그림 높이 전체를 막으면 통 뒤쪽
+   먼 바닥까지 못 지나가서 벽이 두꺼워진 것처럼 느껴집니다.
+
+   호출은 player.js movePlayer() 가 이동 직후에 한 번 합니다.
+   ------------------------------------------------------------ */
+
+const TRASH_FOOT_DEPTH = 46;   // VIEW. 통이 바닥에서 차지하는 앞뒤 두께
+
+const TRASH_FOOT = (()=>{
+  const s=STATIONS.trash,depth=toLogic(TRASH_FOOT_DEPTH);
+  return {left:s.x, right:s.x+s.w, top:s.y+s.h-depth, bottom:s.y+s.h};
+})();
+
+/* 요리사를 쓰레기통 밖으로 밀어냅니다. 이동을 막는 게 아니라 위치만
+   가장 가까운 변으로 되돌리므로, 통에 붙어서 좌우로 미끄러집니다.
+
+   [오른쪽 변은 제외] 통이 오른쪽 벽에 붙어 있어 그쪽으로 밀면 걷기 영역
+   밖(벽 속)으로 나갑니다. 들어올 수 있는 곳도 왼쪽·위·아래뿐입니다. */
+function blockPlayerAtStations(player){
+  const F=TRASH_FOOT;
+  if(player.x<=F.left||player.x>=F.right||player.y<=F.top||player.y>=F.bottom)return player;
+
+  const toLeft=player.x-F.left, toTop=player.y-F.top, toBottom=F.bottom-player.y;
+  const nearest=Math.min(toLeft,toTop,toBottom);
+  if(nearest===toTop)         player.y=F.top;
+  else if(nearest===toBottom) player.y=F.bottom;
+  else                        player.x=F.left;
+  return player;
+}
+
+
+/* 지금 뚜껑이 열려 있는가.
+   - 쓰레기 정리 미니게임 중에는 계속 열어 둡니다.
+   - 음식을 폐기하면(night.js 가 state.discardedCount 를 올립니다)
+     TRASH_OPEN_MS 동안 열렸다 닫힙니다.
+   폐기 시점을 night.js 에서 알려 주는 대신 카운터 변화를 여기서 읽습니다.
+   게임 로직 파일을 건드리지 않고 연출만 이 파일 안에서 끝내려는 것입니다. */
+let trashOpenUntil = 0;
+let trashDiscardSeen = null;
+
+function trashIsOpen(){
+  const discarded=state.discardedCount||0;
+  // 첫 프레임(null)은 기준만 잡습니다. 이어하기로 값을 불러온 직후에
+  // 열림 연출이 한 번 튀는 것을 막습니다.
+  if(trashDiscardSeen!==null&&discarded>trashDiscardSeen) trashOpenUntil=performance.now()+TRASH_OPEN_MS;
+  trashDiscardSeen=discarded;
+  if(state.mini?.stationId==="trash")return true;
+  return performance.now()<trashOpenUntil;
+}
 
 
 /* ------------------------------------------------------------
@@ -164,7 +304,9 @@ function labelStation(s,near){
   ctx.font="bold 13px Malgun Gothic";
   const h=23,cx=s.x+s.w/2;
   const w=Math.round(ctx.measureText(s.label).width)+LABEL_PAD_X*2;
-  const x=cx-w/2,y=s.y-25+f.dy;
+  // labelDy = 기본 위치에서 더 내릴 거리. 키 작은 집기가 이름표만 허공에
+  // 띄우지 않도록 몸통 쪽으로 당길 때 씁니다. (§1 쓰레기통)
+  const x=cx-w/2,y=s.y-25+(s.labelDy||0)+f.dy;
 
   ctx.save();
   applyLabelScale(f.scale,cx,y+h/2);
@@ -190,6 +332,8 @@ function labelStation(s,near){
 const STATION_TOP_RATIO = {sink:.46,board:.46,pot:.45,pan:.45,grill:.45,fryer:.45};
 
 function drawStation(s){
+  if(s.id==="trash"&&drawTrashArt())return;   // 에셋이 준비됐으면 도형 대신 그림 한 장
+
   const working=state.mini?.stationId===s.id,t=performance.now()/1000;
   ctx.fillStyle="#332117";ctx.fillRect(s.x,s.y,s.w,s.h);ctx.strokeStyle="#7f5130";ctx.lineWidth=4;ctx.strokeRect(s.x,s.y,s.w,s.h);
 
@@ -223,6 +367,16 @@ function drawStation(s){
     drawStationCabinet(s,topH);
     drawStationTop(s,{x:s.x+8,y:s.y+8,w:s.w-16,h:topH-8},working,t);
   }
+}
+
+/* 쓰레기통 그림 한 장. 그렸으면 true, 아직 못 불러왔으면 false 를 돌려주고
+   도형 플레이스홀더로 넘깁니다. (§1-1)
+   미리 축소해 둔 캔버스를 같은 크기로 얹기만 하므로 배율 계산이 없습니다. */
+function drawTrashArt(){
+  const art=trashArt[trashIsOpen()?"open":"closed"];
+  if(!art)return false;
+  ctx.drawImage(art,TRASH_RECT.x,TRASH_RECT.y,TRASH_RECT.w,TRASH_RECT.h);
+  return true;
 }
 
 /* 조리대 아래 하부장. 안쪽에 선반 두 칸을 그어 높이를 읽히게 합니다.

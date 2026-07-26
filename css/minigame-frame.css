@@ -40,10 +40,14 @@
   --tip-y: 78%;         /* 842 px */
   --tip-h: 8%;          /*  86 px */
 
-  /* 4. 닫기 / 일시정지 버튼 (정사각형) */
-  --btn: calc(5.4 * var(--mh)); /* 58 x 58 px */
-  --btn-x: 12.6%;               /* 오른쪽에서 242 px */
-  --btn-y: calc(4.6 * var(--mh));/* 위에서 50 px */
+  /* 4. 닫기 / 일시정지 버튼 (정사각형)
+     위치는 뒤 패널 우측 상단 모서리 기준으로 잡습니다. 패널 크기를 바꾸면
+     버튼도 같이 따라오도록 --panel-x / --panel-y 에서 파생시킵니다. */
+  --btn: calc(5.4 * var(--mh));            /* 58 x 58 px */
+  --btn-inset-x: 1.6%;                     /* 패널 우측 테두리에서 안쪽으로 31 px */
+  --btn-inset-y: 1.8%;                     /* 패널 상단 테두리에서 안쪽으로 19 px */
+  --btn-x: calc(var(--panel-x) + var(--btn-inset-x));  /* 오른쪽에서 12.6% = 242 px */
+  --btn-y: calc(var(--panel-y) + var(--btn-inset-y));  /* 위에서 6.8% = 73 px */
 
   z-index: 40;
   display: block;

@@ -23,7 +23,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 6px;
+  padding: 0 calc(6 * var(--upx));
   line-height: 1.05;
 }
 /* 장식용 ✦ 는 패널 밖으로 튀어나가 떠 보여서 숨깁니다. */
@@ -31,14 +31,14 @@
 .small-logo strong {
   color: var(--gold-bright);
   font-family: Georgia, serif;
-  font-size: clamp(16px,1.9vw,29px);
+  font-size: calc(29 * var(--upx));
   letter-spacing: -.08em;
   text-shadow: 2px 2px #4b2415;
 }
 .small-logo small {
   margin-top: .5em;
   color: #d7ad6c;
-  font-size: clamp(8px,.7vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 
 /* 하루 최대 5개까지 선택되므로 5장이 가운데 정렬로 들어가는 폭을 기준으로 잡았습니다.
@@ -46,24 +46,24 @@
 .menu-cards {
   height: 90%;
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(110px,200px));
+  grid-template-columns: repeat(auto-fit,minmax(calc(110 * var(--upx)),calc(200 * var(--upx))));
   justify-content: center;
-  gap: 10px;
+  gap: calc(10 * var(--upx));
 }
 .menu-card {
   position: relative;
   min-width: 0;
-  padding: 6px 4px 5px;
+  padding: calc(6 * var(--upx)) calc(4 * var(--upx)) calc(5 * var(--upx));
   border: 2px solid #946037;
-  border-radius: 6px;
+  border-radius: calc(6 * var(--upx));
   background: linear-gradient(#efcf98,#c58d4d);
   color: #2c1b11;
-  box-shadow: inset 0 0 0 2px #f7dfad, inset 0 -8px rgba(91,47,24,.12);
+  box-shadow: inset 0 0 0 2px #f7dfad, inset 0 calc(-8 * var(--upx)) rgba(91,47,24,.12);
   cursor: pointer;
   transition: transform .12s, filter .12s;
 }
 .menu-card:hover { transform: translateY(-2px); filter: brightness(1.05); }
-.menu-card.selected { outline: 3px solid #fff1a8; transform: translateY(2px); }
+.menu-card.selected { outline: calc(3 * var(--upx)) solid #fff1a8; transform: translateY(2px); }
 .menu-card:disabled { cursor: default; }
 .menu-card:disabled:hover { filter: none; transform: none; }
 .menu-card:disabled.selected { transform: translateY(2px); }
@@ -71,7 +71,7 @@
 .menu-card strong {
   display: block;
   overflow: hidden;
-  font-size: clamp(9px,.98vw,15px);
+  font-size: calc(15 * var(--upx));
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -80,7 +80,7 @@
    game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
 .food-icon {
   position: relative;
-  width: min(160px,11.5vw);
+  width: calc(160 * var(--upx));
   aspect-ratio: 264 / 152;
   display: block;
   margin: 2px auto 1px;
@@ -109,40 +109,40 @@
 .menu-icon-placeholder {
   display: grid;
   place-items: center;
-  font-size: clamp(14px,1.4vw,22px);
+  font-size: calc(22 * var(--upx));
 }
 .menu-card .stock {
   position: absolute;
-  right: 4px;
-  bottom: 3px;
-  min-width: 20px;
-  padding: 1px 5px;
-  border-radius: 9px;
+  right: calc(4 * var(--upx));
+  bottom: calc(3 * var(--upx));
+  min-width: calc(20 * var(--upx));
+  padding: 1px calc(5 * var(--upx));
+  border-radius: calc(9 * var(--upx));
   background: #2d1a11;
   color: #ffe7a8;
   text-align: center;
-  font-size: clamp(8px,.78vw,12px);
+  font-size: calc(12 * var(--upx));
 }
 .menu-tag,
 .order-count {
   position: absolute;
-  bottom: 3px;
-  padding: 1px 6px;
-  border-radius: 8px;
+  bottom: calc(3 * var(--upx));
+  padding: 1px calc(6 * var(--upx));
+  border-radius: calc(8 * var(--upx));
   background: #2d1a11;
   color: #ffe7a8;
-  font-size: clamp(7px,.7vw,11px);
+  font-size: calc(11 * var(--upx));
   font-weight: 800;
 }
-.menu-tag { left: 4px; }
-.order-count { right: 4px; background: #5b3420; }
+.menu-tag { left: calc(4 * var(--upx)); }
+.order-count { right: calc(4 * var(--upx)); background: #5b3420; }
 
 /* 칸 순서: DAY · 남은시간 · 만족도 · 인기도 · 보유금 · 도감 · 설정 */
 .hud-stats {
   height: 60%;
   display: grid;
   grid-template-columns: .6fr .95fr 1.2fr .75fr 1.15fr .45fr .45fr;
-  gap: 3px;
+  gap: calc(3 * var(--upx));
 }
 .hud-stats > div {
   min-width: 0;
@@ -151,26 +151,26 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #744522;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--upx));
   background: #160c08;
 }
-.hud-stats span { color: #b98d59; font-size: clamp(5px,.48vw,8px); }
+.hud-stats span { color: #b98d59; font-size: calc(8 * var(--upx)); }
 .hud-stats strong {
   color: #f7d58a;
-  font-size: clamp(8px,.7vw,12px);
+  font-size: calc(12 * var(--upx));
   white-space: nowrap;
 }
-.hud-stats .square-button { font-size: clamp(9px,.85vw,14px); line-height: 1; }
+.hud-stats .square-button { font-size: calc(14 * var(--upx)); line-height: 1; }
 
 /* 보유금: '보유금' 글자 대신 동전 아이콘을 금액 왼쪽에 둡니다. */
 .stat-money {
   flex-direction: row;
-  gap: 4px;
-  padding: 0 4px;
+  gap: calc(4 * var(--upx));
+  padding: 0 calc(4 * var(--upx));
 }
 .coin-icon {
   flex: none;
-  width: clamp(9px,.9vw,14px);
+  width: calc(14 * var(--upx));
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(circle at 34% 28%, #ffeeb4 0 16%, #f2c964 46%, #c9862f 78%, #8b5417 100%);
@@ -205,36 +205,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+  padding-bottom: calc(6 * var(--upx));
+  margin-bottom: calc(6 * var(--upx));
   border-bottom: 1px solid rgba(224,163,77,.4);
   color: #efc77b;
-  font-size: clamp(10px,.95vw,15px);
+  font-size: calc(15 * var(--upx));
 }
 .phase-dot {
-  width: 9px;
-  height: 9px;
+  width: calc(9 * var(--upx));
+  height: calc(9 * var(--upx));
   border-radius: 50%;
   background: #e9c467;
-  box-shadow: 0 0 8px #e9c467;
+  box-shadow: 0 0 calc(8 * var(--upx)) #e9c467;
 }
 
-.inventory-list { display: grid; gap: 3px; }
+.inventory-list { display: grid; gap: calc(3 * var(--upx)); }
 .inventory-row {
-  min-height: 23px;
+  min-height: calc(23 * var(--upx));
   display: grid;
-  grid-template-columns: 12px 1fr auto;
+  grid-template-columns: calc(12 * var(--upx)) 1fr auto;
   align-items: center;
-  gap: 5px;
-  padding: 2px 4px;
-  border-radius: 3px;
+  gap: calc(5 * var(--upx));
+  padding: 2px calc(4 * var(--upx));
+  border-radius: calc(3 * var(--upx));
   background: rgba(255,255,255,.025);
   color: #ead5ae;
-  font-size: clamp(8px,.72vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .inventory-row .dot {
-  width: 8px;
-  height: 8px;
+  width: calc(8 * var(--upx));
+  height: calc(8 * var(--upx));
   margin: auto;
   border: 1px solid #a96f40;
   border-radius: 2px;
@@ -245,44 +245,44 @@
 .inventory-row strong { color: #ffe09a; }
 
 .objective-body {
-  min-height: 90px;
+  min-height: calc(90 * var(--upx));
   color: #ead8b8;
-  font-size: clamp(8px,.76vw,12px);
+  font-size: calc(12 * var(--upx));
   line-height: 1.45;
 }
 .objective-body strong { color: #ffd787; }
-.prep-checklist { display: grid; gap: 3px; }
-.prep-menu-group { display: grid; gap: 3px; }
-.prep-menu-group + .prep-menu-group { margin-top: 5px; }
-.prep-checklist strong:not(:first-child) { margin-top: 4px; }
+.prep-checklist { display: grid; gap: calc(3 * var(--upx)); }
+.prep-menu-group { display: grid; gap: calc(3 * var(--upx)); }
+.prep-menu-group + .prep-menu-group { margin-top: calc(5 * var(--upx)); }
+.prep-checklist strong:not(:first-child) { margin-top: calc(4 * var(--upx)); }
 .prep-checklist .done { color: #9dbb70; text-decoration: line-through; }
 .prep-checklist .disabled { color: #8f826f; opacity: .78; }
-.prep-task-row { display:grid; grid-template-columns:16px 1fr; gap:1px 5px; padding:3px 0; border-bottom:1px solid rgba(224,163,77,.1); }
-.prep-task-row > span { grid-row:1 / 3; color:#b99563; font-size:10px; }
-.prep-task-row > strong { color:#e7c98f; font-size:10px; }
+.prep-task-row { display:grid; grid-template-columns:calc(16 * var(--upx)) 1fr; gap:1px calc(5 * var(--upx)); padding:calc(3 * var(--upx)) 0; border-bottom:1px solid rgba(224,163,77,.1); }
+.prep-task-row > span { grid-row:1 / 3; color:#b99563; font-size:calc(10 * var(--upx)); }
+.prep-task-row > strong { color:#e7c98f; font-size:calc(10 * var(--upx)); }
 .prep-task-row > div { grid-column:2; }
 .prep-checklist .prep-total {
-  margin-top: 5px;
-  padding-top: 5px;
+  margin-top: calc(5 * var(--upx));
+  padding-top: calc(5 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #ffe09a;
   font-weight: 800;
 }
 .prep-checklist small { color: #c8ab7e; line-height: 1.35; }
-.prep-summary { display: grid; gap: 3px; }
-.prep-summary strong:not(:first-child) { margin-top: 6px; }
+.prep-summary { display: grid; gap: calc(3 * var(--upx)); }
+.prep-summary strong:not(:first-child) { margin-top: calc(6 * var(--upx)); }
 .prep-summary div { color: #d8c19e; }
 
-.order-list { display: grid; gap: 5px; }
+.order-list { display: grid; gap: calc(5 * var(--upx)); }
 .order-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: calc(20 * var(--upx)) 1fr auto;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: calc(4 * var(--upx));
+  padding: calc(6 * var(--upx));
   border: 1px solid #57351f;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--upx));
   background: #170e0a;
   color: #d8bb89;
   cursor: pointer;
@@ -293,49 +293,49 @@
 .order-row strong { overflow: hidden; color: #f1ce8b; text-overflow: ellipsis; white-space: nowrap; }
 .order-row em { grid-column: 2 / 4; color: #a98b67; font-size: .88em; font-style: normal; }
 .special-order { color: #e7a76a; }
-.order-empty { color: #a98b67; font-size: clamp(8px,.72vw,11px); line-height: 1.45; }
+.order-empty { color: #a98b67; font-size: calc(11 * var(--upx)); line-height: 1.45; }
 
 .relationship-box {
-  margin-top: 7px;
-  padding-top: 7px;
+  margin-top: calc(7 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
 }
 .relationship-heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 5px;
-  margin-bottom: 4px;
+  gap: calc(5 * var(--upx));
+  margin-bottom: calc(4 * var(--upx));
   color: #e8c47d;
-  font-size: clamp(8px,.7vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .relationship-heading small {
   color: #8f765b;
-  font-size: clamp(6px,.52vw,8px);
+  font-size: calc(8 * var(--upx));
   text-align: right;
 }
 .relationship-list {
-  max-height: 92px;
+  max-height: calc(92 * var(--upx));
   display: grid;
-  gap: 3px;
+  gap: calc(3 * var(--upx));
   overflow: auto;
   scrollbar-width: thin;
 }
 .relationship-empty {
   color: #8f765b;
-  font-size: clamp(7px,.6vw,9px);
+  font-size: calc(9 * var(--upx));
   line-height: 1.35;
 }
 .relationship-row {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 4px;
-  padding: 3px 5px;
+  gap: calc(4 * var(--upx));
+  padding: calc(3 * var(--upx)) calc(5 * var(--upx));
   border: 1px solid #4e3020;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--upx));
   background: #160d09;
-  font-size: clamp(7px,.62vw,10px);
+  font-size: calc(10 * var(--upx));
 }
 .relationship-row strong {
   overflow: hidden;
@@ -349,36 +349,36 @@
   white-space: nowrap;
 }
 
-.recipe-steps { display: grid; gap: 3px; margin-top: 6px; }
+.recipe-steps { display: grid; gap: calc(3 * var(--upx)); margin-top: calc(6 * var(--upx)); }
 .recipe-step {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 5px;
+  gap: calc(6 * var(--upx));
+  padding: calc(3 * var(--upx)) calc(5 * var(--upx));
   border: 1px solid #51301e;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--upx));
   background: #160d09;
 }
 .recipe-step.done { color: #99b56b; text-decoration: line-through; }
 .recipe-step.current { border-color: #e0a74e; color: #ffe4a0; }
 
 .cleanliness-box {
-  margin-top: 8px;
-  padding-top: 7px;
+  margin-top: calc(8 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
 }
 .cleanliness-box > div:first-child {
   display: flex;
   justify-content: space-between;
   color: #d8b67e;
-  font-size: clamp(8px,.72vw,11px);
+  font-size: calc(11 * var(--upx));
 }
 .clean-track {
-  height: 8px;
-  margin: 4px 0;
+  height: calc(8 * var(--upx));
+  margin: calc(4 * var(--upx)) 0;
   overflow: hidden;
   border: 1px solid #56321d;
-  border-radius: 5px;
+  border-radius: calc(5 * var(--upx));
   background: #120a07;
 }
 .clean-track i {
@@ -388,16 +388,16 @@
   background: linear-gradient(90deg,#9bb667,#d8b25e);
   transition: width .2s;
 }
-.cleanliness-box small { color: #a98b67; font-size: clamp(7px,.66vw,10px); }
+.cleanliness-box small { color: #a98b67; font-size: calc(10 * var(--upx)); }
 
 .controls-help {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 7px;
+  gap: calc(4 * var(--upx));
+  margin-top: calc(8 * var(--upx));
+  padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #c6aa7e;
-  font-size: clamp(7px,.65vw,10px);
+  font-size: calc(10 * var(--upx));
 }
-.controls-help div { display: flex; align-items: center; gap: 4px; }
+.controls-help div { display: flex; align-items: center; gap: calc(4 * var(--upx)); }
