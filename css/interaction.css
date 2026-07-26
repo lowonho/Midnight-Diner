@@ -32,6 +32,7 @@
 .station-prompt.show:active { transform: translate(-50%,-46%); }
 
 .toast {
+  white-space: pre-line;
   position: absolute;
   z-index: 25;
   left: 50%;

@@ -111,6 +111,15 @@ function drawPrepObjects(){
       ctx.fillStyle="#e69a78";ctx.beginPath();ctx.arc(item.x-4,item.y-8,20,.3,Math.PI*1.75);ctx.lineWidth=7;ctx.strokeStyle="#f1b18c";ctx.stroke();
     }else if(item.task.objectKind==="breadcrumbs"){
       ctx.fillStyle="#d8ad61";roundRect(ctx,item.x-27,item.y-20,54,27,7,true,false);ctx.fillStyle="#f2d791";for(let n=0;n<7;n++)ctx.fillRect(item.x-20+(n%4)*12,item.y-15+Math.floor(n/4)*9,4,3);
+    }else if(item.task.objectKind==="tteokBowl"){
+      ctx.fillStyle="#bfc9cc";ctx.beginPath();ctx.ellipse(item.x,item.y-7,29,16,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=done?"#8bc4d4":"#5d6b6e";ctx.beginPath();ctx.ellipse(item.x,item.y-10,23,10,0,0,Math.PI*2);ctx.fill();
+      if(done){ctx.fillStyle="#f2e5c5";for(let n=0;n<5;n++){ctx.save();ctx.translate(item.x-14+n*7,item.y-11+(n%2)*4);ctx.rotate(-.3+n*.12);roundRect(ctx,-5,-2,10,5,3,true,false);ctx.restore();}}
+    }else if(item.task.objectKind==="tteokCut"){
+      ctx.fillStyle="#91ad57";ctx.beginPath();ctx.arc(item.x-18,item.y-9,13,0,Math.PI*2);ctx.fill();ctx.fillStyle="#e0a457";roundRect(ctx,item.x-3,item.y-18,29,18,4,true,false);ctx.fillStyle="#d9e3bd";ctx.fillRect(item.x-25,item.y+2,48,6);
+    }else if(item.task.objectKind==="potato"){
+      ctx.fillStyle="#b88a4d";ctx.beginPath();ctx.ellipse(item.x,item.y-10,27,17,-.12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#d8dadd";ctx.fillRect(item.x-30,item.y+5,60,5);
+    }else if(item.task.objectKind==="potatoBasket"){
+      ctx.strokeStyle="#c38b43";ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(item.x,item.y-7,29,16,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#e8c56e";for(let n=0;n<5;n++)ctx.fillRect(item.x-21+n*9,item.y-12+(n%2)*5,5,17);
     }else{
       ctx.fillStyle="#a7432d";roundRect(ctx,item.x-30,item.y-22,60,25,7,true,false);ctx.fillStyle="#83964d";ctx.fillRect(item.x-24,item.y-18,48,4);
     }

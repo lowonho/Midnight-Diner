@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>pending</title>
+<body>pending</body>
+<script src="../game-data.js"></script>
+<script src="../day4-prep-data.js"></script>
+<script>
+const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
+function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
+const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:{data:{}},kimchiPrep:{}};
+</script>
+<script src="../day.js"></script>
+<script src="../day-prep-minigames.js"></script>
+<script>
+try{
+  const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+  const day4Ids=selectedPrepTasks().map(task=>task.id);
+  assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiIngredients","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+  assert(!prepComplete(),"Day 4 must begin incomplete");
+  day4Ids.forEach(id=>state.prepProgress[id]=true);
+  assert(prepComplete(),"Day 4 must complete after all five tasks");
+  assert(RAPID_CUT_DATA.cutSkewerChicken.requiredPieces===5,"Chicken piece count");
+  assert(RAPID_CUT_INPUT.toughHoldThreshold===.42&&RAPID_CUT_INPUT.toughHoldTime===.5,"Chicken hold balance");
+  let route="";
+  setupRapidCutTask=()=>{route="rapid";};
+  startCuttingMinigame=()=>{route="timing";};
+  state.day=3;setupDayPrepTiming("cutRadish");assert(route==="timing","Day 3 cutting route");
+  state.day=4;setupDayPrepTiming("cutRadish");assert(route==="rapid","Day 4 cutting route");
+  state.day=5;setupDayPrepTiming("cutSkewerChicken");assert(route==="rapid","Day 5 previous-menu cutting route");
+  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
+  assert(SAUCE_RECIPES.yakisoba.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="200/50,100/25,30/10","Day 3 sauce recipe regression");
+  state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
+  assert(selectedPrepTasks().length===5,"Day 3 prep task regression");
+  state.day=1;state.selectedMenus=["oden","tofu"];
+  assert(selectedPrepTasks().length===5,"Day 1 prep task regression");
+  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 12";
+}catch(error){document.title="DAY4_LOGIC_FAIL";document.body.textContent=`DAY4_LOGIC_FAIL ${error.stack||error}`;}
+</script>

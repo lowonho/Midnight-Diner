@@ -44,7 +44,17 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   anchovyHead:"assets/prep/anchovy/anchovy-head.png",
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
-  knife:"assets/prep/effects/knife.png"
+  knife:"assets/prep/effects/knife.png",
+  ...Object.fromEntries(DAY4_RAPID_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
+  ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
+  potatoStarch0:"assets/prep/day4/fries/starch-0.png",
+  potatoStarch35:"assets/prep/day4/fries/starch-35.png",
+  potatoStarch70:"assets/prep/day4/fries/starch-70.png",
+  potatoStarch100:"assets/prep/day4/fries/starch-100.png",
+  tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
+  tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
+  tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
+  tteokSoakComplete:"assets/prep/day4/tteokbokki/soak-complete.png"
 });
 const dayPrepAssets={};
 
@@ -100,10 +110,17 @@ function startDayPrepMini(task){
   else if(task.miniGame==="yakisobaSauce")setupYakisobaSauce();
   else if(task.miniGame==="shrimpCoat")setupShrimpCoat();
   else if(task.miniGame==="breadcrumbCoat")setupBreadcrumbCoat();
+  else if(task.miniGame==="tteokSoak")setupTteokSoak();
+  else if(task.miniGame==="rapidCutSequence")setupTteokbokkiRapidCut();
+  else if(task.miniGame==="tteokbokkiSauce")setupSauceRecipe("tteokbokki");
+  else if(task.miniGame==="potatoMandoline")setupDay4PotatoMandoline();
+  else if(task.miniGame==="potatoStarch")setupPotatoStarchShake();
+  else { closeDayPrepMini(true);showToast("준비 미니게임 설정을 찾지 못했습니다.",true); }
 }
 
 function setupDayPrepTiming(taskId){
   const m=state.mini,config=DAY_PREP_MINI_CONFIG[taskId];
+  if(Number(state.day)>=4&&RAPID_CUT_DATA[taskId]){setupRapidCutTask(taskId);return;}
   const ingredient=config.ingredient||(taskId==="cutRadish"?"radish":"fishCake");
   startCuttingMinigame({
     taskId,
@@ -159,6 +176,102 @@ function renderDayPrepTiming(){
     <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
     <button class="mini-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button>`;
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",dayPrepPrimaryAction);
+}
+
+function setupRapidCutTask(taskId){
+  const config=RAPID_CUT_DATA[taskId];if(!config)return;
+  const onComplete=taskId==="cutRadish"||taskId==="cutFishCake"
+    ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
+    :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`);
+  setupRapidCutMinigame({taskId,title:`${PREP_TASKS[taskId].label} · 빠른 칼질`,sequence:[config],onComplete});
+}
+
+function setupTteokbokkiRapidCut(){
+  if(Number(state.day)!==4)return;
+  setupRapidCutMinigame({
+    taskId:"cutTteokbokkiIngredients",
+    title:"떡볶이 · 재료 빠른 칼질",
+    sequence:DAY4_RAPID_CUT_SEQUENCE,
+    onComplete:()=>finishDayPrepTask("cutTteokbokkiIngredients","떡볶이 양배추 · 대파 · 어묵 손질 완료")
+  });
+}
+
+function setupRapidCutMinigame(options){
+  const m=state.mini;
+  m.data={mode:"rapidCut",taskId:options.taskId,sequence:options.sequence.map(item=>({...item})),ingredientIndex:0,pieces:0,phase:"ready",holdStart:0,holdElapsed:0,lastInputAt:-Infinity,transitioning:false,onComplete:options.onComplete};
+  dom.miniTitle.textContent=options.title;
+  dom.miniDescription.textContent="Space 키다운 1회당 한 번 썹니다. 누르고 있어도 반복되지 않으며 실패나 시간제한은 없습니다.";
+  renderRapidCut();
+}
+
+function currentRapidCutIngredient(data=state.mini?.data){return data?.sequence?.[data.ingredientIndex]||null;}
+
+function renderRapidCut(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="rapidCut")return;
+  const data=m.data,item=currentRapidCutIngredient(data);if(!item)return;
+  const tough=item.cutType===RapidCutType.ToughMeat,progress=Math.round(data.pieces/item.requiredPieces*100);
+  dom.miniTimer.textContent=tough?`닭고기 ${data.pieces} / ${item.requiredPieces}`:`${data.pieces} / ${item.requiredPieces}`;
+  dom.miniDescription.textContent=tough
+    ?"Space를 약 0.5초 누른 뒤 떼고, 다시 한 번 눌러 닭고기 한 조각을 자르세요."
+    :"스페이스바를 연속으로 눌러 빠르게 손질하세요. 키를 누른 채 유지해도 반복 입력되지 않습니다.";
+  dom.miniContent.innerHTML=`
+    <div class="rapid-cut-stage ${item.ingredientId} ${tough?"tough-meat":""} ${data.phase==="embedded"||data.phase==="awaitSecond"?"knife-embedded":""}" id="rapidCutStage">
+      <div class="rapid-ingredient ${item.ingredientId}" style="--rapid-progress:${progress}%;width:${Math.max(80,180-progress)}px">${dayPrepAssetMarkup(`${item.assetPrefix||item.ingredientId}${data.pieces}`,"rapid-progress-asset",item.displayName)}</div>
+      <i class="rapid-knife">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
+      <div class="rapid-piece-pile ${item.ingredientId}" aria-label="손질된 ${item.displayName}">${Array.from({length:data.pieces},(_,index)=>`<i style="left:${(index%7)*17}px;bottom:${(index%3)*8}px;transform:rotate(${-18+(index%5)*9}deg)"></i>`).join("")}</div>
+      ${tough?'<i class="tough-cut-line"></i>':""}
+    </div>
+    <div class="rapid-hold-meter ${tough?"":"hidden"}"><i style="width:${Math.min(100,data.holdElapsed/(item.requiredHoldTime||RAPID_CUT_INPUT.toughHoldTime)*100)}%"></i></div>
+    <div class="cut-count">${item.displayName} ${data.pieces} / ${item.requiredPieces}${data.sequence.length>1?` · 재료 ${data.ingredientIndex+1}/${data.sequence.length}`:""}</div>
+    <button class="mini-action" id="rapidCutAction" type="button">${tough?(data.phase==="awaitSecond"?"Space · 한 번 더 눌러 절단":"Space · 0.5초 누르기"):"Space · 빠르게 썰기"}</button>`;
+  const button=dom.miniContent.querySelector("#rapidCutAction");
+  if(tough){
+    button.addEventListener("pointerdown",event=>{event.preventDefault();rapidCutKeyDown(false);});
+    ["pointerup","pointercancel","pointerleave"].forEach(type=>button.addEventListener(type,rapidCutKeyUp));
+  }else button.addEventListener("click",()=>rapidCutKeyDown(false));
+}
+
+function rapidCutKeyDown(repeat=false){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="rapidCut"||m.data.transitioning||repeat)return false;
+  const data=m.data,item=currentRapidCutIngredient(data),now=performance.now()/1000;
+  if(!item||now-data.lastInputAt<RAPID_CUT_INPUT.minimumInterval)return false;
+  data.lastInputAt=now;
+  if(item.cutType!==RapidCutType.ToughMeat){completeRapidCutPiece(m);return true;}
+  if(data.phase==="awaitSecond"){
+    completeRapidCutPiece(m);return true;
+  }
+  if(data.phase!=="ready")return false;
+  data.phase="holding";data.holdStart=now;data.holdElapsed=0;
+  dom.miniFeedback.textContent="Space를 누르고 있습니다…";
+  return true;
+}
+
+function rapidCutKeyUp(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="rapidCut")return false;
+  const data=m.data,item=currentRapidCutIngredient(data);
+  if(!item||item.cutType!==RapidCutType.ToughMeat||data.phase!=="holding"&&data.phase!=="embedded")return false;
+  data.holdElapsed=Math.max(data.holdElapsed,performance.now()/1000-data.holdStart);
+  if(data.holdElapsed>=RAPID_CUT_INPUT.toughHoldThreshold){
+    data.phase="awaitSecond";dom.miniFeedback.textContent="칼이 박혔습니다. Space를 한 번 더 누르세요.";audio.click();
+  }else{
+    data.phase="ready";data.holdElapsed=0;dom.miniFeedback.textContent="조금 더 길게 눌러주세요. 바로 다시 시도할 수 있습니다.";
+  }
+  renderRapidCut();return true;
+}
+
+function completeRapidCutPiece(m){
+  const data=m.data,item=currentRapidCutIngredient(data);if(!item)return;
+  data.pieces++;data.phase="ready";data.holdElapsed=0;
+  const stage=dom.miniContent.querySelector("#rapidCutStage");
+  stage?.classList.remove("rapid-cut-hit");if(stage){void stage.offsetWidth;stage.classList.add("rapid-cut-hit");}
+  audio.click();dom.miniFeedback.textContent=`${item.displayName} 손질 ${data.pieces} / ${item.requiredPieces}`;
+  if(data.pieces<item.requiredPieces){setTimeout(()=>{if(state.mini===m&&!m.complete)renderRapidCut();},105);return;}
+  if(data.ingredientIndex<data.sequence.length-1){
+    data.transitioning=true;dom.miniTimer.textContent="교체";dom.miniFeedback.textContent=`${item.displayName} 완료 · 다음 재료로 전환합니다.`;audio.success();
+    setTimeout(()=>{if(state.mini!==m||m.complete)return;data.ingredientIndex++;data.pieces=0;data.transitioning=false;data.lastInputAt=-Infinity;renderRapidCut();},420);
+    return;
+  }
+  if(typeof data.onComplete==="function")data.onComplete();
 }
 
 function setupAnchovyPrep(){
@@ -369,38 +482,111 @@ function placeSkewerPiece(pieceIndex,slotIndex){
   renderChickenSkewer();
 }
 
+function setupTteokSoak(){
+  const m=state.mini;if(Number(state.day)!==4||!m)return;
+  m.data={mode:"tteokSoak",taskId:DAY4_PREP_CONFIG.soak.taskId,added:{tteok:false,water:false},finishing:false};
+  dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
+  dom.miniDescription.textContent="떡을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
+  renderTteokSoak();
+}
+
+function renderTteokSoak(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="tteokSoak")return;
+  const data=m.data,count=Object.values(data.added).filter(Boolean).length;
+  dom.miniTimer.textContent=`${count} / 2`;
+  dom.miniContent.innerHTML=`
+    <div class="tteok-soak-scene">
+      <button type="button" class="tteok-source ${data.added.tteok?"added":""}" data-soak-item="tteok" ${data.added.tteok||data.finishing?"disabled":""}><i></i><strong>떡</strong></button>
+      <div class="soaking-bowl ${data.added.water?"has-water":""} ${data.added.tteok?"has-tteok":""}" aria-label="떡을 불리는 볼"><i class="water-fill"></i>${dayPrepAssetMarkup(data.added.tteok&&data.added.water?"tteokSoakComplete":data.added.tteok?"tteokSoakTteok":data.added.water?"tteokSoakWater":"tteokSoakEmpty","soak-state-asset","")}<span>${data.added.tteok?Array.from({length:7},()=>"<b></b>").join(""):"빈 볼"}</span></div>
+      <button type="button" class="water-source ${data.added.water?"added":""}" data-soak-item="water" ${data.added.water||data.finishing?"disabled":""}><i></i><strong>물통</strong></button>
+    </div>
+    <div class="cut-count">떡 ${data.added.tteok?"✓":"○"} · 물 ${data.added.water?"✓":"○"}</div>`;
+  dom.miniContent.querySelectorAll("[data-soak-item]").forEach(button=>button.addEventListener("click",()=>addTteokSoakItem(button.dataset.soakItem)));
+}
+
+function addTteokSoakItem(item){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="tteokSoak"||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
+  m.data.added[item]=true;audio.click();dom.miniFeedback.textContent=item==="tteok"?"떡을 볼에 담았습니다.":"볼에 물을 채웠습니다.";
+  if(Object.values(m.data.added).every(Boolean)){
+    m.data.finishing=true;renderTteokSoak();dom.miniFeedback.textContent="떡과 물이 모두 들어갔습니다. 불려두기 완료!";
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("soakTteok","떡 불려두기 완료");},360);
+  }else renderTteokSoak();
+}
+
+function setupPotatoStarchShake(){
+  const m=state.mini,config=DAY4_PREP_CONFIG.potatoStarch;if(Number(state.day)!==4||!m)return;
+  m.data={mode:"potatoStarch",taskId:config.taskId,presses:0,total:config.requiredPresses,lastInputAt:-Infinity};
+  dom.miniTitle.textContent="감자튀김 · 전분 털기";
+  dom.miniDescription.textContent="스페이스바를 연속으로 눌러 감자의 전분을 털어주세요!";
+  renderPotatoStarchShake();
+}
+
+function potatoStarchInput(repeat=false){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch"||repeat)return false;
+  const data=m.data;data.lastInputAt=performance.now()/1000;data.presses++;audio.click();
+  const basket=dom.miniContent.querySelector("#potatoStarchBasket");basket?.classList.remove("basket-shake");if(basket){void basket.offsetWidth;basket.classList.add("basket-shake");}
+  if(data.presses>=data.total){finishDayPrepTask(data.taskId,"감자 전분 털기 완료");return true;}
+  setTimeout(()=>{if(state.mini===m&&!m.complete)renderPotatoStarchShake();},105);return true;
+}
+
+function renderPotatoStarchShake(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="potatoStarch")return;
+  const data=m.data,progress=Math.round(data.presses/data.total*100),stage=progress>=100?100:progress>=70?70:progress>=35?35:0;
+  dom.miniTimer.textContent=`${data.presses} / ${data.total}`;
+  dom.miniContent.innerHTML=`
+    <div class="potato-starch-scene stage-${stage}" id="potatoStarchBasket">
+      <div class="potato-basket"><i></i>${dayPrepAssetMarkup(`potatoStarch${stage}`,"potato-starch-asset",`전분 털기 ${stage}%`)}${Array.from({length:9},()=>"<b></b>").join("")}</div>
+      <div class="starch-cloud">${Array.from({length:Math.max(0,12-Math.floor(progress/8))},()=>"<i></i>").join("")}</div>
+    </div>
+    <div class="breadcrumb-progress"><i style="width:${progress}%"></i></div>
+    <div class="cut-count">전분 털기 ${progress}% · ${data.presses} / ${data.total}</div>
+    <button class="mini-action" id="potatoStarchAction" type="button">Space · 전분 털기</button>`;
+  dom.miniContent.querySelector("#potatoStarchAction")?.addEventListener("click",()=>potatoStarchInput(false));
+}
+
 function setupDay3Mandoline(taskId){
   const m=state.mini,config=DAY3_MANDOLINE_CONFIG[taskId];
   if(Number(state.day)!==3||!config)return;
-  m.data={mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,successInputs:0,totalInputs:config.cycles*2,expected:"left"};
+  m.data={mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,directions:["left","right"],successInputs:0,totalInputs:config.cycles*2,expected:"left"};
   dom.miniTitle.textContent=`볶음우동 · ${config.label} 채썰기`;
   dom.miniDescription.textContent=`←와 →를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
   renderDay3Mandoline();
 }
 
+function setupDay4PotatoMandoline(){
+  const m=state.mini,config=DAY4_PREP_CONFIG.potatoMandoline;if(Number(state.day)!==4||!m)return;
+  m.data={mode:"day4Mandoline",taskId:config.taskId,ingredient:config.ingredient,label:config.label,directions:[...config.directions],successInputs:0,totalInputs:config.totalInputs,expected:config.directions[0]};
+  dom.miniTitle.textContent="감자튀김 · 감자 채칼";
+  dom.miniDescription.textContent="↑와 ↓를 번갈아 입력해 감자를 써세요. 같은 방향 연속 입력과 다른 키는 무시됩니다.";
+  renderDay3Mandoline();
+}
+
 function renderDay3Mandoline(){
-  const data=state.mini.data,completedCycles=Math.floor(data.successInputs/2);
-  dom.miniTimer.textContent=`왕복 ${completedCycles} / ${data.cycles}`;
+  const data=state.mini.data,isPotato=data.mode==="day4Mandoline",completedCycles=Math.floor(data.successInputs/2);
+  dom.miniTimer.textContent=isPotato?`${data.successInputs} / ${data.totalInputs}`:`왕복 ${completedCycles} / ${data.cycles}`;
+  const arrows={left:"←",right:"→",up:"↑",down:"↓"},shorten=Math.max(.34,1-data.successInputs/data.totalInputs*.62);
   dom.miniContent.innerHTML=`
     <div class="mandoline-scene ${data.ingredient}" id="mandolineScene">
       <div class="mandoline-board"><i class="mandoline-blade"></i></div>
-      <div class="mandoline-ingredient ${data.ingredient}" id="mandolineIngredient"><i></i></div>
+      <div class="mandoline-ingredient ${data.ingredient}" id="mandolineIngredient" style="--ingredient-shorten:${shorten}">${isPotato?dayPrepAssetMarkup(`potatoMandoline${data.successInputs}`,"mandoline-potato-asset",`감자 손질 ${data.successInputs}단계`):"<i></i>"}</div>
       <div class="shredded-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${Array.from({length:data.successInputs},(_,index)=>`<i style="--shred-x:${14+(index%7)*11}%;--shred-y:${(index%3)*7}px;--shred-turn:${-18+(index%5)*9}deg"></i>`).join("")}</div>
     </div>
-    <div class="mandoline-key-guide"><button type="button" data-mandoline-direction="left" class="${data.expected==="left"?"expected":""}">←</button><span>번갈아</span><button type="button" data-mandoline-direction="right" class="${data.expected==="right"?"expected":""}">→</button></div>
-    <div class="cut-count" id="mandolineProgress">${data.label} · 왕복 ${completedCycles} / ${data.cycles}</div>`;
+    <div class="mandoline-key-guide">${data.directions.map((direction,index)=>`${index?"<span>번갈아</span>":""}<button type="button" data-mandoline-direction="${direction}" class="${data.expected===direction?"expected":""}">${arrows[direction]}</button>`).join("")}</div>
+    <div class="cut-count" id="mandolineProgress">${data.label} · ${isPotato?`${data.successInputs} / ${data.totalInputs}`:`왕복 ${completedCycles} / ${data.cycles}`}</div>`;
   dom.miniContent.querySelectorAll("[data-mandoline-direction]").forEach(button=>button.addEventListener("click",()=>day3MandolineInput(button.dataset.mandolineDirection)));
 }
 
 function day3MandolineInput(direction){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="day3Mandoline")return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["day3Mandoline","day4Mandoline"].includes(m.data.mode))return false;
   const data=m.data;
-  if(direction!==data.expected){dom.miniFeedback.textContent=`지금은 ${data.expected==="left"?"←":"→"} 차례입니다.`;return false;}
-  data.successInputs++;data.expected=direction==="left"?"right":"left";audio.click();
+  if(direction!==data.expected)return false;
+  data.successInputs++;data.expected=data.directions.find(item=>item!==direction)||data.directions[0];audio.click();
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
-  ingredient?.classList.remove("move-left","move-right");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(direction==="left"?"move-left":"move-right");}
+  ingredient?.classList.remove("move-left","move-right","move-up","move-down");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
   if(data.successInputs>=data.totalInputs){
-    if(data.taskId==="sliceYakisobaCabbage"){
+    if(data.mode==="day4Mandoline"){
+      finishDayPrepTask("sliceFriesPotato","감자 채칼 손질 10회 완료");
+    }else if(data.taskId==="sliceYakisobaCabbage"){
       completeDayPrepTask("sliceYakisobaCabbage");
       dom.miniTimer.textContent="완료";dom.miniFeedback.textContent="양배추 채썰기 완료 · 당근으로 전환합니다.";
       dom.miniContent.classList.add("prep-complete-flash");
@@ -413,13 +599,14 @@ function day3MandolineInput(direction){
 }
 
 function setupYakisobaSauce(){
-  const m=state.mini;if(Number(state.day)!==3)return;
-  m.data={mode:"yakisobaSauce",finishing:false,sauces:[
-    {id:"soy",label:"간장",target:200,step:50,amount:0},
-    {id:"oyster",label:"굴소스",target:100,step:25,amount:0},
-    {id:"chili",label:"고추기름",target:30,step:10,amount:0}
-  ]};
-  dom.miniTitle.textContent="볶음우동 · 소스 제조";
+  if(Number(state.day)!==3)return;
+  setupSauceRecipe("yakisoba");
+}
+
+function setupSauceRecipe(recipeId){
+  const m=state.mini,recipe=SAUCE_RECIPES[recipeId];if(!m||!recipe)return;
+  m.data={mode:"sauceMeasure",recipeId,recipe,finishing:false,sauces:recipe.ingredients.map(item=>({...item,amount:0}))};
+  dom.miniTitle.textContent=recipeId==="tteokbokki"?"떡볶이 · 양념장 계량":"볶음우동 · 소스 제조";
   dom.miniDescription.textContent="레시피와 정확히 같은 양이 되도록 소스통을 클릭하세요. 초과한 소스는 한 번씩 덜어낼 수 있습니다.";
   renderYakisobaSauce();
 }
@@ -428,7 +615,7 @@ function renderYakisobaSauce(){
   const data=state.mini.data,totalRatio=data.sauces.reduce((sum,item)=>sum+Math.min(item.amount/item.target,1),0)/data.sauces.length;
   dom.miniTimer.textContent=`${data.sauces.filter(item=>item.amount===item.target).length} / 3`;
   dom.miniContent.innerHTML=`
-    <div class="sauce-recipe"><strong>볶음우동 소스 레시피</strong>${data.sauces.map(item=>`<span>${item.label} ${item.target}g</span>`).join("")}</div>
+    <div class="sauce-recipe"><strong>${data.recipe.title}</strong>${data.sauces.map(item=>`<span>${item.label} ${item.target}g</span>`).join("")}</div>
     <div class="yakisoba-sauce-work">
       <div class="sauce-bottles">${data.sauces.map(item=>`<button type="button" class="sauce-bottle ${item.id}" data-sauce-id="${item.id}" ${data.finishing?"disabled":""}><i></i><strong>${item.label}</strong><small>+${item.step}g</small></button>`).join("")}</div>
       <div class="sauce-mixing-bowl" style="--sauce-height:${Math.round(totalRatio*65)}%"><i></i><span>소스볼</span></div>
@@ -442,14 +629,14 @@ function renderYakisobaSauce(){
 }
 
 function addYakisobaSauce(id){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="yakisobaSauce"||m.data.finishing)return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="sauceMeasure"||m.data.finishing)return;
   const sauce=m.data.sauces.find(item=>item.id===id);if(!sauce)return;
   sauce.amount+=sauce.step;audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 투입`;
   checkYakisobaSauceComplete(m);
 }
 
 function undoYakisobaSauce(id){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="yakisobaSauce"||m.data.finishing)return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="sauceMeasure"||m.data.finishing)return;
   const sauce=m.data.sauces.find(item=>item.id===id);if(!sauce||sauce.amount<=sauce.target)return;
   sauce.amount=Math.max(0,sauce.amount-sauce.step);audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 덜어냈습니다.`;
   checkYakisobaSauceComplete(m);
@@ -461,7 +648,7 @@ function checkYakisobaSauceComplete(m){
   renderYakisobaSauce();
   if(complete){
     dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";audio.success();
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("mixYakisobaSauce","볶음우동 소스 제조 완료");},360);
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},360);
   }
 }
 
@@ -539,6 +726,8 @@ function breadcrumbCoatInput(key){
 
 function dayPrepPrimaryAction(){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
+  if(m.data.mode==="rapidCut"){rapidCutKeyDown(false);return;}
+  if(m.data.mode==="potatoStarch"){potatoStarchInput(false);return;}
   if(m.data.mode!=="timing")return;
   const data=m.data,zoneStart=data.zoneStarts[data.successes],zoneEnd=zoneStart+data.zoneWidth;
   if(data.requiresDoubleTap&&data.tapStep===1){
@@ -612,7 +801,18 @@ function dayPrepDirectionInput(direction){
 }
 
 function updateDayPrepMini(dt){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="timing")return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
+  if(m.data.mode==="rapidCut"){
+    const data=m.data,item=currentRapidCutIngredient(data);
+    if(item?.cutType===RapidCutType.ToughMeat&&(data.phase==="holding"||data.phase==="embedded")){
+      data.holdElapsed=performance.now()/1000-data.holdStart;
+      const ratio=Math.min(1,data.holdElapsed/(item.requiredHoldTime||RAPID_CUT_INPUT.toughHoldTime));
+      const meter=dom.miniContent.querySelector(".rapid-hold-meter i");if(meter)meter.style.width=`${ratio*100}%`;
+      if(data.phase==="holding"&&data.holdElapsed>=RAPID_CUT_INPUT.toughHoldThreshold){data.phase="embedded";dom.miniContent.querySelector("#rapidCutStage")?.classList.add("knife-embedded");dom.miniFeedback.textContent="성공! Space에서 손을 떼세요.";}
+    }
+    return;
+  }
+  if(m.data.mode!=="timing")return;
   const data=m.data;
   if(data.requiresDoubleTap&&data.tapStep===1){
     data.tapWindow-=dt;
