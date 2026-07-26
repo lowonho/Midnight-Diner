@@ -25,17 +25,18 @@
   opacity: 0;
   /* 앵커(game.js 가 style.top 으로 넣는 지점)의 "위쪽"에 통째로 놓습니다.
      가운데 정렬(-50%)이면 아래 절반이 대상 이름표를 덮습니다.
-     -100% 로 바닥을 앵커에 맞추고 8px 더 띄워, 이름표가 둥실 올라온
-     순간(최대 4.7px)이나 키캡이 눌려 내려앉는 순간(5px)에도 겹치지 않습니다.
-     이 8px 은 나타날 때 떠오르는 거리이기도 합니다. */
-  transform: translate(-50%,-100%) translateY(0);
+     -100% 로 바닥을 앵커에 맞춘 뒤 3px 만 더 띄웁니다. 이름표가 둥실
+     올라온 순간(최대 4.7px)과 키캡이 눌려 내려앉는 순간(5px)을 다 빼도
+     여유가 남는 선에서, 대상에 최대한 붙여 둔 값입니다.
+     숨김 상태는 8px 아래라 나타날 때 11px 떠오릅니다. */
+  transform: translate(-50%,-100%) translateY(8px);
   transition: opacity .16s, transform .16s;
   pointer-events: none;
   cursor: pointer;
 }
 .station-prompt.show {
   opacity: 1;
-  transform: translate(-50%,-100%) translateY(-8px);
+  transform: translate(-50%,-100%) translateY(-3px);
   pointer-events: auto;
 }
 
@@ -53,12 +54,19 @@
   animation: prompt-arrow-dip 1.5s ease-in-out infinite;
 }
 
-/* 키캡과 같은 1.5초 주기 · 같은 구간이어야 어긋나 보이지 않습니다.
-   내려찍을 때 살짝 밝아지면서 "지금 눌렀다" 가 강조됩니다. */
+/* 키캡과 같은 1.5초 주기입니다. 두 동작이 한 주기 안에 들어 있습니다.
+     0~52%   키캡이 쉬는 동안 화살표만 잔잔히 오르내립니다 (게임 안
+             안내 화살표와 같은 느낌. 여기가 멈춰 있으면 "여기다" 라는
+             신호가 죽어서 키캡만 덜렁 있는 것처럼 보입니다)
+     64~78%  키캡이 눌리는 구간. 화살표도 더 깊게(7px) 같이 내려찍어
+             화살표가 키를 눌러 내리는 것처럼 읽힙니다
+   구간 퍼센트는 keycap-press 와 맞춰야 어긋나 보이지 않습니다. */
 @keyframes prompt-arrow-dip {
-  0%,52%   { transform: translateY(0);   opacity: .9; }
-  64%,78%  { transform: translateY(6px); opacity: 1; }
-  92%,100% { transform: translateY(0);   opacity: .9; }
+  0%       { transform: translateY(0);   opacity: .88; }
+  26%      { transform: translateY(3px); opacity: .96; }
+  52%      { transform: translateY(0);   opacity: .88; }
+  64%,78%  { transform: translateY(7px); opacity: 1; }
+  92%,100% { transform: translateY(0);   opacity: .88; }
 }
 
 /* 키캡. 아래로 깔린 두꺼운 그림자가 키의 옆면(높이) 역할을 합니다.
@@ -100,7 +108,7 @@
 }
 .station-prompt.show:active .prompt-arrow {
   animation: none;
-  transform: translateY(6px);
+  transform: translateY(7px);
 }
 
 @media (prefers-reduced-motion: reduce) {

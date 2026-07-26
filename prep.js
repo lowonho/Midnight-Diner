@@ -99,11 +99,17 @@ function nearestPrepObject(){
                    (예: 두부김치는 자르기 → 볶기 순서)
      미니게임 중     그 준비물만 (프롬프트는 숨지만 손질 중이므로 계속 강조)
 
+   이름표 강조뿐 아니라 game.js 의 E 프롬프트도 이 함수를 씁니다.
+   둘이 같은 함수를 봐야 "E 는 뜨는데 명판은 잠잠한" 상태가 안 생깁니다.
+   (김치 볶기 팬처럼 dependsOn 이 걸린 준비물에서 실제로 그랬습니다)
+
    [주의] 판정 규칙 자체는 day.js 가 주인입니다. startPrepTask() 의
    조건이 바뀌면 여기도 같이 고쳐야 이름표와 실제 동작이 어긋나지 않습니다.
    주방 집기 쪽 같은 역할은 kitchen.js 의 stationUsable() 입니다.
    ------------------------------------------------------------ */
-function prepObjectUsable(item,near){
+// near 는 여러 개를 한 번에 그릴 때 재사용하려고 받습니다.
+// 하나만 물어볼 때는 생략하면 알아서 구합니다.
+function prepObjectUsable(item,near=nearestPrepObject()){
   if(state.mini)return state.mini.context?.taskId===item.task.id;
   if(state.paused||near?.task.id!==item.task.id)return false;
   if(state.prepProgress?.[item.task.id])return false;
