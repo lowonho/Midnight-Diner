@@ -11,7 +11,8 @@
    (머리 위 고정 offset)으로 되돌아갑니다. player.js 를 고칠 필요 없습니다.
 
    [이 파일이 하는 일]
-   · 방향별 손 앵커 좌표를 갖고, 접시·음식 스프라이트를 매 프레임 그 자리로 옮김
+   · 방향별 손 앵커 좌표를 갖고, 음식 스프라이트를 매 프레임 그 자리로 옮김
+     (앵커에서 얼마나 더 옮길지는 player.js 의 PLAYER_CARRY.food.hand)
    · up(뒷모습)일 때만 물건을 요리사 뒤로 보냄
    · 좌우 반전 시 앵커 X 부호를 뒤집음
    · 눈으로 보면서 앵커를 맞추는 디버그 도구
@@ -105,30 +106,31 @@ function chefCarryActive(){
    5. 매 프레임 동기화
    ------------------------------------------------------------
    player.js 의 syncPhaserObjects() 끝에서 호출합니다.
-   접시·음식은 요리사의 자식이 아니라 별도 오브젝트입니다.
+   음식은 요리사의 자식이 아니라 별도 오브젝트입니다.
    (자식으로 붙이면 flipX 가 음식까지 뒤집습니다)
    ------------------------------------------------------------ */
 
-function syncChefCarry(chefSprite,plate,food,facing){
-  if(!chefSprite||!plate||!food)return;
+function syncChefCarry(chefSprite,food,facing){
+  if(!chefSprite||!food)return;
   readChefCarryDebugKeys(facing);
 
   const carrying=chefCarryActive();
-  plate.setVisible(!!carrying);
   food.setVisible(!!carrying);
   if(!carrying){ updateChefCarryText(facing); return; }   // destroy 대신 숨기기만
 
   const anchor=CHEF_HAND_ANCHOR[facing.dir]||CHEF_HAND_ANCHOR.down;
   const scale=chefSprite.scaleX||1;                       // 요리사 배율을 그대로 따라갑니다
-  const x=chefSprite.x+(facing.flipX?-anchor.x:anchor.x)*scale;
-  const y=chefSprite.y+anchor.y*scale;
+  // 손 앵커는 실측 손 위치입니다. 방향별 보정값(player.js PLAYER_CARRY.food.hand)을
+  // 더해 손에 얹습니다. x 보정도 앵커와 같이 좌우 반전됩니다.
+  const hand=PLAYER_CARRY.food.hand[facing.dir]||PLAYER_CARRY.food.hand.down;
+  const offsetX=anchor.x+hand.x;
+  const x=chefSprite.x+(facing.flipX?-offsetX:offsetX)*scale;
+  const y=chefSprite.y+(anchor.y+hand.y)*scale;
 
-  plate.setPosition(x,y);
   food.setPosition(x,y);
 
   // 뒷모습일 때만 몸 뒤로. 그 외에는 몸 앞.
   const behind=facing.dir==="up";
-  plate.setDepth(behind?STAGE_DEPTH.player-2:STAGE_DEPTH.plate);
   food.setDepth(behind?STAGE_DEPTH.player-1:STAGE_DEPTH.food);
 
   // 강제 carry 중에는 실제 주문이 없으므로 V 키로 고른 메뉴 그림을 씁니다.
