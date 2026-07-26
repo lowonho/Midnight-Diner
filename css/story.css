@@ -1,8 +1,18 @@
+/* 대화 오버레이는 위에서부터 [씬 라벨 · 배우 무대 · 대사창] 순서의 세로 흐름입니다.
+   대사창 높이는 내용과 무관하게 항상 최대치로 고정되고, 남는 세로 공간을 무대가 전부 사용합니다. */
 .story-overlay {
+  --story-choice-h: clamp(30px,2.5vw,40px);
+  --story-text-lines: 2;
   position: absolute;
   z-index: 45;
   inset: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* 세로 % 패딩은 프레임 '가로'를 기준으로 계산됩니다(16:9 → 세로 비율 × .5625).
+     위 8.7% ≈ 높이의 15.5%로, 상단 HUD 바로 아래에서 시작합니다. */
+  padding: 8.7% 4.5% 1.7%;
   background: linear-gradient(180deg,rgba(7,5,4,.30),rgba(7,5,4,.12) 42%,rgba(7,5,4,.78));
   opacity: 0;
   visibility: hidden;
@@ -12,9 +22,8 @@
 .story-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
 
 .story-scene-meta {
-  position: absolute;
-  left: 5%;
-  top: 18%;
+  flex: none;
+  align-self: flex-start;
   max-width: 70%;
   display: flex;
   align-items: center;
@@ -32,26 +41,44 @@
 }
 .story-scene-meta strong { color: #ffe09a; font-size: clamp(10px,.95vw,15px); }
 
-.story-portrait-wrap {
-  position: absolute;
+/* 배우 무대: 주인공은 항상 왼쪽 끝, 대화 상대는 등장 순서대로 오른쪽 끝까지 균등 배치됩니다.
+   위치와 폭은 story.js가 --actor-x / --actor-w 로 넣어 주며, 인원이 늘면 부드럽게 다시 벌어집니다. */
+.story-stage {
+  position: relative;
   z-index: 2;
-  left: 7%;
-  bottom: 23.8%;
-  width: 154px;
-  height: 216px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.story-actor {
+  position: absolute;
+  bottom: 0;
+  left: var(--actor-x,50%);
+  width: var(--actor-w,24%);
+  height: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  filter: drop-shadow(0 8px 10px rgba(0,0,0,.75));
-  transition: opacity .15s,transform .15s;
+  opacity: 0;
+  transform: translate(-50%,6%);
+  filter: brightness(.42) saturate(.55) drop-shadow(0 10px 14px rgba(0,0,0,.8));
+  transition: left .3s ease,width .3s ease,opacity .25s ease,transform .25s ease,filter .25s ease;
 }
-.story-portrait-wrap.no-portrait { opacity: 0; transform: translateY(12px); }
+.story-actor.entered { opacity: 1; transform: translate(-50%,0); }
+/* 발화자만 밝게, 살짝 떠오르게 */
+.story-actor.entered.is-active {
+  z-index: 5;
+  transform: translate(-50%,-3.2%);
+  filter: brightness(1.06) saturate(1.05) drop-shadow(0 16px 20px rgba(0,0,0,.85));
+}
+
 .story-portrait {
-  width: 132px;
-  height: 180px;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 3 / 4;
   border: 3px solid #9c6435;
   border-bottom: 0;
-  border-radius: 10px 10px 0 0;
+  border-radius: 12px 12px 0 0;
   background-color: #24140e;
   background-image: url("../assets/customer_sheet.png");
   background-repeat: no-repeat;
@@ -65,6 +92,17 @@
   background-size: 400% 800%;
   background-position: 0 0;
 }
+/* STORY_CHARACTERS[id].art 에 원화 경로를 넣으면 액자 없이 전신 일러스트로 표시됩니다. */
+.story-portrait.art {
+  border: 0;
+  background: none;
+  background-image: var(--portrait-art);
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: contain;
+  box-shadow: none;
+  image-rendering: auto;
+}
 .story-portrait.role {
   display: grid;
   place-items: center;
@@ -74,40 +112,44 @@
 .story-portrait.role::after {
   content: "✦";
   color: #f1c778;
-  font: 700 52px Georgia,serif;
+  font: 700 clamp(38px,4vw,76px)/1 Georgia,serif;
   text-shadow: 0 3px #3d2115;
 }
+
 .story-reveal-notice {
   position: absolute;
-  left: 50%;
-  bottom: -3px;
+  right: 0;
+  top: 50%;
   width: max-content;
-  max-width: 180px;
+  max-width: 40%;
   padding: 5px 9px;
   border: 1px solid #e3b65f;
   border-radius: 12px;
   background: #23140d;
   color: #ffe6a6;
   opacity: 0;
-  transform: translate(-50%,8px);
+  transform: translateY(calc(-50% + 6px));
   transition: .2s;
-  font-size: 10px;
+  font-size: clamp(9px,.75vw,12px);
+  pointer-events: none;
 }
-.story-reveal-notice.show { opacity: 1; transform: translate(-50%,0); }
+.story-reveal-notice.show { opacity: 1; transform: translateY(-50%); }
 
+/* 선택지 유무·대사 길이와 상관없이 높이 고정(최대 상태 기준: 이름줄 + 2줄 대사 + 선택지 3개) */
 .story-dialogue-box {
-  position: absolute;
-  left: 4.5%;
-  right: 4.5%;
-  bottom: 3%;
-  min-height: 190px;
-  padding: 20px 82px 18px 205px;
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px 16px;
   border: 3px solid #8f5b31;
   border-radius: 10px;
   background: linear-gradient(rgba(33,19,13,.97),rgba(18,10,7,.98));
   box-shadow: inset 0 0 0 3px #25130c,inset 0 0 0 5px #c1843e,0 10px 28px rgba(0,0,0,.75);
 }
 .story-speaker-row {
+  position: relative;
+  flex: none;
   min-height: 30px;
   display: flex;
   align-items: center;
@@ -136,24 +178,32 @@
 }
 .story-relation-badge:empty { display: none; }
 .story-text {
-  min-height: 55px;
+  flex: none;
+  height: calc(1.7em * var(--story-text-lines));
   margin: 0;
   padding-right: 15px;
+  overflow-y: auto;
   color: #f1e0c2;
   font-size: clamp(13px,1.18vw,18px);
   line-height: 1.7;
   word-break: keep-all;
 }
+/* 선택지가 없어도 자리를 그대로 비워 둬서 패널 크기가 흔들리지 않게 합니다. */
 .story-choices {
-  display: none;
+  flex: none;
+  display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: repeat(3,var(--story-choice-h));
   gap: 6px;
+  height: calc(var(--story-choice-h) * 3 + 12px);
   margin-top: 10px;
 }
-.story-choices.open { display: grid; }
 .story-choice {
   width: 100%;
-  padding: 8px 11px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 4px 11px;
   border: 1px solid #9a6537;
   border-radius: 6px;
   background: rgba(103,58,31,.5);

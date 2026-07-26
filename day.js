@@ -145,7 +145,6 @@ function renderPrepChecklist(){
 function updateDayObjective(){
   const dishes=selectedDishes(),tasks=selectedPrepTasks(),pending=selectedPrepTasksForChecklist().filter(task=>!task.isImplemented);
   const completed=tasks.filter(task=>state.prepProgress[task.id]).length;
-  const nearby=typeof nearestPrepObject==="function"?nearestPrepObject():null;
   dom.objectiveTitle.textContent="영업 준비";
   dom.objectiveBody.innerHTML=`
     <div class="prep-summary">
@@ -156,8 +155,6 @@ function updateDayObjective(){
       ${pending.length?`<div>${pending.length}개 작업은 다음 구현 단계에서 연결됩니다.</div>`:""}
       <strong>조작</strong>
       <div>WASD 이동 · E 상호작용 · ESC 메뉴</div>
-      <strong>현재 상호작용 대상</strong>
-      <div>${nearby?`E — ${nearby.task.objectLabel}`:"재료 가까이 이동하세요"}</div>
     </div>`;
 }
 

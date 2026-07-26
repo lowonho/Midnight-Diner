@@ -22,7 +22,7 @@ let phaserScene = null;
 
 const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
-  "settingsButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
+  "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
@@ -818,6 +818,8 @@ function draw(){
 // drawFoodProp (음식 그림) → food-props.js
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
+// 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
+dom.codexButton.addEventListener("click",()=>{audio.click();showToast("도감은 준비 중입니다.");});
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);

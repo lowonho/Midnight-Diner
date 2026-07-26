@@ -1,3 +1,5 @@
+/* 상단 HUD 자체는 배경이 없습니다. 레퍼런스처럼 메뉴판 뒤가 비어 보여야 해서
+   패널 배경(.wood-panel)은 좌측 타이틀 판(.small-logo)과 우측 스탯 칸이 각자 갖습니다. */
 .top-hud {
   position: absolute;
   z-index: 5;
@@ -6,10 +8,13 @@
   top: 1.5%;
   height: 14.7%;
   display: grid;
-  grid-template-columns: 14% 1fr 24%;
+  grid-template-columns: 13% 1fr 18.5%;
   align-items: center;
   gap: .8%;
   padding: .65% .85%;
+  background: none;
+  border: 0;
+  box-shadow: none;
   transition: opacity .25s ease;
 }
 .small-logo {
@@ -18,14 +23,11 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border-right: 1px solid rgba(224,163,77,.4);
+  padding: 0 6px;
   line-height: 1.05;
 }
-.small-logo > span {
-  position: absolute;
-  margin: -32px 0 0 -85px;
-  color: var(--gold-bright);
-}
+/* 장식용 ✦ 는 패널 밖으로 튀어나가 떠 보여서 숨깁니다. */
+.small-logo > span { display: none; }
 .small-logo strong {
   color: var(--gold-bright);
   font-family: Georgia, serif;
@@ -133,11 +135,12 @@
 .menu-tag { left: 3px; }
 .order-count { right: 3px; background: #5b3420; }
 
+/* 칸 순서: DAY · 남은시간 · 만족도 · 인기도 · 보유금 · 도감 · 설정 */
 .hud-stats {
-  height: 75%;
+  height: 60%;
   display: grid;
-  grid-template-columns: .65fr 1.05fr 1.35fr .85fr 1.25fr .55fr;
-  gap: 4px;
+  grid-template-columns: .6fr .95fr 1.2fr .75fr 1.15fr .45fr .45fr;
+  gap: 3px;
 }
 .hud-stats > div {
   min-width: 0;
@@ -146,14 +149,30 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #744522;
-  border-radius: 5px;
+  border-radius: 4px;
   background: #160c08;
 }
-.hud-stats span { color: #b98d59; font-size: clamp(6px,.58vw,9px); }
+.hud-stats span { color: #b98d59; font-size: clamp(5px,.48vw,8px); }
 .hud-stats strong {
   color: #f7d58a;
-  font-size: clamp(9px,.85vw,14px);
+  font-size: clamp(8px,.7vw,12px);
   white-space: nowrap;
+}
+.hud-stats .square-button { font-size: clamp(9px,.85vw,14px); line-height: 1; }
+
+/* 보유금: '보유금' 글자 대신 동전 아이콘을 금액 왼쪽에 둡니다. */
+.stat-money {
+  flex-direction: row;
+  gap: 4px;
+  padding: 0 4px;
+}
+.coin-icon {
+  flex: none;
+  width: clamp(9px,.9vw,14px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffeeb4 0 16%, #f2c964 46%, #c9862f 78%, #8b5417 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,241,196,.5), 0 1px 2px rgba(0,0,0,.55);
 }
 
 .left-hud, .right-hud {
@@ -175,7 +194,8 @@
   display: none;
   pointer-events: none;
 }
-.phase-prep .hud-stats { grid-template-columns: .8fr .8fr 1.25fr .55fr; }
+/* 낮에는 남은시간·만족도 칸이 숨겨져 DAY · 인기도 · 보유금 · 도감 · 설정 5칸입니다. */
+.phase-prep .hud-stats { grid-template-columns: .75fr .75fr 1.2fr .5fr .5fr; }
 .phase-prep .right-hud { min-height: 24%; }
 .phase-open .left-hud { min-height: 28%; }
 

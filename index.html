@@ -52,8 +52,8 @@
         <section class="game-frame" aria-label="심야식당 게임">
           <div id="gameCanvas" role="img" aria-label="캐릭터가 움직이는 식당 주방"></div>
 
-          <header id="topHud" class="top-hud wood-panel hidden-hud">
-            <div class="small-logo">
+          <header id="topHud" class="top-hud hidden-hud">
+            <div class="small-logo wood-panel">
               <span>✦</span>
               <strong>심야식당</strong>
               <small id="phaseName">낮 준비</small>
@@ -64,7 +64,8 @@
               <div class="stat-time"><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
               <div class="stat-satisfaction"><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
               <div><span>인기도</span><strong id="popularityText">0</strong></div>
-              <div><span>보유금</span><strong id="moneyText">0원</strong></div>
+              <div class="stat-money"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
+              <button id="codexButton" class="square-button" type="button" aria-label="도감 열기">📖</button>
               <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
             </div>
           </header>
@@ -129,14 +130,12 @@
               <span id="storyDayLabel">DAY 1</span>
               <strong id="storySceneTitle">비를 피한 곳</strong>
             </div>
-            <div id="storyPortraitWrap" class="story-portrait-wrap" aria-hidden="true">
-              <div id="storyPortrait" class="story-portrait"></div>
-              <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
-            </div>
+            <div id="storyStage" class="story-stage" aria-hidden="true"></div>
             <div class="story-dialogue-box">
               <div class="story-speaker-row">
                 <strong id="storySpeaker">이야기</strong>
                 <span id="storyRelationBadge" class="story-relation-badge"></span>
+                <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
               </div>
               <p id="storyText" class="story-text" aria-live="polite"></p>
               <div id="storyChoices" class="story-choices" aria-label="대화 선택지"></div>
