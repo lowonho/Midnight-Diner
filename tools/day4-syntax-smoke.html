@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>pending</title>
+<body>pending</body>
+<script>
+const files=["game-data.js","day4-prep-data.js","day.js","day-prep-minigames.js","prep.js","night.js","game.js"];
+try{
+  files.forEach(file=>{
+    const request=new XMLHttpRequest();
+    request.open("GET",`../${file}`,false);
+    request.send();
+    if(request.status&&request.status!==200)throw new Error(`${file}: HTTP ${request.status}`);
+    new Function(`${request.responseText}\n//# sourceURL=${file}`);
+  });
+  document.title="DAY4_SYNTAX_OK";document.body.textContent=`DAY4_SYNTAX_OK ${files.length}`;
+}catch(error){document.title="DAY4_SYNTAX_FAIL";document.body.textContent=`DAY4_SYNTAX_FAIL ${error.stack||error}`;}
+</script>

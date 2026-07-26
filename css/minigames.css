@@ -217,6 +217,52 @@
 @keyframes charcoal-flame { from { transform:scale(.75,.85) rotate(-5deg); opacity:.5; } to { transform:scale(1.08,1.2) rotate(5deg); opacity:.9; } }
 .cut-count { color: #f3d495; font-size: calc(18 * var(--upx)); font-weight: 800; }
 
+.shrimp-fryer-scene {
+  position: relative;
+  width: 310px;
+  height: 142px;
+  margin-top: 3px;
+  filter: drop-shadow(0 9px 8px rgba(0,0,0,.3));
+}
+.fryer-back { position:absolute; left:20px; right:20px; top:0; height:43px; border:5px solid #55504a; border-radius:12px 12px 5px 5px; background:linear-gradient(#77716a,#403d39); color:#f4d78e; font-size:11px; font-weight:900; text-align:right; padding:8px 13px; }
+.fryer-temp-light { display:inline-block; width:9px; height:9px; margin-right:5px; border-radius:50%; background:#ff9b3e; box-shadow:0 0 9px #ff7027; animation:fryer-light .75s ease-in-out infinite alternate; }
+.fryer-vat { position:absolute; left:20px; right:20px; bottom:0; height:104px; overflow:hidden; border:8px solid #59544d; border-radius:7px 7px 19px 19px; background:#24211e; box-shadow:inset 0 0 0 4px #171513; }
+.fryer-oil { position:absolute; inset:23px 7px 7px; border-radius:50% 50% 11px 11px; background:linear-gradient(rgba(255,226,98,.96),#d48a29 62%,#9d5c20); box-shadow:inset 0 3px 8px rgba(255,250,178,.65); }
+.fryer-basket { position:absolute; z-index:3; left:52px; top:42px; width:207px; height:82px; border:4px solid #837b70; border-radius:4px 4px 13px 13px; background:repeating-linear-gradient(90deg,transparent 0 13px,rgba(76,69,61,.65) 14px 17px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(76,69,61,.55) 13px 16px); transition:transform .25s ease; }
+.basket-handle { position:absolute; left:63px; top:-40px; width:76px; height:45px; border:7px solid #625d56; border-bottom:0; border-radius:20px 20px 0 0; }
+.fried-items { position:absolute; inset:18px 12px 8px; display:flex; align-items:center; justify-content:center; }
+.fried-items.shrimp { gap:16px; }
+.frying-shrimp { position:relative; display:block; width:39px; height:21px; border:4px solid #9f4728; border-left-width:9px; border-radius:55% 35% 60% 45%; background:linear-gradient(135deg,#fff1c4 0 18%,#efa350 20% 43%,#f7d17a 45% 62%,#d66e37 64%); transform:rotate(12deg); box-shadow:inset -4px -3px rgba(128,52,27,.18); }
+.frying-shrimp::after { content:""; position:absolute; width:12px; height:16px; margin:-2px 0 0 28px; border-right:5px solid #d86834; border-radius:50%; transform:rotate(-28deg); }
+.shrimp-2 { transform:rotate(-9deg); }
+.shrimp-3 { transform:rotate(16deg); }
+.fried-items.fries { inset:7px 17px 5px; display:grid; grid-template-columns:repeat(6,1fr); align-items:end; gap:1px 3px; transform:rotate(-2deg); }
+.frying-fry { display:block; width:9px; height:37px; border:2px solid #ad6b27; border-radius:3px; background:linear-gradient(90deg,#f3d477,#d99835 72%,#b86e27); box-shadow:inset 2px 0 rgba(255,244,170,.45); transform:rotate(var(--fry-turn,4deg)); }
+.frying-fry:nth-child(3n) { --fry-turn:-8deg; height:31px; }
+.frying-fry:nth-child(4n) { --fry-turn:10deg; height:42px; }
+.fryer-fries.frying .frying-fry { filter:brightness(1.16) saturate(.78); }
+.fryer-fries.basket-raised .frying-fry { filter:saturate(1.16); }
+.oil-bubble { position:absolute; z-index:2; bottom:8px; width:8px; height:8px; border:2px solid rgba(255,248,180,.82); border-radius:50%; animation:fryer-bubble 1s ease-in infinite; }
+.bubble-1{left:13%;animation-delay:-.2s}.bubble-2{left:24%;animation-delay:-.7s}.bubble-3{left:35%;animation-delay:-.4s}.bubble-4{left:46%;animation-delay:-.9s}.bubble-5{left:58%;animation-delay:-.1s}.bubble-6{left:68%;animation-delay:-.55s}.bubble-7{left:78%;animation-delay:-.82s}.bubble-8{left:88%;animation-delay:-.32s}.bubble-9{left:52%;animation-delay:-.66s}
+.basket-raised .fryer-basket { transform:translateY(-44px); }
+.basket-raised .fryer-oil { filter:brightness(.86); }
+.oil-drop { position:absolute; z-index:4; top:82px; width:5px; height:11px; border-radius:50%; background:#e8a532; animation:oil-drip .65s ease-in infinite; }
+.drop-1{left:83px}.drop-2{left:109px;animation-delay:-.25s}.drop-3{left:139px;animation-delay:-.5s}.drop-4{left:169px;animation-delay:-.15s}.drop-5{left:197px;animation-delay:-.42s}.drop-6{left:226px;animation-delay:-.62s}.drop-7{left:245px;animation-delay:-.3s}
+.oil-shaking .fryer-basket { animation:fryer-oil-shake .32s ease-in-out 2; }
+.oil-shaking .oil-drop { animation-duration:.24s; }
+.fryer-temperature { background:linear-gradient(90deg,#486fa4,#d3a13d 56%,#d87430 76%,#8c2c25); }
+.oil-tap-guide { display:flex; align-items:center; justify-content:center; gap:9px; }
+.oil-tap-guide kbd { min-width:90px; padding:10px 13px; border:3px solid #6a4932; border-radius:9px; background:#291910; color:#bca077; box-shadow:inset 0 -4px rgba(0,0,0,.25); text-align:center; font:900 17px/1 "Malgun Gothic",sans-serif; }
+.oil-tap-guide kbd.active { border-color:#ffe08d; background:#c27b3b; color:#29170d; animation:space-key-pulse .45s ease-in-out infinite alternate; }
+.oil-tap-guide kbd.done { border-color:#87a957; background:#607a41; color:#fff2ba; transform:translateY(3px); }
+.oil-tap-guide b { color:#ffe09a; font-size:16px; }
+
+@keyframes fryer-light { from{opacity:.48} to{opacity:1} }
+@keyframes fryer-bubble { 0%{transform:translateY(0) scale(.55);opacity:0} 30%{opacity:1} 100%{transform:translateY(-58px) scale(1.25);opacity:0} }
+@keyframes oil-drip { 0%{transform:translateY(-8px) scale(.7);opacity:0} 30%{opacity:1} 100%{transform:translateY(43px) scale(.35);opacity:0} }
+@keyframes fryer-oil-shake { 0%,100%{transform:translateY(-44px) rotate(0)} 25%{transform:translate(-13px,-47px) rotate(-4deg)} 70%{transform:translate(12px,-42px) rotate(4deg)} }
+@keyframes space-key-pulse { from{transform:translateY(0);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 0 rgba(255,224,141,0)} to{transform:translateY(-3px);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 13px rgba(255,224,141,.55)} }
+
 .heat-wrap {
   width: 100%;
   display: grid;

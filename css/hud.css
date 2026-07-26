@@ -283,6 +283,11 @@
 .prep-checklist small { color: #c8ab7e; line-height: 1.35; }
 .prep-summary { display: grid; gap: calc(3 * var(--upx)); }
 .prep-summary strong:not(:first-child) { margin-top: calc(6 * var(--upx)); }
+.day3-prep-progress { display:grid; grid-template-columns:1fr auto; gap:3px 7px; margin-bottom:7px; padding:7px; border:1px solid rgba(224,163,77,.32); border-radius:6px; background:rgba(18,10,7,.5); }
+.day3-prep-progress > strong { grid-column:1 / -1; color:#ffe09a; font-size:11px; }
+.day3-prep-progress > span { display:contents; color:#d8c19e; }
+.day3-prep-progress b { color:#f0ce8d; text-align:right; }
+.day3-prep-progress .overall { display:contents; color:#ffe09a; font-weight:800; }
 .prep-summary div { color: #d8c19e; }
 
 .order-list { display: grid; gap: calc(5 * var(--upx)); }
