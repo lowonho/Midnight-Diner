@@ -26,14 +26,14 @@ const PREP_TASKS=Object.freeze({
 });
 
 const MENU_DATA=Object.freeze([
-  {id:"oden",displayName:"어묵탕",unlockDay:1,requiredPrepTasks:["cutRadish","cutFishCake","cleanAnchovy"],cookware:["pot"],isImplemented:true,icon:4,ingredients:["어묵","무","대파"],prep:["fridge","sink","board","pot"],openFlow:["fridge","pot","counter"],cook:[{station:"pot",game:"heat"}],price:7800},
-  {id:"tofu",displayName:"두부김치",unlockDay:1,requiredPrepTasks:["cutTofuKimchi","fryTofuKimchi"],cookware:["pan","fridge"],isImplemented:true,icon:3,ingredients:["두부","김치","돼지고기"],prep:["fridge","sink","board"],openFlow:["fridge","counter"],cook:[{station:"fridge",game:"plateKimchi"}],price:8800},
-  {id:"kimchi",displayName:"김치전",unlockDay:2,requiredPrepTasks:["cutPancakeKimchi","mixKimchiBatter"],cookware:["board","mixingBowl","pan"],isImplemented:true,icon:0,ingredients:["김치","밀가루","물"],prep:["board","mixingBowl"],cook:[{station:"pan",game:"twoSideCook"}],price:6200},
-  {id:"skewer",displayName:"닭꼬치",unlockDay:2,requiredPrepTasks:["cutSkewerChicken","cutSkewerGreenOnion","assembleChickenSkewer"],cookware:["board","skewerTable","grill"],isImplemented:true,prepYield:4,icon:1,ingredients:["닭고기","대파"],prep:["board","skewerTable"],cook:[{station:"grill",game:"twoSideCook"}],price:7200},
-  {id:"yakisoba",displayName:"볶음우동",unlockDay:3,requiredPrepTasks:["prepareYakisoba"],cookware:["pan"],isImplemented:false,icon:2,ingredients:["우동면","양배추","당근"],prep:["fridge","sink","board"],cook:[{station:"pan",game:"stir"}],price:8200},
-  {id:"shrimpTempura",displayName:"새우튀김",unlockDay:3,requiredPrepTasks:["prepareShrimpTempura"],cookware:["fryer"],isImplemented:false,icon:null,ingredients:["새우","튀김가루"],prep:[],cook:[],price:0},
-  {id:"tteokbokki",displayName:"떡볶이",unlockDay:4,requiredPrepTasks:["prepareTteokbokki"],cookware:["pot"],isImplemented:false,icon:null,ingredients:["떡","고추장","어묵"],prep:[],cook:[],price:0},
-  {id:"fries",displayName:"감자튀김",unlockDay:4,requiredPrepTasks:["prepareFries"],cookware:["fryer"],isImplemented:false,icon:null,ingredients:["감자","식용유"],prep:[],cook:[],price:0}
+  {id:"oden",displayName:"어묵탕",unlockDay:1,requiredPrepTasks:["cutRadish","cutFishCake","cleanAnchovy"],cookware:["pot"],isImplemented:true,ingredients:["어묵","무","대파"],prep:["fridge","sink","board","pot"],openFlow:["fridge","pot","counter"],cook:[{station:"pot",game:"heat"}],price:7800},
+  {id:"tofu",displayName:"두부김치",unlockDay:1,requiredPrepTasks:["cutTofuKimchi","fryTofuKimchi"],cookware:["pan","fridge"],isImplemented:true,ingredients:["두부","김치","돼지고기"],prep:["fridge","sink","board"],openFlow:["fridge","counter"],cook:[{station:"fridge",game:"plateKimchi"}],price:8800},
+  {id:"kimchi",displayName:"김치전",unlockDay:2,requiredPrepTasks:["cutPancakeKimchi","mixKimchiBatter"],cookware:["board","mixingBowl","pan"],isImplemented:true,ingredients:["김치","밀가루","물"],prep:["board","mixingBowl"],cook:[{station:"pan",game:"twoSideCook"}],price:6200},
+  {id:"skewer",displayName:"닭꼬치",unlockDay:2,requiredPrepTasks:["cutSkewerChicken","cutSkewerGreenOnion","assembleChickenSkewer"],cookware:["board","skewerTable","grill"],isImplemented:true,prepYield:4,ingredients:["닭고기","대파"],prep:["board","skewerTable"],cook:[{station:"grill",game:"twoSideCook"}],price:7200},
+  {id:"yakisoba",displayName:"볶음우동",unlockDay:3,requiredPrepTasks:["prepareYakisoba"],cookware:["pan"],isImplemented:false,ingredients:["우동면","양배추","당근"],prep:["fridge","sink","board"],cook:[{station:"pan",game:"stir"}],price:8200},
+  {id:"shrimpTempura",displayName:"새우튀김",unlockDay:3,requiredPrepTasks:["prepareShrimpTempura"],cookware:["fryer"],isImplemented:false,ingredients:["새우","튀김가루"],prep:[],cook:[],price:0},
+  {id:"tteokbokki",displayName:"떡볶이",unlockDay:4,requiredPrepTasks:["prepareTteokbokki"],cookware:["pot"],isImplemented:false,ingredients:["떡","고추장","어묵"],prep:[],cook:[],price:0},
+  {id:"fries",displayName:"감자튀김",unlockDay:4,requiredPrepTasks:["prepareFries"],cookware:["fryer"],isImplemented:false,ingredients:["감자","식용유"],prep:[],cook:[],price:0}
 ]);
 
 const DAY_DATA=Object.freeze({

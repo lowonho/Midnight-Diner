@@ -11,9 +11,9 @@
                 css/hud.css(메뉴 카드)
 
    [예전 방식] 64x64 x6 스프라이트시트(삭제됨) 를 MENU_DATA 의 icon
-   인덱스로 잘라 썼습니다. 이제 메뉴별 단일 파일이라 icon 인덱스는
-   쓰지 않습니다. (MENU_DATA 의 icon 필드는 남아 있지만 참조하는 곳이
-   없습니다. 새 코드에서 쓰지 마세요)
+   인덱스로 잘라 썼습니다. 이제 메뉴별 단일 파일이라 인덱스가 필요 없어
+   MENU_DATA 의 icon 필드도 지웠습니다. 메뉴를 추가할 때는 아래 표에
+   한 줄만 넣으면 됩니다.
 
    [파일] assets/food/prop/<file>.webp
    PNG 가 마스터이고 WebP 는 tools/build-food-webp.js 산출물입니다.
