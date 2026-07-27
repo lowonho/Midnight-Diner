@@ -8,7 +8,8 @@
    · batterIngredients  김치전 반죽 — 밀가루 → 물 → 김치 순서로 클릭.
                         3개를 다 넣으면 곧바로 거품기(E9)로 넘어갑니다.
                         → engine-e9-whisk.js 의 setupWhiskBatter 호출
-   · skewer             닭꼬치 꽂기 — 닭 → 파 → 닭 → 파 → 닭 을 3꼬치.
+   · skewer             닭꼬치 꽂기 — 닭 → 파 → 닭 → 파 → 닭 을 4꼬치.
+                        (밤 조리 굽기 4개 · game-data.js 의 prepYield:4 와 같은 수)
                         클릭으로 고르거나 드래그로 놓을 수 있습니다.
    · tteokSoak /        떡·우동면 불리기 — 재료와 물을 각각 클릭. 순서는 자유.
      udonSoak           ✅ 두 게임이 이미 renderTteokSoak 하나를 함께 씁니다.
@@ -121,11 +122,11 @@ function addBatterIngredient(ingredientId,button){
 
 /* ---- 닭꼬치 꽂기 -------------------------------------------
    화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
-     왼쪽   재료 카드 2장 — 닭고기 ×9 / 파 ×6, 쓸 때마다 개수가 줄어듭니다
-     가운데 꼬치 3개 — 아래에서 위로 5칸씩 채웁니다
+     왼쪽   재료 카드 2장 — 닭고기 ×12 / 파 ×8, 쓸 때마다 개수가 줄어듭니다
+     가운데 꼬치 4개 — 아래에서 위로 5칸씩 채웁니다
      오른쪽 완성 개수 + 참고 모양
    재료 카드를 꼬치로 끌어다 놓거나, 카드를 눌러 집은 뒤 꼬치를 눌러도 됩니다.
-   꼬치 3개는 어느 것부터 채워도 되고, 각 꼬치 안에서만 순서를 지키면 됩니다.
+   꼬치 4개는 어느 것부터 채워도 되고, 각 꼬치 안에서만 순서를 지키면 됩니다.
 
    모양·크기는 css/day-prep-minigames.css 의 "닭꼬치 꽂기" 구역에 모여 있습니다.
    공용 프레임(css/minigame-frame.css, ui-mini-frame.js)은 건드리지 않고,
@@ -133,7 +134,7 @@ function addBatterIngredient(ingredientId,button){
    ------------------------------------------------------------ */
 
 const SKEWER_ORDER=["chicken","greenOnion","chicken","greenOnion","chicken"];  // 아래 → 위 순서
-const SKEWER_TOTAL=3;                                                          // 만들 꼬치 수
+const SKEWER_TOTAL=4;                                                          // 만들 꼬치 수 (밤 굽기·prepYield 와 같은 수)
 const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
 // assets/prep/skewer/ 에 파일을 넣으면 CSS 도형 대신 그림이 자동으로 쓰입니다.
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
@@ -141,7 +142,7 @@ const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
 
 function setupChickenSkewer(){
   const stock={chicken:0,greenOnion:0};
-  SKEWER_ORDER.forEach(ingredient=>{stock[ingredient]+=SKEWER_TOTAL;});   // 9 / 6
+  SKEWER_ORDER.forEach(ingredient=>{stock[ingredient]+=SKEWER_TOTAL;});   // 12 / 8
   setDayPrepData({mode:"skewer",total:SKEWER_TOTAL,stock,selected:null,
     skewers:Array.from({length:SKEWER_TOTAL},()=>[])});
   dom.miniTitle.textContent="닭꼬치 꽂기";
@@ -188,7 +189,7 @@ function renderChickenSkewer(){
         }).join("")}
       </aside>
 
-      <div class="sk-board">${data.skewers.map((stack,index)=>skewerRackMarkup(stack,index)).join("")}</div>
+      <div class="sk-board" style="--sk-count:${data.total}">${data.skewers.map((stack,index)=>skewerRackMarkup(stack,index)).join("")}</div>
 
       <aside class="sk-col">
         <div class="sk-panel sk-count">

@@ -3,21 +3,8 @@
    css/minigame-frame.css 에서 한 번에 관리합니다. 이 파일은 각 미니게임의
    플레이 영역 내부 요소만 담습니다. */
 
-.kimchi-plating {
-  min-width: calc(240 * var(--upx));
-  padding: calc(22 * var(--upx));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(12 * var(--upx));
-  border: 2px solid #79502e;
-  border-radius: 50%;
-  background: #eee3c8;
-  color: #642b20;
-}
-.kimchi-plating span { font-size: calc(42 * var(--upx)); }
-.kimchi-plating .plated-tofu { display:flex; gap:calc(3 * var(--upx)); font-size:0; }
-.plated-tofu i { width:calc(28 * var(--upx)); height:calc(28 * var(--upx)); border:2px solid #cfc39e; border-radius:calc(5 * var(--upx)); background:#fff8df; box-shadow:inset 0 calc(5 * var(--upx)) rgba(255,255,255,.5); }
+/* 두부김치 플레이팅(밤 조리)은 낮 준비와 같은 단발 액션 화면을 씁니다.
+   → css/day-prep-minigames.css 의 "단발 액션 (engine-e11)" 구역 */
 
 .serving-oden-pot {
   position: relative;
@@ -63,7 +50,6 @@
   gap: calc(9 * var(--upx));
 }
 .choice-button,
-.arrow-button,
 .bubble-button,
 .plate-button,
 .sort-button,
@@ -95,26 +81,6 @@
   color: #2d1b11;
   font-weight: 800;
 }
-.arrow-sequence-chip {
-  min-width: calc(42 * var(--upx));
-  text-align: center;
-  transition: transform .16s ease,background .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease;
-}
-.arrow-sequence-chip.current {
-  border-color: #f4c663;
-  background: #ffe4a4;
-  box-shadow: 0 0 0 calc(3 * var(--upx)) rgba(244,198,99,.2),0 0 calc(14 * var(--upx)) rgba(244,198,99,.38);
-  transform: scale(1.08);
-}
-.arrow-sequence-chip.correct {
-  border-color: #574332;
-  background: #695847;
-  color: #b9a58b;
-  box-shadow: inset 0 2px calc(5 * var(--upx)) rgba(0,0,0,.35);
-  opacity: .62;
-  transform: scale(.72);
-}
-
 .progress-track {
   position: relative;
   width: 100%;
@@ -217,50 +183,402 @@
 @keyframes charcoal-flame { from { transform:scale(.75,.85) rotate(-5deg); opacity:.5; } to { transform:scale(1.08,1.2) rotate(5deg); opacity:.9; } }
 .cut-count { color: #f3d495; font-size: calc(18 * var(--upx)); font-weight: 800; }
 
-.shrimp-fryer-scene {
-  position: relative;
-  width: 310px;
-  height: 142px;
-  margin-top: 3px;
-  filter: drop-shadow(0 9px 8px rgba(0,0,0,.3));
-}
-.fryer-back { position:absolute; left:20px; right:20px; top:0; height:43px; border:5px solid #55504a; border-radius:12px 12px 5px 5px; background:linear-gradient(#77716a,#403d39); color:#f4d78e; font-size:11px; font-weight:900; text-align:right; padding:8px 13px; }
-.fryer-temp-light { display:inline-block; width:9px; height:9px; margin-right:5px; border-radius:50%; background:#ff9b3e; box-shadow:0 0 9px #ff7027; animation:fryer-light .75s ease-in-out infinite alternate; }
-.fryer-vat { position:absolute; left:20px; right:20px; bottom:0; height:104px; overflow:hidden; border:8px solid #59544d; border-radius:7px 7px 19px 19px; background:#24211e; box-shadow:inset 0 0 0 4px #171513; }
-.fryer-oil { position:absolute; inset:23px 7px 7px; border-radius:50% 50% 11px 11px; background:linear-gradient(rgba(255,226,98,.96),#d48a29 62%,#9d5c20); box-shadow:inset 0 3px 8px rgba(255,250,178,.65); }
-.fryer-basket { position:absolute; z-index:3; left:52px; top:42px; width:207px; height:82px; border:4px solid #837b70; border-radius:4px 4px 13px 13px; background:repeating-linear-gradient(90deg,transparent 0 13px,rgba(76,69,61,.65) 14px 17px),repeating-linear-gradient(0deg,transparent 0 12px,rgba(76,69,61,.55) 13px 16px); transition:transform .25s ease; }
-.basket-handle { position:absolute; left:63px; top:-40px; width:76px; height:45px; border:7px solid #625d56; border-bottom:0; border-radius:20px 20px 0 0; }
-.fried-items { position:absolute; inset:18px 12px 8px; display:flex; align-items:center; justify-content:center; }
-.fried-items.shrimp { gap:16px; }
-.frying-shrimp { position:relative; display:block; width:39px; height:21px; border:4px solid #9f4728; border-left-width:9px; border-radius:55% 35% 60% 45%; background:linear-gradient(135deg,#fff1c4 0 18%,#efa350 20% 43%,#f7d17a 45% 62%,#d66e37 64%); transform:rotate(12deg); box-shadow:inset -4px -3px rgba(128,52,27,.18); }
-.frying-shrimp::after { content:""; position:absolute; width:12px; height:16px; margin:-2px 0 0 28px; border-right:5px solid #d86834; border-radius:50%; transform:rotate(-28deg); }
-.shrimp-2 { transform:rotate(-9deg); }
-.shrimp-3 { transform:rotate(16deg); }
-.fried-items.fries { inset:7px 17px 5px; display:grid; grid-template-columns:repeat(6,1fr); align-items:end; gap:1px 3px; transform:rotate(-2deg); }
-.frying-fry { display:block; width:9px; height:37px; border:2px solid #ad6b27; border-radius:3px; background:linear-gradient(90deg,#f3d477,#d99835 72%,#b86e27); box-shadow:inset 2px 0 rgba(255,244,170,.45); transform:rotate(var(--fry-turn,4deg)); }
-.frying-fry:nth-child(3n) { --fry-turn:-8deg; height:31px; }
-.frying-fry:nth-child(4n) { --fry-turn:10deg; height:42px; }
-.fryer-fries.frying .frying-fry { filter:brightness(1.16) saturate(.78); }
-.fryer-fries.basket-raised .frying-fry { filter:saturate(1.16); }
-.oil-bubble { position:absolute; z-index:2; bottom:8px; width:8px; height:8px; border:2px solid rgba(255,248,180,.82); border-radius:50%; animation:fryer-bubble 1s ease-in infinite; }
-.bubble-1{left:13%;animation-delay:-.2s}.bubble-2{left:24%;animation-delay:-.7s}.bubble-3{left:35%;animation-delay:-.4s}.bubble-4{left:46%;animation-delay:-.9s}.bubble-5{left:58%;animation-delay:-.1s}.bubble-6{left:68%;animation-delay:-.55s}.bubble-7{left:78%;animation-delay:-.82s}.bubble-8{left:88%;animation-delay:-.32s}.bubble-9{left:52%;animation-delay:-.66s}
-.basket-raised .fryer-basket { transform:translateY(-44px); }
-.basket-raised .fryer-oil { filter:brightness(.86); }
-.oil-drop { position:absolute; z-index:4; top:82px; width:5px; height:11px; border-radius:50%; background:#e8a532; animation:oil-drip .65s ease-in infinite; }
-.drop-1{left:83px}.drop-2{left:109px;animation-delay:-.25s}.drop-3{left:139px;animation-delay:-.5s}.drop-4{left:169px;animation-delay:-.15s}.drop-5{left:197px;animation-delay:-.42s}.drop-6{left:226px;animation-delay:-.62s}.drop-7{left:245px;animation-delay:-.3s}
-.oil-shaking .fryer-basket { animation:fryer-oil-shake .32s ease-in-out 2; }
-.oil-shaking .oil-drop { animation-duration:.24s; }
-.fryer-temperature { background:linear-gradient(90deg,#486fa4,#d3a13d 56%,#d87430 76%,#8c2c25); }
-.oil-tap-guide { display:flex; align-items:center; justify-content:center; gap:9px; }
-.oil-tap-guide kbd { min-width:90px; padding:10px 13px; border:3px solid #6a4932; border-radius:9px; background:#291910; color:#bca077; box-shadow:inset 0 -4px rgba(0,0,0,.25); text-align:center; font:900 17px/1 "Malgun Gothic",sans-serif; }
-.oil-tap-guide kbd.active { border-color:#ffe08d; background:#c27b3b; color:#29170d; animation:space-key-pulse .45s ease-in-out infinite alternate; }
-.oil-tap-guide kbd.done { border-color:#87a957; background:#607a41; color:#fff2ba; transform:translateY(3px); }
-.oil-tap-guide b { color:#ffe09a; font-size:16px; }
+/* ============================================================
+   E6 튀기기 (감자튀김 · 새우튀김) — engine-e6-deep-fry.js
 
-@keyframes fryer-light { from{opacity:.48} to{opacity:1} }
-@keyframes fryer-bubble { 0%{transform:translateY(0) scale(.55);opacity:0} 30%{opacity:1} 100%{transform:translateY(-58px) scale(1.25);opacity:0} }
-@keyframes oil-drip { 0%{transform:translateY(-8px) scale(.7);opacity:0} 30%{opacity:1} 100%{transform:translateY(43px) scale(.35);opacity:0} }
-@keyframes fryer-oil-shake { 0%,100%{transform:translateY(-44px) rotate(0)} 25%{transform:translate(-13px,-47px) rotate(-4deg)} 70%{transform:translate(12px,-42px) rotate(4deg)} }
+   레퍼런스와 같은 3열 구성입니다.
+     [재료 카드]   [튀김기 + 온도 바]   [진행도 카드 · 조작 카드]
+
+   공용 프레임(css/minigame-frame.css)은 손대지 않고, 이 게임이 떠 있는
+   동안에만 가운데 열 제한(.mini-content)을 풀어 좌우 카드 자리를 만듭니다.
+   오른쪽 진행도 카드와 겹치는 공용 타이머 카드(#miniTimer)도 이 게임에서만
+   숨깁니다. 남은 시간은 진행도 카드 안 얇은 바가 대신 보여줍니다.
+
+   크기는 전부 --upx(1920x1080 에서 딱 1px)라서 UI 에셋 제작 기준과 같습니다.
+   에셋이 들어오면 .has-fry-asset 이 붙어 CSS 임시 도형은 자동으로 숨습니다.
+   ============================================================ */
+.mini-content:has(.fry-screen) { width: 100%; }
+.mini-stage:has(.fry-screen) .mini-timer { display: none; }
+
+.fry-screen {
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: calc(200 * var(--upx)) minmax(0,1fr) calc(300 * var(--upx));
+  align-items: stretch;
+  gap: calc(20 * var(--upx));
+}
+/* 재료 카드는 내용만큼만, 가운데와 오른쪽은 플레이 영역 높이를 다 씁니다 */
+.fry-ing-card { align-self: start; }
+
+/* ── 좌우 카드 공통 ─────────────────────────────────────────── */
+/* .fry-card 와 .fry-card-title 은 css/minigame-parts.css 에 있습니다. */
+
+/* ── 왼쪽 재료 카드 ─────────────────────────────────────────── */
+.fry-ing-figure {
+  position: relative;
+  height: calc(150 * var(--upx));
+  display: grid;
+  place-items: center;
+  border: 2px solid #5d3b22;
+  border-radius: calc(8 * var(--upx));
+  background: #0e0805;
+  box-shadow: inset 0 0 calc(16 * var(--upx)) rgba(0,0,0,.6);
+}
+.fry-ing-name {
+  margin: 0;
+  color: var(--cream);
+  text-align: center;
+  font-size: calc(18 * var(--upx));
+  font-weight: 800;
+}
+.fry-ing-name b { color: var(--gold-bright); }
+.fry-ing-art { position: relative; display: block; width: calc(150 * var(--upx)); height: calc(110 * var(--upx)); }
+.fry-ing-art.has-fry-asset { display: grid; place-items: center; }
+.fry-ing-asset { max-width: 100%; max-height: calc(130 * var(--upx)); object-fit: contain; }
+/* 감자채 더미 — 에셋이 들어오기 전까지 쓰는 임시 그림입니다 */
+.fry-ing-stick {
+  position: absolute;
+  left: var(--fx);
+  top: var(--fy);
+  width: calc(11 * var(--upx));
+  height: calc(46 * var(--upx));
+  border: 2px solid #ad6b27;
+  border-radius: calc(3 * var(--upx));
+  background: linear-gradient(90deg,#f6dc8c,#e2a848 72%,#c07a2c);
+  transform: rotate(var(--ft));
+}
+.fry-ing-art.shrimp { display: flex; align-items: center; justify-content: center; gap: calc(4 * var(--upx)); transform: scale(.5); }
+
+/* ── 가운데 플레이 영역 ─────────────────────────────────────── */
+.fry-work-area {
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  align-items: center;
+  justify-items: center;
+  gap: calc(18 * var(--upx));
+}
+
+.fry-scene {
+  position: relative;
+  width: min(100%, calc(700 * var(--upx)));
+  height: calc(440 * var(--upx));
+  filter: drop-shadow(0 calc(10 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.35));
+}
+/* 튀김기 통 좌우 손잡이 (통이 overflow:hidden 이라 바깥에 따로 둡니다) */
+.fryer-handle {
+  position: absolute;
+  z-index: 1;
+  top: calc(240 * var(--upx));
+  width: calc(52 * var(--upx));
+  height: calc(62 * var(--upx));
+  border: calc(10 * var(--upx)) solid #6d675f;
+  background: #2b2723;
+}
+.fryer-handle.left { left: 0; border-radius: calc(16 * var(--upx)) 0 0 calc(16 * var(--upx)); border-right: 0; }
+.fryer-handle.right { right: 0; border-radius: 0 calc(16 * var(--upx)) calc(16 * var(--upx)) 0; border-left: 0; }
+
+.fryer-vat {
+  position: absolute;
+  z-index: 2;
+  left: calc(34 * var(--upx));
+  right: calc(34 * var(--upx));
+  bottom: 0;
+  height: calc(260 * var(--upx));
+  overflow: hidden;
+  border: calc(10 * var(--upx)) solid #59544d;
+  border-radius: calc(10 * var(--upx)) calc(10 * var(--upx)) calc(26 * var(--upx)) calc(26 * var(--upx));
+  background: #24211e;
+  box-shadow: inset 0 0 0 calc(5 * var(--upx)) #171513;
+}
+.fryer-vat.has-fry-asset { border: 0; background: none; box-shadow: none; }
+.fryer-vat.has-fry-asset .fryer-oil { display: none; }
+.fryer-vat-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.fryer-oil {
+  position: absolute;
+  inset: calc(52 * var(--upx)) calc(10 * var(--upx)) calc(10 * var(--upx));
+  border-radius: calc(24 * var(--upx)) calc(24 * var(--upx)) calc(16 * var(--upx)) calc(16 * var(--upx));
+  background: linear-gradient(rgba(255,226,98,.96),#d48a29 62%,#9d5c20);
+  box-shadow: inset 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(255,250,178,.65);
+}
+.oil-bubble {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(22 * var(--upx));
+  width: calc(15 * var(--upx));
+  height: calc(15 * var(--upx));
+  border: calc(3 * var(--upx)) solid rgba(255,248,180,.82);
+  border-radius: 50%;
+  animation: fryer-bubble 1s ease-in infinite;
+}
+.bubble-1{left:11%;animation-delay:-.2s}.bubble-2{left:22%;animation-delay:-.7s}.bubble-3{left:33%;animation-delay:-.4s}.bubble-4{left:44%;animation-delay:-.9s}.bubble-5{left:55%;animation-delay:-.1s}.bubble-6{left:66%;animation-delay:-.55s}.bubble-7{left:77%;animation-delay:-.82s}.bubble-8{left:87%;animation-delay:-.32s}.bubble-9{left:49%;animation-delay:-.66s}
+
+.fryer-basket {
+  position: absolute;
+  z-index: 4;
+  left: calc(96 * var(--upx));
+  top: calc(205 * var(--upx));
+  width: calc(500 * var(--upx));
+  height: calc(200 * var(--upx));
+  border: calc(6 * var(--upx)) solid #837b70;
+  border-radius: calc(6 * var(--upx)) calc(6 * var(--upx)) calc(20 * var(--upx)) calc(20 * var(--upx));
+  background:
+    repeating-linear-gradient(90deg,transparent 0 calc(17 * var(--upx)),rgba(76,69,61,.65) calc(18 * var(--upx)) calc(22 * var(--upx))),
+    repeating-linear-gradient(0deg,transparent 0 calc(15 * var(--upx)),rgba(76,69,61,.55) calc(16 * var(--upx)) calc(20 * var(--upx)));
+  transition: transform .25s ease;
+}
+.fryer-basket.has-fry-asset { border: 0; background: none; }
+.fryer-basket-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 오른쪽 위로 뻗은 바스켓 손잡이 */
+.basket-handle {
+  position: absolute;
+  right: calc(-62 * var(--upx));
+  top: calc(-46 * var(--upx));
+  width: calc(96 * var(--upx));
+  height: calc(72 * var(--upx));
+  border: calc(10 * var(--upx)) solid #625d56;
+  border-left: 0;
+  border-bottom: 0;
+  border-radius: 0 calc(24 * var(--upx)) 0 0;
+  transform: rotate(-10deg);
+}
+.fried-items { position: absolute; inset: calc(12 * var(--upx)) calc(16 * var(--upx)) calc(10 * var(--upx)); display: flex; align-items: center; justify-content: center; }
+.fried-items.shrimp { gap: calc(22 * var(--upx)); }
+.frying-shrimp {
+  position: relative;
+  display: block;
+  width: calc(130 * var(--upx));
+  height: calc(70 * var(--upx));
+  border: calc(13 * var(--upx)) solid #9f4728;
+  border-left-width: calc(30 * var(--upx));
+  border-radius: 55% 35% 60% 45%;
+  background: linear-gradient(135deg,#fff1c4 0 18%,#efa350 20% 43%,#f7d17a 45% 62%,#d66e37 64%);
+  transform: rotate(12deg);
+  box-shadow: inset calc(-13 * var(--upx)) calc(-10 * var(--upx)) rgba(128,52,27,.18);
+}
+.frying-shrimp::after {
+  content: "";
+  position: absolute;
+  width: calc(40 * var(--upx));
+  height: calc(53 * var(--upx));
+  margin: calc(-7 * var(--upx)) 0 0 calc(93 * var(--upx));
+  border-right: calc(16 * var(--upx)) solid #d86834;
+  border-radius: 50%;
+  transform: rotate(-28deg);
+}
+.shrimp-2 { transform: rotate(-9deg); }
+.shrimp-3 { transform: rotate(16deg); }
+.fried-items.fries {
+  inset: calc(10 * var(--upx)) calc(18 * var(--upx)) calc(8 * var(--upx));
+  display: grid;
+  grid-template-columns: repeat(12,1fr);
+  align-items: end;
+  gap: calc(3 * var(--upx)) calc(4 * var(--upx));
+  transform: rotate(-2deg);
+}
+.frying-fry {
+  display: block;
+  width: calc(15 * var(--upx));
+  height: calc(52 * var(--upx));
+  border: 2px solid #ad6b27;
+  border-radius: calc(4 * var(--upx));
+  background: linear-gradient(90deg,#f3d477,#d99835 72%,#b86e27);
+  box-shadow: inset calc(3 * var(--upx)) 0 rgba(255,244,170,.45);
+  transform: rotate(var(--fry-turn,4deg));
+}
+.frying-fry:nth-child(3n) { --fry-turn:-8deg; height: calc(44 * var(--upx)); }
+.frying-fry:nth-child(4n) { --fry-turn:10deg; height: calc(58 * var(--upx)); }
+.fryer-fries.frying .frying-fry { filter: brightness(1.16) saturate(.78); }
+.fryer-fries.basket-raised .frying-fry { filter: saturate(1.16); }
+
+/* 바스켓 들어올리기 · 기름 방울 */
+.basket-raised .fryer-basket { transform: translateY(calc(-168 * var(--upx))); }
+.basket-raised .fryer-oil { filter: brightness(.86); }
+.oil-drop {
+  position: absolute;
+  z-index: 5;
+  top: calc(240 * var(--upx));
+  width: calc(9 * var(--upx));
+  height: calc(20 * var(--upx));
+  border-radius: 50%;
+  background: #e8a532;
+  animation: oil-drip .65s ease-in infinite;
+}
+.drop-1{left:20%}.drop-2{left:29%;animation-delay:-.25s}.drop-3{left:39%;animation-delay:-.5s}.drop-4{left:49%;animation-delay:-.15s}.drop-5{left:59%;animation-delay:-.42s}.drop-6{left:69%;animation-delay:-.62s}.drop-7{left:78%;animation-delay:-.3s}
+.oil-shaking .fryer-basket { animation: fryer-oil-shake .32s ease-in-out 2; }
+.oil-shaking .oil-drop { animation-duration: .24s; }
+
+/* ── 가운데 아래 온도 바 (포인터 id 는 #miniMarker 로 고정) ──── */
+.fry-temp-bar {
+  position: relative;
+  width: min(100%, calc(760 * var(--upx)));
+  padding-top: calc(20 * var(--upx));   /* 포인터 삼각형 자리 */
+}
+.fry-temp-track {
+  position: relative;
+  height: calc(46 * var(--upx));
+  overflow: hidden;
+  border: calc(4 * var(--upx)) solid #6b4325;
+  border-radius: calc(26 * var(--upx));
+  background: linear-gradient(#c0472a,#8a2e1c);
+  box-shadow: inset 0 0 0 2px #2a1409, inset 0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.35);
+}
+.fry-temp-zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(#7fae4a,#4d7a2b); }
+.fry-temp-perfect { position: absolute; top: 0; bottom: 0; background: linear-gradient(#a9d76c,#6ca03c); }
+.fry-temp-burn { position: absolute; top: 0; right: 0; bottom: 0; background: linear-gradient(#2c1c11,#150c07); }
+.fry-temp-ticks { position: absolute; inset: 0; background: repeating-linear-gradient(90deg,transparent 0 calc(96 * var(--upx)),rgba(32,14,7,.6) calc(96 * var(--upx)) calc(100 * var(--upx))); }
+.fry-temp-marker {
+  position: absolute;
+  left: 0;
+  top: calc(16 * var(--upx));
+  bottom: calc(-6 * var(--upx));
+  width: calc(5 * var(--upx));
+  margin-left: calc(-2.5 * var(--upx));
+  border-radius: calc(3 * var(--upx));
+  background: #ffd489;
+  box-shadow: 0 0 calc(10 * var(--upx)) rgba(255,190,90,.75);
+}
+.fry-temp-marker::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(-4 * var(--upx));
+  transform: translate(-50%,-100%);
+  border-left: calc(11 * var(--upx)) solid transparent;
+  border-right: calc(11 * var(--upx)) solid transparent;
+  border-top: calc(14 * var(--upx)) solid #f0a03c;
+}
+.fry-temp-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(-5 * var(--upx));
+  width: calc(13 * var(--upx));
+  height: calc(13 * var(--upx));
+  margin-left: calc(-6.5 * var(--upx));
+  border-radius: 50%;
+  background: #f0a03c;
+}
+
+/* ── 기름 털기 단계 : 온도 바 자리에 들어가는 SPACE 두 번 안내 ── */
+.oil-tap-guide { display: flex; align-items: center; justify-content: center; gap: calc(12 * var(--upx)); }
+.oil-tap-guide kbd {
+  min-width: calc(150 * var(--upx));
+  padding: calc(14 * var(--upx)) calc(18 * var(--upx));
+  border: calc(3 * var(--upx)) solid #6a4932;
+  border-radius: calc(10 * var(--upx));
+  background: #291910;
+  color: #bca077;
+  box-shadow: inset 0 calc(-5 * var(--upx)) rgba(0,0,0,.25);
+  text-align: center;
+  font-size: calc(24 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+}
+.oil-tap-guide kbd.active { border-color: #ffe08d; background: #c27b3b; color: #29170d; animation: space-key-pulse .45s ease-in-out infinite alternate; }
+.oil-tap-guide kbd.done { border-color: #87a957; background: #607a41; color: #fff2ba; transform: translateY(calc(3 * var(--upx))); }
+.oil-tap-guide b { color: #ffe09a; font-size: calc(22 * var(--upx)); }
+
+/* ── 오른쪽 진행도 카드 ─────────────────────────────────────── */
+.fry-side { height: 100%; display: grid; align-content: start; gap: calc(20 * var(--upx)); }
+.fry-progress-value {
+  margin: 0;
+  color: var(--gold-bright);
+  text-align: center;
+  font-size: calc(52 * var(--upx));
+  font-weight: 900;
+  line-height: 1.05;
+}
+.fry-progress-value b { color: #f2a03c; }
+/* 남은 시간 : 공용 타이머 카드를 숨긴 대신 여기 얇게 보여줍니다 */
+.fry-time-bar {
+  height: calc(10 * var(--upx));
+  overflow: hidden;
+  border: 2px solid #5d3b22;
+  border-radius: calc(6 * var(--upx));
+  background: #0e0805;
+}
+.fry-time-bar i { display: block; height: 100%; background: linear-gradient(90deg,#c9822f,#f0c268); }
+
+/* ── 오른쪽 조작 카드 ───────────────────────────────────────── */
+.fry-control-card { gap: calc(7 * var(--upx)); }
+.fry-step { display: grid; grid-template-columns: calc(32 * var(--upx)) minmax(0,1fr); align-items: center; gap: calc(9 * var(--upx)); }
+.fry-step-no {
+  display: grid;
+  place-items: center;
+  width: calc(32 * var(--upx));
+  height: calc(32 * var(--upx));
+  border: 2px solid #8d5a30;
+  border-radius: 50%;
+  background: #241409;
+  color: #e9c88b;
+  font-size: calc(18 * var(--upx));
+  font-weight: 900;
+}
+.fry-step.current .fry-step-no { border-color: #ffe08d; background: #c27b3b; color: #2a1709; }
+.fry-step.done .fry-step-no { border-color: #789a51; background: #5d7940; color: #fff7cf; }
+.fry-step-body {
+  min-height: calc(46 * var(--upx));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(8 * var(--upx));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.fry-step-body:disabled { cursor: default; opacity: .6; }
+.fry-step-desc { margin: 0 0 calc(4 * var(--upx)); color: var(--cream); text-align: center; font-size: calc(17 * var(--upx)); font-weight: 800; }
+.fry-step-split { display: block; height: 0; margin: calc(3 * var(--upx)) 0; border-top: 2px dashed #4a2e1a; }
+
+/* 1번 : 온도 구간 미리보기 (움직이지 않는 안내 그림입니다) */
+.fry-gauge { position: relative; width: 100%; padding-top: calc(12 * var(--upx)); }
+.fry-gauge-track {
+  position: relative;
+  display: block;
+  height: calc(22 * var(--upx));
+  overflow: hidden;
+  border: 2px solid #6b4325;
+  border-radius: calc(12 * var(--upx));
+  background: linear-gradient(#c0472a,#8a2e1c);
+}
+.fry-gauge-marker {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  margin-left: calc(-8 * var(--upx));
+  border-left: calc(8 * var(--upx)) solid transparent;
+  border-right: calc(8 * var(--upx)) solid transparent;
+  border-top: calc(11 * var(--upx)) solid #f0a03c;
+}
+
+/* 2번 : Space › Space */
+.fry-key {
+  min-width: calc(78 * var(--upx));
+  padding: calc(9 * var(--upx)) calc(10 * var(--upx));
+  border: 2px solid #7a6a4d;
+  border-radius: calc(7 * var(--upx));
+  background: linear-gradient(#efe6d3,#c9bda4);
+  color: #2d1b11;
+  box-shadow: 0 calc(3 * var(--upx)) 0 #6a5a41;
+  text-align: center;
+  font-size: calc(17 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+}
+.fry-key.active { border-color: #ffe08d; background: linear-gradient(#ffdb9a,#c27b3b); animation: space-key-pulse .45s ease-in-out infinite alternate; }
+.fry-key.done { border-color: #87a957; background: linear-gradient(#a9c47c,#607a41); color: #fff2ba; }
+.fry-key-link { color: #c88a3f; font-size: calc(20 * var(--upx)); font-weight: 900; font-style: normal; }
+
+@keyframes fryer-bubble { 0%{transform:translateY(0) scale(.55);opacity:0} 30%{opacity:1} 100%{transform:translateY(calc(-120 * var(--upx))) scale(1.25);opacity:0} }
+@keyframes oil-drip { 0%{transform:translateY(calc(-10 * var(--upx))) scale(.7);opacity:0} 30%{opacity:1} 100%{transform:translateY(calc(90 * var(--upx))) scale(.35);opacity:0} }
+@keyframes fryer-oil-shake { 0%,100%{transform:translateY(calc(-168 * var(--upx))) rotate(0)} 25%{transform:translate(calc(-16 * var(--upx)),calc(-174 * var(--upx))) rotate(-4deg)} 70%{transform:translate(calc(14 * var(--upx)),calc(-162 * var(--upx))) rotate(4deg)} }
 @keyframes space-key-pulse { from{transform:translateY(0);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 0 rgba(255,224,141,0)} to{transform:translateY(-3px);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 13px rgba(255,224,141,.55)} }
 
 .heat-wrap {
@@ -308,19 +626,256 @@
   transform: translateX(-50%);
 }
 
-.arrow-grid {
+/* ── 볶음우동 조리 · 철판 볶기 (engine-e3 · stir) ──────────────
+   왼쪽 재료 · 가운데 철판 · 오른쪽 진행도/다음 순서 3단이고,
+   맨 아래 화살표 8칸이 3단 폭을 가로질러 깔립니다.
+   (낮 준비의 "김치 볶기" 와 같은 틀입니다. 그쪽은 12칸 · css/day-prep-minigames.css)
+
+   그림은 전부 임시 CSS 도형이고, assets/prep/yakisoba/ 에 파일을 넣으면
+   .has-asset(.has-prep-asset) 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+
+   [공용 프레임과의 관계]
+   css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 게임이 떠 있을
+   때 한정으로 공용 규칙을 덮어씁니다.
+     · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
+     · 공용 타이머 카드는 오른쪽 '진행도' 카드와 자리가 겹치므로 숨김
+       (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다)
+
+   칸 크기는 .yk-scene 의 --yk-side(좌우 칸 폭)와 --yk-chip(화살표 칸 높이)
+   두 값이 정합니다. 가운데 철판은 남는 자리를 채우므로 이 둘만 바꾸면 됩니다. */
+.mini-content:has(.yk-scene) { width: 100%; }
+.mini-stage:has(.yk-scene) .mini-timer { display: none; }
+
+.yk-scene {
+  --yk-side: calc(230 * var(--upx));   /* 좌우 세로 칸 폭 */
+  --yk-chip: calc(78 * var(--upx));    /* 아래 화살표 칸 높이 */
+  width: 100%;
+  height: 100%;
   display: grid;
-  grid-template-columns: repeat(4,calc(70 * var(--upx)));
+  grid-template-columns: var(--yk-side) minmax(0,1fr) var(--yk-side);
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(16 * var(--upx));
+  user-select: none;
+}
+
+/* 좌우 세로 칸 */
+.yk-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+/* .yk-col-title · .yk-panel → css/minigame-parts.css */
+
+/* 왼쪽 재료 카드 : 볶기 전에 이미 철판에 올라가 있으므로 보여주기만 합니다 */
+.yk-ing-panel { flex: 1; display: flex; flex-direction: column; gap: calc(10 * var(--upx)); }
+.yk-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: calc(10 * var(--upx)); }
+.yk-ing-card {
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(4 * var(--upx));
+  padding: calc(8 * var(--upx)) calc(6 * var(--upx));
+  border: 2px solid #7d4f2a;
+  border-radius: calc(9 * var(--upx));
+  background: linear-gradient(#2b1b11,#180e08);
+  color: #f0dcb4;
+}
+.yk-ing-art { position: relative; display: grid; place-items: center; }
+.yk-ing-art i { position: relative; display: block; width: calc(86 * var(--upx)); height: calc(86 * var(--upx)); }
+.yk-ing-art.has-asset i { display: none; }
+.yk-ing-asset { max-width: 100%; max-height: calc(94 * var(--upx)); object-fit: contain; }
+.yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.yk-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
+/* 재료 그림 (임시 도형) — 우동 사리 / 소스병 / 손질 야채 */
+.yk-ing-card .yk-ing-art i {
+  border-radius: calc(10 * var(--upx)) calc(10 * var(--upx)) 46% 46%;
+  background: linear-gradient(#8a5a2c,#5d3a19);
+  box-shadow: inset 0 calc(-9 * var(--upx)) calc(13 * var(--upx)) rgba(48,26,10,.5);
+}
+.yk-ing-card .yk-ing-art i::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 8%;
+  height: 54%;
+  border-radius: 50% 50% 42% 42%;
+}
+.yk-ing-card.udon .yk-ing-art i::after { background: repeating-linear-gradient(74deg,#f3e6c8 0 calc(6 * var(--upx)),#d9c69c calc(7 * var(--upx)) calc(11 * var(--upx))); }
+.yk-ing-card.veggie .yk-ing-art i::after { background: repeating-linear-gradient(112deg,#9bb45a 0 calc(8 * var(--upx)),#dfe3c4 calc(9 * var(--upx)) calc(14 * var(--upx)),#d98a3f calc(15 * var(--upx)) calc(19 * var(--upx))); }
+/* 소스는 그릇이 아니라 병이라 바탕 도형까지 바꿉니다 */
+.yk-ing-card.sauce .yk-ing-art i {
+  width: calc(48 * var(--upx));
+  border-radius: calc(7 * var(--upx)) calc(7 * var(--upx)) calc(9 * var(--upx)) calc(9 * var(--upx));
+  background: linear-gradient(90deg,#3a1a10,#6d2f18 42%,#3a1a10);
+  box-shadow: inset 0 0 0 2px #24100a;
+}
+.yk-ing-card.sauce .yk-ing-art i::after {
+  left: 28%;
+  right: 28%;
+  top: calc(-13 * var(--upx));
+  height: calc(20 * var(--upx));
+  border-radius: calc(4 * var(--upx));
+  background: linear-gradient(#c0392b,#8e2b20);
+}
+
+/* 가운데 : 불 위의 철판 */
+.yk-board { position: relative; display: grid; place-items: center; min-width: 0; }
+.yk-griddle {
+  position: relative;
+  width: min(100%,calc(880 * var(--upx)));
+  height: min(100%,calc(460 * var(--upx)));
+  border-radius: calc(16 * var(--upx));
+  background: linear-gradient(#6d675e,#403b35 22%,#26231f);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b857b, 0 calc(10 * var(--upx)) calc(22 * var(--upx)) rgba(0,0,0,.5);
+  cursor: grab;
+  touch-action: none;              /* 드래그로 볶는 조작이 화면 스크롤에 뺏기지 않게 */
+}
+.yk-griddle.dragging { cursor: grabbing; }
+/* 굽는 면. 아래쪽 여백이 불이 보이는 앞턱입니다 */
+.yk-griddle::before {
+  content: "";
+  position: absolute;
+  inset: calc(16 * var(--upx)) calc(20 * var(--upx)) calc(56 * var(--upx));
+  border-radius: calc(8 * var(--upx));
+  background:
+    radial-gradient(ellipse at 50% 30%,rgba(255,232,190,.10),rgba(0,0,0,0) 62%),
+    linear-gradient(#3b3733,#242220 58%,#191817);
+  box-shadow: inset 0 0 calc(34 * var(--upx)) rgba(0,0,0,.65);
+}
+.yk-griddle.has-asset { background: none; box-shadow: none; }
+.yk-griddle.has-asset::before,
+.yk-griddle.has-asset .yk-fire { display: none; }
+.yk-griddle-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 앞턱 아래에서 새어 나오는 불 */
+.yk-fire {
+  position: absolute;
+  left: calc(34 * var(--upx));
+  right: calc(34 * var(--upx));
+  bottom: calc(16 * var(--upx));
+  height: calc(26 * var(--upx));
+  border-radius: calc(13 * var(--upx));
+  background: linear-gradient(90deg,rgba(255,138,40,0) 0,#ff9a34 16%,#ffd583 50%,#ff9a34 84%,rgba(255,138,40,0) 100%);
+  filter: blur(calc(3 * var(--upx)));
+  animation: yk-fire-flicker 1.1s ease-in-out infinite;
+}
+/* 볶이는 면 (임시 도형) */
+.yk-food {
+  position: absolute;
+  z-index: 1;
+  left: 9%;
+  right: 9%;
+  top: 12%;
+  bottom: 24%;
+  border-radius: 46% 44% 42% 48%;
+  background:
+    radial-gradient(circle at 32% 34%,#7fa14a 0 calc(9 * var(--upx)),rgba(0,0,0,0) calc(10 * var(--upx))),
+    radial-gradient(circle at 68% 62%,#d98a3f 0 calc(8 * var(--upx)),rgba(0,0,0,0) calc(9 * var(--upx))),
+    radial-gradient(circle at 55% 24%,#8a5a2c 0 calc(11 * var(--upx)),rgba(0,0,0,0) calc(12 * var(--upx))),
+    repeating-linear-gradient(96deg,#e5c886 0 calc(11 * var(--upx)),#c9a760 calc(12 * var(--upx)) calc(20 * var(--upx)),#a8813f calc(21 * var(--upx)) calc(25 * var(--upx)));
+  box-shadow: inset 0 calc(-10 * var(--upx)) calc(18 * var(--upx)) rgba(70,40,12,.5), 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
+}
+.yk-food.has-prep-asset { background: none; box-shadow: none; }
+.yk-food-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 김 */
+.yk-steam {
+  position: absolute;
+  z-index: 2;
+  top: calc(-46 * var(--upx));
+  width: calc(26 * var(--upx));
+  height: calc(58 * var(--upx));
+  border-left: calc(5 * var(--upx)) solid rgba(245,237,215,.5);
+  border-radius: 50%;
+  animation: yk-steam-rise 2.1s ease-in-out infinite;
+  pointer-events: none;
+}
+.yk-steam.steam-one { left: 26%; }
+.yk-steam.steam-two { left: 50%; animation-delay: .7s; }
+.yk-steam.steam-three { left: 72%; animation-delay: 1.3s; }
+
+/* 오른쪽 : 진행도 · 다음 순서 */
+.yk-count { text-align: center; }
+.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.yk-next { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
+.yk-next-arrow {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: calc(96 * var(--upx));
+  color: #f6c96a;
+  font-size: calc(88 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
+}
+
+/* 아래 화살표 8칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
+   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다 */
+.yk-seq {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0,1fr);
   gap: calc(8 * var(--upx));
+  padding: calc(8 * var(--upx));
+  border: 2px solid #6b452a;
+  border-radius: calc(10 * var(--upx));
+  background: linear-gradient(#1d120b,#120b07);
 }
-.arrow-button {
-  height: calc(55 * var(--upx));
-  font-size: calc(25 * var(--upx));
-  transition: transform .12s ease,filter .12s ease,background .12s ease;
+.yk-chip {
+  display: grid;
+  place-items: center;
+  height: var(--yk-chip);
+  border: 2px solid #6b452a;
+  border-radius: calc(8 * var(--upx));
+  background: linear-gradient(#2a1a11,#170e08);
+  color: #e0a44a;
+  font-size: calc(40 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 calc(12 * var(--upx)) rgba(224,164,74,.45);
+  transition: background .12s ease, color .12s ease, transform .12s ease;
 }
-.arrow-button.pressed, .arrow-button:active {
-  filter: brightness(.68) saturate(.72);
-  transform: scale(.86);
+.yk-chip.current {
+  border-color: #ffd98a;
+  background: linear-gradient(#4a2f16,#2a1a0d);
+  color: #ffdc95;
+  box-shadow: 0 0 0 calc(3 * var(--upx)) #e8a33f, 0 0 calc(18 * var(--upx)) rgba(255,205,110,.55);
+  transform: translateY(calc(-3 * var(--upx)));
+}
+.yk-chip.done {
+  border-color: #3f3125;
+  background: linear-gradient(#241c14,#16110c);
+  color: #6d5a41;
+  text-shadow: none;
+}
+.yk-chip.wrong { animation: yk-chip-wrong .26s ease; }
+
+/* 볶은 방향으로 면이 한 번 쏠립니다 */
+.yk-board.toss-left .yk-food { animation: yk-toss-left .17s ease; }
+.yk-board.toss-right .yk-food { animation: yk-toss-right .17s ease; }
+.yk-board.toss-up .yk-food { animation: yk-toss-up .17s ease; }
+.yk-board.toss-down .yk-food { animation: yk-toss-down .17s ease; }
+
+@keyframes yk-toss-left { 50% { transform: translateX(calc(-22 * var(--upx))) rotate(-2deg); } }
+@keyframes yk-toss-right { 50% { transform: translateX(calc(22 * var(--upx))) rotate(2deg); } }
+@keyframes yk-toss-up { 50% { transform: translateY(calc(-18 * var(--upx))) scaleY(1.04); } }
+@keyframes yk-toss-down { 50% { transform: translateY(calc(14 * var(--upx))) scaleY(.96); } }
+@keyframes yk-fire-flicker { 50% { opacity: .72; transform: scaleY(.8); } }
+@keyframes yk-steam-rise {
+  0% { opacity: 0; transform: translateY(calc(14 * var(--upx))) translateX(0); }
+  45% { opacity: .75; }
+  100% { opacity: 0; transform: translateY(calc(-16 * var(--upx))) translateX(calc(11 * var(--upx))); }
+}
+@keyframes yk-chip-wrong {
+  25% { transform: translateX(calc(-6 * var(--upx))); }
+  75% { transform: translateX(calc(6 * var(--upx))); }
+}
+
+/* 좁은 화면 보정 (김치 볶기와 같은 폭에서 같은 방식으로 줄입니다) */
+@media (max-width:600px) {
+  .yk-scene { --yk-side: calc(160 * var(--upx)); --yk-chip: calc(52 * var(--upx)); gap: calc(10 * var(--upx)); }
+  .yk-griddle { height: min(100%,calc(300 * var(--upx))); }
+  .yk-ing-art i { width: calc(60 * var(--upx)); height: calc(60 * var(--upx)); }
+  .yk-count strong { font-size: calc(42 * var(--upx)); }
+  .yk-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
+  .yk-chip { font-size: calc(26 * var(--upx)); }
 }
 
 .grill-targets {
@@ -379,3 +934,279 @@
 }
 .sort-button { min-height: calc(76 * var(--upx)); }
 .mini-action { min-width: calc(180 * var(--upx)); padding: calc(12 * var(--upx)) calc(20 * var(--upx)); font-size: calc(17 * var(--upx)); }
+
+/* ── 김치전·닭꼬치 공통 화면 (engine-e5 · twoSideCook) ─────────
+   왼쪽 재료 · 가운데 조리 도구 + 게이지 · 오른쪽 진행도/조작 3단입니다.
+   두 요리가 이 틀을 함께 쓰고, 가운데 그림과 조작 키만 서로 다릅니다.
+     · 김치전 : 불 위의 팬(.ts-cooktop) 을 ↑↓ 반동으로 뒤집습니다
+     · 닭꼬치 : 숯불 화로(.two-side-pan.skewer-cook) 위 꼬치를 ←→ 로 뒤집습니다
+   (채썰기·튀김 준비의 .fp-scene 과 같은 구성입니다. 그쪽은
+    css/day-prep-minigames.css 에 있습니다)
+
+   그림은 전부 임시 CSS 도형입니다. 재료 카드에 파일을 넣으면 .has-asset 이
+   붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+
+   [공용 프레임과의 관계]  채썰기·김치 볶기와 같습니다.
+   css/minigame-frame.css 는 건드리지 않고, 아래 세 줄만 이 화면이 떠 있을
+   때 한정으로 공용 규칙을 덮어씁니다.
+     · .mini-content 기본 폭(가운데 922px)을 사이드 칸까지 쓰도록 100% 로
+     · 공용 타이머 카드는 오른쪽 '진행도' 카드와 자리가 겹치므로 숨김
+       (남은 시간은 진행도 카드 아래 가는 띠 .ts-time 이 대신 보여 줍니다)
+     · 타이틀 패널 윗줄(#miniStation)을 타이틀 아래로 내려 부제로 씁니다
+
+   칸 크기는 .ts-scene 의 --ts-side(좌우 칸 폭) 하나가 정합니다. */
+.mini-content:has(.ts-scene) { width: 100%; }
+.mini-stage:has(.ts-scene) .mini-timer { display: none; }
+.mini-overlay:has(.ts-scene) #miniStation {
+  order: 2;
+  color: var(--cream);
+  font-size: calc(19 * var(--upx));
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.ts-scene {
+  --ts-side: calc(250 * var(--upx));   /* 좌우 세로 칸 폭 */
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--ts-side) minmax(0,1fr) var(--ts-side);
+  gap: calc(16 * var(--upx));
+  user-select: none;
+}
+
+/* 좌우 세로 칸 (채썰기 .fp-col 과 같은 톤) */
+.ts-col { display: flex; flex-direction: column; gap: calc(10 * var(--upx)); min-width: 0; }
+/* .ts-col-title · .ts-panel → css/minigame-parts.css */
+
+/* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ──────────────────── */
+.ts-ing-panel { flex: 1; display: flex; flex-direction: column; }
+.ts-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: calc(10 * var(--upx)); }
+.ts-ing-card {
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(6 * var(--upx));
+  padding: calc(6 * var(--upx)) calc(5 * var(--upx));
+  color: #f0dcb4;
+}
+.ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
+.ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
+.ts-ing-art.has-asset i { display: none; }
+.ts-ing-asset { max-width: 100%; max-height: calc(150 * var(--upx)); object-fit: contain; }
+.ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
+
+/* 재료 그림 (임시 도형) — 김치전 반죽 한 그릇 */
+.ts-ing-card.pancakeBatter .ts-ing-art i {
+  border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 46% 46%;
+  background: linear-gradient(#8a5a2c,#5d3a19);
+  box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(48,26,10,.5);
+}
+.ts-ing-card.pancakeBatter .ts-ing-art i::after {
+  content: "";
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 10%;
+  height: 54%;
+  border-radius: 50% 50% 42% 42%;
+  background:
+    radial-gradient(circle at 34% 32%,#e8d69a 0 6%,transparent 7%),
+    radial-gradient(circle at 62% 58%,#8b9b48 0 5%,transparent 6%),
+    repeating-linear-gradient(112deg,#d2743c 0 calc(9 * var(--upx)),#b8532e calc(10 * var(--upx)) calc(14 * var(--upx)));
+}
+/* 재료 그림 (임시 도형) — 접시에 담긴 생 닭꼬치 */
+.ts-ing-card.skewerRaw .ts-ing-art i {
+  border-radius: 44% 44% 50% 50%;
+  background: linear-gradient(#6f6a62,#3d3934);
+  box-shadow: inset 0 calc(-8 * var(--upx)) calc(11 * var(--upx)) rgba(20,16,12,.55);
+}
+.ts-ing-card.skewerRaw .ts-ing-art i::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 16%;
+  height: 52%;
+  border-radius: calc(6 * var(--upx));
+  background:
+    repeating-linear-gradient(96deg,#e8bd9e 0 calc(11 * var(--upx)),#cf9a7c calc(12 * var(--upx)) calc(17 * var(--upx)),#8fa855 calc(18 * var(--upx)) calc(21 * var(--upx))),
+    #c9a06f;
+  box-shadow: inset 0 0 0 2px rgba(90,54,30,.35);
+}
+
+/* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
+.ts-count { text-align: center; }
+.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
+.ts-count strong b { color: #f2a03c; }
+/* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
+.ts-time { height: calc(9 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(5 * var(--upx)); background: #140c07; }
+.ts-time i { display: block; height: 100%; background: linear-gradient(90deg,#8f4a2c,#e5bf6c); transition: width .12s linear; }
+
+.ts-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
+/* 키는 안내이면서 실제 버튼입니다 (키보드·마우스 둘 다 지원).
+   지금 눌러야 할 키 한 개만 .expected 로 켜집니다. */
+.ts-keys { --ts-key-w: calc(58 * var(--upx)); display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--upx)); }
+.ts-key-row { display: flex; align-items: center; gap: calc(9 * var(--upx)); }
+/* 세로 두 줄(김치전) : 키를 한 줄로 세우고 설명은 오른쪽에 답니다 */
+.ts-keys.layout-column { flex-direction: column; align-items: flex-start; align-self: stretch; }
+.ts-keys.layout-column .ts-key-row { display: grid; grid-template-columns: var(--ts-key-w) minmax(0,1fr); align-items: center; width: 100%; }
+.ts-keys.layout-column .ts-key-link { width: var(--ts-key-w); text-align: center; }
+.ts-key {
+  width: var(--ts-key-w);
+  height: calc(54 * var(--upx));
+  padding: 0;
+  border: 2px solid #8a5c32;
+  border-radius: calc(8 * var(--upx));
+  background: linear-gradient(#efe1c0,#cbb48b);
+  color: #3a2413;
+  font-size: calc(30 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px #fff3d6, 0 calc(3 * var(--upx)) 0 #4a2e1a;
+}
+.ts-key:disabled { cursor: default; opacity: .78; }
+.ts-key.expected { border-color: #ffd98a; background: linear-gradient(#ffd88a,#e29a3c); box-shadow: inset 0 0 0 2px #fff3d6, 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
+.ts-key:not(:disabled):active,
+.ts-key.holding { transform: translateY(calc(2 * var(--upx))); box-shadow: inset 0 0 0 2px #fff3d6; }
+.ts-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-weight: 900; line-height: 1; }
+.ts-key-text { display: flex; flex-direction: column; align-items: flex-start; gap: calc(2 * var(--upx)); color: var(--gold-bright); }
+.ts-key-text b { font-size: calc(19 * var(--upx)); font-weight: 800; }
+.ts-key-text em { color: #d8bb8b; font-size: calc(14 * var(--upx)); font-style: normal; font-weight: 700; line-height: 1.25; }
+.ts-control-name { margin: 0; color: var(--gold-bright); font-size: calc(19 * var(--upx)); font-weight: 800; line-height: 1.3; }
+/* 익히는 중에만 나오는 Space 버튼. 키 안내 아래에 붙습니다 */
+.ts-action { min-width: 0; width: 100%; padding: calc(9 * var(--upx)) calc(10 * var(--upx)); font-size: calc(15 * var(--upx)); }
+
+/* ── 가운데 : 조리 도구 + 게이지 한 줄 ─────────────────────── */
+.ts-main { display: grid; grid-template-rows: minmax(0,1fr) auto; gap: calc(12 * var(--upx)); min-width: 0; }
+.ts-board {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: calc(12 * var(--upx));
+  border: calc(5 * var(--upx)) solid #4a4038;
+  border-radius: calc(14 * var(--upx));
+  background:
+    radial-gradient(ellipse at 50% 78%,rgba(255,150,60,.14),rgba(0,0,0,0) 62%),
+    linear-gradient(#2a2320,#161211);
+  box-shadow: inset 0 0 calc(40 * var(--upx)) rgba(0,0,0,.6);
+}
+/* 위쪽 뒤집기 안내 화살표 (임시 도형) */
+.ts-flip-arrow {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: calc(14 * var(--upx));
+  height: calc(64 * var(--upx));
+  border-top: calc(5 * var(--upx)) solid rgba(240,224,196,.75);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  pointer-events: none;
+}
+.ts-flip-arrow::after {
+  content: "";
+  position: absolute;
+  right: calc(-6 * var(--upx));
+  top: calc(14 * var(--upx));
+  border-block: calc(11 * var(--upx)) solid transparent;
+  border-left: calc(22 * var(--upx)) solid rgba(240,224,196,.8);
+  transform: rotate(28deg);
+}
+/* 가운데에서는 조리 도구를 크게 씁니다 (기본 크기는 위 .two-side-pan) */
+.ts-board .two-side-pan { width: calc(430 * var(--upx)); height: calc(215 * var(--upx)); margin-bottom: calc(40 * var(--upx)); }
+.ts-board .two-side-pan::after { top: calc(198 * var(--upx)); }
+.ts-board .two-side-pan.skewer-cook { width: calc(470 * var(--upx)); height: calc(250 * var(--upx)); margin-bottom: 0; }
+.ts-board .skewer-cook .cook-food { inset: calc(20 * var(--upx)) calc(-12 * var(--upx)) calc(14 * var(--upx)) calc(10 * var(--upx)); }
+/* 꼬치도 넓어진 화로에 맞춰 함께 커집니다 (개수·판정은 그대로 4개) */
+.ts-board .grill-skewer { min-width: calc(450 * var(--upx)); height: calc(46 * var(--upx)); }
+.ts-board .grill-skewer b,
+.ts-board .grill-skewer em { width: calc(48 * var(--upx)); height: calc(34 * var(--upx)); }
+.ts-board .grill-skewer em { width: calc(38 * var(--upx)); }
+.ts-board .charcoal-bed { height: calc(96 * var(--upx)); }
+/* 반동 뒤집기 단계도 같은 자리에 같은 크기로 놓입니다 */
+.ts-board .flip-rebound-scene { height: 100%; }
+.ts-board .flip-rebound-scene .two-side-pan { margin: 0; }
+/* 김치전 : 팬을 올려 놓는 화구 (임시 도형) */
+.ts-cooktop { position: relative; display: grid; place-items: center; padding-bottom: calc(30 * var(--upx)); }
+.ts-cooktop .two-side-pan,
+.flip-rebound-scene .two-side-pan { z-index: 2; }
+.ts-grate {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: calc(470 * var(--upx));
+  height: calc(250 * var(--upx));
+  border: calc(4 * var(--upx)) solid #4d4842;
+  border-radius: calc(12 * var(--upx));
+  background: repeating-linear-gradient(90deg,transparent 0 calc(30 * var(--upx)),#3d3934 calc(31 * var(--upx)) calc(36 * var(--upx)),transparent calc(37 * var(--upx)) calc(52 * var(--upx)));
+  transform: translate(-50%,-50%);
+}
+.ts-burner {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 62%;
+  width: calc(150 * var(--upx));
+  height: calc(46 * var(--upx));
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%,#cfe9ff 0 22%,#5aa8e8 38%,rgba(40,120,200,.35) 68%,rgba(0,0,0,0) 100%);
+  filter: blur(calc(2 * var(--upx)));
+  transform: translate(-50%,-50%);
+  animation: ts-burner-flicker 1.2s ease-in-out infinite alternate;
+}
+.flip-rebound-scene .ts-grate { top: 58%; }
+.flip-rebound-scene .ts-burner { top: 70%; }
+
+/* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
+.ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }
+.ts-gauge-slot .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
+/* 익힘 게이지 : 붉은 바탕에 초록 구간, 위로 튀어나온 금색 삼각 표시 */
+.ts-gauge-slot .doneness-gauge {
+  height: calc(38 * var(--upx));
+  margin-top: calc(14 * var(--upx));
+  overflow: visible;
+  border: calc(3 * var(--upx)) solid #7d5330;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,0) 1px calc(26 * var(--upx))),
+    linear-gradient(#8e2f26,#5f1d18);
+}
+.ts-gauge-slot .doneness-green {
+  left: 62%;
+  width: 20%;
+  border-inline: none;
+  background: linear-gradient(#8fbf55,#5f8a37);
+  box-shadow: inset 0 0 0 2px rgba(238,255,196,.6);
+}
+.ts-gauge-slot .progress-marker {
+  z-index: 2;
+  top: calc(-20 * var(--upx));
+  width: 0;
+  height: 0;
+  border: none;
+  border-inline: calc(13 * var(--upx)) solid transparent;
+  border-top: calc(22 * var(--upx)) solid #f3c46a;
+  background: none;
+  filter: drop-shadow(0 calc(2 * var(--upx)) 0 #7a4a1c);
+}
+.ts-gauge-slot .rebound-gauge { height: calc(32 * var(--upx)); border: calc(3 * var(--upx)) solid #7d5330; }
+.ts-gauge-slot .skewer-flip-sequence { max-width: calc(520 * var(--upx)); }
+
+@keyframes ts-burner-flicker { from { opacity: .72; transform: translate(-50%,-50%) scaleX(.96); } to { opacity: 1; transform: translate(-50%,-50%) scaleX(1.04); } }
+
+/* 좁은 화면 보정 (채썰기·김치 볶기와 같은 방식으로 줄입니다) */
+@media (max-width:600px) {
+  .ts-scene { --ts-side: calc(180 * var(--upx)); gap: calc(10 * var(--upx)); }
+  .ts-count strong { font-size: calc(42 * var(--upx)); }
+  .ts-keys { --ts-key-w: calc(44 * var(--upx)); }
+  .ts-key { height: calc(42 * var(--upx)); font-size: calc(24 * var(--upx)); }
+  .ts-key-text b { font-size: calc(15 * var(--upx)); }
+  .ts-key-text em { font-size: calc(12 * var(--upx)); }
+  .ts-ing-name { font-size: calc(16 * var(--upx)); }
+  .ts-board .two-side-pan { width: calc(300 * var(--upx)); height: calc(150 * var(--upx)); }
+  .ts-board .two-side-pan::after { top: calc(138 * var(--upx)); }
+  .ts-board .two-side-pan.skewer-cook { width: calc(330 * var(--upx)); height: calc(176 * var(--upx)); }
+  .ts-grate { width: calc(330 * var(--upx)); height: calc(180 * var(--upx)); }
+}
