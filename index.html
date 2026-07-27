@@ -223,6 +223,22 @@
   <script src="story.js"></script>
   <script src="day.js"></script>
   <script src="day-prep-minigames.js"></script>
+
+  <!--
+    미니게임 엔진. mini-engine.js(등록소)가 항상 먼저, 나머지는 순서 무관.
+    엔진을 새로 만들면 여기에 <script> 한 줄만 추가하면 됩니다.
+    game.js 도, mini-engine.js 도 고칠 필요가 없습니다.
+  -->
+  <script src="mini-engine.js"></script>          <!-- 등록소 + 공용 도우미 -->
+  <script src="engine-timing-cut.js"></script>    <!-- E1  타이밍 칼질 (밤: 정밀 손질 · 두부 썰기) -->
+  <script src="engine-direction-seq.js"></script> <!-- E3  방향 시퀀스 (볶음우동 조리) -->
+  <script src="engine-gauge-hold.js"></script>    <!-- E4  게이지 유지 (어묵탕 · 떡볶이) -->
+  <script src="engine-two-side-cook.js"></script> <!-- E5  양면 굽기 (김치전 · 닭꼬치) -->
+  <script src="engine-deep-fry.js"></script>      <!-- E6  튀기기 (새우 · 감자) -->
+  <script src="engine-one-shot.js"></script>      <!-- E11 단발 액션 (플레이팅) -->
+  <script src="engine-legacy-night.js"></script>  <!-- 설거지 · 쓰레기 + 미사용 4종 -->
+  <script src="engine-day-prep.js"></script>      <!-- 낮 준비 어댑터 (2단계에서 쪼개고 삭제) -->
+
   <script src="night.js"></script>
   <script src="qa-mode.js"></script>    <!-- QA 전용: ?qa=1, 제거 시 이 줄과 QA CSS/저장 훅 삭제 -->
   <script src="save.js"></script>

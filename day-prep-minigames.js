@@ -96,6 +96,7 @@ function startDayPrepMini(task){
   if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
   state.mini={
     type:`day-prep-${task.id}`,
+    engine:"dayPrep",          // mini-engine.js 등록소에서 찾을 이름 (engine-day-prep.js 가 등록)
     stationId:"prepTable",
     context:{mode:"dayPrep",taskId:task.id},
     complete:false,
