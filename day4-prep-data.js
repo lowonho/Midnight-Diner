@@ -33,7 +33,7 @@ const DAY4_RAPID_CUT_SEQUENCE=Object.freeze([
 // 새우 튀김옷 3단계. 예전에는 밀+계가 한 작업이고 세 단계가 자동으로 이어졌지만
 // 지금은 단계마다 별도의 준비 작업입니다. step 은 화면에 그릴 진행 칸 번호입니다.
 const SHRIMP_COAT_STEPS=Object.freeze([
-  Object.freeze({taskId:"coatShrimpFlour",step:0,id:"flour",label:"밀가루",presses:12}),
+  Object.freeze({taskId:"coatShrimpFlour",step:0,id:"flour",label:"튀김가루",presses:12}),
   Object.freeze({taskId:"coatShrimpEgg",step:1,id:"egg",label:"계란물",presses:12}),
   Object.freeze({taskId:"coatShrimpBreadcrumbs",step:2,id:"breadcrumbs",label:"빵가루",presses:12})
 ]);
