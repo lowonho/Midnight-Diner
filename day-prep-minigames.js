@@ -80,12 +80,14 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   fryStove:"assets/prep/kimchi/stove.png",
+  fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
   fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
   fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
   // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
   stirGriddle:"assets/prep/yakisoba/griddle.png",
   stirNoodles:"assets/prep/yakisoba/noodles.png",
+  stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
   stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
   stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
   stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",

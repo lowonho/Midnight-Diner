@@ -56,9 +56,23 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   })
 });
 
+const E3_FEEL_CONFIG=Object.freeze({
+  maxDirectionRun:2,
+  wrongLockMs:150,
+  actionMs:240,
+  completeDelayMs:620
+});
+
+function directionCompletionGrade(data){return (data.errors||0)===0?"perfect":"good";}
+
+function directionVisualStage(index,total){
+  if(index>=total)return 3;
+  return Math.min(2,Math.floor(index/Math.max(1,total)*3));
+}
+
 function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong,onCorrect,onComplete}){
   const data=m?.data,config=data&&DIRECTION_SEQUENCE_CONFIG[data.configId];
-  if(!data||!config||m.complete||!config.directions.includes(direction))return false;
+  if(!data||!config||m.complete||data.inputLocked||data.transitioning||data.phase==="complete")return false;
   const index=data[indexKey];
   if(!sequenceMatches(data[sequenceKey],index,direction)){
     data.errors=(data.errors||0)+1;
@@ -74,21 +88,61 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
 }
 
 registerDayPrepEngine("direction",{
-  key(m,k){
+  key(m,k,e){
     const direction=k.startsWith("arrow")?k.slice(5):"";
-    if(FRY_DIRECTION_ARROWS[direction]){kimchiFryInput(direction);return true;}
+    if(FRY_DIRECTION_ARROWS[direction]){kimchiFryInput(direction,e?.repeat);return true;}
     return false;
   }
 });
 
-// 같은 방향이 연달아 나오면 눈으로 세기 어려워서 바로 앞과는 다른 방향만 고릅니다.
-function randomFryDirections(allowedDirections,length){
+// 같은 동작을 두 번까지 이어 허용하되, 세 번 연속은 나오지 않게 합니다.
+// 좌우만 쓰는 김치 볶기도 단순 번갈아 입력이 되지 않아 E2와 손맛이 구분됩니다.
+function randomFryDirections(allowedDirections,length,random=Math.random){
   const sequence=[];
   for(let index=0;index<length;index++){
-    const pool=allowedDirections.filter(direction=>direction!==sequence[index-1]);
-    sequence.push(pool[Math.floor(Math.random()*pool.length)]);
+    const previous=sequence[index-1];
+    let runLength=0;
+    for(let cursor=index-1;cursor>=0&&sequence[cursor]===previous;cursor--)runLength++;
+    const limitedPool=runLength>=E3_FEEL_CONFIG.maxDirectionRun?allowedDirections.filter(direction=>direction!==previous):allowedDirections;
+    const pool=limitedPool.length?limitedPool:allowedDirections;
+    sequence.push(pool[Math.floor(random()*pool.length)]);
   }
   return sequence;
+}
+
+function directionSequenceClasses(index,current){
+  if(index<current)return "done";
+  if(index===current)return "current";
+  return index<=current+2?"upcoming":"queued";
+}
+
+function showDirectionGrade(grade){
+  const result=dom.miniContent.querySelector("#e3Result");
+  if(!result)return;
+  result.textContent=grade==="perfect"?"PERFECT":"GOOD";
+  result.className=`e3-result show ${grade}`;
+}
+
+function lockDirectionInput(m,targetSelector,message){
+  const data=m.data;if(data.inputLocked||data.phase==="complete")return;
+  data.inputLocked=true;
+  const work=dom.miniContent.querySelector(targetSelector);
+  work?.classList.add("input-wrong");
+  dom.miniFeedback.textContent=message;
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    data.inputLocked=false;work?.classList.remove("input-wrong");
+  },E3_FEEL_CONFIG.wrongLockMs);
+}
+
+function completeDirectionSequence(m,{workSelector,feedback,onDone}){
+  const data=m.data,grade=directionCompletionGrade(data);
+  data.transitioning=true;data.inputLocked=true;data.phase="complete";
+  dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
+  showDirectionGrade(grade);
+  dom.miniFeedback.textContent=feedback(grade);
+  audio.success();
+  setTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
 
 function setupKimchiFry(taskId="fryTofuKimchi"){
@@ -99,6 +153,9 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
     taskId,
     successes:0,
     errors:0,
+    phase:"ready",
+    inputLocked:false,
+    transitioning:false,
     total:config.total,
     allowedDirections:[...config.directions],
     ingredients:config.ingredients,
@@ -125,15 +182,18 @@ function renderKimchiFry(){
         </div>
       </aside>
 
-      <div class="kf-board" id="fryWorkArea">
+      <div class="kf-board cook-stage-${directionVisualStage(data.successes,data.total)}" id="fryWorkArea">
         <div class="kf-stove ${hasDayPrepAsset("fryStove")?"has-asset":""}">
           ${dayPrepAssetMarkup("fryStove","kf-stove-asset","가스레인지")}
           <i class="kf-flame"></i>
           <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
             ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
             <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
+            <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
+            <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
           </div>
         </div>
+        <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
 
       <aside class="kf-col">
@@ -148,25 +208,29 @@ function renderKimchiFry(){
       </aside>
 
       <div class="kf-seq" aria-label="볶기 방향 순서">
-        ${data.sequence.map((direction,index)=>`<span class="kf-chip ${index<data.successes?"done":index===data.successes?"current":""}" data-sequence-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
+        ${data.sequence.map((direction,index)=>`<span class="kf-chip ${directionSequenceClasses(index,data.successes)}" data-sequence-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
       </div>
     </div>`;
 }
 
-function kimchiFryInput(direction){
+function kimchiFryInput(direction,repeat=false){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="direction")return;
+  if(repeat)return false;
   const data=m.data;
   const current=dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`);
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"sequence",indexKey:"successes",
     onWrong(){
-      dom.miniFeedback.textContent=`${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]} 방향입니다. 켜져 있는 칸을 보고 누르세요.`;
       if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");setTimeout(()=>current.classList.remove("wrong"),260);}
+      lockDirectionInput(m,"#fryWorkArea",`${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]} 방향입니다. 나무 주걱을 그 방향으로 움직이세요.`);
     },
     onCorrect(){
       current?.classList.remove("current");current?.classList.add("done");
       dom.miniFeedback.textContent="볶기 성공";
+      dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`)?.classList.remove("upcoming");
       dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`)?.classList.add("current");
+      dom.miniContent.querySelector(`[data-sequence-index="${data.successes+2}"]`)?.classList.remove("queued");
+      dom.miniContent.querySelector(`[data-sequence-index="${data.successes+2}"]`)?.classList.add("upcoming");
       dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
       const count=dom.miniContent.querySelector("#fryCount");
       if(count)count.textContent=`${data.successes} / ${data.total}`;
@@ -174,12 +238,16 @@ function kimchiFryInput(direction){
       if(nextArrow)nextArrow.textContent=FRY_DIRECTION_ARROWS[data.sequence[data.successes]]||"✓";
       const work=dom.miniContent.querySelector("#fryWorkArea");
       if(work){
-        const tossClass=`toss-${direction}`;
-        work.classList.remove("toss-left","toss-right","toss-up","toss-down");void work.offsetWidth;work.classList.add(tossClass);
-        setTimeout(()=>work.classList.remove(tossClass),170);
+        const actionClass=`stir-${direction}`,stage=`cook-stage-${directionVisualStage(data.successes,data.total)}`;
+        work.classList.remove("stir-left","stir-right","cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
+        setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },
-    onComplete(){finishDayPrepTask(data.taskId,"두부김치용 김치 볶기 완료");}
+    onComplete(){completeDirectionSequence(m,{
+      workSelector:"#fryWorkArea",
+      feedback:grade=>grade==="perfect"?"나무 주걱으로 완벽하게 볶았습니다!":"김치를 먹음직스럽게 볶았습니다!",
+      onDone:()=>finishDayPrepTask(data.taskId,"두부김치용 김치 볶기 완료")
+    });}
   });
 }
 
@@ -223,6 +291,10 @@ registerMiniEngine("stir",{
       arrows:randomFryDirections(STIR_DIRECTIONS,STIR_TOTAL),
       index:0,
       errors:0,
+      total:STIR_TOTAL,
+      phase:"ready",
+      inputLocked:false,
+      transitioning:false,
       drag:null                                             // 드래그 시작점. 놓으면 null
     };
     dom.miniTimer.textContent=`0 / ${STIR_TOTAL}`;          // 공용 카드는 CSS 로 숨겨져 있습니다
@@ -232,15 +304,19 @@ registerMiniEngine("stir",{
   // 레퍼런스 화면에 시계가 없습니다(위 [제한시간] 참고)
   timerRuns(){return false;},
 
-  key(m,k){
+  key(m,k,e){
     const direction=k.startsWith("arrow")?k.slice(5):"";
-    if(FRY_DIRECTION_ARROWS[direction]){stirInput(direction);return true;}
+    if(FRY_DIRECTION_ARROWS[direction]){stirInput(direction,e?.repeat);return true;}
     return false;
   }
 });
 
 function renderStirScene(){
   const data=state.mini?.data;if(!data)return;
+  const noodleStrands=Array.from({length:22},(_,index)=>{
+    const x=5+(index*17)%76,y=5+(index*29)%72,turn=-42+(index*23)%84,width=26+(index*11)%25;
+    return `<i class="yk-noodle" style="--yk-x:${x}%;--yk-y:${y}%;--yk-turn:${turn}deg;--yk-width:${width}%"></i>`;
+  }).join("");
   dom.miniContent.innerHTML=`
     <div class="yk-scene">
       <aside class="yk-col">
@@ -254,15 +330,24 @@ function renderStirScene(){
         </div>
       </aside>
 
-      <div class="yk-board" id="stirWorkArea">
+      <div class="yk-board cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}" id="stirWorkArea">
         <div class="yk-griddle ${hasDayPrepAsset("stirGriddle")?"has-asset":""}" id="stirPlate">
           ${dayPrepAssetMarkup("stirGriddle","yk-griddle-asset","철판")}
           <i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>
           <div class="yk-food ${hasDayPrepAsset("stirNoodles")?"has-prep-asset":""}" id="stirFood">
+            <span class="yk-food-fallback" aria-hidden="true">
+              ${noodleStrands}
+              <b class="yk-garnish cabbage garnish-one"></b><b class="yk-garnish cabbage garnish-two"></b>
+              <b class="yk-garnish carrot garnish-one"></b><b class="yk-garnish carrot garnish-two"></b>
+              <b class="yk-garnish onion garnish-one"></b><b class="yk-garnish onion garnish-two"></b>
+            </span>
             ${dayPrepAssetMarkup("stirNoodles","yk-food-asset","볶이는 우동")}
           </div>
+          <i class="yk-spatula spatula-left ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","왼쪽 철판 뒤집개")}</i>
+          <i class="yk-spatula spatula-right ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","오른쪽 철판 뒤집개")}</i>
           <i class="yk-fire"></i>
         </div>
+        <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
 
       <aside class="yk-col">
@@ -277,7 +362,7 @@ function renderStirScene(){
       </aside>
 
       <div class="yk-seq" aria-label="볶기 방향 순서">
-        ${data.arrows.map((direction,index)=>`<span class="yk-chip ${index<data.index?"done":index===data.index?"current":""}" data-stir-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
+        ${data.arrows.map((direction,index)=>`<span class="yk-chip ${directionSequenceClasses(index,data.index)}" data-stir-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
       </div>
     </div>`;
   bindStirDrag();
@@ -288,7 +373,7 @@ function renderStirScene(){
 function bindStirDrag(){
   const plate=dom.miniContent.querySelector("#stirPlate");if(!plate)return;
   plate.addEventListener("pointerdown",event=>{
-    const m=state.mini;if(!m||m.engine!=="stir"||m.complete)return;
+    const m=state.mini;if(!m||m.engine!=="stir"||m.complete||m.data.inputLocked||m.data.phase==="complete")return;
     m.data.drag={x:event.clientX,y:event.clientY};
     plate.setPointerCapture(event.pointerId);
     plate.classList.add("dragging");
@@ -308,20 +393,24 @@ function bindStirDrag(){
   }));
 }
 
-function stirInput(direction){
+function stirInput(direction,repeat=false){
   const m=state.mini;if(!m||m.engine!=="stir"||m.complete)return;
+  if(repeat)return false;
   const data=m.data;
   const current=dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`);
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"arrows",indexKey:"index",
     onWrong(){
-      dom.miniFeedback.textContent=`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 켜져 있는 칸을 보고 볶으세요.`;
       if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");setTimeout(()=>current.classList.remove("wrong"),260);}
+      lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요.`);
     },
     onCorrect(){
       current?.classList.remove("current");current?.classList.add("done");
       dom.miniFeedback.textContent="볶기 성공";
+      dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`)?.classList.remove("upcoming");
       dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`)?.classList.add("current");
+      dom.miniContent.querySelector(`[data-stir-index="${data.index+2}"]`)?.classList.remove("queued");
+      dom.miniContent.querySelector(`[data-stir-index="${data.index+2}"]`)?.classList.add("upcoming");
       dom.miniTimer.textContent=`${data.index} / ${STIR_TOTAL}`;
       const count=dom.miniContent.querySelector("#stirCount");
       if(count)count.textContent=`${data.index} / ${STIR_TOTAL}`;
@@ -329,11 +418,15 @@ function stirInput(direction){
       if(nextArrow)nextArrow.textContent=FRY_DIRECTION_ARROWS[data.arrows[data.index]]||"✓";
       const work=dom.miniContent.querySelector("#stirWorkArea");
       if(work){
-        const tossClass=`toss-${direction}`;
-        work.classList.remove("toss-left","toss-right","toss-up","toss-down");void work.offsetWidth;work.classList.add(tossClass);
-        setTimeout(()=>work.classList.remove(tossClass),170);
+        const actionClass=`scrape-${direction}`,stage=`cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}`;
+        work.classList.remove("scrape-left","scrape-right","scrape-up","scrape-down","cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
+        setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },
-    onComplete(){finishMini(Math.max(70,100-data.errors*STIR_WRONG_PENALTY));}
+    onComplete(){completeDirectionSequence(m,{
+      workSelector:"#stirWorkArea",
+      feedback:grade=>grade==="perfect"?"철판 위 우동을 완벽하게 볶았습니다!":"우동을 맛있게 볶았습니다!",
+      onDone:()=>finishMini(Math.max(70,100-data.errors*STIR_WRONG_PENALTY))
+    });}
   });
 }

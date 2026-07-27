@@ -717,6 +717,24 @@
 
 /* 가운데 : 불 위의 철판 */
 .yk-board { position: relative; display: grid; place-items: center; min-width: 0; }
+.e3-result {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  top: 45%;
+  opacity: 0;
+  color: #f3d5a0;
+  font-size: calc(28 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: calc(2 * var(--upx));
+  line-height: 1;
+  text-shadow: 0 calc(3 * var(--upx)) 0 #5a2e13,0 0 calc(18 * var(--upx)) rgba(255,202,92,.65);
+  transform: translate(-50%,calc(8 * var(--upx))) scale(.82);
+  pointer-events: none;
+}
+.e3-result.show { animation: e3-result-pop .6s ease-out forwards; }
+.e3-result.perfect { color: #ffe083; font-size: calc(32 * var(--upx)); }
+.e3-result.good { color: #f3d5a0; }
 .yk-griddle {
   position: relative;
   width: min(100%,calc(880 * var(--upx)));
@@ -759,20 +777,99 @@
 .yk-food {
   position: absolute;
   z-index: 1;
-  left: 9%;
-  right: 9%;
-  top: 12%;
-  bottom: 24%;
-  border-radius: 46% 44% 42% 48%;
-  background:
-    radial-gradient(circle at 32% 34%,#7fa14a 0 calc(9 * var(--upx)),rgba(0,0,0,0) calc(10 * var(--upx))),
-    radial-gradient(circle at 68% 62%,#d98a3f 0 calc(8 * var(--upx)),rgba(0,0,0,0) calc(9 * var(--upx))),
-    radial-gradient(circle at 55% 24%,#8a5a2c 0 calc(11 * var(--upx)),rgba(0,0,0,0) calc(12 * var(--upx))),
-    repeating-linear-gradient(96deg,#e5c886 0 calc(11 * var(--upx)),#c9a760 calc(12 * var(--upx)) calc(20 * var(--upx)),#a8813f calc(21 * var(--upx)) calc(25 * var(--upx)));
-  box-shadow: inset 0 calc(-10 * var(--upx)) calc(18 * var(--upx)) rgba(70,40,12,.5), 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
+  left: 13%;
+  right: 13%;
+  top: 17%;
+  bottom: 27%;
+  transform-origin: center;
+  transition: filter .22s ease;
 }
-.yk-food.has-prep-asset { background: none; box-shadow: none; }
+.yk-food-fallback {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 48% 44% 46% 42%;
+  background:
+    radial-gradient(ellipse at 50% 54%,rgba(126,69,24,.32) 0 48%,rgba(76,39,17,.12) 65%,transparent 72%);
+  filter: drop-shadow(0 calc(8 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.42));
+}
+.yk-noodle {
+  position: absolute;
+  z-index: 1;
+  left: var(--yk-x);
+  top: var(--yk-y);
+  width: var(--yk-width);
+  height: calc(24 * var(--upx));
+  border-top: calc(6 * var(--upx)) solid #d9a755;
+  border-bottom: calc(5 * var(--upx)) solid #b97832;
+  border-radius: 50%;
+  box-shadow: 0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(80,38,12,.32),inset 0 calc(2 * var(--upx)) rgba(255,221,137,.32);
+  transform: rotate(var(--yk-turn));
+}
+.yk-noodle:nth-child(3n) { border-top-color:#efc873; border-bottom-color:#c88b3e; }
+.yk-noodle:nth-child(4n) { height:calc(31 * var(--upx)); border-top-color:#c88b3e; }
+.yk-garnish { position:absolute; z-index:2; display:block; box-shadow:0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.3); }
+.yk-garnish.cabbage { width:calc(42 * var(--upx)); height:calc(25 * var(--upx)); border-radius:50% 18% 46% 24%; background:linear-gradient(135deg,#c9d887,#789842); }
+.yk-garnish.cabbage.garnish-one { left:19%; top:25%; transform:rotate(-18deg); }
+.yk-garnish.cabbage.garnish-two { right:18%; bottom:24%; transform:rotate(27deg); }
+.yk-garnish.carrot { width:calc(42 * var(--upx)); height:calc(9 * var(--upx)); border-radius:calc(5 * var(--upx)); background:linear-gradient(#f3a34b,#d36a28); }
+.yk-garnish.carrot.garnish-one { right:27%; top:19%; transform:rotate(-32deg); }
+.yk-garnish.carrot.garnish-two { left:30%; bottom:18%; transform:rotate(21deg); }
+.yk-garnish.onion { width:calc(25 * var(--upx)); height:calc(25 * var(--upx)); border:calc(5 * var(--upx)) solid #9abc55; border-radius:50%; background:transparent; box-shadow:0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.25); }
+.yk-garnish.onion.garnish-one { left:47%; top:12%; }
+.yk-garnish.onion.garnish-two { right:34%; bottom:12%; transform:scale(.75); }
+.yk-food.has-prep-asset .yk-food-fallback { display:none; }
 .yk-food-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 사진처럼 나무 손잡이와 넓은 금속 날이 달린 철판 뒤집개 두 개입니다. */
+.yk-spatula {
+  position: absolute;
+  z-index: 4;
+  top: calc(-78 * var(--upx));
+  width: calc(128 * var(--upx));
+  height: calc(325 * var(--upx));
+  transform-origin: 50% 82%;
+  filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5));
+  pointer-events: none;
+}
+.yk-spatula.spatula-left { left:25%; transform:rotate(-17deg); }
+.yk-spatula.spatula-right { right:23%; transform:rotate(17deg); }
+.yk-spatula::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(36 * var(--upx));
+  height: calc(155 * var(--upx));
+  border: calc(2 * var(--upx)) solid #70431f;
+  border-radius: calc(16 * var(--upx)) calc(16 * var(--upx)) calc(7 * var(--upx)) calc(7 * var(--upx));
+  background:
+    radial-gradient(circle at 50% 28%,#686663 0 calc(3 * var(--upx)),#2f2f2e calc(4 * var(--upx)),transparent calc(5 * var(--upx))),
+    radial-gradient(circle at 50% 58%,#686663 0 calc(3 * var(--upx)),#2f2f2e calc(4 * var(--upx)),transparent calc(5 * var(--upx))),
+    linear-gradient(90deg,#8a5128,#d19a5c 43%,#a86c38 72%,#75431f);
+  box-shadow:inset calc(4 * var(--upx)) 0 calc(5 * var(--upx)) rgba(255,220,160,.2);
+  transform: translateX(-50%);
+}
+.yk-spatula::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(185 * var(--upx));
+  border: calc(2 * var(--upx)) solid #696762;
+  border-radius: calc(5 * var(--upx)) calc(5 * var(--upx)) calc(10 * var(--upx)) calc(10 * var(--upx));
+  background:linear-gradient(105deg,#77756f 0,#dedbd4 38%,#aaa7a0 64%,#74716c 100%);
+  box-shadow:inset calc(7 * var(--upx)) 0 calc(12 * var(--upx)) rgba(255,255,255,.3),inset calc(-6 * var(--upx)) 0 calc(9 * var(--upx)) rgba(45,43,40,.25);
+  clip-path:polygon(38% 0,62% 0,72% 20%,100% 30%,100% 100%,0 100%,0 30%,28% 20%);
+}
+.yk-spatula.has-prep-asset::before,.yk-spatula.has-prep-asset::after { display: none; }
+.yk-spatula-asset { width: 100%; height: 100%; object-fit: contain; }
+.yk-board.cook-stage-1 .yk-food { filter: saturate(1.06) brightness(.98); }
+.yk-board.cook-stage-2 .yk-food { filter: saturate(1.14) brightness(.92); }
+.yk-board.cook-stage-3 .yk-food { filter: saturate(1.22) brightness(.88) contrast(1.06); }
+.yk-board.cook-stage-0 .yk-steam { filter: opacity(.25); }
+.yk-board.cook-stage-1 .yk-steam { filter: opacity(.55); }
+.yk-board.cook-stage-2 .yk-steam,.yk-board.cook-stage-3 .yk-steam { filter: opacity(1); }
 /* 김 */
 .yk-steam {
   position: absolute;
@@ -845,18 +942,43 @@
   color: #6d5a41;
   text-shadow: none;
 }
+.yk-chip.queued { opacity: .44; }
+.yk-chip.upcoming { opacity: .76; }
 .yk-chip.wrong { animation: yk-chip-wrong .26s ease; }
 
-/* 볶은 방향으로 면이 한 번 쏠립니다 */
-.yk-board.toss-left .yk-food { animation: yk-toss-left .17s ease; }
-.yk-board.toss-right .yk-food { animation: yk-toss-right .17s ease; }
-.yk-board.toss-up .yk-food { animation: yk-toss-up .17s ease; }
-.yk-board.toss-down .yk-food { animation: yk-toss-down .17s ease; }
+/* 철판은 고정하고 뒤집개와 면의 동작만 방향별로 다르게 보입니다. */
+.yk-board.scrape-left .spatula-left { animation: yk-spatula-left-a .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-left .spatula-right { animation: yk-spatula-left-b .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-right .spatula-left { animation: yk-spatula-right-a .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-right .spatula-right { animation: yk-spatula-right-b .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-up .spatula-left { animation: yk-spatula-up-a .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-up .spatula-right { animation: yk-spatula-up-b .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-down .spatula-left { animation: yk-spatula-down-a .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-down .spatula-right { animation: yk-spatula-down-b .24s cubic-bezier(.2,.8,.3,1); }
+.yk-board.scrape-left .yk-food { animation: yk-food-left .24s ease; }
+.yk-board.scrape-right .yk-food { animation: yk-food-right .24s ease; }
+.yk-board.scrape-up .yk-food { animation: yk-food-up .24s ease; }
+.yk-board.scrape-down .yk-food { animation: yk-food-down .24s ease; }
+.yk-board.input-wrong .spatula-left { animation: yk-spatula-wrong-left .15s ease; }
+.yk-board.input-wrong .spatula-right { animation: yk-spatula-wrong-right .15s ease; }
+.yk-board.e3-complete .yk-food { animation: yk-food-complete .48s cubic-bezier(.2,.9,.2,1); }
 
-@keyframes yk-toss-left { 50% { transform: translateX(calc(-22 * var(--upx))) rotate(-2deg); } }
-@keyframes yk-toss-right { 50% { transform: translateX(calc(22 * var(--upx))) rotate(2deg); } }
-@keyframes yk-toss-up { 50% { transform: translateY(calc(-18 * var(--upx))) scaleY(1.04); } }
-@keyframes yk-toss-down { 50% { transform: translateY(calc(14 * var(--upx))) scaleY(.96); } }
+@keyframes yk-spatula-left-a { 50% { transform:translateX(calc(-95 * var(--upx))) rotate(-28deg); } }
+@keyframes yk-spatula-left-b { 50% { transform:translateX(calc(-72 * var(--upx))) rotate(7deg); } }
+@keyframes yk-spatula-right-a { 50% { transform:translateX(calc(72 * var(--upx))) rotate(-7deg); } }
+@keyframes yk-spatula-right-b { 50% { transform:translateX(calc(95 * var(--upx))) rotate(28deg); } }
+@keyframes yk-spatula-up-a { 50% { transform:translateX(calc(38 * var(--upx))) translateY(calc(-62 * var(--upx))) rotate(-5deg); } }
+@keyframes yk-spatula-up-b { 50% { transform:translateX(calc(-38 * var(--upx))) translateY(calc(-62 * var(--upx))) rotate(5deg); } }
+@keyframes yk-spatula-down-a { 50% { transform:translateX(calc(30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(-9deg); } }
+@keyframes yk-spatula-down-b { 50% { transform:translateX(calc(-30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(9deg); } }
+@keyframes yk-food-left { 50% { transform: translateX(calc(-34 * var(--upx))) rotate(-1.5deg); } }
+@keyframes yk-food-right { 50% { transform: translateX(calc(34 * var(--upx))) rotate(1.5deg); } }
+@keyframes yk-food-up { 50% { transform: translateY(calc(-25 * var(--upx))) scale(1.025); } }
+@keyframes yk-food-down { 50% { transform: translateY(calc(12 * var(--upx))) scaleY(.9); } }
+@keyframes yk-spatula-wrong-left { 35% { transform:rotate(-9deg); } 70% { transform:rotate(-24deg); } }
+@keyframes yk-spatula-wrong-right { 35% { transform:rotate(9deg); } 70% { transform:rotate(24deg); } }
+@keyframes yk-food-complete { 45% { transform: scale(1.035); filter: saturate(1.3) brightness(1.04); } }
+@keyframes e3-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
 @keyframes yk-fire-flicker { 50% { opacity: .72; transform: scaleY(.8); } }
 @keyframes yk-steam-rise {
   0% { opacity: 0; transform: translateY(calc(14 * var(--upx))) translateX(0); }
@@ -876,6 +998,17 @@
   .yk-count strong { font-size: calc(42 * var(--upx)); }
   .yk-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
   .yk-chip { font-size: calc(26 * var(--upx)); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .yk-board.scrape-left .yk-spatula,.yk-board.scrape-right .yk-spatula,
+  .yk-board.scrape-up .yk-spatula,.yk-board.scrape-down .yk-spatula,
+  .yk-board.scrape-left .yk-food,.yk-board.scrape-right .yk-food,
+  .yk-board.scrape-up .yk-food,.yk-board.scrape-down .yk-food,
+  .yk-board.input-wrong .yk-spatula,.yk-board.e3-complete .yk-food,.e3-result.show {
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+  }
 }
 
 .grill-targets {

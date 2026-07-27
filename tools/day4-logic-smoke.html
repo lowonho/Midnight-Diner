@@ -66,6 +66,9 @@ try{
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2,"Kimchi direction config");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4,"Yakisoba direction config");
+  const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
+  assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
+  assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
   assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5,"Heat hold target");
 
   const alternate={keys:["a","d"],expectedIndex:0};
@@ -83,6 +86,15 @@ try{
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupKimchiFry("fryTofuKimchi");
+  const kimchiDirection=state.mini.data.sequence[0];kimchiFryInput(kimchiDirection,false);
+  assert(state.mini.data.successes===1&&dom.miniContent.querySelector(".kf-wood-spatula")&&dom.miniContent.querySelector(`#fryWorkArea.stir-${kimchiDirection}`),"E3 kimchi wooden spatula action");
+  const stirMini={engine:"stir",complete:false,data:{}};state.mini=stirMini;
+  MINI_ENGINES.stir.setup(stirMini,{set:()=>{}});
+  const stirDirection=stirMini.data.arrows[0];stirInput(stirDirection,false);
+  assert(stirMini.data.index===1&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba twin spatulas and noodle action");
+  while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);
+  assert(stirMini.data.phase==="complete"&&stirMini.data.inputLocked&&dom.miniContent.querySelector("#e3Result.perfect"),"E3 full sequence grade and delayed completion state");
   state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
   processDirectionSequenceInput(state.mini,"left",{sequenceKey:"arrows",indexKey:"index",onComplete:()=>finishMini(100)});
   assert(finishedScore===100,"E3 shared controller completion");
@@ -105,6 +117,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 29";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 34";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

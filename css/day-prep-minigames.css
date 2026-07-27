@@ -1169,9 +1169,12 @@
 }
 .frying-kimchi {
   position: absolute;
+  z-index: 2;
   inset: calc(16 * var(--upx)) calc(34 * var(--upx));
   border-radius: 46%;
   background: repeating-linear-gradient(110deg,#a83d28 0 calc(17 * var(--upx)),#d66135 calc(18 * var(--upx)) calc(30 * var(--upx)),#809142 calc(31 * var(--upx)) calc(35 * var(--upx)));
+  transform-origin: center;
+  transition: filter .22s ease,background .22s ease;
 }
 .frying-pan.has-prep-asset {
   border-color: transparent;
@@ -1182,6 +1185,57 @@
 .frying-pan-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .frying-kimchi.has-prep-asset { z-index: 2; background: none; }
 .frying-kimchi-asset { width: 100%; height: 100%; object-fit: contain; }
+
+/* E3 김치 볶기 도구. 에셋 전에는 나무 손잡이와 넓은 주걱 면을 CSS로 그립니다. */
+.kf-wood-spatula {
+  position: absolute;
+  z-index: 4;
+  left: 48%;
+  top: calc(-74 * var(--upx));
+  width: calc(25 * var(--upx));
+  height: calc(230 * var(--upx));
+  border: calc(2 * var(--upx)) solid #6b3e19;
+  border-radius: calc(14 * var(--upx));
+  background: linear-gradient(90deg,#8a5123,#d49a53 42%,#a9662d 76%,#704019);
+  box-shadow: 0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.35);
+  transform: rotate(-18deg);
+  transform-origin: 50% 80%;
+  pointer-events: none;
+}
+.kf-wood-spatula::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(-17 * var(--upx));
+  width: calc(70 * var(--upx));
+  height: calc(84 * var(--upx));
+  border: calc(2 * var(--upx)) solid #6b3e19;
+  border-radius: 46% 46% calc(15 * var(--upx)) calc(15 * var(--upx));
+  background: linear-gradient(90deg,#9c622d,#d7a55e 46%,#9d612d);
+  transform: translateX(-50%);
+}
+.kf-wood-spatula.has-prep-asset { width: calc(110 * var(--upx)); border: 0; background: none; box-shadow: none; }
+.kf-wood-spatula.has-prep-asset::after { display: none; }
+.kf-wood-spatula-asset { width: 100%; height: 100%; object-fit: contain; }
+.kf-steam {
+  position: absolute;
+  z-index: 3;
+  top: calc(-28 * var(--upx));
+  width: calc(24 * var(--upx));
+  height: calc(64 * var(--upx));
+  border-left: calc(5 * var(--upx)) solid rgba(255,245,220,.6);
+  border-radius: 50%;
+  opacity: .16;
+  animation: kf-steam-rise 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.kf-steam.steam-one { left: 32%; }
+.kf-steam.steam-two { right: 30%; animation-delay: .8s; }
+.kf-board.cook-stage-1 .frying-kimchi { filter: saturate(1.08) brightness(.96); }
+.kf-board.cook-stage-2 .frying-kimchi { filter: saturate(1.18) brightness(.9); }
+.kf-board.cook-stage-3 .frying-kimchi { filter: saturate(1.25) brightness(.86) contrast(1.08); }
+.kf-board.cook-stage-1 .kf-steam { opacity: .42; }
+.kf-board.cook-stage-2 .kf-steam,.kf-board.cook-stage-3 .kf-steam { opacity: .78; }
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .kf-count { text-align: center; }
@@ -1234,6 +1288,8 @@
   background: linear-gradient(#5a4a35,#3d3123);
   color: #b6a684;
 }
+.kf-chip.queued { opacity: .46; }
+.kf-chip.upcoming { opacity: .78; }
 .kf-chip.wrong { animation: coat-wrong .26s ease; }
 /* ── 김치전 반죽 (engine-e8 재료 넣기 → engine-e9 젓기) ───────
    왼쪽 재료 · 가운데 반죽 볼 · 오른쪽 완성 개수/참고 모양 3단 구성입니다.
@@ -1532,22 +1588,27 @@
 .sk-piece.mini { width: calc(58 * var(--upx)); height: calc(36 * var(--upx)); border-radius: calc(8 * var(--upx)); }
 .sk-piece.mini.greenOnion { width: calc(52 * var(--upx)); height: calc(28 * var(--upx)); }
 .sk-piece.mini.greenOnion::after { left: calc(6 * var(--upx)); width: calc(11 * var(--upx)); height: calc(11 * var(--upx)); }
-/* 김치 볶기 : 누른 방향으로 팬이 한 번 흔들립니다 */
-.kf-board.toss-left { animation: prep-toss-left .16s ease; }
-.kf-board.toss-right { animation: prep-toss-right .16s ease; }
-.kf-board.toss-up { animation: prep-toss-up .16s ease; }
-.kf-board.toss-down { animation: prep-toss-down .16s ease; }
+/* 김치 볶기 : 팬은 고정하고 나무 주걱과 김치만 좌우로 움직입니다. */
+.kf-board.stir-left .kf-wood-spatula { animation: kf-spatula-left .24s cubic-bezier(.2,.8,.3,1); }
+.kf-board.stir-right .kf-wood-spatula { animation: kf-spatula-right .24s cubic-bezier(.2,.8,.3,1); }
+.kf-board.stir-left .frying-kimchi { animation: kf-food-left .24s ease; }
+.kf-board.stir-right .frying-kimchi { animation: kf-food-right .24s ease; }
+.kf-board.input-wrong .kf-wood-spatula { animation: e3-tool-wrong .15s ease; }
+.kf-board.e3-complete .frying-kimchi { animation: kf-food-complete .48s cubic-bezier(.2,.9,.2,1); }
 .prep-complete-flash { filter: brightness(1.12); }
 
 @keyframes prep-slice-hit { 50% { transform: translateX(calc(5 * var(--upx))) rotate(.8deg); } }
 @keyframes tough-second-tap { from { transform:scale(1); } to { transform:scale(1.08); } }
 @keyframes prep-knife-hit { 0% { opacity: 0; transform: translateY(calc(-18 * var(--upx))) rotate(15deg); } 50% { opacity: 1; transform: translateY(calc(9 * var(--upx))) rotate(8deg); } 100% { opacity: 0; transform: translateY(calc(16 * var(--upx))) rotate(8deg); } }
-@keyframes prep-toss-left { 50% { transform: translateX(calc(-11 * var(--upx))) rotate(-1deg); } }
-@keyframes prep-toss-right { 50% { transform: translateX(calc(11 * var(--upx))) rotate(1deg); } }
-@keyframes prep-toss-up { 50% { transform: translateY(calc(-11 * var(--upx))); } }
-@keyframes prep-toss-down { 50% { transform: translateY(calc(11 * var(--upx))); } }
+@keyframes kf-spatula-left { 50% { transform: translateX(calc(-105 * var(--upx))) rotate(-30deg); } }
+@keyframes kf-spatula-right { 50% { transform: translateX(calc(105 * var(--upx))) rotate(12deg); } }
+@keyframes kf-food-left { 50% { transform: translateX(calc(-24 * var(--upx))) rotate(-1.5deg); } }
+@keyframes kf-food-right { 50% { transform: translateX(calc(24 * var(--upx))) rotate(1.5deg); } }
+@keyframes kf-food-complete { 45% { transform: scale(1.045); filter: saturate(1.35) brightness(1.05); } }
+@keyframes e3-tool-wrong { 35% { transform: rotate(-12deg); } 70% { transform: rotate(-24deg); } }
 /* 가스레인지 불꽃이 천천히 일렁입니다 */
 @keyframes kf-flame-flicker { 50% { opacity: .78; transform: scaleY(.86); } }
+@keyframes kf-steam-rise { 0% { transform:translateY(calc(12 * var(--upx))); } 50% { transform:translateY(calc(-5 * var(--upx))) translateX(calc(7 * var(--upx))); } 100% { transform:translateY(calc(-20 * var(--upx))) translateX(calc(-4 * var(--upx))); } }
 @keyframes prep-pot-drop { from { opacity:0; transform:translateY(calc(-55 * var(--upx))) rotate(15deg); } to { opacity:1; transform:translateY(0); } }
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(calc(95 * var(--upx))) rotate(12deg) scale(.65); } }
 @keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(calc(42 * var(--upx))) rotate(38deg); } 100% { opacity:.25; transform:translateX(calc(58 * var(--upx))) translateY(calc(24 * var(--upx))) rotate(52deg); } }
@@ -2274,7 +2335,10 @@
   .fp-scene.input-wrong .fp-board,
   .fp-scene.stage-complete .fp-coat-station.current,
   .fp-scene.stage-complete .md-scene,
-  .fp-scene.e2-complete .fp-board > :not(.e2-result) { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .fp-scene.e2-complete .fp-board > :not(.e2-result),
+  .kf-board.stir-left .kf-wood-spatula,.kf-board.stir-right .kf-wood-spatula,
+  .kf-board.stir-left .frying-kimchi,.kf-board.stir-right .frying-kimchi,
+  .kf-board.input-wrong .kf-wood-spatula,.kf-board.e3-complete .frying-kimchi { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
 /* Day 4 · 떡 불리기 */
