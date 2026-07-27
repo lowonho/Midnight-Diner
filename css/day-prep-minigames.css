@@ -2072,6 +2072,8 @@
 }
 .fp-key.expected { border-color: #ffd98a; background: linear-gradient(#ffd88a,#e29a3c); box-shadow: inset 0 0 0 2px #fff3d6, 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
 .fp-key:active { transform: translateY(calc(2 * var(--upx))); box-shadow: inset 0 0 0 2px #fff3d6; }
+.fp-key.pressed { animation: fp-key-press .14s ease-out; }
+.fp-key.wrong { animation: fp-key-wrong .12s ease-out; border-color: #d6755e; background: linear-gradient(#efb09c,#c56752); }
 .fp-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-weight: 900; }
 .fp-control-name { margin: 0; color: var(--gold-bright); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .fp-control-desc { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; line-height: 1.35; }
@@ -2089,6 +2091,29 @@
     linear-gradient(#4d2e1a,#33200f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
 }
+.e2-result {
+  position: absolute;
+  z-index: 8;
+  top: calc(16 * var(--upx));
+  left: 50%;
+  min-width: calc(150 * var(--upx));
+  color: #f7dfaa;
+  text-align: center;
+  font-size: calc(27 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: calc(2 * var(--upx));
+  opacity: 0;
+  transform: translate(-50%,calc(8 * var(--upx))) scale(.82);
+  pointer-events: none;
+  text-shadow: 0 calc(3 * var(--upx)) 0 #4b2916,0 0 calc(12 * var(--upx)) rgba(0,0,0,.8);
+}
+.e2-result.show { animation: e2-result-pop .5s ease-out forwards; }
+.e2-result.perfect { color: #ffe083; font-size: calc(31 * var(--upx)); }
+.e2-result.good { color: #f3d5a0; }
+.fp-scene.input-wrong .fp-board { animation: fp-input-wrong .12s ease-out; }
+.fp-scene.stage-complete .fp-coat-station.current,
+.fp-scene.stage-complete .md-scene,
+.fp-scene.e2-complete .fp-board > :not(.e2-result) { animation: fp-stage-complete .45s cubic-bezier(.2,.9,.2,1); }
 
 /* ── 감자튀김 준비 : 봉투 흔들기 ──────────────────────────────
    봉투는 반투명 비닐이라 안이 비쳐 보입니다. 감자채(<i>)는 index 로 자리를
@@ -2238,6 +2263,19 @@
 @keyframes fp-roll-left { 45% { transform: translateX(calc(-14 * var(--upx))) rotate(-14deg); } 80% { transform: translateX(calc(5 * var(--upx))) rotate(5deg); } }
 @keyframes fp-roll-right { 45% { transform: translateX(calc(14 * var(--upx))) rotate(14deg); } 80% { transform: translateX(calc(-5 * var(--upx))) rotate(-5deg); } }
 @keyframes fp-spark { 0%,100% { opacity: .25; transform: rotate(var(--fp-turn)) translateY(calc(-112 * var(--upx))) scale(.7); } 50% { opacity: 1; transform: rotate(var(--fp-turn)) translateY(calc(-124 * var(--upx))) scale(1); } }
+@keyframes fp-key-press { 50% { transform: translateY(calc(3 * var(--upx))) scale(.94); filter: brightness(1.18); } }
+@keyframes fp-key-wrong { 0%,100% { transform: translateX(0); } 40% { transform: translateX(calc(-4 * var(--upx))); } 75% { transform: translateX(calc(4 * var(--upx))); } }
+@keyframes e2-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
+@keyframes fp-input-wrong { 0%,100% { transform:translateX(0); } 40% { transform:translateX(calc(-5 * var(--upx))); } 75% { transform:translateX(calc(4 * var(--upx))); } }
+@keyframes fp-stage-complete { 0% { transform:scale(1); filter:brightness(1); } 48% { transform:translateY(calc(-8 * var(--upx))) scale(1.06); filter:brightness(1.22); } 100% { transform:scale(1); filter:brightness(1); } }
+
+@media (prefers-reduced-motion:reduce) {
+  .fp-key.pressed,.fp-key.wrong,.e2-result.show,
+  .fp-scene.input-wrong .fp-board,
+  .fp-scene.stage-complete .fp-coat-station.current,
+  .fp-scene.stage-complete .md-scene,
+  .fp-scene.e2-complete .fp-board > :not(.e2-result) { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}
 
 /* Day 4 · 떡 불리기 */
 .day4-prep-flow { width:100%; padding:7px 9px; border:1px solid #735037; border-radius:9px; background:#1d120d; }

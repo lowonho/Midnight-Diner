@@ -32,6 +32,13 @@ registerDayPrepSetup("potatoMandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
 registerDayPrepSetup("shrimpCoat",taskId=>setupShrimpCoat(taskId));
 
+const E2_FEEL_CONFIG=Object.freeze({
+  pauseThresholdMs:1200,
+  wrongLockMs:120,
+  stageTransitionMs:450,
+  completeDelayMs:600
+});
+
 /* ---- 공통 판정 규칙 ----------------------------------------
    데이터 모양이 두 가지입니다.
      방향형 : data.expected("left") + data.directions(["left","right"])
@@ -102,20 +109,22 @@ function mandolineAssetKey(ingredient,successInputs=0){
 }
 
 registerDayPrepEngine("mandoline",{
-  key(m,k){
+  key(m,k,e){
     if(!k.startsWith("arrow"))return false;
     const direction=k.replace("arrow","");
-    // 축이 다른 방향키(가로 채칼에서 ↑↓)는 이 게임이 쓰지 않습니다
-    if(!m.data.directions.includes(direction))return false;
-    mandolineInput(direction);
+    if(!m.data.directions.includes(direction)){
+      rejectAlternateInput(m,`${MANDOLINE_ARROWS[m.data.expected]} 방향 차례입니다. 좌우 키를 번갈아 누르세요.`,"#mandolineScene");
+      return true;
+    }
+    mandolineInput(direction,e.repeat);
     return true;
   }
 });
 
-function setupMandoline(taskId){
+function setupMandoline(taskId,stageGrades=[]){
   const task=mandolineTask(taskId);
   if(!task||!state.mini||Number(state.day)<task.day)return;
-  setDayPrepData({mode:"mandoline",...task,successInputs:0,expected:task.directions[0]});
+  setDayPrepData(createAlternateFeelState({mode:"mandoline",...task,successInputs:0,expected:task.directions[0],stageGrades:[...stageGrades]}));
   const way=task.axis==="x"?"좌우로":"위아래로";
   dom.miniTitle.textContent=`${task.label} 채썰기`;
   dom.miniStation.textContent=`${way} 움직여 ${task.label}${koObjectParticle(task.label)} 채썰어주세요!`;
@@ -163,20 +172,68 @@ function renderMandoline(){
     keys:data.directions.map(direction=>({value:direction,glyph:MANDOLINE_ARROWS[direction]})),
     expectedIndex:data.directions.indexOf(data.expected),
     keyLink:"→",
-    controlName:`${way}<br />채칼 움직이기`
-  },direction=>mandolineInput(direction));
+    controlName:`${way}<br />채칼 움직이기`,
+    phase:data.phase
+  },direction=>mandolineInput(direction,false));
 }
 
-function mandolineInput(direction){
+function createAlternateFeelState(data){
+  return {lastCorrectAt:0,interruptions:0,mistakes:0,stageGrades:[],inputLocked:false,transitioning:false,phase:"ready",...data};
+}
+
+function acceptAlternateInput(data,input,repeat=false,now=performance.now()){
+  if(repeat||data.inputLocked||data.transitioning||data.phase==="complete")return {accepted:false,ignored:true};
+  if(!isAlternateTurn(data,input))return {accepted:false,ignored:false};
+  if(data.lastCorrectAt>0&&now-data.lastCorrectAt>E2_FEEL_CONFIG.pauseThresholdMs)data.interruptions++;
+  data.lastCorrectAt=now;
+  advanceAlternateTurn(data,input);
+  return {accepted:true};
+}
+
+function alternateCompletionGrade(data){return data.mistakes===0&&data.interruptions===0?"perfect":"good";}
+
+function resetAlternateGrade(data){data.lastCorrectAt=0;data.interruptions=0;data.mistakes=0;}
+
+function rejectAlternateInput(m,message,targetSelector){
+  const data=m.data;if(data.inputLocked||data.transitioning||data.phase==="complete")return false;
+  data.mistakes++;data.lastCorrectAt=0;data.inputLocked=true;
+  const scene=dom.miniContent.querySelector(".fp-scene"),target=targetSelector?dom.miniContent.querySelector(targetSelector):null;
+  scene?.classList.add("input-wrong");target?.classList.add("input-wrong");
+  dom.miniContent.querySelector(".fp-key.expected")?.classList.add("wrong");
+  dom.miniFeedback.textContent=message;audio.bad();
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    data.inputLocked=false;scene?.classList.remove("input-wrong");target?.classList.remove("input-wrong");
+    dom.miniContent.querySelector(".fp-key.wrong")?.classList.remove("wrong");
+  },E2_FEEL_CONFIG.wrongLockMs);
+  return false;
+}
+
+function playAlternateSuccess(completing=false){
+  if(completing)return;
+  audio.click();
+}
+
+function showAlternateGrade(grade){
+  const result=dom.miniContent.querySelector("#e2Result");
+  if(!result)return;
+  result.textContent=grade==="perfect"?"PERFECT":"GOOD";
+  result.className=`e2-result show ${grade}`;
+}
+
+function mandolineInput(direction,repeat=false){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="mandoline")return false;
   const data=m.data;
-  if(!isAlternateTurn(data,direction))return false;
-  data.successInputs++;advanceAlternateTurn(data,direction);audio.click();
+  const result=acceptAlternateInput(data,direction,repeat);
+  if(result.ignored)return false;
+  if(!result.accepted)return rejectAlternateInput(m,`${MANDOLINE_ARROWS[data.expected]} 방향 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#mandolineScene");
+  data.successInputs++;playAlternateSuccess(data.successInputs>=data.totalInputs);
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 넘어갑니다)
   renderMandoline();
   // 다시 그린 직후에 붙여야 애니메이션이 살아납니다 (튀김 준비의 흔들림과 같은 이유)
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
   if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
+  dom.miniContent.querySelector(`[data-fry-prep-key="${direction}"]`)?.classList.add("pressed");
   if(data.successInputs>=data.totalInputs)finishMandolineStep(m);
   return true;
 }
@@ -185,7 +242,16 @@ function mandolineInput(direction){
 function finishMandolineStep(m){
   const data=m.data,chain=MANDOLINE_CHAIN[data.chain];
   const next=chain[chain.indexOf(data.taskId)+1];
-  if(!next){finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);return;}
+  const stageGrade=alternateCompletionGrade(data);data.stageGrades.push(stageGrade);
+  const finalGrade=data.stageGrades.every(grade=>grade==="perfect")?"perfect":"good";
+  data.transitioning=true;data.inputLocked=true;data.phase=next?"transition":"complete";
+  dom.miniContent.querySelector(".fp-scene")?.classList.add(next?"stage-complete":"e2-complete");
+  showAlternateGrade(next?stageGrade:finalGrade);
+  if(!next){
+    dom.miniFeedback.textContent=`${data.label} 채썰기 ${finalGrade==="perfect"?"완벽하게 ":""}완료!`;audio.success();
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);},E2_FEEL_CONFIG.completeDelayMs);
+    return;
+  }
   completeDayPrepTask(data.taskId);
   dom.miniTimer.textContent="완료";
   dom.miniFeedback.textContent=`${data.label} 채썰기 완료 · ${mandolineTask(next).label} 차례입니다.`;
@@ -193,8 +259,8 @@ function finishMandolineStep(m){
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     dom.miniContent.classList.remove("prep-complete-flash");
-    setupMandoline(next);
-  },420);
+    setupMandoline(next,data.stageGrades);
+  },E2_FEEL_CONFIG.stageTransitionMs);
 }
 
 /* ============================================================
@@ -234,14 +300,14 @@ function fryPrepIngredientMarkup(item){
 function renderFryPrepScreen(view,onKey){
   const keys=view.keys.map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
   dom.miniContent.innerHTML=`
-    <div class="fp-scene">
+    <div class="fp-scene ${view.phase?`phase-${view.phase}`:""}">
       <div class="fp-col">
         <h3 class="fp-col-title starred">재료</h3>
         <div class="fp-panel fp-ing-panel">
           <div class="fp-ing-list">${view.ingredients.map(fryPrepIngredientMarkup).join("")}</div>
         </div>
       </div>
-      <div class="fp-board">${view.stage}</div>
+      <div class="fp-board">${view.stage}<span class="e2-result" id="e2Result" aria-live="polite"></span></div>
       <div class="fp-col">
         <h3 class="fp-col-title">진행도</h3>
         <div class="fp-panel fp-count">
@@ -286,7 +352,7 @@ registerDayPrepEngine("potatoStarch",{
 function setupPotatoStarchShake(){
   const config=DAY4_PREP_CONFIG.potatoStarch;if(Number(state.day)<4||!state.mini)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
-  setDayPrepData({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses});
+  setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
   dom.miniStation.textContent="봉투를 흔들어 튀김가루를 골고루 묻혀주세요!";
   dom.miniDescription.textContent=`${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 빠르게 눌러 봉투를 흔들어주세요!`;
@@ -294,14 +360,26 @@ function setupPotatoStarchShake(){
 }
 
 function potatoStarchInput(key,repeat=false){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch"||repeat)return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch")return false;
   const data=m.data;
-  if(!isAlternateTurn(data,key)){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
-  data.presses++;advanceAlternateTurn(data,key);audio.click();
+  const result=acceptAlternateInput(data,key,repeat);
+  if(result.ignored)return false;
+  if(!result.accepted)return rejectAlternateInput(m,`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#friesBagScene");
+  data.presses++;
+  const completed=data.presses>=data.total;
+  playAlternateSuccess(completed);
+  if(completed){data.transitioning=true;data.inputLocked=true;data.phase="complete";}
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 닫힙니다)
   renderPotatoStarchShake();
   playFryPrepShake("#friesBagScene",key,data.keys);
-  if(data.presses>=data.total)finishDayPrepTask(data.taskId,"감자튀김 튀김가루 묻히기 완료");
+  dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
+  if(completed){
+    const grade=alternateCompletionGrade(data);
+    dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
+    showAlternateGrade(grade);
+    dom.miniFeedback.textContent=`감자채에 튀김가루가 ${grade==="perfect"?"완벽하게 ":"골고루 "}묻었습니다!`;audio.success();
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"감자튀김 튀김가루 묻히기 완료");},E2_FEEL_CONFIG.completeDelayMs);
+  }
   return true;
 }
 
@@ -340,12 +418,13 @@ function renderPotatoStarchShake(){
     expectedIndex:data.expectedIndex,
     keyLink:"→",
     controlName:"랜덤키 연타",
-    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게<br />눌러 흔들기`
+    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게<br />눌러 흔들기`,
+    phase:data.phase
   },key=>potatoStarchInput(key,false));
 }
 
 /* ============================================================
-   3. 새우튀김 준비 — 밀가루 → 계란물 → 빵가루, 각 12회
+   3. 새우튀김 준비 — 밀가루 10회 → 계란물 8회 → 빵가루 12회
 
    화면에는 세 그릇이 순서대로 놓이고, 지금 차례인 그릇만 밝게 켜집니다.
    랜덤키 두 개를 번갈아 연타하면 새우가 그 안에서 굴러 옷이 입혀집니다.
@@ -363,7 +442,7 @@ function setupShrimpCoat(taskId){
   const item=SHRIMP_COAT_STEPS[0];
   if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
-  setDayPrepData({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses,transitioning:false});
+  setDayPrepData(createAlternateFeelState({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses}));
   dom.miniTitle.textContent="새우튀김 준비";
   dom.miniStation.textContent="튀김가루, 계란물, 빵가루를 순서대로 묻혀주세요!";
   dom.miniDescription.textContent=`${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 빠르게 눌러 ${item.label}를 묻혀주세요!`;
@@ -371,24 +450,41 @@ function setupShrimpCoat(taskId){
 }
 
 function shrimpCoatInput(key,repeat=false){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||m.data.transitioning||repeat)return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return false;
   const data=m.data;
-  if(!isAlternateTurn(data,key)){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
-  data.successes++;advanceAlternateTurn(data,key);audio.click();
+  const result=acceptAlternateInput(data,key,repeat);
+  if(result.ignored)return false;
+  if(!result.accepted)return rejectAlternateInput(m,`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#shrimpCoatStation");
+  data.successes++;
+  const stageComplete=data.successes>=data.total;
+  const finalStage=stageComplete&&data.step>=data.sequence.length-1;
+  playAlternateSuccess(stageComplete);
+  if(stageComplete){data.transitioning=true;data.inputLocked=true;data.phase=finalStage?"complete":"transition";}
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (다 입은 새우가 보이고 닫힙니다)
   renderShrimpCoat();
   playFryPrepShake("#shrimpCoatStation",key,data.keys);
-  if(data.successes>=data.total){
-    const completed=data.sequence[data.step];
-    if(data.step>=data.sequence.length-1){finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");return true;}
-    data.transitioning=true;dom.miniFeedback.textContent=`${completed.label} 완료 · 다음 코팅 재료로 넘어갑니다.`;
+  dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
+  if(stageComplete){
+    const completed=data.sequence[data.step],stageGrade=alternateCompletionGrade(data);data.stageGrades.push(stageGrade);
+    const finalGrade=data.stageGrades.every(grade=>grade==="perfect")?"perfect":"good";
+    if(finalStage){
+      dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
+      showAlternateGrade(finalGrade);
+      dom.miniFeedback.textContent=`새우 튀김옷 ${finalGrade==="perfect"?"완벽하게 ":""}준비 완료!`;audio.success();
+      setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
+      return true;
+    }
+    dom.miniContent.querySelector(".fp-scene")?.classList.add("stage-complete");
+    showAlternateGrade(stageGrade);
+    dom.miniFeedback.textContent=`${completed.label} ${stageGrade==="perfect"?"PERFECT":"GOOD"} · 다음 코팅 재료로 넘어갑니다.`;audio.success();
     setTimeout(()=>{
       if(state.mini!==m||m.complete)return;
-      data.step++;data.successes=0;data.total=data.sequence[data.step].presses;data.expectedIndex=0;data.transitioning=false;
+      data.step++;data.successes=0;data.total=data.sequence[data.step].presses;data.expectedIndex=0;data.transitioning=false;data.inputLocked=false;data.phase="ready";resetAlternateGrade(data);
       data.keys=[...BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)]];
+      dom.miniDescription.textContent=`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게 눌러 ${data.sequence[data.step].label}를 묻혀주세요!`;
       dom.miniFeedback.textContent=`새 키 ${data.keys.map(item=>item.toUpperCase()).join(" · ")}를 번갈아 누르세요.`;
       renderShrimpCoat();
-    },420);
+    },E2_FEEL_CONFIG.stageTransitionMs);
   }
   return true;
 }
@@ -437,6 +533,7 @@ function renderShrimpCoat(){
     expectedIndex:data.expectedIndex,
     keyLink:"·",
     controlName:"랜덤키 연타",
-    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 랜덤하게<br />빠르게 눌러 새우를<br />굴려주세요!`
+    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 랜덤하게<br />빠르게 눌러 새우를<br />굴려주세요!`,
+    phase:data.phase
   },key=>shrimpCoatInput(key));
 }

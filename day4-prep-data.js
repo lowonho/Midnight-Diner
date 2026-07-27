@@ -14,8 +14,8 @@ const TTEOKBOKKI_CUT_SEQUENCE=Object.freeze([
 // 단계가 바뀔 때마다 조작할 랜덤 알파벳 두 개도 새로 뽑습니다.
 const SHRIMP_COAT_TASK_ID="coatShrimp";
 const SHRIMP_COAT_STEPS=Object.freeze([
-  Object.freeze({step:0,id:"flour",label:"밀가루",presses:12}),
-  Object.freeze({step:1,id:"egg",label:"계란물",presses:12}),
+  Object.freeze({step:0,id:"flour",label:"밀가루",presses:10}),
+  Object.freeze({step:1,id:"egg",label:"계란물",presses:8}),
   Object.freeze({step:2,id:"breadcrumbs",label:"빵가루",presses:12})
 ]);
 
@@ -45,5 +45,5 @@ const SAUCE_RECIPES=Object.freeze({
 const DAY4_PREP_CONFIG=Object.freeze({
   soak:{taskId:"soakTteok",required:["tteok","water"]},
   potatoMandoline:{taskId:"sliceFriesPotato",ingredient:"potato",label:"감자",directions:["left","right"],totalInputs:10},
-  potatoStarch:{taskId:"shakeFriesStarch",requiredPresses:12,stages:[0,35,70,100]}
+  potatoStarch:{taskId:"shakeFriesStarch",requiredPresses:14,stages:[0,35,70,100]}
 });

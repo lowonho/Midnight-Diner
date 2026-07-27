@@ -9,7 +9,7 @@
 const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
-const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
+const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniStation:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
 const audio={click(){},success(){},bad(){}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
@@ -62,7 +62,8 @@ try{
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
 
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
-  assert(SHRIMP_COAT_STEPS.length===3&&PREP_TASKS.coatShrimp,"Shrimp coating must be one three-stage task");
+  assert(SHRIMP_COAT_STEPS.map(item=>item.presses).join(",")==="10,8,12"&&PREP_TASKS.coatShrimp,"Shrimp coating counts and merged task");
+  assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2,"Kimchi direction config");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4,"Yakisoba direction config");
   assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5,"Heat hold target");
@@ -70,6 +71,15 @@ try{
   const alternate={keys:["a","d"],expectedIndex:0};
   assert(isAlternateTurn(alternate,"a")&&!isAlternateTurn(alternate,"d"),"E2 first alternating key");
   advanceAlternateTurn(alternate,"a");assert(isAlternateTurn(alternate,"d"),"E2 next alternating key");
+  const smooth=createAlternateFeelState({keys:["a","d"],expectedIndex:0});
+  acceptAlternateInput(smooth,"a",false,1000);acceptAlternateInput(smooth,"d",false,1400);acceptAlternateInput(smooth,"a",false,1800);acceptAlternateInput(smooth,"d",false,2200);
+  const paused=createAlternateFeelState({keys:["a","d"],expectedIndex:0});acceptAlternateInput(paused,"a",false,1000);acceptAlternateInput(paused,"d",false,2401);
+  assert(alternateCompletionGrade(smooth)==="perfect"&&alternateCompletionGrade(paused)==="good"&&smooth.expectedIndex===0,"E2 completion grade from smooth and paused input");
+  state.day=6;state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupMandoline("sliceFriesPotato");mandolineInput("left",false);
+  assert(state.mini.data.successInputs===1&&state.mini.data.expected==="right"&&dom.miniContent.querySelector("#mandolineIngredient.move-left"),"E2 mandoline input and visual state");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
+  for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
@@ -95,6 +105,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 25";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 29";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
