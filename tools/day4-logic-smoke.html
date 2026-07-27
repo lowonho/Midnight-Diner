@@ -13,6 +13,7 @@ const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div
 const audio={click(){},success(){},bad(){}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
+function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
 </script>
 <script src="../day.js"></script>
 <script src="../day-prep-minigames.js"></script>
@@ -119,6 +120,19 @@ try{
   for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
   assert(tteokHeatMini.complete&&finishedScore===100,"E4 tteokbokki is completable with four simple heat taps");
 
+  assert(twoSideCookVisualStage(.1)==="raw"&&twoSideCookVisualStage(.55)==="golden"&&twoSideCookVisualStage(.76)==="ready"&&twoSideCookVisualStage(.95)==="over"&&twoSideCookTimingGrade(.76,TWO_SIDE_COOK_CONFIG.pancake)==="perfect"&&twoSideCookTimingGrade(.68,TWO_SIDE_COOK_CONFIG.pancake)==="good"&&twoSideCookTimingGrade(.6,TWO_SIDE_COOK_CONFIG.pancake)==="miss"&&twoSideCookTimingScore(.76,TWO_SIDE_COOK_CONFIG.pancake)===100,"E5 shared visual stages and narrow GOOD/PERFECT timing");
+  const pancakeMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeMini;
+  MINI_ENGINES.twoSideCook.setup(pancakeMini,{set:(title,description,time)=>{pancakeMini.time=time;},dish:dishById("kimchi")});
+  assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&dom.miniContent.querySelector(".doneness-good")&&dom.miniContent.querySelector(".doneness-perfect")&&!dom.miniContent.querySelector("#cookVisualLabel"),"E5 image-only cooking state with GOOD/PERFECT zones");
+  pancakeMini.data.marker=.76;updateTwoSideCookVisual(pancakeMini.data);twoSideCookAction();
+  assert(pancakeMini.data.phase==="flip"&&pancakeMini.data.hits[0]===100,"E5 pancake front timing enters flip phase");
+  assert(twoSideCookGrade({hits:[100,96,98],flipErrors:0,cookErrors:0})==="perfect"&&twoSideCookGrade({hits:[100,96,98],flipErrors:1,cookErrors:0})==="good","E5 PERFECT and GOOD grading");
+  const skewerCookMini={engine:"twoSideCook",context:{mode:"cook",dishId:"skewer"},complete:false,data:{}};state.mini=skewerCookMini;
+  MINI_ENGINES.twoSideCook.setup(skewerCookMini,{set:(title,description,time)=>{skewerCookMini.time=time;},dish:dishById("skewer")});
+  assert(TWO_SIDE_VIEW.skewer.total===SKEWER_BATCH_SIZE&&dom.miniContent.querySelectorAll(".grill-skewer").length===3,"E5 skewer view follows the three-skewer batch");
+  finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.side=1;skewerCookMini.data.marker=.76;twoSideCookAction();
+  assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
+
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
@@ -130,6 +144,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 38";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 44";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

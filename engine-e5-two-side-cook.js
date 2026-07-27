@@ -6,15 +6,14 @@
    앞면 익히기 → 뒤집기 → 뒷면 익히기. 뒤집는 방법이 요리마다 다릅니다.
 
    [단계(phase) 흐름]
-     cook  ─ 게이지가 초록 구간(58% 이상)에 오면 Space. 두 번(앞·뒤) 겪습니다.
+     cook  ─ 좁은 금색 PERFECT 또는 주변 초록 GOOD 구간에서 Space. 두 번(앞·뒤) 겪습니다.
        └ 김치전  → flip ─ ↑를 꾹 눌러 반동을 40% 이상 모으고 ↓로 뒤집기
        │           → flipping (연출 0.62초) → 다시 cook(뒷면)
-       └ 닭꼬치  → skewerFlip ─ 꼬치마다 ← 다음 → 를 0.7초 안에. 4개 반복
+       └ 닭꼬치  → skewerFlip ─ 꼬치마다 ← 다음 → 를 0.7초 안에. 3개 반복
                    → skewerFinishing (연출 0.3초) → 다시 cook(뒷면)
 
-   ⚠️ 한 엔진 안에 두 종류의 뒤집기가 들어 있습니다.
-   2단계에서 김치전/닭꼬치를 나눌지, 파라미터로 합칠지 결정하세요.
-   지금은 원래 코드 그대로입니다.
+   두 요리의 뒤집기 방식과 익는 속도만 설정으로 나누고 양면 익힘 판정,
+   조리 진행 시각화, 완료 점수는 공통 컨트롤러가 담당합니다.
 
    [화면] 두 요리가 같은 3열 화면을 씁니다. 아래 "공통 화면 틀" 구역 참고.
    판정·조작 규칙은 예전 그대로이고, 놓이는 자리만 바뀌었습니다.
@@ -22,15 +21,66 @@
    쓰는 곳: 김치전 굽기 · 닭꼬치 굽기 (game-data.js 의 game:"twoSideCook")
    ============================================================ */
 
+const TWO_SIDE_COOK_CONFIG=Object.freeze({
+  pancake:Object.freeze({
+    sideSpeeds:Object.freeze([.21,.24]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,
+    foodAsset:"cookPancakeFood"
+  }),
+  skewer:Object.freeze({
+    sideSpeeds:Object.freeze([.23,.26]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,
+    foodAsset:"cookSkewerFood"
+  })
+});
+
+function twoSideCookVisualStage(marker){
+  if(marker<.24)return "raw";
+  if(marker<.5)return "setting";
+  if(marker<.7)return "golden";
+  if(marker<.89)return "ready";
+  return "over";
+}
+
+function twoSideCookTimingGrade(marker,config){
+  if(marker>=config.perfectStart&&marker<=config.perfectEnd)return "perfect";
+  if(marker>=config.goodStart&&marker<=config.goodEnd)return "good";
+  return "miss";
+}
+
+function twoSideCookTimingScore(marker,config){
+  const grade=twoSideCookTimingGrade(marker,config),distance=Math.abs(marker-config.perfectCenter);
+  if(grade==="perfect")return Math.round(clamp(100-distance/(config.perfectEnd-config.perfectCenter)*4,96,100));
+  if(grade==="good"){
+    const goodHalf=Math.max(config.perfectCenter-config.goodStart,config.goodEnd-config.perfectCenter);
+    const perfectHalf=Math.max(config.perfectCenter-config.perfectStart,config.perfectEnd-config.perfectCenter);
+    return Math.round(clamp(92-(distance-perfectHalf)/Math.max(.001,goodHalf-perfectHalf)*14,78,92));
+  }
+  return 25;
+}
+
+function twoSideCookGrade(data){
+  return data.hits.every(score=>score>=94)&&!(data.flipErrors||0)&&!(data.cookErrors||0)?"perfect":"good";
+}
+
+function updateTwoSideCookVisual(data){
+  const stage=twoSideCookVisualStage(data.marker);
+  const pan=dom.miniContent.querySelector(".two-side-pan");
+  if(pan){
+    pan.style.setProperty("--cook-progress",data.marker.toFixed(3));
+    pan.classList.remove("cook-raw","cook-setting","cook-golden","cook-ready","cook-over");
+    pan.classList.add(`cook-${stage}`);
+  }
+}
+
 registerMiniEngine("twoSideCook", {
   setup(m, { set, dish }) {
     const isSkewer = dish.id === "skewer";
+    const dishStyle=isSkewer?"skewer":"pancake",config=TWO_SIDE_COOK_CONFIG[dishStyle];
     set(
       isSkewer ? "닭꼬치 굽기" : "김치전 굽기",
       isSkewer ? "앞면이 익으면 꼬치마다 ← →를 빠르게 눌러 하나씩 뒤집으세요." : "양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",
       26
     );
-    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: .22, hits: [], dishStyle: isSkewer ? "skewer" : "pancake", flipErrors: 0, timeLimit: m.time };
+    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: config.sideSpeeds[0], hits: [], dishStyle, flipErrors: 0, cookErrors:0, timeLimit: m.time };
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     renderTwoSideCook();
@@ -47,6 +97,7 @@ registerMiniEngine("twoSideCook", {
       data.marker = Math.min(1, data.marker + data.speed * dt);
       const marker = dom.miniContent.querySelector("#miniMarker");
       if (marker) marker.style.left = `${data.marker * 100}%`;
+      updateTwoSideCookVisual(data);
       return;
     }
     if (data.phase === "flip") { updatePancakeFlipCharge(dt); return; }
@@ -67,11 +118,12 @@ registerMiniEngine("twoSideCook", {
 
   key(m, k, e) {
     if (m.data.phase === "skewerFlip") {
-      if (e.repeat) return true;              // 꾹 누르기로 연타되는 것을 막습니다
+      if (e?.repeat) return true;              // 꾹 누르기로 연타되는 것을 막습니다
       if (k === "arrowleft") { skewerFlipInput("left"); return true; }
       if (k === "arrowright") { skewerFlipInput("right"); return true; }
     }
     if (m.data.phase === "flip") {
+      if (e?.repeat) return true;
       if (k === "arrowup") { setPancakeFlipCharge(true); return true; }
       if (k === "arrowdown") { releasePancakeFlip(); return true; }
     }
@@ -86,7 +138,11 @@ registerMiniEngine("twoSideCook", {
 function charcoalSkewerMarkup(data) {
   const coals = Array.from({ length: 9 }, () => "<i></i>").join("");
   const flipped = data?.flippedSkewers || 0;
-  const skewers = Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => `<span class="grill-skewer skewer-${index + 1} ${index < flipped ? "flipped" : ""} ${data?.phase === "skewerFlip" && index === flipped ? "current" : ""}"><i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b></span>`).join("");
+  const skewers = Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => {
+    const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.skewer.foodAsset,"grill-skewer-asset","굽는 닭꼬치");
+    const food=asset||`<i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b>`;
+    return `<span class="grill-skewer skewer-${index + 1} ${asset?"has-asset":""} ${index < flipped && data?.phase !== "cook" ? "flipped" : ""} ${data?.phase === "skewerFlip" && index === flipped ? "current" : ""}">${food}</span>`;
+  }).join("");
   return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
 }
 
@@ -100,7 +156,7 @@ function charcoalSkewerMarkup(data) {
    .fp-scene)와 같은 구성이고, 다른 것은 아래 TWO_SIDE_VIEW 표뿐입니다.
      · 왼쪽 재료 카드 목록
      · 오른쪽 조작 카드에 놓을 키(세로 두 줄 / 가로 한 줄)
-     · 진행도의 분모(김치전 1장 · 꼬치 4개)
+     · 진행도의 분모(김치전 1장 · 꼬치 3개)
 
    [단계마다 바뀌는 것]  가운데 그림 · 게이지 한 줄 · 조작 카드 세 곳뿐이고,
    바깥 3열은 그대로입니다. 예전 화면에 있던 조작 버튼 줄(.rebound-controls /
@@ -132,8 +188,8 @@ const TWO_SIDE_VIEW = Object.freeze({
   }),
   skewer: Object.freeze({
     subtitle: "녹색 타이밍에 맞춰 닭꼬치를 뒤집어주세요!",
-    ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: 4, asset: "cookSkewerRaw" }],
-    total: 4,                                   // 꼬치 4개 (뒤집기 판정 횟수와 같습니다)
+    ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: SKEWER_BATCH_SIZE, asset: "cookSkewerRaw" }],
+    total: SKEWER_BATCH_SIZE,                   // 실제 준비 배치와 같은 꼬치 3개
     keyLayout: "row",                           // 키 두 개를 가로로 (← → )
     keyLink: "→",
     controlName: "좌우<br />하나씩 뒤집기",
@@ -164,12 +220,17 @@ function twoSideKeysMarkup(view, expected = "") {
     ${view.controlName ? `<p class="ts-control-name">${view.controlName}</p>` : ""}`;
 }
 
+function pancakeCookFoodMarkup(){
+  const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.pancake.foodAsset,"pancake-food-asset","굽는 김치전");
+  return `<i class="cook-food ${asset?"has-asset":""}">${asset}<span class="cook-bubbles" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span></i>`;
+}
+
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
 function twoSideStageMarkup(data, extraClass = "") {
   if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
   return `<div class="ts-cooktop">
       <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
-      <div class="two-side-pan pancake-cook ${extraClass} side-${data.side}"><i class="cook-food"></i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
+      <div class="two-side-pan pancake-cook ${extraClass} side-${data.side}">${pancakeCookFoodMarkup()}<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
     </div>`;
 }
 
@@ -185,6 +246,7 @@ function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePer
         <div class="ts-board">
           <i class="ts-flip-arrow" aria-hidden="true"></i>
           ${board}
+          <strong class="e5-result" id="e5Result" aria-live="polite"></strong>
         </div>
         <div class="ts-gauge-slot">${gauge}</div>
       </div>
@@ -203,15 +265,15 @@ function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePer
 function renderTwoSideCook() {
   const m = state.mini; if (!m || m.engine !== "twoSideCook") return;
   const data = m.data, isSkewer = data.dishStyle === "skewer", view = TWO_SIDE_VIEW[data.dishStyle];
-  // 진행도 = 뒤집어 놓은 개수. 김치전은 1장, 닭꼬치는 4개입니다.
+  // 진행도 = 뒤집어 놓은 개수. 김치전은 1장, 닭꼬치는 준비 배치와 같은 3개입니다.
   const done = isSkewer ? (data.side === 1 ? view.total : data.flippedSkewers || 0) : (data.side === 1 ? 1 : 0);
   let board = "", gauge = "", control = "";
   if (data.phase === "cook") {
-    const sideLabel = data.side === 0 ? "앞면" : "뒷면";
-    dom.miniDescription.textContent = `${sideLabel}이 충분히 익어 포인터가 오른쪽 초록 구간에 들어오면 Space를 누르세요.`;
+    const sideLabel = data.side === 0 ? "앞면" : "뒷면", config = TWO_SIDE_COOK_CONFIG[data.dishStyle];
+    dom.miniDescription.textContent = `${sideLabel}을 익히다가 포인터가 작은 금색 구간 또는 주변 초록 구간에 들어오면 Space를 누르세요.`;
     board = twoSideStageMarkup(data);
-    gauge = `<div class="doneness-gauge"><i class="doneness-green"></i><i id="miniMarker" class="progress-marker"></i></div>
-      <p class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</p>`;
+    gauge = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
+      <p class="cut-count">${sideLabel} 익히기</p>`;
     control = `${twoSideKeysMarkup(view)}
       <button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
   } else if (data.phase === "skewerFlip" || data.phase === "skewerTurning") {
@@ -225,7 +287,7 @@ function renderTwoSideCook() {
     dom.miniDescription.textContent = "앞 버튼(↑)을 꾹 눌렀다가 반동으로 뒤 버튼(↓)을 눌러 뒤집으세요!";
     board = `<div class="flip-rebound-scene">
         <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
-        <div class="two-side-pan pancake-cook flip-ready" id="reboundPan"><i class="cook-food"></i></div>
+        <div class="two-side-pan pancake-cook flip-ready cook-ready" id="reboundPan">${pancakeCookFoodMarkup()}</div>
         <div class="rebound-arrow" id="reboundArrow">↑</div>
       </div>`;
     gauge = `<div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
@@ -249,15 +311,23 @@ function renderTwoSideCook() {
     ["pointerup", "pointercancel", "pointerleave"].forEach(type => reboundUp.addEventListener(type, () => setPancakeFlipCharge(false)));
   }
   reboundDown?.addEventListener("click", releasePancakeFlip);
+  if (data.phase === "cook") updateTwoSideCookVisual(data);
 }
 
 function twoSideCookAction() {
   const m = state.mini; if (!m || m.engine !== "twoSideCook" || m.complete) return;
   const data = m.data;
   if (data.phase === "cook") {
-    if (data.marker < .58) { dom.miniFeedback.textContent = "아직 충분히 익지 않았습니다. 오른쪽 초록 구간까지 기다리세요."; audio.bad(); return; }
-    data.hits.push(Math.round(clamp(100 - Math.abs(data.marker - .76) * 300, 25, 100))); audio.click();
-    if (data.side === 1) { finishMini(Math.round(data.hits.reduce((sum, score) => sum + score, 0) / data.hits.length)); return; }
+    const config=TWO_SIDE_COOK_CONFIG[data.dishStyle];
+    const timingGrade=twoSideCookTimingGrade(data.marker,config);
+    if (timingGrade==="miss") {
+      data.cookErrors=(data.cookErrors||0)+1;
+      const wasLate=data.marker>config.goodEnd;
+      if(wasLate){data.marker=0;updateTwoSideCookVisual(data);const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left="0%";}
+      dom.miniFeedback.textContent = wasLate?"타이밍을 놓쳤습니다. 다시 게이지를 맞추세요.":"타이밍 구간까지 조금 더 기다리세요."; audio.bad(); return;
+    }
+    data.hits.push(twoSideCookTimingScore(data.marker,config)); audio.click();
+    if (data.side === 1) { completeTwoSideCook(m); return; }
     if (data.dishStyle === "pancake") {
       data.phase = "flip"; data.flipCharge = 0; data.charging = false; renderTwoSideCook();
     } else {
@@ -268,6 +338,17 @@ function twoSideCookAction() {
   if (data.phase === "flip") {
     dom.miniFeedback.textContent = "↑를 누르고 반동을 모은 뒤 ↓로 뒤집으세요.";
   }
+}
+
+function completeTwoSideCook(m){
+  const data=m.data,grade=twoSideCookGrade(data);
+  const average=Math.round(data.hits.reduce((sum,score)=>sum+score,0)/Math.max(1,data.hits.length));
+  const score=grade==="perfect"?100:Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4,70,95));
+  const result=dom.miniContent.querySelector("#e5Result");
+  dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
+  if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.classList.add(grade,"show");}
+  dom.miniFeedback.textContent=grade==="perfect"?"양면을 완벽하게 익혔습니다!":"맛있게 구워냈습니다!";
+  audio.success();finishMini(score);
 }
 
 function beginSkewerFlip(m) {
@@ -319,7 +400,7 @@ function skewerFlipInput(direction) {
     dom.miniFeedback.textContent = `꼬치 ${SKEWER_BATCH_SIZE}개 뒤집기 완료!`;
     setTimeout(() => {
       if (state.mini !== m || m.complete) return;
-      data.phase = "cook"; data.side = 1; data.marker = 0; data.dir = 1; data.speed = .24;
+      data.phase = "cook"; data.side = 1; data.marker = 0; data.dir = 1; data.speed = TWO_SIDE_COOK_CONFIG[data.dishStyle].sideSpeeds[1];
       dom.miniFeedback.textContent = "뒤집기 완료 · 뒷면을 익히세요."; renderTwoSideCook();
     }, 300);
   } else {
@@ -360,6 +441,7 @@ function releasePancakeFlip() {
   if (charge < 40) {
     const pan = dom.miniContent.querySelector("#reboundPan");
     pan?.classList.remove("rebound-fail"); if (pan) { void pan.offsetWidth; pan.classList.add("rebound-fail"); }
+    data.flipErrors=(data.flipErrors||0)+1;
     data.flipCharge = Math.max(0, charge - 18); dom.miniFeedback.textContent = "반동이 부족합니다. ↑를 조금 더 오래 눌러주세요."; audio.bad();
     return false;
   }
@@ -373,7 +455,7 @@ function startTwoSideFlipAnimation(m) {
   m.data.phase = "flipping"; renderTwoSideCook(); audio.click();
   setTimeout(() => {
     if (state.mini !== m || m.complete) return;
-    m.data.phase = "cook"; m.data.side = 1; m.data.marker = 0; m.data.dir = 1; m.data.speed = .24;
+    m.data.phase = "cook"; m.data.side = 1; m.data.marker = 0; m.data.dir = 1; m.data.speed = TWO_SIDE_COOK_CONFIG[m.data.dishStyle].sideSpeeds[1];
     dom.miniFeedback.textContent = "뒤집기 완료 · 뒷면을 익히세요."; renderTwoSideCook();
   }, 620);
 }

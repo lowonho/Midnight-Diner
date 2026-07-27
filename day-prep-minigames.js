@@ -137,6 +137,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
+  // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
+  cookPancakeFood:"assets/prep/two-side/pancake.png",
+  cookSkewerFood:"assets/prep/two-side/skewer.png",
   tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
   tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
   tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
