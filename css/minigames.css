@@ -214,26 +214,7 @@
 .fry-ing-card { align-self: start; }
 
 /* ── 좌우 카드 공통 ─────────────────────────────────────────── */
-.fry-card {
-  display: grid;
-  gap: calc(10 * var(--upx));
-  align-content: start;
-  padding: calc(12 * var(--upx)) calc(11 * var(--upx));
-  border: 2px solid #8d5a30;
-  border-radius: calc(10 * var(--upx));
-  background: #150c08;
-  box-shadow: inset 0 0 0 2px #2c1a10, 0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.45);
-}
-.fry-card-title {
-  margin: 0;
-  color: var(--gold-bright);
-  text-align: center;
-  font-size: calc(19 * var(--upx));
-  font-weight: 900;
-  letter-spacing: .08em;
-}
-.fry-card-title.starred::before,
-.fry-card-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(14 * var(--upx)); }
+/* .fry-card 와 .fry-card-title 은 css/minigame-parts.css 에 있습니다. */
 
 /* ── 왼쪽 재료 카드 ─────────────────────────────────────────── */
 .fry-ing-figure {
@@ -680,16 +661,7 @@
 
 /* 좌우 세로 칸 */
 .yk-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
-.yk-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.yk-col-title.starred::before,
-.yk-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.yk-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .yk-col-title · .yk-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 철판에 올라가 있으므로 보여주기만 합니다 */
 .yk-ing-panel { flex: 1; display: flex; flex-direction: column; gap: calc(10 * var(--upx)); }
@@ -1006,16 +978,7 @@
 
 /* 좌우 세로 칸 (채썰기 .fp-col 과 같은 톤) */
 .ts-col { display: flex; flex-direction: column; gap: calc(10 * var(--upx)); min-width: 0; }
-.ts-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.ts-col-title.starred::before,
-.ts-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.ts-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .ts-col-title · .ts-panel → css/minigame-parts.css */
 
 /* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ──────────────────── */
 .ts-ing-panel { flex: 1; display: flex; flex-direction: column; }

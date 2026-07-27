@@ -186,32 +186,8 @@
   gap: calc(20 * var(--upx));
 }
 
-/* 좌우 카드 (재료 · 완성 개수 · 완성 예시) */
-.cut-card {
-  display: grid;
-  gap: calc(10 * var(--upx));
-  align-content: start;
-  padding: calc(12 * var(--upx)) calc(11 * var(--upx));
-  border: 2px solid #8d5a30;
-  border-radius: calc(10 * var(--upx));
-  background: #150c08;
-  box-shadow: inset 0 0 0 2px #2c1a10, 0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.45);
-}
-.cut-card-title {
-  margin: 0;
-  color: var(--gold-bright);
-  text-align: center;
-  font-size: calc(19 * var(--upx));
-  font-weight: 900;
-  letter-spacing: .08em;
-}
-.cut-card-title.starred::before,
-.cut-card-title.starred::after {
-  content: "★";
-  margin: 0 calc(9 * var(--upx));
-  color: #c88a3f;
-  font-size: calc(14 * var(--upx));
-}
+/* 좌우 카드 (재료 · 완성 개수 · 완성 예시)
+   .cut-card 와 .cut-card-title 은 css/minigame-parts.css 에 있습니다. */
 .cut-card-figure {
   position: relative;
   min-height: calc(110 * var(--upx));
@@ -535,32 +511,8 @@
   gap: calc(22 * var(--upx));
 }
 
-/* 좌우 카드 (재료 · 완성 개수 · 참고 모양) */
-.anchovy-card {
-  display: grid;
-  gap: calc(10 * var(--upx));
-  align-content: start;
-  padding: calc(12 * var(--upx)) calc(11 * var(--upx));
-  border: 2px solid #8d5a30;
-  border-radius: calc(10 * var(--upx));
-  background: #150c08;
-  box-shadow: inset 0 0 0 2px #2c1a10, 0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.45);
-}
-.anchovy-card-title {
-  margin: 0;
-  color: var(--gold-bright);
-  text-align: center;
-  font-size: calc(19 * var(--upx));
-  font-weight: 900;
-  letter-spacing: .08em;
-}
-.anchovy-card-title.starred::before,
-.anchovy-card-title.starred::after {
-  content: "★";
-  margin: 0 calc(9 * var(--upx));
-  color: #c88a3f;
-  font-size: calc(14 * var(--upx));
-}
+/* 좌우 카드 (재료 · 완성 개수 · 참고 모양)
+   .anchovy-card 와 .anchovy-card-title 은 css/minigame-parts.css 에 있습니다. */
 .anchovy-card-figure {
   position: relative;
   height: calc(190 * var(--upx));
@@ -739,16 +691,7 @@
 
 /* 좌우 세로 칸 */
 .os-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
-.os-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.os-col-title.starred::before,
-.os-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.os-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .os-col-title · .os-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 끌어다 놓거나 눌러서 집습니다. 옮긴 카드는 흐려지며 ✓ 가 붙습니다 */
 .os-ing-panel { flex: 1; display: flex; flex-direction: column; gap: calc(10 * var(--upx)); }
@@ -1049,16 +992,7 @@
 
 /* 좌우 세로 칸 (김치전 반죽의 .bt-col 과 같은 톤) */
 .kf-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
-.kf-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.kf-col-title.starred::before,
-.kf-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.kf-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .kf-col-title · .kf-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 팬에 들어가 있으므로 보여주기만 합니다 */
 .kf-ing-panel { flex: 1; display: flex; flex-direction: column; gap: calc(10 * var(--upx)); }
@@ -1260,16 +1194,7 @@
 
 /* 좌우 세로 칸 */
 .bt-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
-.bt-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.bt-col-title.starred::before,
-.bt-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.bt-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .bt-col-title · .bt-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 넣을 차례가 깜빡이고, 넣은 재료는 흐려지며 ✓ 가 붙습니다 */
 .bt-ing-panel { flex: 1; display: flex; flex-direction: column; gap: calc(10 * var(--upx)); }
@@ -1462,14 +1387,7 @@
 
 /* 좌우 세로 칸 */
 .sk-col { display: flex; flex-direction: column; gap: calc(14 * var(--upx)); min-width: 0; }
-.sk-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.sk-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .sk-col-title · .sk-panel → css/minigame-parts.css */
 
 /* 재료 카드 */
 .sk-ing-card { display: grid; gap: calc(6 * var(--upx)); cursor: grab; }
@@ -1687,16 +1605,9 @@
 
 /* 좌우 세로 칸 (닭꼬치 .sk-col 과 같은 결) */
 .sc-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
-.sc-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.sc-col-title.starred::before,
-.sc-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.sc-panel {
-  padding: calc(12 * var(--upx)) calc(11 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .sc-col-title · .sc-panel → css/minigame-parts.css
+   (원래 가로 여백만 11upx 로 혼자 달랐습니다. 되살리려면 아래 한 줄만 켜세요)
+   .sc-panel { padding-inline: calc(11 * var(--upx)); } */
 
 /* ── 왼쪽 : 재료 목표 카드 ─────────────────────────────────── */
 .sc-goal {
@@ -2011,16 +1922,7 @@
 
 /* 좌우 세로 칸 (김치 볶기 .kf-col 과 같은 톤) */
 .fp-col { display: flex; flex-direction: column; gap: calc(10 * var(--upx)); min-width: 0; }
-.fp-col-title { margin: 0; color: #e9c88b; font-size: calc(21 * var(--upx)); font-weight: 800; letter-spacing: .06em; text-align: center; }
-.fp-col-title.starred::before,
-.fp-col-title.starred::after { content: "★"; margin: 0 calc(9 * var(--upx)); color: #c88a3f; font-size: calc(15 * var(--upx)); }
-.fp-panel {
-  padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
-  border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
-}
+/* .fp-col-title · .fp-panel → css/minigame-parts.css */
 
 /* ── 왼쪽 : 재료 카드 ──────────────────────────────────────── */
 .fp-ing-panel { flex: 1; display: flex; flex-direction: column; }
