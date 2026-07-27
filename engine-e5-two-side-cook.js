@@ -16,6 +16,9 @@
    2단계에서 김치전/닭꼬치를 나눌지, 파라미터로 합칠지 결정하세요.
    지금은 원래 코드 그대로입니다.
 
+   [화면] 두 요리가 같은 3열 화면을 씁니다. 아래 "공통 화면 틀" 구역 참고.
+   판정·조작 규칙은 예전 그대로이고, 놓이는 자리만 바뀌었습니다.
+
    쓰는 곳: 김치전 굽기 · 닭꼬치 굽기 (game-data.js 의 game:"twoSideCook")
    ============================================================ */
 
@@ -23,16 +26,22 @@ registerMiniEngine("twoSideCook", {
   setup(m, { set, dish }) {
     const isSkewer = dish.id === "skewer";
     set(
-      isSkewer ? "닭꼬치 숯불 직화구이" : "김치전 양면 굽기",
+      isSkewer ? "닭꼬치 굽기" : "김치전 굽기",
       isSkewer ? "앞면이 익으면 꼬치마다 ← →를 빠르게 눌러 하나씩 뒤집으세요." : "양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",
       26
     );
-    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: .22, hits: [], dishStyle: isSkewer ? "skewer" : "pancake", flipErrors: 0 };
+    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: .22, hits: [], dishStyle: isSkewer ? "skewer" : "pancake", flipErrors: 0, timeLimit: m.time };
+    // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
+    dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     renderTwoSideCook();
   },
 
   update(m, dt) {
     const data = m.data;
+    // 공용 타이머 카드(#miniTimer)는 오른쪽 진행도 카드와 겹쳐서 숨겨 두었습니다.
+    // 대신 진행도 카드 아래 가는 띠로 남은 시간을 보여 줍니다. (시간 규칙은 그대로)
+    const timeBar = dom.miniContent.querySelector("#tsTimeBar");
+    if (timeBar && data.timeLimit) timeBar.style.width = `${clamp(m.time / data.timeLimit, 0, 1) * 100}%`;
     if (data.phase === "cook") {
       // 이 게이지는 왕복하지 않고 한 방향으로만 찹니다.
       data.marker = Math.min(1, data.marker + data.speed * dt);
@@ -81,38 +90,156 @@ function charcoalSkewerMarkup(data) {
   return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
 }
 
+/* ============================================================
+   공통 화면 틀 (컨셉 이미지 3열 구성)
+
+     [재료 카드]  [불 위의 조리 도구]  [진행도 카드 · 조작 카드]
+                  └ 아래에 게이지 한 줄
+
+   김치전과 닭꼬치가 이 틀을 함께 씁니다. 채썰기·튀김 준비(engine-e2 의
+   .fp-scene)와 같은 구성이고, 다른 것은 아래 TWO_SIDE_VIEW 표뿐입니다.
+     · 왼쪽 재료 카드 목록
+     · 오른쪽 조작 카드에 놓을 키(세로 두 줄 / 가로 한 줄)
+     · 진행도의 분모(김치전 1장 · 꼬치 4개)
+
+   [단계마다 바뀌는 것]  가운데 그림 · 게이지 한 줄 · 조작 카드 세 곳뿐이고,
+   바깥 3열은 그대로입니다. 예전 화면에 있던 조작 버튼 줄(.rebound-controls /
+   .skewer-flip-controls)은 오른쪽 조작 카드의 키 버튼이 대신합니다.
+   그래서 id(#reboundUp · #reboundDown · #skewerFlipLeft · #skewerFlipRight)를
+   키 버튼이 그대로 물려받았고, 아래 판정 코드는 손대지 않았습니다.
+
+   [공용 프레임과의 관계]  채썰기·김치 볶기와 같습니다.
+   ui-mini-frame.js 와 css/minigame-frame.css 는 건드리지 않고,
+   이 화면이 떠 있을 때만 적용되는 규칙으로 덮어씁니다.
+   (css/minigames.css 의 "김치전·닭꼬치 공통 화면" 구역 참고)
+
+   그림은 전부 임시 CSS 도형입니다. day-prep-minigames.js 의
+   DAY_PREP_ASSET_PATHS 경로에 파일을 넣으면 .has-asset 이 붙어
+   도형이 꺼지고 <img> 가 대신 보입니다.
+   ============================================================ */
+
+const TWO_SIDE_VIEW = Object.freeze({
+  pancake: Object.freeze({
+    subtitle: "녹색 타이밍에 맞춰 김치전을 뒤집어주세요!",
+    ingredients: [{ id: "pancakeBatter", label: "김치전 반죽", count: 1, asset: "cookPancakeBatter" }],
+    total: 1,                                   // 김치전 1장
+    keyLayout: "column",                        // 키 두 개를 세로로 (앞 버튼 ↓ 뒤 버튼)
+    keyLink: "↓",
+    keys: [
+      { id: "reboundUp", glyph: "↑", name: "앞 버튼", desc: "(꾹 누르기)" },
+      { id: "reboundDown", glyph: "↓", name: "뒤 버튼", desc: "(반동으로<br />누르기)" }
+    ]
+  }),
+  skewer: Object.freeze({
+    subtitle: "녹색 타이밍에 맞춰 닭꼬치를 뒤집어주세요!",
+    ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: 4, asset: "cookSkewerRaw" }],
+    total: 4,                                   // 꼬치 4개 (뒤집기 판정 횟수와 같습니다)
+    keyLayout: "row",                           // 키 두 개를 가로로 (← → )
+    keyLink: "→",
+    controlName: "좌우<br />하나씩 뒤집기",
+    keys: [
+      { id: "skewerFlipLeft", glyph: "←" },
+      { id: "skewerFlipRight", glyph: "→" }
+    ]
+  })
+});
+
+// 왼쪽 재료 카드 한 장
+function twoSideIngredientMarkup(item) {
+  const asset = dayPrepAssetMarkup(item.asset, "ts-ing-asset", item.label);
+  return `<div class="ts-ing-card ${item.id}">
+      <div class="ts-ing-art ${asset ? "has-asset" : ""}"><i></i>${asset}</div>
+      <p class="ts-ing-name">${item.label} <b>×${item.count}</b></p>
+    </div>`;
+}
+
+// 오른쪽 조작 카드의 키. expected 에 든 id 가 지금 눌러야 할 키입니다.
+// 키를 쓰지 않는 단계(익히는 중 · 뒤집는 연출)에서는 안내로만 보여 줍니다.
+function twoSideKeysMarkup(view, expected = "") {
+  const keys = view.keys.map(key => `<span class="ts-key-row">
+      <button type="button" class="ts-key ${key.id === expected ? "expected" : ""}" id="${key.id}" ${expected ? "" : "disabled"}>${key.glyph}</button>
+      ${key.name ? `<span class="ts-key-text"><b>${key.name}</b>${key.desc ? `<em>${key.desc}</em>` : ""}</span>` : ""}
+    </span>`).join(`<span class="ts-key-link" aria-hidden="true">${view.keyLink}</span>`);
+  return `<div class="ts-keys layout-${view.keyLayout}">${keys}</div>
+    ${view.controlName ? `<p class="ts-control-name">${view.controlName}</p>` : ""}`;
+}
+
+// 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
+function twoSideStageMarkup(data, extraClass = "") {
+  if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
+  return `<div class="ts-cooktop">
+      <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
+      <div class="two-side-pan pancake-cook ${extraClass} side-${data.side}"><i class="cook-food"></i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
+    </div>`;
+}
+
+function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePercent }) {
+  return `<div class="ts-scene">
+      <aside class="ts-col">
+        <h3 class="ts-col-title starred">재료</h3>
+        <div class="ts-panel ts-ing-panel">
+          <div class="ts-ing-list">${view.ingredients.map(twoSideIngredientMarkup).join("")}</div>
+        </div>
+      </aside>
+      <div class="ts-main">
+        <div class="ts-board">
+          <i class="ts-flip-arrow" aria-hidden="true"></i>
+          ${board}
+        </div>
+        <div class="ts-gauge-slot">${gauge}</div>
+      </div>
+      <aside class="ts-col">
+        <h3 class="ts-col-title">진행도</h3>
+        <div class="ts-panel ts-count">
+          <strong><b>${done}</b> / ${total}</strong>
+          <div class="ts-time" title="남은 시간"><i id="tsTimeBar" style="width:${timePercent}%"></i></div>
+        </div>
+        <h3 class="ts-col-title">조작</h3>
+        <div class="ts-panel ts-control">${control}</div>
+      </aside>
+    </div>`;
+}
+
 function renderTwoSideCook() {
   const m = state.mini; if (!m || m.engine !== "twoSideCook") return;
-  const data = m.data, isSkewer = data.dishStyle === "skewer";
+  const data = m.data, isSkewer = data.dishStyle === "skewer", view = TWO_SIDE_VIEW[data.dishStyle];
+  // 진행도 = 뒤집어 놓은 개수. 김치전은 1장, 닭꼬치는 4개입니다.
+  const done = isSkewer ? (data.side === 1 ? view.total : data.flippedSkewers || 0) : (data.side === 1 ? 1 : 0);
+  let board = "", gauge = "", control = "";
   if (data.phase === "cook") {
     const sideLabel = data.side === 0 ? "앞면" : "뒷면";
     dom.miniDescription.textContent = `${sideLabel}이 충분히 익어 포인터가 오른쪽 초록 구간에 들어오면 Space를 누르세요.`;
-    dom.miniContent.innerHTML = `
-      <div class="two-side-pan ${isSkewer ? "skewer-cook" : "pancake-cook"} side-${data.side}">${isSkewer ? charcoalSkewerMarkup(data) : '<i class="cook-food"></i><i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>'}</div>
-      <div class="doneness-gauge"><i class="doneness-green"></i><i id="miniMarker" class="progress-marker"></i></div>
-      <div class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</div>
-      <button class="mini-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
+    board = twoSideStageMarkup(data);
+    gauge = `<div class="doneness-gauge"><i class="doneness-green"></i><i id="miniMarker" class="progress-marker"></i></div>
+      <p class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</p>`;
+    control = `${twoSideKeysMarkup(view)}
+      <button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
   } else if (data.phase === "skewerFlip" || data.phase === "skewerTurning") {
     const current = Math.min(data.flippedSkewers || 0, SKEWER_BATCH_SIZE - 1);
     dom.miniDescription.textContent = "현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";
-    dom.miniContent.innerHTML = `
-      <div class="two-side-pan skewer-cook skewer-flip-ready side-0">${charcoalSkewerMarkup(data)}</div>
-      <div class="skewer-flip-sequence" aria-label="꼬치 뒤집기 진행도">${Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => `<span class="skewer-flip-pair ${index < (data.flippedSkewers || 0) ? "done" : index === current ? "current" : ""}"><b>←</b><b>→</b></span>`).join("")}</div>
-      <div class="cut-count" id="skewerFlipLabel">꼬치 ${(data.flippedSkewers || 0) + 1} / ${SKEWER_BATCH_SIZE} · <strong>${data.flipStep === 1 ? "→" : "←"}</strong> 입력</div>
-      <div class="skewer-flip-controls"><button id="skewerFlipLeft" type="button">← 왼쪽</button><button id="skewerFlipRight" type="button">→ 오른쪽</button></div>`;
+    board = twoSideStageMarkup(data, "skewer-flip-ready");
+    gauge = `<div class="skewer-flip-sequence" aria-label="꼬치 뒤집기 진행도">${Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => `<span class="skewer-flip-pair ${index < (data.flippedSkewers || 0) ? "done" : index === current ? "current" : ""}"><b>←</b><b>→</b></span>`).join("")}</div>
+      <p class="cut-count" id="skewerFlipLabel">꼬치 ${(data.flippedSkewers || 0) + 1} / ${SKEWER_BATCH_SIZE} · <strong>${data.flipStep === 1 ? "→" : "←"}</strong> 입력</p>`;
+    control = twoSideKeysMarkup(view, data.flipStep === 1 ? "skewerFlipRight" : "skewerFlipLeft");
   } else if (data.phase === "flip") {
-    dom.miniDescription.textContent = "↑를 꾹 눌러 팬을 당긴 뒤, 반동 게이지가 충분히 차면 ↓를 눌러 뒤집으세요.";
-    dom.miniContent.innerHTML = `
-      <div class="flip-rebound-scene">
+    dom.miniDescription.textContent = "앞 버튼(↑)을 꾹 눌렀다가 반동으로 뒤 버튼(↓)을 눌러 뒤집으세요!";
+    board = `<div class="flip-rebound-scene">
+        <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
         <div class="two-side-pan pancake-cook flip-ready" id="reboundPan"><i class="cook-food"></i></div>
         <div class="rebound-arrow" id="reboundArrow">↑</div>
-      </div>
-      <div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
-      <div class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</div>
-      <div class="rebound-controls"><button id="reboundUp" type="button">↑ 꾹 누르기</button><button id="reboundDown" type="button">↓ 반동 뒤집기</button></div>`;
+      </div>`;
+    gauge = `<div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
+      <p class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</p>`;
+    control = twoSideKeysMarkup(view, (data.flipCharge || 0) < 40 ? "reboundUp" : "reboundDown");
   } else {
-    dom.miniContent.innerHTML = `<div class="two-side-pan ${isSkewer ? "skewer-cook" : "pancake-cook"} flipping">${isSkewer ? charcoalSkewerMarkup(data) : '<i class="cook-food"></i>'}</div><div class="cut-count">${isSkewer ? `꼬치 ${SKEWER_BATCH_SIZE}개` : "김치전"} 뒤집는 중…</div>`;
+    board = twoSideStageMarkup(data, "flipping");
+    gauge = `<p class="cut-count">${isSkewer ? `꼬치 ${SKEWER_BATCH_SIZE}개` : "김치전"} 뒤집는 중…</p>`;
+    control = twoSideKeysMarkup(view);
   }
+  dom.miniContent.innerHTML = twoSideScreenMarkup(view, {
+    board, gauge, control, done, total: view.total,
+    timePercent: data.timeLimit ? clamp(m.time / data.timeLimit, 0, 1) * 100 : 100
+  });
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click", miniAction);
   dom.miniContent.querySelector("#skewerFlipLeft")?.addEventListener("click", () => skewerFlipInput("left"));
   dom.miniContent.querySelector("#skewerFlipRight")?.addEventListener("click", () => skewerFlipInput("right"));
@@ -154,6 +281,13 @@ function updateSkewerFlipPrompt(data) {
   if (label) label.innerHTML = `꼬치 ${(data.flippedSkewers || 0) + 1} / ${SKEWER_BATCH_SIZE} · <strong>${data.flipStep === 1 ? "→" : "←"}</strong> 입력`;
   const pair = dom.miniContent.querySelector(".skewer-flip-pair.current");
   pair?.classList.toggle("left-done", data.flipStep === 1);
+  // 오른쪽 조작 카드에서 지금 눌러야 할 키 한 개만 켜 둡니다
+  markExpectedTwoSideKey(data.flipStep === 1 ? "skewerFlipRight" : "skewerFlipLeft");
+}
+
+// 조작 카드의 키 하나만 밝게 켭니다 (채썰기의 .fp-key.expected 와 같은 표시)
+function markExpectedTwoSideKey(id) {
+  dom.miniContent.querySelectorAll(".ts-key").forEach(key => key.classList.toggle("expected", key.id === id));
 }
 
 function skewerFlipInput(direction) {
@@ -213,6 +347,8 @@ function updatePancakeFlipCharge(dt) {
   const bar = dom.miniContent.querySelector("#reboundGaugeBar"), label = dom.miniContent.querySelector("#reboundLabel");
   if (bar) bar.style.width = `${charge}%`;
   if (label) label.textContent = `반동 충전 ${charge}% · ${charge < 40 ? "더 당기세요" : charge <= 88 ? "↓로 뒤집기!" : "반동이 너무 강해요"}`;
+  // 반동이 충분히 차면 조작 카드의 켜진 키가 ↑ 에서 ↓ 로 넘어갑니다
+  markExpectedTwoSideKey(charge < 40 ? "reboundUp" : "reboundDown");
   // 들어올리는 거리는 --upx(화면 크기 비례 단위, css/base.css) 배수로 줍니다.
   // px 로 주면 창을 줄였을 때 팬만 크게 튑니다.
   if (pan) pan.style.transform = `translateY(calc(${-Math.min(26, charge * .26)} * var(--upx))) rotate(${Math.min(3, charge * .03)}deg)`;

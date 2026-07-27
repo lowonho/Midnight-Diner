@@ -9,7 +9,7 @@
 const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
-const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniDescription:{textContent:""}};
+const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
 const audio={click(){},success(){},bad(){}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
@@ -61,8 +61,8 @@ try{
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
-  state.mini={complete:false,data:{...createDirectionSequence("yakisoba"),index:11,sequence:Array(12).fill("left")}};
-  directionSequenceInput("left");
+  state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
+  processDirectionSequenceInput(state.mini,"left",{sequenceKey:"arrows",indexKey:"index",onComplete:()=>finishMini(100)});
   assert(finishedScore===100,"E3 shared controller completion");
 
   finishedScore=null;
@@ -76,9 +76,10 @@ try{
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
   assert(WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 data config");
-  assert(ONE_SHOT_CONFIG.plateKimchi.completion==="night"&&ONE_SHOT_CONFIG.brothPour.completion==="dayPrep","E11 completion routes");
-  finishedScore=null;const oneShotMini={complete:false,data:createOneShotData("plateKimchi")};state.mini=oneShotMini;
-  triggerOneShot(oneShotMini);assert(finishedScore===100&&oneShotMini.data.status==="complete","E11 shared one-shot completion");
+  assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
+  state.mini={complete:false,data:{}};
+  startOneShot({vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
+  assert(oneShotData().items.length===2&&oneShotData().vessel===ONE_SHOT_VESSELS.plate,"E11 shared one-shot data");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 

@@ -69,15 +69,69 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   batterKimchi:"assets/prep/batter/kimchi.png",
   batterBowl:"assets/prep/batter/bowl.png",
   batterDone:"assets/prep/batter/batter-done.png",
+  // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
+  sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",
+  sauceBottleChili:"assets/prep/sauce/bottle-chili.png",
+  sauceBottleGochujang:"assets/prep/sauce/bottle-gochujang.png",
+  sauceBottleOligosaccharide:"assets/prep/sauce/bottle-oligosaccharide.png",
+  sauceBowl:"assets/prep/sauce/bowl.png",
+  // 김치 볶기 (engine-e3). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
+  fryStove:"assets/prep/kimchi/stove.png",
+  fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
+  fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
+  stirGriddle:"assets/prep/yakisoba/griddle.png",
+  stirNoodles:"assets/prep/yakisoba/noodles.png",
+  stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
+  stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
+  stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 채칼 (engine-e2). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // 감자는 손질 단계별 그림 11장을 따로 씁니다 (아래 potatoMandoline0~10)
+  mandolinePlate:"assets/prep/mandoline/plate.png",
+  mandolineCabbage:"assets/prep/mandoline/cabbage.png",
+  mandolineCarrot:"assets/prep/mandoline/carrot.png",
   knife:"assets/prep/effects/knife.png",
   ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
   ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
-  potatoStarch0:"assets/prep/day4/fries/starch-0.png",
-  potatoStarch35:"assets/prep/day4/fries/starch-35.png",
-  potatoStarch70:"assets/prep/day4/fries/starch-70.png",
-  potatoStarch100:"assets/prep/day4/fries/starch-100.png",
+  // 감자튀김 준비(봉투 흔들기). 봉투 그림 한 장에 감자채와 튀김가루가 함께 있고,
+  // 숫자는 가루가 묻은 정도(%)입니다. 파일이 없으면 CSS 임시 봉투를 씁니다.
+  friesShakeBag0:"assets/prep/day4/fries/shake-bag-0.png",
+  friesShakeBag35:"assets/prep/day4/fries/shake-bag-35.png",
+  friesShakeBag70:"assets/prep/day4/fries/shake-bag-70.png",
+  friesShakeBag100:"assets/prep/day4/fries/shake-bag-100.png",
+  friesPotatoStrips:"assets/prep/day4/fries/potato-strips.png",
+  // 새우튀김 준비. 그릇 3개와 새우의 옷 입은 상태 4장입니다.
+  shrimpVesselFlour:"assets/prep/day3/shrimp/vessel-flour.png",
+  shrimpVesselEgg:"assets/prep/day3/shrimp/vessel-egg.png",
+  shrimpVesselBreadcrumbs:"assets/prep/day3/shrimp/vessel-breadcrumbs.png",
+  shrimpStateRaw:"assets/prep/day3/shrimp/shrimp-raw.png",
+  shrimpStateFlour:"assets/prep/day3/shrimp/shrimp-flour.png",
+  shrimpStateEgg:"assets/prep/day3/shrimp/shrimp-egg.png",
+  shrimpStateBreadcrumbs:"assets/prep/day3/shrimp/shrimp-breadcrumbs.png",
+  shrimpIngFlour:"assets/prep/day3/shrimp/ing-flour.png",
+  shrimpIngEgg:"assets/prep/day3/shrimp/ing-egg.png",
+  shrimpIngCrumbs:"assets/prep/day3/shrimp/ing-breadcrumbs.png",
+  // 단발 액션 (engine-e11 · 플레이팅 / 냄비에 넣기 / 육수 넣기).
+  // 재료 그림은 카드·그릇·참고 모양에 같은 파일이 쓰입니다.
+  // 그릇은 빈 그릇(osPlate/osPot)과 완성 참고용(osPlateDone/osPotDone) 두 장입니다.
+  osTofuSlices:"assets/prep/one-shot/tofu-slices.png",
+  osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
+  osRadish:"assets/prep/one-shot/radish.png",
+  osFishCake:"assets/prep/one-shot/fish-cake.png",
+  osAnchovy:"assets/prep/one-shot/anchovy.png",
+  osBroth:"assets/prep/one-shot/broth.png",
+  osPlate:"assets/prep/one-shot/plate.png",
+  osPlateDone:"assets/prep/one-shot/plate-done.png",
+  osPot:"assets/prep/one-shot/pot.png",
+  osPotDone:"assets/prep/one-shot/pot-done.png",
+  // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
+  // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
+  cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
   tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
   tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
   tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
@@ -117,7 +171,7 @@ function isDayPrepMini(mini=state.mini){
 // Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
 // 칸 번호는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
 function day4PrepFlowMarkup(menuId,currentIndex){
-  const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","전분 털기"];
+  const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","튀김가루 묻히기"];
   return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
 }
 
