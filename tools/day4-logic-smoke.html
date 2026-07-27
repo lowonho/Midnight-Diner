@@ -69,7 +69,7 @@ try{
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
   assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5,"Heat hold target");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.potAsset!==HEAT_CONFIG.tteokbokki.potAsset&&HEAT_CONFIG.oden.response!==HEAT_CONFIG.tteokbokki.response,"Heat shared config and dish variants");
 
   const alternate={keys:["a","d"],expectedIndex:0};
   assert(isAlternateTurn(alternate,"a")&&!isAlternateTurn(alternate,"d"),"E2 first alternating key");
@@ -102,9 +102,22 @@ try{
   finishedScore=null;
   const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
-  heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;
+  const initialHeatPower=heatMini.data.power;
+  MINI_ENGINES.heat.key(heatMini,"arrowright",{repeat:false});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini,"arrowright");
+  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5,"E4 hold input, oden pot, and shared flame");
+  heatMini.data.enteredZone=true;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
+  MINI_ENGINES.heat.update(heatMini,.4);
+  assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
+  heatMini.data.value=.5;heatMini.data.power=.5;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
-  assert(finishedScore===100,"E4 immediate success at hold target");
+  assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
+  const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
+  MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
+  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki","E4 tteokbokki pot variant");
+  finishedScore=null;
+  for(let tap=0;tap<4;tap++){setHeatControl(tteokHeatMini,1,true);setHeatControl(tteokHeatMini,1,false);}
+  for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
+  assert(tteokHeatMini.complete&&finishedScore===100,"E4 tteokbokki is completable with four simple heat taps");
 
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
@@ -117,6 +130,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 34";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 38";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

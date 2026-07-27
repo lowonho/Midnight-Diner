@@ -581,6 +581,102 @@
 @keyframes fryer-oil-shake { 0%,100%{transform:translateY(calc(-168 * var(--upx))) rotate(0)} 25%{transform:translate(calc(-16 * var(--upx)),calc(-174 * var(--upx))) rotate(-4deg)} 70%{transform:translate(calc(14 * var(--upx)),calc(-162 * var(--upx))) rotate(4deg)} }
 @keyframes space-key-pulse { from{transform:translateY(0);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 0 rgba(255,224,141,0)} to{transform:translateY(-3px);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 13px rgba(255,224,141,.55)} }
 
+/* E4 화력 유지 — 냄비 이미지는 메뉴별 한 장, 나머지 연출은 CSS로 공유합니다. */
+.heat-cook-scene {
+  --flame-level:.45;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:min(100%,calc(620 * var(--upx)));
+  min-height:calc(300 * var(--upx));
+  margin:0 auto calc(10 * var(--upx));
+}
+.heat-pot-stack { position:relative; width:min(100%,calc(520 * var(--upx))); height:calc(255 * var(--upx)); }
+.heat-pot {
+  position:absolute;
+  z-index:3;
+  left:50%;
+  top:calc(58 * var(--upx));
+  width:calc(320 * var(--upx));
+  height:calc(125 * var(--upx));
+  border:calc(7 * var(--upx)) solid #55514c;
+  border-top:0;
+  border-radius:calc(12 * var(--upx)) calc(12 * var(--upx)) calc(82 * var(--upx)) calc(82 * var(--upx));
+  background:linear-gradient(90deg,#34312e,#77716a 46%,#4b4742 72%,#292725);
+  box-shadow:inset 0 calc(-13 * var(--upx)) calc(18 * var(--upx)) rgba(0,0,0,.28),0 calc(10 * var(--upx)) calc(13 * var(--upx)) rgba(0,0,0,.42);
+  transform:translateX(-50%);
+  transform-origin:50% 90%;
+}
+.heat-pot.has-asset { border-color:transparent; background:none; box-shadow:none; }
+.heat-pot.has-asset .heat-pot-fallback { display:none; }
+.heat-pot-asset { position:absolute; z-index:2; inset:calc(-35 * var(--upx)) calc(-18 * var(--upx)) calc(-5 * var(--upx)); width:calc(356 * var(--upx)); height:calc(165 * var(--upx)); object-fit:contain; }
+.heat-pot-surface {
+  position:absolute;
+  z-index:2;
+  left:calc(-5 * var(--upx));
+  right:calc(-5 * var(--upx));
+  top:calc(-23 * var(--upx));
+  height:calc(65 * var(--upx));
+  overflow:hidden;
+  border:calc(6 * var(--upx)) solid #77716b;
+  border-radius:50%;
+  box-shadow:inset 0 calc(5 * var(--upx)) calc(9 * var(--upx)) rgba(255,218,147,.2),0 calc(4 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.28);
+}
+.heat-pot-surface.oden { background:radial-gradient(ellipse at 50% 35%,#d9a557,#9d642d 72%); }
+.heat-pot-surface.tteokbokki { background:radial-gradient(ellipse at 50% 35%,#d85d32,#8f261d 72%); }
+.heat-pot-handle { position:absolute; z-index:1; top:calc(21 * var(--upx)); width:calc(55 * var(--upx)); height:calc(25 * var(--upx)); border:calc(7 * var(--upx)) solid #4b4742; background:#292725; }
+.heat-pot-handle.left { left:calc(-61 * var(--upx)); border-radius:calc(13 * var(--upx)) 0 0 calc(13 * var(--upx)); }
+.heat-pot-handle.right { right:calc(-61 * var(--upx)); border-radius:0 calc(13 * var(--upx)) calc(13 * var(--upx)) 0; }
+.heat-pot-surface > i { position:absolute; display:block; }
+.heat-radish { left:15%; top:33%; width:calc(58 * var(--upx)); height:calc(23 * var(--upx)); border-radius:50%; background:#eee7ce; transform:rotate(-8deg); }
+.heat-fishcake { width:calc(65 * var(--upx)); height:calc(21 * var(--upx)); border-radius:calc(6 * var(--upx)); background:#dda355; box-shadow:inset 0 calc(-4 * var(--upx)) rgba(156,90,31,.18); }
+.heat-fishcake.fishcake-one { left:39%; top:18%; transform:rotate(12deg); }
+.heat-fishcake.fishcake-two { right:12%; top:48%; transform:rotate(-9deg); }
+.heat-green-onion { left:38%; top:57%; width:calc(25 * var(--upx)); height:calc(12 * var(--upx)); border-radius:50%; background:#72954b; }
+.heat-tteok { width:calc(55 * var(--upx)); height:calc(18 * var(--upx)); border-radius:calc(11 * var(--upx)); background:linear-gradient(#f3dfbd,#d6bd91); box-shadow:inset 0 calc(-3 * var(--upx)) rgba(121,70,35,.18); }
+.heat-tteok.tteok-one { left:8%; top:25%; transform:rotate(12deg); }
+.heat-tteok.tteok-two { left:31%; top:48%; transform:rotate(-10deg); }
+.heat-tteok.tteok-three { right:27%; top:18%; transform:rotate(19deg); }
+.heat-tteok.tteok-four { right:7%; top:52%; transform:rotate(-15deg); }
+.heat-pot-surface.tteokbokki .heat-fishcake { width:calc(52 * var(--upx)); height:calc(17 * var(--upx)); background:#d7964e; }
+.heat-cabbage { left:48%; top:13%; width:calc(39 * var(--upx)); height:calc(24 * var(--upx)); border-radius:50% 18% 45% 24%; background:linear-gradient(135deg,#c8d98c,#789848); transform:rotate(-21deg); }
+.heat-boil-bubbles { position:absolute; z-index:4; left:5%; right:5%; top:calc(-24 * var(--upx)); height:calc(70 * var(--upx)); overflow:hidden; border-radius:50%; pointer-events:none; }
+.heat-boil-bubbles i { position:absolute; bottom:10%; width:calc(17 * var(--upx)); height:calc(11 * var(--upx)); border:calc(3 * var(--upx)) solid rgba(255,229,177,.72); border-radius:50%; animation:heat-bubble-rise 1.35s ease-in infinite; }
+.heat-boil-bubbles i:nth-child(1) { left:13%; animation-delay:-.2s; }
+.heat-boil-bubbles i:nth-child(2) { left:32%; width:calc(12 * var(--upx)); animation-delay:-.8s; }
+.heat-boil-bubbles i:nth-child(3) { left:50%; width:calc(21 * var(--upx)); animation-delay:-.45s; }
+.heat-boil-bubbles i:nth-child(4) { left:69%; width:calc(14 * var(--upx)); animation-delay:-1.05s; }
+.heat-boil-bubbles i:nth-child(5) { left:83%; animation-delay:-.65s; }
+.heat-steam { position:absolute; z-index:5; top:calc(24 * var(--upx)); width:calc(25 * var(--upx)); height:calc(65 * var(--upx)); border-left:calc(5 * var(--upx)) solid rgba(247,239,219,.64); border-radius:50%; animation:heat-steam-rise 1.8s ease-in-out infinite; pointer-events:none; }
+.heat-steam.steam-one { left:29%; }
+.heat-steam.steam-two { left:49%; animation-delay:-.7s; }
+.heat-steam.steam-three { left:68%; animation-delay:-1.2s; }
+.heat-burner { position:absolute; z-index:4; left:50%; bottom:calc(4 * var(--upx)); width:calc(260 * var(--upx)); height:calc(58 * var(--upx)); border:calc(7 * var(--upx)) solid #4e4a45; border-radius:50%; background:#201e1c; box-shadow:inset 0 0 0 calc(5 * var(--upx)) #79736b,0 calc(7 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.42); transform:translateX(-50%); }
+.heat-flames { position:absolute; z-index:1; left:7%; right:7%; bottom:60%; height:calc(68 * var(--upx)); opacity:1; filter:drop-shadow(0 0 calc(8 * var(--upx)) rgba(74,164,255,.72)); transform:scaleY(var(--flame-level)); transform-origin:50% 100%; transition:transform .14s ease,filter .14s ease; }
+.heat-flames i { position:absolute; bottom:0; width:calc(42 * var(--upx)); height:calc(61 * var(--upx)); border-radius:55% 45% 52% 48%; background:radial-gradient(ellipse at 50% 78%,#baf2ff 0 20%,#3ba3ef 45%,#1c5fc8 70%,transparent 73%); transform:rotate(45deg); animation:heat-flame-flicker .48s ease-in-out infinite alternate; }
+.heat-flames i:nth-child(1) { left:1%; animation-delay:-.12s; }
+.heat-flames i:nth-child(2) { left:21%; animation-delay:-.31s; }
+.heat-flames i:nth-child(3) { left:41%; animation-delay:-.05s; }
+.heat-flames i:nth-child(4) { left:61%; animation-delay:-.39s; }
+.heat-flames i:nth-child(5) { left:80%; animation-delay:-.21s; }
+.heat-cook-scene.fire-high .heat-flames i { background:radial-gradient(ellipse at 50% 78%,#fff2a2 0 14%,#ff9b36 35%,#3b9fea 66%,transparent 70%); animation-duration:.27s; }
+.heat-cook-scene.fire-low .heat-flames { filter:brightness(.86) saturate(.95) drop-shadow(0 0 calc(6 * var(--upx)) rgba(74,164,255,.62)); }
+.heat-cook-scene.heat-low .heat-boil-bubbles,.heat-cook-scene.heat-low .heat-steam { filter:opacity(.2); }
+.heat-cook-scene.heat-ideal .heat-boil-bubbles,.heat-cook-scene.heat-ideal .heat-steam { filter:opacity(.72); }
+.heat-cook-scene.heat-high .heat-boil-bubbles,.heat-cook-scene.heat-high .heat-steam { filter:opacity(1); }
+.heat-cook-scene.heat-high .heat-boil-bubbles i { animation-duration:.72s; }
+.heat-cook-scene.heat-high .heat-steam { animation-duration:1.05s; }
+.heat-cook-scene.heat-high .heat-pot { animation:heat-pot-overheat .28s ease-in-out infinite alternate; }
+.heat-cook-scene.heat-high .heat-pot.tteokbokki::after { content:""; position:absolute; z-index:6; left:62%; top:calc(-37 * var(--upx)); width:calc(12 * var(--upx)); height:calc(12 * var(--upx)); border-radius:50%; background:#c74428; animation:heat-sauce-pop .72s ease-out infinite; }
+.heat-state-label { min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); }
+.heat-cook-scene.heat-ideal .heat-state-label { border-color:#809e4e; color:#ddeb9e; box-shadow:0 0 calc(13 * var(--upx)) rgba(139,184,83,.25); }
+.heat-cook-scene.heat-high .heat-state-label { border-color:#b7553d; color:#ffc0a0; }
+.e4-result { position:absolute; z-index:10; left:50%; top:45%; opacity:0; color:#f3d5a0; font-size:calc(29 * var(--upx)); font-weight:1000; letter-spacing:calc(2 * var(--upx)); text-shadow:0 calc(3 * var(--upx)) 0 #5a2e13,0 0 calc(18 * var(--upx)) rgba(255,202,92,.65); transform:translate(-50%,calc(8 * var(--upx))) scale(.82); pointer-events:none; }
+.e4-result.show { animation:e4-result-pop .62s ease-out forwards; }
+.e4-result.perfect { color:#ffe083; font-size:calc(33 * var(--upx)); }
+.heat-cook-scene.e4-complete .heat-pot { animation:heat-pot-complete .5s cubic-bezier(.2,.9,.2,1); }
+
 .heat-wrap {
   width: 100%;
   display: grid;
@@ -597,7 +693,9 @@
   color: #ffd98b;
   font-size: calc(25 * var(--upx));
   cursor: pointer;
+  transition:transform .1s ease,filter .1s ease;
 }
+.heat-button.pressed { transform:translateY(calc(3 * var(--upx))) scale(.94); filter:brightness(1.25); }
 .heat-gauge {
   position: relative;
   height: calc(38 * var(--upx));
@@ -624,7 +722,18 @@
   border: 1px solid #5b2b17;
   background: #fff4c0;
   transform: translateX(-50%);
+  transition:left .06s linear;
 }
+.heat-hold { width:100%; height:calc(13 * var(--upx)); overflow:hidden; border:2px solid #6e4930; border-radius:calc(7 * var(--upx)); background:#1b100b; }
+.heat-hold > i { display:block; width:0; height:100%; background:linear-gradient(90deg,#799b50,#d9e887); transition:width .08s linear; }
+
+@keyframes heat-bubble-rise { 0% { opacity:0; transform:translateY(calc(17 * var(--upx))) scale(.5); } 35% { opacity:.8; } 100% { opacity:0; transform:translateY(calc(-30 * var(--upx))) scale(1.12); } }
+@keyframes heat-steam-rise { 0% { opacity:0; transform:translateY(calc(14 * var(--upx))); } 45% { opacity:.75; } 100% { opacity:0; transform:translateY(calc(-22 * var(--upx))) translateX(calc(9 * var(--upx))); } }
+@keyframes heat-flame-flicker { from { margin-bottom:0; filter:brightness(.92); } to { margin-bottom:calc(5 * var(--upx)); filter:brightness(1.14); } }
+@keyframes heat-pot-overheat { from { transform:translateX(-50%) rotate(-.45deg); } to { transform:translateX(-50%) rotate(.45deg); } }
+@keyframes heat-sauce-pop { 0% { opacity:0; transform:translateY(0) scale(.5); } 35% { opacity:1; } 100% { opacity:0; transform:translateY(calc(-31 * var(--upx))) translateX(calc(11 * var(--upx))) scale(.8); } }
+@keyframes heat-pot-complete { 45% { transform:translateX(-50%) translateY(calc(-7 * var(--upx))) scale(1.035); filter:brightness(1.12); } }
+@keyframes e4-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 80% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
 
 /* ── 볶음우동 조리 · 철판 볶기 (engine-e3 · stir) ──────────────
    왼쪽 재료 · 가운데 철판 · 오른쪽 진행도/다음 순서 3단이고,
@@ -1005,7 +1114,10 @@
   .yk-board.scrape-up .yk-spatula,.yk-board.scrape-down .yk-spatula,
   .yk-board.scrape-left .yk-food,.yk-board.scrape-right .yk-food,
   .yk-board.scrape-up .yk-food,.yk-board.scrape-down .yk-food,
-  .yk-board.input-wrong .yk-spatula,.yk-board.e3-complete .yk-food,.e3-result.show {
+  .yk-board.input-wrong .yk-spatula,.yk-board.e3-complete .yk-food,.e3-result.show,
+  .heat-flames i,.heat-boil-bubbles i,.heat-steam,
+  .heat-cook-scene.heat-high .heat-pot,.heat-cook-scene.heat-high .heat-pot.tteokbokki::after,
+  .heat-cook-scene.e4-complete .heat-pot,.e4-result.show {
     animation-duration:.01ms !important;
     animation-iteration-count:1 !important;
   }

@@ -91,6 +91,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
   stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
   stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
+  heatOdenPot:"assets/prep/heat/oden-pot.png",
+  heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
   // 채칼 (engine-e2). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // 감자는 손질 단계별 그림 11장을 따로 씁니다 (아래 potatoMandoline0~10)
   mandolinePlate:"assets/prep/mandoline/plate.png",
