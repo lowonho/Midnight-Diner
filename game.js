@@ -83,7 +83,6 @@ const state = {
   menuSelectionDraft:[],
   prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
-  day4RapidCutNoticeShown:false,
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
   prepRun:null,
@@ -387,7 +386,7 @@ function updateUI(force=false) {
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
   if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
-  else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();maybeShowDay4CutUnlock();}
+  else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
   else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
   updateRelationshipUI();
   updatePrompt();

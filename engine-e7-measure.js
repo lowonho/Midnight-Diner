@@ -20,7 +20,7 @@ registerDayPrepSetup("tteokbokkiSauce",()=>setupSauceRecipe("tteokbokki"));
 registerDayPrepEngine("sauceMeasure",{});
 
 function setupYakisobaSauce(){
-  if(Number(state.day)!==3)return;
+  if(Number(state.day)<3)return;
   setupSauceRecipe("yakisoba");
 }
 

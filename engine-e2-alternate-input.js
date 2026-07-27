@@ -4,7 +4,7 @@
    E2 번갈아 입력 — 게임 5개
 
      양배추 채썰기 · 당근 채썰기   ← → 를 번갈아
-     감자 채썰기                   ↑ ↓ 를 번갈아
+     감자 채썰기                   ← → 를 번갈아
      감자 전분 털기                무작위 알파벳 두 개를 번갈아
      새우 튀김옷                   무작위 알파벳 두 개를 번갈아
 
@@ -19,13 +19,12 @@
      서로 완전히 다른 그림이고, 이쪽은 에셋 작업 영역입니다.
 
    [새우 튀김옷]
-   밀가루 · 계란물 · 빵가루가 각각 별도의 준비 작업입니다.
-   한 단계를 끝내면 화면이 닫히고, 다음 재료대로 걸어가 다시 시작합니다.
-   단계 정보는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 에 있습니다.
+   밀가루 → 계란물 → 빵가루를 하나의 준비 작업에서 연속 진행합니다.
+   각 단계가 바뀔 때 무작위 알파벳 쌍을 새로 뽑습니다.
    ============================================================ */
 
 registerDayPrepSetup("mandoline",taskId=>setupMandoline(taskId));
-registerDayPrepSetup("potatoMandoline",()=>setupPotatoMandoline());
+registerDayPrepSetup("potatoMandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
 registerDayPrepSetup("shrimpCoat",taskId=>setupShrimpCoat(taskId));
 
@@ -51,39 +50,26 @@ function advanceAlternateTurn(data,input){
    1. 채칼 — 방향키를 번갈아
    ============================================================ */
 
-registerDayPrepEngine("day3Mandoline",{
+registerDayPrepEngine("mandoline",{
   key(m,k){
     if(k==="arrowleft"||k==="arrowright"){mandolineInput(k.replace("arrow",""));return true;}
     return false;
   }
 });
 
-registerDayPrepEngine("day4Mandoline",{
-  key(m,k){
-    if(k==="arrowup"||k==="arrowdown"){mandolineInput(k.replace("arrow",""));return true;}
-    return false;
-  }
-});
-
 function setupMandoline(taskId){
-  const config=DAY3_MANDOLINE_CONFIG[taskId];
-  if(Number(state.day)!==3||!config)return;
-  setDayPrepData({mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,directions:["left","right"],successInputs:0,totalInputs:config.cycles*2,expected:"left"});
-  dom.miniTitle.textContent=`볶음우동 · ${config.label} 채썰기`;
-  dom.miniDescription.textContent=`←와 →를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
-  renderMandoline();
-}
-
-function setupPotatoMandoline(){
-  const config=DAY4_PREP_CONFIG.potatoMandoline;if(Number(state.day)!==4||!state.mini)return;
-  setDayPrepData({mode:"day4Mandoline",taskId:config.taskId,ingredient:config.ingredient,label:config.label,directions:[...config.directions],successInputs:0,totalInputs:config.totalInputs,expected:config.directions[0]});
-  dom.miniTitle.textContent="감자튀김 · 감자 채칼";
-  dom.miniDescription.textContent="↑와 ↓를 번갈아 입력해 감자를 써세요. 같은 방향 연속 입력과 다른 키는 무시됩니다.";
+  const day3Config=DAY3_MANDOLINE_CONFIG[taskId],isPotato=taskId===DAY4_PREP_CONFIG.potatoMandoline.taskId;
+  const config=isPotato?DAY4_PREP_CONFIG.potatoMandoline:day3Config;
+  if(!state.mini||!config||Number(state.day)<(isPotato?4:3))return;
+  const totalInputs=config.totalInputs??config.cycles*2,directions=config.directions?[...config.directions]:["left","right"];
+  setDayPrepData({mode:"mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles??totalInputs/2,directions,successInputs:0,totalInputs,expected:directions[0],isPotato});
+  dom.miniTitle.textContent=isPotato?"감자튀김 · 감자 채칼":`볶음우동 · ${config.label} 채썰기`;
+  dom.miniDescription.textContent=`←와 →를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${totalInputs/2}회 움직이세요.`;
   renderMandoline();
 }
 
 function renderMandoline(){
-  const data=state.mini.data,isPotato=data.mode==="day4Mandoline",completedCycles=Math.floor(data.successInputs/2);
+  const data=state.mini.data,isPotato=data.isPotato,completedCycles=Math.floor(data.successInputs/2);
   dom.miniTimer.textContent=isPotato?`${data.successInputs} / ${data.totalInputs}`:`왕복 ${completedCycles} / ${data.cycles}`;
   const arrows={left:"←",right:"→",up:"↑",down:"↓"},shorten=Math.max(.34,1-data.successInputs/data.totalInputs*.62);
   dom.miniContent.innerHTML=`
@@ -99,22 +85,15 @@ function renderMandoline(){
 }
 
 function mandolineInput(direction){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["day3Mandoline","day4Mandoline"].includes(m.data.mode))return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="mandoline")return false;
   const data=m.data;
   if(!isAlternateTurn(data,direction))return false;
   data.successInputs++;advanceAlternateTurn(data,direction);audio.click();
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
   ingredient?.classList.remove("move-left","move-right","move-up","move-down");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
   if(data.successInputs>=data.totalInputs){
-    if(data.mode==="day4Mandoline"){
-      finishDayPrepTask("sliceFriesPotato","감자 채칼 손질 10회 완료");
-    }else if(data.taskId==="sliceYakisobaCabbage"){
-      // 양배추가 끝나면 같은 화면에서 당근으로 이어집니다.
-      completeDayPrepTask("sliceYakisobaCabbage");
-      dom.miniTimer.textContent="완료";dom.miniFeedback.textContent="양배추 채썰기 완료 · 당근으로 전환합니다.";
-      dom.miniContent.classList.add("prep-complete-flash");
-      setTimeout(()=>{if(state.mini===m&&!m.complete){dom.miniContent.classList.remove("prep-complete-flash");setupMandoline("sliceYakisobaCarrot");}},420);
-    }else finishDayPrepTask("sliceYakisobaCarrot","볶음우동 채소 손질 완료");
+    const message=data.isPotato?"감자 채칼 손질 10회 완료":`${data.label} 채썰기 완료`;
+    finishDayPrepTask(data.taskId,message);
     return true;
   }
   setTimeout(()=>{if(state.mini===m&&!m.complete&&m.data===data)renderMandoline();},110);
@@ -133,7 +112,7 @@ registerDayPrepEngine("potatoStarch",{
 });
 
 function setupPotatoStarchShake(){
-  const config=DAY4_PREP_CONFIG.potatoStarch;if(Number(state.day)!==4||!state.mini)return;
+  const config=DAY4_PREP_CONFIG.potatoStarch;if(Number(state.day)<4||!state.mini)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
   setDayPrepData({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses});
   dom.miniTitle.textContent="감자튀김 · 전분 털기";
@@ -172,19 +151,19 @@ function renderPotatoStarchShake(){
    ============================================================ */
 
 registerDayPrepEngine("shrimpCoat",{
-  key(m,k){
-    if(/^[a-z]$/.test(k)){shrimpCoatInput(k);return true;}
+  key(m,k,e){
+    if(/^[a-z]$/.test(k)){shrimpCoatInput(k,e.repeat);return true;}
     return false;
   }
 });
 
 function setupShrimpCoat(taskId){
-  const item=SHRIMP_COAT_STEPS.find(entry=>entry.taskId===taskId);
-  if(Number(state.day)!==3||!item)return;
+  const item=SHRIMP_COAT_STEPS[0];
+  if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
-  setDayPrepData({mode:"shrimpCoat",taskId,step:item.step,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses});
+  setDayPrepData({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses,transitioning:false});
   dom.miniTitle.textContent=`새우튀김 · ${item.label} 입히기`;
-  dom.miniDescription.textContent=`표시된 두 키를 번갈아 눌러 ${item.label}를 입히세요. 끝나면 다음 재료대로 이동합니다.`;
+  dom.miniDescription.textContent="표시된 두 랜덤 키를 번갈아 눌러 밀가루, 계란물, 빵가루를 차례대로 입히세요.";
   renderShrimpCoat();
 }
 
@@ -218,14 +197,28 @@ function renderShrimpCoat(){
   dom.miniContent.querySelectorAll("[data-breadcrumb-key]").forEach(button=>button.addEventListener("click",()=>shrimpCoatInput(button.dataset.breadcrumbKey)));
 }
 
-function shrimpCoatInput(key){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return false;
+function shrimpCoatInput(key,repeat=false){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||m.data.transitioning||repeat)return false;
   const data=m.data;
   if(!isAlternateTurn(data,key)){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
   data.successes++;advanceAlternateTurn(data,key);audio.click();
   if(data.successes>=data.total){
     const completed=data.sequence[data.step];
-    finishDayPrepTask(data.taskId,`새우튀김 ${completed.label} 입히기 완료`);return true;
+    if(data.step>=data.sequence.length-1){
+      finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");return true;
+    }
+    data.transitioning=true;
+    dom.miniFeedback.textContent=`${completed.label} 완료 · 다음 코팅 재료로 넘어갑니다.`;
+    renderShrimpCoat();
+    setTimeout(()=>{
+      if(state.mini!==m||m.complete)return;
+      data.step++;data.successes=0;data.total=data.sequence[data.step].presses;data.expectedIndex=0;data.transitioning=false;
+      const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];data.keys=[...pair];
+      dom.miniTitle.textContent=`새우튀김 · ${data.sequence[data.step].label} 입히기`;
+      dom.miniFeedback.textContent=`새 키 ${data.keys.map(item=>item.toUpperCase()).join(" · ")}를 번갈아 누르세요.`;
+      renderShrimpCoat();
+    },420);
+    return true;
   }
   dom.miniFeedback.textContent="좋아요! 반대쪽 키를 누르세요.";renderShrimpCoat();return true;
 }

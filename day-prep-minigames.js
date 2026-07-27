@@ -26,7 +26,6 @@ const DAY_PREP_MINI_CONFIG = {
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
-  fryKimchi:{total:11,allowedDirections:["left","right"]},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
 };
 
@@ -73,7 +72,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   knife:"assets/prep/effects/knife.png",
-  ...Object.fromEntries(DAY4_RAPID_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
+  ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
   ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
   potatoStarch0:"assets/prep/day4/fries/starch-0.png",
   potatoStarch35:"assets/prep/day4/fries/starch-35.png",
@@ -116,7 +115,7 @@ function isDayPrepMini(mini=state.mini){
 }
 
 // Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
-// 칸 번호는 day4-prep-data.js 의 DAY4_RAPID_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
+// 칸 번호는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
 function day4PrepFlowMarkup(menuId,currentIndex){
   const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","전분 털기"];
   return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
@@ -162,7 +161,7 @@ function setDayPrepData(data){
 /* ---- 열기 · 닫기 ------------------------------------------ */
 
 function startDayPrepMini(task){
-  if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
+  if(task.minDay&&Number(state.day)<Number(task.minDay)){showToast(`이 준비 작업은 Day ${task.minDay}부터 이용할 수 있습니다.`,true);return;}
   state.mini={
     type:`day-prep-${task.id}`,
     engine:"dayPrep",          // 각 setup 이 setDayPrepData 로 실제 엔진 이름을 채웁니다

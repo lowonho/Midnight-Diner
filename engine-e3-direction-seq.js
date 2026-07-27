@@ -1,55 +1,118 @@
 "use strict";
 
 /* ============================================================
-   E3 방향 시퀀스 — 게임 2개
+   E3 방향 시퀀스 — 단일 입력·판정 컨트롤러
 
-     김치 볶기 (낮 준비 · 두부김치)   ← → 11개
-     볶음우동 조리 (밤 조리)          ← ↑ → ↓ 8개
+     김치 볶기 (낮 준비)   ← → 중 10회
+     볶음우동 (밤 조리)    ← ↑ → ↓ 중 12회
 
-   제시된 방향 배열을 왼쪽부터 순서대로 입력합니다.
-
-   [합쳐진 것 / 안 합쳐진 것]
-   · "지금 차례와 맞는가 / 다음으로 넘긴다" 판정은 아래 도우미로 합쳤습니다.
-   · 두 게임은 아직 규칙이 다릅니다.
-       방향 수   : 4방향(볶음우동) vs 2방향(김치)
-       오답 처리 : 볶음우동은 12점 감점, 김치는 감점 없이 안내만
-       완료 처리 : 밤은 점수 정산, 낮은 준비 태스크 완료
-     완전히 한 벌로 만들려면 이 차이를 데이터(표)로 빼야 합니다.
-     화면 마크업도 서로 다른데, 이쪽은 에셋 작업 영역이라 두었습니다.
+   입력 순서 생성, 정답·오답 판정, 진행 및 완료 처리는 같은 컨트롤러가
+   담당합니다. 두 게임의 화면 마크업은 에셋을 따로 붙일 수 있도록 유지합니다.
    ============================================================ */
 
 registerDayPrepSetup("kimchiFry",taskId=>setupKimchiFry(taskId));
 
-/* ---- 공통 판정 규칙 ---------------------------------------- */
-
-// 입력이 지금 차례와 맞는가
-function sequenceMatches(sequence,index,input){
-  return sequence[index]===input;
-}
-
-/* ============================================================
-   1. 김치 볶기 (낮 준비)
-   ============================================================ */
-
-registerDayPrepEngine("direction",{
-  key(m,k){
-    if(k==="arrowleft"||k==="arrowright"){kimchiFryInput(k.replace("arrow",""));return true;}
-    return false;
-  }
+const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
+  kimchi:Object.freeze({
+    total:10,
+    directions:Object.freeze(["left","right"]),
+    completion:"dayPrep",
+    taskId:"fryTofuKimchi",
+    completionMessage:"두부김치용 김치 볶기 완료",
+    wrongMessage:"방향이 다릅니다. 검게 변하지 않은 첫 화살표부터 다시 확인하세요."
+  }),
+  yakisoba:Object.freeze({
+    total:12,
+    directions:Object.freeze(["left","up","right","down"]),
+    completion:"night",
+    errorPenalty:12,
+    wrongMessage:"볶는 방향이 엇갈렸어요."
+  })
 });
 
+const DIRECTION_SYMBOL=Object.freeze({left:"←",up:"↑",right:"→",down:"↓"});
+const DIRECTION_KEY=Object.freeze({arrowleft:"left",arrowup:"up",arrowright:"right",arrowdown:"down"});
+
+function createDirectionSequence(configId,overrides={}){
+  const config=DIRECTION_SEQUENCE_CONFIG[configId];
+  return {
+    configId,
+    taskId:overrides.taskId||config.taskId||null,
+    sequence:Array.from({length:config.total},()=>config.directions[Math.floor(Math.random()*config.directions.length)]),
+    index:0,
+    errors:0
+  };
+}
+
+function directionSequenceKey(m,key){
+  const direction=DIRECTION_KEY[key];
+  if(!direction)return false;
+  directionSequenceInput(direction);return true;
+}
+
+function directionSequenceInput(direction){
+  const m=state.mini;if(!m||m.complete)return false;
+  const data=m.data,config=DIRECTION_SEQUENCE_CONFIG[data.configId];
+  if(!config||!config.directions.includes(direction))return false;
+
+  animateDirectionInput(data.configId,direction);
+  if(data.sequence[data.index]!==direction){
+    data.errors++;audio.bad();dom.miniFeedback.textContent=config.wrongMessage;
+    return false;
+  }
+
+  data.index++;audio.click();dom.miniFeedback.textContent="볶기 성공";
+  updateDirectionSequenceView(m);
+  if(data.index<config.total)return true;
+
+  if(config.completion==="dayPrep")finishDayPrepTask(data.taskId,config.completionMessage);
+  else finishMini(Math.max(70,100-data.errors*(config.errorPenalty||0)));
+  return true;
+}
+
+function animateDirectionInput(configId,direction){
+  if(configId==="kimchi"){
+    const work=dom.miniContent.querySelector("#fryWorkArea");if(!work)return;
+    const tossClass=direction==="left"?"toss-left":"toss-right";
+    work.classList.remove("toss-left","toss-right");void work.offsetWidth;work.classList.add(tossClass);
+    setTimeout(()=>work.classList.remove(tossClass),170);
+    return;
+  }
+  const symbol=DIRECTION_SYMBOL[direction];
+  const pressed=dom.miniContent.querySelector(`.arrow-button[data-arrow="${symbol}"]`);
+  if(pressed){pressed.classList.remove("pressed");void pressed.offsetWidth;pressed.classList.add("pressed");setTimeout(()=>pressed.classList.remove("pressed"),150);}
+}
+
+function updateDirectionSequenceView(m){
+  const data=m.data,config=DIRECTION_SEQUENCE_CONFIG[data.configId];
+  if(data.configId==="kimchi"){
+    dom.miniContent.querySelectorAll("[data-sequence-index]").forEach((chip,index)=>{
+      chip.classList.toggle("done",index<data.index);chip.classList.toggle("current",index===data.index);
+    });
+    dom.miniTimer.textContent=`${data.index} / ${config.total}`;
+    const progress=dom.miniContent.querySelector(".cut-count");if(progress)progress.textContent=`진행 ${data.index} / ${config.total}`;
+    return;
+  }
+  dom.miniContent.querySelectorAll("[data-i]").forEach((chip,index)=>{
+    chip.classList.toggle("correct",index<data.index);chip.classList.toggle("current",index===data.index);
+  });
+  const progress=dom.miniContent.querySelector("#arrowProgress");if(progress)progress.textContent=`진행 ${data.index} / ${config.total}`;
+}
+
+/* ---- 김치 볶기 화면 --------------------------------------- */
+
+registerDayPrepEngine("directionSequence",{key:directionSequenceKey});
+
 function setupKimchiFry(taskId="fryTofuKimchi"){
-  const config=DAY_PREP_MINI_CONFIG.fryKimchi;
-  const sequence=Array.from({length:config.total},()=>config.allowedDirections[Math.floor(Math.random()*config.allowedDirections.length)]);
-  setDayPrepData({mode:"direction",taskId,successes:0,total:config.total,allowedDirections:[...config.allowedDirections],sequence});
+  setDayPrepData({mode:"directionSequence",...createDirectionSequence("kimchi",{taskId})});
   dom.miniTitle.textContent="두부김치 · 김치 볶기";
   dom.miniDescription.textContent="썰어 둔 두부김치용 김치를 팬에서 볶습니다. 표시된 방향을 왼쪽부터 순서대로 누르세요.";
   renderKimchiFry();
 }
 
 function renderKimchiFry(){
-  const data=state.mini.data;
-  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  const data=state.mini.data,config=DIRECTION_SEQUENCE_CONFIG[data.configId];
+  dom.miniTimer.textContent=`${data.index} / ${config.total}`;
   dom.miniContent.innerHTML=`
     <div class="fry-work-area" id="fryWorkArea">
       <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
@@ -58,80 +121,31 @@ function renderKimchiFry(){
       </div>
     </div>
     <div class="kimchi-direction-sequence" aria-label="볶기 방향 순서">
-      ${data.sequence.map((direction,index)=>`<span class="kimchi-direction-chip ${index<data.successes?"done":index===data.successes?"current":""}" data-sequence-index="${index}">${direction==="left"?"←":"→"}</span>`).join("")}
+      ${data.sequence.map((direction,index)=>`<span class="kimchi-direction-chip ${index<data.index?"done":index===data.index?"current":""}" data-sequence-index="${index}">${DIRECTION_SYMBOL[direction]}</span>`).join("")}
     </div>
-    <div class="cut-count">진행 ${data.successes} / ${data.total}</div>
+    <div class="cut-count">진행 ${data.index} / ${config.total}</div>
     <div class="prep-direction-buttons">
-      ${data.allowedDirections.map(direction=>`<button type="button" data-direction="${direction}">${direction==="left"?"←":"→"}</button>`).join("")}
+      ${config.directions.map(direction=>`<button type="button" data-direction="${direction}">${DIRECTION_SYMBOL[direction]}</button>`).join("")}
     </div>`;
-  dom.miniContent.querySelectorAll("[data-direction]").forEach(button=>button.addEventListener("click",()=>kimchiFryInput(button.dataset.direction)));
+  dom.miniContent.querySelectorAll("[data-direction]").forEach(button=>button.addEventListener("click",()=>directionSequenceInput(button.dataset.direction)));
 }
 
-function kimchiFryInput(direction){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="direction")return;
-  const data=m.data;
-  if(!data.allowedDirections.includes(direction))return;
-  if(!sequenceMatches(data.sequence,data.successes,direction)){
-    dom.miniFeedback.textContent="방향이 다릅니다. 검게 변하지 않은 첫 화살표부터 다시 확인하세요.";
-    return;
-  }
-  const completed=dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`);
-  completed?.classList.remove("current");completed?.classList.add("done");
-  data.successes++;
-  dom.miniFeedback.textContent="볶기 성공";
-  dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`)?.classList.add("current");
-  dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
-  const progress=dom.miniContent.querySelector(".cut-count");
-  if(progress)progress.textContent=`진행 ${data.successes} / ${data.total}`;
-  const work=dom.miniContent.querySelector("#fryWorkArea");
-  if(work){
-    const tossClass=direction==="left"?"toss-left":"toss-right";
-    work.classList.remove("toss-left","toss-right");void work.offsetWidth;work.classList.add(tossClass);
-    setTimeout(()=>work.classList.remove(tossClass),170);
-  }
-  if(data.successes>=data.total){
-    finishDayPrepTask(data.taskId,"두부김치용 김치 볶기 완료");
-    return;
-  }
-}
-
-/* ============================================================
-   2. 볶음우동 조리 (밤 조리)
-   ============================================================ */
+/* ---- 볶음우동 조리 화면 ----------------------------------- */
 
 registerMiniEngine("stir",{
   setup(m,{set}){
+    const config=DIRECTION_SEQUENCE_CONFIG.yakisoba;
     set("철판 볶기","표시된 방향 순서를 빠르게 입력해 면과 채소를 골고루 볶으세요.",10);
-    const arrows=Array.from({length:8},()=>["←","↑","→","↓"][Math.floor(Math.random()*4)]);
-    m.data={arrows,index:0,errors:0};
+    m.data=createDirectionSequence("yakisoba");
     renderArrowGame();
   },
-
-  key(m,k){
-    const map={arrowleft:"←",arrowup:"↑",arrowright:"→",arrowdown:"↓"};
-    if(map[k]){arrowInput(map[k]);return true;}
-    return false;
-  }
+  key:directionSequenceKey
 });
 
 function renderArrowGame(){
   const m=state.mini;if(!m)return;
-  dom.miniContent.innerHTML=`<div class="sequence-view" id="arrowSequence">${m.data.arrows.map((a,i)=>`<span class="sequence-chip arrow-sequence-chip ${i===m.data.index?"current":""}" data-i="${i}">${a}</span>`).join("")}</div><div class="cut-count" id="arrowProgress">진행 ${m.data.index} / ${m.data.arrows.length}</div><div class="arrow-grid" id="arrowGrid"></div>`;
+  const config=DIRECTION_SEQUENCE_CONFIG[m.data.configId];
+  dom.miniContent.innerHTML=`<div class="sequence-view" id="arrowSequence">${m.data.sequence.map((direction,index)=>`<span class="sequence-chip arrow-sequence-chip ${index===m.data.index?"current":""}" data-i="${index}">${DIRECTION_SYMBOL[direction]}</span>`).join("")}</div><div class="cut-count" id="arrowProgress">진행 ${m.data.index} / ${config.total}</div><div class="arrow-grid" id="arrowGrid"></div>`;
   const grid=dom.miniContent.querySelector("#arrowGrid");
-  ["←","↑","→","↓"].forEach(a=>{const b=document.createElement("button");b.type="button";b.className="arrow-button";b.dataset.arrow=a;b.textContent=a;b.addEventListener("click",()=>arrowInput(a));grid.appendChild(b);});
-}
-
-function arrowInput(a){
-  const m=state.mini;if(!m||m.engine!=="stir")return;
-  const pressed=dom.miniContent.querySelector(`.arrow-button[data-arrow="${a}"]`);
-  if(pressed){pressed.classList.remove("pressed");void pressed.offsetWidth;pressed.classList.add("pressed");setTimeout(()=>pressed.classList.remove("pressed"),150);}
-  if(sequenceMatches(m.data.arrows,m.data.index,a)){
-    const completed=dom.miniContent.querySelector(`[data-i="${m.data.index}"]`);
-    completed.classList.remove("current");completed.classList.add("correct");
-    m.data.index++;
-    const next=dom.miniContent.querySelector(`[data-i="${m.data.index}"]`);if(next)next.classList.add("current");
-    const progress=dom.miniContent.querySelector("#arrowProgress");if(progress)progress.textContent=`진행 ${m.data.index} / ${m.data.arrows.length}`;
-    audio.click();if(m.data.index===m.data.arrows.length)finishMini(Math.max(70,100-m.data.errors*12));
-  }
-  else{m.data.errors++;audio.bad();dom.miniFeedback.textContent="볶는 방향이 엇갈렸어요.";}
+  config.directions.forEach(direction=>{const button=document.createElement("button");button.type="button";button.className="arrow-button";button.dataset.arrow=DIRECTION_SYMBOL[direction];button.textContent=DIRECTION_SYMBOL[direction];button.addEventListener("click",()=>directionSequenceInput(direction));grid.appendChild(button);});
 }

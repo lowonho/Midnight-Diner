@@ -10,9 +10,8 @@
                         → engine-e9-whisk.js 의 setupWhiskBatter 호출
    · skewer             닭꼬치 꽂기 — 닭 → 파 → 닭 → 파 → 닭 을 3꼬치.
                         클릭으로 고르거나 드래그로 놓을 수 있습니다.
-   · tteokSoak /        떡·우동면 불리기 — 재료와 물을 각각 클릭. 순서는 자유.
-     udonSoak           ✅ 두 게임이 이미 renderTteokSoak 하나를 함께 씁니다.
-                        데이터만 다르게 넣는 방식이라 합치기 좋은 본보기입니다.
+   · tteokSoak /        떡·우동면 불리기 — 재료 → 물 순서로 클릭.
+     udonSoak           두 게임이 renderTteokSoak과 공통 순서 판정을 함께 씁니다.
    ============================================================ */
 
 registerDayPrepSetup("batter",()=>setupKimchiBatter());
@@ -21,9 +20,7 @@ registerDayPrepSetup("tteokSoak",()=>setupTteokSoak());
 registerDayPrepSetup("udonSoak",()=>setupUdonSoak());
 
 // 셋 다 클릭·드래그만 쓰므로 키 처리가 없습니다.
-registerDayPrepEngine("batterIngredients",{});
-registerDayPrepEngine("skewer",{});
-registerDayPrepEngine(["tteokSoak","udonSoak"],{});
+registerDayPrepEngine("orderPlace",{});
 
 /* ---- 김치전 반죽 재료 넣기 ---------------------------------
    화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
@@ -89,7 +86,7 @@ function batterSceneMarkup(center,addedCount,done=0){
 }
 
 function setupKimchiBatter(){
-  setDayPrepData({mode:"batterIngredients",step:0,ingredients:BATTER_INGREDIENTS});
+  setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS});
   dom.miniTitle.textContent="김치전 반죽";
   dom.miniDescription.textContent="부침가루 → 물 → 김치 순서로 재료를 볼에 넣어주세요!";
   renderKimchiBatterIngredients();
@@ -106,10 +103,10 @@ function renderKimchiBatterIngredients(){
 }
 
 function addBatterIngredient(ingredientId,button){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="batterIngredients")return;
-  const expected=m.data.ingredients[m.data.step];
-  if(ingredientId!==expected.id){dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();return;}
-  button.classList.add("pouring");button.disabled=true;m.data.step++;audio.click();
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="batter")return;
+  const expected=m.data.ingredients[m.data.step],result=placeOrderedItem(m.data,ingredientId);
+  if(!result.accepted){dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();return;}
+  button.classList.add("pouring");button.disabled=true;audio.click();
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
@@ -139,11 +136,37 @@ const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
 
+// E8의 공통 순서 데이터. 새 게임은 순서와 트랙 수만 추가하고 같은 판정을 씁니다.
+const ORDER_PLACE_CONFIG=Object.freeze({
+  batter:Object.freeze({order:Object.freeze(BATTER_INGREDIENTS.map(item=>item.id)),tracks:1}),
+  skewer:Object.freeze({order:Object.freeze([...SKEWER_ORDER]),tracks:SKEWER_TOTAL}),
+  tteokSoak:Object.freeze({order:Object.freeze(["tteok","water"]),tracks:1}),
+  udonSoak:Object.freeze({order:Object.freeze(["udon","water"]),tracks:1})
+});
+
+function createOrderPlacementState(configId){
+  const config=ORDER_PLACE_CONFIG[configId];
+  return {mode:"orderPlace",orderConfigId:configId,order:[...config.order],placements:Array.from({length:config.tracks},()=>[]),step:0};
+}
+
+function expectedOrderItem(data,trackIndex=0){
+  return data.order[data.placements[trackIndex]?.length??0]??null;
+}
+
+function placeOrderedItem(data,item,trackIndex=0){
+  const track=data.placements[trackIndex];
+  if(!track)return {accepted:false,reason:"missingTrack",expected:null,complete:false};
+  const expected=expectedOrderItem(data,trackIndex);
+  if(expected!==item)return {accepted:false,reason:"wrongOrder",expected,complete:false};
+  track.push(item);
+  if(trackIndex===0)data.step=track.length;
+  return {accepted:true,expected:null,complete:track.length>=data.order.length};
+}
+
 function setupChickenSkewer(){
   const stock={chicken:0,greenOnion:0};
   SKEWER_ORDER.forEach(ingredient=>{stock[ingredient]+=SKEWER_TOTAL;});   // 9 / 6
-  setDayPrepData({mode:"skewer",total:SKEWER_TOTAL,stock,selected:null,
-    skewers:Array.from({length:SKEWER_TOTAL},()=>[])});
+  setDayPrepData({...createOrderPlacementState("skewer"),total:SKEWER_TOTAL,stock,selected:null});
   dom.miniTitle.textContent="닭꼬치 꽂기";
   dom.miniDescription.textContent="닭과 파를 번갈아 순서대로 꽂아주세요! (재료를 끌어다 놓거나 눌러서 집으세요)";
   renderChickenSkewer();
@@ -172,7 +195,7 @@ function skewerRodMarkup(){
 }
 
 function renderChickenSkewer(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="skewer")return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
   const data=m.data,done=skewerDoneCount(data);
   dom.miniTimer.textContent=`${done} / ${data.total}`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
   dom.miniContent.innerHTML=`
@@ -188,7 +211,7 @@ function renderChickenSkewer(){
         }).join("")}
       </aside>
 
-      <div class="sk-board">${data.skewers.map((stack,index)=>skewerRackMarkup(stack,index)).join("")}</div>
+      <div class="sk-board">${data.placements.map((stack,index)=>skewerRackMarkup(stack,index)).join("")}</div>
 
       <aside class="sk-col">
         <div class="sk-panel sk-count">
@@ -234,12 +257,12 @@ function bindChickenSkewerEvents(){
 }
 
 function skewerDoneCount(data){
-  return data.skewers.filter(stack=>stack.length>=SKEWER_ORDER.length).length;
+  return data.placements.filter(stack=>stack.length>=data.order.length).length;
 }
 
 // 재료 집기. 다시 그리지 않고 선택 표시만 바꿉니다.
 function selectSkewerIngredient(ingredient){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="skewer")return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
   if(!m.data.stock[ingredient])return;
   m.data.selected=ingredient;
   dom.miniContent.querySelectorAll("[data-ingredient]").forEach(card=>card.classList.toggle("selected",card.dataset.ingredient===ingredient));
@@ -247,21 +270,21 @@ function selectSkewerIngredient(ingredient){
 }
 
 function placeSelectedSkewerPiece(skewerIndex){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="skewer")return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
   if(!m.data.selected){dom.miniFeedback.textContent="왼쪽에서 재료를 먼저 집으세요.";return;}
   placeSkewerPiece(skewerIndex,m.data.selected);
 }
 
 function placeSkewerPiece(skewerIndex,ingredient){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="skewer")return;
-  const data=m.data,stack=data.skewers[skewerIndex];
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
+  const data=m.data,stack=data.placements[skewerIndex];
   if(!stack||!SKEWER_LABEL[ingredient])return;
   if(stack.length>=SKEWER_ORDER.length)return rejectSkewerPiece(skewerIndex,"이 꼬치는 이미 다 찼습니다.");
   if(!data.stock[ingredient])return rejectSkewerPiece(skewerIndex,`${SKEWER_LABEL[ingredient]}가 남아 있지 않습니다.`);
-  const expected=SKEWER_ORDER[stack.length];
-  if(ingredient!==expected)return rejectSkewerPiece(skewerIndex,`이번에는 ${SKEWER_LABEL[expected]} 차례입니다.`);
+  const result=placeOrderedItem(data,ingredient,skewerIndex);
+  if(!result.accepted)return rejectSkewerPiece(skewerIndex,`이번에는 ${SKEWER_LABEL[result.expected]} 차례입니다.`);
 
-  data.stock[ingredient]--;stack.push(ingredient);data.selected=null;audio.click();
+  data.stock[ingredient]--;data.selected=null;audio.click();
   const done=skewerDoneCount(data);
   dom.miniFeedback.textContent=stack.length>=SKEWER_ORDER.length
     ? `꼬치 ${done} / ${data.total} 완성!`
@@ -282,23 +305,23 @@ function rejectSkewerPiece(skewerIndex,message){
 /* ---- 떡 · 우동면 불리기 ------------------------------------ */
 
 function setupTteokSoak(){
-  if(Number(state.day)!==4||!state.mini)return;
-  setDayPrepData({mode:"tteokSoak",taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false});
+  if(Number(state.day)<4||!state.mini)return;
+  setDayPrepData({...createOrderPlacementState("tteokSoak"),taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false});
   dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
   dom.miniDescription.textContent="떡을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
   renderTteokSoak();
 }
 
 function setupUdonSoak(){
-  if(Number(state.day)!==3||!state.mini)return;
-  setDayPrepData({mode:"udonSoak",taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false});
+  if(Number(state.day)<3||!state.mini)return;
+  setDayPrepData({...createOrderPlacementState("udonSoak"),taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false});
   dom.miniTitle.textContent="볶음우동 · 우동면 불려두기";
   dom.miniDescription.textContent="우동면을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
   renderTteokSoak();
 }
 
 function renderTteokSoak(){
-  const m=state.mini;if(!isDayPrepMini(m)||!["tteokSoak","udonSoak"].includes(m.data.mode))return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId))return;
   const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,count=Object.values(data.added).filter(Boolean).length,isUdon=key==="udon";
   dom.miniTimer.textContent=`${count} / 2`;
   dom.miniContent.innerHTML=`
@@ -313,8 +336,10 @@ function renderTteokSoak(){
 }
 
 function addTteokSoakItem(item){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["tteokSoak","udonSoak"].includes(m.data.mode)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
-  const data=m.data;data.added[item]=true;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 채웠습니다.";
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
+  const data=m.data,result=placeOrderedItem(data,item);
+  if(!result.accepted){dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();return;}
+  data.added[item]=true;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 채웠습니다.";
   if(Object.values(m.data.added).every(Boolean)){
     data.finishing=true;renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 모두 들어갔습니다. 불려두기 완료!`;
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},360);

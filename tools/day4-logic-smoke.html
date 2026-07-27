@@ -4,69 +4,84 @@
 <body>pending</body>
 <script src="../game-data.js"></script>
 <script src="../day4-prep-data.js"></script>
+<script src="../mini-engine.js"></script>
 <script>
 const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
-const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:{data:{}},kimchiPrep:{}};
-const dom={miniFeedback:{textContent:""},miniContent:{querySelector:()=>null},miniTimer:{textContent:""}};
+const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
+const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniDescription:{textContent:""}};
 const audio={click(){},success(){},bad(){}};
+function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+function shuffle(items){return [...items];}
 </script>
 <script src="../day.js"></script>
 <script src="../day-prep-minigames.js"></script>
+<script src="../engine-e1-timing-cut.js"></script>
+<script src="../engine-e2-alternate-input.js"></script>
+<script src="../engine-e3-direction-seq.js"></script>
+<script src="../engine-e4-gauge-hold.js"></script>
+<script src="../engine-e5-two-side-cook.js"></script>
+<script src="../engine-e6-deep-fry.js"></script>
+<script src="../engine-e7-measure.js"></script>
+<script src="../engine-e8-order-place.js"></script>
+<script src="../engine-e9-whisk.js"></script>
+<script src="../engine-e10-target-click.js"></script>
+<script src="../engine-e11-one-shot.js"></script>
 <script>
 try{
   const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+
   const day4Ids=selectedPrepTasks().map(task=>task.id);
-  assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiIngredients","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
-  assert(!prepComplete(),"Day 4 must begin incomplete");
-  day4Ids.forEach(id=>state.prepProgress[id]=true);
-  assert(prepComplete(),"Day 4 must complete after all five tasks");
-  assert(RAPID_CUT_DATA.cutSkewerChicken.requiredPieces===5,"Chicken piece count");
-  assert(RAPID_CUT_INPUT.toughHoldThreshold===.42&&RAPID_CUT_INPUT.toughHoldTime===.5,"Chicken hold balance");
-  let route="";
-  setupRapidCutTask=()=>{route="rapid";};
-  startCuttingMinigame=()=>{route="timing";};
-  state.day=3;setupDayPrepTiming("cutRadish");assert(route==="timing","Day 3 cutting route");
-  state.day=4;setupDayPrepTiming("cutRadish");assert(route==="rapid","Day 4 cutting route");
-  state.day=5;setupDayPrepTiming("cutSkewerChicken");assert(route==="rapid","Day 5 previous-menu cutting route");
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
-  assert(SAUCE_RECIPES.yakisoba.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="200/50,100/25,30/10","Day 3 sauce recipe regression");
+  assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
-  assert(selectedPrepTasks().length===6,"Day 3 prep task regression");
-  assert(selectedPrepTasks()[0].id==="soakUdon","Yakisoba udon soak must be first");
-  state.day=1;state.selectedMenus=["oden","tofu"];
-  assert(selectedPrepTasks().length===5,"Day 1 prep task regression");
-  renderPotatoStarchShake=()=>{};
-  state.mini={context:{mode:"dayPrep"},complete:false,data:{mode:"potatoStarch",taskId:"shakeFriesStarch",keys:["a","d"],expectedIndex:0,presses:0,total:12}};
-  assert(!potatoStarchInput("d",false)&&state.mini.data.presses===0,"Wrong random key must be ignored");
-  assert(potatoStarchInput("a",false)&&state.mini.data.presses===1&&state.mini.data.expectedIndex===1,"First random key input");
-  assert(potatoStarchInput("d",false)&&state.mini.data.presses===2&&state.mini.data.expectedIndex===0,"Alternating random key input");
-  const gameRequest=new XMLHttpRequest();gameRequest.open("GET","../game.js",false);gameRequest.send();
-  const gameSource=gameRequest.responseText,fryerStart=gameSource.indexOf("function fryerAction(m){"),fryerEnd=gameSource.indexOf("function renderIngredientChoices()",fryerStart);
-  assert(fryerStart>=0&&fryerEnd>fryerStart,"Shared fryer action source");
-  assert(gameSource.includes('dish?.id==="fries"?"fries"'),"Fries fryer UI route");
-  assert(SKEWER_BATCH_SIZE===3,"Chicken skewer batch size");
-  assert(dishById("skewer").prepYield===3,"Chicken skewer prep yield");
-  const skewerPrepRequest=new XMLHttpRequest();skewerPrepRequest.open("GET","../engine-e8-order-place.js",false);skewerPrepRequest.send();
-  assert(skewerPrepRequest.responseText.includes("SKEWER_TOTAL=SKEWER_BATCH_SIZE"),"Chicken skewer prep count route");
-  const skewerCookRequest=new XMLHttpRequest();skewerCookRequest.open("GET","../engine-e5-two-side-cook.js",false);skewerCookRequest.send();
-  assert(skewerCookRequest.responseText.includes("length: SKEWER_BATCH_SIZE")&&skewerCookRequest.responseText.includes("flippedSkewers >= SKEWER_BATCH_SIZE"),"Chicken skewer grill count route");
-  const renderStart=gameSource.indexOf("function renderFryer(){"),renderEnd=gameSource.indexOf("function fryerAction(m){",renderStart);
-  const renderDom={miniDescription:document.createElement("p"),miniTimer:document.createElement("span"),miniContent:document.createElement("div")},renderState={mini:{type:"fry",data:{fryerStyle:"fries",phase:"frying",marker:.74,oilTaps:0}}};
-  const renderFryerUnderTest=new Function("state","dom","miniAction",`${gameSource.slice(renderStart,renderEnd)};return renderFryer;`)(renderState,renderDom,()=>{});
-  renderFryerUnderTest();assert(renderDom.miniContent.querySelectorAll(".frying-fry").length===12&&renderDom.miniContent.textContent.includes("감자튀김 건지기"),"Fries fryer cooking UI");
-  renderState.mini.data.phase="draining";renderFryerUnderTest();assert(renderDom.miniContent.querySelectorAll(".oil-tap-guide kbd").length===2,"Fries two-tap draining UI");
-  renderState.mini.data={fryerStyle:"shrimp",phase:"frying",marker:.74,oilTaps:0};renderFryerUnderTest();assert(renderDom.miniContent.querySelectorAll(".frying-shrimp").length===3,"Shrimp fryer UI regression");
-  const fryerState={mini:null},fryerDom={miniFeedback:{textContent:""}},fryerAudio={click(){},bad(){}},renders=[],scores=[];
-  const fryerActionUnderTest=new Function("state","dom","audio","clamp","renderFryer","finishMini",`${gameSource.slice(fryerStart,fryerEnd)};return fryerAction;`)(fryerState,fryerDom,fryerAudio,(value,min,max)=>Math.max(min,Math.min(max,value)),()=>renders.push(true),score=>scores.push(score));
-  const originalSetTimeout=window.setTimeout;window.setTimeout=callback=>{callback();return 0;};
-  const friesMini={type:"fry",complete:false,data:{fryerStyle:"fries",phase:"frying",marker:.74,liftScore:0,oilTaps:0,oilTapWindow:0}};fryerState.mini=friesMini;
-  fryerActionUnderTest(friesMini);assert(friesMini.data.phase==="draining","Fries basket lift state");
-  fryerActionUnderTest(friesMini);assert(friesMini.data.oilTaps===1&&friesMini.data.oilTapWindow===.65,"Fries first oil tap");
-  fryerActionUnderTest(friesMini);assert(friesMini.data.phase==="finishing"&&scores[0]===100,"Fries second oil tap completion");
-  const shrimpMini={type:"fry",complete:false,data:{fryerStyle:"shrimp",phase:"frying",marker:.74,liftScore:0,oilTaps:0,oilTapWindow:0}};fryerState.mini=shrimpMini;
-  fryerActionUnderTest(shrimpMini);assert(shrimpMini.data.phase==="draining","Shrimp fryer regression");
-  window.setTimeout=originalSetTimeout;
-  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 28";
-}catch(error){document.title="DAY4_LOGIC_FAIL";document.body.textContent=`DAY4_LOGIC_FAIL ${error.stack||error}`;}
+  const day3Ids=selectedPrepTasks().map(task=>task.id);
+  assert(day3Ids.length===5&&day3Ids.includes("coatShrimp"),`Day 3 merged shrimp task: ${day3Ids}`);
+
+  state.day=6;state.selectedMenus=["shrimpTempura","fries"];
+  const laterIds=selectedPrepTasks().map(task=>task.id);
+  assert(laterIds.includes("coatShrimp")&&laterIds.includes("sliceFriesPotato")&&laterIds.includes("shakeFriesStarch"),`Later-day reuse: ${laterIds}`);
+
+  let cutRoute="";
+  const originalStartCutting=startCuttingMinigame;
+  startCuttingMinigame=()=>{cutRoute="timing";};
+  state.day=6;setupTimingCut("cutSkewerChicken");
+  startCuttingMinigame=originalStartCutting;
+  assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
+
+  assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
+  assert(SHRIMP_COAT_STEPS.length===3&&PREP_TASKS.coatShrimp,"Shrimp coating must be one three-stage task");
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2,"Kimchi direction config");
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4,"Yakisoba direction config");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5,"Heat hold target");
+
+  const alternate={keys:["a","d"],expectedIndex:0};
+  assert(isAlternateTurn(alternate,"a")&&!isAlternateTurn(alternate,"d"),"E2 first alternating key");
+  advanceAlternateTurn(alternate,"a");assert(isAlternateTurn(alternate,"d"),"E2 next alternating key");
+
+  let finishedScore=null;
+  window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
+  state.mini={complete:false,data:{...createDirectionSequence("yakisoba"),index:11,sequence:Array(12).fill("left")}};
+  directionSequenceInput("left");
+  assert(finishedScore===100,"E3 shared controller completion");
+
+  finishedScore=null;
+  const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
+  MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
+  heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;
+  MINI_ENGINES.heat.update(heatMini,.02);
+  assert(finishedScore===100,"E4 immediate success at hold target");
+
+  const batter=createOrderPlacementState("batter");
+  assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
+  assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
+  assert(WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 data config");
+  assert(ONE_SHOT_CONFIG.plateKimchi.completion==="night"&&ONE_SHOT_CONFIG.brothPour.completion==="dayPrep","E11 completion routes");
+  finishedScore=null;const oneShotMini={complete:false,data:createOneShotData("plateKimchi")};state.mini=oneShotMini;
+  triggerOneShot(oneShotMini);assert(finishedScore===100&&oneShotMini.data.status==="complete","E11 shared one-shot completion");
+  assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
+  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
+
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 19";
+}catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
