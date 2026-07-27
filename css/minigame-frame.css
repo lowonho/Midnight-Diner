@@ -1,0 +1,316 @@
+/* ============================================================
+   미니게임 공용 프레임 (모든 미니게임이 같은 크기를 씁니다)
+
+   #miniOverlay 는 .game-frame(항상 16:9) 안에 inset:0 으로 깔리므로
+   여기서 쓰는 % 는 곧 "전체 화면 대비 비율" 입니다.
+   아래 4개 패널만 공용이고, 나머지는 각 미니게임이 #miniContent 안에서 그립니다.
+
+     1. .mini-window      뒤에 깔리는 가장 큰 패널
+     2. .mini-title-panel 미니게임 타이틀 패널 (뒤 패널 위쪽에 걸침)
+     3. .mini-stage       게임 메인 플레이 영역 패널
+     4. #miniClose / #miniPause  닫기 버튼 (닫을 수 없는 미니게임은 일시정지)
+
+   괄호 안 px 값은 1920x1080 기준 환산값 = UI 에셋 제작 기준 크기입니다.
+   비율을 바꾸려면 아래 변수만 고치면 모든 미니게임에 동시에 반영됩니다.
+   ============================================================ */
+
+.mini-overlay {
+  /* 1% 단위 자 (프레임 높이/너비의 1%). 폰트·여백·버튼 크기에 사용 */
+  --mh: min(1vh, .5625vw);
+  --mw: min(1vw, 1.7778vh);
+
+  /* 1. 뒤 패널
+     --panel-y 는 세로 위치의 기준점입니다. 타이틀 패널 · 플레이 영역 · TIP 줄이
+     전부 여기서 파생되므로, 패널 뭉치를 위아래로 옮기려면 이 값만 고치면 됩니다.
+
+     지금 값(9.25%)은 "화면 세로 중앙" 입니다. 계산은 이렇습니다.
+       눈에 보이는 뭉치 = 타이틀 패널 맨 위(--panel-y - 2.5%) ~ 뒤 패널 맨 아래
+       높이 = 2.5% + 84% = 86.5%  →  위아래 여백 = (100 - 86.5) / 2 = 6.75%
+       따라서 --panel-y = 6.75% + 2.5% = 9.25%
+     뒤 패널만 기준으로 잡으면 위로 삐져나온 타이틀 패널 때문에 위쪽 여백이
+     좁아 보여서, 타이틀 패널까지 포함한 뭉치 전체를 가운데 맞춥니다. */
+  --panel-x: 11%;       /* 211 px */
+  --panel-y: 9.25%;     /* 100 px */
+  --panel-w: 78%;       /* 1498 px */
+  --panel-h: 84%;       /* 907 px */
+
+  /* 2. 타이틀 패널 (가로 중앙, 뒤 패널 상단에 2.5% 만큼 걸쳐 앉음) */
+  --title-w: 36%;       /* 691 px */
+  --title-h: 10.5%;     /* 113 px */
+  --title-y: calc(var(--panel-y) - 2.5%);   /*  73 px */
+
+  /* 3. 메인 플레이 영역 (뒤 패널 상단에서 10% 아래) */
+  --stage-x: 12.5%;     /* 240 px */
+  --stage-w: 75%;       /* 1440 px */
+  --stage-y: calc(var(--panel-y) + 10%);    /* 208 px */
+  --stage-h: 61%;       /* 659 px */
+
+  /* 하단 TIP 줄 (설명·피드백. 플레이 영역과 좌우 폭 동일)
+     뒤 패널 아래 테두리와 3% 띄우고 앉습니다 = --panel-y + 84% - 8% - 3% */
+  --tip-y: calc(var(--panel-y) + 73%);      /* 889 px */
+  --tip-h: 8%;          /*  86 px */
+
+  /* 4. 닫기 / 일시정지 버튼 (정사각형)
+     위치는 뒤 패널 우측 상단 모서리 기준으로 잡습니다. 패널 크기를 바꾸면
+     버튼도 같이 따라오도록 --panel-x / --panel-y 에서 파생시킵니다. */
+  --btn: calc(5.4 * var(--mh));            /* 58 x 58 px */
+  --btn-inset-x: 1.6%;                     /* 패널 우측 테두리에서 안쪽으로 31 px */
+  --btn-inset-y: 1.8%;                     /* 패널 상단 테두리에서 안쪽으로 19 px */
+  --btn-x: calc(var(--panel-x) + var(--btn-inset-x));  /* 오른쪽에서 12.6% = 242 px */
+  --btn-y: calc(var(--panel-y) + var(--btn-inset-y));  /* 위에서 6.8% = 73 px */
+
+  /* 등장 연출 : 영수증 뽑히듯 화면 밖 아래에서 "띵~" 하고 한 번에 올라옵니다.
+     % 가 아니라 --mh(프레임 높이의 1%) 로 잡습니다. translateY 의 % 는
+     "각 패널 자기 높이" 기준이라 패널마다 이동 거리가 달라지기 때문입니다. */
+  --rise-dist: calc(103 * var(--mh));    /* 프레임 높이보다 조금 더 아래 = 완전히 화면 밖 */
+  --rise-over: calc(1.7 * var(--mh));    /* 끝에서 18 px 살짝 지나쳤다가 내려앉습니다 */
+  --rise-time: .44s;
+
+  z-index: 40;
+  display: block;
+  padding: 0;
+  background: rgba(8, 5, 3, .55);
+
+  /* 닫을 때는 공용 .overlay 처럼 서서히 사라집니다 */
+  transition: opacity .22s, visibility .22s;
+}
+/* 열 때는 뒷배경만 바로 깔리고(페이드 없음), 패널은 아래에서 통째로 올라옵니다. */
+.mini-overlay.open { transition: opacity 0s, visibility 0s; }
+
+/* ── 등장 연출 : 영수증 뽑히듯 아래에서 한 번에 올라오기 ──────────
+   .open 이 붙는 순간부터 재생되므로 미니게임을 열 때마다 다시 돕니다.
+
+   [설계 의도]
+   1. 페이드(opacity) 를 쓰지 않습니다. 투명도가 섞이면 "스르륵 뜨는" 느낌이 되어
+      원하는 뻣뻣한 출력 느낌이 죽습니다. 처음부터 끝까지 불투명하게 밀어올립니다.
+   2. 패널 5종이 같은 거리·같은 타이밍으로 움직입니다. 어긋나게 하면 조각조각
+      따로 올라오는 것처럼 보여서 "한 장이 올라온다" 는 느낌이 깨집니다.
+   3. 마지막에 --rise-over 만큼 지나쳤다가 되돌아오는 "띵~" 반동을 넣었습니다.
+      overshoot 을 cubic-bezier 로 주지 않고 키프레임으로 준 이유 : bezier 반동은
+      이동 거리에 비례해서 튀는데, 여기는 화면 전체 높이를 이동하므로 반동이
+      과하게 커집니다. 지나치는 양을 px 로 고정하려면 키프레임이어야 합니다.
+   4. fill-mode 가 backwards 인 이유 : 애니메이션이 끝난 뒤에는 transform 제어권을
+      원래 규칙(.mini-title-panel 의 translateX(-50%), 버튼의 :active 눌림)에
+      돌려줘야 하기 때문입니다.
+
+   화면 밖에서 시작해도 .game-frame 의 overflow:hidden 이 잘라주므로
+   프레임 밖으로 삐져나오거나 스크롤이 생기지 않습니다. */
+@keyframes mini-panel-rise {
+  0%   { transform: translateY(var(--rise-dist)); animation-timing-function: cubic-bezier(.36, .62, .44, 1); }
+  72%  { transform: translateY(calc(-1 * var(--rise-over))); animation-timing-function: ease-in-out; }
+  88%  { transform: translateY(calc(.28 * var(--rise-over))); animation-timing-function: ease-out; }
+  100% { transform: translateY(0); }
+}
+/* 타이틀 패널은 가로 중앙 정렬용 translateX(-50%) 를 유지해야 합니다 */
+@keyframes mini-panel-rise-centered {
+  0%   { transform: translateX(-50%) translateY(var(--rise-dist)); animation-timing-function: cubic-bezier(.36, .62, .44, 1); }
+  72%  { transform: translateX(-50%) translateY(calc(-1 * var(--rise-over))); animation-timing-function: ease-in-out; }
+  88%  { transform: translateX(-50%) translateY(calc(.28 * var(--rise-over))); animation-timing-function: ease-out; }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+.mini-overlay.open .mini-window,
+.mini-overlay.open .mini-stage,
+.mini-overlay.open .mini-tip,
+.mini-overlay.open .mini-icon-button {
+  animation: mini-panel-rise var(--rise-time) linear backwards;
+}
+.mini-overlay.open .mini-title-panel {
+  animation: mini-panel-rise-centered var(--rise-time) linear backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-overlay { --rise-dist: 0px; --rise-over: 0px; }
+  .mini-overlay.open .mini-window,
+  .mini-overlay.open .mini-stage,
+  .mini-overlay.open .mini-tip,
+  .mini-overlay.open .mini-title-panel,
+  .mini-overlay.open .mini-icon-button { animation-duration: .01s; }
+}
+
+/* ── 1. 뒤에 깔리는 가장 큰 패널 ───────────────────────────── */
+.mini-window {
+  position: absolute;
+  left: var(--panel-x);
+  top: var(--panel-y);
+  width: var(--panel-w);
+  height: var(--panel-h);
+  border-radius: calc(1.2 * var(--mh));
+}
+
+/* ── 2. 타이틀 패널 ────────────────────────────────────────── */
+.mini-title-panel {
+  position: absolute;
+  left: 50%;
+  top: var(--title-y);
+  width: var(--title-w);
+  height: var(--title-h);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: calc(.3 * var(--mh));
+  padding: calc(1 * var(--mh)) calc(2 * var(--mw));
+  border-radius: calc(1 * var(--mh));
+  text-align: center;
+  transform: translateX(-50%);
+}
+.mini-title-panel #miniStation {
+  margin: 0;
+  color: #c89654;
+  font-size: calc(1.2 * var(--mh));
+  letter-spacing: .2em;
+}
+.mini-title-panel #miniTitle {
+  margin: 0;
+  overflow: hidden;
+  color: var(--gold-bright);
+  font-size: calc(3.6 * var(--mh));
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── 3. 게임 메인 플레이 영역 ──────────────────────────────── */
+.mini-stage {
+  position: absolute;
+  left: var(--stage-x);
+  top: var(--stage-y);
+  width: var(--stage-w);
+  height: var(--stage-h);
+  overflow: hidden;
+  padding: calc(2 * var(--mh)) calc(2 * var(--mw));
+  border: 2px solid #7a4d2b;
+  border-radius: calc(1 * var(--mh));
+  background: linear-gradient(#1c110b, #120b07);
+  box-shadow: inset 0 0 0 2px #3a2417, inset 0 calc(1 * var(--mh)) calc(3 * var(--mh)) rgba(0, 0, 0, .55);
+}
+/* 각 미니게임이 그리는 내용. 레퍼런스의 도마·타이밍바 폭(화면의 약 50%)에 맞춰
+   가운데 열로 제한합니다. 양옆 여백은 재료 카드·참고 모양 같은 사이드 카드 자리입니다. */
+.mini-content {
+  width: min(100%, calc(48 * var(--mw)));  /* 922 px */
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(1.4 * var(--mh));
+}
+
+/* 진행/타이머 카드 : 레퍼런스의 '완성 개수' 자리(플레이 영역 우측 상단) */
+.mini-timer {
+  position: absolute;
+  right: calc(1.6 * var(--mw));
+  top: calc(1.6 * var(--mh));
+  min-width: calc(8 * var(--mw));
+  padding: calc(.7 * var(--mh)) calc(1.1 * var(--mw));
+  border: 2px solid #8d5a30;
+  border-radius: calc(.8 * var(--mh));
+  background: #150c08;
+  color: var(--gold-bright);
+  text-align: center;
+  font-size: calc(2.1 * var(--mh));
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── 하단 TIP 줄 : 미니게임 설명(#miniDescription) + 진행 피드백(#miniFeedback) ── */
+.mini-tip {
+  position: absolute;
+  left: var(--stage-x);
+  top: var(--tip-y);
+  width: var(--stage-w);
+  height: var(--tip-h);
+  display: flex;
+  align-items: center;
+  gap: calc(1.2 * var(--mw));
+  padding: 0 calc(1.4 * var(--mw));
+  border: 2px solid #8b6034;
+  border-radius: calc(.8 * var(--mh));
+  background: linear-gradient(#efe0bd, #d8c39a);
+}
+.mini-tip-label {
+  flex: none;
+  padding: calc(.5 * var(--mh)) calc(1 * var(--mw));
+  border: 2px solid #4d6b32;
+  border-radius: calc(.6 * var(--mh));
+  background: linear-gradient(#6f9145, #4d6b32);
+  color: #f6f2d8;
+  font-size: calc(1.5 * var(--mh));
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+/* 설명은 항상, 피드백은 내용이 있을 때만 아래 줄에 붙습니다 */
+.mini-tip-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(.4 * var(--mh));
+}
+.mini-description,
+.mini-feedback {
+  margin: 0;
+  overflow: hidden;
+  font-size: calc(1.7 * var(--mh));
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.mini-description { color: #3a2513; font-weight: 700; }
+.mini-description::before { content: "• "; color: #8b6034; }
+.mini-feedback { color: #8a3b22; font-weight: 800; }
+.mini-feedback:empty { display: none; }
+.mini-esc-hint {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(.6 * var(--mw));
+  color: #5a3d22;
+  font-size: calc(1.5 * var(--mh));
+  font-weight: 800;
+}
+.mini-esc-hint kbd {
+  min-width: auto;
+  padding: calc(.3 * var(--mh)) calc(.7 * var(--mw));
+  font-size: calc(1.4 * var(--mh));
+}
+/* 닫을 수 없는 미니게임에서는 ESC 안내를 숨깁니다 */
+.mini-overlay:has(#miniClose[hidden]) .mini-esc-hint { display: none; }
+
+/* ── 4. 닫기 / 일시정지 버튼 ───────────────────────────────── */
+.mini-icon-button {
+  position: absolute;
+  right: var(--btn-x);
+  top: var(--btn-y);
+  width: var(--btn);
+  height: var(--btn);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #8a4a28;
+  border-radius: calc(.9 * var(--mh));
+  background: linear-gradient(#a8452f, #6d2a1c);
+  color: #ffe6c2;
+  box-shadow: inset 0 0 0 2px #e0a35c, 0 calc(.4 * var(--mh)) 0 #3d1a10;
+  cursor: pointer;
+  font-size: calc(3 * var(--mh));
+  font-weight: 900;
+  line-height: 1;
+}
+.mini-icon-button:active { transform: translateY(2px); box-shadow: inset 0 0 0 2px #e0a35c; }
+.mini-icon-button[hidden] { display: none; }
+.mini-pause { background: linear-gradient(#a8742f, #6d481c); }
+/* 닫기 버튼이 숨겨진(닫을 수 없는) 미니게임에서만 일시정지 버튼이 뜹니다 */
+#miniPause { display: none; }
+#miniClose[hidden] + #miniPause { display: grid; }
+
+/* ── 좁은 화면 보정 : 글자만 조금 줄입니다(패널 비율은 그대로) ── */
+@media (max-width: 600px) {
+  .mini-tip-label { letter-spacing: 0; }
+  .mini-esc-hint { display: none; }
+}

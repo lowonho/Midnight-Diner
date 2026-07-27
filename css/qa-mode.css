@@ -1,10 +1,30 @@
+/* QA 전용 스타일. qa-mode.js 와 함께 통째로 지우면 됩니다. */
+
+/* ---- 숨은 입구: 타이틀 왼쪽 등 ----------------------------
+   qa-mode.js 가 왼쪽 등과 같은 자리에 투명한 클릭 판(.qa-lamp-hit)을 깔고
+   10번 클릭을 셉니다. 위치·크기는 JS가 등의 실제 크기에서 계산해 넣습니다.
+   커서는 일부러 기본값으로 둡니다(눌러 보라는 티를 내지 않습니다). */
+.qa-lamp-hit { position: absolute; z-index: 3; pointer-events: auto; background: transparent; }
+.title-screen .title-lamp.qa-knock { animation: qa-lamp-flicker .18s steps(2) 2; }
+.title-screen .title-lamp.qa-knock-strong { animation: qa-lamp-flicker .16s steps(2) 3; filter: brightness(1.4); }
+@keyframes qa-lamp-flicker { 50% { opacity: .3; } }
+
+.qa-title-button { width: min(280px,75%); margin: 11px auto 0; padding: 13px 18px; border-color: #d49b3f; color: #f5cb78; font-size: 18px; }
+.qa-title-button::before { content: "🛠 "; }
+.qa-title-button.qa-just-unlocked { animation: qa-reveal 1.4s ease-out; }
+@keyframes qa-reveal {
+  0% { opacity: 0; transform: translateY(calc(-14 * var(--upx))) scale(.94); box-shadow: 0 0 0 0 rgba(255,216,117,.7); }
+  35% { opacity: 1; transform: translateY(0) scale(1.04); }
+  60% { transform: scale(1); box-shadow: 0 0 22px 4px rgba(255,216,117,.55); }
+  100% { box-shadow: 0 0 0 0 rgba(255,216,117,0); }
+}
+
+/* ---- QA 패널 ---------------------------------------------- */
 .qa-mode-panel {
   position: fixed; z-index: 250; left: 12px; top: 12px; width: min(330px,calc(100vw - 24px));
   border: 2px solid #f0b94f; border-radius: 8px; background: rgba(24,15,10,.96); color: #f7dfad;
   box-shadow: 0 8px 30px rgba(0,0,0,.5); font: 12px/1.45 "Malgun Gothic",sans-serif;
 }
-.qa-title-button { width: min(280px,75%); margin: 11px auto 0; padding: 13px 18px; border-color: #d49b3f; color: #f5cb78; font-size: 18px; }
-.qa-title-button::before { content: "🛠 "; }
 .qa-mode-panel header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #5a321d; }
 .qa-mode-panel header strong { color: #ffd875; letter-spacing: .08em; }
 .qa-mode-panel header span { padding: 1px 6px; border-radius: 10px; background: #9a3e35; color: white; font-size: 10px; }
@@ -19,7 +39,31 @@
 .qa-mode-panel pre { min-height: 96px; margin: 8px 0; padding: 8px; overflow: auto; border-radius: 4px; background: #120b08; color: #d8c29f; white-space: pre-wrap; font: 11px/1.45 Consolas,monospace; }
 .qa-mode-panel small { display: block; color: #bda582; }
 .qa-mode-panel .qa-exit { width: 100%; margin-top: 8px; background: #70402b; color: #f7dfad; }
+.qa-mode-panel .qa-abort { width: 100%; margin-bottom: 6px; background: #8a4a33; color: #ffe6bd; }
+
+/* ---- 탭 --------------------------------------------------- */
+.qa-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+.qa-tabs button { background: #3a241a; color: #d8b47e; }
+.qa-tabs button.active { background: #ffd875; color: #3e2416; font-weight: bold; }
+
+/* ---- 미니게임 목록 ---------------------------------------- */
+.qa-mini-search {
+  width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 5px 7px;
+  border: 1px solid #946037; border-radius: 4px; background: #120b08; color: #f7dfad; font: 12px/1.4 inherit;
+}
+.qa-mini-list { max-height: 40vh; overflow-y: auto; padding-right: 2px; }
+.qa-mini-section > em { display: block; margin: 6px 0 4px; color: #ffd875; font-style: normal; font-size: 11px; letter-spacing: .06em; }
+.qa-mini-group { margin-bottom: 6px; padding: 5px 6px; border-radius: 5px; background: rgba(255,255,255,.04); }
+.qa-mini-group > strong { display: block; margin-bottom: 4px; color: #e7c58c; font-size: 11px; }
+.qa-mini-group button {
+  display: flex; align-items: baseline; gap: 6px; width: 100%; margin-bottom: 3px; padding: 4px 6px; text-align: left;
+}
+.qa-mini-group button[hidden] { display: none; }   /* 검색 필터. display:flex 가 [hidden] 을 이기므로 필요합니다 */
+.qa-mini-group button > span { flex: 1; }
+.qa-mini-group button > small { color: #6b4a30; font-size: 10px; }
+.qa-mini-group button:hover { background: #fff0bd; }
 
 @media (max-width:600px) {
   .qa-mode-panel { left: 6px; top: 6px; width: calc(100vw - 12px); }
+  .qa-mini-list { max-height: 30vh; }
 }

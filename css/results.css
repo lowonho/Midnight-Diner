@@ -1,28 +1,28 @@
 .result-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 17px 0;
+  gap: calc(10 * var(--upx));
+  margin: calc(17 * var(--upx)) 0;
 }
 .result-grid div {
-  padding: 12px 8px;
+  padding: calc(12 * var(--upx)) calc(8 * var(--upx));
   border: 1px solid #704221;
-  border-radius: 7px;
+  border-radius: calc(7 * var(--upx));
   background: #160c08;
 }
 .result-grid span {
   display: block;
   color: #af8c60;
-  font-size: 11px;
+  font-size: calc(11 * var(--upx));
 }
 .result-grid strong {
   display: block;
-  margin-top: 5px;
+  margin-top: calc(5 * var(--upx));
   color: #ffe09a;
-  font-size: 20px;
+  font-size: calc(20 * var(--upx));
 }
 .result-comment {
-  margin: 13px 0;
+  margin: calc(13 * var(--upx)) 0;
   color: #d9bf97;
   line-height: 1.5;
 }

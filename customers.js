@@ -46,7 +46,9 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838 };
 // 손님 머리 위에 뜨는 것들의 y 오프셋(손님 기준 y 로부터).
 const CUSTOMER_HUD = {
   bubbleY:-145, bubbleW:76, bubbleH:55,   // 주문 아이콘 패널
-  iconY:-140, iconSize:38,
+  // 음식 그림은 가로형(264x152)이라 패널 안쪽에 폭 기준으로 맞춥니다.
+  // iconY 는 패널 세로 중앙(bubbleY + bubbleH/2).
+  iconY:-117, iconW:66, iconH:44,
   tailY:-90,                              // 패널 꼬리
   ringY:-52, ringR:46,                    // 선택된 손님 강조 원
   labelY:-152,                            // 번호 / 이름
@@ -77,7 +79,10 @@ function drawCustomers(){
     roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
     ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
     roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
-    drawFoodIcon(dishById(order.dishId).icon,x-H.iconSize/2,y+H.iconY,H.iconSize);
+    // 주문 표시라 아직 조리 전입니다. 완벽 조리 그림은 쓰지 않습니다.
+    drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
+    // 특별음식이면 같은 사각형에 반짝임을 겹칩니다. (시트 규격이 프랍과 같음)
+    if(isSpecialFood(order.dishId,order))drawFoodFx("sparkle",x,y+H.iconY,H.iconW,H.iconH);
     ctx.fillStyle="#3b2518";ctx.beginPath();
     ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
 

@@ -9,20 +9,20 @@
 .title-lamp {
   position: absolute;
   top: 8%;
-  width: 18px;
-  height: 110px;
-  border-left: 3px solid #5c3923;
+  width: calc(18 * var(--upx));
+  height: calc(110 * var(--upx));
+  border-left: calc(3 * var(--upx)) solid #5c3923;
 }
 .title-lamp::after {
   content: "";
   position: absolute;
   bottom: 0;
-  left: -24px;
-  width: 48px;
-  height: 35px;
+  left: calc(-24 * var(--upx));
+  width: calc(48 * var(--upx));
+  height: calc(35 * var(--upx));
   border-radius: 50% 50% 38% 38%;
   background: #c37b32;
-  box-shadow: 0 0 55px 20px rgba(255,172,73,.22);
+  box-shadow: 0 0 calc(55 * var(--upx)) calc(20 * var(--upx)) rgba(255,172,73,.22);
 }
 .lamp-one { left: 25%; }
 .lamp-two { right: 25%; }
@@ -30,53 +30,53 @@
   position: absolute;
   bottom: 14%;
   left: 48%;
-  width: 20px;
-  height: 100px;
-  border-left: 4px solid rgba(255,235,205,.25);
+  width: calc(20 * var(--upx));
+  height: calc(100 * var(--upx));
+  border-left: calc(4 * var(--upx)) solid rgba(255,235,205,.25);
   border-radius: 50%;
   animation: steam 2s infinite ease-in-out;
 }
 .steam-two { left: 52%; animation-delay: -1s; }
 @keyframes steam {
-  0% { transform: translateY(25px) rotate(-8deg); opacity: 0; }
+  0% { transform: translateY(calc(25 * var(--upx))) rotate(-8deg); opacity: 0; }
   35% { opacity: 1; }
-  100% { transform: translateY(-45px) rotate(9deg); opacity: 0; }
+  100% { transform: translateY(calc(-45 * var(--upx))) rotate(9deg); opacity: 0; }
 }
 
 .title-window {
   position: relative;
-  width: min(620px,85%);
+  width: min(calc(620 * var(--upx)),85%);
   text-align: center;
 }
 .title-logo {
   position: relative;
-  width: min(520px,100%);
+  width: min(calc(520 * var(--upx)),100%);
   aspect-ratio: 520/150;
-  margin: 0 auto 18px;
+  margin: 0 auto calc(18 * var(--upx));
   padding-top: 5%;
   background: url("../assets/sign_frame.png") center/100% 100% no-repeat;
-  filter: drop-shadow(0 14px 20px #000);
+  filter: drop-shadow(0 calc(14 * var(--upx)) calc(20 * var(--upx)) #000);
 }
 .title-logo small {
   display: block;
   color: #d6a963;
-  font-size: clamp(9px,1vw,14px);
+  font-size: calc(14 * var(--upx));
   letter-spacing: .22em;
 }
 .title-logo strong {
   display: block;
   color: #ffe19b;
   font-family: Georgia,"Malgun Gothic",serif;
-  font-size: clamp(36px,6vw,72px);
+  font-size: calc(72 * var(--upx));
   line-height: .95;
   letter-spacing: -.1em;
-  text-shadow: 3px 3px #562817;
+  text-shadow: calc(3 * var(--upx)) calc(3 * var(--upx)) #562817;
 }
 .title-logo em {
   display: block;
-  margin-top: 5px;
+  margin-top: calc(5 * var(--upx));
   color: #d09a50;
-  font-size: clamp(9px,.9vw,13px);
+  font-size: calc(13 * var(--upx));
   font-style: normal;
 }
 .logo-spark {
@@ -89,32 +89,32 @@
 @keyframes twinkle { 50% { opacity: .3; } }
 
 .title-window > p {
-  max-width: 560px;
-  margin: 0 auto 19px;
+  max-width: calc(560 * var(--upx));
+  margin: 0 auto calc(19 * var(--upx));
   color: #e3cda9;
   line-height: 1.65;
-  font-size: clamp(11px,1.05vw,16px);
+  font-size: calc(16 * var(--upx));
   text-shadow: 1px 1px #000;
 }
 .title-start {
-  width: min(280px,75%);
+  width: min(calc(280 * var(--upx)),75%);
   margin: 0 auto;
-  padding: 13px 18px;
-  font-size: 18px;
+  padding: calc(13 * var(--upx)) calc(18 * var(--upx));
+  font-size: calc(18 * var(--upx));
 }
 .title-continue {
-  margin-top: 11px;
+  margin-top: calc(11 * var(--upx));
   background: linear-gradient(#d9b977,#96602f);
 }
 .save-info {
   display: block;
-  min-height: 18px;
-  margin: 8px auto 0;
+  min-height: calc(18 * var(--upx));
+  margin: calc(8 * var(--upx)) auto 0;
   color: #ad8b62;
-  font-size: 11px;
+  font-size: calc(11 * var(--upx));
 }
 .text-button {
-  margin-top: 11px;
+  margin-top: calc(11 * var(--upx));
   border: 0;
   background: transparent;
   color: #caa36d;
@@ -143,11 +143,11 @@
   right: 8%;
   top: 7%;
   bottom: 7%;
-  border: 10px solid #2e1b13;
+  border: calc(10 * var(--upx)) solid #2e1b13;
   background:
     linear-gradient(90deg, transparent 0 7%, rgba(255,202,111,.07) 7% 7.4%, transparent 7.4% 92.6%, rgba(255,202,111,.07) 92.6% 93%, transparent 93%),
-    repeating-linear-gradient(90deg, #1b120e 0 56px, #241711 56px 112px);
-  box-shadow: inset 0 0 0 4px #6b4328, inset 0 0 80px #000, 0 28px 90px #000;
+    repeating-linear-gradient(90deg, #1b120e 0 calc(56 * var(--upx)), #241711 calc(56 * var(--upx)) calc(112 * var(--upx)));
+  box-shadow: inset 0 0 0 calc(4 * var(--upx)) #6b4328, inset 0 0 calc(80 * var(--upx)) #000, 0 calc(28 * var(--upx)) calc(90 * var(--upx)) #000;
 }
 .store-awning {
   position: absolute;
@@ -155,9 +155,9 @@
   right: 14%;
   top: 10%;
   height: 12%;
-  border: 5px solid #442719;
-  background: repeating-linear-gradient(90deg, #773521 0 64px, #d3a76a 64px 128px);
-  box-shadow: 0 12px 0 #21120d, 0 24px 38px rgba(0,0,0,.55);
+  border: calc(5 * var(--upx)) solid #442719;
+  background: repeating-linear-gradient(90deg, #773521 0 calc(64 * var(--upx)), #d3a76a calc(64 * var(--upx)) calc(128 * var(--upx)));
+  box-shadow: 0 calc(12 * var(--upx)) 0 #21120d, 0 calc(24 * var(--upx)) calc(38 * var(--upx)) rgba(0,0,0,.55);
 }
 .street-glow {
   position: absolute;
@@ -167,11 +167,11 @@
   height: 17%;
   border-radius: 50%;
   background: rgba(255,164,65,.08);
-  filter: blur(22px);
+  filter: blur(calc(22 * var(--upx)));
 }
 .title-screen .title-window {
   z-index: 2;
-  width: min(660px,88%);
+  width: min(calc(660 * var(--upx)),88%);
   padding-top: 4vh;
 }
 .title-screen .title-lamp { top: 18%; }

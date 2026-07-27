@@ -156,7 +156,7 @@ function playStoryScenes(sceneIds,onComplete=null){
   if(storyIsActive())return false;
   const queue=sceneIds.filter(id=>STORY_SCENES[id]&&!state.story.completed[id]);
   if(!queue.length){if(onComplete)onComplete();return false;}
-  storySession={queue,queueIndex:0,scene:null,lines:[],lineIndex:0,wasPaused:state.paused,onComplete};
+  storySession={queue,queueIndex:0,scene:null,lines:[],lineIndex:0,actors:[],wasPaused:state.paused,onComplete};
   state.paused=true;
   document.getElementById("storyOverlay").classList.add("open");
   beginNextStoryScene();
@@ -172,6 +172,7 @@ function beginNextStoryScene(){
   storySession.scene=scene;
   storySession.lines=scene.lines.map(line=>({...line,choices:line.choices?.map(choice=>({...choice}))}));
   storySession.lineIndex=0;
+  resetStoryStage();
   document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
   showStoryLine();
@@ -271,18 +272,76 @@ function storyAdvance(){
   return true;
 }
 
-function setStoryPortrait(speakerId){
-  const wrap=document.getElementById("storyPortraitWrap");
-  const portrait=document.getElementById("storyPortrait");
-  portrait.className="story-portrait";
-  portrait.style.removeProperty("--portrait-y");
-  if(!speakerId){wrap.classList.add("no-portrait");return;}
-  wrap.classList.remove("no-portrait");
-  if(speakerId==="protagonist"){portrait.classList.add("chef");return;}
+// 무대 배치 규칙: 주인공은 항상 맨 왼쪽 자리, 나머지 화자는 등장 순서대로 오른쪽 끝까지 균등 배치합니다.
+// (상대 1명이면 오른쪽, 2명이면 중앙·오른쪽, 그 이상은 같은 간격으로 계속 벌어집니다.)
+const STORY_ACTOR_MAX_WIDTH=24;
+const STORY_ACTOR_MARGIN=2;
+const STORY_ACTOR_GUTTER=1.5;
+
+function resetStoryStage(){
+  const stage=document.getElementById("storyStage");
+  if(stage)stage.innerHTML="";
+  if(storySession)storySession.actors=[];
+}
+
+function applyStoryPortraitArt(portrait,speakerId){
   const character=STORY_CHARACTERS[speakerId];
+  if(character?.art){
+    portrait.classList.add("art");
+    portrait.style.setProperty("--portrait-art",`url("${character.art}")`);
+    return;
+  }
+  if(speakerId==="protagonist"){portrait.classList.add("chef");return;}
   if(!character||character.portraitRow==null){portrait.classList.add("role");return;}
   const row=clamp(character.portraitRow,0,5);
   portrait.style.setProperty("--portrait-y",row===5?"100%":`${row*20}%`);
+}
+
+function ensureStoryActor(speakerId){
+  if(!storySession||!speakerId)return null;
+  if(!storySession.actors)storySession.actors=[];
+  const existing=storySession.actors.find(actor=>actor.id===speakerId);
+  if(existing)return existing;
+  const stage=document.getElementById("storyStage");
+  if(!stage)return null;
+  const element=document.createElement("div");
+  element.className="story-actor";
+  element.dataset.speaker=speakerId;
+  const portrait=document.createElement("div");
+  portrait.className="story-portrait";
+  applyStoryPortraitArt(portrait,speakerId);
+  element.appendChild(portrait);
+  stage.appendChild(element);
+  const actor={id:speakerId,element};
+  if(speakerId==="protagonist")storySession.actors.unshift(actor);
+  else storySession.actors.push(actor);
+  layoutStoryActors();
+  requestAnimationFrame(()=>element.classList.add("entered"));
+  return actor;
+}
+
+function layoutStoryActors(){
+  const actors=storySession?.actors||[];
+  if(!actors.length)return;
+  const width=Math.min(STORY_ACTOR_MAX_WIDTH,(100-STORY_ACTOR_MARGIN*2)/actors.length-STORY_ACTOR_GUTTER);
+  const left=STORY_ACTOR_MARGIN+width/2;
+  const right=100-STORY_ACTOR_MARGIN-width/2;
+  actors.forEach((actor,index)=>{
+    const x=actors.length===1
+      ?(actor.id==="protagonist"?left:right)
+      :left+(right-left)*index/(actors.length-1);
+    actor.element.style.setProperty("--actor-x",`${x}%`);
+    actor.element.style.setProperty("--actor-w",`${width}%`);
+  });
+}
+
+function setStoryPortrait(speakerId){
+  if(!storySession)return;
+  if(speakerId)ensureStoryActor(speakerId);
+  // 나레이션이면 발화자가 없으므로 전원 어둡게 유지합니다.
+  (storySession.actors||[]).forEach(actor=>{
+    actor.element.classList.toggle("is-active",!!speakerId&&actor.id===speakerId);
+  });
 }
 
 function completeStoryScene(){
@@ -411,6 +470,7 @@ function finishStorySession(){
   clearTimeout(storyRevealTimer);
   document.getElementById("storyRevealNotice").classList.remove("show");
   document.getElementById("storyOverlay").classList.remove("open");
+  resetStoryStage();
   const complete=storySession.onComplete;
   const wasPaused=storySession.wasPaused;
   storySession=null;
@@ -524,6 +584,7 @@ function runStoryQaFromQuery(){
   for(let i=0;i<lineIndex;i++){
     const line=storySession?.lines[i];
     if(line?.reveal)revealCharacterName(line.reveal,false);
+    if(line?.speaker)ensureStoryActor(line.speaker);
   }
   if(storySession&&lineIndex<storySession.lines.length){storySession.lineIndex=lineIndex;showStoryLine();}
   const choiceIndex=params.has("qa-choice")?Number(params.get("qa-choice")):NaN;

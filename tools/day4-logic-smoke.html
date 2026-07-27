@@ -47,8 +47,10 @@ try{
   assert(gameSource.includes('dish?.id==="fries"?"fries"'),"Fries fryer UI route");
   assert(SKEWER_BATCH_SIZE===3,"Chicken skewer batch size");
   assert(dishById("skewer").prepYield===3,"Chicken skewer prep yield");
-  assert(setupChickenSkewer.toString().includes("totalSkewers:SKEWER_BATCH_SIZE"),"Chicken skewer prep count route");
-  assert(gameSource.includes("length:SKEWER_BATCH_SIZE")&&gameSource.includes("flippedSkewers>=SKEWER_BATCH_SIZE"),"Chicken skewer grill count route");
+  const skewerPrepRequest=new XMLHttpRequest();skewerPrepRequest.open("GET","../engine-e8-order-place.js",false);skewerPrepRequest.send();
+  assert(skewerPrepRequest.responseText.includes("SKEWER_TOTAL=SKEWER_BATCH_SIZE"),"Chicken skewer prep count route");
+  const skewerCookRequest=new XMLHttpRequest();skewerCookRequest.open("GET","../engine-e5-two-side-cook.js",false);skewerCookRequest.send();
+  assert(skewerCookRequest.responseText.includes("length: SKEWER_BATCH_SIZE")&&skewerCookRequest.responseText.includes("flippedSkewers >= SKEWER_BATCH_SIZE"),"Chicken skewer grill count route");
   const renderStart=gameSource.indexOf("function renderFryer(){"),renderEnd=gameSource.indexOf("function fryerAction(m){",renderStart);
   const renderDom={miniDescription:document.createElement("p"),miniTimer:document.createElement("span"),miniContent:document.createElement("div")},renderState={mini:{type:"fry",data:{fryerStyle:"fries",phase:"frying",marker:.74,oilTaps:0}}};
   const renderFryerUnderTest=new Function("state","dom","miniAction",`${gameSource.slice(renderStart,renderEnd)};return renderFryer;`)(renderState,renderDom,()=>{});
