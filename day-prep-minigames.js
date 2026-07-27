@@ -446,9 +446,9 @@ function moveWhiskPointer(event){
 }
 
 function setupChickenSkewer(){
-  state.mini.data={mode:"skewer",sequence:["chicken","greenOnion","chicken","greenOnion","chicken"],placed:[],used:[],selectedPiece:null,completedSkewers:0,totalSkewers:4};
-  dom.miniTitle.textContent="닭꼬치 4개 조립";
-  dom.miniDescription.textContent="닭 → 대파 → 닭 → 대파 → 닭 순서로 재료를 꽂아 숯불에 올릴 꼬치 4개를 만드세요.";
+  state.mini.data={mode:"skewer",sequence:["chicken","greenOnion","chicken","greenOnion","chicken"],placed:[],used:[],selectedPiece:null,completedSkewers:0,totalSkewers:SKEWER_BATCH_SIZE};
+  dom.miniTitle.textContent=`닭꼬치 ${SKEWER_BATCH_SIZE}개 조립`;
+  dom.miniDescription.textContent=`닭 → 대파 → 닭 → 대파 → 닭 순서로 재료를 꽂아 숯불에 올릴 꼬치 ${SKEWER_BATCH_SIZE}개를 만드세요.`;
   renderChickenSkewer();
 }
 
@@ -481,7 +481,7 @@ function placeSkewerPiece(pieceIndex,slotIndex){
   data.used.push(pieceIndex);data.placed.push(ingredient);data.selectedPiece=null;audio.click();dom.miniFeedback.textContent="재료를 꼬치에 꽂았습니다.";
   if(data.placed.length>=data.sequence.length){
     data.completedSkewers++;
-    if(data.completedSkewers>=data.totalSkewers){finishDayPrepTask("assembleChickenSkewer","닭꼬치 4개 조립 완료");return;}
+    if(data.completedSkewers>=data.totalSkewers){finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.totalSkewers}개 조립 완료`);return;}
     data.placed=[];data.used=[];data.selectedPiece=null;
     dom.miniFeedback.textContent=`${data.completedSkewers}개 완성! 다음 꼬치를 같은 순서로 꽂으세요.`;
   }

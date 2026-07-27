@@ -204,7 +204,7 @@
 .charcoal-bed > i { width: 27px; height: 20px; border-radius: 45% 55% 40% 52%; background: radial-gradient(circle at 65% 35%,#ffad48 0 8%,#bc4025 10% 22%,#342724 48%,#0c0b0a 75%); box-shadow: 0 0 7px rgba(255,96,30,.45); transform: rotate(-8deg); animation: charcoal-glow 1.35s ease-in-out infinite alternate; }
 .charcoal-bed > i:nth-child(2n) { transform: rotate(11deg); animation-delay: -.65s; }
 .grill-grate { position: absolute; z-index: 1; inset: 18px 16px 16px; border: 4px solid #625c55; border-radius: 10px; background: repeating-linear-gradient(90deg,transparent 0 23px,#4f4b47 24px 28px,transparent 29px 43px); box-shadow: inset 0 0 0 2px #24211f; opacity: .92; }
-.skewer-cook .cook-food { z-index: 5; inset: 13px -12px 9px 5px; display: grid; grid-template-rows: repeat(4,1fr); gap: 2px; overflow:visible; border-radius: 0; }
+.skewer-cook .cook-food { z-index: 5; inset: 18px -12px 14px 5px; display: grid; grid-template-rows: repeat(3,1fr); gap: 7px; overflow:visible; border-radius: 0; }
 .grill-skewer { position: relative; min-width:310px; height:34px; display: flex; align-items: center; justify-content: center; gap: 3px; padding-right:38px; transform: rotate(-2deg); filter:drop-shadow(0 3px 2px rgba(0,0,0,.7)); }
 .grill-skewer:nth-child(even) { transform: rotate(1deg); }
 .grill-skewer.current { filter: drop-shadow(0 0 7px #ffe08d); }
@@ -233,7 +233,7 @@
 .rebound-controls { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
 .rebound-controls button { min-height:50px; border:2px solid #89562e; border-radius:9px; background:linear-gradient(#edca8f,#b8773a); color:#2d1b11; cursor:pointer; font-size:17px; font-weight:900; }
 .rebound-controls button.holding { background:linear-gradient(#fff0af,#cf8740); transform:translateY(2px); }
-.skewer-flip-sequence { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; width:100%; }
+.skewer-flip-sequence { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
 .skewer-flip-pair { display:flex; justify-content:center; gap:4px; padding:7px 4px; border:2px solid #65442d; border-radius:9px; background:#21140e; opacity:.42; }
 .skewer-flip-pair b { display:grid; place-items:center; width:30px; height:30px; border-radius:6px; background:#5b3925; color:#f3d495; font-size:20px; }
 .skewer-flip-pair.current { border-color:#ffe08d; opacity:1; box-shadow:0 0 10px rgba(255,224,141,.25); }

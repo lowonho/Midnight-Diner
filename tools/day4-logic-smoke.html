@@ -44,6 +44,10 @@ try{
   const gameSource=gameRequest.responseText,fryerStart=gameSource.indexOf("function fryerAction(m){"),fryerEnd=gameSource.indexOf("function renderIngredientChoices()",fryerStart);
   assert(fryerStart>=0&&fryerEnd>fryerStart,"Shared fryer action source");
   assert(gameSource.includes('dish?.id==="fries"?"fries"'),"Fries fryer UI route");
+  assert(SKEWER_BATCH_SIZE===3,"Chicken skewer batch size");
+  assert(dishById("skewer").prepYield===3,"Chicken skewer prep yield");
+  assert(setupChickenSkewer.toString().includes("totalSkewers:SKEWER_BATCH_SIZE"),"Chicken skewer prep count route");
+  assert(gameSource.includes("length:SKEWER_BATCH_SIZE")&&gameSource.includes("flippedSkewers>=SKEWER_BATCH_SIZE"),"Chicken skewer grill count route");
   const renderStart=gameSource.indexOf("function renderFryer(){"),renderEnd=gameSource.indexOf("function fryerAction(m){",renderStart);
   const renderDom={miniDescription:document.createElement("p"),miniTimer:document.createElement("span"),miniContent:document.createElement("div")},renderState={mini:{type:"fry",data:{fryerStyle:"fries",phase:"frying",marker:.74,oilTaps:0}}};
   const renderFryerUnderTest=new Function("state","dom","miniAction",`${gameSource.slice(renderStart,renderEnd)};return renderFryer;`)(renderState,renderDom,()=>{});
@@ -60,6 +64,6 @@ try{
   const shrimpMini={type:"fry",complete:false,data:{fryerStyle:"shrimp",phase:"frying",marker:.74,liftScore:0,oilTaps:0,oilTapWindow:0}};fryerState.mini=shrimpMini;
   fryerActionUnderTest(shrimpMini);assert(shrimpMini.data.phase==="draining","Shrimp fryer regression");
   window.setTimeout=originalSetTimeout;
-  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 24";
+  document.title="DAY4_LOGIC_OK";document.body.textContent="DAY4_LOGIC_OK 28";
 }catch(error){document.title="DAY4_LOGIC_FAIL";document.body.textContent=`DAY4_LOGIC_FAIL ${error.stack||error}`;}
 </script>

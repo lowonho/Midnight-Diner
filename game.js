@@ -432,8 +432,8 @@ function renderGrillGame() {
 function charcoalSkewerMarkup(data){
   const coals=Array.from({length:9},()=>"<i></i>").join("");
   const flipped=data?.flippedSkewers||0;
-  const skewers=Array.from({length:4},(_,index)=>`<span class="grill-skewer skewer-${index+1} ${index<flipped?"flipped":""} ${data?.phase==="skewerFlip"&&index===flipped?"current":""}"><i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b></span>`).join("");
-  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 4개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
+  const skewers=Array.from({length:SKEWER_BATCH_SIZE},(_,index)=>`<span class="grill-skewer skewer-${index+1} ${index<flipped?"flipped":""} ${data?.phase==="skewerFlip"&&index===flipped?"current":""}"><i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b></span>`).join("");
+  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
 }
 
 function renderTwoSideCook(){
@@ -448,12 +448,12 @@ function renderTwoSideCook(){
       <div class="cut-count">${sideLabel} 익히기 · 초록 구간 약 75%</div>
       <button class="mini-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
   }else if(data.phase==="skewerFlip"||data.phase==="skewerTurning"){
-    const current=Math.min(data.flippedSkewers||0,3);
+    const current=Math.min(data.flippedSkewers||0,SKEWER_BATCH_SIZE-1);
     dom.miniDescription.textContent="현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";
     dom.miniContent.innerHTML=`
       <div class="two-side-pan skewer-cook skewer-flip-ready side-0">${charcoalSkewerMarkup(data)}</div>
-      <div class="skewer-flip-sequence" aria-label="꼬치 뒤집기 진행도">${Array.from({length:4},(_,index)=>`<span class="skewer-flip-pair ${index<(data.flippedSkewers||0)?"done":index===current?"current":""}"><b>←</b><b>→</b></span>`).join("")}</div>
-      <div class="cut-count" id="skewerFlipLabel">꼬치 ${(data.flippedSkewers||0)+1} / 4 · <strong>${data.flipStep===1?"→":"←"}</strong> 입력</div>
+      <div class="skewer-flip-sequence" aria-label="꼬치 뒤집기 진행도">${Array.from({length:SKEWER_BATCH_SIZE},(_,index)=>`<span class="skewer-flip-pair ${index<(data.flippedSkewers||0)?"done":index===current?"current":""}"><b>←</b><b>→</b></span>`).join("")}</div>
+      <div class="cut-count" id="skewerFlipLabel">꼬치 ${(data.flippedSkewers||0)+1} / ${SKEWER_BATCH_SIZE} · <strong>${data.flipStep===1?"→":"←"}</strong> 입력</div>
       <div class="skewer-flip-controls"><button id="skewerFlipLeft" type="button">← 왼쪽</button><button id="skewerFlipRight" type="button">→ 오른쪽</button></div>`;
   }else if(data.phase==="flip"){
     dom.miniDescription.textContent="↑를 꾹 눌러 팬을 당긴 뒤, 반동 게이지가 충분히 차면 ↓를 눌러 뒤집으세요.";
@@ -466,7 +466,7 @@ function renderTwoSideCook(){
       <div class="cut-count" id="reboundLabel">반동 충전 0% · ↑를 꾹 누르세요</div>
       <div class="rebound-controls"><button id="reboundUp" type="button">↑ 꾹 누르기</button><button id="reboundDown" type="button">↓ 반동 뒤집기</button></div>`;
   }else{
-    dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping">${isSkewer?charcoalSkewerMarkup(data):'<i class="cook-food"></i>'}</div><div class="cut-count">${isSkewer?"꼬치 4개":"김치전"} 뒤집는 중…</div>`;
+    dom.miniContent.innerHTML=`<div class="two-side-pan ${isSkewer?"skewer-cook":"pancake-cook"} flipping">${isSkewer?charcoalSkewerMarkup(data):'<i class="cook-food"></i>'}</div><div class="cut-count">${isSkewer?`꼬치 ${SKEWER_BATCH_SIZE}개`:"김치전"} 뒤집는 중…</div>`;
   }
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click",miniAction);
   dom.miniContent.querySelector("#skewerFlipLeft")?.addEventListener("click",()=>skewerFlipInput("left"));
@@ -506,7 +506,7 @@ function beginSkewerFlip(m){
 
 function updateSkewerFlipPrompt(data){
   const label=dom.miniContent.querySelector("#skewerFlipLabel");
-  if(label)label.innerHTML=`꼬치 ${(data.flippedSkewers||0)+1} / 4 · <strong>${data.flipStep===1?"→":"←"}</strong> 입력`;
+  if(label)label.innerHTML=`꼬치 ${(data.flippedSkewers||0)+1} / ${SKEWER_BATCH_SIZE} · <strong>${data.flipStep===1?"→":"←"}</strong> 입력`;
   const pair=dom.miniContent.querySelector(".skewer-flip-pair.current");
   pair?.classList.toggle("left-done",data.flipStep===1);
 }
@@ -535,9 +535,9 @@ function skewerFlipInput(direction){
   data.flippedSkewers++;
   setTimeout(()=>{skewer?.classList.remove("turning");skewer?.classList.add("flipped");},300);
   audio.success();
-  if(data.flippedSkewers>=4){
+  if(data.flippedSkewers>=SKEWER_BATCH_SIZE){
     data.phase="skewerFinishing";
-    dom.miniFeedback.textContent="꼬치 4개 뒤집기 완료!";
+    dom.miniFeedback.textContent=`꼬치 ${SKEWER_BATCH_SIZE}개 뒤집기 완료!`;
     setTimeout(()=>{
       if(state.mini!==m||m.complete)return;
       data.phase="cook";data.side=1;data.marker=0;data.dir=1;data.speed=.24;
