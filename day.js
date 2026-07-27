@@ -51,9 +51,16 @@ function normalizeDayPrepState(){
   const valid=[...new Set([...dayData.requiredMenus,...saved])].slice(0,dayData.maxSelectedMenus);
   state.selectedMenus=valid;
   state.menuSelectionDraft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft.filter(id=>allowed.has(id)):[];
-  const legacyKimchiReady=!!state.prepProgress?.prepareKimchi;
+  // 예전 세이브 호환. 준비 작업을 쪼개거나 합칠 때마다 여기에 한 줄씩 추가합니다.
+  // 옛 항목이 완료였으면 그 자리를 대신하는 새 항목들도 완료로 쳐 줍니다.
+  // (이 처리가 없으면 이미 끝낸 준비가 미완료로 되감깁니다)
+  const legacyKimchiReady=!!state.prepProgress?.prepareKimchi;                    // prepareKimchi → 자르기 + 볶기
+  const legacyShrimpBatter=!!state.prepProgress?.coatShrimpBatter;                // coatShrimpBatter(밀+계) → 밀 + 계
+  const legacyTteokCut=!!state.prepProgress?.cutTteokbokkiIngredients;            // 3재료 묶음 → 재료별 3개
   state.prepProgress={...createDayPrepProgress(),...(state.prepProgress||{})};
   if(legacyKimchiReady){state.prepProgress.cutTofuKimchi=true;state.prepProgress.fryTofuKimchi=true;}
+  if(legacyShrimpBatter){state.prepProgress.coatShrimpFlour=true;state.prepProgress.coatShrimpEgg=true;}
+  if(legacyTteokCut){state.prepProgress.cutTteokbokkiCabbage=true;state.prepProgress.cutTteokbokkiGreenOnion=true;state.prepProgress.cutTteokbokkiFishCake=true;}
   state.kimchiPrep={...createKimchiPrepProgress(),...(state.kimchiPrep||{})};
   state.day4RapidCutNoticeShown=!!state.day4RapidCutNoticeShown;
 }
@@ -156,8 +163,11 @@ function renderPrepChecklist(){
     return `<div class="day3-prep-progress"><strong>Day 3 준비 진행도</strong><span>볶음우동 <b>${count(yakisoba)}/${yakisoba.length}</b></span><span>새우튀김 <b>${count(shrimp)}/${shrimp.length}</b></span><span class="overall">전체 준비 <b>${count(tasks)}/${tasks.length}</b></span></div>`;
   })():"";
   const day4Progress=Number(state.day)===4?(()=>{
+    // 분모는 task 목록에서 세서, 준비 작업을 쪼개도 숫자가 알아서 맞습니다.
     const day4Tasks=tasks.filter(task=>task.day4Order),count=day4Tasks.filter(task=>state.prepProgress[task.id]).length;
-    return `<div class="day3-prep-progress day4-prep-progress"><strong>Day 4 준비 체크리스트</strong><span>떡볶이 <b>${day4Tasks.filter(task=>task.menuId==="tteokbokki"&&state.prepProgress[task.id]).length}/3</b></span><span>감자튀김 <b>${day4Tasks.filter(task=>task.menuId==="fries"&&state.prepProgress[task.id]).length}/2</b></span><span class="overall">필수 준비 <b>${count}/${day4Tasks.length}</b></span></div>`;
+    const tteokbokki=day4Tasks.filter(task=>task.menuId==="tteokbokki"),fries=day4Tasks.filter(task=>task.menuId==="fries");
+    const done=items=>items.filter(task=>state.prepProgress[task.id]).length;
+    return `<div class="day3-prep-progress day4-prep-progress"><strong>Day 4 준비 체크리스트</strong><span>떡볶이 <b>${done(tteokbokki)}/${tteokbokki.length}</b></span><span>감자튀김 <b>${done(fries)}/${fries.length}</b></span><span class="overall">필수 준비 <b>${count}/${day4Tasks.length}</b></span></div>`;
   })():"";
   dom.inventoryList.innerHTML=`<div class="prep-checklist">${day3Progress}${day4Progress}${tasks.map((task,index)=>{
     const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];

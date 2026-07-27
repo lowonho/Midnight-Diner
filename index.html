@@ -150,38 +150,12 @@
             </div>
           </section>
 
-          <!-- 미니게임 공용 프레임. 모든 미니게임이 이 4개 패널을 그대로 씁니다.
-               크기·위치는 css/minigame-frame.css 상단 변수 한 곳에서 관리합니다. -->
-          <section id="miniOverlay" class="overlay mini-overlay" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
-            <!-- 1. 뒤에 깔리는 가장 큰 패널 -->
-            <div class="mini-window wood-panel" aria-hidden="true"></div>
-
-            <!-- 3. 게임 메인 플레이 영역 -->
-            <div class="mini-stage">
-              <div id="miniContent" class="mini-content"></div>
-              <div id="miniTimer" class="mini-timer">8.0</div>
-            </div>
-
-            <!-- 하단 TIP 줄. 미니게임 설명과 진행 피드백이 여기 모입니다. -->
-            <div class="mini-tip">
-              <span class="mini-tip-label" aria-hidden="true">TIP</span>
-              <div class="mini-tip-body">
-                <p id="miniDescription" class="mini-description"></p>
-                <p id="miniFeedback" class="mini-feedback" aria-live="polite"></p>
-              </div>
-              <span class="mini-esc-hint"><kbd>ESC</kbd> 나가기</span>
-            </div>
-
-            <!-- 2. 미니게임 타이틀 패널 -->
-            <div class="mini-title-panel wood-panel">
-              <p id="miniStation" class="eyebrow">조리대</p>
-              <h2 id="miniTitle">미니게임</h2>
-            </div>
-
-            <!-- 4. 닫기 버튼 / 닫을 수 없는 미니게임이면 일시정지 버튼 -->
-            <button id="miniClose" class="mini-icon-button mini-close" type="button" aria-label="미니게임 닫기" title="닫기 (ESC)" hidden>✕</button>
-            <button id="miniPause" class="mini-icon-button mini-pause" type="button" aria-label="일시정지" title="일시정지">❚❚</button>
-          </section>
+          <!-- 미니게임 공용 프레임이 들어올 자리.
+               마크업은 ui-mini-frame.js 가 이 <div> 를 통째로 갈아끼우며 넣습니다.
+               크기·위치는 css/minigame-frame.css 상단 변수 한 곳에서 관리합니다.
+               ※ 이 자리를 옮기지 마세요. 오버레이는 전부 z-index:30 이라
+                  DOM 순서가 곧 겹침 순서입니다(스토리 다음 · 정산 앞). -->
+          <div id="miniFrameMount" hidden></div>
 
           <section id="resultOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
             <div class="result-window wood-panel">
@@ -226,6 +200,7 @@
     </section>
   </div>
   <script src="phaser.min.js"></script>
+  <script src="ui-mini-frame.js"></script><!-- 미니게임 공용 패널 마크업 주입. game.js 보다 먼저여야 합니다(dom 목록이 로드 시점에 id 를 잡음) -->
   <!--
     좌표·드로잉 담당 파일들. 전부 game.js보다 먼저 로드해야 합니다.
     (game.js 의 state 초기값이 player.js 의 PLAYER_START 를 읽습니다)
@@ -247,7 +222,33 @@
   <script src="story-data.js"></script>
   <script src="story.js"></script>
   <script src="day.js"></script>
-  <script src="day-prep-minigames.js"></script>
+
+  <!--
+    미니게임 엔진.
+    로드 순서는 이 세 줄만 지키면 됩니다.
+      1) mini-engine.js        등록소를 만듭니다
+      2) day-prep-minigames.js 낮 준비 공용 + 낮 전용 등록 창구를 만듭니다
+      3) engine-*.js           각자 등록소에 자기를 올립니다 (서로 순서 무관)
+    엔진을 새로 만들면 아래에 <script> 한 줄만 추가하면 됩니다.
+    game.js 도, mini-engine.js 도 고칠 필요가 없습니다.
+  -->
+  <script src="mini-engine.js"></script>          <!-- 등록소 + 공용 도우미 -->
+  <script src="day-prep-minigames.js"></script>   <!-- 낮 준비 공용(에셋·열고닫기) + 등록 창구 -->
+
+  <!-- 엔진 11개. 파일 하나가 엔진 하나이며, 낮·밤 게임이 한 파일에 함께 있습니다. -->
+  <script src="engine-e1-timing-cut.js"></script>      <!-- E1  타이밍 칼질   게임 7 -->
+  <script src="engine-e2-alternate-input.js"></script> <!-- E2  번갈아 입력   게임 5 -->
+  <script src="engine-e3-direction-seq.js"></script>   <!-- E3  방향 시퀀스   게임 2 -->
+  <script src="engine-e4-gauge-hold.js"></script>      <!-- E4  게이지 유지   게임 2 -->
+  <script src="engine-e5-two-side-cook.js"></script>   <!-- E5  양면 굽기     게임 2 -->
+  <script src="engine-e6-deep-fry.js"></script>        <!-- E6  튀기기       게임 2 -->
+  <script src="engine-e7-measure.js"></script>         <!-- E7  계량         게임 2 -->
+  <script src="engine-e8-order-place.js"></script>     <!-- E8  순서 배치     게임 4 -->
+  <script src="engine-e9-whisk.js"></script>           <!-- E9  원 그리기     게임 1 -->
+  <script src="engine-e10-target-click.js"></script>   <!-- E10 표적 클릭     게임 1 -->
+  <script src="engine-e11-one-shot.js"></script>       <!-- E11 단발 액션     게임 2 -->
+  <script src="engine-legacy-night.js"></script>       <!-- 표에 없음: 설거지 · 쓰레기 + 미사용 4종 -->
+
   <script src="night.js"></script>
   <script src="qa-mode.js"></script>    <!-- QA 전용: ?qa=1, 제거 시 이 줄과 QA CSS/저장 훅 삭제 -->
   <script src="save.js"></script>
