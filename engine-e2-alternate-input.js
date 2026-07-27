@@ -18,15 +18,16 @@
    · 화면 마크업은 게임별로 그대로 두었습니다. 채칼·바구니·튀김옷 작업대가
      서로 완전히 다른 그림이고, 이쪽은 에셋 작업 영역입니다.
 
-   ⚠️ 새우는 지금 "밀+계"와 "빵" 두 태스크로 나뉘어 있고 세 단계가
-      자동으로 이어집니다. 3단계에서 밀/계/빵 3개로 분리합니다.
+   [새우 튀김옷]
+   밀가루 · 계란물 · 빵가루가 각각 별도의 준비 작업입니다.
+   한 단계를 끝내면 화면이 닫히고, 다음 재료대로 걸어가 다시 시작합니다.
+   단계 정보는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 에 있습니다.
    ============================================================ */
 
 registerDayPrepSetup("mandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoMandoline",()=>setupPotatoMandoline());
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
-registerDayPrepSetup("shrimpCoat",()=>setupShrimpCoat());
-registerDayPrepSetup("breadcrumbCoat",()=>setupBreadcrumbCoat());
+registerDayPrepSetup("shrimpCoat",taskId=>setupShrimpCoat(taskId));
 
 /* ---- 공통 판정 규칙 ----------------------------------------
    데이터 모양이 두 가지입니다.
@@ -170,33 +171,24 @@ function renderPotatoStarchShake(){
    3. 새우 튀김옷 — 밀가루 → 계란물 → 빵가루, 각 12회
    ============================================================ */
 
-registerDayPrepEngine(["shrimpCoat","breadcrumbCoat"],{
+registerDayPrepEngine("shrimpCoat",{
   key(m,k){
-    if(/^[a-z]$/.test(k)){breadcrumbCoatInput(k);return true;}
+    if(/^[a-z]$/.test(k)){shrimpCoatInput(k);return true;}
     return false;
   }
 });
 
-function setupShrimpCoat(){
-  if(Number(state.day)!==3)return;
-  setupShrimpCoatKeys({mode:"shrimpCoat",step:0});
-}
-
-function setupShrimpCoatKeys({mode,step}){
+function setupShrimpCoat(taskId){
+  const item=SHRIMP_COAT_STEPS.find(entry=>entry.taskId===taskId);
+  if(Number(state.day)!==3||!item)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
-  const sequence=[{id:"flour",label:"밀가루"},{id:"egg",label:"계란물"},{id:"breadcrumbs",label:"빵가루"}];
-  setDayPrepData({mode,step,sequence,keys:[...pair],expectedIndex:0,successes:0,total:12});
-  dom.miniTitle.textContent="새우튀김 준비";
-  dom.miniDescription.textContent="밀가루 → 계란물 → 빵가루 순서로, 표시된 두 키를 번갈아 눌러 튀김옷을 입혀주세요.";
-  renderBreadcrumbCoat();
+  setDayPrepData({mode:"shrimpCoat",taskId,step:item.step,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses});
+  dom.miniTitle.textContent=`새우튀김 · ${item.label} 입히기`;
+  dom.miniDescription.textContent=`표시된 두 키를 번갈아 눌러 ${item.label}를 입히세요. 끝나면 다음 재료대로 이동합니다.`;
+  renderShrimpCoat();
 }
 
-function setupBreadcrumbCoat(){
-  if(Number(state.day)!==3)return;
-  setupShrimpCoatKeys({mode:"breadcrumbCoat",step:2});
-}
-
-function renderBreadcrumbCoat(){
+function renderShrimpCoat(){
   const data=state.mini.data,current=data.sequence[data.step],progress=Math.round(data.successes/data.total*100),stage=progress>=100?3:progress>=70?2:progress>=35?1:0;
   dom.miniTimer.textContent=`${progress}%`;
   dom.miniContent.innerHTML=`
@@ -223,19 +215,17 @@ function renderBreadcrumbCoat(){
       </aside>
     </div>
     <div class="cut-count">현재 단계 · ${current.label} 입히기 ${progress}%</div>`;
-  dom.miniContent.querySelectorAll("[data-breadcrumb-key]").forEach(button=>button.addEventListener("click",()=>breadcrumbCoatInput(button.dataset.breadcrumbKey)));
+  dom.miniContent.querySelectorAll("[data-breadcrumb-key]").forEach(button=>button.addEventListener("click",()=>shrimpCoatInput(button.dataset.breadcrumbKey)));
 }
 
-function breadcrumbCoatInput(key){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["shrimpCoat","breadcrumbCoat"].includes(m.data.mode))return false;
+function shrimpCoatInput(key){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return false;
   const data=m.data;
   if(!isAlternateTurn(data,key)){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
   data.successes++;advanceAlternateTurn(data,key);audio.click();
   if(data.successes>=data.total){
     const completed=data.sequence[data.step];
-    if(data.step===0){dom.miniFeedback.textContent="밀가루 입히기 완료 · 계란물로 넘어갑니다.";audio.success();setTimeout(()=>{if(state.mini===m&&!m.complete)setupShrimpCoatKeys({mode:"shrimpCoat",step:1});},360);return true;}
-    if(data.step===1){completeDayPrepTask("coatShrimpBatter");dom.miniFeedback.textContent="계란물 입히기 완료 · 빵가루로 넘어갑니다.";audio.success();setTimeout(()=>{if(state.mini===m&&!m.complete)setupBreadcrumbCoat();},360);return true;}
-    finishDayPrepTask("coatShrimpBreadcrumbs",`새우튀김 ${completed.label} 코팅 완료`);return true;
+    finishDayPrepTask(data.taskId,`새우튀김 ${completed.label} 입히기 완료`);return true;
   }
-  dom.miniFeedback.textContent="좋아요! 반대쪽 키를 누르세요.";renderBreadcrumbCoat();return true;
+  dom.miniFeedback.textContent="좋아요! 반대쪽 키를 누르세요.";renderShrimpCoat();return true;
 }

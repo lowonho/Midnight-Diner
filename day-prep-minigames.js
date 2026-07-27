@@ -24,6 +24,8 @@ const DAY_PREP_MINI_CONFIG = {
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.22,.58,.39],speed:.78},
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:4,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68],speed:.8,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
+  // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
+  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
   fryKimchi:{total:11,allowedDirections:["left","right"]},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
@@ -103,8 +105,10 @@ function isDayPrepMini(mini=state.mini){
   return mini?.context?.mode==="dayPrep";
 }
 
+// Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
+// 칸 번호는 day4-prep-data.js 의 DAY4_RAPID_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
 function day4PrepFlowMarkup(menuId,currentIndex){
-  const steps=menuId==="tteokbokki"?["떡 불리기","재료 칼질","양념장"]:["감자 채칼","전분 털기"];
+  const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","전분 털기"];
   return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
 }
 

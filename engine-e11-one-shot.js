@@ -1,15 +1,13 @@
 "use strict";
 
 /* ============================================================
-   E11 단발 액션 — 게임 2개
+   E11 단발 액션 — 게임 3개
 
      두부김치 플레이팅 (밤 조리)   버튼 1회 → 항상 100점
      냄비에 넣기 (낮 준비)          조작 없이 0.65초 연출 → 태스크 완료
+     육수 넣기 (낮 준비)            버튼 1회 → 붓는 연출 → 태스크 완료
 
-   실패가 없는 연출용 게임입니다. 그래서 둘 다 update / key 가 없습니다.
-
-   🆕 표의 "육수 넣기"(어묵탕 P2)가 아직 없습니다. 3단계에서 여기에 붙입니다.
-      조작 없는 단발 연출이므로 아래 냄비에 넣기와 같은 형태로 만들면 됩니다.
+   실패가 없는 연출용 게임입니다. 그래서 셋 다 update 가 없습니다.
    ============================================================ */
 
 /* ============================================================
@@ -60,4 +58,50 @@ function showOdenIngredientDrop(taskId,ingredient,message){
     </div>
     <div class="cut-count">손질한 재료를 냄비에 넣는 중</div>`;
   setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(taskId,message);},650);
+}
+
+/* ============================================================
+   3. 육수 넣기 (낮 준비 · 어묵탕 마지막 단계)
+
+   무 · 어묵 · 멸치를 모두 넣은 냄비에 육수를 붓습니다.
+   버튼을 한 번 누르면 붓는 연출이 나오고 준비가 끝납니다.
+   재료를 넣는 연출(위 potDrop)과 같은 냄비 그림을 씁니다.
+   ============================================================ */
+
+registerDayPrepSetup("odenBroth",taskId=>setupOdenBroth(taskId));
+
+// 버튼 클릭만 쓰므로 키 처리가 없습니다.
+registerDayPrepEngine("brothPour",{});
+
+function setupOdenBroth(taskId){
+  const m=setDayPrepData({mode:"brothPour",taskId,poured:false});
+  if(!m)return;
+  dom.miniTitle.textContent="어묵탕 · 육수 넣기";
+  dom.miniDescription.textContent="손질을 마친 재료 위에 육수를 부어 어묵탕 준비를 마칩니다.";
+  renderOdenBroth();
+}
+
+function renderOdenBroth(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="brothPour")return;
+  const poured=m.data.poured;
+  dom.miniTimer.textContent=poured?"완료":"육수";
+  dom.miniContent.innerHTML=`
+    <div class="oden-pot-scene">
+      <div class="oden-pot-ingredients"><i class="pot-ingredient broth ${poured?"dropping":""}"></i></div>
+      <div class="oden-broth ${poured?"broth-filled":""}">
+        <i class="broth-piece radish"></i><i class="broth-piece fishCake"></i><i class="broth-piece anchovy"></i>
+      </div>
+      <div class="oden-pot"><i class="pot-rim"></i></div>
+    </div>
+    <div class="cut-count">${poured?"육수를 붓는 중…":"재료가 모두 들어갔습니다. 이제 육수를 부어주세요."}</div>
+    <button class="mini-action" id="odenBrothAction" type="button" ${poured?"disabled":""}>육수 붓기</button>`;
+  dom.miniContent.querySelector("#odenBrothAction")?.addEventListener("click",pourOdenBroth);
+}
+
+function pourOdenBroth(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="brothPour"||m.data.poured)return;
+  m.data.poured=true;audio.click();
+  renderOdenBroth();
+  dom.miniFeedback.textContent="육수가 냄비를 채웁니다.";
+  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.taskId,"어묵탕 육수 넣기 완료");},650);
 }

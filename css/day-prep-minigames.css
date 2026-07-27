@@ -264,6 +264,22 @@
 .broth-piece.fishCake { border-radius:calc(4 * var(--upx)); background:#dfa457; transform:rotate(8deg); }
 .broth-piece.anchovy { border-radius:60%; background:#899596; }
 
+/* 육수 넣기(E11 · addOdenBroth) 전용. 위 냄비 그림을 그대로 쓰고 두 가지만 더합니다.
+   1) 붓기 전 냄비 위에 떠 있는 육수통  2) 부은 뒤 국물이 차오르는 표현 */
+.pot-ingredient.broth {
+  width: calc(84 * var(--upx));
+  height: calc(46 * var(--upx));
+  border: calc(4 * var(--upx)) solid #8d8f8c;
+  border-radius: calc(6 * var(--upx)) calc(6 * var(--upx)) calc(14 * var(--upx)) calc(14 * var(--upx));
+  background: linear-gradient(#cfd3d1,#9aa09d);
+}
+.oden-broth.broth-filled {
+  height: calc(44 * var(--upx));
+  background: #c07c37;
+  box-shadow: 0 0 calc(18 * var(--upx)) rgba(214,146,66,.6);
+  transition: height .5s ease, background .5s ease;
+}
+
 .fry-work-area {
   width: 100%;
   min-height: calc(190 * var(--upx));

@@ -21,10 +21,21 @@ const RAPID_CUT_DATA=Object.freeze({
   cutSkewerGreenOnion:{ingredientId:"greenOnion",displayName:"대파",requiredPieces:4,cutType:RapidCutType.Normal,progressSprites:[],cutSound:null}
 });
 
+// 떡볶이 재료 칼질. 예전에는 셋을 한 화면에서 이어서 썰었지만
+// 지금은 재료마다 별도의 준비 작업이라 taskId 로 찾아 씁니다.
+// flowIndex 는 Day4 떡볶이 진행 표시줄에서 몇 번째 칸인지입니다.
 const DAY4_RAPID_CUT_SEQUENCE=Object.freeze([
-  Object.freeze({ingredientId:"cabbage",assetPrefix:"tteokCabbage",displayName:"양배추",requiredPieces:8,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:9},(_,index)=>`assets/prep/day4/tteokbokki/cabbage-${index}.png`)),cutSound:null}),
-  Object.freeze({ingredientId:"greenOnion",assetPrefix:"tteokGreenOnion",displayName:"대파",requiredPieces:7,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:8},(_,index)=>`assets/prep/day4/tteokbokki/green-onion-${index}.png`)),cutSound:null}),
-  Object.freeze({ingredientId:"fishCake",assetPrefix:"tteokFishCake",displayName:"어묵",requiredPieces:6,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:7},(_,index)=>`assets/prep/day4/tteokbokki/fish-cake-${index}.png`)),cutSound:null})
+  Object.freeze({taskId:"cutTteokbokkiCabbage",flowIndex:1,ingredientId:"cabbage",assetPrefix:"tteokCabbage",displayName:"양배추",requiredPieces:8,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:9},(_,index)=>`assets/prep/day4/tteokbokki/cabbage-${index}.png`)),cutSound:null}),
+  Object.freeze({taskId:"cutTteokbokkiGreenOnion",flowIndex:2,ingredientId:"greenOnion",assetPrefix:"tteokGreenOnion",displayName:"대파",requiredPieces:7,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:8},(_,index)=>`assets/prep/day4/tteokbokki/green-onion-${index}.png`)),cutSound:null}),
+  Object.freeze({taskId:"cutTteokbokkiFishCake",flowIndex:3,ingredientId:"fishCake",assetPrefix:"tteokFishCake",displayName:"어묵",requiredPieces:6,cutType:RapidCutType.Normal,progressSprites:Object.freeze(Array.from({length:7},(_,index)=>`assets/prep/day4/tteokbokki/fish-cake-${index}.png`)),cutSound:null})
+]);
+
+// 새우 튀김옷 3단계. 예전에는 밀+계가 한 작업이고 세 단계가 자동으로 이어졌지만
+// 지금은 단계마다 별도의 준비 작업입니다. step 은 화면에 그릴 진행 칸 번호입니다.
+const SHRIMP_COAT_STEPS=Object.freeze([
+  Object.freeze({taskId:"coatShrimpFlour",step:0,id:"flour",label:"밀가루",presses:12}),
+  Object.freeze({taskId:"coatShrimpEgg",step:1,id:"egg",label:"계란물",presses:12}),
+  Object.freeze({taskId:"coatShrimpBreadcrumbs",step:2,id:"breadcrumbs",label:"빵가루",presses:12})
 ]);
 
 const SAUCE_RECIPES=Object.freeze({

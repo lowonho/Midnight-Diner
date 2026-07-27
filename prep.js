@@ -187,6 +187,16 @@ function drawPrepObjects(){
       ctx.fillStyle="#e98535";ctx.beginPath();ctx.moveTo(item.x-27,item.y-16);ctx.lineTo(item.x+27,item.y-6);ctx.lineTo(item.x-24,item.y+5);ctx.closePath();ctx.fill();
     }else if(item.task.objectKind==="sauceBowl"){
       ctx.fillStyle="#d7c6a2";ctx.beginPath();ctx.ellipse(item.x,item.y-5,27,15,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#72351f";ctx.beginPath();ctx.ellipse(item.x,item.y-9,21,8,0,0,Math.PI*2);ctx.fill();
+    }else if(item.task.objectKind==="tofu"){
+      ctx.fillStyle="#fff6e2";roundRect(ctx,item.x-26,item.y-20,52,26,5,true,false);
+      ctx.strokeStyle="#c8b98f";ctx.lineWidth=2;roundRect(ctx,item.x-26,item.y-20,52,26,5,false,true);
+    }else if(item.task.objectKind==="brothPot"){
+      ctx.fillStyle="#a9aeab";roundRect(ctx,item.x-24,item.y-20,48,27,6,true,false);
+      ctx.strokeStyle="#7c817e";ctx.lineWidth=3;roundRect(ctx,item.x-24,item.y-20,48,27,6,false,true);
+      ctx.fillStyle="#b5762f";roundRect(ctx,item.x-19,item.y-9,38,14,3,true,false);
+    }else if(item.task.objectKind==="shrimpEgg"){
+      ctx.fillStyle="#e4e0d2";ctx.beginPath();ctx.ellipse(item.x,item.y-6,27,15,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#f0c04a";ctx.beginPath();ctx.ellipse(item.x,item.y-9,20,9,0,0,Math.PI*2);ctx.fill();
     }else if(item.task.objectKind==="shrimpCoat"){
       ctx.fillStyle="#e69a78";ctx.beginPath();ctx.arc(item.x-4,item.y-8,20,.3,Math.PI*1.75);ctx.lineWidth=7;ctx.strokeStyle="#f1b18c";ctx.stroke();
     }else if(item.task.objectKind==="breadcrumbs"){

@@ -25,7 +25,7 @@
    ============================================================ */
 
 registerDayPrepSetup("cut",taskId=>setupTimingCut(taskId));
-registerDayPrepSetup("rapidCutSequence",()=>setupTteokbokkiRapidCut());
+registerDayPrepSetup("tteokbokkiCut",taskId=>setupTteokbokkiCut(taskId));
 
 /* ---- 공통 판정 규칙 ----------------------------------------
    초록 구간 방식(낮 칼질 · 밤 두부)이 함께 쓰는 계산입니다. */
@@ -85,12 +85,15 @@ function setupTimingCut(taskId){
     speed:config.speed,
     zoneStarts:config.zoneStarts,
     requiresDoubleTap:!!config.requiresDoubleTap,
+    horizontalLastCut:!!config.horizontalLastCut,
     title:config.title,
     onComplete:taskId==="cutRadish"||taskId==="cutFishCake"
       ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
       :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:config.requiresDoubleTap
       ?"포인터가 초록 구간에 들어왔을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
+      :config.horizontalLastCut
+      ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 세로 5번을 썬 뒤 마지막에 가로로 1번 썹니다."
       :taskId==="cutRadish"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
       :taskId==="cutFishCake"
@@ -105,7 +108,11 @@ function startCuttingMinigame(options){
   const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
   const defaults=[.18,.56,.32,.66,.42];
   const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
-  setDayPrepData({mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,showTteokbokkiFlow:!!options.showTteokbokkiFlow});
+  setDayPrepData({mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,
+    // 두부처럼 마지막 한 번을 가로로 써는 재료
+    horizontalLastCut:!!options.horizontalLastCut,
+    // Day4 떡볶이 진행 표시줄에서 몇 번째 칸인지 (해당 없으면 null)
+    tteokbokkiFlowIndex:Number.isFinite(options.tteokbokkiFlowIndex)?options.tteokbokkiFlowIndex:null});
   dom.miniTitle.textContent=options.title;
   dom.miniDescription.textContent=options.description;
   renderTimingCut();
@@ -115,12 +122,20 @@ function renderTimingCut(){
   const m=state.mini,data=m.data,isRadish=data.ingredient==="radish";
   const zoneLeft=data.zoneStarts[data.successes];
   const objectAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
+  // 두부는 마지막 한 번이 가로 썰기라 세로선 간격 계산에서 빼야 합니다.
+  const verticalCount=data.horizontalLastCut?data.total-1:data.total;
+  const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   dom.miniContent.innerHTML=`
-    ${data.showTteokbokkiFlow?day4PrepFlowMarkup("tteokbokki",1):""}
-    <div class="prep-work-object ${data.ingredient}-shape ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${data.ingredient}">
+    ${data.tteokbokkiFlowIndex!=null?day4PrepFlowMarkup("tteokbokki",data.tteokbokkiFlowIndex):""}
+    <div class="prep-work-object ${data.ingredient}-shape ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${data.ingredient}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
-      ${Array.from({length:data.total},(_,index)=>`<i class="cut-line ${data.ingredient==="fishCake"?`fishcake-diagonal ${index%2?"slash-back":"slash-forward"}`:""} ${index<data.successes?"done":""}" style="left:${(index+1)/(data.total+1)*100}%"></i>`).join("")}
+      ${Array.from({length:data.total},(_,index)=>{
+        const done=index<data.successes?"done":"";
+        if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}"></i>`;
+        const diagonal=data.ingredient==="fishCake"?`fishcake-diagonal ${index%2?"slash-back":"slash-forward"}`:"";
+        return `<i class="cut-line ${diagonal} ${done}" style="left:${(index+1)/(verticalCount+1)*100}%"></i>`;
+      }).join("")}
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
     </div>
     <div class="prep-timing-bar">
@@ -213,37 +228,24 @@ function setupRapidCutTask(taskId){
   setupRapidCutMinigame({taskId,title:`${PREP_TASKS[taskId].label} · 빠른 칼질`,sequence:[config],onComplete});
 }
 
-// 떡볶이는 양배추 → 대파 → 어묵을 한 화면에서 이어서 썹니다.
-// ⚠️ 3단계에서 이 3개를 별도 태스크로 쪼개기로 되어 있습니다.
-function setupTteokbokkiRapidCut(){
-  if(Number(state.day)!==4)return;
-  const sequence=DAY4_RAPID_CUT_SEQUENCE;
-  const startIngredient=index=>{
-    const item=sequence[index];
-    startCuttingMinigame({
-      taskId:"cutTteokbokkiIngredients",
-      ingredient:item.ingredientId,
-      assetPrefix:item.assetPrefix,
-      requiredHits:item.requiredPieces,
-      hitZoneWidth:.14,
-      speed:.8,
-      zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
-      title:`떡볶이 · ${item.displayName} 썰기 (${index+1}/${sequence.length})`,
-      description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
-      showTteokbokkiFlow:true,
-      onComplete:()=>{
-        if(index>=sequence.length-1){
-          finishDayPrepTask("cutTteokbokkiIngredients","떡볶이 양배추 · 대파 · 어묵 손질 완료");
-          return;
-        }
-        dom.miniFeedback.textContent=`${item.displayName} 손질 완료 · 다음 재료로 넘어갑니다.`;
-        audio.success();
-        const mini=state.mini;
-        setTimeout(()=>{if(state.mini===mini&&!mini.complete)startIngredient(index+1);},420);
-      }
-    });
-  };
-  startIngredient(0);
+// 떡볶이 재료 칼질. 양배추 · 대파 · 어묵이 각각 별도의 준비 작업입니다.
+// 재료별 횟수와 스프라이트는 day4-prep-data.js 의 DAY4_RAPID_CUT_SEQUENCE 에 있습니다.
+function setupTteokbokkiCut(taskId){
+  const item=DAY4_RAPID_CUT_SEQUENCE.find(entry=>entry.taskId===taskId);
+  if(Number(state.day)!==4||!item)return;
+  startCuttingMinigame({
+    taskId,
+    ingredient:item.ingredientId,
+    assetPrefix:item.assetPrefix,
+    requiredHits:item.requiredPieces,
+    hitZoneWidth:.14,
+    speed:.8,
+    zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
+    title:`떡볶이 · ${item.displayName} 썰기`,
+    description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
+    tteokbokkiFlowIndex:item.flowIndex,
+    onComplete:()=>finishDayPrepTask(taskId,`떡볶이용 ${item.displayName} 손질 완료`)
+  });
 }
 
 function setupRapidCutMinigame(options){
@@ -264,7 +266,7 @@ function renderRapidCut(){
     ?"Space를 약 0.5초 누른 뒤 떼고, 다시 한 번 눌러 닭고기 한 조각을 자르세요."
     :"스페이스바를 연속으로 눌러 빠르게 손질하세요. 키를 누른 채 유지해도 반복 입력되지 않습니다.";
   dom.miniContent.innerHTML=`
-    ${data.taskId==="cutTteokbokkiIngredients"?day4PrepFlowMarkup("tteokbokki",1):""}
+    ${data.tteokbokkiFlowIndex!=null?day4PrepFlowMarkup("tteokbokki",data.tteokbokkiFlowIndex):""}
     <div class="rapid-cut-stage ${item.ingredientId} ${tough?"tough-meat":""} ${data.phase==="embedded"||data.phase==="awaitSecond"?"knife-embedded":""}" id="rapidCutStage">
       <div class="rapid-ingredient ${item.ingredientId}" style="--rapid-progress:${progress}%;width:${Math.max(80,180-progress)}px">${dayPrepAssetMarkup(`${item.assetPrefix||item.ingredientId}${data.pieces}`,"rapid-progress-asset",item.displayName)}</div>
       <i class="rapid-knife">${dayPrepAssetMarkup("knife","knife-asset","")}</i>

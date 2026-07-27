@@ -36,7 +36,7 @@ function renderYakisobaSauce(){
   const data=state.mini.data,totalRatio=data.sauces.reduce((sum,item)=>sum+Math.min(item.amount/item.target,1),0)/data.sauces.length;
   dom.miniTimer.textContent=`${data.sauces.filter(item=>item.amount===item.target).length} / 3`;
   dom.miniContent.innerHTML=`
-    ${data.recipeId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",2):""}
+    ${data.recipeId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",4):""}
     <div class="sauce-recipe"><strong>${data.recipe.title}</strong>${data.sauces.map(item=>`<span>${item.label} ${item.target}g</span>`).join("")}</div>
     <div class="yakisoba-sauce-work">
       <div class="sauce-bottles">${data.sauces.map(item=>`<button type="button" class="sauce-bottle ${item.id}" data-sauce-id="${item.id}" ${data.finishing?"disabled":""}><i></i><strong>${item.label}</strong><small>+${item.step}g</small></button>`).join("")}</div>
