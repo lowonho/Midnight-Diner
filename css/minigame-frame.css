@@ -19,25 +19,35 @@
   --mh: min(1vh, .5625vw);
   --mw: min(1vw, 1.7778vh);
 
-  /* 1. 뒤 패널 */
+  /* 1. 뒤 패널
+     --panel-y 는 세로 위치의 기준점입니다. 타이틀 패널 · 플레이 영역 · TIP 줄이
+     전부 여기서 파생되므로, 패널 뭉치를 위아래로 옮기려면 이 값만 고치면 됩니다.
+
+     지금 값(9.25%)은 "화면 세로 중앙" 입니다. 계산은 이렇습니다.
+       눈에 보이는 뭉치 = 타이틀 패널 맨 위(--panel-y - 2.5%) ~ 뒤 패널 맨 아래
+       높이 = 2.5% + 84% = 86.5%  →  위아래 여백 = (100 - 86.5) / 2 = 6.75%
+       따라서 --panel-y = 6.75% + 2.5% = 9.25%
+     뒤 패널만 기준으로 잡으면 위로 삐져나온 타이틀 패널 때문에 위쪽 여백이
+     좁아 보여서, 타이틀 패널까지 포함한 뭉치 전체를 가운데 맞춥니다. */
   --panel-x: 11%;       /* 211 px */
-  --panel-y: 5%;        /*  54 px */
+  --panel-y: 9.25%;     /* 100 px */
   --panel-w: 78%;       /* 1498 px */
   --panel-h: 84%;       /* 907 px */
 
-  /* 2. 타이틀 패널 (가로 중앙, 뒤 패널 상단에 걸쳐 앉음) */
+  /* 2. 타이틀 패널 (가로 중앙, 뒤 패널 상단에 2.5% 만큼 걸쳐 앉음) */
   --title-w: 36%;       /* 691 px */
   --title-h: 10.5%;     /* 113 px */
-  --title-y: 2.5%;      /*  27 px */
+  --title-y: calc(var(--panel-y) - 2.5%);   /*  73 px */
 
-  /* 3. 메인 플레이 영역 */
+  /* 3. 메인 플레이 영역 (뒤 패널 상단에서 10% 아래) */
   --stage-x: 12.5%;     /* 240 px */
   --stage-w: 75%;       /* 1440 px */
-  --stage-y: 15%;       /* 162 px */
+  --stage-y: calc(var(--panel-y) + 10%);    /* 208 px */
   --stage-h: 61%;       /* 659 px */
 
-  /* 하단 TIP 줄 (설명·피드백. 플레이 영역과 좌우 폭 동일) */
-  --tip-y: 78%;         /* 842 px */
+  /* 하단 TIP 줄 (설명·피드백. 플레이 영역과 좌우 폭 동일)
+     뒤 패널 아래 테두리와 3% 띄우고 앉습니다 = --panel-y + 84% - 8% - 3% */
+  --tip-y: calc(var(--panel-y) + 73%);      /* 889 px */
   --tip-h: 8%;          /*  86 px */
 
   /* 4. 닫기 / 일시정지 버튼 (정사각형)
@@ -49,10 +59,72 @@
   --btn-x: calc(var(--panel-x) + var(--btn-inset-x));  /* 오른쪽에서 12.6% = 242 px */
   --btn-y: calc(var(--panel-y) + var(--btn-inset-y));  /* 위에서 6.8% = 73 px */
 
+  /* 등장 연출 : 영수증 뽑히듯 화면 밖 아래에서 "띵~" 하고 한 번에 올라옵니다.
+     % 가 아니라 --mh(프레임 높이의 1%) 로 잡습니다. translateY 의 % 는
+     "각 패널 자기 높이" 기준이라 패널마다 이동 거리가 달라지기 때문입니다. */
+  --rise-dist: calc(103 * var(--mh));    /* 프레임 높이보다 조금 더 아래 = 완전히 화면 밖 */
+  --rise-over: calc(1.7 * var(--mh));    /* 끝에서 18 px 살짝 지나쳤다가 내려앉습니다 */
+  --rise-time: .44s;
+
   z-index: 40;
   display: block;
   padding: 0;
   background: rgba(8, 5, 3, .55);
+
+  /* 닫을 때는 공용 .overlay 처럼 서서히 사라집니다 */
+  transition: opacity .22s, visibility .22s;
+}
+/* 열 때는 뒷배경만 바로 깔리고(페이드 없음), 패널은 아래에서 통째로 올라옵니다. */
+.mini-overlay.open { transition: opacity 0s, visibility 0s; }
+
+/* ── 등장 연출 : 영수증 뽑히듯 아래에서 한 번에 올라오기 ──────────
+   .open 이 붙는 순간부터 재생되므로 미니게임을 열 때마다 다시 돕니다.
+
+   [설계 의도]
+   1. 페이드(opacity) 를 쓰지 않습니다. 투명도가 섞이면 "스르륵 뜨는" 느낌이 되어
+      원하는 뻣뻣한 출력 느낌이 죽습니다. 처음부터 끝까지 불투명하게 밀어올립니다.
+   2. 패널 5종이 같은 거리·같은 타이밍으로 움직입니다. 어긋나게 하면 조각조각
+      따로 올라오는 것처럼 보여서 "한 장이 올라온다" 는 느낌이 깨집니다.
+   3. 마지막에 --rise-over 만큼 지나쳤다가 되돌아오는 "띵~" 반동을 넣었습니다.
+      overshoot 을 cubic-bezier 로 주지 않고 키프레임으로 준 이유 : bezier 반동은
+      이동 거리에 비례해서 튀는데, 여기는 화면 전체 높이를 이동하므로 반동이
+      과하게 커집니다. 지나치는 양을 px 로 고정하려면 키프레임이어야 합니다.
+   4. fill-mode 가 backwards 인 이유 : 애니메이션이 끝난 뒤에는 transform 제어권을
+      원래 규칙(.mini-title-panel 의 translateX(-50%), 버튼의 :active 눌림)에
+      돌려줘야 하기 때문입니다.
+
+   화면 밖에서 시작해도 .game-frame 의 overflow:hidden 이 잘라주므로
+   프레임 밖으로 삐져나오거나 스크롤이 생기지 않습니다. */
+@keyframes mini-panel-rise {
+  0%   { transform: translateY(var(--rise-dist)); animation-timing-function: cubic-bezier(.36, .62, .44, 1); }
+  72%  { transform: translateY(calc(-1 * var(--rise-over))); animation-timing-function: ease-in-out; }
+  88%  { transform: translateY(calc(.28 * var(--rise-over))); animation-timing-function: ease-out; }
+  100% { transform: translateY(0); }
+}
+/* 타이틀 패널은 가로 중앙 정렬용 translateX(-50%) 를 유지해야 합니다 */
+@keyframes mini-panel-rise-centered {
+  0%   { transform: translateX(-50%) translateY(var(--rise-dist)); animation-timing-function: cubic-bezier(.36, .62, .44, 1); }
+  72%  { transform: translateX(-50%) translateY(calc(-1 * var(--rise-over))); animation-timing-function: ease-in-out; }
+  88%  { transform: translateX(-50%) translateY(calc(.28 * var(--rise-over))); animation-timing-function: ease-out; }
+  100% { transform: translateX(-50%) translateY(0); }
+}
+.mini-overlay.open .mini-window,
+.mini-overlay.open .mini-stage,
+.mini-overlay.open .mini-tip,
+.mini-overlay.open .mini-icon-button {
+  animation: mini-panel-rise var(--rise-time) linear backwards;
+}
+.mini-overlay.open .mini-title-panel {
+  animation: mini-panel-rise-centered var(--rise-time) linear backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-overlay { --rise-dist: 0px; --rise-over: 0px; }
+  .mini-overlay.open .mini-window,
+  .mini-overlay.open .mini-stage,
+  .mini-overlay.open .mini-tip,
+  .mini-overlay.open .mini-title-panel,
+  .mini-overlay.open .mini-icon-button { animation-duration: .01s; }
 }
 
 /* ── 1. 뒤에 깔리는 가장 큰 패널 ───────────────────────────── */

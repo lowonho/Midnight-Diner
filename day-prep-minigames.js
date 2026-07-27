@@ -27,7 +27,7 @@ const DAY_PREP_MINI_CONFIG = {
   // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
   fryKimchi:{total:11,allowedDirections:["left","right"]},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
@@ -60,6 +60,16 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   greenOnion4:"assets/prep/green-onion/green-onion-4.png",
   anchovyBody:"assets/prep/anchovy/anchovy-body.png",
   anchovyHead:"assets/prep/anchovy/anchovy-head.png",
+  // 닭꼬치 꽂기 (engine-e8). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  skewerChicken:"assets/prep/skewer/chicken-piece.png",
+  skewerGreenOnion:"assets/prep/skewer/green-onion-piece.png",
+  skewerStick:"assets/prep/skewer/stick.png",
+  // 김치전 반죽 (engine-e8 → e9). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  batterFlour:"assets/prep/batter/flour.png",
+  batterWater:"assets/prep/batter/water.png",
+  batterKimchi:"assets/prep/batter/kimchi.png",
+  batterBowl:"assets/prep/batter/bowl.png",
+  batterDone:"assets/prep/batter/batter-done.png",
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   knife:"assets/prep/effects/knife.png",
