@@ -15,10 +15,11 @@
    · "지금 차례인가 / 다음 차례로 넘긴다" 판정은 아래 도우미 두 개로 합쳤습니다.
      방향형(expected 에 방향 문자열)과 키형(keys 배열 + expectedIndex) 두 가지
      데이터 모양을 모두 다룹니다.
-   · 감자튀김 준비 · 새우튀김 준비는 화면 틀(재료 / 플레이 / 진행도·조작 3열)이
-     같아서 fryPrepScreenMarkup 하나로 합쳤습니다. 가운데 플레이 그림만
-     게임별로 따로 그립니다 — 봉투 흔들기와 튀김옷 묻히기는 그림이 완전히 다릅니다.
-   · 채칼은 화면 구성이 달라 합치지 않았습니다.
+   · 채칼 3개(양배추 · 당근 · 감자)는 방향만 다르고 나머지가 같아서
+     엔진 · 시작함수 · 화면을 하나로 합쳤습니다.
+   · 네 게임 모두 화면 틀(재료 / 플레이 / 진행도·조작 3열)이 같아서
+     renderFryPrepScreen 하나로 합쳤습니다. 가운데 플레이 그림만 게임별로
+     따로 그립니다 — 채칼·봉투 흔들기·튀김옷은 그림이 완전히 다릅니다.
 
    [새우튀김 준비]
    밀가루 · 계란물 · 빵가루가 각각 별도의 준비 작업입니다.
@@ -26,8 +27,9 @@
    단계 정보는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 에 있습니다.
    ============================================================ */
 
+// 채칼 두 종류(볶음우동 ← → · 감자튀김 ↑ ↓)는 같은 시작함수를 씁니다.
 registerDayPrepSetup("mandoline",taskId=>setupMandoline(taskId));
-registerDayPrepSetup("potatoMandoline",()=>setupPotatoMandoline());
+registerDayPrepSetup("potatoMandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
 registerDayPrepSetup("shrimpCoat",taskId=>setupShrimpCoat(taskId));
 
@@ -50,87 +52,164 @@ function advanceAlternateTurn(data,input){
 }
 
 /* ============================================================
-   1. 채칼 — 방향키를 번갈아
+   1. 채칼 — 방향키를 번갈아 (양배추 · 당근 · 감자)
+
+   ✅ 볶음우동 채칼과 감자튀김 채칼은 "움직이는 방향"만 다릅니다.
+      ← → 로 써는 것이 볶음우동(양배추 · 당근), ↑ ↓ 가 감자튀김입니다.
+      그래서 엔진 · 시작함수 · 화면을 하나로 합치고 방향은 axis 한 글자
+      ("x" 가로 / "y" 세로)로만 구분합니다. 원본 설정값은 그대로 두고
+      mandolineTask 가 한 모양으로 맞춰 읽습니다.
+        ← → : day-prep-minigames.js 의 DAY3_MANDOLINE_CONFIG
+        ↑ ↓ : day4-prep-data.js 의 DAY4_PREP_CONFIG.potatoMandoline
+
+   화면은 컨셉 이미지와 같은 3열이고, 위쪽 renderFryPrepScreen 을 그대로
+   씁니다. 가운데 채칼 그림(.md-scene)만 이 구역에서 그립니다.
+   모양·크기는 css/day-prep-minigames.css 의 "채칼" 구역에 모여 있습니다.
+
+   양배추를 다 썰면 화면을 닫지 않고 같은 자리에서 당근으로 이어집니다.
+   그 순서가 MANDOLINE_CHAIN 이고, 왼쪽 재료 카드도 이 순서로 놓입니다.
    ============================================================ */
 
-registerDayPrepEngine("day3Mandoline",{
-  key(m,k){
-    if(k==="arrowleft"||k==="arrowright"){mandolineInput(k.replace("arrow",""));return true;}
-    return false;
-  }
+// 한 화면에서 이어서 써는 재료 묶음
+const MANDOLINE_CHAIN=Object.freeze({
+  yakisoba:["sliceYakisobaCabbage","sliceYakisobaCarrot"],
+  fries:["sliceFriesPotato"]
 });
+const MANDOLINE_ARROWS=Object.freeze({left:"◀",right:"▶",up:"▲",down:"▼"});
 
-registerDayPrepEngine("day4Mandoline",{
+// 받침이 있으면 "을", 없으면 "를" (당근을 / 양배추를)
+function koObjectParticle(word){
+  const code=String(word).charCodeAt(word.length-1);
+  const hasFinal=code>=0xac00&&code<=0xd7a3&&(code-0xac00)%28!==0;
+  return hasFinal?"을":"를";
+}
+
+// 작업 하나의 설정을 한 모양으로 맞춰 돌려줍니다. 모르는 작업이면 null.
+function mandolineTask(taskId){
+  const yakisoba=DAY3_MANDOLINE_CONFIG[taskId];
+  if(yakisoba)return {taskId,chain:"yakisoba",day:3,
+    ingredient:yakisoba.ingredient,label:yakisoba.label,
+    axis:"x",directions:["left","right"],totalInputs:yakisoba.cycles*2};
+  const fries=DAY4_PREP_CONFIG.potatoMandoline;
+  if(fries&&taskId===fries.taskId)return {taskId,chain:"fries",day:4,
+    ingredient:fries.ingredient,label:fries.label,
+    axis:"y",directions:[...fries.directions],totalInputs:fries.totalInputs};
+  return null;
+}
+
+// 재료 그림 에셋 키. 감자만 손질 단계별로 11장(potatoMandoline0~10)이 있고,
+// 나머지는 한 장씩입니다. (경로는 day-prep-minigames.js 참고)
+function mandolineAssetKey(ingredient,successInputs=0){
+  if(ingredient==="potato")return `potatoMandoline${successInputs}`;
+  return `mandoline${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}`;
+}
+
+registerDayPrepEngine("mandoline",{
   key(m,k){
-    if(k==="arrowup"||k==="arrowdown"){mandolineInput(k.replace("arrow",""));return true;}
-    return false;
+    if(!k.startsWith("arrow"))return false;
+    const direction=k.replace("arrow","");
+    // 축이 다른 방향키(가로 채칼에서 ↑↓)는 이 게임이 쓰지 않습니다
+    if(!m.data.directions.includes(direction))return false;
+    mandolineInput(direction);
+    return true;
   }
 });
 
 function setupMandoline(taskId){
-  const config=DAY3_MANDOLINE_CONFIG[taskId];
-  if(Number(state.day)!==3||!config)return;
-  setDayPrepData({mode:"day3Mandoline",taskId,ingredient:config.ingredient,label:config.label,cycles:config.cycles,directions:["left","right"],successInputs:0,totalInputs:config.cycles*2,expected:"left"});
-  dom.miniTitle.textContent=`볶음우동 · ${config.label} 채썰기`;
-  dom.miniDescription.textContent=`←와 →를 번갈아 입력해 ${config.label}를 채칼에 왕복 ${config.cycles}회 움직이세요.`;
+  const task=mandolineTask(taskId);
+  if(!task||!state.mini||Number(state.day)!==task.day)return;
+  setDayPrepData({mode:"mandoline",...task,successInputs:0,expected:task.directions[0]});
+  const way=task.axis==="x"?"좌우로":"위아래로";
+  dom.miniTitle.textContent=`${task.label} 채썰기`;
+  dom.miniStation.textContent=`${way} 움직여 ${task.label}${koObjectParticle(task.label)} 채썰어주세요!`;
+  dom.miniDescription.textContent=`${way} 방향키를 번갈아 눌러 채칼을 움직여 채썰어주세요!`;
   renderMandoline();
 }
 
-function setupPotatoMandoline(){
-  const config=DAY4_PREP_CONFIG.potatoMandoline;if(Number(state.day)!==4||!state.mini)return;
-  setDayPrepData({mode:"day4Mandoline",taskId:config.taskId,ingredient:config.ingredient,label:config.label,directions:[...config.directions],successInputs:0,totalInputs:config.totalInputs,expected:config.directions[0]});
-  dom.miniTitle.textContent="감자튀김 · 감자 채칼";
-  dom.miniDescription.textContent="↑와 ↓를 번갈아 입력해 감자를 써세요. 같은 방향 연속 입력과 다른 키는 무시됩니다.";
-  renderMandoline();
+// 가운데 채칼 그림. 재료는 썰릴수록 짧아지고, 썰린 채는 옆에 쌓입니다.
+// 전부 임시 CSS 도형이고, 에셋이 들어오면 .has-asset 이 붙어 그림으로 바뀝니다.
+function mandolineSceneMarkup(data){
+  const percent=Math.round(data.successInputs/data.totalInputs*100);
+  const shorten=Math.max(.34,1-percent/100*.62);
+  const asset=dayPrepAssetMarkup(mandolineAssetKey(data.ingredient,data.successInputs),"md-ingredient-asset",`${data.label} 손질 ${percent}%`);
+  // 썰린 채는 index 로 자리를 계산합니다 (Math.random 이면 누를 때마다 튑니다)
+  const shreds=Array.from({length:data.successInputs},(_,index)=>
+    `<i style="--md-x:${8+(index%7)*12}%;--md-y:${7+(index%4)*21}%;--md-turn:${-20+(index%5)*10}deg"></i>`).join("");
+  const plateAsset=dayPrepAssetMarkup("mandolinePlate","md-plate-asset","채칼");
+  return `<div class="md-scene axis-${data.axis}" id="mandolineScene">
+      <div class="md-plate ${plateAsset?"has-asset":""}">
+        ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
+        <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten}">${asset}</div>
+      </div>
+      <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
+      <i class="md-hint" aria-hidden="true"></i>
+    </div>`;
 }
 
 function renderMandoline(){
-  const data=state.mini.data,isPotato=data.mode==="day4Mandoline",completedCycles=Math.floor(data.successInputs/2);
-  dom.miniTimer.textContent=isPotato?`${data.successInputs} / ${data.totalInputs}`:`왕복 ${completedCycles} / ${data.cycles}`;
-  const arrows={left:"←",right:"→",up:"↑",down:"↓"},shorten=Math.max(.34,1-data.successInputs/data.totalInputs*.62);
-  dom.miniContent.innerHTML=`
-    ${isPotato?day4PrepFlowMarkup("fries",0):""}
-    <div class="mandoline-scene ${data.ingredient}" id="mandolineScene">
-      <div class="mandoline-board"><i class="mandoline-blade"></i></div>
-      <div class="mandoline-ingredient ${data.ingredient}" id="mandolineIngredient" style="--ingredient-shorten:${shorten}">${isPotato?dayPrepAssetMarkup(`potatoMandoline${data.successInputs}`,"mandoline-potato-asset",`감자 손질 ${data.successInputs}단계`):"<i></i>"}</div>
-      <div class="shredded-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${Array.from({length:data.successInputs},(_,index)=>`<i style="--shred-x:${14+(index%7)*11}%;--shred-y:${(index%3)*7}px;--shred-turn:${-18+(index%5)*9}deg"></i>`).join("")}</div>
-    </div>
-    <div class="mandoline-key-guide">${data.directions.map((direction,index)=>`${index?"<span>번갈아</span>":""}<button type="button" data-mandoline-direction="${direction}" class="${data.expected===direction?"expected":""}">${arrows[direction]}</button>`).join("")}</div>
-    <div class="cut-count" id="mandolineProgress">${data.label} · ${isPotato?`${data.successInputs} / ${data.totalInputs}`:`왕복 ${completedCycles} / ${data.cycles}`}</div>`;
-  dom.miniContent.querySelectorAll("[data-mandoline-direction]").forEach(button=>button.addEventListener("click",()=>mandolineInput(button.dataset.mandolineDirection)));
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="mandoline")return;
+  const data=m.data,percent=Math.round(data.successInputs/data.totalInputs*100);
+  // 왼쪽 재료 카드 = 이 화면에서 이어서 썰 재료들. 지금 재료가 밝게 표시됩니다.
+  const chain=MANDOLINE_CHAIN[data.chain].map(mandolineTask).filter(Boolean);
+  const done=chain.filter(item=>state.prepProgress?.[item.taskId]).length;
+  const way=data.axis==="x"?"좌우로":"위아래로";
+  // 공용 타이머 카드는 이 화면에서 숨기지만 내용은 계속 채워 둡니다.
+  // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
+  dom.miniTimer.textContent=`${data.successInputs} / ${data.totalInputs}`;
+  renderFryPrepScreen({
+    ingredients:chain.map(item=>({id:item.ingredient,label:item.label,count:1,
+      asset:mandolineAssetKey(item.ingredient),active:item.taskId===data.taskId})),
+    stage:mandolineSceneMarkup(data),
+    done,
+    total:chain.length,
+    percent,
+    keys:data.directions.map(direction=>({value:direction,glyph:MANDOLINE_ARROWS[direction]})),
+    expectedIndex:data.directions.indexOf(data.expected),
+    keyLink:"→",
+    controlName:`${way}<br />채칼 움직이기`
+  },direction=>mandolineInput(direction));
 }
 
 function mandolineInput(direction){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["day3Mandoline","day4Mandoline"].includes(m.data.mode))return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="mandoline")return false;
   const data=m.data;
   if(!isAlternateTurn(data,direction))return false;
   data.successInputs++;advanceAlternateTurn(data,direction);audio.click();
+  // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 넘어갑니다)
+  renderMandoline();
+  // 다시 그린 직후에 붙여야 애니메이션이 살아납니다 (튀김 준비의 흔들림과 같은 이유)
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
-  ingredient?.classList.remove("move-left","move-right","move-up","move-down");if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
-  if(data.successInputs>=data.totalInputs){
-    if(data.mode==="day4Mandoline"){
-      finishDayPrepTask("sliceFriesPotato","감자 채칼 손질 10회 완료");
-    }else if(data.taskId==="sliceYakisobaCabbage"){
-      // 양배추가 끝나면 같은 화면에서 당근으로 이어집니다.
-      completeDayPrepTask("sliceYakisobaCabbage");
-      dom.miniTimer.textContent="완료";dom.miniFeedback.textContent="양배추 채썰기 완료 · 당근으로 전환합니다.";
-      dom.miniContent.classList.add("prep-complete-flash");
-      setTimeout(()=>{if(state.mini===m&&!m.complete){dom.miniContent.classList.remove("prep-complete-flash");setupMandoline("sliceYakisobaCarrot");}},420);
-    }else finishDayPrepTask("sliceYakisobaCarrot","볶음우동 채소 손질 완료");
-    return true;
-  }
-  setTimeout(()=>{if(state.mini===m&&!m.complete&&m.data===data)renderMandoline();},110);
+  if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
+  if(data.successInputs>=data.totalInputs)finishMandolineStep(m);
   return true;
 }
 
+// 한 재료를 다 썰었을 때. 뒤에 이어질 재료가 있으면 화면을 닫지 않고 이어갑니다.
+function finishMandolineStep(m){
+  const data=m.data,chain=MANDOLINE_CHAIN[data.chain];
+  const next=chain[chain.indexOf(data.taskId)+1];
+  if(!next){finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);return;}
+  completeDayPrepTask(data.taskId);
+  dom.miniTimer.textContent="완료";
+  dom.miniFeedback.textContent=`${data.label} 채썰기 완료 · ${mandolineTask(next).label} 차례입니다.`;
+  dom.miniContent.classList.add("prep-complete-flash");
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    dom.miniContent.classList.remove("prep-complete-flash");
+    setupMandoline(next);
+  },420);
+}
+
 /* ============================================================
-   튀김 준비 공용 화면 — 감자튀김 준비 · 새우튀김 준비
+   낮 준비 공용 3열 화면 — 채칼 · 감자튀김 준비 · 새우튀김 준비
 
    컨셉 이미지와 같은 3열 구성입니다.
      [재료 카드]  [플레이 영역]  [진행도 카드 · 조작 카드]
 
-   두 게임은 이 틀과 조작(랜덤키 두 개 연타)이 같고, 가운데 그림만 다릅니다.
+   세 게임은 이 틀이 같고, 가운데 그림과 조작 키만 다릅니다.
    그래서 틀은 여기서 한 번만 그리고, 가운데는 각 게임이 문자열로 넘깁니다.
+   조작 키도 각 게임이 넘깁니다 — 튀김 준비는 랜덤 알파벳 두 개,
+   채칼은 방향키 두 개입니다.
 
    [공용 프레임과의 관계]  멸치·닭꼬치·김치 볶기와 같습니다.
    ui-mini-frame.js 와 css/minigame-frame.css 는 건드리지 않습니다.
@@ -151,9 +230,12 @@ function fryPrepIngredientMarkup(item){
 }
 
 // view = { ingredients, stage(가운데 마크업), done, total, percent,
-//          keys, expectedIndex, keyLink, controlDesc }
-// onKey 는 화면 안 키 버튼을 눌렀을 때 호출할 입력 함수입니다.
+//          keys, expectedIndex, keyLink, controlName, controlDesc }
+// keys 는 문자열("a") 또는 {value,glyph} 입니다. 문자열이면 대문자로 보여 줍니다.
+// controlName / controlDesc 는 비워 두면 그 줄이 아예 나오지 않습니다.
+// onKey 는 화면 안 키 버튼을 눌렀을 때 호출할 입력 함수입니다(entry.value 를 넘김).
 function renderFryPrepScreen(view,onKey){
+  const keys=view.keys.map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
   dom.miniContent.innerHTML=`
     <div class="fp-scene">
       <div class="fp-col">
@@ -171,9 +253,9 @@ function renderFryPrepScreen(view,onKey){
         </div>
         <h3 class="fp-col-title">조작</h3>
         <div class="fp-panel fp-control">
-          <div class="fp-keys">${view.keys.map((key,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${key}">${key.toUpperCase()}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>
-          <p class="fp-control-name">랜덤키 연타</p>
-          <p class="fp-control-desc">${view.controlDesc}</p>
+          <div class="fp-keys">${keys.map((entry,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${entry.value}">${entry.glyph}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>
+          ${view.controlName?`<p class="fp-control-name">${view.controlName}</p>`:""}
+          ${view.controlDesc?`<p class="fp-control-desc">${view.controlDesc}</p>`:""}
         </div>
       </div>
     </div>`;
@@ -260,6 +342,7 @@ function renderPotatoStarchShake(){
     keys:data.keys,
     expectedIndex:data.expectedIndex,
     keyLink:"→",
+    controlName:"랜덤키 연타",
     controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게<br />눌러 흔들기`
   },key=>potatoStarchInput(key,false));
 }
@@ -344,6 +427,7 @@ function renderShrimpCoat(){
     keys:data.keys,
     expectedIndex:data.expectedIndex,
     keyLink:"·",
+    controlName:"랜덤키 연타",
     controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 랜덤하게<br />빠르게 눌러 새우를<br />굴려주세요!`
   },key=>shrimpCoatInput(key));
 }

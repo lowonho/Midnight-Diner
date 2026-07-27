@@ -91,6 +91,18 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   fryStove:"assets/prep/kimchi/stove.png",
   fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
   fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
+  stirGriddle:"assets/prep/yakisoba/griddle.png",
+  stirNoodles:"assets/prep/yakisoba/noodles.png",
+  stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
+  stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
+  stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 채칼 (engine-e2). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // 감자는 손질 단계별 그림 11장을 따로 씁니다 (아래 potatoMandoline0~10)
+  mandolinePlate:"assets/prep/mandoline/plate.png",
+  mandolineCabbage:"assets/prep/mandoline/cabbage.png",
+  mandolineCarrot:"assets/prep/mandoline/carrot.png",
   knife:"assets/prep/effects/knife.png",
   ...Object.fromEntries(DAY4_RAPID_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
   ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
@@ -125,6 +137,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   osPlateDone:"assets/prep/one-shot/plate-done.png",
   osPot:"assets/prep/one-shot/pot.png",
   osPotDone:"assets/prep/one-shot/pot-done.png",
+  // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
+  // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
+  cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
   tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
   tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
   tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
