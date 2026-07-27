@@ -10,7 +10,7 @@
 
    [들어오는 길]
    시작 함수(registerDayPrepSetup)가 없습니다.
-   김치전 반죽 재료를 다 넣으면 engine-prep-order-place.js 가
+   김치전 반죽 재료를 다 넣으면 engine-e8-order-place.js 가
    setupWhiskBatter 를 불러 이 게임으로 넘어옵니다.
 
    이 엔진을 쓰는 게임은 지금 이것 하나뿐입니다.

@@ -56,12 +56,16 @@ function miniEngine(m = state.mini) {
    숫자를 바꾸면 네 게임에 동시에 반영되니 주의하세요. */
 
 // 포인터를 좌우로 왕복시키고 화면에 반영합니다.
-function advanceBounceMarker(m, dt) {
-  m.data.marker += m.data.dir * m.data.speed * dt;
-  if (m.data.marker >= 1) { m.data.marker = 1; m.data.dir = -1; }
-  if (m.data.marker <= 0) { m.data.marker = 0; m.data.dir = 1; }
-  const marker = dom.miniContent.querySelector("#miniMarker");
-  if (marker) marker.style.left = `${m.data.marker * 100}%`;
+// 게임마다 진행 방향을 담는 칸 이름과 포인터 요소 id 가 달라서 옵션으로 받습니다.
+//   기본값  : data.dir       + #miniMarker      (밤 조리)
+//   낮 칼질 : data.direction + #dayPrepMarker
+function advanceBounceMarker(m, dt, { dirKey = "dir", selector = "#miniMarker" } = {}) {
+  const data = m.data;
+  data.marker += data[dirKey] * data.speed * dt;
+  if (data.marker >= 1) { data.marker = 1; data[dirKey] = -1; }
+  if (data.marker <= 0) { data.marker = 0; data[dirKey] = 1; }
+  const marker = dom.miniContent.querySelector(selector);
+  if (marker) marker.style.left = `${data.marker * 100}%`;
 }
 
 // 목표 지점에서 얼마나 벗어났는지로 25~100점을 냅니다.

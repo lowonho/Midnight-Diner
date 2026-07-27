@@ -7,7 +7,7 @@
 
    · batterIngredients  김치전 반죽 — 밀가루 → 물 → 김치 순서로 클릭.
                         3개를 다 넣으면 곧바로 거품기(E9)로 넘어갑니다.
-                        → engine-prep-whisk.js 의 setupWhiskBatter 호출
+                        → engine-e9-whisk.js 의 setupWhiskBatter 호출
    · skewer             닭꼬치 조립 — 닭 → 대파 → 닭 → 대파 → 닭 을 4꼬치.
                         클릭으로 고르거나 드래그로 놓을 수 있습니다.
    · tteokSoak /        떡·우동면 불리기 — 재료와 물을 각각 클릭. 순서는 자유.
