@@ -48,6 +48,18 @@ try{
   state.day=6;setupTimingCut("cutSkewerChicken");
   startCuttingMinigame=originalStartCutting;
   assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
+  assert(cutTimingGrade(.5,.4,.2)==="perfect"&&cutTimingGrade(.41,.4,.2)==="good"&&cutTimingGrade(.2,.4,.2)==="miss","E1 good/perfect/miss grading");
+  assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.completeDelayMs===620,"E1 feel timing config");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="8,6,5","E1 tteokbokki cut counts");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",requiredHits:2,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4],title:"E1 smoke",description:"smoke"});
+  state.mini.data.marker=.5;timingCutAction();
+  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect"),"E1 perfect impact state");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitZoneWidth:.2,speed:.7,zoneStarts:[.4],requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
+  state.mini.data.marker=.5;timingCutAction();
+  assert(state.mini.data.tapStep===1&&state.mini.data.successes===0,"E1 chicken first tap embeds knife");
+  timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
 
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
   assert(SHRIMP_COAT_STEPS.length===3&&PREP_TASKS.coatShrimp,"Shrimp coating must be one three-stage task");
@@ -83,6 +95,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 19";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 25";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

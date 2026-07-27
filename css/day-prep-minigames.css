@@ -376,6 +376,8 @@
 }
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
+.cut-screen .prep-work-object.slice-perfect .knife-effect { animation-duration: .22s; filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,221,116,.9)); }
+.cut-screen .prep-work-object.slice-miss .knife-effect { animation: cut-knife-miss .15s ease-out; }
 
 /* 썰리는 순간의 불꽃 */
 .cut-screen .cut-spark {
@@ -391,6 +393,31 @@
   pointer-events: none;
 }
 .cut-screen .prep-work-object.slice-hit .cut-spark { animation: cut-spark-flash .26s ease-out; }
+.cut-screen .prep-work-object.slice-perfect .cut-spark { animation: cut-spark-perfect .34s ease-out; }
+
+/* 판정은 공용 창을 바꾸지 않고 도마 안에서만 짧게 보여줍니다. */
+.cut-judgement {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: calc(20 * var(--upx));
+  min-width: calc(110 * var(--upx));
+  color: #fff4d0;
+  text-align: center;
+  font-size: calc(24 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: calc(2 * var(--upx));
+  opacity: 0;
+  transform: translate(-50%,calc(8 * var(--upx))) scale(.8);
+  pointer-events: none;
+  text-shadow: 0 calc(3 * var(--upx)) 0 #4b2916,0 0 calc(10 * var(--upx)) rgba(0,0,0,.8);
+}
+.cut-judgement.show { animation: cut-judgement-pop .34s ease-out forwards; }
+.cut-judgement.perfect { color: #ffe083; font-size: calc(28 * var(--upx)); }
+.cut-judgement.miss { color: #f0a08b; }
+.cut-board.cut-miss { animation: cut-board-miss .15s ease-out; }
+.cut-board.cut-perfect { box-shadow: inset 0 0 0 calc(3 * var(--upx)) #5b3416,inset 0 0 calc(45 * var(--upx)) rgba(255,184,66,.24),0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45); }
+.cut-board.cut-complete .cut-pile { animation: cut-pile-complete .48s cubic-bezier(.2,.9,.2,1); }
 
 /* 썰어 놓은 조각 더미 (도마 오른쪽) */
 .cut-pile { position: relative; flex: none; width: calc(200 * var(--upx)); height: calc(150 * var(--upx)); }
@@ -403,6 +430,7 @@
   background: #e4e6bb;
   box-shadow: 0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.35);
 }
+.cut-piece.fresh { animation: cut-piece-land .24s cubic-bezier(.2,.85,.3,1.25); }
 .cut-piece.radish { border-radius: calc(10 * var(--upx)); background: #efe9d1; }
 .cut-piece.tofu { border-radius: calc(5 * var(--upx)); background: linear-gradient(135deg,#fff9e8,#e7dcc0); }
 .cut-piece.greenOnion {
@@ -448,6 +476,15 @@
   box-shadow: inset 0 0 0 2px #eec277;
 }
 .cut-timing .prep-success-zone { background: linear-gradient(#5da84a,#3d8434); box-shadow: inset 0 0 0 2px #a6d97c; }
+.cut-timing .prep-perfect-zone {
+  position: absolute;
+  inset-block: calc(2 * var(--upx));
+  z-index: 1;
+  border-inline: 1px solid rgba(255,249,199,.85);
+  background: linear-gradient(rgba(255,226,119,.72),rgba(235,169,53,.72));
+  box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,220,105,.5);
+  pointer-events: none;
+}
 .cut-timing .prep-timing-marker {
   top: calc(-9 * var(--upx));
   bottom: calc(-9 * var(--upx));
@@ -485,10 +522,49 @@
   45%  { transform: translateY(-50%) translateX(calc(10 * var(--upx))); }
   100% { transform: translateY(-50%) translateX(0); }
 }
+@keyframes cut-knife-miss {
+  0% { transform: translateX(-50%) translateY(calc(-18 * var(--upx))) rotate(var(--knife-turn,16deg)); }
+  55% { transform: translateX(calc(-50% + 13 * var(--upx))) translateY(calc(5 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)); }
+  100% { transform: translateX(-50%) translateY(0) rotate(var(--knife-turn,16deg)); }
+}
 @keyframes cut-spark-flash {
   0%   { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
   30%  { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
   100% { opacity: 0; transform: translate(-50%,-50%) scale(1.32); }
+}
+@keyframes cut-spark-perfect {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.35); }
+  24% { opacity: 1; transform: translate(-50%,-50%) scale(1.18); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.65); }
+}
+@keyframes cut-judgement-pop {
+  0% { opacity: 0; transform: translate(-50%,calc(8 * var(--upx))) scale(.8); }
+  35% { opacity: 1; transform: translate(-50%,0) scale(1.08); }
+  100% { opacity: 0; transform: translate(-50%,calc(-7 * var(--upx))) scale(1); }
+}
+@keyframes cut-board-miss {
+  0%,100% { transform: translateX(0); }
+  30% { transform: translateX(calc(-5 * var(--upx))); }
+  65% { transform: translateX(calc(4 * var(--upx))); }
+}
+@keyframes cut-piece-land {
+  0% { opacity: 0; translate: calc(-22 * var(--upx)) calc(-30 * var(--upx)); scale: .65; }
+  100% { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes cut-pile-complete {
+  0% { transform: scale(.96); filter: brightness(1); }
+  50% { transform: scale(1.07); filter: brightness(1.24); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .cut-screen .prep-work-object.slice-hit .knife-effect,
+  .cut-screen .prep-work-object.slice-miss .knife-effect,
+  .cut-screen .prep-work-object.slice-hit .cut-spark,
+  .cut-judgement.show,
+  .cut-board.cut-miss,
+  .cut-piece.fresh,
+  .cut-board.cut-complete .cut-pile { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
 /* ── 멸치 머리 떼기(E10) — 컨셉 화면 구성 ─────────────────────
