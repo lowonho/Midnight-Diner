@@ -76,7 +76,8 @@ function dayPrepAssetMarkup(key,className,alt=""){
   return `<img class="prep-asset ${className}" src="${dayPrepAssets[key].src}" alt="${alt}" draggable="false" />`;
 }
 
-function timingAssetKey(ingredient,successes){
+function timingAssetKey(ingredient,successes,assetPrefix=""){
+  if(assetPrefix)return `${assetPrefix}${successes}`;
   if(ingredient==="radish")return `radish${successes}`;
   if(ingredient==="kimchi")return `kimchiCut${successes}`;
   return `${ingredient}${successes}`;
@@ -116,6 +117,7 @@ function startDayPrepMini(task){
   else if(task.miniGame==="shrimpCoat")setupShrimpCoat();
   else if(task.miniGame==="breadcrumbCoat")setupBreadcrumbCoat();
   else if(task.miniGame==="tteokSoak")setupTteokSoak();
+  else if(task.miniGame==="udonSoak")setupUdonSoak();
   else if(task.miniGame==="rapidCutSequence")setupTteokbokkiRapidCut();
   else if(task.miniGame==="tteokbokkiSauce")setupSauceRecipe("tteokbokki");
   else if(task.miniGame==="potatoMandoline")setupDay4PotatoMandoline();
@@ -156,7 +158,7 @@ function startCuttingMinigame(options){
   const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
   const defaults=[.18,.56,.32,.66,.42];
   const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
-  m.data={mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0};
+  m.data={mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,showTteokbokkiFlow:!!options.showTteokbokkiFlow};
   dom.miniTitle.textContent=options.title;
   dom.miniDescription.textContent=options.description;
   renderDayPrepTiming();
@@ -165,9 +167,10 @@ function startCuttingMinigame(options){
 function renderDayPrepTiming(){
   const m=state.mini,data=m.data,isRadish=data.ingredient==="radish";
   const zoneLeft=data.zoneStarts[data.successes];
-  const objectAssetKey=timingAssetKey(data.ingredient,data.successes);
+  const objectAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   dom.miniContent.innerHTML=`
+    ${data.showTteokbokkiFlow?day4PrepFlowMarkup("tteokbokki",1):""}
     <div class="prep-work-object ${data.ingredient}-shape ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" aria-label="${data.ingredient}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
       ${Array.from({length:data.total},(_,index)=>`<i class="cut-line ${data.ingredient==="fishCake"?`fishcake-diagonal ${index%2?"slash-back":"slash-forward"}`:""} ${index<data.successes?"done":""}" style="left:${(index+1)/(data.total+1)*100}%"></i>`).join("")}
@@ -193,12 +196,33 @@ function setupRapidCutTask(taskId){
 
 function setupTteokbokkiRapidCut(){
   if(Number(state.day)!==4)return;
-  setupRapidCutMinigame({
-    taskId:"cutTteokbokkiIngredients",
-    title:"떡볶이 · 재료 빠른 칼질",
-    sequence:DAY4_RAPID_CUT_SEQUENCE,
-    onComplete:()=>finishDayPrepTask("cutTteokbokkiIngredients","떡볶이 양배추 · 대파 · 어묵 손질 완료")
-  });
+  const sequence=DAY4_RAPID_CUT_SEQUENCE;
+  const startIngredient=index=>{
+    const item=sequence[index];
+    startCuttingMinigame({
+      taskId:"cutTteokbokkiIngredients",
+      ingredient:item.ingredientId,
+      assetPrefix:item.assetPrefix,
+      requiredHits:item.requiredPieces,
+      hitZoneWidth:.14,
+      speed:.8,
+      zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
+      title:`떡볶이 · ${item.displayName} 썰기 (${index+1}/${sequence.length})`,
+      description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
+      showTteokbokkiFlow:true,
+      onComplete:()=>{
+        if(index>=sequence.length-1){
+          finishDayPrepTask("cutTteokbokkiIngredients","떡볶이 양배추 · 대파 · 어묵 손질 완료");
+          return;
+        }
+        dom.miniFeedback.textContent=`${item.displayName} 손질 완료 · 다음 재료로 넘어갑니다.`;
+        audio.success();
+        const mini=state.mini;
+        setTimeout(()=>{if(state.mini===mini&&!mini.complete)startIngredient(index+1);},420);
+      }
+    });
+  };
+  startIngredient(0);
 }
 
 function setupRapidCutMinigame(options){
@@ -490,33 +514,41 @@ function placeSkewerPiece(pieceIndex,slotIndex){
 
 function setupTteokSoak(){
   const m=state.mini;if(Number(state.day)!==4||!m)return;
-  m.data={mode:"tteokSoak",taskId:DAY4_PREP_CONFIG.soak.taskId,added:{tteok:false,water:false},finishing:false};
+  m.data={mode:"tteokSoak",taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false};
   dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
   dom.miniDescription.textContent="떡을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
   renderTteokSoak();
 }
 
+function setupUdonSoak(){
+  const m=state.mini;if(Number(state.day)!==3||!m)return;
+  m.data={mode:"udonSoak",taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false};
+  dom.miniTitle.textContent="볶음우동 · 우동면 불려두기";
+  dom.miniDescription.textContent="우동면을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
+  renderTteokSoak();
+}
+
 function renderTteokSoak(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="tteokSoak")return;
-  const data=m.data,count=Object.values(data.added).filter(Boolean).length;
+  const m=state.mini;if(!isDayPrepMini(m)||!["tteokSoak","udonSoak"].includes(m.data.mode))return;
+  const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,count=Object.values(data.added).filter(Boolean).length,isUdon=key==="udon";
   dom.miniTimer.textContent=`${count} / 2`;
   dom.miniContent.innerHTML=`
-    ${day4PrepFlowMarkup("tteokbokki",0)}
+    ${data.menuId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",0):""}
     <div class="tteok-soak-scene">
-      <button type="button" class="tteok-source ${data.added.tteok?"added":""}" data-soak-item="tteok" ${data.added.tteok||data.finishing?"disabled":""}><i></i><strong>떡</strong></button>
-      <div class="soaking-bowl ${data.added.water?"has-water":""} ${data.added.tteok?"has-tteok":""}" aria-label="떡을 불리는 볼"><i class="water-fill"></i>${dayPrepAssetMarkup(data.added.tteok&&data.added.water?"tteokSoakComplete":data.added.tteok?"tteokSoakTteok":data.added.water?"tteokSoakWater":"tteokSoakEmpty","soak-state-asset","")}<span>${data.added.tteok?Array.from({length:7},()=>"<b></b>").join(""):"빈 볼"}</span></div>
+      <button type="button" class="tteok-source ${isUdon?"udon-source":""} ${data.added[key]?"added":""}" data-soak-item="${key}" ${data.added[key]||data.finishing?"disabled":""}><i></i><strong>${label}</strong></button>
+      <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${data.added.water?"has-water":""} ${data.added[key]?"has-ingredient":""}" aria-label="${label}을 불리는 볼"><i class="water-fill"></i>${!isUdon?dayPrepAssetMarkup(data.added[key]&&data.added.water?"tteokSoakComplete":data.added[key]?"tteokSoakTteok":data.added.water?"tteokSoakWater":"tteokSoakEmpty","soak-state-asset",""):""}<span>${data.added[key]?Array.from({length:isUdon?5:7},()=>"<b></b>").join(""):"빈 볼"}</span></div>
       <button type="button" class="water-source ${data.added.water?"added":""}" data-soak-item="water" ${data.added.water||data.finishing?"disabled":""}><i></i><strong>물통</strong></button>
     </div>
-    <div class="cut-count">떡 ${data.added.tteok?"✓":"○"} · 물 ${data.added.water?"✓":"○"}</div>`;
+    <div class="cut-count">${label} ${data.added[key]?"✓":"○"} · 물 ${data.added.water?"✓":"○"}</div>`;
   dom.miniContent.querySelectorAll("[data-soak-item]").forEach(button=>button.addEventListener("click",()=>addTteokSoakItem(button.dataset.soakItem)));
 }
 
 function addTteokSoakItem(item){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="tteokSoak"||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
-  m.data.added[item]=true;audio.click();dom.miniFeedback.textContent=item==="tteok"?"떡을 볼에 담았습니다.":"볼에 물을 채웠습니다.";
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["tteokSoak","udonSoak"].includes(m.data.mode)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
+  const data=m.data;data.added[item]=true;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 채웠습니다.";
   if(Object.values(m.data.added).every(Boolean)){
-    m.data.finishing=true;renderTteokSoak();dom.miniFeedback.textContent="떡과 물이 모두 들어갔습니다. 불려두기 완료!";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("soakTteok","떡 불려두기 완료");},360);
+    data.finishing=true;renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 모두 들어갔습니다. 불려두기 완료!`;
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},360);
   }else renderTteokSoak();
 }
 
@@ -667,73 +699,64 @@ function checkYakisobaSauceComplete(m){
 
 function setupShrimpCoat(){
   const m=state.mini;if(Number(state.day)!==3)return;
-  m.data={mode:"shrimpCoat",step:0,selectedShrimp:false,sequence:[
-    {id:"flour",label:"밀가루"},{id:"egg",label:"계란물"},{id:"breadcrumbs",label:"빵가루"}
-  ]};
-  dom.miniTitle.textContent="새우튀김 · 튀김옷 입히기";
-  dom.miniDescription.textContent="새우를 밀가루 → 계란물 → 빵가루 순서로 옮기세요. 새우를 드래그하거나 용기를 클릭할 수 있습니다.";
-  renderShrimpCoat();
+  setupShrimpCoatKeys({mode:"shrimpCoat",step:0});
 }
 
-function renderShrimpCoat(){
-  const data=state.mini.data,current=data.sequence[data.step];
-  dom.miniTimer.textContent=`${data.step} / ${data.sequence.length}`;
-  dom.miniContent.innerHTML=`
-    <div class="shrimp-coat-order">${data.sequence.map((item,index)=>`<span class="${index<data.step?"done":index===data.step?"current":""}">${index<data.step?"✓ ":""}${item.label}</span>`).join("<b>→</b>")}</div>
-    <button type="button" draggable="true" class="prep-shrimp coat-${data.step} ${data.selectedShrimp?"selected":""}" id="prepShrimp" aria-label="튀김옷을 입힐 새우"><i></i></button>
-    <div class="shrimp-coat-containers">${data.sequence.map(item=>`<button type="button" class="coat-container ${item.id}" data-coat-id="${item.id}"><i></i><strong>${item.label}</strong></button>`).join("")}</div>
-    <div class="cut-count">다음 순서 · ${current?.label||"빵가루 코팅"}</div>`;
-  const shrimp=dom.miniContent.querySelector("#prepShrimp");
-  shrimp.addEventListener("click",()=>{data.selectedShrimp=!data.selectedShrimp;shrimp.classList.toggle("selected",data.selectedShrimp);dom.miniFeedback.textContent=data.selectedShrimp?"새우를 선택했습니다. 다음 용기를 누르세요.":"새우 선택을 해제했습니다.";});
-  shrimp.addEventListener("dragstart",event=>{event.dataTransfer.setData("text/plain","shrimp");event.dataTransfer.effectAllowed="move";});
-  dom.miniContent.querySelectorAll("[data-coat-id]").forEach(container=>{
-    container.addEventListener("click",()=>applyShrimpCoat(container.dataset.coatId,container));
-    container.addEventListener("dragover",event=>event.preventDefault());
-    container.addEventListener("drop",event=>{event.preventDefault();applyShrimpCoat(container.dataset.coatId,container);});
-  });
-}
-
-function applyShrimpCoat(coatId,container){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return;
-  const data=m.data,expected=data.sequence[data.step];
-  if(coatId!==expected.id){
-    container?.classList.remove("wrong");if(container){void container.offsetWidth;container.classList.add("wrong");setTimeout(()=>container.classList.remove("wrong"),300);}
-    dom.miniFeedback.textContent=`순서가 달라요. 지금은 ${expected.label} 차례입니다.`;audio.bad();return;
-  }
-  data.step++;data.selectedShrimp=false;audio.click();dom.miniFeedback.textContent=`${expected.label} 입히기 완료`;
-  if(data.step>=data.sequence.length){
-    completeDayPrepTask("coatShrimpBatter");
-    dom.miniFeedback.textContent="기본 튀김옷 완료 · 빵가루를 고르게 코팅합니다.";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)setupBreadcrumbCoat();},420);
-  }else renderShrimpCoat();
+function setupShrimpCoatKeys({mode,step}){
+  const m=state.mini,pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
+  const sequence=[{id:"flour",label:"밀가루"},{id:"egg",label:"계란물"},{id:"breadcrumbs",label:"빵가루"}];
+  m.data={mode,step,sequence,keys:[...pair],expectedIndex:0,successes:0,total:12};
+  dom.miniTitle.textContent="새우튀김 준비";
+  dom.miniDescription.textContent="밀가루 → 계란물 → 빵가루 순서로, 표시된 두 키를 번갈아 눌러 튀김옷을 입혀주세요.";
+  renderBreadcrumbCoat();
 }
 
 function setupBreadcrumbCoat(){
   const m=state.mini;if(Number(state.day)!==3)return;
-  const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
-  m.data={mode:"breadcrumbCoat",keys:[...pair],expectedIndex:0,successes:0,total:14};
-  dom.miniTitle.textContent="새우튀김 · 빵가루 코팅";
-  dom.miniDescription.textContent="화면에 표시된 두 키를 번갈아 눌러 새우에 빵가루를 고르게 붙이세요.";
-  renderBreadcrumbCoat();
+  setupShrimpCoatKeys({mode:"breadcrumbCoat",step:2});
 }
 
 function renderBreadcrumbCoat(){
-  const data=state.mini.data,progress=Math.round(data.successes/data.total*100),stage=progress>=100?3:progress>=70?2:progress>=35?1:0;
+  const data=state.mini.data,current=data.sequence[data.step],progress=Math.round(data.successes/data.total*100),stage=progress>=100?3:progress>=70?2:progress>=35?1:0;
   dom.miniTimer.textContent=`${progress}%`;
   dom.miniContent.innerHTML=`
-    <div class="breadcrumb-key-pair">${data.keys.map((key,index)=>`<button type="button" data-breadcrumb-key="${key}" class="${index===data.expectedIndex?"expected":""}">${key.toUpperCase()}</button>`).join("<span>↔</span>")}</div>
-    <div class="breadcrumb-shrimp stage-${stage}" id="breadcrumbShrimp"><i></i>${Array.from({length:Math.ceil(progress/7)},(_,index)=>`<b style="--crumb-x:${23+(index%7)*15}px;--crumb-y:${14+(index%4)*11}px;--crumb-turn:${index*19}deg"></b>`).join("")}</div>
-    <div class="breadcrumb-progress"><i style="width:${progress}%"></i></div>
-    <div class="cut-count">빵가루 코팅 ${progress}% · ${data.successes} / ${data.total}</div>`;
+    <div class="shrimp-coat-order">${data.sequence.map((item,index)=>`<span class="${index<data.step?"done":index===data.step?"current":""}">${index<data.step?"✓ ":""}${item.label}</span>`).join("<b>→</b>")}</div>
+    <div class="shrimp-coat-screen">
+      <div class="shrimp-coat-workbench">
+        ${data.sequence.map((item,index)=>{
+          const status=index<data.step?"done":index===data.step?"current":"pending",visible=index<=data.step;
+          const itemStage=index<data.step?3:index===data.step?stage:0;
+          const crumbs=item.id==="breadcrumbs"&&visible?Array.from({length:index<data.step?14:Math.ceil(progress/7)},(_,crumbIndex)=>`<b style="--crumb-x:${23+(crumbIndex%7)*15}px;--crumb-y:${14+(crumbIndex%4)*11}px;--crumb-turn:${crumbIndex*19}deg"></b>`).join(""):"";
+          return `<div class="shrimp-coat-station ${item.id} ${status}">
+            <strong>${index+1}. ${item.label}</strong>
+            <div class="coat-bowl ${item.id}">${visible?`<div class="breadcrumb-shrimp coating-${item.id} stage-${itemStage}"><i></i>${crumbs}</div>`:"<span>다음 단계</span>"}</div>
+            <small>${index<data.step?"완료 ✓":index===data.step?`${progress}% 진행 중`:"대기"}</small>
+          </div>${index<data.sequence.length-1?'<i class="coat-flow-arrow">→</i>':""}`;
+        }).join("")}
+      </div>
+      <aside class="shrimp-coat-controls">
+        <strong>${current.label} 조작</strong>
+        <div class="breadcrumb-key-pair">${data.keys.map((key,index)=>`<button type="button" data-breadcrumb-key="${key}" class="${index===data.expectedIndex?"expected":""}">${key.toUpperCase()}</button>`).join("<span>↔</span>")}</div>
+        <small>두 키를 번갈아 빠르게 누르세요</small>
+        <div class="breadcrumb-progress"><i style="width:${progress}%"></i></div>
+        <b>${data.successes} / ${data.total}</b>
+      </aside>
+    </div>
+    <div class="cut-count">현재 단계 · ${current.label} 입히기 ${progress}%</div>`;
   dom.miniContent.querySelectorAll("[data-breadcrumb-key]").forEach(button=>button.addEventListener("click",()=>breadcrumbCoatInput(button.dataset.breadcrumbKey)));
 }
 
 function breadcrumbCoatInput(key){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="breadcrumbCoat")return false;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||!["shrimpCoat","breadcrumbCoat"].includes(m.data.mode))return false;
   const data=m.data,normalized=String(key).toLowerCase();
   if(normalized!==data.keys[data.expectedIndex]){dom.miniFeedback.textContent=`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다.`;return false;}
   data.successes++;data.expectedIndex=data.expectedIndex===0?1:0;audio.click();
-  if(data.successes>=data.total){finishDayPrepTask("coatShrimpBreadcrumbs","새우튀김 빵가루 코팅 완료");return true;}
+  if(data.successes>=data.total){
+    const completed=data.sequence[data.step];
+    if(data.step===0){dom.miniFeedback.textContent="밀가루 입히기 완료 · 계란물로 넘어갑니다.";audio.success();setTimeout(()=>{if(state.mini===m&&!m.complete)setupShrimpCoatKeys({mode:"shrimpCoat",step:1});},360);return true;}
+    if(data.step===1){completeDayPrepTask("coatShrimpBatter");dom.miniFeedback.textContent="계란물 입히기 완료 · 빵가루로 넘어갑니다.";audio.success();setTimeout(()=>{if(state.mini===m&&!m.complete)setupBreadcrumbCoat();},360);return true;}
+    finishDayPrepTask("coatShrimpBreadcrumbs",`새우튀김 ${completed.label} 코팅 완료`);return true;
+  }
   dom.miniFeedback.textContent="좋아요! 반대쪽 키를 누르세요.";renderBreadcrumbCoat();return true;
 }
 
@@ -769,7 +792,7 @@ function completeDayPrepCut(m){
   const work=dom.miniContent.querySelector("#prepWorkObject");
   work?.classList.remove("tough-first-hit");
   work?.classList.add("slice-hit");
-  const nextAssetKey=timingAssetKey(data.ingredient,data.successes);
+  const nextAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
   dom.miniContent.querySelector(`.cut-line:nth-child(${data.successes})`)?.classList.add("done");
