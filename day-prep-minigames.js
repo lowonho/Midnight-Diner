@@ -35,7 +35,7 @@ const DAY_PREP_MINI_CONFIG = {
       {id:"sugar",label:"설탕",count:1,asset:"fryIngSugar"}
     ]
   },
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({

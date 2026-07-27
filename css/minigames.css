@@ -647,8 +647,8 @@
 
 /* ── 볶음우동 조리 · 철판 볶기 (engine-e3 · stir) ──────────────
    왼쪽 재료 · 가운데 철판 · 오른쪽 진행도/다음 순서 3단이고,
-   맨 아래 화살표 12칸이 3단 폭을 가로질러 깔립니다.
-   (낮 준비의 "김치 볶기" 와 같은 틀입니다. 그쪽은 css/day-prep-minigames.css)
+   맨 아래 화살표 8칸이 3단 폭을 가로질러 깔립니다.
+   (낮 준비의 "김치 볶기" 와 같은 틀입니다. 그쪽은 12칸 · css/day-prep-minigames.css)
 
    그림은 전부 임시 CSS 도형이고, assets/prep/yakisoba/ 에 파일을 넣으면
    .has-asset(.has-prep-asset) 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
@@ -833,7 +833,8 @@
   text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
 }
 
-/* 아래 화살표 12칸. 지금 눌러야 할 칸만 밝게 켜집니다 */
+/* 아래 화살표 8칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
+   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다 */
 .yk-seq {
   grid-column: 1 / -1;
   display: grid;

@@ -1486,9 +1486,11 @@
 .sk-ing-card.used-up { opacity: .35; cursor: default; }
 
 /* 가운데 도마 */
+/* 꼬치 칸 수는 engine-e8 의 SKEWER_TOTAL 이 --sk-count 로 넘겨 줍니다.
+   숫자가 바뀌어도 한 줄에 그대로 나란히 놓입니다 (예전에는 3 이 여기 박혀 있었습니다) */
 .sk-board {
   display: grid;
-  grid-template-columns: repeat(3,1fr);
+  grid-template-columns: repeat(var(--sk-count,4),1fr);
   gap: calc(8 * var(--upx));
   padding: calc(16 * var(--upx)) calc(12 * var(--upx));
   border: calc(6 * var(--upx)) solid #6d4527;
