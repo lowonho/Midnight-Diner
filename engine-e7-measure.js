@@ -3,16 +3,15 @@
 /* ============================================================
    E7 계량 (낮 준비) — 떡볶이 양념장 · 볶음우동 소스
 
-   소스통을 골라 부을 때마다 정해진 양(step)씩 들어갑니다.
-   목표량(target)과 정확히 같아야 하고, 넘치면 "한 번 덜어내기"로 되돌립니다.
-   세 가지가 모두 정확히 맞으면 완료.
+   소스통을 고른 뒤 한 번 부으면 레시피 분량 전체가 들어갑니다.
+   세 가지 재료를 각각 한 번씩 넣으면 완료됩니다.
 
    레시피 데이터(day4-prep-data.js 의 SAUCE_RECIPES)만 갈아끼우면
    떡볶이·볶음우동이 같은 코드를 씁니다. 다른 엔진을 합칠 때 본보기로 삼으세요.
    새 소스를 추가하려면 SAUCE_RECIPES 에 항목 하나만 넣으면 됩니다.
 
    [화면 구성 — 3단]  컨셉 이미지(양배추 채썰기)와 같은 배치입니다.
-     왼쪽   재료 목표 카드 (소스통 그림 · 목표량 · 현재량 · 덜어내기)
+     왼쪽   재료 목표 카드 (소스통 그림 · 레시피 분량 · 투입 여부)
      가운데 나무 조리대 : 가운데 소스볼 + 소스통 3개(좌 · 우 · 아래)
      오른쪽 진행도 카드 · 조작 카드
 
@@ -23,7 +22,6 @@
    [조작] 키보드와 마우스 둘 다 됩니다.
      ← →        소스통 고르기   (오른쪽 조작 카드의 키 버튼도 같은 동작)
      ↓ / Space  고른 소스통 붓기 (조리대의 소스통을 직접 눌러도 됩니다)
-     Backspace  한 번 덜어내기   (넘친 재료만)
 
    소스통과 볼은 전부 임시 CSS 도형입니다. assets/prep/sauce/ 에 그림을
    넣으면 .has-asset 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
@@ -35,11 +33,10 @@ registerDayPrepSetup("tteokbokkiSauce",()=>setupSauceRecipe("tteokbokki"));
 
 registerDayPrepEngine("sauceMeasure",{
   key(m,k,e){
-    if(e?.repeat&&["arrowleft","arrowright","arrowdown"," ","enter","backspace","delete"].includes(k))return true;
+    if(e?.repeat&&["arrowleft","arrowright","arrowdown"," ","enter"].includes(k))return true;
     if(k==="arrowleft"){moveSauceCursor(-1);return true;}
     if(k==="arrowright"){moveSauceCursor(1);return true;}
     if(k==="arrowdown"||k===" "||k==="enter"){pourSelectedSauce();return true;}
-    if(k==="backspace"||k==="delete"){undoSelectedSauce();return true;}
     return false;
   }
 });
@@ -64,20 +61,18 @@ function setupYakisobaSauce(){
 function setupSauceRecipe(recipeId){
   const recipe=SAUCE_RECIPES[recipeId];if(!state.mini||!recipe)return;
   setDayPrepData({
-    mode:"sauceMeasure",recipeId,recipe,finishing:false,pourLocked:false,shownFill:0,mistakes:0,undos:0,completionGrade:"",pendingCursor:null,
+    mode:"sauceMeasure",recipeId,recipe,finishing:false,pourLocked:false,shownFill:0,completionGrade:"",pendingCursor:null,
     cursor:0,                    // 지금 고른 소스통 (레시피 재료 순서)
     sauces:recipe.ingredients.map(item=>({...item,amount:0}))
   });
-  dom.miniTitle.textContent=recipeId==="tteokbokki"?"떡볶이 양념장 계량":"볶음우동 소스 제조";
-  dom.miniDescription.textContent="←→로 소스통을 고르고 ↓로 부어 정량을 맞추세요! 넘치면 한 번씩 덜어낼 수 있습니다.";
+  dom.miniTitle.textContent=recipeId==="tteokbokki"?"떡볶이 양념장 만들기":"볶음우동 소스 만들기";
+  dom.miniDescription.textContent="←→로 소스통을 고르고 ↓로 부어주세요. 재료마다 한 번씩 넣으면 소스가 완성됩니다!";
   renderYakisobaSauce();
 }
 
-function sauceStatus(item){
-  return item.amount===item.target?"exact":item.amount>item.target?"over":"under";
-}
+function sauceStatus(item){return item.amount===item.target?"exact":"under";}
 
-function sauceCompletionGrade(data){return !(data.mistakes||0)&&!(data.undos||0)?"perfect":"good";}
+function sauceCompletionGrade(){return "perfect";}
 
 function nextIncompleteSauceIndex(data,fromIndex){
   for(let offset=1;offset<=data.sauces.length;offset++){
@@ -102,18 +97,15 @@ function sauceBottleMarkup(item,extraClass=""){
 }
 
 // 왼쪽 재료 목표 카드. 고른 소스통은 테두리가 밝아집니다.
-function sauceGoalMarkup(item,selected,disabled){
+function sauceGoalMarkup(item,selected){
   const status=sauceStatus(item);
-  const fill=Math.min(item.amount/item.target,1)*100;
   return `<div class="sc-panel sc-goal ${status} ${selected?"selected":""}">
       <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
       <span class="sc-goal-info">
         <b class="sc-goal-name">${item.label}</b>
-        <span class="sc-goal-target">목표 <b>${item.target}g</b></span>
-        <span class="sc-goal-now">${status==="exact"?"✓ ":status==="over"?"! ":""}현재 ${item.amount}g</span>
+        <span class="sc-goal-target">레시피 분량 <b>${item.target}g</b></span>
+        <span class="sc-goal-now">${status==="exact"?"✓ 넣기 완료":"한 번에 넣기"}</span>
       </span>
-      <span class="sc-goal-meter ${status}" aria-hidden="true"><i style="width:${fill}%"></i><b></b></span>
-      ${status==="over"?`<button type="button" class="sc-undo" data-sauce-undo="${item.id}" ${disabled?"disabled":""}>− ${item.step}g 덜어내기</button>`:""}
     </div>`;
 }
 
@@ -142,7 +134,7 @@ function renderYakisobaSauce(){
     <div class="sauce-lab">
       <aside class="sc-col">
         <h3 class="sc-col-title starred">재료 목표</h3>
-        ${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor,locked)).join("")}
+        ${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}
       </aside>
 
       <div class="sc-board ${exact===total?"done mixing":""}" style="--sauce-main:${data.recipe.bowlColor||"#a24a1f"};--sauce-dark:${data.recipe.bowlDark||"#3d1a0e"}">
@@ -153,9 +145,9 @@ function renderYakisobaSauce(){
           const slot=SAUCE_SLOTS[index]||"at-bottom",status=sauceStatus(item);
           const selected=index===data.cursor;
           return `<i class="sc-arrow ${slot} ${selected&&status==="under"?"":"off"}" aria-hidden="true"></i>
-            <button type="button" class="sc-pourer ${slot} ${status} ${selected?"selected":""}" data-sauce-id="${item.id}" ${locked?"disabled":""} aria-label="${item.label} 넣기 · 1회 ${item.step}g">
+            <button type="button" class="sc-pourer ${slot} ${status} ${selected?"selected":""}" data-sauce-id="${item.id}" ${locked||status==="exact"?"disabled":""} aria-label="${item.label} 한 번에 넣기">
               <span class="sc-pour-visual">${sauceBottleMarkup(item)}${sauceStreamMarkup(item)}</span>
-              <span class="sc-step-badge">+${item.step}g</span>
+              <span class="sc-step-badge">한 번 넣기</span>
             </button>`;
         }).join("")}
         ${data.finishing?`<strong class="sc-result ${data.completionGrade||"good"} show" id="sauceResult">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
@@ -169,8 +161,7 @@ function renderYakisobaSauce(){
         <div class="sc-panel sc-control">
           <h3 class="sc-col-title">조작</h3>
           ${sauceControlRow([{action:"left",glyph:"◀",label:"왼쪽 소스통"},{action:"right",glyph:"▶",label:"오른쪽 소스통"}],"좌우로<br />소스통 고르기",locked)}
-          ${sauceControlRow([{action:"pour",glyph:"▼",label:"붓기"}],`${current.label} 붓기<br /><b>+${current.step}g</b>`,locked)}
-          ${sauceControlRow([{action:"undo",glyph:"⌫",label:"덜어내기"}],"넘친 소스<br />한 번 덜어내기",locked||sauceStatus(current)!=="over")}
+          ${sauceControlRow([{action:"pour",glyph:"▼",label:"붓기"}],`${current.label}<br /><b>한 번에 넣기</b>`,locked||sauceStatus(current)==="exact")}
         </div>
       </aside>
     </div>`;
@@ -183,13 +174,11 @@ function renderYakisobaSauce(){
     data.shownFill=fill;
   }
   dom.miniContent.querySelectorAll("[data-sauce-id]").forEach(button=>button.addEventListener("click",()=>addYakisobaSauce(button.dataset.sauceId)));
-  dom.miniContent.querySelectorAll("[data-sauce-undo]").forEach(button=>button.addEventListener("click",()=>undoYakisobaSauce(button.dataset.sauceUndo)));
   dom.miniContent.querySelectorAll("[data-sauce-key]").forEach(button=>button.addEventListener("click",()=>{
     const action=button.dataset.sauceKey;
     if(action==="left")moveSauceCursor(-1);
     else if(action==="right")moveSauceCursor(1);
     else if(action==="pour")pourSelectedSauce();
-    else undoSelectedSauce();
   }));
 }
 
@@ -264,7 +253,7 @@ function selectSauce(index){
   const sauce=m.data.sauces[index];if(!sauce||index===m.data.cursor)return;
   m.data.cursor=index;audio.click();
   renderYakisobaSauce();
-  dom.miniFeedback.textContent=`${sauce.label} 소스통 선택 · 1회 ${sauce.step}g`;
+  dom.miniFeedback.textContent=`${sauce.label} 소스통 선택 · 한 번에 넣어주세요`;
 }
 
 function moveSauceCursor(delta){
@@ -278,34 +267,17 @@ function pourSelectedSauce(){
   addYakisobaSauce(m.data.sauces[m.data.cursor].id);
 }
 
-function undoSelectedSauce(){
-  const m=activeSauceMeasure();if(!m)return;
-  undoYakisobaSauce(m.data.sauces[m.data.cursor].id);
-}
-
 function addYakisobaSauce(id){
   const m=activeSauceMeasure();if(!m)return;
   const index=m.data.sauces.findIndex(item=>item.id===id);if(index<0)return;
   const sauce=m.data.sauces[index];
   m.data.cursor=index;   // 조리대에서 직접 누른 소스통이 곧 지금 고른 소스통입니다
-  const previous=sauce.amount;
-  sauce.amount+=sauce.step;m.data.pourLocked=true;m.data.pendingCursor=null;
-  if(previous<=sauce.target&&sauce.amount>sauce.target)m.data.mistakes=(m.data.mistakes||0)+1;
-  if(sauce.amount===sauce.target)m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
-  audio.click();dom.miniFeedback.textContent=sauce.amount===sauce.target?`${sauce.label} 정확히 계량! 다음 재료를 확인하세요.`:`${sauce.label} ${sauce.step}g 투입 · 현재 ${sauce.amount}g`;
+  if(sauce.amount===sauce.target){dom.miniFeedback.textContent=`${sauce.label}은(는) 이미 넣었습니다. 다른 재료를 골라주세요.`;return;}
+  sauce.amount=sauce.target;m.data.pourLocked=true;m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
+  audio.click();dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
   renderYakisobaSauce();
   playSaucePour(id);
   setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
-}
-
-function undoYakisobaSauce(id){
-  const m=activeSauceMeasure();if(!m)return;
-  const index=m.data.sauces.findIndex(item=>item.id===id);if(index<0)return;
-  const sauce=m.data.sauces[index];
-  if(sauce.amount<=sauce.target){dom.miniFeedback.textContent=`${sauce.label}은(는) 아직 넘치지 않았습니다.`;return;}
-  m.data.cursor=index;
-  sauce.amount=Math.max(0,sauce.amount-sauce.step);m.data.undos=(m.data.undos||0)+1;audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 덜어냈습니다. · 현재 ${sauce.amount}g`;
-  checkYakisobaSauceComplete(m);
 }
 
 function checkYakisobaSauceComplete(m){

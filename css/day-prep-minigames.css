@@ -1903,27 +1903,8 @@
 .sc-goal-now { color: #a98d67; font-size: calc(17 * var(--upx)); font-weight: 800; }
 .sc-goal.exact { border-color: #93b264; box-shadow: inset 0 0 0 2px #4d6b32, 0 0 calc(14 * var(--upx)) rgba(160,205,110,.3); }
 .sc-goal.exact .sc-goal-now { color: #cfe6a2; }
-.sc-goal.over { border-color: #c4644a; box-shadow: inset 0 0 0 2px #5a2a1c; }
-.sc-goal.over .sc-goal-now { color: #ffb49a; }
-.sc-goal-meter { position:relative; grid-column:1/-1; height:calc(10 * var(--upx)); overflow:hidden; border:1px solid #68462f; border-radius:calc(6 * var(--upx)); background:#160d08; }
-.sc-goal-meter i { display:block; height:100%; background:linear-gradient(90deg,#a86b35,#e2ad5d); transition:width .22s ease,background .15s ease; }
-.sc-goal-meter b { position:absolute; right:0; inset-block:0; width:2px; background:#ffe7a9; }
-.sc-goal-meter.exact i { background:linear-gradient(90deg,#789b4f,#b7d77b); }
-.sc-goal-meter.over i { background:linear-gradient(90deg,#a73d2b,#ef7652); animation:sc-meter-over .4s ease-in-out infinite alternate; }
 /* 지금 고른 소스통 표시는 아래 "지금 고른 소스통" 구역에 모여 있습니다.
-   상태 색(exact/over)보다 뒤에 있어야 선택 표시가 이깁니다. */
-.sc-undo {
-  grid-column: 1 / -1;
-  padding: calc(5 * var(--upx));
-  border: 2px solid #d17a58;
-  border-radius: calc(7 * var(--upx));
-  background: #6c3024;
-  color: #ffe0ca;
-  font-size: calc(16 * var(--upx));
-  font-weight: 800;
-  cursor: pointer;
-}
-.sc-undo:active { transform: translateY(1px); }
+   완료 상태 색(exact)보다 뒤에 있어야 선택 표시가 이깁니다. */
 
 /* ── 가운데 : 나무 조리대 ──────────────────────────────────── */
 .sc-board {
@@ -1993,7 +1974,7 @@
 .sc-pourer.pouring .sc-pour-visual { animation:sc-fly-to-bowl .68s ease-in-out; }
 .sc-pourer.pouring .sc-bottle { transform-origin:50% 50%; animation:sc-bottle-pour .68s ease-in-out; }
 
-/* 소스통 옆 1회 추가량 딱지. 아래쪽 소스통은 조리대 밖으로 나가지 않게 옆에 답니다. */
+/* 소스통 옆 한 번 넣기 딱지. 아래쪽 소스통은 조리대 밖으로 나가지 않게 옆에 답니다. */
 .sc-step-badge {
   position: absolute;
   left: 50%;
@@ -2178,7 +2159,6 @@
 }
 @keyframes sc-splash { 45% { transform: translateY(calc(-6 * var(--upx))) scaleY(1.05); } }
 @keyframes sc-arrow-pulse { 50% { opacity: .5; } }
-@keyframes sc-meter-over { to { filter:brightness(1.32); } }
 @keyframes sc-sauce-mix { 0%,100% { transform:scale(1);filter:brightness(1); } 35% { transform:scaleX(1.06) scaleY(.94);filter:brightness(1.18); } 70% { transform:scaleX(.96) scaleY(1.04); } }
 @keyframes sc-result-in { to { opacity:1;transform:translate(-50%,-50%) scale(1); } }
 
@@ -2509,7 +2489,7 @@
   .kf-board.stir-left .frying-kimchi,.kf-board.stir-right .frying-kimchi,
   .kf-board.input-wrong .kf-wood-spatula,.kf-board.e3-complete .frying-kimchi,
   .sc-pourer.pouring .sc-pour-visual,.sc-pourer.pouring .sc-bottle,.sc-pourer.pouring .sc-pour-stream,.sc-bowl.splash .sc-sauce,
-  .sc-board.mixing .sc-sauce,.sc-result.show,.sc-goal-meter.over i { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .sc-board.mixing .sc-sauce,.sc-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
 /* Day 4 · 떡 불리기 */

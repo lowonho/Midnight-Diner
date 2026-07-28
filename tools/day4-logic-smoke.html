@@ -150,17 +150,17 @@ try{
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.flow).join(",")==="thick,syrup,thin"&&DAY_PREP_ASSET_PATHS.sauceFlowThin&&DAY_PREP_ASSET_PATHS.sauceFlowSyrup&&DAY_PREP_ASSET_PATHS.sauceFlowThick,"E7 data-driven viscosity and three reusable stream assets");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupSauceRecipe("tteokbokki");
   const sauceMini=state.mini;
-  assert(dom.miniContent.querySelectorAll(".sc-goal-meter").length===3&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 meters and viscosity-specific streams");
+  assert(dom.miniContent.querySelectorAll(".sc-goal").length===3&&!dom.miniContent.querySelector(".sc-goal-meter")&&!dom.miniContent.querySelector(".sc-undo")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 one-pour cards and viscosity-specific streams");
   MINI_ENGINES.sauceMeasure.key(sauceMini," ",{repeat:true});
   assert(sauceMini.data.sauces[0].amount===0,"E7 held Space cannot auto-pour repeatedly");
-  sauceMini.data.sauces[0].amount=90;addYakisobaSauce("gochujang");
-  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 exact measure keeps input locked while bottle flies");
+  addYakisobaSauce("gochujang");
+  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 one click pours the full recipe amount while the bottle flies");
   finishSaucePour(sauceMini);
   assert(sauceMini.data.cursor===1&&!sauceMini.data.pourLocked,"E7 next ingredient is selected after bottle returns");
-  sauceMini.data.sauces[1].amount=60;addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);undoYakisobaSauce("oligosaccharide");
-  assert(sauceMini.data.mistakes===1&&sauceMini.data.undos===1&&sauceMini.data.sauces[1].amount===60&&sauceCompletionGrade(sauceMini.data)==="good","E7 overpour and undo produce GOOD");
-  sauceMini.data.mistakes=0;sauceMini.data.undos=0;sauceMini.data.pourLocked=false;sauceMini.data.sauces.forEach(item=>{item.amount=item.target;});checkYakisobaSauceComplete(sauceMini);
-  assert(sauceMini.data.finishing&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 exact recipe mixes and completes PERFECT");
+  addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);
+  assert(sauceMini.data.sauces[1].amount===60&&sauceMini.data.cursor===2&&sauceCompletionGrade(sauceMini.data)==="perfect","E7 second ingredient is also a single full pour");
+  addYakisobaSauce("soy");finishSaucePour(sauceMini);
+  assert(sauceMini.data.finishing&&sauceMini.data.sauces.every(item=>item.amount===item.target)&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 three one-time pours mix and complete PERFECT");
 
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
@@ -190,7 +190,7 @@ try{
   MINI_ENGINES.chop.setup(state.mini,{set(){}});
   assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelector(".cut-screen .cut-board")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the shared large-board six-cut controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
+  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
   document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 63";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
