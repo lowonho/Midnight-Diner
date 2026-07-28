@@ -13,6 +13,9 @@
    (불리기 두 게임이 renderTteokSoak 하나를 나눠 쓰는 것과 같은 방식입니다.
     앞으로 단발 액션 게임이 늘어나도 여기에 정의만 추가하면 됩니다.)
 
+   공통 포인터 컨트롤러는 마우스와 터치를 함께 처리하고, 마무리 연출만
+   place(플레이팅) / drop(냄비 투입) / pour(육수 붓기)로 나눕니다.
+
    [화면 구성]  그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체됩니다.
      왼쪽   재료 카드 — 끌어다 놓거나, 눌러 집은 뒤 그릇을 눌러도 됩니다
      가운데 그릇(접시 / 냄비) + 끌어다 놓으라는 점선 화살표
@@ -44,6 +47,12 @@ const ONE_SHOT_VESSELS=Object.freeze({
   pot:{kind:"pot",label:"냄비",action:"넣기",asset:"osPot",doneAsset:"osPotDone"}
 });
 
+const ONE_SHOT_VARIANTS=Object.freeze({
+  place:Object.freeze({finishDelay:820}),
+  drop:Object.freeze({finishDelay:680}),
+  pour:Object.freeze({pourDuration:900,returnDuration:380,finishDelay:480})
+});
+
 // 도형 하나를 몇 조각(<b>)으로 그리는지. CSS 가 nth-child 로 자리를 잡습니다.
 const ONE_SHOT_ART_PARTS=Object.freeze({tofuSlices:5,friedKimchi:4,radish:3,fishCake:2,anchovy:3,broth:1});
 
@@ -67,7 +76,8 @@ function oneShotPiece(data,id){
      onDone   전부 옮겼을 때 부를 마무리 함수 */
 function startOneShot(config){
   const m=state.mini;if(!m)return null;
-  const data={oneShot:true,pieces:ONE_SHOT_PIECES,items:[],preset:[],placed:[],selected:null,finishing:false,...config};
+  clearOneShotPointer();
+  const data={oneShot:true,pieces:ONE_SHOT_PIECES,items:[],preset:[],placed:[],selected:null,finishing:false,variant:"place",actionPhase:"idle",activeItem:null,doneCalled:false,...config};
   if(data.mode)setDayPrepData(data);   // 낮 준비는 엔진 이름도 함께 바뀝니다
   else m.data=data;
   if(config.title)dom.miniTitle.textContent=config.title;
@@ -88,13 +98,14 @@ function renderOneShot(){
 
 function oneShotSceneMarkup(data){
   const allPlaced=data.placed.length>=data.items.length;
+  const visualComplete=allPlaced&&(data.variant!=="pour"||data.actionPhase==="complete");
   return `<div class="one-shot-scene">
       <aside class="os-col">
         <div class="os-panel os-ing-panel">
           <h3 class="os-col-title starred">재료</h3>
           <div class="os-ing-list">${data.items.map(id=>{
             const piece=oneShotPiece(data,id),placed=data.placed.includes(id);
-            return `<button type="button" class="os-ing-card ${placed?"placed":""} ${data.selected===id?"selected":""}" data-os-item="${id}" draggable="${!placed&&!data.finishing}" ${placed||data.finishing?"disabled":""}>
+            return `<button type="button" class="os-ing-card ${placed?"placed":""} ${data.selected===id?"selected":""}" data-os-item="${id}" draggable="false" ${placed||data.finishing?"disabled":""}>
               <span class="os-ing-art">${oneShotArtMarkup(piece)}</span>
               <span class="os-ing-name">${piece.label}<b>×1</b></span>
             </button>`;
@@ -102,11 +113,13 @@ function oneShotSceneMarkup(data){
         </div>
       </aside>
 
-      <div class="os-board">
+      <div class="os-board variant-${data.variant} phase-${data.actionPhase} ${visualComplete?"complete":""}">
         <div class="os-drop ${data.selected?"armed":""}" role="button" tabindex="0" aria-label="${data.vessel.label}에 ${data.vessel.action}">
           ${oneShotVesselMarkup(data,data.placed)}
         </div>
+        ${oneShotActionMarkup(data)}
         ${allPlaced?"":`<i class="os-drag-hint" aria-hidden="true"></i>`}
+        ${visualComplete?`<span class="os-complete-sparks" aria-hidden="true">${"<i></i>".repeat(6)}</span>`:""}
       </div>
 
       <aside class="os-col">
@@ -135,10 +148,17 @@ function oneShotVesselMarkup(data,placedIds,{guide=false}={}){
     const justAdded=!guide&&data.placed.includes(id)&&id===data.placed[data.placed.length-1];
     return `<span class="os-food slot-${piece.slot} ${justAdded?"just-added":""}">${oneShotArtMarkup(piece)}</span>`;
   }).join("");
-  return `<div class="os-vessel ${vessel.kind} ${hasAsset?"has-asset":""} ${guide?"guide":""} ${inside.includes("broth")?"filled":""}">
+  const receiving=!guide&&data.variant==="pour"&&data.actionPhase==="pouring";
+  return `<div class="os-vessel ${vessel.kind} ${hasAsset?"has-asset":""} ${guide?"guide":""} ${inside.includes("broth")?"filled":""} ${receiving?"receiving":""}">
       ${hasAsset?dayPrepAssetMarkup(assetKey,"os-vessel-asset",vessel.label):`<i class="os-vessel-shape"></i>`}
       <span class="os-vessel-food">${food}</span>
     </div>`;
+}
+
+function oneShotActionMarkup(data){
+  if(data.variant!=="pour"||!data.activeItem||!["pouring","returning"].includes(data.actionPhase))return "";
+  const piece=oneShotPiece(data,data.activeItem);
+  return `<span class="os-pour-action ${data.actionPhase}" aria-hidden="true"><span class="os-pour-jug">${oneShotArtMarkup(piece)}</span><i class="os-pour-stream"></i></span>`;
 }
 
 // 재료 그림 한 덩이. 에셋이 있으면 <img>, 없으면 CSS 임시 도형(<b> 여러 개)입니다.
@@ -149,28 +169,72 @@ function oneShotArtMarkup(piece){
   return `<span class="os-art ${piece.art} ${hasAsset?"has-asset":""}">${hasAsset?dayPrepAssetMarkup(piece.asset,"os-art-asset",piece.label):parts}</span>`;
 }
 
-/* ---- 조작 : 드래그 · 클릭 · Space --------------------------- */
+/* ---- 조작 : Pointer Events 드래그 · 클릭 · Space ------------ */
+
+let oneShotPointer=null;
+let suppressOneShotClick=false;
+
+function clearOneShotPointer(){
+  oneShotPointer?.ghost?.remove();oneShotPointer=null;
+  document.querySelectorAll(".os-drop.drop-hover").forEach(drop=>drop.classList.remove("drop-hover"));
+}
+
+function oneShotDropAt(x,y){return document.elementFromPoint(x,y)?.closest(".os-drop")||null;}
+
+function moveOneShotPointer(event){
+  const drag=oneShotPointer;if(!drag||drag.pointerId!==event.pointerId)return;
+  const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
+  if(!drag.dragging&&Math.hypot(dx,dy)>=5){
+    drag.dragging=true;drag.card.classList.add("dragging");
+    drag.ghost=document.createElement("span");drag.ghost.className=`os-drag-ghost item-${drag.id}`;
+    drag.ghost.innerHTML=drag.card.querySelector(".os-ing-art")?.innerHTML||"";
+    document.body.appendChild(drag.ghost);
+  }
+  if(!drag.dragging)return;
+  event.preventDefault();drag.ghost.style.left=`${event.clientX}px`;drag.ghost.style.top=`${event.clientY}px`;
+  document.querySelectorAll(".os-drop.drop-hover").forEach(drop=>drop.classList.remove("drop-hover"));
+  oneShotDropAt(event.clientX,event.clientY)?.classList.add("drop-hover");
+}
+
+function returnOneShotGhost(drag){
+  if(!drag.ghost)return;
+  const data=oneShotData();if(data?.selected===drag.id)data.selected=null;
+  drag.card.classList.remove("selected");dom.miniContent.querySelector(".os-drop")?.classList.remove("armed");
+  const rect=drag.card.getBoundingClientRect();
+  drag.ghost.classList.add("returning");drag.ghost.style.left=`${rect.left+rect.width/2}px`;drag.ghost.style.top=`${rect.top+rect.height/2}px`;
+  setTimeout(()=>drag.ghost?.remove(),240);
+}
+
+function finishOneShotPointer(event,cancelled=false){
+  const drag=oneShotPointer;if(!drag||drag.pointerId!==event.pointerId)return;
+  oneShotPointer=null;drag.card.classList.remove("dragging");
+  document.querySelectorAll(".os-drop.drop-hover").forEach(drop=>drop.classList.remove("drop-hover"));
+  if(!drag.dragging)return;
+  suppressOneShotClick=true;setTimeout(()=>{suppressOneShotClick=false;},0);
+  const drop=cancelled?null:oneShotDropAt(event.clientX,event.clientY);
+  if(drop){drag.ghost?.remove();placeOneShotItem(drag.id);}
+  else returnOneShotGhost(drag);
+}
 
 function bindOneShotEvents(){
   const scene=dom.miniContent.querySelector(".one-shot-scene");if(!scene)return;
   scene.querySelectorAll("[data-os-item]").forEach(card=>{
     const id=card.dataset.osItem;
-    card.addEventListener("click",()=>selectOneShotItem(id));
-    card.addEventListener("dragstart",event=>{
-      event.dataTransfer.setData("text/plain",id);event.dataTransfer.effectAllowed="copy";
-      card.classList.add("dragging");selectOneShotItem(id);
+    card.addEventListener("pointerdown",event=>{
+      if(oneShotPointer||card.disabled||event.pointerType==="mouse"&&event.button!==0)return;
+      event.preventDefault();selectOneShotItem(id);
+      oneShotPointer={pointerId:event.pointerId,id,card,startX:event.clientX,startY:event.clientY,dragging:false,ghost:null};
+      card.setPointerCapture?.(event.pointerId);
     });
-    card.addEventListener("dragend",()=>card.classList.remove("dragging"));
+    card.addEventListener("pointermove",moveOneShotPointer);
+    card.addEventListener("pointerup",event=>finishOneShotPointer(event));
+    card.addEventListener("pointercancel",event=>finishOneShotPointer(event,true));
+    card.addEventListener("lostpointercapture",event=>finishOneShotPointer(event,true));
+    card.addEventListener("click",event=>{if(suppressOneShotClick){event.preventDefault();return;}selectOneShotItem(id);});
+    card.addEventListener("dragstart",event=>event.preventDefault());
   });
 
   const drop=scene.querySelector(".os-drop");if(!drop)return;
-  // 놓기(드래그) — dragover 를 막아야 drop 이 들어옵니다.
-  drop.addEventListener("dragover",event=>{event.preventDefault();event.dataTransfer.dropEffect="copy";drop.classList.add("drop-hover");});
-  drop.addEventListener("dragleave",event=>{if(!drop.contains(event.relatedTarget))drop.classList.remove("drop-hover");});
-  drop.addEventListener("drop",event=>{
-    event.preventDefault();drop.classList.remove("drop-hover");
-    placeOneShotItem(event.dataTransfer.getData("text/plain"));
-  });
   // 집어 든 재료를 클릭/엔터로 놓기
   drop.addEventListener("click",()=>placeOneShotItem(oneShotData()?.selected));
   drop.addEventListener("keydown",event=>{
@@ -201,14 +265,44 @@ function placeOneShotItem(id){
   const piece=oneShotPiece(data,id);
   if(!piece||!data.items.includes(id)||data.placed.includes(id))return;
 
+  if(data.variant==="pour")return startOneShotPour(m,data,id,piece);
+
   data.placed.push(id);data.selected=null;audio.click();
   const allPlaced=data.placed.length>=data.items.length;
-  if(allPlaced)data.finishing=true;
+  if(allPlaced){data.finishing=true;data.actionPhase="complete";}
   dom.miniFeedback.textContent=`${piece.label} ${data.vessel.action} 완료`;
   renderOneShot();
   if(!allPlaced)return;
   if(data.doneMessage)dom.miniFeedback.textContent=data.doneMessage;
-  setTimeout(()=>{if(state.mini===m&&!m.complete)data.onDone(m);},520);
+  audio.success();finishOneShotAfter(m,data,ONE_SHOT_VARIANTS[data.variant]?.finishDelay||680);
+}
+
+function startOneShotPour(m,data,id,piece){
+  const timing=ONE_SHOT_VARIANTS.pour;
+  data.selected=null;data.finishing=true;data.activeItem=id;data.actionPhase="pouring";
+  dom.miniFeedback.textContent=`${piece.label}을(를) 붓는 중...`;audio.click();renderOneShot();
+  setTimeout(()=>settleOneShotPour(m,data,id),timing.pourDuration);
+}
+
+function settleOneShotPour(m,data,id){
+  if(state.mini!==m||m.complete||data.actionPhase!=="pouring")return;
+  if(!data.placed.includes(id))data.placed.push(id);
+  data.actionPhase="returning";
+  dom.miniFeedback.textContent=data.doneMessage||"육수가 냄비를 채웁니다.";audio.success();renderOneShot();
+  setTimeout(()=>completeOneShotPour(m,data),ONE_SHOT_VARIANTS.pour.returnDuration);
+}
+
+function completeOneShotPour(m,data){
+  if(state.mini!==m||m.complete||data.actionPhase!=="returning")return;
+  data.actionPhase="complete";renderOneShot();
+  finishOneShotAfter(m,data,ONE_SHOT_VARIANTS.pour.finishDelay);
+}
+
+function finishOneShotAfter(m,data,delay){
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete||data.doneCalled)return;
+    data.doneCalled=true;data.onDone?.(m);
+  },delay);
 }
 
 /* ============================================================
@@ -224,6 +318,7 @@ registerMiniEngine("plateKimchi",{
     // 제목·설명은 set 이 채웁니다("특별 조리" 접두어가 붙을 수 있어서입니다)
     set("두부김치 플레이팅","두부와 볶은 김치를 접시에 예쁘게 담아주세요!",8);
     startOneShot({
+      variant:"place",
       hint:"드래그 : 플레이팅",
       vessel:ONE_SHOT_VESSELS.plate,
       items:["tofu","friedKimchi"],
@@ -260,6 +355,7 @@ function showOdenIngredientDrop(taskId,ingredient,message){
   const shortLabel={radish:"무",fishCake:"어묵",anchovy:"멸치"}[ingredient]||label;
   startOneShot({
     mode:"potDrop",taskId,
+    variant:"drop",
     title:"어묵탕 · 냄비에 넣기",
     description:`손질을 마친 ${shortLabel}를 육수 냄비에 넣어주세요!`,
     hint:"드래그 : 냄비에 넣기",
@@ -287,6 +383,7 @@ registerDayPrepEngine("brothPour",{
 function setupOdenBroth(taskId){
   startOneShot({
     mode:"brothPour",taskId,
+    variant:"pour",
     title:"어묵탕 · 육수 넣기",
     description:"재료가 모두 들어갔습니다. 육수를 냄비에 부어주세요!",
     hint:"드래그 : 육수 붓기",

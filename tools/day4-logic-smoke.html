@@ -226,9 +226,28 @@ try{
   MINI_ENGINES.anchovy.update(state.mini,25);
   assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector("#anchovyRetry"),"E10 anchovy time limit and retry flow");
   assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
+  assert(ONE_SHOT_VARIANTS.place.finishDelay>ONE_SHOT_VARIANTS.drop.finishDelay&&ONE_SHOT_VARIANTS.pour.pourDuration===900,"E11 place, drop, and pour variants share input but keep separate finish timing");
   state.mini={complete:false,data:{}};
-  startOneShot({vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
+  startOneShot({variant:"place",vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
   assert(oneShotData().items.length===2&&oneShotData().vessel===ONE_SHOT_VESSELS.plate,"E11 shared one-shot data");
+  const osSource=dom.miniContent.querySelector('[data-os-item="tofu"]'),osDrop=dom.miniContent.querySelector(".os-drop");osSource.setPointerCapture=()=>{};
+  const e11ElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>osDrop;
+  osSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:51,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
+  osSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  osSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));document.elementFromPoint=e11ElementFromPoint;
+  assert(oneShotData().placed[0]==="tofu"&&!document.querySelector(".os-drag-ghost")&&dom.miniContent.querySelector(".os-board.variant-place"),"E11 custom pointer drag places tofu and cleans its ghost");
+  placeOneShotItem("friedKimchi");
+  assert(oneShotData().finishing&&oneShotData().actionPhase==="complete"&&dom.miniContent.querySelectorAll(".os-drop .os-food").length===2&&dom.miniContent.querySelector(".os-complete-sparks"),"E11 plating snaps both foods to their asset-safe slots and finishes visually");
+  state.prepProgress.cutRadish=true;state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
+  showOdenIngredientDrop("cleanAnchovy","anchovy","done");
+  assert(oneShotData().variant==="drop"&&oneShotData().preset.includes("radish")&&dom.miniContent.querySelector(".os-board.variant-drop"),"E11 pot drop reuses the controller and keeps already prepared ingredients visible");
+  state.mini={context:{mode:"dayPrep",taskId:"addOdenBroth"},complete:false,data:{}};setupOdenBroth("addOdenBroth");
+  const brothMini=state.mini,brothData=oneShotData();placeOneShotItem("broth");
+  assert(brothData.variant==="pour"&&brothData.actionPhase==="pouring"&&!brothData.placed.length&&dom.miniContent.querySelector(".os-pour-action.pouring .os-pour-stream"),"E11 broth drop starts the bottle and stream animation before filling");
+  settleOneShotPour(brothMini,brothData,"broth");
+  assert(brothData.actionPhase==="returning"&&brothData.placed[0]==="broth"&&dom.miniContent.querySelector(".os-vessel.pot.filled")&&dom.miniContent.querySelector(".os-pour-action.returning"),"E11 broth fills the pot while the bottle returns");
+  completeOneShotPour(brothMini,brothData);
+  assert(brothData.actionPhase==="complete"&&dom.miniContent.querySelector(".os-board.variant-pour.complete .os-complete-sparks"),"E11 pour reaches the shared visual completion state");
   const tofuMenu=menuDataById("tofu");
   assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
@@ -237,6 +256,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 76";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 83";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
