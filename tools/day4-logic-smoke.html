@@ -55,7 +55,7 @@ try{
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",requiredHits:2,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4],title:"E1 smoke",description:"smoke"});
   state.mini.data.marker=.5;timingCutAction();
-  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect"),"E1 perfect impact state");
+  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line.done").length===1,"E1 perfect impact stays on one large ingredient without a side pile");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitZoneWidth:.2,speed:.7,zoneStarts:[.4],requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
   state.mini.data.marker=.5;timingCutAction();
@@ -174,7 +174,7 @@ try{
   assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
   MINI_ENGINES.chop.setup(state.mini,{set(){}});
-  assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the six-cut tofu controller");
+  assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelector(".cut-screen .cut-board")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the shared large-board six-cut controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
