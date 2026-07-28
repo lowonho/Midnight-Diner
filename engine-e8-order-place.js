@@ -177,7 +177,7 @@ function addBatterIngredient(ingredientId,button,target){
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     // 재료를 다 넣으면 게임 종류가 거품기(E9)로 바뀝니다.
-    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter();
+    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter("kimchiBatter",m.data.mistakes);
     else renderKimchiBatterIngredients();
   },420);
 }

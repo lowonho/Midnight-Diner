@@ -69,6 +69,13 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   batterKimchi:"assets/prep/batter/kimchi.png",
   batterBowl:"assets/prep/batter/bowl.png",
   batterDone:"assets/prep/batter/batter-done.png",
+  // E9는 단계별 반죽과 거품기를 선택 에셋으로 교체할 수 있습니다. 파일이 없으면 CSS 도형을 씁니다.
+  batterMix0:"assets/prep/batter/mix-0.png",
+  batterMix1:"assets/prep/batter/mix-1.png",
+  batterMix2:"assets/prep/batter/mix-2.png",
+  batterMix3:"assets/prep/batter/mix-3.png",
+  batterMix4:"assets/prep/batter/mix-4.png",
+  batterWhisk:"assets/prep/batter/whisk.png",
   // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
   sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",

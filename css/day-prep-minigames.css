@@ -1636,8 +1636,30 @@
 /* 젓는 동안에는 반죽이 마우스 따라 출렁이고 저은 만큼 같이 돕니다 */
 .bt-bowl.whisk-bowl .bt-batter {
   transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
-  transition: background .25s ease;
+  transition: background .25s ease, opacity .2s ease;
 }
+
+/* 선택형 E9 반죽 에셋. mix-0~4 중 현재 단계 파일이 있을 때만 CSS 반죽을 대체합니다. */
+.bt-batter-stage-assets {
+  position: absolute;
+  inset: 8.5%;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
+}
+.bt-batter-stage-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .22s ease; }
+.bt-bowl.stage-0 .bt-batter-stage-asset.stage-0,
+.bt-bowl.stage-1 .bt-batter-stage-asset.stage-1,
+.bt-bowl.stage-2 .bt-batter-stage-asset.stage-2,
+.bt-bowl.stage-3 .bt-batter-stage-asset.stage-3,
+.bt-bowl.stage-4 .bt-batter-stage-asset.stage-4 { opacity: 1; }
+.bt-bowl.stage-0:has(.bt-batter-stage-asset.stage-0) .bt-batter,
+.bt-bowl.stage-1:has(.bt-batter-stage-asset.stage-1) .bt-batter,
+.bt-bowl.stage-2:has(.bt-batter-stage-asset.stage-2) .bt-batter,
+.bt-bowl.stage-3:has(.bt-batter-stage-asset.stage-3) .bt-batter,
+.bt-bowl.stage-4:has(.bt-batter-stage-asset.stage-4) .bt-batter { opacity: 0; }
 
 /* 원을 그리라는 안내 고리. 젓기 시작하면 사라집니다 */
 .bt-stir-guide { position: absolute; inset: 15%; border-radius: 50%; border: calc(5 * var(--upx)) dashed rgba(255,248,230,.5); opacity: 1; transition: opacity .25s ease; animation: bt-stir-hint 6s linear infinite; pointer-events: none; }
@@ -1665,13 +1687,24 @@
   -webkit-mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
   mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
   transform: translate(-50%,-50%);
+  transition: filter .15s ease, opacity .15s ease;
   pointer-events: none;
 }
+.whisk-work-area.off-course .bt-stir-ring { filter: hue-rotate(-38deg) saturate(1.7) brightness(1.15); opacity: .72; }
+.whisk-work-area.finishing .bt-stir-ring { filter: brightness(1.35); animation: whisk-ring-finish .72s ease both; }
 
-/* 나무 주걱 : 마우스를 따라다니고 손잡이가 볼 바깥을 향합니다 */
-.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(52 * var(--upx)); height: calc(215 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); pointer-events: none; }
-.whisk-tool::before { content: ""; position: absolute; left: 50%; top: 0; width: calc(17 * var(--upx)); height: calc(150 * var(--upx)); border-radius: calc(9 * var(--upx)); background: linear-gradient(90deg,#8b5a2b,#dfab66 45%,#96682f); transform: translateX(-50%); }
-.whisk-tool::after { content: ""; position: absolute; left: 50%; bottom: 0; width: calc(52 * var(--upx)); height: calc(84 * var(--upx)); border-radius: 46% 46% 50% 50%; background: radial-gradient(circle at 40% 30%,#eabd7c,#b07c3d); box-shadow: inset 0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(255,255,255,.28), 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45); transform: translateX(-50%); }
+/* 거품기 : 에셋이 없을 때 손잡이와 철사 세 겹을 CSS로 그립니다. */
+.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(70 * var(--upx)); height: calc(220 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); transform-origin: 50% 50%; pointer-events: none; filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.45)); }
+.whisk-tool::before { content: ""; position: absolute; z-index: 2; left: 50%; top: 0; width: calc(20 * var(--upx)); height: calc(137 * var(--upx)); border-radius: calc(10 * var(--upx)); background: linear-gradient(90deg,#6f431e,#d49a55 42%,#865224 75%,#4e2d15); box-shadow: inset 0 0 0 calc(2 * var(--upx)) rgba(255,225,172,.24); transform: translateX(-50%); }
+.whisk-tool::after { content: ""; position: absolute; z-index: 3; left: 50%; top: calc(126 * var(--upx)); width: calc(30 * var(--upx)); height: calc(18 * var(--upx)); border-radius: calc(7 * var(--upx)); background: linear-gradient(90deg,#7d7770,#f1eadf 48%,#847d75); transform: translateX(-50%); }
+.whisk-wire { position: absolute; z-index: 1; left: 50%; bottom: 0; width: calc(62 * var(--upx)); height: calc(94 * var(--upx)); border: calc(3 * var(--upx)) solid #d8d3ca; border-top: 0; border-radius: 12% 12% 50% 50%; transform: translateX(-50%); }
+.whisk-wire::before,.whisk-wire::after { content:""; position:absolute; left:50%; bottom:calc(-3 * var(--upx)); height:calc(92 * var(--upx)); border:calc(3 * var(--upx)) solid #bdb8b0; border-top:0; border-radius:10% 10% 50% 50%; transform:translateX(-50%); }
+.whisk-wire::before { width:calc(38 * var(--upx)); }
+.whisk-wire::after { width:calc(15 * var(--upx)); border-color:#eee9df; }
+.whisk-tool.has-asset::before,.whisk-tool.has-asset::after,.whisk-tool.has-asset .whisk-wire { display:none; }
+.whisk-tool-asset { width:100%; height:100%; object-fit:contain; }
+.whisk-work-area.finishing .whisk-tool { animation: whisk-tool-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+.whisk-result { z-index: 8; }
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .bt-count { text-align: center; }
@@ -2605,6 +2638,7 @@
 @media (prefers-reduced-motion:reduce) {
   .order-place-reject,.order-result.show,
   .bt-bowl-wrap.receive-flour .bt-batter,.bt-bowl-wrap.receive-water .bt-batter,.bt-bowl-wrap.receive-kimchi .bt-batter,
+  .whisk-work-area.finishing .bt-stir-ring,.whisk-work-area.finishing .whisk-tool,
   .sk-ing-card.required,.sk-slot.next,.sk-piece.fresh,
   .tteok-source.just-added,.water-source.just-added,.soaking-bowl.settling span,.soak-bubbles b { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
@@ -2652,6 +2686,8 @@
 @keyframes sk-next-pulse { 50% { border-color:#fff2c4; box-shadow:0 0 calc(20 * var(--upx)) rgba(255,224,141,.5); } }
 /* 반죽 : 원을 그리라는 안내 고리가 천천히 한 바퀴 돕니다 */
 @keyframes bt-stir-hint { to { transform:rotate(360deg); } }
+@keyframes whisk-ring-finish { 45% { opacity:1; transform:translate(-50%,-50%) scale(1.035); } 100% { opacity:.25; transform:translate(-50%,-50%) scale(1); } }
+@keyframes whisk-tool-finish { 45% { transform:translate(-50%,-50%) rotate(calc(var(--tool-rot,20deg) + 24deg)) scale(1.04); } 100% { transform:translate(-50%,-50%) rotate(var(--tool-rot,20deg)) scale(.96); } }
 
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: calc(58 * var(--upx)); }
@@ -2678,9 +2714,13 @@
   .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
   .bt-count strong { font-size: calc(42 * var(--upx)); }
   .bt-guide-figure .bt-bowl { width: calc(110 * var(--upx)); height: calc(110 * var(--upx)); }
-  .whisk-tool { width: calc(38 * var(--upx)); height: calc(158 * var(--upx)); }
-  .whisk-tool::before { height: calc(110 * var(--upx)); }
-  .whisk-tool::after { width: calc(38 * var(--upx)); height: calc(62 * var(--upx)); }
+  .whisk-tool { width: calc(52 * var(--upx)); height: calc(165 * var(--upx)); }
+  .whisk-tool::before { width: calc(15 * var(--upx)); height: calc(103 * var(--upx)); }
+  .whisk-tool::after { top: calc(94 * var(--upx)); width: calc(23 * var(--upx)); height: calc(14 * var(--upx)); }
+  .whisk-wire { width: calc(46 * var(--upx)); height: calc(70 * var(--upx)); }
+  .whisk-wire::before,.whisk-wire::after { height: calc(68 * var(--upx)); }
+  .whisk-wire::before { width: calc(28 * var(--upx)); }
+  .whisk-wire::after { width: calc(11 * var(--upx)); }
   .skewer-prep-scene { grid-template-columns: calc(170 * var(--upx)) 1fr calc(170 * var(--upx)); gap: calc(10 * var(--upx)); }
   .sk-ing-art { height: calc(64 * var(--upx)); }
   .sk-ing-art .sk-piece { width: calc(38 * var(--upx)); height: calc(26 * var(--upx)); }

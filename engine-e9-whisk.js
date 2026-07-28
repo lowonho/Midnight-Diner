@@ -1,99 +1,176 @@
 "use strict";
 
 /* ============================================================
-   E9 원 그리기 (낮 준비) — 김치전 반죽 젓기
+   E9 원 그리기 · 김치전 반죽 젓기
 
-   볼 안에서 마우스를 누른 채 원을 그립니다.
-   중심에서 잰 각도가 얼마나 돌았는지를 누적해 진행도로 씁니다.
-   너무 중심이거나 너무 바깥이면(작업 영역 지름의 12% 안 / 52% 밖) 세어 주지
-   않고, 한 번에 크게 튄 입력(1.2 라디안 이상)도 무시합니다. 100%면 완료.
+   포인터를 누른 채 볼 중심을 기준으로 원을 그립니다. 첫 유효 움직임으로
+   시계/반시계 방향을 정하고, 같은 방향의 각도 이동만 진행도로 인정합니다.
+   진행 중 볼 안쪽·바깥쪽으로 벗어나거나 손을 떼거나 방향을 바꾸면 게임은
+   계속할 수 있지만 최종 등급이 GOOD이 됩니다.
 
-   [들어오는 길]
-   시작 함수(registerDayPrepSetup)가 없습니다.
-   김치전 반죽 재료를 다 넣으면 engine-e8-order-place.js 가
-   setupWhiskBatter 를 불러 이 게임으로 넘어옵니다.
-
-   [화면]
-   재료 카드 · 완성 개수 · 참고 모양이 있는 화면 틀은 재료 넣기 단계와
-   똑같습니다. engine-e8-order-place.js 의 batterSceneMarkup 을 그대로 쓰고,
-   이 파일은 가운데 볼(젓기용)만 그립니다.
-
-   이 엔진을 쓰는 게임은 지금 이것 하나뿐입니다.
+   시각 요소는 선택 에셋 키로 분리되어 있습니다. 에셋이 없으면 CSS 임시
+   도형을 사용하고, 나중에 batterMix0~4와 batterWhisk 파일만 넣으면 같은
+   판정 로직을 유지한 채 그림만 교체됩니다.
    ============================================================ */
 
-// 마우스 원 운동만 쓰므로 키 처리가 없습니다.
 registerDayPrepEngine("whisk",{});
 
 const WHISK_CONFIG=Object.freeze({
   kimchiBatter:Object.freeze({
-    innerLimit:.12,        // 볼 한가운데를 문지르는 것은 세지 않습니다
-    outerLimit:.52,        // 볼 바깥을 도는 것도 세지 않습니다
-    maxAngleDelta:1.2,     // 한 번에 크게 튄 포인터 입력은 무시합니다
-    gain:6,                // 1 라디안당 진행도
+    innerLimit:.2,
+    outerLimit:.47,
+    maxAngleDelta:.75,
+    minAngleDelta:.006,
+    reverseTolerance:.02,
+    targetTurns:4,
     target:100,
+    finishDelay:850,
+    stageAssetPrefix:"batterMix",
+    whiskAsset:"batterWhisk",
     taskId:"mixKimchiBatter",
     completionMessage:"김치전 반죽 완성"
   })
 });
 
-function setupWhiskBatter(configId="kimchiBatter"){
+function createWhiskState(configId="kimchiBatter",inheritedMistakes=0){
+  const config=WHISK_CONFIG[configId];
+  return {
+    mode:"whisk",configId,
+    progress:0,progressAngle:0,targetAngle:Math.PI*2*config.targetTurns,spin:0,
+    pointerActive:false,lastAngle:null,direction:0,strokeProgress:0,hasStirred:false,
+    mistakes:Math.max(0,Number(inheritedMistakes)||0),
+    outsideActive:false,reverseActive:false,jumpActive:false,
+    finishing:false,completionGrade:""
+  };
+}
+
+function whiskStageAssetsMarkup(config){
+  return `<span class="bt-batter-stage-assets" aria-hidden="true">${Array.from({length:5},(_,index)=>
+    dayPrepAssetMarkup(`${config.stageAssetPrefix}${index}`,`bt-batter-stage-asset stage-${index}`)
+  ).join("")}</span>`;
+}
+
+function setupWhiskBatter(configId="kimchiBatter",inheritedMistakes=0){
   const config=WHISK_CONFIG[configId];if(!config)return;
-  const m=setDayPrepData({mode:"whisk",configId,progress:0,spin:0,pointerActive:false,lastAngle:null});
+  const m=setDayPrepData(createWhiskState(configId,inheritedMistakes));
   if(!m)return;
   dom.miniTitle.textContent="김치전 반죽";
-  dom.miniDescription.textContent="재료를 넣고 마우스로 원을 그리며 저어주세요!";
-  dom.miniTimer.textContent="0 / 1";                       // 공용 카드는 CSS 로 숨겨져 있습니다
+  dom.miniDescription.textContent="마우스를 누른 채 볼 안에서 원을 그리며 반죽을 저어주세요!";
+  dom.miniTimer.textContent="0 / 1";
   dom.miniContent.innerHTML=batterSceneMarkup(`
       <div class="bt-bowl-wrap whisk-work-area" id="whiskWorkArea">
-        ${batterBowlMarkup("whisk-bowl stage-0",{id:"whiskBowl",extra:`<i class="bt-stir-guide"></i>`})}
+        ${batterBowlMarkup("whisk-bowl stage-0",{id:"whiskBowl",extra:`${whiskStageAssetsMarkup(config)}<i class="bt-stir-guide"></i>`})}
         <i class="bt-stir-ring" id="whiskRing"></i>
-        <i class="whisk-tool" id="whiskTool"></i>
+        <i class="whisk-tool ${hasDayPrepAsset(config.whiskAsset)?"has-asset":""}" id="whiskTool"><span class="whisk-wire"></span>${dayPrepAssetMarkup(config.whiskAsset,"whisk-tool-asset","거품기")}</i>
+        <strong class="order-result whisk-result" id="whiskResult" hidden></strong>
       </div>
       <p class="bt-progress">반죽 진행도 <b id="whiskProgressText">0%</b></p>`,
     BATTER_INGREDIENTS.length);
   const work=dom.miniContent.querySelector("#whiskWorkArea");
-  work.addEventListener("pointerdown",event=>{
-    m.data.pointerActive=true;m.data.lastAngle=null;
-    work.classList.add("stirring");                        // 안내 고리를 감춥니다
-    work.setPointerCapture(event.pointerId);moveWhiskPointer(event);
-  });
+  work.addEventListener("pointerdown",event=>startWhiskPointer(event,work));
   work.addEventListener("pointermove",moveWhiskPointer);
-  ["pointerup","pointercancel"].forEach(type=>work.addEventListener(type,()=>{
-    m.data.pointerActive=false;m.data.lastAngle=null;work.classList.remove("stirring");
-  }));
+  work.addEventListener("pointerup",event=>endWhiskPointer(event,work));
+  work.addEventListener("pointercancel",event=>endWhiskPointer(event,work,true));
+  work.addEventListener("lostpointercapture",event=>endWhiskPointer(event,work,true));
+}
+
+function startWhiskPointer(event,work){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="whisk"||m.data.finishing)return;
+  if(event.pointerType==="mouse"&&event.button!==0)return;
+  event.preventDefault();
+  m.data.pointerActive=true;m.data.lastAngle=null;m.data.direction=0;m.data.strokeProgress=0;
+  m.data.outsideActive=false;m.data.reverseActive=false;m.data.jumpActive=false;
+  work.classList.add("stirring");work.classList.remove("off-course");
+  work.setPointerCapture?.(event.pointerId);moveWhiskPointer(event);
+}
+
+function endWhiskPointer(event,work,cancelled=false){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="whisk"||!m.data.pointerActive)return;
+  m.data.pointerActive=false;m.data.lastAngle=null;m.data.direction=0;
+  if(!m.data.finishing&&m.data.strokeProgress>0&&m.data.progressAngle<m.data.targetAngle)m.data.mistakes++;
+  m.data.strokeProgress=0;m.data.outsideActive=false;m.data.reverseActive=false;m.data.jumpActive=false;
+  work.classList.remove("stirring","off-course");
+  if(!cancelled&&work.hasPointerCapture?.(event.pointerId))work.releasePointerCapture?.(event.pointerId);
+}
+
+// DOM 없이도 검사할 수 있는 E9 핵심 판정 함수입니다. radiusRatio는 작업 영역 지름 대비 거리입니다.
+function sampleWhiskMotion(data,angle,radiusRatio,config=WHISK_CONFIG[data.configId]){
+  const inBand=radiusRatio>config.innerLimit&&radiusRatio<config.outerLimit;
+  if(data.lastAngle==null){data.lastAngle=angle;return {accepted:false,inBand,reason:"start"};}
+  const delta=Math.atan2(Math.sin(angle-data.lastAngle),Math.cos(angle-data.lastAngle));
+  data.lastAngle=angle;
+
+  if(!inBand){
+    if(data.hasStirred&&!data.outsideActive)data.mistakes++;
+    data.outsideActive=true;data.reverseActive=false;data.jumpActive=false;
+    return {accepted:false,inBand:false,reason:"outside"};
+  }
+  data.outsideActive=false;
+  if(Math.abs(delta)>config.maxAngleDelta){
+    if(data.hasStirred&&!data.jumpActive)data.mistakes++;
+    data.jumpActive=true;
+    return {accepted:false,inBand:true,reason:"jump"};
+  }
+  data.jumpActive=false;
+  if(Math.abs(delta)<config.minAngleDelta)return {accepted:false,inBand:true,reason:"small"};
+  if(!data.direction)data.direction=Math.sign(delta);
+
+  const directedDelta=delta*data.direction;
+  if(directedDelta<=-config.reverseTolerance){
+    if(data.hasStirred&&!data.reverseActive)data.mistakes++;
+    data.reverseActive=true;
+    return {accepted:false,inBand:true,reason:"reverse"};
+  }
+  if(directedDelta<=0)return {accepted:false,inBand:true,reason:"jitter"};
+
+  data.reverseActive=false;data.hasStirred=true;data.strokeProgress+=directedDelta;
+  data.progressAngle=Math.min(data.targetAngle,data.progressAngle+directedDelta);
+  data.progress=data.progressAngle/data.targetAngle*config.target;
+  data.spin+=delta;
+  return {accepted:true,inBand:true,reason:"progress",delta:directedDelta};
 }
 
 function moveWhiskPointer(event){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="whisk"||!m.data.pointerActive)return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="whisk"||!m.data.pointerActive||m.data.finishing)return;
   const work=dom.miniContent.querySelector("#whiskWorkArea"),bowl=dom.miniContent.querySelector("#whiskBowl"),tool=dom.miniContent.querySelector("#whiskTool");
   if(!work||!bowl||!tool)return;
+  event.preventDefault();
   const config=WHISK_CONFIG[m.data.configId],rect=work.getBoundingClientRect(),size=Math.min(rect.width,rect.height);
+  if(!size)return;
   const dx=event.clientX-rect.left-rect.width/2,dy=event.clientY-rect.top-rect.height/2;
   const radius=Math.hypot(dx,dy),angle=Math.atan2(dy,dx);
-  // 주걱은 마우스를 따라가고, 손잡이가 볼 바깥쪽을 향하도록 돌려 줍니다.
   tool.style.left=`${clamp(50+dx/rect.width*100,12,88)}%`;
   tool.style.top=`${clamp(50+dy/rect.height*100,12,88)}%`;
   tool.style.setProperty("--tool-rot",`${(angle*180/Math.PI+90).toFixed(1)}deg`);
-  if(m.data.lastAngle!=null&&radius>size*config.innerLimit&&radius<size*config.outerLimit){
-    const delta=Math.atan2(Math.sin(angle-m.data.lastAngle),Math.cos(angle-m.data.lastAngle));
-    if(Math.abs(delta)<config.maxAngleDelta){
-      m.data.progress=clamp(m.data.progress+Math.abs(delta)*config.gain,0,config.target);
-      m.data.spin+=delta;                                  // 반죽도 저은 만큼 같이 돕니다
-    }
+
+  const result=sampleWhiskMotion(m.data,angle,radius/size,config);
+  work.classList.toggle("off-course",m.data.hasStirred&&["outside","reverse","jump"].includes(result.reason));
+  if(result.accepted){
+    bowl.style.setProperty("--batter-x",`calc(${clamp(dx*.03,-7,7).toFixed(2)} * var(--upx))`);
+    bowl.style.setProperty("--batter-y",`calc(${clamp(dy*.03,-6,6).toFixed(2)} * var(--upx))`);
+    bowl.style.setProperty("--spin",`${(m.data.spin*180/Math.PI).toFixed(1)}deg`);
   }
-  m.data.lastAngle=angle;
-  // 반죽 출렁임도 화면 크기 비례 단위(--upx, css/base.css)로 줍니다.
-  bowl.style.setProperty("--batter-x",`calc(${clamp(dx*.03,-7,7).toFixed(2)} * var(--upx))`);
-  bowl.style.setProperty("--batter-y",`calc(${clamp(dy*.03,-6,6).toFixed(2)} * var(--upx))`);
-  bowl.style.setProperty("--spin",`${(m.data.spin*180/Math.PI).toFixed(1)}deg`);
-  const progress=Math.round(m.data.progress/config.target*100),stage=Math.min(4,Math.floor(progress/25));
+  renderWhiskProgress(m,config);
+  if(m.data.progressAngle>=m.data.targetAngle)completeWhiskBatter(m,config);
+}
+
+function renderWhiskProgress(m,config){
+  const bowl=dom.miniContent.querySelector("#whiskBowl"),ring=dom.miniContent.querySelector("#whiskRing"),text=dom.miniContent.querySelector("#whiskProgressText");
+  if(!bowl||!ring||!text)return;
+  const progress=Math.round(m.data.progressAngle/m.data.targetAngle*100),stage=Math.min(4,Math.floor(progress/25));
   for(let index=0;index<=4;index++)bowl.classList.toggle(`stage-${index}`,index===stage);
-  dom.miniContent.querySelector("#whiskRing").style.setProperty("--stir",progress);
-  dom.miniContent.querySelector("#whiskProgressText").textContent=`${progress}%`;
+  ring.style.setProperty("--stir",progress);text.textContent=`${progress}%`;
   dom.miniTimer.textContent=`${progress>=100?1:0} / 1`;
-  if(m.data.progress>=config.target){
-    const count=dom.miniContent.querySelector(".bt-count strong");
-    if(count)count.textContent="1 / 1";
-    finishDayPrepTask(config.taskId,config.completionMessage);
-  }
+}
+
+function completeWhiskBatter(m,config){
+  if(m.data.finishing)return;
+  m.data.finishing=true;m.data.pointerActive=false;
+  m.data.completionGrade=m.data.mistakes?"good":"perfect";
+  const work=dom.miniContent.querySelector("#whiskWorkArea"),result=dom.miniContent.querySelector("#whiskResult"),count=dom.miniContent.querySelector(".bt-count strong");
+  work?.classList.remove("stirring","off-course");work?.classList.add("finishing");
+  if(count)count.textContent="1 / 1";
+  if(result){result.hidden=false;result.textContent=m.data.completionGrade==="perfect"?"PERFECT":"GOOD";result.classList.add(m.data.completionGrade,"show");}
+  audio.success();
+  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(config.taskId,config.completionMessage);},config.finishDelay);
 }

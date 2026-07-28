@@ -191,7 +191,20 @@ try{
   addTteokSoakItem("tteok",dom.miniContent.querySelector('[data-order-target="soak"]'));
   addTteokSoakItem("water",dom.miniContent.querySelector('[data-order-target="soak"]'));
   assert(state.mini.data.finishing&&state.mini.data.completionGrade==="good"&&!!dom.miniContent.querySelector(".soak-bubbles"),"E8 soak rejects water-first then settles with shared feedback");
-  assert(WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 data config");
+  assert(WHISK_CONFIG.kimchiBatter.targetTurns===4&&WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 four-turn data config");
+  const smoothWhisk=createWhiskState();
+  for(let index=0;index<=130;index++)sampleWhiskMotion(smoothWhisk,index*Math.PI*2/32,.35);
+  assert(smoothWhisk.progressAngle===smoothWhisk.targetAngle&&smoothWhisk.mistakes===0,"E9 smooth same-direction circles complete PERFECT eligibility");
+  const roughWhisk=createWhiskState();
+  sampleWhiskMotion(roughWhisk,0,.35);sampleWhiskMotion(roughWhisk,.3,.35);sampleWhiskMotion(roughWhisk,.1,.35);sampleWhiskMotion(roughWhisk,.2,.1);
+  assert(roughWhisk.progressAngle>0&&roughWhisk.mistakes===2,"E9 reversal and leaving the bowl band do not add progress and mark GOOD");
+  state.mini={context:{mode:"dayPrep",taskId:"mixKimchiBatter"},complete:false,data:{}};setupWhiskBatter("kimchiBatter",1);
+  assert(state.mini.data.mistakes===1&&!!dom.miniContent.querySelector(".whisk-wire")&&dom.miniContent.querySelectorAll(".bt-batter-stage-assets").length===1,"E9 inherits E8 mistakes and exposes replaceable whisk/batter asset layers");
+  const whiskWork=dom.miniContent.querySelector("#whiskWorkArea");whiskWork.setPointerCapture=()=>{};whiskWork.getBoundingClientRect=()=>({left:0,top:0,width:100,height:100});
+  whiskWork.dispatchEvent(new PointerEvent("pointerdown",{pointerId:99,pointerType:"mouse",button:0,clientX:85,clientY:50,bubbles:true}));
+  whiskWork.dispatchEvent(new PointerEvent("pointermove",{pointerId:99,pointerType:"mouse",clientX:83.4,clientY:60.3,bubbles:true}));
+  whiskWork.dispatchEvent(new PointerEvent("pointerup",{pointerId:99,pointerType:"mouse",clientX:83.4,clientY:60.3,bubbles:true}));
+  assert(state.mini.data.progressAngle>0&&!state.mini.data.pointerActive&&state.mini.data.mistakes===2,"E9 pointer listeners add circular progress and releasing lowers the final grade without resetting it");
   const anchovyGrip=createAnchovyGrip(1,0,0);
   [20,-1,20,-1].forEach(x=>updateAnchovyGrip(anchovyGrip,x,18));
   assert(anchovyGrip.reversals===3,"E10 anchovy needs three deliberate left-right reversals");
@@ -218,6 +231,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 69";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 73";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
