@@ -365,7 +365,7 @@ function completeStoryScene(){
 function startStoryCookChallenge(scene,choice,index){
   if(!storySession||state.story.activeStoryCook)return false;
   const dish=dishById(state.selectedDishId)||DISHES[0];
-  const steps=scene.id==="PR-02"
+  const steps=scene.id==="PR-02"&&!dish.cook.some(step=>step.game==="chop")
     ?[{station:"board",game:"chop"},...dish.cook]
     :[...dish.cook];
   state.story.activeStoryCook={sceneId:scene.id,guestId:scene.character||null,dishId:dish.id,steps,stepIndex:0,scores:[],choice:{...choice},choiceIndex:index};

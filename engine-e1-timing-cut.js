@@ -6,16 +6,13 @@
      무 썰기 · 어묵 썰기 · 김치 썰기(두부용/전용) · 대파 썰기
      닭 썰기(2연타) · 두부 썰기 · 떡볶이 재료 썰기
 
-   [조작 갈래 3가지]
-   같은 "칼질"인데 방식이 셋입니다. 셋 다 이 파일 안에 있습니다.
+   [현재 사용하는 조작]
+   모든 날짜의 준비 칼질은 같은 타이밍 판정을 사용합니다.
 
      timing    왕복하는 포인터가 초록 구간에 있을 때 Space.
-               낮 준비 Day1~3 의 모든 칼질. 닭고기만 초록 구간에서 2연타.
+               낮 준비의 모든 칼질. 닭고기만 초록 구간에서 빠르게 2연타.
      chop      밤 조리용. 두부는 timing 과 같은 초록 구간 방식이고,
                "정밀 손질"은 노란 중심에 가까울수록 점수가 높은 방식입니다.
-     rapidCut  Day4~ 의 빠른 칼질. 구간을 맞출 필요 없이 Space 연타.
-               닭고기는 0.5초 꾹 눌렀다 떼고 한 번 더. 실패·시간제한 없음.
-               timing 대신 쓸지는 setupTimingCut 이 Day 로 판단합니다.
 
    [합쳐진 것 / 안 합쳐진 것]
    · 판정 규칙(초록 구간 안인지, 포인터 왕복)은 아래 도우미로 합쳤습니다.
@@ -26,6 +23,16 @@
 
 registerDayPrepSetup("cut",taskId=>setupTimingCut(taskId));
 registerDayPrepSetup("tteokbokkiCut",taskId=>setupTteokbokkiCut(taskId));
+
+const CUT_FEEL_CONFIG=Object.freeze({
+  perfectZoneRatio:.38,
+  doubleTapWindow:.35,
+  missLockMs:150,
+  goodRecoveryMs:205,
+  perfectRecoveryMs:235,
+  recoveryRampMs:65,
+  completeDelayMs:620
+});
 
 /* ---- 공통 판정 규칙 ----------------------------------------
    초록 구간 방식(낮 칼질 · 밤 두부)이 함께 쓰는 계산입니다. */
@@ -41,12 +48,25 @@ function cutZoneScore(marker,zoneStart,zoneWidth){
   return Math.round(clamp(100-Math.abs(marker-center)*300,70,100));
 }
 
+function cutTimingGrade(marker,zoneStart,zoneWidth){
+  if(!isInsideCutZone(marker,zoneStart,zoneWidth))return "miss";
+  const center=zoneStart+zoneWidth/2;
+  const perfectHalf=zoneWidth*CUT_FEEL_CONFIG.perfectZoneRatio/2;
+  return Math.abs(marker-center)<=perfectHalf?"perfect":"good";
+}
+
+function cutRecoveryDelay(data,grade){
+  const progress=data.total>1?(data.successes-1)/(data.total-1):1;
+  const base=grade==="perfect"?CUT_FEEL_CONFIG.perfectRecoveryMs:CUT_FEEL_CONFIG.goodRecoveryMs;
+  return Math.max(130,Math.round(base-progress*CUT_FEEL_CONFIG.recoveryRampMs));
+}
+
 /* ---- 공통 화면 틀 (컨셉 이미지 3열 구성) --------------------
    [재료 카드] [도마] [완성 개수 · 완성 예시]
    멸치(E10)·단발 액션(E11)이 쓰는 것과 같은 틀입니다.
    공용 프레임(ui-mini-frame.js · css/minigame-frame.css)은 건드리지 않고
    #miniContent 안에서만 그립니다. 판정·조작 규칙은 위아래 그대로입니다.
-   timing / rapidCut 두 방식이 가운데 도마 안쪽만 다르게 채웁니다.
+   timing 방식이 가운데 도마 안쪽을 채웁니다.
 
    그림은 전부 임시 CSS 도형입니다. day-prep-minigames.js 의
    DAY_PREP_ASSET_PATHS 경로에 파일을 넣으면 .has-prep-asset 이 붙어
@@ -66,11 +86,11 @@ function cutSampleMarkup(data,stage){
 
 // 썰어 놓은 조각. 도마 오른쪽 더미와 '완성 예시' 그릇이 같은 조각을 씁니다.
 // 3개씩 줄을 바꾸고 index 로 위치·각도를 조금씩 흔들어 흩어 놓습니다.
-function cutPiecesMarkup(ingredient,count){
+function cutPiecesMarkup(ingredient,count,newestIndex=-1){
   return Array.from({length:count},(_,index)=>{
     const column=index%3,row=Math.floor(index/3)%3;
     const shiftX=index*37%13-6,shiftY=index*23%11-5;
-    return `<i class="cut-piece ${ingredient}" style="left:calc(${column*33}% + ${shiftX} * var(--upx));top:calc(${row*30}% + ${shiftY} * var(--upx));transform:rotate(${-18+index%5*9}deg)"></i>`;
+    return `<i class="cut-piece ${ingredient} ${index===newestIndex?"fresh":""}" style="left:calc(${column*33}% + ${shiftX} * var(--upx));top:calc(${row*30}% + ${shiftY} * var(--upx));transform:rotate(${-18+index%5*9}deg)"></i>`;
   }).join("");
 }
 
@@ -116,8 +136,10 @@ function updateCutCountCard(done,total){
 // 도마 아래 타이밍 바. 삼각 표시가 바 위아래로 튀어나와야 해서
 // 바(넘침 잘라냄) 와 표시를 형제로 두고 바깥 상자에 얹습니다.
 function cutTimingBarMarkup(zoneLeft,zoneWidth,marker){
+  const perfectWidth=zoneWidth*CUT_FEEL_CONFIG.perfectZoneRatio;
+  const perfectLeft=zoneLeft+(zoneWidth-perfectWidth)/2;
   return `<div class="cut-timing">
-      <div class="prep-timing-bar"><i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${zoneWidth*100}%"></i></div>
+      <div class="prep-timing-bar"><i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${zoneWidth*100}%"></i><i class="prep-perfect-zone" style="left:${perfectLeft*100}%;width:${perfectWidth*100}%"></i></div>
       <i id="dayPrepMarker" class="prep-timing-marker" style="left:${marker*100}%"></i>
     </div>`;
 }
@@ -129,12 +151,14 @@ function cutTimingBarMarkup(zoneLeft,zoneWidth,marker){
 registerDayPrepEngine("timing",{
   update(m,dt){
     const data=m.data;
-    // 닭고기 2연타: 첫 입력 뒤 0.42초 안에 두 번째가 없으면 처음부터
+    if(data.inputLocked||data.phase==="complete")return;
+    // 닭고기 2연타: 첫 입력 뒤 0.35초 안에 두 번째가 없으면 현재 조각부터 재시도
     if(data.requiresDoubleTap&&data.tapStep===1){
       data.tapWindow-=dt;
       if(data.tapWindow<=0){
-        data.tapStep=0;data.tapWindow=0;
+        data.tapStep=0;data.tapWindow=0;data.pendingGrade=null;
         dom.miniContent.querySelector("#prepWorkObject")?.classList.remove("tough-first-hit");
+        dom.miniContent.querySelector(".cut-board")?.classList.remove("cut-embedded");
         dom.miniContent.querySelector("#toughCutHint")?.classList.remove("first-done");
         const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 빠르게 2번";
         dom.miniFeedback.textContent="두 번째 입력이 늦었어요. 초록 구간에서 다시 두 번!";audio.bad();
@@ -146,8 +170,8 @@ registerDayPrepEngine("timing",{
   action(){timingCutAction();},
   key(m,k,e){
     if(e.code==="Space"){
-      // 꾹 누르고 있는 것으로 2연타가 되면 안 됩니다
-      if(e.repeat&&m.data.requiresDoubleTap)return true;
+      // 키를 누르고 있는 브라우저 자동 반복은 칼질 횟수로 세지 않습니다.
+      if(e.repeat)return true;
       timingCutAction();return true;
     }
     return false;
@@ -156,7 +180,6 @@ registerDayPrepEngine("timing",{
 
 function setupTimingCut(taskId){
   const config=DAY_PREP_MINI_CONFIG[taskId];
-  if(Number(state.day)>=4&&RAPID_CUT_DATA[taskId]){setupRapidCutTask(taskId);return;}
   const ingredient=config.ingredient||(taskId==="cutRadish"?"radish":"fishCake");
   startCuttingMinigame({
     taskId,
@@ -189,7 +212,7 @@ function startCuttingMinigame(options){
   const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
   const defaults=[.18,.56,.32,.66,.42];
   const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
-  setDayPrepData({mode:"timing",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,
+  setDayPrepData({mode:"timing",phase:"ready",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:false,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -215,8 +238,9 @@ function renderTimingCut(){
   // 어묵은 한 번씩 방향을 바꿔 대각선으로 썰기 때문에 칼도 같이 기울입니다.
   const slashNow=data.ingredient==="fishCake"?(data.successes%2?"cut-slash-back":"cut-slash-forward"):"";
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
+  const visualStage=Math.min(3,Math.floor(data.successes/Math.max(1,data.total)*4));
   const board=`
-      <div class="prep-work-object ${data.ingredient}-shape ${slashNow} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%" aria-label="${data.ingredient}">
+      <div class="prep-work-object ${data.ingredient}-shape cut-visual-stage-${visualStage} ${slashNow} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
         ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
         ${Array.from({length:data.total},(_,index)=>{
           const done=index<data.successes?"done":"";
@@ -229,7 +253,8 @@ function renderTimingCut(){
         <i class="cut-spark"></i>
       </div>
       <div class="cut-pile" aria-label="썰어 놓은 ${cutIngredientLabel(data)}">${cutPiecesMarkup(data.ingredient,data.successes)}</div>
-      ${cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker)}`;
+      ${cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker)}
+      <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
   const footer=`${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
       <button class="mini-action cut-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button>`;
   dom.miniContent.innerHTML=`
@@ -241,36 +266,51 @@ function renderTimingCut(){
 // Space / ACTION 버튼 / 화면 안 썰기 버튼이 모두 여기로 들어옵니다.
 function timingCutAction(){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
-  if(m.data.mode==="rapidCut"){rapidCutKeyDown(false);return;}
   if(m.data.mode!=="timing")return;
   const data=m.data,zoneStart=data.zoneStarts[data.successes];
+  if(data.inputLocked||data.phase==="complete")return;
   if(data.requiresDoubleTap&&data.tapStep===1){
-    data.tapStep=0;data.tapWindow=0;
-    completeTimingCut(m);return;
+    const grade=data.pendingGrade||"good";
+    data.tapStep=0;data.tapWindow=0;data.pendingGrade=null;
+    completeTimingCut(m,grade);return;
   }
-  if(!isInsideCutZone(data.marker,zoneStart,data.zoneWidth)){
+  const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
+  if(grade==="miss"){
+    data.inputLocked=true;
+    const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
+    board?.classList.add("cut-miss");work?.classList.add("slice-miss");
+    if(judgement){judgement.textContent="MISS";judgement.className="cut-judgement show miss";}
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 현재 단계에서 다시 시도하세요.";
     audio.bad();
+    setTimeout(()=>{
+      if(state.mini!==m||m.complete)return;
+      data.inputLocked=false;board?.classList.remove("cut-miss");work?.classList.remove("slice-miss");
+      if(judgement){judgement.textContent="";judgement.className="cut-judgement";}
+    },CUT_FEEL_CONFIG.missLockMs);
     return;
   }
   if(data.requiresDoubleTap){
-    data.tapStep=1;data.tapWindow=.42;
+    data.tapStep=1;data.tapWindow=CUT_FEEL_CONFIG.doubleTapWindow;data.pendingGrade=grade;
     const work=dom.miniContent.querySelector("#prepWorkObject");
     work?.classList.add("tough-first-hit");
+    dom.miniContent.querySelector(".cut-board")?.classList.add("cut-embedded");
     dom.miniContent.querySelector("#toughCutHint")?.classList.add("first-done");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 한 번 더!";
     dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";audio.click();
     return;
   }
-  completeTimingCut(m);
+  completeTimingCut(m,grade);
 }
 
-function completeTimingCut(m){
+function completeTimingCut(m,grade="good"){
   const data=m.data;
+  data.inputLocked=true;data.phase="impact";
   data.successes++;
-  const work=dom.miniContent.querySelector("#prepWorkObject");
+  const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
   work?.classList.remove("tough-first-hit");
-  work?.classList.add("slice-hit");
+  board?.classList.remove("cut-embedded");board?.classList.add(grade==="perfect"?"cut-perfect":"cut-good");
+  work?.classList.add("slice-hit",grade==="perfect"?"slice-perfect":"slice-good");
+  if(judgement){judgement.textContent=grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
   const nextAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
@@ -278,53 +318,31 @@ function completeTimingCut(m){
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   // 방금 썬 조각을 오른쪽 더미에 바로 얹습니다. (다시 그릴 때 정식으로 다시 깔립니다)
   const pile=dom.miniContent.querySelector(".cut-pile");
-  if(pile)pile.innerHTML=cutPiecesMarkup(data.ingredient,data.successes);
+  if(pile)pile.innerHTML=cutPiecesMarkup(data.ingredient,data.successes,data.successes-1);
   updateCutCountCard(data.successes,data.total);
-  dom.miniFeedback.textContent=data.requiresDoubleTap?"질긴 고기 절단 성공!":"절단 성공";audio.success();
+  dom.miniFeedback.textContent=data.requiresDoubleTap?"질긴 고기 절단 성공!":grade==="perfect"?"완벽한 타이밍!":"절단 성공";
   if(data.successes>=data.total){
-    if(typeof data.onComplete==="function")data.onComplete();
+    data.phase="complete";board?.classList.add("cut-complete");
+    const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
+    dom.miniFeedback.textContent=`${cutIngredientLabel(data)} 손질 완료!`;
+    audio.success();
+    setTimeout(()=>{
+      if(state.mini===m&&!m.complete&&typeof data.onComplete==="function")data.onComplete();
+    },CUT_FEEL_CONFIG.completeDelayMs);
     return;
   }
-  setTimeout(()=>{if(state.mini===m&&!m.complete)renderTimingCut();},180);
-}
-
-/* ============================================================
-   2. rapidCut — Day4 빠른 칼질
-   ============================================================ */
-
-registerDayPrepEngine("rapidCut",{
-  update(m){
-    const data=m.data,item=currentRapidCutIngredient(data);
-    if(item?.cutType===RapidCutType.ToughMeat&&(data.phase==="holding"||data.phase==="embedded")){
-      data.holdElapsed=performance.now()/1000-data.holdStart;
-      const ratio=Math.min(1,data.holdElapsed/(item.requiredHoldTime||RAPID_CUT_INPUT.toughHoldTime));
-      const meter=dom.miniContent.querySelector(".rapid-hold-meter i");if(meter)meter.style.width=`${ratio*100}%`;
-      if(data.phase==="holding"&&data.holdElapsed>=RAPID_CUT_INPUT.toughHoldThreshold){data.phase="embedded";dom.miniContent.querySelector("#rapidCutStage")?.classList.add("knife-embedded");dom.miniFeedback.textContent="성공! Space에서 손을 떼세요.";}
-    }
-  },
-  action(){timingCutAction();},
-  key(m,k,e){
-    if(e.code==="Space"){rapidCutKeyDown(e.repeat);return true;}
-    return false;
-  },
-  keyup(m,k,e){
-    if(e.code==="Space")rapidCutKeyUp();
-  }
-});
-
-function setupRapidCutTask(taskId){
-  const config=RAPID_CUT_DATA[taskId];if(!config)return;
-  const onComplete=taskId==="cutRadish"||taskId==="cutFishCake"
-    ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
-    :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`);
-  setupRapidCutMinigame({taskId,title:`${PREP_TASKS[taskId].label} · 빠른 칼질`,sequence:[config],onComplete});
+  if(grade==="perfect")audio.success();else audio.click();
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    data.inputLocked=false;data.phase="ready";renderTimingCut();
+  },cutRecoveryDelay(data,grade));
 }
 
 // 떡볶이 재료 칼질. 양배추 · 대파 · 어묵이 각각 별도의 준비 작업입니다.
-// 재료별 횟수와 스프라이트는 day4-prep-data.js 의 DAY4_RAPID_CUT_SEQUENCE 에 있습니다.
+// 재료별 횟수와 스프라이트는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE 에 있습니다.
 function setupTteokbokkiCut(taskId){
-  const item=DAY4_RAPID_CUT_SEQUENCE.find(entry=>entry.taskId===taskId);
-  if(Number(state.day)!==4||!item)return;
+  const item=TTEOKBOKKI_CUT_SEQUENCE.find(entry=>entry.taskId===taskId);
+  if(Number(state.day)<4||!item)return;
   startCuttingMinigame({
     taskId,
     ingredient:item.ingredientId,
@@ -341,92 +359,8 @@ function setupTteokbokkiCut(taskId){
   });
 }
 
-function setupRapidCutMinigame(options){
-  setDayPrepData({mode:"rapidCut",taskId:options.taskId,sequence:options.sequence.map(item=>({...item})),ingredientIndex:0,pieces:0,phase:"ready",holdStart:0,holdElapsed:0,lastInputAt:-Infinity,transitioning:false,onComplete:options.onComplete});
-  dom.miniTitle.textContent=options.title;
-  dom.miniDescription.textContent="Space 키다운 1회당 한 번 썹니다. 누르고 있어도 반복되지 않으며 실패나 시간제한은 없습니다.";
-  renderRapidCut();
-}
-
-function currentRapidCutIngredient(data=state.mini?.data){return data?.sequence?.[data.ingredientIndex]||null;}
-
-function renderRapidCut(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="rapidCut")return;
-  const data=m.data,item=currentRapidCutIngredient(data);if(!item)return;
-  const tough=item.cutType===RapidCutType.ToughMeat,progress=Math.round(data.pieces/item.requiredPieces*100);
-  dom.miniTimer.textContent=tough?`닭고기 ${data.pieces} / ${item.requiredPieces}`:`${data.pieces} / ${item.requiredPieces}`;
-  dom.miniDescription.textContent=tough
-    ?"Space를 약 0.5초 누른 뒤 떼고, 다시 한 번 눌러 닭고기 한 조각을 자르세요."
-    :"스페이스바를 연속으로 눌러 빠르게 손질하세요. 키를 누른 채 유지해도 반복 입력되지 않습니다.";
-  // 재료 카드·완성 예시가 쓸 재료 정보. 빠른 칼질은 data 가 sequence 로 들고
-  // 있어서 timing 과 모양이 달라, 카드에 넘겨줄 몫만 여기서 맞춰 줍니다.
-  const view={ingredient:item.ingredientId,ingredientLabel:item.displayName,assetPrefix:item.assetPrefix||"",ingredientCount:1};
-  const board=`
-      <div class="rapid-cut-stage ${item.ingredientId} ${tough?"tough-meat":""} ${data.phase==="embedded"||data.phase==="awaitSecond"?"knife-embedded":""}" id="rapidCutStage">
-        <div class="rapid-ingredient ${item.ingredientId}" style="--rapid-progress:${progress}%;width:${Math.max(80,180-progress)}px">${dayPrepAssetMarkup(`${item.assetPrefix||item.ingredientId}${data.pieces}`,"rapid-progress-asset",item.displayName)}</div>
-        <i class="rapid-knife">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
-        <div class="rapid-piece-pile ${item.ingredientId}" aria-label="손질된 ${item.displayName}">${Array.from({length:data.pieces},(_,index)=>`<i style="left:${(index%7)*17}px;bottom:${(index%3)*8}px;transform:rotate(${-18+(index%5)*9}deg)"></i>`).join("")}</div>
-        ${tough?'<i class="tough-cut-line"></i>':""}
-      </div>`;
-  const footer=`<div class="rapid-hold-meter ${tough?"":"hidden"}"><i style="width:${Math.min(100,data.holdElapsed/(item.requiredHoldTime||RAPID_CUT_INPUT.toughHoldTime)*100)}%"></i></div>
-      <button class="mini-action cut-action" id="rapidCutAction" type="button">${tough?(data.phase==="awaitSecond"?"Space · 한 번 더 눌러 절단":"Space · 0.5초 누르기"):"Space · 빠르게 썰기"}</button>
-      ${data.sequence.length>1?`<span class="cut-step-note">재료 ${data.ingredientIndex+1} / ${data.sequence.length}</span>`:""}`;
-  dom.miniContent.innerHTML=`
-    ${data.tteokbokkiFlowIndex!=null?day4PrepFlowMarkup("tteokbokki",data.tteokbokkiFlowIndex):""}
-    ${cutScreenMarkup(view,{board,done:data.pieces,total:item.requiredPieces,footer})}`;
-  const button=dom.miniContent.querySelector("#rapidCutAction");
-  if(tough){
-    button.addEventListener("pointerdown",event=>{event.preventDefault();rapidCutKeyDown(false);});
-    ["pointerup","pointercancel","pointerleave"].forEach(type=>button.addEventListener(type,rapidCutKeyUp));
-  }else button.addEventListener("click",()=>rapidCutKeyDown(false));
-}
-
-function rapidCutKeyDown(repeat=false){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="rapidCut"||m.data.transitioning||repeat)return false;
-  const data=m.data,item=currentRapidCutIngredient(data),now=performance.now()/1000;
-  if(!item||now-data.lastInputAt<RAPID_CUT_INPUT.minimumInterval)return false;
-  data.lastInputAt=now;
-  if(item.cutType!==RapidCutType.ToughMeat){completeRapidCutPiece(m);return true;}
-  if(data.phase==="awaitSecond"){
-    completeRapidCutPiece(m);return true;
-  }
-  if(data.phase!=="ready")return false;
-  data.phase="holding";data.holdStart=now;data.holdElapsed=0;
-  dom.miniFeedback.textContent="Space를 누르고 있습니다…";
-  return true;
-}
-
-function rapidCutKeyUp(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="rapidCut")return false;
-  const data=m.data,item=currentRapidCutIngredient(data);
-  if(!item||item.cutType!==RapidCutType.ToughMeat||data.phase!=="holding"&&data.phase!=="embedded")return false;
-  data.holdElapsed=Math.max(data.holdElapsed,performance.now()/1000-data.holdStart);
-  if(data.holdElapsed>=RAPID_CUT_INPUT.toughHoldThreshold){
-    data.phase="awaitSecond";dom.miniFeedback.textContent="칼이 박혔습니다. Space를 한 번 더 누르세요.";audio.click();
-  }else{
-    data.phase="ready";data.holdElapsed=0;dom.miniFeedback.textContent="조금 더 길게 눌러주세요. 바로 다시 시도할 수 있습니다.";
-  }
-  renderRapidCut();return true;
-}
-
-function completeRapidCutPiece(m){
-  const data=m.data,item=currentRapidCutIngredient(data);if(!item)return;
-  data.pieces++;data.phase="ready";data.holdElapsed=0;
-  const stage=dom.miniContent.querySelector("#rapidCutStage");
-  stage?.classList.remove("rapid-cut-hit");if(stage){void stage.offsetWidth;stage.classList.add("rapid-cut-hit");}
-  audio.click();dom.miniFeedback.textContent=`${item.displayName} 손질 ${data.pieces} / ${item.requiredPieces}`;
-  updateCutCountCard(data.pieces,item.requiredPieces);
-  if(data.pieces<item.requiredPieces){setTimeout(()=>{if(state.mini===m&&!m.complete)renderRapidCut();},105);return;}
-  if(data.ingredientIndex<data.sequence.length-1){
-    data.transitioning=true;dom.miniTimer.textContent="교체";dom.miniFeedback.textContent=`${item.displayName} 완료 · 다음 재료로 전환합니다.`;audio.success();
-    setTimeout(()=>{if(state.mini!==m||m.complete)return;data.ingredientIndex++;data.pieces=0;data.transitioning=false;data.lastInputAt=-Infinity;renderRapidCut();},420);
-    return;
-  }
-  if(typeof data.onComplete==="function")data.onComplete();
-}
-
 /* ============================================================
-   3. chop — 밤 조리 칼질
+   2. chop — 밤 조리 칼질
 
    · 두부 썰기 : 위 timing 과 같은 초록 구간 방식. 세로 5 + 가로 1 = 6회.
      ♻️ 지금은 호출되는 곳이 없습니다. 조건이 mode==="cook" && dishId==="tofu"
@@ -438,7 +372,7 @@ function completeRapidCutPiece(m){
 
 registerMiniEngine("chop",{
   setup(m,{set}){
-    const isTofu=m.context.mode==="cook"&&m.context.dishId==="tofu";
+    const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
     set(
       isTofu?"두부 썰기":"정밀 손질",
       isTofu

@@ -26,16 +26,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
-  // 김치 볶기 : 화살표 4방향 12번. ingredients 는 왼쪽 재료 카드에 그대로 그려집니다.
-  fryKimchi:{
-    total:12,
-    allowedDirections:["left","up","right","down"],
-    ingredients:[
-      {id:"kimchi",label:"썰은 김치",count:1,asset:"fryIngKimchi"},
-      {id:"sugar",label:"설탕",count:1,asset:"fryIngSugar"}
-    ]
-  },
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:5}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
@@ -85,26 +76,35 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceBottleGochujang:"assets/prep/sauce/bottle-gochujang.png",
   sauceBottleOligosaccharide:"assets/prep/sauce/bottle-oligosaccharide.png",
   sauceBowl:"assets/prep/sauce/bowl.png",
+  // 흰색 실루엣 마스크 3장만 준비하면 재료 색은 E7 설정값으로 입힙니다.
+  sauceFlowThin:"assets/prep/sauce/flow-thin.png",
+  sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
+  sauceFlowThick:"assets/prep/sauce/flow-thick.png",
   // 김치 볶기 (engine-e3). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   fryStove:"assets/prep/kimchi/stove.png",
+  fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
   fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
   fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
   // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
   stirGriddle:"assets/prep/yakisoba/griddle.png",
   stirNoodles:"assets/prep/yakisoba/noodles.png",
+  stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
   stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
   stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
   stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
+  heatOdenPot:"assets/prep/heat/oden-pot.png",
+  heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
   // 채칼 (engine-e2). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // 감자는 손질 단계별 그림 11장을 따로 씁니다 (아래 potatoMandoline0~10)
   mandolinePlate:"assets/prep/mandoline/plate.png",
   mandolineCabbage:"assets/prep/mandoline/cabbage.png",
   mandolineCarrot:"assets/prep/mandoline/carrot.png",
   knife:"assets/prep/effects/knife.png",
-  ...Object.fromEntries(DAY4_RAPID_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
+  ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
   ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
   // 감자튀김 준비(봉투 흔들기). 봉투 그림 한 장에 감자채와 튀김가루가 함께 있고,
   // 숫자는 가루가 묻은 정도(%)입니다. 파일이 없으면 CSS 임시 봉투를 씁니다.
@@ -141,6 +141,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
+  // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
+  cookPancakeFood:"assets/prep/two-side/pancake.png",
+  cookSkewerFood:"assets/prep/two-side/skewer.png",
   tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
   tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
   tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
@@ -178,7 +181,7 @@ function isDayPrepMini(mini=state.mini){
 }
 
 // Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
-// 칸 번호는 day4-prep-data.js 의 DAY4_RAPID_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
+// 칸 번호는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
 function day4PrepFlowMarkup(menuId,currentIndex){
   const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","튀김가루 묻히기"];
   return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
@@ -224,7 +227,7 @@ function setDayPrepData(data){
 /* ---- 열기 · 닫기 ------------------------------------------ */
 
 function startDayPrepMini(task){
-  if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
+  if(task.minDay&&Number(state.day)<Number(task.minDay)){showToast(`이 준비 작업은 Day ${task.minDay}부터 이용할 수 있습니다.`,true);return;}
   state.mini={
     type:`day-prep-${task.id}`,
     engine:"dayPrep",          // 각 setup 이 setDayPrepData 로 실제 엔진 이름을 채웁니다

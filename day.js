@@ -30,7 +30,7 @@ function selectedPrepTasks(){
 }
 
 function prepTaskAvailableToday(task){
-  return !!task&&(!task.dayOnly||Number(task.dayOnly)===Number(state.day));
+  return !!task&&(!task.minDay||Number(state.day)>=Number(task.minDay));
 }
 
 function selectedPrepTasksForChecklist(){
@@ -55,14 +55,13 @@ function normalizeDayPrepState(){
   // 옛 항목이 완료였으면 그 자리를 대신하는 새 항목들도 완료로 쳐 줍니다.
   // (이 처리가 없으면 이미 끝낸 준비가 미완료로 되감깁니다)
   const legacyKimchiReady=!!state.prepProgress?.prepareKimchi;                    // prepareKimchi → 자르기 + 볶기
-  const legacyShrimpBatter=!!state.prepProgress?.coatShrimpBatter;                // coatShrimpBatter(밀+계) → 밀 + 계
+  const legacyShrimpComplete=!!state.prepProgress?.coatShrimpBreadcrumbs;         // 기존 3단계의 마지막 완료 → 통합 작업 완료
   const legacyTteokCut=!!state.prepProgress?.cutTteokbokkiIngredients;            // 3재료 묶음 → 재료별 3개
   state.prepProgress={...createDayPrepProgress(),...(state.prepProgress||{})};
   if(legacyKimchiReady){state.prepProgress.cutTofuKimchi=true;state.prepProgress.fryTofuKimchi=true;}
-  if(legacyShrimpBatter){state.prepProgress.coatShrimpFlour=true;state.prepProgress.coatShrimpEgg=true;}
+  if(legacyShrimpComplete)state.prepProgress.coatShrimp=true;
   if(legacyTteokCut){state.prepProgress.cutTteokbokkiCabbage=true;state.prepProgress.cutTteokbokkiGreenOnion=true;state.prepProgress.cutTteokbokkiFishCake=true;}
   state.kimchiPrep={...createKimchiPrepProgress(),...(state.kimchiPrep||{})};
-  state.day4RapidCutNoticeShown=!!state.day4RapidCutNoticeShown;
 }
 
 function setSelectedMenus(menuIds){
@@ -85,7 +84,6 @@ function resetDay(first=false) {
   state.selectedDishId=state.selectedMenus[0]||DISHES[0].id;
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0}]));
   state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();
-  if(Number(state.day)===1)state.day4RapidCutNoticeShown=false;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
   state.served=0;state.satisfactionTotal=0;state.fiveStar=0;state.cleanliness=100;state.dirtyDishes=0;state.trash=0;
@@ -123,7 +121,7 @@ function prepComplete(){
 function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
-  if(task.dayOnly&&Number(state.day)!==Number(task.dayOnly)){showToast(`이 준비 작업은 Day ${task.dayOnly} 전용입니다.`,true);return;}
+  if(task.minDay&&Number(state.day)<Number(task.minDay)){showToast(`이 준비 작업은 Day ${task.minDay}부터 이용할 수 있습니다.`,true);return;}
   if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
   const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!state.prepProgress[item.id]);
   if(dependency){showToast(`먼저 ${dependency.label} 작업을 완료하세요.`,true);return;}
@@ -173,13 +171,6 @@ function renderPrepChecklist(){
     const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];
     return `<div class="prep-task-row ${done?"done":task.isImplemented?"":"disabled"}"><span>${index+1}</span><strong>${dish?.name||task.menuId}</strong><div>${done?"☑":task.isImplemented?"☐":"–"} ${task.label}</div></div>`;
   }).join("")}<div class="prep-total">준비 완료 ${actionable.filter(task=>state.prepProgress[task.id]).length} / ${actionable.length}</div></div>`;
-}
-
-function maybeShowDay4CutUnlock(){
-  if(Number(state.day)!==4||state.phase!==GAME_PHASES.PREP||state.day4RapidCutNoticeShown)return false;
-  state.day4RapidCutNoticeShown=true;
-  showToast("칼질이 익숙해졌습니다!\n이제 스페이스바를 연속으로 눌러 빠르게 손질할 수 있습니다.");
-  return true;
 }
 
 function updateDayObjective(){

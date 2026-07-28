@@ -184,8 +184,9 @@ const QA_UTILITY_MINIS=Object.freeze([
 ]);
 
 function qaPrepTaskList(){
+  const livePrepTaskIds=new Set(MENU_DATA.flatMap(menu=>menu.requiredPrepTasks||[]));
   return Object.values(PREP_TASKS)
-    .filter(task=>task.isImplemented&&DAY_PREP_SETUPS[task.miniGame])
+    .filter(task=>livePrepTaskIds.has(task.id)&&task.isImplemented&&DAY_PREP_SETUPS[task.miniGame])
     .sort((a,b)=>(a.prepOrder??999)-(b.prepOrder??999));
 }
 
@@ -217,7 +218,7 @@ function qaPlayPrepMini(taskId){
   if(!task){qaRefreshPanel(`준비 작업을 찾지 못했습니다: ${taskId}`);return false;}
   if(!qaEnsureSession())return false;
   qaCancelTransientState();
-  if(task.dayOnly)state.day=DayManager.setDay(task.dayOnly);
+  if(task.minDay)state.day=DayManager.setDay(task.minDay);
   state.phase=GAME_PHASES.PREP;state.paused=false;
   qaSeedPrepContext(task);
   updateUI(true);syncPhaserObjects();
@@ -286,7 +287,7 @@ function qaMiniListMarkup(){
       <strong>${menu.displayName}</strong>
       ${tasks.map(task=>qaMiniButtonMarkup(
         "data-qa-prep",task.id,task.label,
-        `${task.miniGame}${task.dayOnly?` · Day ${task.dayOnly} 전용`:""}`
+        `${task.miniGame}${task.minDay?` · Day ${task.minDay}부터`:""}`
       )).join("")}
     </div>`).join("");
   const cookMarkup=`
