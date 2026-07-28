@@ -1368,7 +1368,10 @@
   border-radius: calc(14 * var(--upx));
   background: linear-gradient(#3a2415,#22150c);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+  cursor: grab;
+  touch-action: none;
 }
+.kf-board.direction-sliding { cursor: grabbing; }
 /* 가스레인지 상판. 팬이 그 위에 살짝 걸쳐 앉습니다 */
 .kf-stove {
   position: relative;

@@ -1,13 +1,14 @@
 "use strict";
 
 /* ============================================================
-   E3 방향 시퀀스 — 단일 입력·판정 컨트롤러
+   E3 방향 시퀀스 — 슬라이드 입력·단일 판정 컨트롤러
 
      김치 볶기 (낮 준비)   ← → 중 10회
      볶음우동 (밤 조리)    ← ↑ → ↓ 중 12회
 
-   입력 순서 생성, 정답·오답 판정, 진행 및 완료 처리는 같은 컨트롤러가
-   담당합니다. 두 게임의 화면 마크업은 에셋을 따로 붙일 수 있도록 유지합니다.
+   화면에 나온 화살표 방향으로 팬·철판 영역을 슬라이드합니다. 입력 순서 생성,
+   포인터 방향 판정, 정답·오답 판정, 진행 및 완료 처리는 같은 컨트롤러가
+   담당합니다. 키보드 방향키는 진행 입력으로 사용하지 않습니다.
    ============================================================ */
 
 registerDayPrepSetup("kimchiFry",taskId=>setupKimchiFry(taskId));
@@ -28,8 +29,8 @@ function sequenceMatches(sequence,index,input){
      오른쪽 진행도 + 다음 순서 화살표
      아래   화살표 10칸. 지금 눌러야 할 칸이 금색으로 켜집니다.
 
-   조작은 화살표 키만 씁니다(레퍼런스 화면에 클릭 버튼이 없습니다).
-   횟수·허용 방향·오답 감점은 아래 E3 공통 설정에서 정합니다.
+   조작은 팬 영역을 화살표 방향으로 슬라이드합니다.
+   횟수·허용 방향·슬라이드 거리·오답 감점은 아래 E3 공통 설정에서 정합니다.
 
    [공용 프레임과의 관계]  김치전 반죽·닭꼬치와 같습니다.
    css/minigame-frame.css 와 ui-mini-frame.js 는 건드리지 않고,
@@ -43,6 +44,7 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   kimchi:Object.freeze({
     total:10,
     directions:Object.freeze(["left","right"]),
+    slideStep:.09,
     wrongPenalty:0,
     ingredients:Object.freeze([
       Object.freeze({id:"kimchi",label:"썰은 김치",count:1,asset:"fryIngKimchi"}),
@@ -52,6 +54,7 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   yakisoba:Object.freeze({
     total:12,
     directions:Object.freeze(["left","up","right","down"]),
+    slideStep:.09,
     wrongPenalty:12
   })
 });
@@ -87,13 +90,41 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
   return true;
 }
 
-registerDayPrepEngine("direction",{
-  key(m,k,e){
-    const direction=k.startsWith("arrow")?k.slice(5):"";
-    if(FRY_DIRECTION_ARROWS[direction]){kimchiFryInput(direction,e?.repeat);return true;}
-    return false;
-  }
-});
+registerDayPrepEngine("direction",{});
+
+/* ---- 공통 슬라이드 입력 ------------------------------------
+   누른 지점부터 작업 영역 짧은 변의 slideStep 만큼 밀 때마다 방향 입력 1회입니다.
+   기준점을 현재 위치로 옮기므로 손을 떼지 않고 길게 밀어도 연속으로 볶을 수 있습니다. */
+function bindDirectionSlide({surfaceSelector,isActive,onDirection}){
+  const surface=dom.miniContent.querySelector(surfaceSelector);if(!surface)return;
+  surface.addEventListener("pointerdown",event=>{
+    const m=state.mini;if(!isActive(m)||m.complete||m.data.inputLocked||m.data.phase==="complete")return;
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    event.preventDefault();m.data.drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY};
+    surface.setPointerCapture?.(event.pointerId);surface.classList.add("direction-sliding");
+  });
+  surface.addEventListener("pointermove",event=>{
+    const m=state.mini,drag=m?.data?.drag;if(!isActive(m)||m.complete||!drag||drag.pointerId!==event.pointerId)return;
+    event.preventDefault();
+    if(m.data.inputLocked||m.data.phase==="complete"){
+      drag.x=event.clientX;drag.y=event.clientY;return;
+    }
+    const rect=surface.getBoundingClientRect(),config=DIRECTION_SEQUENCE_CONFIG[m.data.configId];
+    const step=Math.min(rect.width,rect.height)*(config?.slideStep||.09);
+    const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+    if(!step||Math.max(Math.abs(dx),Math.abs(dy))<step)return;
+    drag.x=event.clientX;drag.y=event.clientY;
+    onDirection(Math.abs(dx)>=Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
+  });
+  const finish=event=>{
+    const m=state.mini,drag=m?.data?.drag;if(!isActive(m)||!drag||drag.pointerId!==event.pointerId)return;
+    m.data.drag=null;surface.classList.remove("direction-sliding");
+  };
+  surface.addEventListener("pointerup",finish);
+  surface.addEventListener("pointercancel",finish);
+  surface.addEventListener("lostpointercapture",finish);
+  surface.addEventListener("dragstart",event=>event.preventDefault());
+}
 
 // 같은 동작을 두 번까지 이어 허용하되, 세 번 연속은 나오지 않게 합니다.
 // 좌우만 쓰는 김치 볶기도 단순 번갈아 입력이 되지 않아 E2와 손맛이 구분됩니다.
@@ -156,13 +187,14 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
     phase:"ready",
     inputLocked:false,
     transitioning:false,
+    drag:null,
     total:config.total,
     allowedDirections:[...config.directions],
     ingredients:config.ingredients,
     sequence:randomFryDirections(config.directions,config.total)
   });
   dom.miniTitle.textContent="김치 볶기";
-  dom.miniDescription.textContent="화살표 키 순서대로 눌러 김치와 설탕을 함께 볶아주세요!";
+  dom.miniDescription.textContent="화살표 방향대로 팬 위를 슬라이드해 김치와 설탕을 함께 볶아주세요!";
   renderKimchiFry();
 }
 
@@ -211,6 +243,11 @@ function renderKimchiFry(){
         ${data.sequence.map((direction,index)=>`<span class="kf-chip ${directionSequenceClasses(index,data.successes)}" data-sequence-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
       </div>
     </div>`;
+  bindDirectionSlide({
+    surfaceSelector:"#fryWorkArea",
+    isActive:m=>isDayPrepMini(m)&&m.data.mode==="direction"&&m.data.configId==="kimchi",
+    onDirection:direction=>kimchiFryInput(direction)
+  });
 }
 
 function kimchiFryInput(direction,repeat=false){
@@ -260,7 +297,7 @@ function kimchiFryInput(direction,repeat=false){
      오른쪽 진행도 + 다음 순서 화살표
      아래   화살표 12칸. 지금 눌러야 할 칸이 금색으로 켜집니다.
 
-   조작은 화살표 키, 또는 철판 위를 그 방향으로 드래그하는 두 가지입니다.
+   조작은 철판 위를 화살표 방향으로 슬라이드하는 방식만 사용합니다.
    (레퍼런스 화면에 조작 버튼이 없어서 클릭 버튼은 두지 않았습니다)
 
    [제한시간]  레퍼런스 화면에 시계가 없어서 timerRuns 를 꺼 두었습니다.
@@ -275,7 +312,6 @@ function kimchiFryInput(direction,repeat=false){
 const STIR_TOTAL=DIRECTION_SEQUENCE_CONFIG.yakisoba.total;
 const STIR_DIRECTIONS=DIRECTION_SEQUENCE_CONFIG.yakisoba.directions;
 const STIR_WRONG_PENALTY=DIRECTION_SEQUENCE_CONFIG.yakisoba.wrongPenalty;
-const STIR_DRAG_STEP=.09;                                   // 철판 짧은 변의 이 비율만큼 끌면 1회 볶기
 // 왼쪽 재료 카드. 개수·이름만 바꾸면 카드가 그대로 바뀝니다.
 const STIR_INGREDIENTS=Object.freeze([
   Object.freeze({id:"udon",label:"우동",count:1,asset:"stirIngUdon"}),
@@ -285,7 +321,7 @@ const STIR_INGREDIENTS=Object.freeze([
 
 registerMiniEngine("stir",{
   setup(m,{set}){
-    set("볶음우동 조리","화살표 키를 순서대로 입력해 볶아주세요! (철판 드래그도 가능)",10);
+    set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
     m.data={
       configId:"yakisoba",
       arrows:randomFryDirections(STIR_DIRECTIONS,STIR_TOTAL),
@@ -295,20 +331,14 @@ registerMiniEngine("stir",{
       phase:"ready",
       inputLocked:false,
       transitioning:false,
-      drag:null                                             // 드래그 시작점. 놓으면 null
+      drag:null
     };
     dom.miniTimer.textContent=`0 / ${STIR_TOTAL}`;          // 공용 카드는 CSS 로 숨겨져 있습니다
     renderStirScene();
   },
 
   // 레퍼런스 화면에 시계가 없습니다(위 [제한시간] 참고)
-  timerRuns(){return false;},
-
-  key(m,k,e){
-    const direction=k.startsWith("arrow")?k.slice(5):"";
-    if(FRY_DIRECTION_ARROWS[direction]){stirInput(direction,e?.repeat);return true;}
-    return false;
-  }
+  timerRuns(){return false;}
 });
 
 function renderStirScene(){
@@ -365,32 +395,11 @@ function renderStirScene(){
         ${data.arrows.map((direction,index)=>`<span class="yk-chip ${directionSequenceClasses(index,data.index)}" data-stir-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
       </div>
     </div>`;
-  bindStirDrag();
-}
-
-/* 철판 위를 끄는 조작. 한 획(짧은 변의 STIR_DRAG_STEP 만큼)마다 한 번 볶습니다.
-   기준점을 매번 지금 위치로 옮기므로 크게 휘저으면 연속으로 들어갑니다. */
-function bindStirDrag(){
-  const plate=dom.miniContent.querySelector("#stirPlate");if(!plate)return;
-  plate.addEventListener("pointerdown",event=>{
-    const m=state.mini;if(!m||m.engine!=="stir"||m.complete||m.data.inputLocked||m.data.phase==="complete")return;
-    m.data.drag={x:event.clientX,y:event.clientY};
-    plate.setPointerCapture(event.pointerId);
-    plate.classList.add("dragging");
+  bindDirectionSlide({
+    surfaceSelector:"#stirPlate",
+    isActive:m=>m?.engine==="stir"&&m.data.configId==="yakisoba",
+    onDirection:direction=>stirInput(direction)
   });
-  plate.addEventListener("pointermove",event=>{
-    const m=state.mini;if(!m||m.engine!=="stir"||m.complete||!m.data.drag)return;
-    const rect=plate.getBoundingClientRect();
-    const step=Math.min(rect.width,rect.height)*STIR_DRAG_STEP;
-    const dx=event.clientX-m.data.drag.x,dy=event.clientY-m.data.drag.y;
-    if(Math.max(Math.abs(dx),Math.abs(dy))<step)return;
-    m.data.drag={x:event.clientX,y:event.clientY};
-    stirInput(Math.abs(dx)>=Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
-  });
-  ["pointerup","pointercancel"].forEach(type=>plate.addEventListener(type,()=>{
-    const m=state.mini;if(m&&m.engine==="stir")m.data.drag=null;
-    plate.classList.remove("dragging");
-  }));
 }
 
 function stirInput(direction,repeat=false){

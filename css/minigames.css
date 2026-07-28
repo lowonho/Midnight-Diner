@@ -899,7 +899,7 @@
   cursor: grab;
   touch-action: none;              /* 드래그로 볶는 조작이 화면 스크롤에 뺏기지 않게 */
 }
-.yk-griddle.dragging { cursor: grabbing; }
+.yk-griddle.dragging,.yk-griddle.direction-sliding { cursor: grabbing; }
 /* 굽는 면. 아래쪽 여백이 불이 보이는 앞턱입니다 */
 .yk-griddle::before {
   content: "";
