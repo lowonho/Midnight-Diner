@@ -76,6 +76,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceBottleGochujang:"assets/prep/sauce/bottle-gochujang.png",
   sauceBottleOligosaccharide:"assets/prep/sauce/bottle-oligosaccharide.png",
   sauceBowl:"assets/prep/sauce/bowl.png",
+  // 흰색 실루엣 마스크 3장만 준비하면 재료 색은 E7 설정값으로 입힙니다.
+  sauceFlowThin:"assets/prep/sauce/flow-thin.png",
+  sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
+  sauceFlowThick:"assets/prep/sauce/flow-thick.png",
   // 김치 볶기 (engine-e3). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",

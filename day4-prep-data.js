@@ -24,20 +24,22 @@ const SAUCE_RECIPES=Object.freeze({
     title:"볶음우동 소스 레시피",
     taskId:"mixYakisobaSauce",
     completionMessage:"볶음우동 소스 제조 완료",
+    bowlColor:"#6b341b",bowlDark:"#32160d",
     ingredients:Object.freeze([
-      Object.freeze({id:"soy",label:"간장",target:200,step:50}),
-      Object.freeze({id:"oyster",label:"굴소스",target:100,step:25}),
-      Object.freeze({id:"chili",label:"고추기름",target:30,step:10})
+      Object.freeze({id:"soy",label:"간장",target:200,step:50,flow:"thin",color:"#633019"}),
+      Object.freeze({id:"oyster",label:"굴소스",target:100,step:25,flow:"thick",color:"#482014"}),
+      Object.freeze({id:"chili",label:"고추기름",target:30,step:10,flow:"thin",color:"#c44d22"})
     ])
   }),
   tteokbokki:Object.freeze({
     title:"떡볶이 양념장 레시피",
     taskId:"mixTteokbokkiSauce",
     completionMessage:"떡볶이 양념장 계량 완료",
+    bowlColor:"#a93222",bowlDark:"#4d160e",
     ingredients:Object.freeze([
-      Object.freeze({id:"gochujang",label:"고추장",target:120,step:30}),
-      Object.freeze({id:"oligosaccharide",label:"올리고당",target:60,step:20}),
-      Object.freeze({id:"soy",label:"간장",target:30,step:10})
+      Object.freeze({id:"gochujang",label:"고추장",target:120,step:30,flow:"thick",color:"#b83a25"}),
+      Object.freeze({id:"oligosaccharide",label:"올리고당",target:60,step:20,flow:"syrup",color:"#d59a47"}),
+      Object.freeze({id:"soy",label:"간장",target:30,step:10,flow:"thin",color:"#633019"})
     ])
   })
 });

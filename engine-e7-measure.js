@@ -34,7 +34,8 @@ registerDayPrepSetup("yakisobaSauce",()=>setupYakisobaSauce());
 registerDayPrepSetup("tteokbokkiSauce",()=>setupSauceRecipe("tteokbokki"));
 
 registerDayPrepEngine("sauceMeasure",{
-  key(m,k){
+  key(m,k,e){
+    if(e?.repeat&&["arrowleft","arrowright","arrowdown"," ","enter","backspace","delete"].includes(k))return true;
     if(k==="arrowleft"){moveSauceCursor(-1);return true;}
     if(k==="arrowright"){moveSauceCursor(1);return true;}
     if(k==="arrowdown"||k===" "||k==="enter"){pourSelectedSauce();return true;}
@@ -50,8 +51,10 @@ const SAUCE_ASSET_KEY=Object.freeze({
 });
 // 임시 도형 모양. 여기 없는 재료는 기본 간장병 모양(tall)으로 그립니다.
 const SAUCE_BOTTLE_SHAPE=Object.freeze({chili:"cruet",oligosaccharide:"cruet"});
+const SAUCE_FLOW_ASSET=Object.freeze({thin:"sauceFlowThin",syrup:"sauceFlowSyrup",thick:"sauceFlowThick"});
 // 조리대 위 소스통 자리. 레시피의 재료 순서대로 왼쪽 → 오른쪽 → 아래에 앉습니다.
 const SAUCE_SLOTS=Object.freeze(["at-left","at-right","at-bottom"]);
+const SAUCE_POUR_DURATION=680;
 
 function setupYakisobaSauce(){
   if(Number(state.day)<3)return;
@@ -61,7 +64,7 @@ function setupYakisobaSauce(){
 function setupSauceRecipe(recipeId){
   const recipe=SAUCE_RECIPES[recipeId];if(!state.mini||!recipe)return;
   setDayPrepData({
-    mode:"sauceMeasure",recipeId,recipe,finishing:false,shownFill:0,
+    mode:"sauceMeasure",recipeId,recipe,finishing:false,pourLocked:false,shownFill:0,mistakes:0,undos:0,completionGrade:"",pendingCursor:null,
     cursor:0,                    // 지금 고른 소스통 (레시피 재료 순서)
     sauces:recipe.ingredients.map(item=>({...item,amount:0}))
   });
@@ -72,6 +75,22 @@ function setupSauceRecipe(recipeId){
 
 function sauceStatus(item){
   return item.amount===item.target?"exact":item.amount>item.target?"over":"under";
+}
+
+function sauceCompletionGrade(data){return !(data.mistakes||0)&&!(data.undos||0)?"perfect":"good";}
+
+function nextIncompleteSauceIndex(data,fromIndex){
+  for(let offset=1;offset<=data.sauces.length;offset++){
+    const index=(fromIndex+offset)%data.sauces.length;
+    if(data.sauces[index].amount!==data.sauces[index].target)return index;
+  }
+  return fromIndex;
+}
+
+function sauceStreamMarkup(item){
+  const flow=item.flow||"thin",key=SAUCE_FLOW_ASSET[flow],asset=hasDayPrepAsset(key);
+  const mask=asset?`--stream-mask:url(${dayPrepAssets[key].src});`:"";
+  return `<i class="sc-pour-stream flow-${flow} ${asset?"has-stream-asset":""}" style="--stream-color:${item.color||"#71351c"};${mask}"></i>`;
 }
 
 // 소스통 하나. 에셋이 있으면 <img>, 없으면 CSS 도형(뚜껑·몸통·라벨)으로 그립니다.
@@ -85,6 +104,7 @@ function sauceBottleMarkup(item,extraClass=""){
 // 왼쪽 재료 목표 카드. 고른 소스통은 테두리가 밝아집니다.
 function sauceGoalMarkup(item,selected,disabled){
   const status=sauceStatus(item);
+  const fill=Math.min(item.amount/item.target,1)*100;
   return `<div class="sc-panel sc-goal ${status} ${selected?"selected":""}">
       <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
       <span class="sc-goal-info">
@@ -92,6 +112,7 @@ function sauceGoalMarkup(item,selected,disabled){
         <span class="sc-goal-target">목표 <b>${item.target}g</b></span>
         <span class="sc-goal-now">${status==="exact"?"✓ ":status==="over"?"! ":""}현재 ${item.amount}g</span>
       </span>
+      <span class="sc-goal-meter ${status}" aria-hidden="true"><i style="width:${fill}%"></i><b></b></span>
       ${status==="over"?`<button type="button" class="sc-undo" data-sauce-undo="${item.id}" ${disabled?"disabled":""}>− ${item.step}g 덜어내기</button>`:""}
     </div>`;
 }
@@ -124,7 +145,7 @@ function renderYakisobaSauce(){
         ${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor,locked)).join("")}
       </aside>
 
-      <div class="sc-board ${exact===total?"done":""}">
+      <div class="sc-board ${exact===total?"done mixing":""}" style="--sauce-main:${data.recipe.bowlColor||"#a24a1f"};--sauce-dark:${data.recipe.bowlDark||"#3d1a0e"}">
         <div class="sc-bowl ${hasDayPrepAsset("sauceBowl")?"has-asset":""}" style="--sauce-fill:${data.shownFill}%" aria-label="소스볼">
           ${dayPrepAssetMarkup("sauceBowl","sc-bowl-asset","소스볼")}<i class="sc-sauce"></i>
         </div>
@@ -133,10 +154,11 @@ function renderYakisobaSauce(){
           const selected=index===data.cursor;
           return `<i class="sc-arrow ${slot} ${selected&&status==="under"?"":"off"}" aria-hidden="true"></i>
             <button type="button" class="sc-pourer ${slot} ${status} ${selected?"selected":""}" data-sauce-id="${item.id}" ${locked?"disabled":""} aria-label="${item.label} 넣기 · 1회 ${item.step}g">
-              ${sauceBottleMarkup(item)}<i class="sc-pour-stream"></i>
+              <span class="sc-pour-visual">${sauceBottleMarkup(item)}${sauceStreamMarkup(item)}</span>
               <span class="sc-step-badge">+${item.step}g</span>
             </button>`;
         }).join("")}
+        ${data.finishing?`<strong class="sc-result ${data.completionGrade||"good"} show" id="sauceResult">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
       </div>
 
       <aside class="sc-col">
@@ -175,14 +197,56 @@ function renderYakisobaSauce(){
 function playSaucePour(id){
   const pourer=dom.miniContent.querySelector(`.sc-pourer[data-sauce-id="${id}"]`);
   if(pourer){
+    const visual=pourer.querySelector(".sc-pour-visual");
+    const bottle=pourer.querySelector(".sc-bottle");
+    const stream=pourer.querySelector(".sc-pour-stream");
+    const bowl=dom.miniContent.querySelector(".sc-bowl");
+    if(visual&&bottle&&stream&&bowl){
+      const visualRect=visual.getBoundingClientRect();
+      const bottleRect=bottle.getBoundingClientRect();
+      const bowlRect=bowl.getBoundingClientRect();
+      const fromRight=pourer.classList.contains("at-right");
+      const fromBottom=pourer.classList.contains("at-bottom");
+      const tilt=fromRight?-96:(fromBottom?108:96);
+      const radians=tilt*Math.PI/180;
+      const capRadius=bottleRect.height*.45;
+      const surfaceX=bowlRect.left+bowlRect.width*.5;
+      const surfaceY=bowlRect.top+bowlRect.height*.14;
+      const streamHeight=Math.max(34,Math.min(68,bowlRect.height*(stream.classList.contains("flow-thick")?.16:.22)));
+      const mouthY=surfaceY-streamHeight;
+      const capDx=Math.sin(radians)*capRadius;
+      const capDy=-Math.cos(radians)*capRadius;
+      const desiredCenterX=surfaceX-capDx;
+      const desiredCenterY=mouthY-capDy;
+      const flyX=desiredCenterX-(bottleRect.left+bottleRect.width*.5);
+      const flyY=desiredCenterY-(bottleRect.top+bottleRect.height*.5);
+      const streamWidth=stream.getBoundingClientRect().width||10;
+      visual.style.setProperty("--fly-x",`${flyX}px`);
+      visual.style.setProperty("--fly-y",`${flyY}px`);
+      visual.style.setProperty("--pour-tilt",`${tilt}deg`);
+      visual.style.setProperty("--stream-left",`${surfaceX-(visualRect.left+flyX)-streamWidth*.5}px`);
+      visual.style.setProperty("--stream-top",`${mouthY-(visualRect.top+flyY)}px`);
+      visual.style.setProperty("--stream-height",`${streamHeight}px`);
+    }
     pourer.classList.remove("pouring");void pourer.offsetWidth;pourer.classList.add("pouring");
-    setTimeout(()=>pourer.classList.remove("pouring"),460);
+    setTimeout(()=>pourer.classList.remove("pouring"),SAUCE_POUR_DURATION);
   }
   const bowl=dom.miniContent.querySelector(".sc-bowl");
   if(bowl){
-    bowl.classList.remove("splash");void bowl.offsetWidth;bowl.classList.add("splash");
-    setTimeout(()=>bowl.classList.remove("splash"),340);
+    setTimeout(()=>{
+      if(!bowl.isConnected)return;
+      bowl.classList.remove("splash");void bowl.offsetWidth;bowl.classList.add("splash");
+      setTimeout(()=>bowl.classList.remove("splash"),300);
+    },230);
   }
+}
+
+function finishSaucePour(m){
+  if(state.mini!==m||m.complete||m.data.finishing||!m.data.pourLocked)return;
+  if(Number.isInteger(m.data.pendingCursor))m.data.cursor=m.data.pendingCursor;
+  m.data.pendingCursor=null;
+  m.data.pourLocked=false;
+  checkYakisobaSauceComplete(m);
 }
 
 /* ---- 조작 -------------------------------------------------- */
@@ -190,7 +254,7 @@ function playSaucePour(id){
 // 지금 조작을 받을 수 있는 상태인지. 아니면 null.
 function activeSauceMeasure(){
   const m=state.mini;
-  if(!isDayPrepMini(m)||m.complete||m.data.mode!=="sauceMeasure"||m.data.finishing)return null;
+  if(!isDayPrepMini(m)||m.complete||m.data.mode!=="sauceMeasure"||m.data.finishing||m.data.pourLocked)return null;
   return m;
 }
 
@@ -224,9 +288,14 @@ function addYakisobaSauce(id){
   const index=m.data.sauces.findIndex(item=>item.id===id);if(index<0)return;
   const sauce=m.data.sauces[index];
   m.data.cursor=index;   // 조리대에서 직접 누른 소스통이 곧 지금 고른 소스통입니다
-  sauce.amount+=sauce.step;audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 투입 · 현재 ${sauce.amount}g`;
-  checkYakisobaSauceComplete(m);
+  const previous=sauce.amount;
+  sauce.amount+=sauce.step;m.data.pourLocked=true;m.data.pendingCursor=null;
+  if(previous<=sauce.target&&sauce.amount>sauce.target)m.data.mistakes=(m.data.mistakes||0)+1;
+  if(sauce.amount===sauce.target)m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
+  audio.click();dom.miniFeedback.textContent=sauce.amount===sauce.target?`${sauce.label} 정확히 계량! 다음 재료를 확인하세요.`:`${sauce.label} ${sauce.step}g 투입 · 현재 ${sauce.amount}g`;
+  renderYakisobaSauce();
   playSaucePour(id);
+  setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
 }
 
 function undoYakisobaSauce(id){
@@ -235,16 +304,17 @@ function undoYakisobaSauce(id){
   const sauce=m.data.sauces[index];
   if(sauce.amount<=sauce.target){dom.miniFeedback.textContent=`${sauce.label}은(는) 아직 넘치지 않았습니다.`;return;}
   m.data.cursor=index;
-  sauce.amount=Math.max(0,sauce.amount-sauce.step);audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 덜어냈습니다. · 현재 ${sauce.amount}g`;
+  sauce.amount=Math.max(0,sauce.amount-sauce.step);m.data.undos=(m.data.undos||0)+1;audio.click();dom.miniFeedback.textContent=`${sauce.label} ${sauce.step}g 덜어냈습니다. · 현재 ${sauce.amount}g`;
   checkYakisobaSauceComplete(m);
 }
 
 function checkYakisobaSauceComplete(m){
   const complete=m.data.sauces.every(item=>item.amount===item.target);
-  if(complete)m.data.finishing=true;
+  if(complete){m.data.finishing=true;m.data.pourLocked=true;m.data.completionGrade=sauceCompletionGrade(m.data);}
   renderYakisobaSauce();
   if(complete){
     dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";audio.success();
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},360);
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},720);
   }
+  return complete;
 }
