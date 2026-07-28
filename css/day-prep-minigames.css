@@ -661,6 +661,24 @@
   line-height: 1.1;
 }
 .anchovy-count b { color: #f2a03c; }
+.anchovy-time {
+  margin: calc(12 * var(--upx)) 0 0;
+  padding-top: calc(11 * var(--upx));
+  border-top: 1px solid rgba(232,190,111,.28);
+  display: grid;
+  place-items: center;
+  gap: calc(2 * var(--upx));
+  color: #c9b58d;
+  font-size: calc(14 * var(--upx));
+  font-weight: 800;
+}
+.anchovy-time b {
+  color: #f4d58b;
+  font-size: calc(25 * var(--upx));
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.anchovy-time.warning b { color: #ff725f; animation: anchovy-time-warning .7s ease-in-out infinite alternate; }
 .anchovy-ref-card { grid-template-rows: auto minmax(0,1fr); align-content: stretch; }
 .anchovy-ref-card .anchovy-card-figure { height: auto; }
 
@@ -725,14 +743,32 @@
   border-radius: 50%;
   background: radial-gradient(circle at 62% 38%, #8b9698, #677274);
   z-index: 2;
+  transform-origin: right center;
   transition: transform .18s ease, box-shadow .12s ease;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
 .anchovy-head:hover { box-shadow: 0 0 0 calc(4 * var(--upx)) rgba(255,224,141,.5); }
+.anchovy.grabbing { z-index: 10; }
+.anchovy.grabbing .anchovy-head {
+  cursor: grabbing;
+  transition: none;
+  transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0));
+  box-shadow: 0 0 0 calc(2 * var(--upx)) rgba(255,224,141,.58);
+}
+.anchovy.tug-pulse .anchovy-body { animation: anchovy-body-resist .16s ease-out; }
+.anchovy.tug-snap:not(.cleaned) .anchovy-head { animation: anchovy-head-snap .24s ease-out; }
 /* 손질이 끝나면 머리가 몸통에서 떨어져 나가고 잘린 면이 드러납니다 */
 .anchovy.cleaned .anchovy-head {
   pointer-events: none;
-  transform: translate(calc(-30 * var(--upx)), calc(-9 * var(--upx))) rotate(-18deg);
+  transform: translate(calc(-38 * var(--upx)), calc(-2 * var(--upx))) rotate(-14deg);
 }
+.anchovy.cleaned.torn .anchovy-head {
+  animation: anchovy-head-tear .42s cubic-bezier(.2,.8,.25,1) forwards;
+}
+.anchovy.cleaned.torn .anchovy-body { animation: anchovy-body-recoil .32s ease-out; }
 .anchovy.cleaned .anchovy-body::before {
   content: "";
   position: absolute;
@@ -757,6 +793,71 @@
 .anchovy-preview .anchovy-body,
 .anchovy-preview .anchovy-head { cursor: default; }
 .anchovy-preview.cleaned .anchovy-body::before { display: none; }
+
+.anchovy-work-area.time-over .anchovy {
+  pointer-events: none;
+  filter: grayscale(.55) brightness(.65) drop-shadow(0 calc(5 * var(--upx)) calc(6 * var(--upx)) rgba(30,12,4,.45));
+}
+.anchovy-timeout {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 50%;
+  min-width: calc(260 * var(--upx));
+  padding: calc(22 * var(--upx)) calc(28 * var(--upx));
+  border: calc(3 * var(--upx)) solid #b47a38;
+  border-radius: calc(13 * var(--upx));
+  background: rgba(23,11,5,.94);
+  box-shadow: 0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.55), inset 0 0 calc(20 * var(--upx)) rgba(190,112,38,.13);
+  transform: translate(-50%,-50%);
+  display: grid;
+  place-items: center;
+  gap: calc(8 * var(--upx));
+  color: var(--cream);
+  text-align: center;
+}
+.anchovy-timeout strong { color: #ff725f; font-size: calc(29 * var(--upx)); letter-spacing: .08em; }
+.anchovy-timeout span { color: #d9c39a; font-size: calc(17 * var(--upx)); font-weight: 800; }
+.anchovy-timeout button {
+  margin-top: calc(6 * var(--upx));
+  padding: calc(9 * var(--upx)) calc(24 * var(--upx));
+  border: 2px solid #ddaa55;
+  border-radius: calc(7 * var(--upx));
+  background: linear-gradient(#8e4a22,#5f2d16);
+  color: #fff2c9;
+  font: inherit;
+  font-size: calc(16 * var(--upx));
+  font-weight: 900;
+  cursor: pointer;
+}
+.anchovy-timeout button:hover { filter: brightness(1.14); }
+
+@keyframes anchovy-time-warning { to { opacity: .58; transform: scale(1.04); } }
+@keyframes anchovy-body-resist {
+  35% { transform: scaleX(.975) rotate(-.7deg); transform-origin: left center; }
+  70% { transform: scaleX(1.012) rotate(.45deg); transform-origin: left center; }
+}
+@keyframes anchovy-head-snap {
+  0% { transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0)); }
+  65% { transform: translate(calc(4 * var(--upx)),0) rotate(4deg); }
+  100% { transform: translate(0,0) rotate(0); }
+}
+@keyframes anchovy-head-tear {
+  0% { transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0)); opacity: 1; }
+  55% { transform: translate(var(--tear-x),calc(-10 * var(--upx))) rotate(-25deg); opacity: 1; }
+  100% { transform: translate(var(--tear-x),calc(-2 * var(--upx))) rotate(-14deg); opacity: 1; }
+}
+@keyframes anchovy-body-recoil {
+  35% { transform: translateX(calc(7 * var(--upx))) scaleX(.98); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anchovy-time.warning b,
+  .anchovy.tug-pulse .anchovy-body,
+  .anchovy.tug-snap:not(.cleaned) .anchovy-head,
+  .anchovy.cleaned.torn .anchovy-head,
+  .anchovy.cleaned.torn .anchovy-body { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
 
 /* ── 단발 액션 (engine-e11) ──────────────────────────────────
    두부김치 플레이팅(밤 조리) · 냄비에 넣기 · 육수 넣기(낮 준비)

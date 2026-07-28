@@ -26,7 +26,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
