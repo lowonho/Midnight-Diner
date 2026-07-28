@@ -1,12 +1,12 @@
 "use strict";
 
 /* ============================================================
-   E10 표적 클릭 (낮 준비) — 멸치 머리 떼기
+   E10 표적 손질 (낮 준비) — 멸치 머리 떼기
 
-   멸치 5마리가 도마에 무작위 위치·각도·크기로 흩어집니다.
+   멸치 7마리가 도마에 무작위 위치·각도·크기로 흩어집니다.
    (마리 수는 day-prep-minigames.js 의 DAY_PREP_MINI_CONFIG.cleanAnchovy.total)
-   각 멸치의 원형 "머리"만 정확히 눌러야 손질됩니다.
-   몸통을 누르면 실패가 아니라 안내 문구만 뜨고 다시 시도할 수 있습니다.
+   머리를 누른 채 좌우로 세 번 크게 흔들면 접합부가 버티다가 뜯어집니다.
+   몸통을 누르면 실패가 아니라 안내만 보여주고 다시 시도할 수 있습니다.
 
    [화면 구성] 컨셉 이미지와 같은 3열입니다.
      [재료 카드] [도마] [완성 개수 카드 · 참고 모양 카드]
@@ -15,7 +15,7 @@
    css/day-prep-minigames.css 에서 .anchovy-screen 이 있을 때만
    가운데 열 제한을 풀어 좌우 카드 자리를 확보합니다.
 
-   5마리를 다 손질하면 냄비에 넣는 연출(E11, engine-e11-one-shot.js)로
+   7마리를 다 손질하면 냄비에 넣는 연출(E11, engine-e11-one-shot.js)로
    넘어가고 거기서 태스크가 완료됩니다.
 
    이 엔진을 쓰는 게임은 지금 이것 하나뿐입니다.
@@ -64,6 +64,7 @@ function renderAnchovyPrep(){
         ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
           <button class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</button>
           <button class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</button>
+          <span class="anchovy-joint" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>`).join("")}
       </div>
       <aside class="anchovy-right">
@@ -80,7 +81,7 @@ function renderAnchovyPrep(){
     </div>`;
   // 사이드 카드의 견본 멸치는 클릭 대상이 아니므로 도마 안쪽만 골라 겁니다.
   dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-body").forEach(button=>button.addEventListener("click",()=>{
-    dom.miniFeedback.textContent="몸통이 아니라 머리를 클릭하세요.";
+    dom.miniFeedback.textContent="몸통이 아니라 머리를 잡아주세요.";
   }));
   bindAnchovyTugControls();
 }
@@ -132,6 +133,8 @@ function activeAnchovyMini(){
 
 function startAnchovyTug(button,event){
   const m=activeAnchovyMini();if(!m||event.pointerType==="mouse"&&event.button!==0)return;
+  // 한 번에 한 머리만 잡습니다. 두 번째 손가락이 현재 당기기를 가로채지 못하게 합니다.
+  if(m.data.grip)return;
   const wrapper=button.closest(".anchovy"),item=m.data.items.find(entry=>entry.id===Number(wrapper?.dataset.id));
   if(!wrapper||!item||item.cleaned)return;
   event.preventDefault();

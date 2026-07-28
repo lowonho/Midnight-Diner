@@ -213,9 +213,15 @@ try{
   state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
   setupAnchovyPrep();
   const anchovyHead=dom.miniContent.querySelector("#anchovyWorkArea .anchovy-head");
+  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-joint").length===7,"E10 renders seven anchovies with asset-free joint tension feedback");
   anchovyHead.setPointerCapture=()=>{};anchovyHead.releasePointerCapture=()=>{};
   startAnchovyTug(anchovyHead,{pointerId:7,pointerType:"mouse",button:0,clientX:0,clientY:0,preventDefault(){}});
-  [20,-1,20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
+  const secondAnchovyHead=dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head")[1];
+  startAnchovyTug(secondAnchovyHead,{pointerId:8,pointerType:"touch",button:0,clientX:0,clientY:0,preventDefault(){}});
+  assert(state.mini.data.grip.pointerId===7,"E10 ignores a second pointer while one anchovy head is held");
+  [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
+  assert(anchovyHead.closest(".anchovy").dataset.tug==="1"&&!anchovyHead.closest(".anchovy").classList.contains("torn"),"E10 first reversal weakens the joint without detaching the head");
+  [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
   assert(state.mini.data.cleaned===1&&anchovyHead.closest(".anchovy").classList.contains("torn")&&anchovyHead.closest(".anchovy").style.getPropertyValue("--tear-x").includes("-38"),`E10 pointer tug completes outward and leaves one head beside the body: cleaned=${state.mini.data.cleaned}, classes=${anchovyHead.closest(".anchovy").className}`);
   MINI_ENGINES.anchovy.update(state.mini,25);
   assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector("#anchovyRetry"),"E10 anchovy time limit and retry flow");
@@ -231,6 +237,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 73";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 76";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

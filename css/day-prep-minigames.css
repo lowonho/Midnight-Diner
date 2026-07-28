@@ -758,6 +758,36 @@
   transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0));
   box-shadow: 0 0 0 calc(2 * var(--upx)) rgba(255,224,141,.58);
 }
+/* 머리와 몸통 사이의 결 세 줄. 방향을 한 번 바꿀 때마다 하나씩 끊어져
+   글을 읽지 않아도 현재 흔들기 진행을 볼 수 있습니다. 별도 에셋은 필요 없습니다. */
+.anchovy-joint {
+  position: absolute;
+  z-index: 4;
+  left: calc(52 * var(--upx));
+  top: calc(20 * var(--upx));
+  width: calc(14 * var(--upx));
+  height: calc(27 * var(--upx));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+.anchovy-joint i {
+  display: block;
+  width: 100%;
+  height: calc(3 * var(--upx));
+  border-radius: 50%;
+  background: #e4a253;
+  box-shadow: 0 0 calc(3 * var(--upx)) rgba(255,205,119,.55);
+  transform-origin: right center;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.anchovy.grabbing .anchovy-joint { opacity: 1; }
+.anchovy[data-tug="1"] .anchovy-joint i:nth-child(1),
+.anchovy[data-tug="2"] .anchovy-joint i:nth-child(-n+2) { opacity: .18; transform: scaleX(.28) rotate(-18deg); }
+.anchovy.cleaned .anchovy-joint { opacity: 0; }
 .anchovy.tug-pulse .anchovy-body { animation: anchovy-body-resist .16s ease-out; }
 .anchovy.tug-snap:not(.cleaned) .anchovy-head { animation: anchovy-head-snap .24s ease-out; }
 /* 손질이 끝나면 머리가 몸통에서 떨어져 나가고 잘린 면이 드러납니다 */
