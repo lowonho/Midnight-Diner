@@ -280,6 +280,7 @@
 
 /* ── 가운데 플레이 영역 ─────────────────────────────────────── */
 .fry-work-area {
+  position: relative;
   height: 100%;
   min-width: 0;
   display: grid;
@@ -288,8 +289,12 @@
   justify-items: center;
   gap: calc(18 * var(--upx));
 }
+.e6-result { position:absolute; z-index:12; left:50%; top:45%; padding:calc(8 * var(--upx)) calc(24 * var(--upx)); border:2px solid currentColor; border-radius:calc(9 * var(--upx)); background:rgba(27,17,11,.88); color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
+.e6-result.perfect { color:#ffe29a; }
+.e6-result.show { animation:e6-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
 
 .fry-scene {
+  --fry-progress:0;
   position: relative;
   width: min(100%, calc(700 * var(--upx)));
   height: calc(440 * var(--upx));
@@ -340,6 +345,7 @@
   border: calc(3 * var(--upx)) solid rgba(255,248,180,.82);
   border-radius: 50%;
   animation: fryer-bubble 1s ease-in infinite;
+  animation-duration:calc(1.25s - var(--fry-progress) * .55s);
 }
 .bubble-1{left:11%;animation-delay:-.2s}.bubble-2{left:22%;animation-delay:-.7s}.bubble-3{left:33%;animation-delay:-.4s}.bubble-4{left:44%;animation-delay:-.9s}.bubble-5{left:55%;animation-delay:-.1s}.bubble-6{left:66%;animation-delay:-.55s}.bubble-7{left:77%;animation-delay:-.82s}.bubble-8{left:87%;animation-delay:-.32s}.bubble-9{left:49%;animation-delay:-.66s}
 
@@ -374,6 +380,7 @@
 }
 .fried-items { position: absolute; inset: calc(12 * var(--upx)) calc(16 * var(--upx)) calc(10 * var(--upx)); display: flex; align-items: center; justify-content: center; }
 .fried-items.shrimp { gap: calc(22 * var(--upx)); }
+.fryer-shrimp .fried-items.shrimp { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:center; gap:calc(8 * var(--upx)); }
 .frying-shrimp {
   position: relative;
   display: block;
@@ -398,6 +405,10 @@
 }
 .shrimp-2 { transform: rotate(-9deg); }
 .shrimp-3 { transform: rotate(16deg); }
+.fryer-shrimp .fried-items.shrimp .frying-shrimp { width:calc(78 * var(--upx)); height:calc(54 * var(--upx)); border-width:calc(10 * var(--upx)); border-left-width:calc(18 * var(--upx)); }
+.fryer-shrimp .fried-items.shrimp .frying-shrimp::after { width:calc(28 * var(--upx)); height:calc(38 * var(--upx)); margin:calc(-5 * var(--upx)) 0 0 calc(55 * var(--upx)); border-right-width:calc(10 * var(--upx)); }
+.fryer-shrimp .shrimp-4 { transform:rotate(-14deg); }
+.fryer-shrimp .shrimp-5 { transform:rotate(8deg); }
 .fried-items.fries {
   inset: calc(10 * var(--upx)) calc(18 * var(--upx)) calc(8 * var(--upx));
   display: grid;
@@ -418,8 +429,13 @@
 }
 .frying-fry:nth-child(3n) { --fry-turn:-8deg; height: calc(44 * var(--upx)); }
 .frying-fry:nth-child(4n) { --fry-turn:10deg; height: calc(58 * var(--upx)); }
-.fryer-fries.frying .frying-fry { filter: brightness(1.16) saturate(.78); }
-.fryer-fries.basket-raised .frying-fry { filter: saturate(1.16); }
+.fry-scene .fried-items,.fry-scene .fryer-basket-asset { filter:brightness(calc(1.18 - var(--fry-progress) * .34)) saturate(calc(.68 + var(--fry-progress) * .72)) sepia(calc(var(--fry-progress) * .2)); transition:filter .12s linear; }
+.fry-scene .fried-items::after { content:""; position:absolute; z-index:4; inset:0; border-radius:calc(12 * var(--upx)); background:repeating-linear-gradient(112deg,transparent 0 17%,rgba(55,25,12,.72) 19% 22%,transparent 24% 43%); opacity:0; transition:opacity .18s ease; pointer-events:none; }
+.fry-scene.fry-over .fried-items::after { opacity:.46; }
+.fry-scene.fry-over .fryer-basket-asset { filter:brightness(.65) saturate(1.15) sepia(.28); }
+.fry-scene.fry-raw .oil-bubble { filter:opacity(.48); }
+.fry-scene.fry-setting .oil-bubble { filter:opacity(.7); }
+.fry-scene.fry-golden .oil-bubble,.fry-scene.fry-ready .oil-bubble { filter:opacity(1); }
 
 /* 바스켓 들어올리기 · 기름 방울 */
 .basket-raised .fryer-basket { transform: translateY(calc(-168 * var(--upx))); }
@@ -435,8 +451,9 @@
   animation: oil-drip .65s ease-in infinite;
 }
 .drop-1{left:20%}.drop-2{left:29%;animation-delay:-.25s}.drop-3{left:39%;animation-delay:-.5s}.drop-4{left:49%;animation-delay:-.15s}.drop-5{left:59%;animation-delay:-.42s}.drop-6{left:69%;animation-delay:-.62s}.drop-7{left:78%;animation-delay:-.3s}
-.oil-shaking .fryer-basket { animation: fryer-oil-shake .32s ease-in-out 2; }
-.oil-shaking .oil-drop { animation-duration: .24s; }
+.oil-tap-one .fryer-basket { animation:fryer-oil-tap-left .28s ease-out; }
+.oil-tap-two .fryer-basket { animation:fryer-oil-tap-right .3s ease-out; }
+.oil-tap-one .oil-drop,.oil-tap-two .oil-drop { animation-duration:.22s; }
 
 /* ── 가운데 아래 온도 바 (포인터 id 는 #miniMarker 로 고정) ──── */
 .fry-temp-bar {
@@ -454,7 +471,7 @@
   box-shadow: inset 0 0 0 2px #2a1409, inset 0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.35);
 }
 .fry-temp-zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(#7fae4a,#4d7a2b); }
-.fry-temp-perfect { position: absolute; top: 0; bottom: 0; background: linear-gradient(#a9d76c,#6ca03c); }
+.fry-temp-perfect { position: absolute; z-index:1; top: 0; bottom: 0; background:linear-gradient(#ffe49a,#dca84c); box-shadow:inset 0 0 0 2px rgba(255,248,200,.82),0 0 calc(8 * var(--upx)) rgba(255,216,115,.4); }
 .fry-temp-burn { position: absolute; top: 0; right: 0; bottom: 0; background: linear-gradient(#2c1c11,#150c07); }
 .fry-temp-ticks { position: absolute; inset: 0; background: repeating-linear-gradient(90deg,transparent 0 calc(96 * var(--upx)),rgba(32,14,7,.6) calc(96 * var(--upx)) calc(100 * var(--upx))); }
 .fry-temp-marker {
@@ -604,7 +621,9 @@
 
 @keyframes fryer-bubble { 0%{transform:translateY(0) scale(.55);opacity:0} 30%{opacity:1} 100%{transform:translateY(calc(-120 * var(--upx))) scale(1.25);opacity:0} }
 @keyframes oil-drip { 0%{transform:translateY(calc(-10 * var(--upx))) scale(.7);opacity:0} 30%{opacity:1} 100%{transform:translateY(calc(90 * var(--upx))) scale(.35);opacity:0} }
-@keyframes fryer-oil-shake { 0%,100%{transform:translateY(calc(-168 * var(--upx))) rotate(0)} 25%{transform:translate(calc(-16 * var(--upx)),calc(-174 * var(--upx))) rotate(-4deg)} 70%{transform:translate(calc(14 * var(--upx)),calc(-162 * var(--upx))) rotate(4deg)} }
+@keyframes fryer-oil-tap-left { 0%,100%{transform:translateY(calc(-168 * var(--upx))) rotate(0)} 48%{transform:translate(calc(-20 * var(--upx)),calc(-176 * var(--upx))) rotate(-5deg)} }
+@keyframes fryer-oil-tap-right { 0%,100%{transform:translateY(calc(-168 * var(--upx))) rotate(0)} 48%{transform:translate(calc(20 * var(--upx)),calc(-174 * var(--upx))) rotate(5deg)} }
+@keyframes e6-result-in { to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
 @keyframes space-key-pulse { from{transform:translateY(0);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 0 rgba(255,224,141,0)} to{transform:translateY(-3px);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 13px rgba(255,224,141,.55)} }
 
 /* E4 화력 유지 — 냄비 이미지는 메뉴별 한 장, 나머지 연출은 CSS로 공유합니다. */
@@ -1143,7 +1162,8 @@
   .yk-board.input-wrong .yk-spatula,.yk-board.e3-complete .yk-food,.e3-result.show,
   .heat-flames i,.heat-boil-bubbles i,.heat-steam,
   .heat-cook-scene.heat-high .heat-pot,.heat-cook-scene.heat-high .heat-pot.tteokbokki::after,
-  .heat-cook-scene.e4-complete .heat-pot,.e4-result.show {
+  .heat-cook-scene.e4-complete .heat-pot,.e4-result.show,
+  .oil-bubble,.oil-drop,.oil-tap-one .fryer-basket,.oil-tap-two .fryer-basket,.e6-result.show {
     animation-duration:.01ms !important;
     animation-iteration-count:1 !important;
   }

@@ -133,6 +133,20 @@ try{
   finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.side=1;skewerCookMini.data.marker=.76;twoSideCookAction();
   assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
 
+  const shrimpFryConfig=FRY_CONFIG.shrimp;
+  assert((shrimpFryConfig.goodEnd-shrimpFryConfig.goodStart).toFixed(3)==="0.180"&&(shrimpFryConfig.perfectEnd-shrimpFryConfig.perfectStart).toFixed(3)==="0.070"&&fryTimingGrade(.76,shrimpFryConfig)==="perfect"&&fryTimingGrade(.68,shrimpFryConfig)==="good","E6 GOOD surrounds narrow PERFECT");
+  const fryMini={engine:"fry",context:{mode:"cook",dishId:"shrimpTempura"},complete:false,data:{}};state.mini=fryMini;
+  MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
+  assert(dom.miniContent.querySelector(".fry-scene.fry-raw")&&parseFloat(dom.miniContent.querySelector(".fry-temp-zone").style.width)===18&&parseFloat(dom.miniContent.querySelector(".fry-temp-perfect").style.width)===7&&FRY_CONFIG.shrimp.itemCount===5&&dom.miniContent.querySelectorAll(".fryer-basket .frying-shrimp").length===5,"E6 progressive visual, shared timing widths, and five-shrimp batch");
+  fryMini.data.marker=.95;MINI_ENGINES.fry.update(fryMini,1);MINI_ENGINES.fry.update(fryMini,1);
+  assert(fryMini.data.marker===1,"E6 doneness moves one way and never reverses to raw");
+  fryMini.data.marker=.76;updateFryVisual(fryMini.data);fryerAction(fryMini);
+  assert(fryMini.data.phase==="draining"&&fryMini.data.liftGrade==="perfect"&&fryMini.data.liftScore===100,"E6 perfect lift enters draining");
+  fryerAction(fryMini);
+  assert(fryMini.data.oilTaps===1&&dom.miniContent.querySelector(".fry-scene.oil-tap-one"),"E6 first Space shakes basket immediately");
+  fryerAction(fryMini);
+  assert(fryMini.data.phase==="finishing"&&dom.miniContent.querySelector(".fry-scene.oil-tap-two")&&dom.miniContent.querySelector("#e6Result.perfect.show"),"E6 second Space shakes immediately and completes PERFECT");
+
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
@@ -144,6 +158,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 44";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 50";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
