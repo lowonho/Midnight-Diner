@@ -184,8 +184,9 @@ const QA_UTILITY_MINIS=Object.freeze([
 ]);
 
 function qaPrepTaskList(){
+  const livePrepTaskIds=new Set(MENU_DATA.flatMap(menu=>menu.requiredPrepTasks||[]));
   return Object.values(PREP_TASKS)
-    .filter(task=>task.isImplemented&&DAY_PREP_SETUPS[task.miniGame])
+    .filter(task=>livePrepTaskIds.has(task.id)&&task.isImplemented&&DAY_PREP_SETUPS[task.miniGame])
     .sort((a,b)=>(a.prepOrder??999)-(b.prepOrder??999));
 }
 

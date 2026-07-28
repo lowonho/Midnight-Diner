@@ -372,7 +372,7 @@ function setupTteokbokkiCut(taskId){
 
 registerMiniEngine("chop",{
   setup(m,{set}){
-    const isTofu=m.context.mode==="cook"&&m.context.dishId==="tofu";
+    const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
     set(
       isTofu?"두부 썰기":"정밀 손질",
       isTofu
