@@ -165,6 +165,32 @@ try{
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
+  state.mini={context:{mode:"dayPrep",taskId:"mixKimchiBatter"},complete:false,data:{}};setupKimchiBatter();
+  assert(!!dom.miniContent.querySelector('[data-order-target="batter"]')&&typeof bindOrderPlacementPointers==="function","E8 batter uses the shared pointer placement target");
+  const batterSource=dom.miniContent.querySelector('[data-batter-ingredient="flour"]'),batterTarget=dom.miniContent.querySelector('[data-order-target="batter"]');
+  batterSource.setPointerCapture=()=>{};
+  const originalElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>batterTarget;
+  batterSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:31,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
+  batterSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:31,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  batterSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:31,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  document.elementFromPoint=originalElementFromPoint;
+  assert(state.mini.data.step===1&&!document.querySelector(".order-drag-ghost"),"E8 pointer drag places flour and cleans its ghost");
+  const freeSkewer=createOrderPlacementState("skewer");let freeResult;
+  ["chicken","greenOnion","greenOnion","greenOnion","greenOnion"].forEach(item=>{freeResult=placeFreeSkewerItem(freeSkewer,item,0);});
+  assert(freeResult.complete&&freeSkewer.placements[0].join(",")==="chicken,greenOnion,greenOnion,greenOnion,greenOnion","E8 skewer accepts any order containing chicken and green onion");
+  const forcedSkewer=createOrderPlacementState("skewer");
+  for(let index=0;index<4;index++)placeFreeSkewerItem(forcedSkewer,"chicken",0);
+  const sameFifth=placeFreeSkewerItem(forcedSkewer,"chicken",0),requiredFifth=placeFreeSkewerItem(forcedSkewer,"greenOnion",0);
+  assert(!sameFifth.accepted&&sameFifth.allowed[0]==="greenOnion"&&requiredFifth.complete,"E8 fifth skewer slot enforces the missing ingredient only");
+  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"assembleChickenSkewer"},complete:false,data:{}};setupChickenSkewer();
+  const skewerSequences=[["chicken","greenOnion","greenOnion","greenOnion","greenOnion"],["greenOnion","chicken","chicken","chicken","chicken"],["chicken","chicken","greenOnion","chicken","greenOnion"]];
+  skewerSequences.forEach((sequence,track)=>sequence.forEach(item=>placeSkewerPiece(track,item,dom.miniContent.querySelector('[data-order-target="skewer"]'))));
+  assert(state.mini.data.finishing&&state.mini.data.completionGrade==="perfect"&&skewerDoneCount(state.mini.data)===3&&!!dom.miniContent.querySelector(".order-result.perfect"),"E8 three freely ordered skewers complete through the live renderer");
+  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"soakTteok"},complete:false,data:{}};setupTteokSoak();
+  addTteokSoakItem("water",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  addTteokSoakItem("tteok",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  addTteokSoakItem("water",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  assert(state.mini.data.finishing&&state.mini.data.completionGrade==="good"&&!!dom.miniContent.querySelector(".soak-bubbles"),"E8 soak rejects water-first then settles with shared feedback");
   assert(WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 data config");
   const anchovyGrip=createAnchovyGrip(1,0,0);
   [20,-1,20,-1].forEach(x=>updateAnchovyGrip(anchovyGrip,x,18));
@@ -192,6 +218,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 63";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 69";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

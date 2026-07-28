@@ -144,10 +144,11 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
   cookSkewerFood:"assets/prep/two-side/skewer.png",
-  tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
-  tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
-  tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
-  tteokSoakComplete:"assets/prep/day4/tteokbokki/soak-complete.png"
+  // E8 불리기. 볼·물통은 공용이고 떡/우동 한 장을 반복 배치합니다.
+  soakBowl:"assets/prep/soak/bowl.png",
+  soakWater:"assets/prep/soak/water-pitcher.png",
+  soakTteok:"assets/prep/soak/tteok.png",
+  soakUdon:"assets/prep/soak/udon.png"
 });
 const dayPrepAssets={};
 
