@@ -25,12 +25,15 @@
       css/minigame-frame.css 의 `#miniClose[hidden] + #miniPause` 가
       인접 형제 선택자라, 순서가 바뀌면 일시정지 버튼이 사라집니다.
    3. id 를 바꾸면 game.js 의 dom 목록도 같이 고쳐야 합니다.
+   4. .mini-window / .mini-title-panel 에 .wood-panel 을 다시 붙이지 마세요.
+      두 패널은 나무판·금테가 그려진 UI 에셋을 배경으로 깝니다(css/minigame-frame.css).
+      .wood-panel 의 border / box-shadow 가 그림 속 금테와 이중으로 겹칩니다.
    ============================================================ */
 
 const MINI_FRAME_HTML = `
           <section id="miniOverlay" class="overlay mini-overlay" role="dialog" aria-modal="true" aria-labelledby="miniTitle">
             <!-- 1. 뒤에 깔리는 가장 큰 패널 -->
-            <div class="mini-window wood-panel" aria-hidden="true"></div>
+            <div class="mini-window" aria-hidden="true"></div>
 
             <!-- 3. 게임 메인 플레이 영역 -->
             <div class="mini-stage">
@@ -49,7 +52,7 @@ const MINI_FRAME_HTML = `
             </div>
 
             <!-- 2. 미니게임 타이틀 패널 -->
-            <div class="mini-title-panel wood-panel">
+            <div class="mini-title-panel">
               <p id="miniStation" class="eyebrow">조리대</p>
               <h2 id="miniTitle">미니게임</h2>
             </div>
