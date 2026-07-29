@@ -26,7 +26,8 @@ const dom = Object.fromEntries([
   "relationshipList",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
-  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
+  "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
+  "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
   "joystick","joystickKnob","actionButton"
@@ -169,15 +170,23 @@ function showGameHud(show) {
 }
 
 function openSettings(from=state.screen) {
-  if(from==="game")saveGame();
-  state.settingsFrom=from; state.paused=true; dom.pauseMessage.textContent=from==="title"?"소리 설정을 변경할 수 있습니다.":"게임이 일시정지되었습니다.";
-  dom.returnTitleButton.style.display=from==="title"||storyIsActive()?"none":"block";
+  if(from==="game")saveGame(true);
+  const saveBlocked=!!state.mini||!!state.story?.activeStoryCook;
+  state.settingsFrom=from;state.paused=true;
+  dom.pauseMessage.textContent=from==="title"
+    ?"소리 설정을 변경할 수 있습니다."
+    :saveBlocked?"진행 중인 조리를 마치면 저장과 타이틀 이동을 사용할 수 있습니다.":"게임이 일시정지되었습니다.";
+  dom.saveLoadActions.hidden=from!=="game";
+  dom.manualSaveButton.disabled=saveBlocked;
+  dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
+  dom.returnTitleButton.style.display=from==="title"||saveBlocked?"none":"block";
   dom.resumeButton.textContent=from==="title"?"설정 닫기":"게임으로 돌아가기";
   dom.settingsOverlay.classList.add("open"); audio.click();
 }
 function closeSettings() {
+  if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()){closeSaveSlotDialog();return;}
   dom.settingsOverlay.classList.remove("open");
-  state.paused=state.settingsFrom==="title" || state.phase==="result";
+  state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
   audio.click();
 }
 
@@ -333,6 +342,7 @@ function update(dt) {
     // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
     // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
     else updatePrompt();
+    if(state.screen==="game"&&storyDialogueIsActive())updateAutosave(dt);
     return;
   }
   if(state.phase==="night"){
@@ -492,6 +502,12 @@ dom.stationPrompt.addEventListener("click",interact);
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
+  if(k==="escape"){
+    if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())closeSaveSlotDialog();
+    else if(dom.settingsOverlay.classList.contains("open"))closeSettings();
+    else if(state.screen==="game")openSettings("game");
+    return;
+  }
   if(state.mini){
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
@@ -502,9 +518,6 @@ window.addEventListener("keydown",e=>{
   if(storyDialogueIsActive()){
     if(k==="e"||k==="enter")storyAdvance();
     return;
-  }
-  if(k==="escape"){
-    if(dom.settingsOverlay.classList.contains("open"))closeSettings();else if(state.screen==="game")openSettings("game");return;
   }
   if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}

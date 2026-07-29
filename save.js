@@ -3,21 +3,35 @@
 // 브라우저 저장소와 게임 상태 직렬화/복원을 전담합니다.
 const SAVE_KEY="midnightDiner.save.v1";
 const SAVE_VERSION=3;
+const AUTO_SAVE_SLOT="auto";
+const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
+const SAVE_SLOT_DEFS=Object.freeze([
+  Object.freeze({id:AUTO_SAVE_SLOT,label:"자동 저장",manual:false}),
+  ...MANUAL_SAVE_SLOTS.map((id,index)=>Object.freeze({id,label:`수동 저장 ${index+1}`,manual:true}))
+]);
 let autosaveElapsed=0;
 let saveSystemInitialized=false;
 
 function initializeSaveSystem(){
   if(saveSystemInitialized)return;
   saveSystemInitialized=true;
-  window.addEventListener("pagehide",()=>saveGame());
+  window.addEventListener("pagehide",()=>saveGame(true));
   document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="hidden")saveGame();
+    if(document.visibilityState==="hidden")saveGame(true);
   });
 }
 
-function readSaveData(){
+function saveKeyForSlot(slotId=AUTO_SAVE_SLOT){
+  if(slotId===AUTO_SAVE_SLOT)return SAVE_KEY;
+  if(MANUAL_SAVE_SLOTS.includes(slotId))return `${SAVE_KEY}.${slotId}`;
+  throw new Error(`알 수 없는 저장 슬롯입니다: ${slotId}`);
+}
+
+function readSaveData(slotId=AUTO_SAVE_SLOT){
+  let key;
   try{
-    const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;
+    key=saveKeyForSlot(slotId);
+    const raw=localStorage.getItem(key);if(!raw)return null;
     const data=migrateSaveData(JSON.parse(raw));
     const validInventory=data.state?.inventory&&typeof data.state.inventory==="object";
     if(data.version!==SAVE_VERSION||!data.state||!Object.values(GAME_PHASES).includes(data.state.phase)||!Number.isFinite(data.state.day)||!validInventory){
@@ -25,10 +39,20 @@ function readSaveData(){
     }
     return data;
   }catch(error){
-    console.warn("저장 데이터를 읽지 못했습니다.",error);
-    try{localStorage.removeItem(SAVE_KEY);}catch(_error){}
+    console.warn(`${slotId} 저장 데이터를 읽지 못했습니다.`,error);
+    if(key){
+      try{localStorage.removeItem(key);}catch(_error){}
+    }
     return null;
   }
+}
+
+function readAllSaveSlots(){
+  return SAVE_SLOT_DEFS.map(definition=>({...definition,data:readSaveData(definition.id)}));
+}
+
+function hasAnySaveData(){
+  return SAVE_SLOT_DEFS.some(definition=>!!readSaveData(definition.id));
 }
 
 function migrateSaveData(data){
@@ -36,27 +60,61 @@ function migrateSaveData(data){
   return data;
 }
 
-function saveGame(allowDuringStory=false){
+function writeSaveSlot(slotId,{allowDuringStory=false,resetAutosave=false}={}){
   // QA_REMOVE: qa-mode.js와 함께 제거하면 됩니다. QA 이동은 실제 세이브를 덮어쓰지 않습니다.
   if(window.QA_MODE?.enabled)return false;
-  if(state.screen!=="game"||!Object.values(GAME_PHASES).includes(state.phase)||state.mini||(storyIsActive()&&!allowDuringStory))return false;
+  const activeStory=storyIsActive();
+  if(
+    state.screen!=="game"
+    ||!Object.values(GAME_PHASES).includes(state.phase)
+    ||state.mini
+    ||state.story?.activeStoryCook
+    ||(activeStory&&!allowDuringStory)
+  )return false;
   try{
+    const key=saveKeyForSlot(slotId);
+    const storyCheckpoint=typeof captureStoryCheckpoint==="function"?captureStoryCheckpoint():null;
+    // 대화 중에는 정확한 재개 위치가 없으면 저장하지 않습니다.
+    if(activeStory&&allowDuringStory&&!storyCheckpoint)return false;
     const snapshot=JSON.parse(JSON.stringify(state));
     snapshot.screen="game";snapshot.settingsFrom="game";snapshot.paused=snapshot.phase==="result";
     snapshot.mini=null;snapshot.particles=[];snapshot.popups=[];snapshot.departures=[];snapshot.joyX=0;snapshot.joyY=0;snapshot.player.moving=false;
     snapshot.story=normalizeStoryState(snapshot.story);
-    localStorage.setItem(SAVE_KEY,JSON.stringify({version:SAVE_VERSION,savedAt:Date.now(),nextOrderId,state:snapshot}));
-    autosaveElapsed=0;
+    localStorage.setItem(key,JSON.stringify({
+      version:SAVE_VERSION,
+      savedAt:Date.now(),
+      nextOrderId,
+      storyCheckpoint,
+      state:snapshot
+    }));
+    if(resetAutosave)autosaveElapsed=0;
     return true;
   }catch(error){console.warn("게임을 저장하지 못했습니다.",error);return false;}
 }
 
-function clearSaveData(){
-  try{localStorage.removeItem(SAVE_KEY);}catch(error){console.warn("저장 데이터를 삭제하지 못했습니다.",error);}
+function saveGame(allowDuringStory=false){
+  return writeSaveSlot(AUTO_SAVE_SLOT,{allowDuringStory,resetAutosave:true});
+}
+
+function saveManualGame(slotId){
+  if(!MANUAL_SAVE_SLOTS.includes(slotId))return false;
+  return writeSaveSlot(slotId,{allowDuringStory:true,resetAutosave:false});
+}
+
+function clearSaveData(slotId=AUTO_SAVE_SLOT){
+  try{
+    localStorage.removeItem(saveKeyForSlot(slotId));
+    if(slotId===AUTO_SAVE_SLOT)autosaveElapsed=0;
+  }catch(error){console.warn(`${slotId} 저장 데이터를 삭제하지 못했습니다.`,error);}
+}
+
+function clearAllSaveData(){
+  SAVE_SLOT_DEFS.forEach(definition=>clearSaveData(definition.id));
   autosaveElapsed=0;
 }
 
 function restoreGameState(data){
+  if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   const saved=data.state;
   const savedAudio={...state.audio,...(saved.audio||{})};
   Object.assign(state,saved);
@@ -91,11 +149,17 @@ function restoreGameState(data){
   if(state.phase===GAME_PHASES.PREP||state.phase===GAME_PHASES.MENU_SELECT)state.phaseTime=null;
   else if(!Number.isFinite(state.phaseTime))state.phaseTime=0;
   nextOrderId=Math.max(Number(data.nextOrderId)||1,...state.orders.map(order=>(Number(order.id)||0)+1));
+  try{
+    if(typeof restoreStoryCheckpoint==="function")restoreStoryCheckpoint(data.storyCheckpoint);
+  }catch(error){
+    console.warn("스토리 체크포인트를 복원하지 못했습니다.",error);
+    if(typeof clearStoryRuntime==="function")clearStoryRuntime();
+  }
   autosaveElapsed=0;
 }
 
 function updateAutosave(dt){
   if(state.mini)return;
   autosaveElapsed+=dt;
-  if(autosaveElapsed>=5){autosaveElapsed=0;saveGame();}
+  if(autosaveElapsed>=5){autosaveElapsed=0;saveGame(true);}
 }

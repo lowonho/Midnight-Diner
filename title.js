@@ -19,11 +19,15 @@ function savePhaseLabel(phase){
 }
 
 function updateContinueButton(){
-  const data=readSaveData();
-  dom.continueButton.disabled=!titleGameReady||!data;
+  const slots=readAllSaveSlots();
+  const saves=slots.filter(slot=>slot.data);
+  const latest=saves.reduce((current,slot)=>
+    !current||slot.data.savedAt>current.data.savedAt?slot:current
+  ,null);
+  dom.continueButton.disabled=!titleGameReady||!saves.length;
   dom.continueButton.textContent="이어하기";
-  if(!data){dom.saveInfo.textContent="저장 데이터가 없습니다.";return;}
-  dom.saveInfo.textContent=`DAY ${data.state.day} · ${savePhaseLabel(data.state.phase)} · 인기도 ${data.state.popularity}`;
+  if(!latest){dom.saveInfo.textContent="저장 데이터가 없습니다.";return;}
+  dom.saveInfo.textContent=`저장 ${saves.length}/4 · 최근 DAY ${latest.data.state.day} · ${savePhaseLabel(latest.data.state.phase)}`;
 }
 
 function markTitleGameReady(){
@@ -48,10 +52,16 @@ function openGameScreen(){
 }
 
 function continueGame(){
-  const data=readSaveData();if(!data){updateContinueButton();return;}
+  if(!hasAnySaveData()){updateContinueButton();return;}
+  openSaveSlotDialog("load","title",dom.continueButton);
+}
+
+function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
+  const data=readSaveData(slotId);if(!data){updateContinueButton();return false;}
   restoreGameState(data);
 
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
+  dom.settingsOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
   dom.resultOverlay.classList.toggle("open",state.phase==="result");
   dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
@@ -59,11 +69,12 @@ function continueGame(){
   else audio.startBgm();
   audio.success();
   setTimeout(resumeStoryForCurrentPhase,0);
+  return true;
 }
 
 function startNewGame(){
-  if(readSaveData()&&!window.confirm("기존 이어하기 데이터를 지우고 새 게임을 시작할까요?"))return;
-  clearSaveData();startGame();saveGame(true);
+  if(readSaveData(AUTO_SAVE_SLOT)&&!window.confirm("자동 저장을 새 게임으로 교체할까요?\n수동 저장 3칸은 그대로 유지됩니다."))return;
+  clearSaveData(AUTO_SAVE_SLOT);clearStoryRuntime();startGame();saveGame(true);updateContinueButton();
 }
 
 function startGame(){
@@ -75,7 +86,15 @@ function startGame(){
 }
 
 function returnTitle(){
-  saveGame();state.screen="title";state.paused=true;state.mini=null;
+  if(state.mini||state.story?.activeStoryCook){
+    showToast("진행 중인 조리를 마친 뒤 타이틀로 돌아갈 수 있습니다.",true);
+    return;
+  }
+  if(!saveGame(true)){
+    showToast("자동 저장에 실패해 타이틀로 이동하지 않았습니다.",true);
+    return;
+  }
+  clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
   dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
   showGameHud(false);audio.stopBgm();updateContinueButton();

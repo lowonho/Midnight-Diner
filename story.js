@@ -7,6 +7,7 @@ let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
 let storyUiInitialized=false;
+const STORY_CHECKPOINT_VERSION=1;
 
 function createStoryGuestState(){
   return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
@@ -176,6 +177,140 @@ function resumeStoryForCurrentPhase(){
   if(state.phase===GAME_PHASES.MENU_SELECT||state.phase===GAME_PHASES.PREP)queueStoryMoments(["dayStart"]);
   else if(state.phase===GAME_PHASES.OPEN)queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
   else if(state.phase===GAME_PHASES.RESULT)queueStoryMoments(["nightEnd"]);
+}
+
+function cloneStoryCheckpointValue(value){
+  try{return JSON.parse(JSON.stringify(value));}
+  catch(_error){return null;}
+}
+
+function isStoryCheckpointRecord(value){
+  return !!value&&typeof value==="object"&&!Array.isArray(value);
+}
+
+function normalizeStoryCheckpoint(checkpoint){
+  if(!isStoryCheckpointRecord(checkpoint)||checkpoint.version!==STORY_CHECKPOINT_VERSION)return null;
+  if(!Array.isArray(checkpoint.queue)||!checkpoint.queue.length)return null;
+  if(!checkpoint.queue.every(id=>typeof id==="string"&&!!STORY_SCENES[id]))return null;
+  if(!Number.isInteger(checkpoint.queueIndex)||checkpoint.queueIndex<0||checkpoint.queueIndex>=checkpoint.queue.length)return null;
+  if(typeof checkpoint.sceneId!=="string"||checkpoint.queue[checkpoint.queueIndex]!==checkpoint.sceneId)return null;
+  if(!STORY_SCENES[checkpoint.sceneId]||state.story?.completed?.[checkpoint.sceneId])return null;
+  if(!Array.isArray(checkpoint.lines)||!checkpoint.lines.length)return null;
+  if(!checkpoint.lines.every(line=>isStoryCheckpointRecord(line)&&(typeof line.text==="string"||typeof line.prompt==="string")))return null;
+  if(!Number.isInteger(checkpoint.lineIndex)||checkpoint.lineIndex<0||checkpoint.lineIndex>=checkpoint.lines.length)return null;
+  if(!Array.isArray(checkpoint.actorIds))return null;
+  if(!checkpoint.actorIds.every(id=>typeof id==="string"&&!!STORY_CHARACTERS[id]))return null;
+  if(new Set(checkpoint.actorIds).size!==checkpoint.actorIds.length)return null;
+  if(typeof checkpoint.waitingForCook!=="boolean"||typeof checkpoint.suspended!=="boolean"||typeof checkpoint.wasPaused!=="boolean")return null;
+  if(checkpoint.waitingForCook!==checkpoint.suspended)return null;
+
+  const pendingCook=checkpoint.pendingCook==null?null:checkpoint.pendingCook;
+  if(checkpoint.suspended){
+    if(!isStoryCheckpointRecord(pendingCook)||pendingCook.sceneId!==checkpoint.sceneId)return null;
+    if(!Number.isFinite(pendingCook.orderId)||!Number.isInteger(pendingCook.lineIndex))return null;
+    if(pendingCook.lineIndex<0||pendingCook.lineIndex>=checkpoint.lines.length)return null;
+    if(!isStoryCheckpointRecord(pendingCook.config))return null;
+    if(pendingCook.choice!=null&&!isStoryCheckpointRecord(pendingCook.choice))return null;
+    if(pendingCook.choiceIndex!=null&&!Number.isInteger(pendingCook.choiceIndex))return null;
+  }else if(pendingCook!==null)return null;
+
+  const cloned=cloneStoryCheckpointValue({
+    version:STORY_CHECKPOINT_VERSION,
+    queue:checkpoint.queue,
+    queueIndex:checkpoint.queueIndex,
+    sceneId:checkpoint.sceneId,
+    lines:checkpoint.lines,
+    lineIndex:checkpoint.lineIndex,
+    actorIds:checkpoint.actorIds,
+    waitingForCook:checkpoint.waitingForCook,
+    suspended:checkpoint.suspended,
+    pendingCook,
+    wasPaused:checkpoint.wasPaused
+  });
+  return isStoryCheckpointRecord(cloned)?cloned:null;
+}
+
+function captureStoryCheckpoint(){
+  if(!storySession||state.story?.activeStoryCook)return null;
+  const sceneId=storySession.scene?.id;
+  if(!sceneId||state.story?.completed?.[sceneId])return null;
+  return normalizeStoryCheckpoint({
+    version:STORY_CHECKPOINT_VERSION,
+    queue:storySession.queue,
+    queueIndex:storySession.queueIndex,
+    sceneId,
+    lines:storySession.lines,
+    lineIndex:storySession.lineIndex,
+    actorIds:(storySession.actors||[]).map(actor=>actor.id),
+    waitingForCook:!!storySession.waitingForCook,
+    suspended:!!storySession.suspended,
+    pendingCook:storySession.pendingCook||null,
+    wasPaused:!!storySession.wasPaused
+  });
+}
+
+function clearStoryRuntime(){
+  const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
+  clearStoryTyping();
+  if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
+  const revealNotice=document.getElementById("storyRevealNotice");
+  const overlay=document.getElementById("storyOverlay");
+  const stage=document.getElementById("storyStage");
+  if(revealNotice)revealNotice.classList.remove("show");
+  if(overlay)overlay.classList.remove("open");
+  if(stage)stage.innerHTML="";
+  if(state.story)state.story.activeStoryCook=null;
+  storySession=null;
+  return hadRuntime;
+}
+
+function restoreStoryCheckpoint(checkpoint){
+  const restored=normalizeStoryCheckpoint(checkpoint);
+  clearStoryRuntime();
+  if(!restored)return false;
+
+  const scene=STORY_SCENES[restored.sceneId];
+  let pendingOrder=null;
+  if(restored.suspended){
+    if(state.phase!==GAME_PHASES.OPEN)return false;
+    pendingOrder=(state.orders||[]).find(order=>
+      order.id===restored.pendingCook.orderId
+      &&order.storySceneId===restored.sceneId
+    );
+    if(!pendingOrder)return false;
+  }
+
+  storySession={
+    queue:restored.queue,
+    queueIndex:restored.queueIndex,
+    scene,
+    lines:restored.lines,
+    lineIndex:restored.lineIndex,
+    actors:[],
+    wasPaused:restored.wasPaused,
+    onComplete:state.phase===GAME_PHASES.OPEN?resumeDeferredStoryOrderScene:null,
+    waitingForCook:restored.waitingForCook,
+    suspended:restored.suspended,
+    pendingCook:restored.pendingCook
+  };
+
+  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
+  restored.actorIds.forEach(ensureStoryActor);
+
+  if(restored.suspended){
+    pendingOrder.specialRecipe=!!restored.pendingCook.config.special;
+    state.selectedOrderId=pendingOrder.id;
+    state.paused=false;
+    document.getElementById("storyOverlay").classList.remove("open");
+    updateUI(true);
+    return true;
+  }
+
+  state.paused=true;
+  document.getElementById("storyOverlay").classList.add("open");
+  showStoryLine();
+  return true;
 }
 
 function storyTimeOfDayOverride(){
@@ -409,9 +544,11 @@ function completeStoryScene(){
     if(scene.regular)guest.regular=true;
   }
   updateRelationshipUI();
-  saveGame(true);
   storySession.queueIndex++;
   beginNextStoryScene();
+  // 완료된 현재 장면은 체크포인트를 만들 수 없으므로, 다음 장면으로
+  // 커서를 옮긴 뒤 완료 플래그와 새 재개 위치를 한 번에 저장합니다.
+  saveGame(true);
 }
 
 function storyCookingTier(score,thresholds=null){
