@@ -345,7 +345,7 @@ function startMini(type,stationId,context) {
   dom.miniStation.textContent=stationById(stationId)?.label||stationId;
   dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add("open");
   dom.miniClose.hidden=true;
-  setupMini(); audio.click();
+  setupMini();
 }
 
 function setupMini() {
@@ -398,7 +398,7 @@ function completeMiniContext(m,score) {
     if(run.stepIndex>=dish.prep.length){
       const q=Math.round(run.scores.reduce((a,b)=>a+b,0)/run.scores.length);const inv=state.inventory[dish.id];
       const newCount=inv.count+3;inv.quality=Math.round((inv.quality*inv.count+q*3)/newCount);inv.count=newCount;state.prepRun=null;
-      spawnPopup(state.player.x,state.player.y-70,`${dish.name} +3 · 품질 ${q}`);showToast(`${dish.name} 3인분 준비 완료!`);audio.success();
+      spawnPopup(state.player.x,state.player.y-70,`${dish.name} +3 · 품질 ${q}`);showToast(`${dish.name} 3인분 준비 완료!`);
     }else showToast(`다음 단계: ${STATIONS[dish.prep[run.stepIndex]].label}`);
   }else if(m.context.mode==="cook"){
     const order=state.orders.find(o=>o.id===m.context.orderId);if(!order)return;order.cookScores.push(score);order.cookStep++;

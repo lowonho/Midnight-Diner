@@ -83,7 +83,6 @@ function setHeatControl(m,direction,active){
   const key=direction<0?"holdingDown":"holdingUp";
   if(active&&!m.data[key]){
     m.data.power=clamp(m.data.power+direction*HEAT_CONFIG[m.data.configId].tapStep,0,1);
-    audio.click();
   }
   m.data[key]=active;
   return true;

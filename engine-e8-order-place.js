@@ -360,7 +360,7 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
     ? `꼬치 ${done} / ${data.total} 완성!`
     : `${SKEWER_LABEL[ingredient]}를 꽂았습니다.`;
   if(done>=data.total){
-    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderChickenSkewer();audio.success();
+    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderChickenSkewer();
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);},720);
   }else renderChickenSkewer();
 }
@@ -424,7 +424,7 @@ function addTteokSoakItem(item,target){
   if(!result.accepted){data.mistakes++;dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();pulseOrderTarget(target);return;}
   data.added[item]=true;data.lastAdded=item;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 붓는 중입니다.";
   if(Object.values(m.data.added).every(Boolean)){
-    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 들어갔습니다. 잠시 불리는 중...`;audio.success();
+    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 들어갔습니다. 잠시 불리는 중...`;
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},1500);
   }else renderTteokSoak();
 }

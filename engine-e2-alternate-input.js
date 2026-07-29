@@ -250,7 +250,7 @@ function finishMandolineStep(m){
   dom.miniContent.querySelector(".fp-scene")?.classList.add(next?"stage-complete":"e2-complete");
   showAlternateGrade(next?stageGrade:finalGrade);
   if(!next){
-    dom.miniFeedback.textContent=`${data.label} 채썰기 ${finalGrade==="perfect"?"완벽하게 ":""}완료!`;audio.success();
+    dom.miniFeedback.textContent=`${data.label} 채썰기 ${finalGrade==="perfect"?"완벽하게 ":""}완료!`;
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);},E2_FEEL_CONFIG.completeDelayMs);
     return;
   }
@@ -380,7 +380,7 @@ function potatoStarchInput(key,repeat=false){
     data.completionGrade=grade;
     dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
     showAlternateGrade(grade);
-    dom.miniFeedback.textContent=`감자채에 튀김가루가 ${grade==="perfect"?"완벽하게 ":"골고루 "}묻었습니다!`;audio.success();
+    dom.miniFeedback.textContent=`감자채에 튀김가루가 ${grade==="perfect"?"완벽하게 ":"골고루 "}묻었습니다!`;
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"감자튀김 튀김가루 묻히기 완료");},E2_FEEL_CONFIG.completeDelayMs);
   }
   return true;
@@ -474,7 +474,7 @@ function shrimpCoatInput(key,repeat=false){
     if(finalStage){
       dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
       showAlternateGrade(finalGrade);
-      dom.miniFeedback.textContent=`새우 튀김옷 ${finalGrade==="perfect"?"완벽하게 ":""}준비 완료!`;audio.success();
+      dom.miniFeedback.textContent=`새우 튀김옷 ${finalGrade==="perfect"?"완벽하게 ":""}준비 완료!`;
       setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
       return true;
     }

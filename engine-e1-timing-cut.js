@@ -306,7 +306,7 @@ function timingCutAction(){
     dom.miniContent.querySelector(".cut-board")?.classList.add("cut-embedded");
     dom.miniContent.querySelector("#toughCutHint")?.classList.add("first-done");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 한 번 더!";
-    dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";audio.click();
+    dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";
     return;
   }
   completeTimingCut(m,grade);
@@ -334,13 +334,11 @@ function completeTimingCut(m,grade="good"){
     data.phase="complete";board?.classList.add("cut-complete");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
     dom.miniFeedback.textContent=`${cutIngredientLabel(data)} 손질 완료!`;
-    audio.success();
     setTimeout(()=>{
       if(state.mini===m&&!m.complete&&typeof data.onComplete==="function")data.onComplete();
     },CUT_FEEL_CONFIG.completeDelayMs);
     return;
   }
-  if(grade==="perfect")audio.success();else audio.click();
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.inputLocked=false;data.phase="ready";renderTimingCut();

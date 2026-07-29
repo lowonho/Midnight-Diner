@@ -174,6 +174,5 @@ function completeWhiskBatter(m,config){
   work?.classList.remove("stirring","off-course");work?.classList.add("finishing");
   if(count)count.textContent="1 / 1";
   if(result){result.hidden=false;result.textContent=m.data.completionGrade==="perfect"?"PERFECT":"GOOD";result.classList.add(m.data.completionGrade,"show");}
-  audio.success();
   setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(config.taskId,config.completionMessage);},config.finishDelay);
 }

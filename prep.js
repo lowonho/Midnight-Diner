@@ -68,16 +68,28 @@ function prepObjectRange(){
   return { left, right:Math.max(left,right) };
 }
 
+// 준비 작업 수만큼 상자를 늘어놓지 않고 메뉴 하나당 한 자리만 씁니다.
+// 각 자리의 그림과 상호작용 대상은 그 메뉴에서 다음으로 해야 할 작업으로 바뀝니다.
+function prepDishGroups(){
+  const tasks=selectedPrepTasks();
+  return selectedDishes().map(dish=>{
+    const dishTasks=tasks.filter(task=>task.menuId===dish.id);
+    if(!dishTasks.length)return null;
+    const task=dishTasks.find(item=>!state.prepProgress?.[item.id])||dishTasks[dishTasks.length-1];
+    return {dish,tasks:dishTasks,task};
+  }).filter(Boolean);
+}
+
 function prepObjectLayout(){
-  const tasks=selectedPrepTasks(),count=tasks.length;
+  const groups=prepDishGroups(),count=groups.length;
   if(!count)return [];
   const L=PREP_LAYOUT;
   const {left,right}=prepObjectRange();
   const step=count===1?0:Math.min((right-left)/(count-1), L.maxStep);
   const start=left+(right-left-step*(count-1))/2;
-  return tasks.map((task,index)=>{
+  return groups.map((group,index)=>{
     const x=start+step*index;
-    return { task, x, y:PREP_LAYOUT.y, ix:x, iy:PREP_LAYOUT.iy };
+    return { ...group, x, y:PREP_LAYOUT.y, ix:x, iy:PREP_LAYOUT.iy };
   });
 }
 
@@ -158,7 +170,8 @@ function drawPrepObjects(){
   // 가장 가까운 준비물은 전부가 공유하므로 여기서 한 번만 구합니다.
   const near=nearestPrepObject();
   prepObjectLayout().forEach(item=>{
-    const done=!!state.prepProgress[item.task.id];
+    const completed=item.tasks.filter(task=>state.prepProgress?.[task.id]).length;
+    const done=completed===item.tasks.length;
     ctx.save();ctx.globalAlpha=done?0.48:1;
 
     // 준비물을 담아 두는 나무 상자
@@ -217,13 +230,17 @@ function drawPrepObjects(){
 
     ctx.globalAlpha=1;
     // 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
-    drawFixtureLabel(item.task.objectLabel,item.x,item.y+L.labelDy,
+    drawFixtureLabel(`${item.dish.name} · ${item.task.label}`,item.x,item.y+L.labelDy,
       labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)));
 
     if(done){
       ctx.fillStyle="#91b961";ctx.beginPath();ctx.arc(item.x+34,item.y-18,15,0,Math.PI*2);ctx.fill();
       ctx.fillStyle="#17200e";ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.fillText("✓",item.x+34,item.y-12);
       ctx.fillStyle="#d9e8b5";ctx.font="bold 11px Malgun Gothic";ctx.fillText("준비 완료",item.x,item.y+18);
+      ctx.textAlign="left";
+    }else{
+      ctx.fillStyle="#ead8b8";ctx.font="bold 11px Malgun Gothic";ctx.textAlign="center";
+      ctx.fillText(`${item.dish.name} ${completed}/${item.tasks.length}`,item.x,item.y+18);
       ctx.textAlign="left";
     }
     ctx.restore();

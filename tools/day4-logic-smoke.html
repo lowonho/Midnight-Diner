@@ -16,6 +16,7 @@ function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
 </script>
 <script src="../day.js"></script>
+<script src="../prep.js"></script>
 <script src="../day-prep-minigames.js"></script>
 <script src="../engine-e1-timing-cut.js"></script>
 <script src="../engine-e2-alternate-input.js"></script>
@@ -34,6 +35,11 @@ try{
 
   const day4Ids=selectedPrepTasks().map(task=>task.id);
   assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+  const prepGroups=prepDishGroups();
+  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2,"Prep table keeps one grouped slot per dish");
+  state.prepProgress.soakTteok=true;
+  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage","Grouped prep slot advances to the dish's next task");
+  state.prepProgress.soakTteok=false;
 
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
   const day3Ids=selectedPrepTasks().map(task=>task.id);
@@ -266,6 +272,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 85";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 87";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

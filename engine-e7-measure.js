@@ -285,7 +285,7 @@ function checkYakisobaSauceComplete(m){
   if(complete){m.data.finishing=true;m.data.pourLocked=true;m.data.completionGrade=sauceCompletionGrade(m.data);}
   renderYakisobaSauce();
   if(complete){
-    dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";audio.success();
+    dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},720);
   }
   return complete;

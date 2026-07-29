@@ -274,7 +274,7 @@ function placeOneShotItem(id){
   renderOneShot();
   if(!allPlaced)return;
   if(data.doneMessage)dom.miniFeedback.textContent=data.doneMessage;
-  audio.success();finishOneShotAfter(m,data,ONE_SHOT_VARIANTS[data.variant]?.finishDelay||680);
+  finishOneShotAfter(m,data,ONE_SHOT_VARIANTS[data.variant]?.finishDelay||680);
 }
 
 function startOneShotPour(m,data,id,piece){
@@ -288,7 +288,7 @@ function settleOneShotPour(m,data,id){
   if(state.mini!==m||m.complete||data.actionPhase!=="pouring")return;
   if(!data.placed.includes(id))data.placed.push(id);
   data.actionPhase="returning";
-  dom.miniFeedback.textContent=data.doneMessage||"육수가 냄비를 채웁니다.";audio.success();renderOneShot();
+  dom.miniFeedback.textContent=data.doneMessage||"육수가 냄비를 채웁니다.";renderOneShot();
   setTimeout(()=>completeOneShotPour(m,data),ONE_SHOT_VARIANTS.pour.returnDuration);
 }
 

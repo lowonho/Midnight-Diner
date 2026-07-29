@@ -172,7 +172,6 @@ function completeDirectionSequence(m,{workSelector,feedback,onDone}){
   dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
   showDirectionGrade(grade);
   dom.miniFeedback.textContent=feedback(grade);
-  audio.success();
   setTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
 
