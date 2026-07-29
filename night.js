@@ -3,6 +3,8 @@
 // 밤 영업 단계 전용 로직. 인기도 10점당 평균 손님이 1명씩 늘어납니다.
 const NIGHT_DURATION=150;
 const LEFTOVER_LOSS_RATE=.30;
+let spawningInitialNightOrders=false;
+let storyNightEndNoticeShown=false;
 
 function expectedCustomerCenter(popularity){return clamp(4+Math.round(popularity/10),4,14);}
 function expectedCustomerRange(popularity){
@@ -17,12 +19,89 @@ function rollNightCustomerCount(popularity){
 function wasteLossForDish(dish){return Math.round(dish.price*LEFTOVER_LOSS_RATE/100)*100;}
 function reservedStock(dishId){
   const dish=dishById(dishId);
+  if(!dish)return 0;
   return state.orders.filter(order=>order.dishId===dishId&&order.cookStep<dish.cook.length).length;
 }
-function orderableDishes(){
-  return DISHES.filter(dish=>dish.isImplemented&&state.selectedMenus.includes(dish.id)&&state.inventory[dish.id]?.count>reservedStock(dish.id));
+function pendingStoryDishReservations(dishId,excludedPlan=null){
+  return (state.story?.pendingNightGuests||[]).filter(plan=>plan!==excludedPlan&&plan.dishId===dishId).length;
+}
+function orderableDishes(excludedPlan=null){
+  return DISHES.filter(dish=>
+    dish.isImplemented
+    &&state.selectedMenus.includes(dish.id)
+    &&state.inventory[dish.id]?.count>reservedStock(dish.id)+pendingStoryDishReservations(dish.id,excludedPlan)
+  );
 }
 function hasOrderableStock(){return orderableDishes().length>0;}
+
+function storyArrivalRank(plan){
+  return plan.arrival==="last"?2:plan.arrival==="late"?1:0;
+}
+function storyArrivalThreshold(plan){
+  if(plan.arrival==="last")return Math.max(0,state.nightCustomerTarget-1);
+  if(plan.arrival==="late")return Math.max(1,state.nightCustomerTarget-2);
+  return 0;
+}
+function storyPlanArrivalReady(plan){
+  if(plan.arrival!=="last")return true;
+  const generalOrderRemaining=state.orders.some(order=>order.customerType!=="story"&&!order.storySceneId);
+  const generalGuestLeaving=state.departures.some(item=>!item.guestId);
+  return !generalOrderRemaining&&!generalGuestLeaving;
+}
+function waitingForLastStoryGuest(){
+  return (state.story?.pendingNightGuests||[]).some(plan=>
+    plan.arrival==="last"
+    &&state.spawnedCustomers>=storyArrivalThreshold(plan)
+    &&!storyPlanArrivalReady(plan)
+  );
+}
+function storyPlansForSpawn(force=false){
+  const plans=state.story?.pendingNightGuests||[];
+  const remaining=Math.max(0,state.nightCustomerTarget-state.spawnedCustomers);
+  const mustUseStory=remaining<=plans.length;
+  return plans
+    .map((plan,index)=>({plan,index}))
+    .filter(item=>
+      storyPlanArrivalReady(item.plan)
+      &&(force||mustUseStory||state.spawnedCustomers>=storyArrivalThreshold(item.plan))
+    )
+    .sort((a,b)=>storyArrivalRank(a.plan)-storyArrivalRank(b.plan)||a.index-b.index)
+    .map(item=>item.plan);
+}
+function dishForStoryPlan(plan){
+  if(plan.dishId){
+    const dish=dishById(plan.dishId);
+    if(!dish||!dish.isImplemented)return null;
+    const held=reservedStock(dish.id)+pendingStoryDishReservations(dish.id,plan);
+    return state.inventory[dish.id]?.count>held?dish:null;
+  }
+  const available=orderableDishes(plan);
+  return available.length?available[Math.floor(Math.random()*available.length)]:null;
+}
+
+function scheduleOrderRespawn(slot,time=3.1,forceStory=false){
+  if(!Number.isInteger(slot)||slot<0)return false;
+  const delay=Math.max(.05,Number(time)||.05);
+  const existing=state.respawns.find(item=>item.slot===slot);
+  if(existing){
+    existing.time=Math.min(Number.isFinite(existing.time)?existing.time:delay,delay);
+    existing.forceStory=!!(existing.forceStory||forceStory);
+    return true;
+  }
+  state.respawns.push({slot,time:delay,forceStory:!!forceStory});
+  return true;
+}
+
+function processOrderRespawn(respawn){
+  if(!respawn)return false;
+  const forceStory=!!respawn.forceStory;
+  const spawned=spawnOrder(respawn.slot,{forceStory});
+  if(!spawned&&(forceStory||waitingForLastStoryGuest())){
+    // 마지막 일반 손님의 퇴장 연출이 끝나기 전이라면 시도를 버리지 않습니다.
+    scheduleOrderRespawn(respawn.slot,.2,forceStory);
+  }
+  return spawned;
+}
 
 function beginNight() {
   if(state.phase===GAME_PHASES.PREP&&!prepComplete()){
@@ -37,19 +116,36 @@ function beginNight() {
   }
   const requiredStoryGuests=state.story.pendingNightGuests.filter(plan=>!plan.repeat).length;
   if(total<requiredStoryGuests){
-    state.story.pendingNightGuests=[];
     showToast(`오늘 이야기 손님을 맞이하려면 최소 ${requiredStoryGuests}인분을 준비해 주세요.`,true);
+    return;
+  }
+  const requiredDishCounts={};
+  state.story.pendingNightGuests.forEach(plan=>{
+    if(plan.dishId)requiredDishCounts[plan.dishId]=(requiredDishCounts[plan.dishId]||0)+1;
+  });
+  const missingDish=Object.entries(requiredDishCounts).find(([dishId,count])=>
+    (state.inventory[dishId]?.count||0)<count
+  );
+  if(missingDish){
+    const dish=dishById(missingDish[0]);
+    showToast(`오늘 이야기 손님을 위해 ${dish?.name||missingDish[0]} ${missingDish[1]}인분을 준비해 주세요.`,true);
     return;
   }
   state.phase="night";state.phaseTime=NIGHT_DURATION;state.prepRun=null;state.selectedOrderId=null;state.carrying=null;
   resetPlayerPosition();   // 시작 좌표는 player.js PLAYER_START
   state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
+  storyNightEndNoticeShown=false;
   const plannedGuests=state.story.pendingNightGuests.length;
   state.nightCustomerTarget=Math.max(rollNightCustomerCount(state.popularity),plannedGuests);
   const initialCustomers=Math.min(CUSTOMER_SEATS.length,state.nightCustomerTarget,Math.max(2,plannedGuests));
-  for(let slot=0;slot<initialCustomers;slot++)spawnOrder(slot);
+  spawningInitialNightOrders=true;
+  try{
+    for(let slot=0;slot<initialCustomers;slot++)spawnOrder(slot);
+  }finally{
+    spawningInitialNightOrders=false;
+  }
   showToast(`밤 영업 시작! 오늘은 약 ${state.nightCustomerTarget}명의 손님이 방문합니다.`);audio.success();updateUI(true);saveGame();
-  queueStoryMoments(["nightStart"]);
+  queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
 }
 
 function calculateLeftoverLoss(){
@@ -65,6 +161,38 @@ function calculateLeftoverLoss(){
     loss+=wasteLossForDish(dish);
   }
   return {count,loss};
+}
+
+function tryEndNight(reason="complete"){
+  if(state.phase!=="night")return state.phase==="result";
+  const pendingPlans=state.story?.pendingNightGuests||[];
+  const unservedStoryOrder=state.orders.some(order=>order.customerType==="story"||order.storySceneId);
+  const unfinishedStory=storyIsActive()||pendingPlans.length>0||unservedStoryOrder;
+  if(!unfinishedStory){
+    endNight();
+    return true;
+  }
+
+  state.phaseTime=Math.max(Number(state.phaseTime)||0,25);
+  if(pendingPlans.length){
+    const occupied=new Set(state.orders.map(order=>order.slot));
+    const freeSlot=CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
+    if(freeSlot>=0){
+      state.respawns=state.respawns.filter(respawn=>respawn.slot!==freeSlot);
+      if(state.spawnedCustomers>=state.nightCustomerTarget){
+        state.nightCustomerTarget=state.spawnedCustomers+pendingPlans.length;
+      }
+      processOrderRespawn({slot:freeSlot,forceStory:true});
+    }
+  }
+  if(!storyNightEndNoticeShown){
+    storyNightEndNoticeShown=true;
+    const message=reason==="timeout"
+      ?"이야기 손님의 주문이 남아 있어 영업 시간을 잠시 연장합니다."
+      :"이야기 손님의 주문을 마친 뒤 영업을 종료할 수 있습니다.";
+    showToast(message);
+  }
+  return false;
 }
 
 function endNight() {
@@ -97,30 +225,63 @@ function renderNightResult(){
   const discardNote=state.discardedCount?` (직접 폐기 ${state.discardedCount}인분)`:"";
   dom.wasteResult.textContent=state.leftoverCount?`${state.wasteLoss.toLocaleString()}원 · ${state.leftoverCount}인분${discardNote}`:"0원";
   dom.revenueResult.textContent=`${netProfit.toLocaleString()}원`;
-  dom.nextDayButton.textContent=state.day>=DayManager.maxDay?"Day 7 완료":"다음 날 준비";
-  dom.nextDayButton.disabled=state.day>=DayManager.maxDay;
+  const finalDay=state.day>=DayManager.maxDay;
+  dom.nextDayButton.textContent=finalDay
+    ?state.story?.endingSeen?"엔딩 완료":`Day ${DayManager.maxDay} 완료`
+    :"다음 날 준비";
+  dom.nextDayButton.disabled=finalDay;
 
   const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 예상 손님 중 ${unserved}명을 받지 못했습니다.`:" 오늘의 손님을 모두 맞이했습니다.";
   dom.resultComment.textContent=`${tasteComment}${demandComment} 매출 ${state.dailyRevenue.toLocaleString()}원에서 폐기·재고 손실 ${state.wasteLoss.toLocaleString()}원이 차감되었습니다.`;
 }
 
-function spawnOrder(slot) {
-  if(state.spawnedCustomers>=state.nightCustomerTarget)return false;
-  const available=orderableDishes();
-  if(!available.length)return false;
-  const dish=available[Math.floor(Math.random()*available.length)];
-  const order=decorateStoryOrder({id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),entered:0,cookStep:0,cookScores:[]});
+function spawnOrder(slot,options={}) {
+  if(state.orders.some(order=>order.slot===slot))return false;
+  const forceStory=!!options.forceStory;
+  if(state.spawnedCustomers>=state.nightCustomerTarget&&!forceStory)return false;
+
+  let plan=null,dish=null;
+  for(const candidate of storyPlansForSpawn(forceStory)){
+    const plannedDish=dishForStoryPlan(candidate);
+    if(plannedDish){plan=candidate;dish=plannedDish;break;}
+  }
+  if(!plan){
+    // 마지막 이야기 손님은 모든 일반 손님이 떠난 뒤에만 등장합니다.
+    // 그 시점까지 빈 좌석을 새 일반 손님으로 채우면 대본 순서가 뒤집힙니다.
+    if(forceStory||waitingForLastStoryGuest())return false;
+    const available=orderableDishes();
+    if(available.length)dish=available[Math.floor(Math.random()*available.length)];
+  }
+  if(!dish&&(state.story?.pendingNightGuests?.length||0)){
+    for(const candidate of storyPlansForSpawn(true)){
+      const plannedDish=dishForStoryPlan(candidate);
+      if(plannedDish){plan=candidate;dish=plannedDish;break;}
+    }
+  }
+  if(!dish)return false;
+  if(plan&&state.spawnedCustomers>=state.nightCustomerTarget){
+    state.nightCustomerTarget=state.spawnedCustomers+1;
+  }
+
+  const order=decorateStoryOrder({
+    id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),
+    entered:0,cookStep:0,cookScores:[]
+  },plan);
   state.orders.push(order);
   state.spawnedCustomers++;
   if(state.selectedOrderId==null)state.selectedOrderId=state.orders[state.orders.length-1].id;
+  if(order.deferUntilArrival&&!spawningInitialNightOrders){
+    saveGame(true);
+    resumeDeferredStoryOrderScene();
+  }
   return true;
 }
 
 function selectOrder(id) {
   if(state.carrying){showToast("먼저 들고 있는 음식을 주문한 손님에게 가져다주세요.",true);return;}
   const lockedOrderId=activeStoryCookOrderId();
-  if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 특별 조리를 완성해 주세요.");return;}
+  if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 주문을 완성해 주세요.");return;}
   const order=state.orders.find(o=>o.id===id);if(!order)return;
   state.selectedOrderId=id;audio.click();updateUI(true);saveGame();
 }
@@ -128,7 +289,9 @@ function selectOrder(id) {
 function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId)||null;}
 
 function renderNightOrderList(){
-  const signature=`open|${state.selectedOrderId}|${state.carrying?.orderId||0}|${state.orders.map(order=>`${order.id}:${order.cookStep}`).join(",")}`;
+  const signature=`open|${state.selectedOrderId}|${state.carrying?.orderId||0}|${state.orders.map(order=>
+    `${order.id}:${order.cookStep}:${order.specialRecipe?1:0}:${order.guestId?storyDisplayName(order.guestId):""}`
+  ).join(",")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
   if(!state.orders.length){
@@ -199,17 +362,20 @@ function serveOrder(order) {
   state.money+=earned;state.dailyRevenue+=earned;state.served++;state.satisfactionTotal+=satisfaction;if(stars===5)state.fiveStar++;
   state.dirtyDishes=Math.min(6,state.dirtyDishes+1);state.cleanliness=clamp(state.cleanliness-2.5-state.trash*.4,0,100);
   const storyResult=applyStoryCookingResult(order,satisfaction);
-  finishSuspendedStoryCook(order,satisfaction);
-  const tier=satisfaction>=85?"great":satisfaction>=65?"warm":"soft";
+  const resumedStory=finishSuspendedStoryCook(order,satisfaction);
+  const tier=storyCookingTier(satisfaction);
   const departureText=storyResult?.text||pickGeneralGuestBubble(tier);
   state.departures.push({slot:order.slot,variant:order.variant,guestId:order.guestId||null,bubble:departureText,life:3.2,stars,satisfaction});
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;state.selectedOrderId=state.orders[0]?.id||null;
-  if(state.spawnedCustomers<state.nightCustomerTarget)state.respawns.push({slot:order.slot,time:3.1});
+  if(state.spawnedCustomers<state.nightCustomerTarget)scheduleOrderRespawn(order.slot,3.1);
   spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${satisfaction}점`);
   showToast(storyResult
     ?`${storyResult.name}${storyResult.special?"의 특별 조리":"에게 한 접시 제공"} · 만족도 ${satisfaction}점`
     :`${dish.name} 제공 · 만족도 ${satisfaction}점`);
-  audio.serve();updateUI(true);saveGame();
+  audio.serve();updateUI(true);
+  // 주문 조리 대사가 재개된 경우에는 장면 완료 시점에 저장합니다.
+  // 그 전에는 조리 직전 저장을 남겨 두어, 재접속 때 주문 없는 미완료 장면이 생기지 않게 합니다.
+  if(!resumedStory)saveGame();
 }
 
 function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}

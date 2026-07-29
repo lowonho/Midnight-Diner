@@ -2,7 +2,7 @@
 
 // 브라우저 저장소와 게임 상태 직렬화/복원을 전담합니다.
 const SAVE_KEY="midnightDiner.save.v1";
-const SAVE_VERSION=2;
+const SAVE_VERSION=3;
 let autosaveElapsed=0;
 let saveSystemInitialized=false;
 
@@ -33,38 +33,7 @@ function readSaveData(){
 
 function migrateSaveData(data){
   if(!data||typeof data!=="object")throw new Error("저장 데이터 형식이 올바르지 않습니다.");
-  if(data.version===1&&data.state){
-    const story=normalizeStoryState(data.state.story);
-    story.prologueComplete=true;
-    story.legacyImported=true;
-    revealNamesFromLegacyProgress(data.state,story);
-    data.state.story=story;
-    data.state.departures=[];
-    data.state.orders=Array.isArray(data.state.orders)?data.state.orders.map(normalizeStoryOrder):[];
-    data.version=SAVE_VERSION;
-  }
   return data;
-}
-
-function revealNamesFromLegacyProgress(savedState,story){
-  const currentDay=Math.max(1,Math.floor(Number(savedState.day)||1));
-  const pendingMomentByPhase={menuSelect:"dayStart",day:"dayStart",night:"nightStart",result:"nightEnd"};
-  const momentOrder={newGame:0,dayStart:1,nightStart:2,nightEnd:3};
-  const pendingOrder=momentOrder[pendingMomentByPhase[savedState.phase]]??1;
-
-  Object.entries(STORY_EVENT_SCHEDULE).forEach(([moment,days])=>{
-    Object.entries(days).forEach(([scheduledDay,sceneIds])=>{
-      const sceneDay=Number(scheduledDay);
-      const momentPassed=sceneDay<currentDay||(sceneDay===currentDay&&momentOrder[moment]<pendingOrder);
-      sceneIds.forEach(sceneId=>{
-        const scene=STORY_SCENES[sceneId];
-        if(!scene||(!momentPassed&&!story.completed[sceneId]))return;
-        scene.lines.forEach(line=>{
-          if(line.reveal&&story.guestState[line.reveal])story.guestState[line.reveal].nameRevealed=true;
-        });
-      });
-    });
-  });
 }
 
 function saveGame(allowDuringStory=false){
