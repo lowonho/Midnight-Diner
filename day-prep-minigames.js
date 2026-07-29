@@ -261,15 +261,19 @@ registerDayPrepEngine("dayPrep",{});
 function finishDayPrepTask(taskId,message){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
   m.complete=true;
+  audio.stopOwner?.(m);
   completeDayPrepTask(taskId);
   dom.miniTimer.textContent="완료";
   dom.miniFeedback.textContent=message;
   dom.miniContent.classList.add("prep-complete-flash");
+  const grade=m.data.completionGrade||((m.data.mistakes||m.data.errors||m.data.warnings||m.data.timedOut)?"good":"perfect");
+  audio.result?.(grade);
   setTimeout(()=>{if(state.mini===m)closeDayPrepMini(true);},520);
 }
 
 function closeDayPrepMini(completed=false){
   if(!isDayPrepMini())return;
+  audio.stopOwner?.(state.mini);
   state.mini=null;
   state.joyX=0;state.joyY=0;state.player.moving=false;
   dom.miniOverlay.classList.remove("open");

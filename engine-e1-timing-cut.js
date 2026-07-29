@@ -74,6 +74,16 @@ function cutRecoveryDelay(data,grade){
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
 
+function cutIngredientSfx(ingredient){
+  if(ingredient==="radish")return "knife_daikon";
+  if(ingredient==="tofu"||ingredient==="fishCake")return "cut_soft";
+  if(ingredient==="kimchi")return "cut_wet";
+  if(ingredient==="chicken")return "cut_meat";
+  return "cut_crisp"; // 양배추 · 대파처럼 아삭한 채소
+}
+
+function playCutIngredientSfx(data){audio.play?.(cutIngredientSfx(data.ingredient),{owner:state.mini});}
+
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
 }
@@ -275,6 +285,7 @@ function timingCutAction(){
   }
   const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
   if(grade==="miss"){
+    data.mistakes=(data.mistakes||0)+1;
     data.inputLocked=true;
     const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
     board?.classList.add("cut-miss");work?.classList.add("slice-miss");
@@ -303,6 +314,7 @@ function timingCutAction(){
 
 function completeTimingCut(m,grade="good"){
   const data=m.data;
+  playCutIngredientSfx(data);
   data.inputLocked=true;data.phase="impact";
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
@@ -469,7 +481,7 @@ registerMiniEngine("chop",{
     if(m.data.finishing)return;
     const data=m.data,cutIndex=data.cuts;
     const score=markerScore(m,.5),grade=cutTimingGrade(data.marker,data.zoneStarts[cutIndex],data.zoneWidth)==="perfect"?"perfect":"good";
-    data.hits.push(score);data.cuts++;audio.click();
+    data.hits.push(score);data.cuts++;playCutIngredientSfx(data);
     showNightChopImpact(m,cutIndex,grade);
     data.marker=0;data.dir=1;data.speed+=.08;
     if(data.cuts>=data.total){
@@ -489,7 +501,7 @@ function tofuChopAction(m){
   }
   const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
   data.hits.push(cutZoneScore(data.marker,zoneStart,data.zoneWidth));
-  data.cuts++;audio.click();
+  data.cuts++;playCutIngredientSfx(data);
   showNightChopImpact(m,cutIndex,grade);
   dom.miniTimer.textContent=`${data.cuts} / ${data.total}`;
   if(data.cuts>=data.total){

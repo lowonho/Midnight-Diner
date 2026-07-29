@@ -211,7 +211,8 @@ function rejectAlternateInput(m,message,targetSelector){
 
 function playAlternateSuccess(completing=false){
   if(completing)return;
-  audio.click();
+  if(state.mini?.data?.mode==="mandoline")audio.play?.("mandoline_slide",{owner:state.mini});
+  else audio.click();
 }
 
 function showAlternateGrade(grade){
@@ -244,6 +245,7 @@ function finishMandolineStep(m){
   const next=chain[chain.indexOf(data.taskId)+1];
   const stageGrade=alternateCompletionGrade(data);data.stageGrades.push(stageGrade);
   const finalGrade=data.stageGrades.every(grade=>grade==="perfect")?"perfect":"good";
+  data.completionGrade=finalGrade;
   data.transitioning=true;data.inputLocked=true;data.phase=next?"transition":"complete";
   dom.miniContent.querySelector(".fp-scene")?.classList.add(next?"stage-complete":"e2-complete");
   showAlternateGrade(next?stageGrade:finalGrade);
@@ -375,6 +377,7 @@ function potatoStarchInput(key,repeat=false){
   dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
   if(completed){
     const grade=alternateCompletionGrade(data);
+    data.completionGrade=grade;
     dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
     showAlternateGrade(grade);
     dom.miniFeedback.textContent=`감자채에 튀김가루가 ${grade==="perfect"?"완벽하게 ":"골고루 "}묻었습니다!`;audio.success();
@@ -467,6 +470,7 @@ function shrimpCoatInput(key,repeat=false){
   if(stageComplete){
     const completed=data.sequence[data.step],stageGrade=alternateCompletionGrade(data);data.stageGrades.push(stageGrade);
     const finalGrade=data.stageGrades.every(grade=>grade==="perfect")?"perfect":"good";
+    data.completionGrade=finalGrade;
     if(finalStage){
       dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
       showAlternateGrade(finalGrade);

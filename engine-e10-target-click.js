@@ -33,7 +33,7 @@ function setupAnchovyPrep(){
   // 도마를 3x3 칸으로 나눠 그중 total 칸을 골라 한 마리씩 놓습니다.
   // 칸 안에서 위치·각도·크기를 조금씩 흔들어 자연스럽게 흩어 보이게 합니다.
   const slots=shuffle(Array.from({length:9},(_,index)=>index)).slice(0,config.total);
-  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
+  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
     id:index,cleaned:false,x:3+(slot%3)*30+Math.random()*6,y:5+Math.floor(slot/3)*29+Math.random()*7,
     rotation:-14+Math.random()*28,scale:.9+Math.random()*.18,flip:Math.random()>.5?-1:1
   }))});
@@ -189,7 +189,9 @@ function finishAnchovyTug(m,grip){
 
 function updateAnchovyTimer(m,dt){
   if(m.data.timedOut||m.data.finishing)return;
+  const previousTime=m.data.timeLeft;
   m.data.timeLeft=Math.max(0,m.data.timeLeft-dt);
+  if(previousTime>7&&m.data.timeLeft<=7&&!m.data.timerWarningPlayed){m.data.timerWarningPlayed=true;audio.play?.("timer_warning",{owner:m,gain:.85});}
   const timer=dom.miniContent.querySelector("#anchovyTime");
   if(timer){timer.classList.toggle("warning",m.data.timeLeft<=7);timer.querySelector("b").textContent=`${m.data.timeLeft.toFixed(1)}초`;}
   if(m.data.timeLeft<=0)timeoutAnchovy(m);

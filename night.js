@@ -122,7 +122,7 @@ function selectOrder(id) {
   const lockedOrderId=activeStoryCookOrderId();
   if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 특별 조리를 완성해 주세요.");return;}
   const order=state.orders.find(o=>o.id===id);if(!order)return;
-  state.selectedOrderId=id;audio.click();updateUI(true);saveGame();
+  state.selectedOrderId=id;audio.uiClick();updateUI(true);saveGame();
 }
 
 function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId)||null;}

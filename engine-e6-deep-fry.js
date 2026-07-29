@@ -100,6 +100,7 @@ registerMiniEngine("fry", {
       // totalTime 은 진행도 카드의 남은 시간 바가 쓰는 기준값입니다(set 이 난이도 보정을 끝낸 뒤 값).
       ? { marker: 0, dir: 1, speed: config.speed, fryerStyle, phase: "frying", liftScore: 0, liftGrade:"miss", oilTaps: 0, oilTapWindow: 0, drainErrors:0, fryErrors:0, totalTime: m.time }
       : { marker: 0, dir: 1, speed: .34 };
+    if(fryerStyle)audio.loop?.("deep_fry",m,.68);
     if (fryerStyle) renderFryer();
     else {
       dom.miniContent.innerHTML = `<div class="progress-track"><i class="progress-zone" style="left:62%;width:25%"></i><i class="progress-perfect" style="left:70%;width:8%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">연한색 → 황금빛 → 탄색</div><button class="mini-action" id="miniAction" type="button">바스켓 들기</button>`;
@@ -306,13 +307,15 @@ function fryerAction(m) {
       dom.miniFeedback.textContent=wasLate?"건지는 타이밍을 놓쳤어요. 새 배치를 다시 튀겨주세요.":"조금 더 노릇해질 때까지 기다려주세요.";audio.bad();return;
     }
     data.liftGrade=timingGrade;data.liftScore=fryTimingScore(data.marker,config);
-    data.phase = "draining"; data.oilTaps = 0; data.oilTapWindow = 0; audio.click();
+    data.phase = "draining"; data.oilTaps = 0; data.oilTapWindow = 0;
+    audio.stop?.("deep_fry",m);audio.play?.("fry_basket_lift",{owner:m});
     dom.miniFeedback.textContent = `${itemName}이 잘 익었어요! 이제 스페이스바를 두 번 탁탁!`; renderFryer(); return;
   }
   if (data.phase !== "draining") return;
   data.oilTaps++;
-  if (data.oilTaps === 1) { data.oilTapWindow = config.tapWindow; audio.click(); dom.miniFeedback.textContent = "탁! 한 번 더 빠르게!"; renderFryer(); return; }
-  data.phase = "finishing"; data.oilTapWindow = 0; data.completionGrade=fryCompletionGrade(data); audio.click(); dom.miniFeedback.textContent = `탁탁! ${itemName}의 기름이 시원하게 털렸어요.`; renderFryer();
+  audio.play?.("fry_basket_shake",{owner:m});
+  if (data.oilTaps === 1) { data.oilTapWindow = config.tapWindow; dom.miniFeedback.textContent = "탁! 한 번 더 빠르게!"; renderFryer(); return; }
+  data.phase = "finishing"; data.oilTapWindow = 0; data.completionGrade=fryCompletionGrade(data); dom.miniFeedback.textContent = `탁탁! ${itemName}의 기름이 시원하게 털렸어요.`; renderFryer();
   setTimeout(() => {
     if (state.mini !== m || m.complete) return;
     const grade=data.completionGrade||fryCompletionGrade(data),score=grade==="perfect"?100:Math.round(clamp(data.liftScore-(data.drainErrors||0)*5-(data.fryErrors||0)*4,70,95));

@@ -81,6 +81,7 @@ registerMiniEngine("twoSideCook", {
       26
     );
     m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: config.sideSpeeds[0], hits: [], dishStyle, flipErrors: 0, cookErrors:0, timeLimit: m.time };
+    audio.loop?.(isSkewer?"charcoal_grill":"pan_sizzle",m,isSkewer ? .58 : .6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     renderTwoSideCook();
@@ -348,7 +349,7 @@ function completeTwoSideCook(m){
   dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
   if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.classList.add(grade,"show");}
   dom.miniFeedback.textContent=grade==="perfect"?"양면을 완벽하게 익혔습니다!":"맛있게 구워냈습니다!";
-  audio.success();finishMini(score);
+  finishMini(score);
 }
 
 function beginSkewerFlip(m) {
@@ -452,7 +453,8 @@ function releasePancakeFlip() {
 }
 
 function startTwoSideFlipAnimation(m) {
-  m.data.phase = "flipping"; renderTwoSideCook(); audio.click();
+  m.data.phase = "flipping"; renderTwoSideCook();
+  audio.play?.("pancake_flip",{owner:m});
   setTimeout(() => {
     if (state.mini !== m || m.complete) return;
     m.data.phase = "cook"; m.data.side = 1; m.data.marker = 0; m.data.dir = 1; m.data.speed = TWO_SIDE_COOK_CONFIG[m.data.dishStyle].sideSpeeds[1];

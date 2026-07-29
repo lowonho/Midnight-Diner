@@ -49,6 +49,7 @@ function openGameScreen(){
 
 function continueGame(){
   const data=readSaveData();if(!data){updateContinueButton();return;}
+  audio.uiClick();
   restoreGameState(data);
 
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
@@ -63,6 +64,7 @@ function continueGame(){
 
 function startNewGame(){
   if(readSaveData()&&!window.confirm("기존 이어하기 데이터를 지우고 새 게임을 시작할까요?"))return;
+  audio.uiClick();
   clearSaveData();startGame();saveGame(true);
 }
 
@@ -75,6 +77,7 @@ function startGame(){
 }
 
 function returnTitle(){
+  audio.stopAllFiles?.();audio.uiClick();
   saveGame();state.screen="title";state.paused=true;state.mini=null;
   dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");

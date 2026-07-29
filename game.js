@@ -121,6 +121,85 @@ function syncAudioControls(){
 
 const audio = {
   ctx:null, master:null, bgm:null, sfx:null,
+  // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
+  // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
+  files:Object.freeze({
+    pan_sizzle:["assets/sfx/sfx_pan_sizzle_loop.MP3"],
+    deep_fry:["assets/sfx/sfx_deep_fry_loop.MP3"],
+    griddle_sizzle:["assets/sfx/sfx_griddle_sizzle_loop.MP3"],
+    gas_flame:["assets/sfx/sfx_gas_flame_loop.MP3"],
+    clear_simmer:["assets/sfx/sfx_clear_simmer_loop.MP3"],
+    thick_boil:["assets/sfx/sfx_thick_boil_loop.MP3"],
+    knife_daikon:["assets/sfx/sfx_knife_daikon.MP3"],
+    cut_crisp:["assets/sfx/sfx_cut_crisp.MP3"],
+    cut_soft:["assets/sfx/sfx_cut_soft.MP3"],
+    cut_wet:["assets/sfx/sfx_cut_wet.MP3"],
+    cut_meat:["assets/sfx/sfx_cut_meat1.MP3","assets/sfx/sfx_cut_meat2.MP3"],
+    metal_scrape:["assets/sfx/sfx_metal_scrape1.MP3","assets/sfx/sfx_metal_scrape2.MP3"],
+    wood_stir:["assets/sfx/sfx_wood_stir1.MP3","assets/sfx/sfx_wood_stir2.MP3"],
+    mandoline_slide:["assets/sfx/sfx_mandoline_slide1.MP3","assets/sfx/sfx_mandoline_slide2.MP3"],
+    fry_basket_lift:["assets/sfx/sfx_fry_basket_lift.MP3"],
+    fry_basket_shake:["assets/sfx/sfx_fry_basket_shake.MP3"],
+    pancake_flip:["assets/sfx/sfx_pancake_flip.MP3"],
+    charcoal_grill:["assets/sfx/sfx_charcoal_grill_loop.MP3"],
+    whisk_mix:["assets/sfx/sfx_whisk_mix_loop1.MP3","assets/sfx/sfx_whisk_mix_loop2.MP3"],
+    input_wrong:["assets/sfx/sfx_input_wrong.MP3"],
+    result_perfect:["assets/sfx/sfx_result_perfect.MP3"],
+    result_good:["assets/sfx/sfx_result_good.MP3"],
+    timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
+    ui_click:["assets/sfx/sfx_ui_click.MP3"]
+  }),
+  preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
+  preload(){
+    Object.values(this.files).flat().forEach(src=>{
+      if(this.preloaded.has(src))return;
+      const element=new Audio();element.preload="auto";element.src=src;this.preloaded.set(src,element);element.load();
+    });
+  },
+  fileGain(entry){return clamp(state.audio.master*state.audio.sfx*.72*(entry.gain??1),0,1);},
+  pickFile(name){
+    const variants=this.files[name];if(!variants?.length)return null;
+    const index=this.variantCursor[name]||0;this.variantCursor[name]=(index+1)%variants.length;
+    return variants[index%variants.length];
+  },
+  play(name,{loop=false,owner=null,gain=1}={}){
+    const src=this.pickFile(name);if(!src)return null;
+    if(loop&&owner){
+      const current=this.loopFiles.get(owner)?.get(name);
+      if(current&&!current.element.ended)return current;
+    }
+    const element=this.preloaded.get(src)?.cloneNode(true)||new Audio(src);
+    const entry={name,element,owner,gain,loop,pausedBySettings:false};
+    element.loop=loop;element.preload="auto";element.volume=this.fileGain(entry);
+    const cleanup=()=>this.releaseFile(entry);
+    element.addEventListener("ended",cleanup,{once:true});element.addEventListener("error",cleanup,{once:true});
+    this.activeFiles.add(entry);
+    if(owner){
+      if(!this.ownerFiles.has(owner))this.ownerFiles.set(owner,new Set());
+      this.ownerFiles.get(owner).add(entry);
+    }
+    if(loop&&owner){
+      if(!this.loopFiles.has(owner))this.loopFiles.set(owner,new Map());
+      this.loopFiles.get(owner).set(name,entry);
+    }
+    const started=element.play();
+    if(started?.catch)started.catch(()=>cleanup());
+    return entry;
+  },
+  loop(name,owner,gain=1){return this.play(name,{loop:true,owner,gain});},
+  releaseFile(entry){
+    this.activeFiles.delete(entry);
+    if(entry.owner){
+      const owned=this.ownerFiles.get(entry.owner);owned?.delete(entry);if(owned&&!owned.size)this.ownerFiles.delete(entry.owner);
+      const loops=this.loopFiles.get(entry.owner);if(loops?.get(entry.name)===entry)loops.delete(entry.name);if(loops&&!loops.size)this.loopFiles.delete(entry.owner);
+    }
+  },
+  stopFile(entry){if(!entry)return;entry.element.pause();entry.element.currentTime=0;this.releaseFile(entry);},
+  stop(name,owner){const entry=this.loopFiles.get(owner)?.get(name);if(entry)this.stopFile(entry);},
+  stopOwner(owner){[...(this.ownerFiles.get(owner)||[])].forEach(entry=>this.stopFile(entry));},
+  stopAllFiles(){[...this.activeFiles].forEach(entry=>this.stopFile(entry));},
+  pauseLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&!entry.element.paused){entry.pausedBySettings=true;entry.element.pause();}});},
+  resumeLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&entry.pausedBySettings){entry.pausedBySettings=false;entry.element.play().catch(()=>this.stopFile(entry));}});},
   init() {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -137,6 +216,7 @@ const audio = {
     this.master.gain.value = state.audio.master;
     this.bgm.gain.value = state.audio.bgm * .18;
     this.sfx.gain.value = state.audio.sfx * .35;
+    this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
   },
   tone(freq=440,duration=.09,type="square",gain=.12,when=0,target="sfx") {
     if (!this.ctx) return;
@@ -146,8 +226,14 @@ const audio = {
     const t=this.ctx.currentTime+when; o.start(t); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.001,t+duration); o.stop(t+duration+.02);
   },
   click(){ this.tone(520,.05,"square",.08); },
+  uiClick(){ this.play("ui_click",{gain:.82}); },
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
-  bad(){ this.tone(160,.18,"sawtooth",.1); },
+  bad(){ this.play("input_wrong",{gain:.9}); },
+  result(scoreOrGrade){
+    const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
+    const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
+    if(perfect)this.play("result_perfect");else if(good)this.play("result_good");else this.bad();
+  },
   serve(){ this.tone(523,.08,"triangle",.12); this.tone(659,.08,"triangle",.1,.08); this.tone(784,.13,"triangle",.09,.16); },
   startBgm(){
     if (!this.ctx || bgmTimer) return;
@@ -163,6 +249,7 @@ const audio = {
   },
   stopBgm(){ if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;} }
 };
+audio.preload();
 
 function showGameHud(show) {
   [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle("hidden-hud",!show));
@@ -173,12 +260,12 @@ function openSettings(from=state.screen) {
   state.settingsFrom=from; state.paused=true; dom.pauseMessage.textContent=from==="title"?"소리 설정을 변경할 수 있습니다.":"게임이 일시정지되었습니다.";
   dom.returnTitleButton.style.display=from==="title"||storyIsActive()?"none":"block";
   dom.resumeButton.textContent=from==="title"?"설정 닫기":"게임으로 돌아가기";
-  dom.settingsOverlay.classList.add("open"); audio.click();
+  dom.settingsOverlay.classList.add("open"); audio.pauseLoops();audio.uiClick();
 }
 function closeSettings() {
   dom.settingsOverlay.classList.remove("open");
   state.paused=state.settingsFrom==="title" || state.phase==="result";
-  audio.click();
+  if(state.settingsFrom!=="title")audio.resumeLoops();audio.uiClick();
 }
 
 /* 반짝임(fx_perfect_sparkle)을 달 음식인지. 메뉴 카드·손님 말풍선·요리사 손
@@ -287,8 +374,9 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  audio.stopOwner(m);
   dom.miniFeedback.textContent=score>=90?`완벽해요! ${score}점`:score>=70?`좋아요! ${score}점`:`조금 아쉬워요. ${score}점`;
-  score>=70?audio.success():audio.bad();
+  audio.result(score);
   setTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
@@ -356,7 +444,10 @@ function updateMini(dt) {
   const engine=miniEngine(m);if(!engine)return;
   // 제한시간을 깎을지는 엔진이 정합니다(두부 썰기·기름 털기·낮 준비는 멈춰 있습니다).
   if(engine.timerRuns?engine.timerRuns(m):true){
+    if(m.time>3)m.timerWarningPlayed=false;
+    const previousTime=m.time;
     m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);
+    if(previousTime>3&&m.time<=3&&!m.timerWarningPlayed){m.timerWarningPlayed=true;audio.play("timer_warning",{owner:m,gain:.85});}
   }
   engine.update?.(m,dt);
   if(Number.isFinite(m.time)&&m.time<=0){
@@ -466,7 +557,7 @@ function draw(){
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 // 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
-dom.codexButton.addEventListener("click",()=>{audio.click();showToast("도감은 준비 중입니다.");});
+dom.codexButton.addEventListener("click",()=>{audio.uiClick();showToast("도감은 준비 중입니다.");});
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);

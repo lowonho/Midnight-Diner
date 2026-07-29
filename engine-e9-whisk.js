@@ -81,6 +81,7 @@ function startWhiskPointer(event,work){
   m.data.pointerActive=true;m.data.lastAngle=null;m.data.direction=0;m.data.strokeProgress=0;
   m.data.outsideActive=false;m.data.reverseActive=false;m.data.jumpActive=false;
   work.classList.add("stirring");work.classList.remove("off-course");
+  audio.loop?.("whisk_mix",m,.72);
   work.setPointerCapture?.(event.pointerId);moveWhiskPointer(event);
 }
 
@@ -90,6 +91,7 @@ function endWhiskPointer(event,work,cancelled=false){
   if(!m.data.finishing&&m.data.strokeProgress>0&&m.data.progressAngle<m.data.targetAngle)m.data.mistakes++;
   m.data.strokeProgress=0;m.data.outsideActive=false;m.data.reverseActive=false;m.data.jumpActive=false;
   work.classList.remove("stirring","off-course");
+  audio.stop?.("whisk_mix",m);
   if(!cancelled&&work.hasPointerCapture?.(event.pointerId))work.releasePointerCapture?.(event.pointerId);
 }
 
@@ -166,6 +168,7 @@ function renderWhiskProgress(m,config){
 function completeWhiskBatter(m,config){
   if(m.data.finishing)return;
   m.data.finishing=true;m.data.pointerActive=false;
+  audio.stop?.("whisk_mix",m);
   m.data.completionGrade=m.data.mistakes?"good":"perfect";
   const work=dom.miniContent.querySelector("#whiskWorkArea"),result=dom.miniContent.querySelector("#whiskResult"),count=dom.miniContent.querySelector(".bt-count strong");
   work?.classList.remove("stirring","off-course");work?.classList.add("finishing");

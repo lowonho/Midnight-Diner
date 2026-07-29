@@ -133,6 +133,9 @@ registerMiniEngine("heat",{
       outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
       holdingDown:false,holdingUp:false,phase:"ready"
     };
+    audio.loop?.("gas_flame",m,.42);
+    if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
+    else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.55);
     dom.miniContent.innerHTML=`${heatSceneMarkup(config)}
       <div class="heat-wrap"><button id="heatDown" class="heat-button" type="button" aria-label="불 줄이기">−</button><div class="heat-gauge"><i class="heat-target" style="left:${config.targetStart*100}%;width:${(config.targetEnd-config.targetStart)*100}%"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button" aria-label="불 키우기">＋</button></div>
       <div class="heat-hold"><i id="heatHoldFill"></i></div><div class="cut-count">적정 온도 유지: <span id="zoneTime">0.0</span> / ${config.targetHold.toFixed(1)}초</div>`;

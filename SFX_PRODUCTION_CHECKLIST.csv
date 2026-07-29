@@ -1,42 +1,44 @@
 순위,제작단계,엔진,파일명,설명,추천 검색어,규격,완료
-1,1차 필수,E3·E5,sfx_pan_sizzle_loop,김치볶기와 김치전 굽기 공통 팬 지글거림,food sizzling in frying pan loop,3~6초 무봉제 루프,미완료
-2,1차 필수,E6,sfx_deep_fry_loop,새우와 감자가 기름에서 튀겨지는 강한 지속음,deep fryer bubbling loop,3~6초 무봉제 루프,미완료
-3,1차 필수,E3,sfx_griddle_sizzle_loop,볶음우동 철판의 넓고 강한 지글거림,teppanyaki griddle sizzling loop,3~6초 무봉제 루프,미완료
-4,1차 필수,E4,sfx_gas_flame_loop,어묵탕과 떡볶이 냄비 아래의 가스불,gas stove flame loop,3~6초 무봉제 루프,미완료
-5,1차 필수,E4,sfx_clear_simmer_loop,어묵탕처럼 맑은 국물이 잔잔하게 끓는 소리,soup simmering pot loop,3~6초 무봉제 루프,미완료
-6,1차 필수,E4,sfx_thick_boil_loop,떡볶이처럼 걸쭉한 소스가 큰 기포로 끓는 소리,thick sauce bubbling loop,3~6초 무봉제 루프,미완료
-7,1차 필수,E1,sfx_knife_daikon,무 절단,kitchen knife chop whoosh,0.08~0.2초,미완료
-8,1차 필수,E1,sfx_cut_crisp,양배추·대파처럼 아삭한 채소 절단,crispy vegetable chopping sound,0.1~0.25초,미완료
-9,1차 필수,E1,sfx_cut_soft,두부·어묵처럼 부드럽고 촉촉한 재료 절단,soft food cutting sound,0.1~0.25초,미완료
-10,1차 필수,E1,sfx_cut_wet,김치처럼 젖은 채소를 자르는 소리,wet vegetable chop sound,0.1~0.3초,미완료
-11,1차 필수,E1,sfx_cut_meat1,닭고기를 묵직하게 절단하는 소리1,raw chicken chopping sound,0.15~0.3초,미완료
-12,1차 필수,E1,sfx_cut_meat2,닭고기를 묵직하게 절단하는 소리2,raw chicken chopping sound,0.15~0.3초,미완료
-13,1차 필수,E3,sfx_metal_scrape1,철판 뒤집개로 철판과 우동면을 미는 소리1,metal spatula griddle scrape,0.15~0.4초,미완료
-14,1차 필수,E3,sfx_metal_scrape2,철판 뒤집개로 철판과 우동면을 미는 소리2,metal spatula griddle scrape,0.15~0.4초,미완료
-15,1차 필수,E3,sfx_wood_stir1,나무 주걱으로 김치를 팬에서 미는 소리1,wooden spatula stirring pan sound,0.15~0.35초,미완료
-16,1차 필수,E3,sfx_wood_stir2,나무 주걱으로 김치를 팬에서 미는 소리2,wooden spatula stirring pan sound,0.15~0.35초,미완료
-17,1차 필수,E2,sfx_mandoline_slide,채칼 위로 양배추·당근·감자를 빠르게 미는 소리,mandoline slicer vegetable sound,0.1~0.25초,미완료
-18,1차 필수,E6,sfx_fry_basket_lift,금속 바스켓을 기름 위로 들어 올리는 소리,deep fryer basket lift sound,0.3~0.6초,미완료
-19,1차 필수,E6,sfx_fry_basket_shake,바스켓을 탁 움직여 기름을 터는 소리,fryer basket shake metal sound,0.12~0.3초,미완료
-20,1차 필수,E5,sfx_pancake_flip,김치전이 떠올라 뒤집힌 뒤 팬에 착지하는 전체 동작,pancake flip pan landing sound,0.4~0.8초,미완료
-21,1차 필수,E5,sfx_charcoal_grill_loop,닭꼬치 아래 숯불과 떨어지는 기름의 지속음,charcoal grill sizzling loop,3~6초 무봉제 루프,미완료
-22,1차 필수,E9,sfx_whisk_mix_loop,거품기로 걸쭉한 김치전 반죽을 계속 젓는 소리,whisking thick batter loop,2~4초 무봉제 루프,미완료
-23,1차 필수,공통,sfx_input_wrong,잘못된 방향·순서·타이밍을 알리는 낮고 짧은 둔탁음,soft game wrong input sound,0.15~0.3초,미완료
-24,2차 디테일,E2,sfx_dry_shake,감자 전분 봉투와 새우 밀가루·빵가루를 흔드는 마른 소리,plastic bag powder shake sound,0.15~0.35초,미완료
-25,2차 디테일,E2,sfx_wet_coat,새우를 계란물 안에서 굴리는 끈적한 출렁임,egg wash slosh sound,0.15~0.35초,미완료
-26,2차 디테일,E5,sfx_skewer_turn,닭꼬치 한 개를 집어 반대쪽으로 돌리는 소리,wooden skewer turning grill sound,0.15~0.35초,미완료
-27,2차 디테일,E7·E8·E11,sfx_pour_thin,간장·고추기름·물·육수처럼 묽은 액체 흐름,thin liquid pouring into bowl,1~2초,미완료
-28,2차 디테일,E7,sfx_pour_syrup,올리고당처럼 점성이 있는 시럽 흐름,thick syrup pouring sound,1~2초,미완료
-29,2차 디테일,E7,sfx_pour_thick,고추장·굴소스처럼 걸쭉한 소스가 떨어지는 소리,thick sauce squeeze pour sound,1~2초,미완료
-30,2차 디테일,E8,sfx_ingredient_dry_dump,부침가루 같은 마른 가루를 볼에 붓는 소리,flour pouring into bowl sound,0.4~0.8초,미완료
-31,2차 디테일,E8·E11,sfx_ingredient_wet_drop,김치·떡·우동·무·어묵·멸치를 볼이나 냄비에 넣는 소리,food dropping into bowl sound,0.15~0.4초,미완료
-32,2차 디테일,E8,sfx_skewer_pierce,닭과 파를 나무 꼬치에 꽂는 작은 관통음,food piercing wooden skewer sound,0.1~0.25초,미완료
-33,2차 디테일,E10,sfx_anchovy_tension,멸치 머리를 좌우로 흔들 때 접합부가 당겨지는 소리,small fish bone tension sound,0.1~0.25초,미완료
-34,2차 디테일,E10,sfx_anchovy_tear,멸치 머리가 몸통에서 뜯어지는 순간,small fish tearing sound,0.15~0.35초,미완료
-35,2차 디테일,E10,sfx_anchovy_head_land,분리된 멸치 머리가 도마에 작게 떨어지는 소리,small object drop wooden board,0.08~0.2초,미완료
-36,2차 디테일,E11,sfx_plate_place,두부와 볶은 김치를 접시에 부드럽게 내려놓는 소리,soft food placed on ceramic plate,0.15~0.35초,미완료
-37,3차 시스템,결과,sfx_result_perfect,PERFECT 결과에만 사용하는 맑고 만족스러운 성공음,perfect result sparkle chime,0.6~1초,미완료
-38,3차 시스템,결과,sfx_result_good,GOOD 결과에 사용하는 짧고 따뜻한 2음,casual game good result chime,0.4~0.7초,미완료
-39,3차 시스템,제한시간,sfx_timer_warning,중요한 제한시간이 얼마 남지 않았을 때의 시계 경고,kitchen timer warning tick,0.05~0.15초,미완료
-40,3차 시스템,서빙,sfx_food_serve,완성 접시를 손님 앞에 내려놓는 소리,ceramic plate serve table sound,0.2~0.5초,미완료
-41,3차 시스템,UI,sfx_ui_click,메뉴·설정에만 사용하는 작고 부드러운 클릭,soft wooden UI click sound,0.05~0.1초,미완료
+1,1차 필수,E3·E5,sfx_pan_sizzle_loop,김치볶기와 김치전 굽기 공통 팬 지글거림,food sizzling in frying pan loop,3~6초 무봉제 루프,완료
+2,1차 필수,E6,sfx_deep_fry_loop,새우와 감자가 기름에서 튀겨지는 강한 지속음,deep fryer bubbling loop,3~6초 무봉제 루프,완료
+3,1차 필수,E3,sfx_griddle_sizzle_loop,볶음우동 철판의 넓고 강한 지글거림,teppanyaki griddle sizzling loop,3~6초 무봉제 루프,완료
+4,1차 필수,E4,sfx_gas_flame_loop,어묵탕과 떡볶이 냄비 아래의 가스불,gas stove flame loop,3~6초 무봉제 루프,완료
+5,1차 필수,E4,sfx_clear_simmer_loop,어묵탕처럼 맑은 국물이 잔잔하게 끓는 소리,soup simmering pot loop,3~6초 무봉제 루프,완료
+6,1차 필수,E4,sfx_thick_boil_loop,떡볶이처럼 걸쭉한 소스가 큰 기포로 끓는 소리,thick sauce bubbling loop,3~6초 무봉제 루프,완료
+7,1차 필수,E1,sfx_knife_daikon,무 절단,kitchen knife chop whoosh,0.08~0.2초,완료
+8,1차 필수,E1,sfx_cut_crisp,양배추·대파처럼 아삭한 채소 절단,crispy vegetable chopping sound,0.1~0.25초,완료
+9,1차 필수,E1,sfx_cut_soft,두부·어묵처럼 부드럽고 촉촉한 재료 절단,soft food cutting sound,0.1~0.25초,완료
+10,1차 필수,E1,sfx_cut_wet,김치처럼 젖은 채소를 자르는 소리,wet vegetable chop sound,0.1~0.3초,완료
+11,1차 필수,E1,sfx_cut_meat1,닭고기를 묵직하게 절단하는 소리1,raw chicken chopping sound,0.15~0.3초,완료
+12,1차 필수,E1,sfx_cut_meat2,닭고기를 묵직하게 절단하는 소리2,raw chicken chopping sound,0.15~0.3초,완료
+13,1차 필수,E3,sfx_metal_scrape1,철판 뒤집개로 철판과 우동면을 미는 소리1,metal spatula griddle scrape,0.15~0.4초,완료
+14,1차 필수,E3,sfx_metal_scrape2,철판 뒤집개로 철판과 우동면을 미는 소리2,metal spatula griddle scrape,0.15~0.4초,완료
+15,1차 필수,E3,sfx_wood_stir1,나무 주걱으로 김치를 팬에서 미는 소리1,wooden spatula stirring pan sound,0.15~0.35초,완료
+16,1차 필수,E3,sfx_wood_stir2,나무 주걱으로 김치를 팬에서 미는 소리2,wooden spatula stirring pan sound,0.15~0.35초,완료
+17,1차 필수,E2,sfx_mandoline_slide1,채칼 위로 양배추·당근·감자를 빠르게 미는 소리1,mandoline slicer vegetable sound,0.1~0.25초,완료
+18,1차 필수,E2,sfx_mandoline_slide2,채칼 위로 양배추·당근·감자를 빠르게 미는 소리2,mandoline slicer vegetable sound,0.1~0.25초,완료
+19,1차 필수,E6,sfx_fry_basket_lift,금속 바스켓을 기름 위로 들어 올리는 소리,deep fryer basket lift sound,0.3~0.6초,완료
+20,1차 필수,E6,sfx_fry_basket_shake,바스켓을 탁 움직여 기름을 터는 소리,fryer basket shake metal sound,0.12~0.3초,완료
+21,1차 필수,E5,sfx_pancake_flip,김치전이 떠올라 뒤집힌 뒤 팬에 착지하는 전체 동작,pancake flip pan landing sound,0.4~0.8초,완료
+22,1차 필수,E5,sfx_charcoal_grill_loop,닭꼬치 아래 숯불과 떨어지는 기름의 지속음,charcoal grill sizzling loop,3~6초 무봉제 루프,완료
+23,1차 필수,E9,sfx_whisk_mix_loop1,거품기로 걸쭉한 김치전 반죽을 계속 젓는 소리1,whisking thick batter loop,2~4초 무봉제 루프,완료
+24,1차 필수,E9,sfx_whisk_mix_loop2,거품기로 걸쭉한 김치전 반죽을 계속 젓는 소리2,whisking thick batter loop,2~4초 무봉제 루프,완료
+25,1차 필수,공통,sfx_input_wrong,잘못된 방향·순서·타이밍을 알리는 낮고 짧은 둔탁음,soft game wrong input sound,0.15~0.3초,완료
+26,2차 디테일,E2,sfx_dry_shake,감자 전분 봉투와 새우 밀가루·빵가루를 흔드는 마른 소리,plastic bag powder shake sound,0.15~0.35초,미완료
+27,2차 디테일,E2,sfx_wet_coat,새우를 계란물 안에서 굴리는 끈적한 출렁임,egg wash slosh sound,0.15~0.35초,미완료
+28,2차 디테일,E5,sfx_skewer_turn,닭꼬치 한 개를 집어 반대쪽으로 돌리는 소리,wooden skewer turning grill sound,0.15~0.35초,미완료
+29,2차 디테일,E7·E8·E11,sfx_pour_thin,간장·고추기름·물·육수처럼 묽은 액체 흐름,thin liquid pouring into bowl,1~2초,미완료
+30,2차 디테일,E7,sfx_pour_syrup,올리고당처럼 점성이 있는 시럽 흐름,thick syrup pouring sound,1~2초,미완료
+31,2차 디테일,E7,sfx_pour_thick,고추장·굴소스처럼 걸쭉한 소스가 떨어지는 소리,thick sauce squeeze pour sound,1~2초,미완료
+32,2차 디테일,E8,sfx_ingredient_dry_dump,부침가루 같은 마른 가루를 볼에 붓는 소리,flour pouring into bowl sound,0.4~0.8초,미완료
+33,2차 디테일,E8·E11,sfx_ingredient_wet_drop,김치·떡·우동·무·어묵·멸치를 볼이나 냄비에 넣는 소리,food dropping into bowl sound,0.15~0.4초,미완료
+34,2차 디테일,E8,sfx_skewer_pierce,닭과 파를 나무 꼬치에 꽂는 작은 관통음,food piercing wooden skewer sound,0.1~0.25초,미완료
+35,2차 디테일,E10,sfx_anchovy_tension,멸치 머리를 좌우로 흔들 때 접합부가 당겨지는 소리,small fish bone tension sound,0.1~0.25초,미완료
+36,2차 디테일,E10,sfx_anchovy_tear,멸치 머리가 몸통에서 뜯어지는 순간,small fish tearing sound,0.15~0.35초,미완료
+37,2차 디테일,E10,sfx_anchovy_head_land,분리된 멸치 머리가 도마에 작게 떨어지는 소리,small object drop wooden board,0.08~0.2초,미완료
+38,2차 디테일,E11,sfx_plate_place,두부와 볶은 김치를 접시에 부드럽게 내려놓는 소리,soft food placed on ceramic plate,0.15~0.35초,미완료
+39,3차 시스템,결과,sfx_result_perfect,PERFECT 결과에만 사용하는 맑고 만족스러운 성공음,perfect result sparkle chime,0.6~1초,완료
+40,3차 시스템,결과,sfx_result_good,GOOD 결과에 사용하는 짧고 따뜻한 2음,casual game good result chime,0.4~0.7초,완료
+41,3차 시스템,제한시간,sfx_timer_warning,중요한 제한시간이 얼마 남지 않았을 때의 시계 경고,kitchen timer warning tick,0.05~0.15초,완료
+42,3차 시스템,서빙,sfx_food_serve,완성 접시를 손님 앞에 내려놓는 소리,ceramic plate serve table sound,0.2~0.5초,미완료
+43,3차 시스템,UI,sfx_ui_click,메뉴·설정에만 사용하는 작고 부드러운 클릭,soft wooden UI click sound,0.05~0.1초,완료

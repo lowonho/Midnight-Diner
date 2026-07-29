@@ -84,7 +84,6 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
     return true;
   }
   data[indexKey]=index+1;
-  audio.click();
   onCorrect?.(data,index);
   if(data[indexKey]>=config.total)onComplete?.(data,config);
   return true;
@@ -168,6 +167,7 @@ function lockDirectionInput(m,targetSelector,message){
 
 function completeDirectionSequence(m,{workSelector,feedback,onDone}){
   const data=m.data,grade=directionCompletionGrade(data);
+  data.completionGrade=grade;
   data.transitioning=true;data.inputLocked=true;data.phase="complete";
   dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
   showDirectionGrade(grade);
@@ -178,7 +178,7 @@ function completeDirectionSequence(m,{workSelector,feedback,onDone}){
 
 function setupKimchiFry(taskId="fryTofuKimchi"){
   const config=DIRECTION_SEQUENCE_CONFIG.kimchi;
-  setDayPrepData({
+  const m=setDayPrepData({
     mode:"direction",
     configId:"kimchi",
     taskId,
@@ -193,6 +193,7 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
     ingredients:config.ingredients,
     sequence:randomFryDirections(config.directions,config.total)
   });
+  audio.loop?.("pan_sizzle",m,.6);
   dom.miniTitle.textContent="김치 볶기";
   dom.miniDescription.textContent="화살표 방향대로 팬 위를 슬라이드해 김치와 설탕을 함께 볶아주세요!";
   renderKimchiFry();
@@ -262,6 +263,7 @@ function kimchiFryInput(direction,repeat=false){
       lockDirectionInput(m,"#fryWorkArea",`${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]} 방향입니다. 나무 주걱을 그 방향으로 움직이세요.`);
     },
     onCorrect(){
+      audio.play?.("wood_stir",{owner:m});
       current?.classList.remove("current");current?.classList.add("done");
       dom.miniFeedback.textContent="볶기 성공";
       dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`)?.classList.remove("upcoming");
@@ -333,6 +335,7 @@ registerMiniEngine("stir",{
       transitioning:false,
       drag:null
     };
+    audio.loop?.("griddle_sizzle",m,.62);
     dom.miniTimer.textContent=`0 / ${STIR_TOTAL}`;          // 공용 카드는 CSS 로 숨겨져 있습니다
     renderStirScene();
   },
@@ -414,6 +417,7 @@ function stirInput(direction,repeat=false){
       lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요.`);
     },
     onCorrect(){
+      audio.play?.("metal_scrape",{owner:m});
       current?.classList.remove("current");current?.classList.add("done");
       dom.miniFeedback.textContent="볶기 성공";
       dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`)?.classList.remove("upcoming");
