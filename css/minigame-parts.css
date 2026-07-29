@@ -26,6 +26,133 @@
      .fry-card      E6 튀기기
    ============================================================ */
 
+/* ============================================================
+   1. 공용 규격 변수 — 여기 한 곳만 고치면 11종이 같이 움직입니다
+   ------------------------------------------------------------
+   1920x1080 기준 px 입니다(--upx = 1920 프레임에서 딱 1px).
+   플레이 영역 내용 상자는 1363.2 x 615.6 이고, 아래 값들이 그 안을
+   나눕니다.  250 + 18 + 827.2 + 18 + 250 = 1363.2
+
+   [세로 두 가지]
+   하단 띠(.mg-strip)에 내용이 있으면   상단 3열 525.6 + 12 + 띠 78 = 615.6
+   띠가 비면 :empty 로 접혀서          상단 3열이 615.6 을 그대로 씁니다.
+   그래서 게임은 "띠에 무엇을 넣을지"만 정하면 되고 높이 계산은 안 해도 됩니다.
+   ============================================================ */
+:root {
+  --mg-side:    calc(250 * var(--upx));   /* 좌·우 칸 폭 (11종 공통) */
+  --mg-gap:     calc(18 * var(--upx));    /* 열 간격 */
+  --mg-row-gap: calc(12 * var(--upx));    /* 상단 3열 ↔ 하단 띠 간격 */
+  --mg-strip:   calc(78 * var(--upx));    /* 하단 공용 띠 높이 (E3 화살표 칩 기준) */
+
+  --mg-gauge-h:   calc(34 * var(--upx));  /* 게이지 바 높이 */
+  --mg-gauge-r:   calc(9 * var(--upx));   /* 게이지 모서리 */
+  --mg-marker-w:  calc(7 * var(--upx));   /* 포인터 마커 폭 */
+  --mg-marker-h:  calc(44 * var(--upx));  /* 포인터 마커 높이 (바 위아래로 5씩 튀어나옴) */
+  --mg-action-h:  calc(56 * var(--upx));  /* 조작 버튼 높이 */
+  --mg-prog-h:    calc(110 * var(--upx)); /* 우측 진행 카드 높이 */
+}
+
+/* ---- 3열 격자 (11종 공통) -----------------------------------
+   원래 좌우 폭이 200·215·230·250·258·300 여섯 가지, 간격이 16·20·22
+   세 가지로 흩어져 있었습니다. 여기 한 벌로 모았습니다.
+
+   ⚠️ 각 엔진 파일(.cut-screen 등)에서 grid-template-columns / gap 을
+      다시 선언하면 이 규칙을 덮어씁니다. 그 선언들은 전부 지웠으니
+      크기를 바꾸고 싶으면 위 --mg-* 변수를 고치세요. */
+.cut-screen,
+.anchovy-screen,
+.fry-screen,
+.fp-scene,
+.kf-scene,
+.yk-scene,
+.ts-scene,
+.sauce-lab,
+.batter-prep-scene,
+.skewer-prep-scene,
+.one-shot-scene {
+  display: grid;
+  grid-template-columns: var(--mg-side) minmax(0,1fr) var(--mg-side);
+  /* 행은 "한 줄만" 못박습니다. 하단 띠(.mg-strip)가 붙을 때만 두 번째 줄이
+     자동으로 생기고, 그때만 row-gap 이 걸립니다.
+     ⚠️ `minmax(0,1fr) auto` 처럼 두 줄을 미리 적으면 띠가 비어도 row-gap 이
+        그대로 소모되어 상단 3열이 12px 짧아집니다. */
+  grid-template-rows: minmax(0,1fr);
+  grid-auto-rows: auto;
+  column-gap: var(--mg-gap);
+  row-gap: var(--mg-row-gap);
+  align-items: stretch;
+}
+
+/* 3열 화면은 가운데 열 제한(#miniContent 921.6)을 풀어 사이드 칸 자리를 만듭니다.
+   원래 게임마다 한 줄씩 적혀 있던 것을 여기로 모았습니다. */
+.mini-content:has(.cut-screen),
+.mini-content:has(.anchovy-screen),
+.mini-content:has(.fry-screen),
+.mini-content:has(.fp-scene),
+.mini-content:has(.kf-scene),
+.mini-content:has(.yk-scene),
+.mini-content:has(.ts-scene),
+.mini-content:has(.sauce-lab),
+.mini-content:has(.batter-prep-scene),
+.mini-content:has(.skewer-prep-scene),
+.mini-content:has(.one-shot-scene) { width: 100%; }
+
+/* ---- 공용 진행 카드 #miniTimer ------------------------------
+   원래 11종이 저마다 '완성 개수 / 진행도' 카드를 그리고, 겹치는 공용
+   타이머 카드는 게임마다 한 줄씩 숨기고 있었습니다(11줄).
+   그 11줄을 아래 한 줄로 합쳤습니다.
+
+   ⚠️ 아직은 "숨김"까지만 합친 상태입니다. 게임별 카드를 없애고
+      #miniTimer 하나로 합치려면 engine-e*.js 쪽 작업이 필요합니다.
+      그때 이 규칙을 지우고 아래 .mini-timer 규격을 켜면 됩니다. */
+.mini-stage:has(.cut-screen) .mini-timer,
+.mini-stage:has(.anchovy-screen) .mini-timer,
+.mini-stage:has(.fry-screen) .mini-timer,
+.mini-stage:has(.fp-scene) .mini-timer,
+.mini-stage:has(.kf-scene) .mini-timer,
+.mini-stage:has(.yk-scene) .mini-timer,
+.mini-stage:has(.ts-scene) .mini-timer,
+.mini-stage:has(.sauce-lab) .mini-timer,
+.mini-stage:has(.batter-prep-scene) .mini-timer,
+.mini-stage:has(.skewer-prep-scene) .mini-timer,
+.mini-stage:has(.one-shot-scene) .mini-timer { display: none; }
+
+/* 통합 후 진행 카드가 앉을 자리 (우측 열 맨 위 250 x 110).
+   게임별 카드를 걷어낸 뒤 위 숨김 규칙을 지우면 이 규격이 살아납니다. */
+.mg-progress-slot {
+  width: var(--mg-side);
+  height: var(--mg-prog-h);
+}
+
+/* ---- 하단 공용 띠 -------------------------------------------
+   3열을 관통하는 가로 1363.2 짜리 한 칸입니다.
+   화살표 칩 줄(E3) · 타이밍 바 · 조작 버튼 · 진행 문구가 모두 여기 들어갑니다.
+   높이 78 은 원래 값 중 가장 큰 --yk-chip(E3 밤 화살표 칩)에서 왔습니다.
+
+   비어 있으면 접혀서 위 3열이 615.6 을 그대로 씁니다.
+   E7(소스통) · E8 꼬치처럼 세로를 가득 쓰는 화면이 잘리지 않는 이유입니다. */
+.mg-strip {
+  grid-column: 1 / -1;
+  min-height: var(--mg-strip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mg-gap);
+  min-width: 0;
+}
+.mg-strip:empty { display: none; }
+
+/* ---- 좁은 화면 보정 -----------------------------------------
+   변수만 줄이면 11종이 같이 줄어듭니다. */
+@media (max-width: 600px) {
+  :root {
+    --mg-side:    calc(170 * var(--upx));
+    --mg-gap:     calc(10 * var(--upx));
+    --mg-row-gap: calc(8 * var(--upx));
+    --mg-strip:   calc(52 * var(--upx));
+  }
+}
+
 /* ---- 카드 껍데기 --------------------------------------------
    안쪽 배치(그리드/플렉스)는 각 게임이 정합니다. 여기는 껍데기만입니다. */
 .fp-panel,
@@ -80,6 +207,61 @@
    ⚠️ 닭꼬치(.sk-col-title)만 engine-e8-order-place.js 가 "★ 재료 ★" 를
       글자로 직접 써서 이 규칙을 안 탑니다. 맞추려면 그 한 줄을
       <h3 class="sk-col-title starred">재료</h3> 로 고치면 됩니다. */
+/* ---- 게이지 바 + 포인터 마커 (공용 규격) --------------------
+   원래 높이가 28(.progress-track) · 30(.prep-timing-bar) · 34(.doneness-gauge)
+   · 38(.heat-gauge) · 46(.fry-temp-track) 다섯 가지였습니다.
+   34 로 통일했습니다. 34 를 고른 이유는 E5 굽기 게이지가 이미 34 라
+   그 게임만 손대지 않아도 되기 때문입니다.
+
+   색·무늬는 게임마다 다르게 두었습니다(온도/굽기/화력이 서로 다른 정보라서).
+   여기서 맞추는 것은 높이·모서리·마커뿐입니다. */
+.prep-timing-bar,
+.progress-track,
+.doneness-gauge,
+.heat-gauge,
+.fry-temp-track {
+  height: var(--mg-gauge-h);
+  border-radius: var(--mg-gauge-r);
+}
+/* 튀김 온도 바만 테두리가 4px 라 안쪽이 좁아집니다. 2px 로 맞춥니다. */
+.fry-temp-track { border-width: 2px; }
+
+/* 마커는 바(34) 위아래로 5씩 튀어나와 44 가 됩니다. */
+.prep-timing-marker,
+.progress-marker {
+  top: calc(-5 * var(--upx));
+  width: var(--mg-marker-w);
+  height: var(--mg-marker-h);
+}
+
+/* ---- 조작 버튼 높이 ------------------------------------------
+   글자 길이에 따라 가로는 늘어나고 세로는 56 으로 고정입니다. */
+.mini-action {
+  min-height: var(--mg-action-h);
+}
+
+/* ---- TIP 줄 조작 안내 칩 (공용) -----------------------------
+   원래 E11(단발 액션)만 .mini-tip::after 가상 요소로 붙이던 것을
+   어느 게임이든 쓸 수 있는 요소로 올렸습니다.
+   ESC 안내 왼쪽에 앉습니다(order 로 순서만 바꿉니다).
+
+   ⚠️ 칩이 떠 있는 동안 설명 폭이 1040.9 → 약 848 로 줄어듭니다.
+      설명 문구는 40자 이내로 써 주세요. */
+.mini-tip-hint {
+  order: 1;
+  flex: none;
+  padding: calc(.5 * var(--mh)) calc(1 * var(--mw));
+  border: 2px solid #8b6034;
+  border-radius: calc(.6 * var(--mh));
+  background: rgba(90,61,34,.14);
+  color: #5a3d22;
+  font-size: calc(1.5 * var(--mh));
+  font-weight: 800;
+  white-space: nowrap;
+}
+.mini-tip-hint:empty { display: none; }
+.mini-tip .mini-esc-hint { order: 2; }
+
 .fp-col-title.starred::before,     .fp-col-title.starred::after,
 .kf-col-title.starred::before,     .kf-col-title.starred::after,
 .yk-col-title.starred::before,     .yk-col-title.starred::after,

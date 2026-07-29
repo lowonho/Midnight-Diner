@@ -17,7 +17,7 @@
      왼쪽   재료 카드 — 끌어다 놓거나, 눌러 집은 뒤 그릇을 눌러도 됩니다
      가운데 그릇(접시 / 냄비) + 끌어다 놓으라는 점선 화살표
      오른쪽 완성 개수 + 참고 모양
-     아래   TIP 줄 오른쪽에 조작 안내 칩 (--os-hint 로 글자만 넣습니다)
+     아래   TIP 줄 오른쪽에 조작 안내 칩 (공용 setMiniTipHint 로 글자만 넣습니다)
 
    모양·크기는 css/day-prep-minigames.css 의 "단발 액션" 구역에 모여 있습니다.
    공용 프레임(css/minigame-frame.css, ui-mini-frame.js)은 건드리지 않고,
@@ -80,8 +80,8 @@ function renderOneShot(){
   const data=oneShotData();if(!data)return;
   const done=data.placed.length>=data.items.length?1:0;
   dom.miniTimer.textContent=`${done} / 1`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
-  // TIP 줄 오른쪽 조작 안내 칩. 글자만 넘기고 모양은 CSS 가 그립니다.
-  dom.miniOverlay.style.setProperty("--os-hint",`"${data.hint||"드래그 : 담기"}"`);
+  // TIP 줄 오른쪽 조작 안내 칩(공용). 글자만 넘기고 모양은 CSS 가 그립니다.
+  setMiniTipHint(data.hint||"드래그 : 담기");
   dom.miniContent.innerHTML=oneShotSceneMarkup(data);
   bindOneShotEvents();
 }

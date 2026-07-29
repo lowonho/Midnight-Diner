@@ -398,8 +398,10 @@
   border-radius: calc(5 * var(--upx));
   background: #120a07;
 }
+/* 채움 길이는 game.js 가 --clean(UI_VAR.cleanliness) 으로 넘긴 청결도입니다.
+   JS 는 "청결도 62" 만 알려주고, 그것을 막대로 그릴지는 여기서 정합니다. */
 .clean-track i {
-  width: 100%;
+  width: var(--clean, 100%);
   height: 100%;
   display: block;
   background: linear-gradient(90deg,#9bb667,#d8b25e);

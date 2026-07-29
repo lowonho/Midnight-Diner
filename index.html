@@ -50,7 +50,7 @@
     </section>
 
     <main id="gameScreen" class="app-screen game-screen" aria-label="심야식당 게임 화면">
-      <section id="gameApp" class="game-app phase-title">
+      <section id="gameApp" class="game-app">
         <section class="game-frame" aria-label="심야식당 게임">
           <div id="gameCanvas" role="img" aria-label="캐릭터가 움직이는 식당 주방"></div>
 
@@ -281,6 +281,16 @@
   <script src="qa-mode.js"></script>    <!-- QA 전용: ?qa=1, 제거 시 이 줄과 QA CSS/저장 훅 삭제 -->
   <script src="save.js"></script>
   <script src="title.js"></script>
+
+  <!--
+    UI 표. game.js 보다 먼저 로드해야 합니다(로드 시점에 상수를 읽습니다).
+    ui-hud.js 는 GAME_PHASES 로 키를 만들므로 game-data.js 보다도 뒤여야 합니다.
+      ui-class-names.js  JS 가 CSS 에 붙이는 클래스 이름 · CSS 변수 이름
+      ui-hud.js          화면에 보이는 글자 + 메뉴 카드 마크업
+  -->
+  <script src="ui-class-names.js"></script>
+  <script src="ui-hud.js"></script>
+
   <script src="game.js"></script>
   <script src="save-ui.js"></script>
 </body>

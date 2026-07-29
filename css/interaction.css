@@ -10,8 +10,11 @@
 .station-prompt {
   position: absolute;
   z-index: 7;
-  left: 50%;
-  top: 55%;
+  /* 좌표는 game.js 가 --prompt-x / --prompt-y (UI_VAR) 로 넘깁니다.
+     조리대가 없을 때 쓰는 기본값이 아래 50% / 55% 입니다.
+     인라인 style 로 박지 않으므로 아래 responsive.css 등에서 덮어쓸 수 있습니다. */
+  left: var(--prompt-x, 50%);
+  top: var(--prompt-y, 55%);
   /* 크기를 확정해 둬야 responsive.css 의 bottom 값과 top 이 같이 걸려도
      버튼이 세로로 늘어나지 않습니다. (over-constrained → bottom 무시) */
   width: max-content;
@@ -164,7 +167,8 @@
   border: 2px solid #d59a4d;
   border-radius: 50%;
   background: rgba(239,205,139,.75);
-  transform: translate(0,0);
+  /* 손잡이 위치는 game.js 가 --knob-x / --knob-y (UI_VAR) 로 넘깁니다. */
+  transform: translate(var(--knob-x, 0px), var(--knob-y, 0px));
 }
 .action-button {
   width: calc(90 * var(--upx));

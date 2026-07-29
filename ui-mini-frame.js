@@ -48,6 +48,9 @@ const MINI_FRAME_HTML = `
                 <p id="miniDescription" class="mini-description"></p>
                 <p id="miniFeedback" class="mini-feedback" aria-live="polite"></p>
               </div>
+              <!-- 조작 안내 칩. 비어 있으면 CSS 가 숨깁니다(:empty).
+                   글자는 setMiniTipHint() 로 넣습니다. 예) "드래그 : 육수 붓기" -->
+              <span id="miniTipHint" class="mini-tip-hint"></span>
               <span class="mini-esc-hint"><kbd>ESC</kbd> 나가기</span>
             </div>
 
@@ -73,6 +76,24 @@ function mountMiniFrame(){
   }
   anchor.outerHTML=MINI_FRAME_HTML;
   return document.getElementById("miniOverlay");
+}
+
+/* TIP 줄 오른쪽 조작 안내 칩을 채웁니다. 빈 문자열이면 칩이 사라집니다.
+   미니게임을 열 때마다 game.js 가 ""(빈 값)으로 되돌리므로,
+   칩이 필요한 게임만 setup 에서 한 번 불러 주면 됩니다.
+     예) setMiniTipHint("드래그 : 육수 붓기");
+   ※ 칩이 떠 있는 동안 설명 폭이 약 848px 로 줄어듭니다(설명 40자 이내 권장). */
+function setMiniTipHint(text){
+  const hint=document.getElementById("miniTipHint");
+  if(hint)hint.textContent=text||"";
+}
+
+/* 하단 공용 띠(.mg-strip)를 만들어 돌려줍니다.
+   3열을 관통하는 가로 1363.2 짜리 칸이고, 비어 있으면 CSS 가 접습니다.
+   각 엔진이 화면 마크업을 만들 때 3열 다음에 이 조각을 넣으면 됩니다.
+     예) `<div class="mg-strip">${버튼마크업}</div>` */
+function miniStripMarkup(inner=""){
+  return `<div class="mg-strip">${inner}</div>`;
 }
 
 mountMiniFrame();
