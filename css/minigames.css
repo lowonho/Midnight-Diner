@@ -223,18 +223,14 @@
    크기는 전부 --upx(1920x1080 에서 딱 1px)라서 UI 에셋 제작 기준과 같습니다.
    에셋이 들어오면 .has-fry-asset 이 붙어 CSS 임시 도형은 자동으로 숨습니다.
    ============================================================ */
-.mini-content:has(.fry-screen) { width: 100%; }
-.mini-stage:has(.fry-screen) .mini-timer { display: none; }
 
 .fry-screen {
   flex: 1;
   align-self: stretch;
   width: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: calc(200 * var(--upx)) minmax(0,1fr) calc(300 * var(--upx));
-  align-items: stretch;
-  gap: calc(20 * var(--upx));
+  /* 격자는 css/minigame-parts.css 공용 규격입니다.
+     ⚠️ 원래 이 게임만 좌 200 / 우 300 으로 좌우가 달랐습니다. 이제 둘 다 250 입니다. */
 }
 /* 재료 카드는 내용만큼만, 가운데와 오른쪽은 플레이 영역 높이를 다 씁니다 */
 .fry-ing-card { align-self: start; }
@@ -798,18 +794,13 @@
 
    칸 크기는 .yk-scene 의 --yk-side(좌우 칸 폭)와 --yk-chip(화살표 칸 높이)
    두 값이 정합니다. 가운데 철판은 남는 자리를 채우므로 이 둘만 바꾸면 됩니다. */
-.mini-content:has(.yk-scene) { width: 100%; }
-.mini-stage:has(.yk-scene) .mini-timer { display: none; }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다.
+   이 게임의 화살표 칩 높이 78 이 공용 하단 띠(--mg-strip) 높이의 근거입니다. */
 .yk-scene {
-  --yk-side: calc(230 * var(--upx));   /* 좌우 세로 칸 폭 */
-  --yk-chip: calc(78 * var(--upx));    /* 아래 화살표 칸 높이 */
+  --yk-chip: var(--mg-strip);
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: var(--yk-side) minmax(0,1fr) var(--yk-side);
-  grid-template-rows: minmax(0,1fr) auto;
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1146,7 +1137,6 @@
 
 /* 좁은 화면 보정 (김치 볶기와 같은 폭에서 같은 방식으로 줄입니다) */
 @media (max-width:600px) {
-  .yk-scene { --yk-side: calc(160 * var(--upx)); --yk-chip: calc(52 * var(--upx)); gap: calc(10 * var(--upx)); }
   .yk-griddle { height: min(100%,calc(300 * var(--upx))); }
   .yk-ing-art i { width: calc(60 * var(--upx)); height: calc(60 * var(--upx)); }
   .yk-count strong { font-size: calc(42 * var(--upx)); }
@@ -1247,8 +1237,6 @@
      · 타이틀 패널 윗줄(#miniStation)을 타이틀 아래로 내려 부제로 씁니다
 
    칸 크기는 .ts-scene 의 --ts-side(좌우 칸 폭) 하나가 정합니다. */
-.mini-content:has(.ts-scene) { width: 100%; }
-.mini-stage:has(.ts-scene) .mini-timer { display: none; }
 .mini-overlay:has(.ts-scene) #miniStation {
   order: 2;
   color: var(--cream);
@@ -1257,13 +1245,10 @@
   letter-spacing: 0;
 }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .ts-scene {
-  --ts-side: calc(250 * var(--upx));   /* 좌우 세로 칸 폭 */
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: var(--ts-side) minmax(0,1fr) var(--ts-side);
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1512,7 +1497,6 @@
 
 /* 좁은 화면 보정 (채썰기·김치 볶기와 같은 방식으로 줄입니다) */
 @media (max-width:600px) {
-  .ts-scene { --ts-side: calc(180 * var(--upx)); gap: calc(10 * var(--upx)); }
   .ts-count strong { font-size: calc(42 * var(--upx)); }
   .ts-keys { --ts-key-w: calc(44 * var(--upx)); }
   .ts-key { height: calc(42 * var(--upx)); font-size: calc(24 * var(--upx)); }

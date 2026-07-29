@@ -172,18 +172,13 @@
        도마 안에서만 자리와 크기를 덮어씁니다.
    그림은 전부 임시 CSS 도형입니다. 에셋 파일을 넣으면 .has-prep-asset 이
    붙어 도형이 꺼지고 <img> 가 대신 보입니다. */
-.mini-content:has(.cut-screen) { width: 100%; }
-.mini-stage:has(.cut-screen) .mini-timer { display: none; }
 
+/* 격자(좌 250 / gap 18 / 우 250 · 하단 띠)는 css/minigame-parts.css 공용 규격입니다. */
 .cut-screen {
   flex: 1;
   align-self: stretch;
   width: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: calc(215 * var(--upx)) minmax(0,1fr) calc(215 * var(--upx));
-  align-items: stretch;
-  gap: calc(20 * var(--upx));
 }
 
 /* 좌우 카드 (재료 · 완성 개수 · 완성 예시)
@@ -573,18 +568,15 @@
    동안에만 가운데 열 제한(.mini-content)을 풀어 좌우 카드 자리를 만듭니다.
    개수는 사이드의 '완성 개수' 카드가 대신 보여주므로 공용 진행 카드
    (#miniTimer)는 이 게임에서만 숨깁니다. (다른 게임은 그대로입니다) */
-.mini-content:has(.anchovy-screen) { width: 100%; }
-.mini-stage:has(.anchovy-screen) .mini-timer { display: none; }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다.
+   ⚠️ 원래 align-items:center 라 카드가 세로 가운데 떠 있었는데,
+      공용 규격의 stretch 를 따라 위아래로 꽉 차게 바뀌었습니다. */
 .anchovy-screen {
   flex: 1;
   align-self: stretch;
   width: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: calc(215 * var(--upx)) minmax(0,1fr) calc(200 * var(--upx));
-  align-items: center;
-  gap: calc(22 * var(--upx));
 }
 
 /* 좌우 카드 (재료 · 완성 개수 · 참고 모양)
@@ -735,33 +727,16 @@
    아래 규칙만 이 게임이 떠 있을 때 한정으로 공용 규칙을 덮어씁니다.
      · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
      · 공용 타이머 카드는 오른쪽 '완성 개수' 카드와 겹치므로 숨김
-     · TIP 줄 오른쪽에 조작 안내 칩 하나 추가 (글자는 --os-hint) */
-.mini-content:has(.one-shot-scene) { width: 100%; }
-.mini-stage:has(.one-shot-scene) .mini-timer { display: none; }
-/* 조작 안내 칩 : ESC 안내 왼쪽에 앉습니다(order 로 순서만 바꿉니다).
-   글자는 engine-e11 이 --os-hint 로 넣어 줍니다. 예) "드래그 : 플레이팅" */
-.mini-overlay:has(.one-shot-scene) .mini-tip::after {
-  order: 1;
-  content: var(--os-hint,none);
-  flex: none;
-  padding: calc(.5 * var(--mh)) calc(1 * var(--mw));
-  border: 2px solid #8b6034;
-  border-radius: calc(.6 * var(--mh));
-  background: rgba(90,61,34,.14);
-  color: #5a3d22;
-  font-size: calc(1.5 * var(--mh));
-  font-weight: 800;
-  white-space: nowrap;
-}
-.mini-overlay:has(.one-shot-scene) .mini-esc-hint { order: 2; }
+     · TIP 줄 오른쪽에 조작 안내 칩 하나 추가 (공용 .mini-tip-hint) */
+/* 조작 안내 칩은 공용 .mini-tip-hint 로 올라갔습니다.
+   → css/minigame-parts.css · 마크업은 ui-mini-frame.js 의 #miniTipHint
+   글자는 engine-e11 이 setMiniTipHint() 로 넣습니다. 예) "드래그 : 플레이팅" */
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .one-shot-scene {
   --os-vessel: calc(470 * var(--upx));   /* 가운데 그릇 가로 지름 */
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: calc(250 * var(--upx)) minmax(0,1fr) calc(250 * var(--upx));
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1051,18 +1026,14 @@
 
    칸 크기는 .kf-scene 의 --kf-side(좌우 칸 폭)와 --kf-chip(화살표 칸 높이)
    두 값이 정합니다. 안쪽 여백은 대부분 %  라 이 둘만 바꾸면 같이 커집니다. */
-.mini-content:has(.kf-scene) { width: 100%; }
-.mini-stage:has(.kf-scene) .mini-timer { display: none; }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다.
+   화살표 칸 높이도 공용 하단 띠(--mg-strip 78)를 그대로 씁니다.
+   원래 74 였는데, 이 게임의 칩 줄이 하단 띠 규격의 기준형이라 78 로 맞췄습니다. */
 .kf-scene {
-  --kf-side: calc(250 * var(--upx));   /* 좌우 세로 칸 폭 */
-  --kf-chip: calc(74 * var(--upx));    /* 아래 화살표 칸 높이 */
+  --kf-chip: var(--mg-strip);
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: var(--kf-side) minmax(0,1fr) var(--kf-side);
-  grid-template-rows: minmax(0,1fr) auto;
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1310,17 +1281,15 @@
 
    볼·고리 크기는 .batter-prep-scene 의 --bowl / --ring 두 값이 정합니다.
    안쪽 여백은 전부 % 라 두 값만 바꾸면 전체가 같은 비율로 커집니다. */
-.mini-content:has(.batter-prep-scene) { width: 100%; }
-.mini-stage:has(.batter-prep-scene) .mini-timer { display: none; }
 
 .batter-prep-scene {
+  /* 격자는 css/minigame-parts.css 공용 규격입니다.
+     ⚠️ 하단 띠를 쓰면 가운데 세로가 525.6 이 되어 고리(468) 여백이 위아래
+        28 씩만 남습니다. 볼 그림을 키우려면 --ring 도 같이 줄여야 합니다. */
   --bowl: calc(400 * var(--upx));   /* 반죽 볼 지름 */
   --ring: calc(468 * var(--upx));   /* 볼을 두르는 진행도 고리 = 젓기 조작 영역 */
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: calc(250 * var(--upx)) minmax(0,1fr) calc(250 * var(--upx));
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1505,15 +1474,11 @@
      · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
      · 공용 타이머 카드는 오른쪽 '완성 개수' 카드와 자리가 겹치므로 숨김
        (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다) */
-.mini-content:has(.skewer-prep-scene) { width: 100%; }
-.mini-stage:has(.skewer-prep-scene) .mini-timer { display: none; }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .skewer-prep-scene {
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: calc(250 * var(--upx)) 1fr calc(250 * var(--upx));
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -1727,16 +1692,13 @@
      · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
      · 공용 타이머 카드는 오른쪽 '완성 개수' 카드와 자리가 겹치므로 숨김
        (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다) */
-.mini-content:has(.sauce-lab) { width: 100%; }
-.mini-stage:has(.sauce-lab) .mini-timer { display: none; }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다.
+   ⚠️ 원래 이 게임만 좌우가 250 보다 넓은 258 이었습니다. 8px 줄었습니다. */
 .sauce-lab {
   flex: 1;
   width: 100%;
   min-height: 0;
-  display: grid;
-  grid-template-columns: calc(258 * var(--upx)) minmax(0,1fr) calc(258 * var(--upx));
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -2066,8 +2028,6 @@
      · 타이틀 패널 윗줄(#miniStation)을 타이틀 아래로 내려 부제로 씁니다
 
    칸 크기는 .fp-scene 의 --fp-side(좌우 칸 폭) 하나가 정합니다. */
-.mini-content:has(.fp-scene) { width: 100%; }
-.mini-stage:has(.fp-scene) .mini-timer { display: none; }
 .mini-overlay:has(.fp-scene) #miniStation {
   order: 2;
   color: var(--cream);
@@ -2076,13 +2036,10 @@
   letter-spacing: 0;
 }
 
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .fp-scene {
-  --fp-side: calc(250 * var(--upx));   /* 좌우 세로 칸 폭 */
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: var(--fp-side) minmax(0,1fr) var(--fp-side);
-  gap: calc(16 * var(--upx));
   user-select: none;
 }
 
@@ -2437,16 +2394,13 @@
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: calc(58 * var(--upx)); }
   .tofu-cook-object { width: calc(150 * var(--upx)); height: calc(150 * var(--upx)); }
-  .anchovy-screen { grid-template-columns: calc(150 * var(--upx)) minmax(0,1fr) calc(140 * var(--upx)); gap: calc(12 * var(--upx)); }
   .anchovy-card-figure { height: calc(140 * var(--upx)); }
-  .cut-screen { grid-template-columns: calc(150 * var(--upx)) minmax(0,1fr) calc(150 * var(--upx)); gap: calc(12 * var(--upx)); }
   .cut-board { padding: calc(16 * var(--upx)) calc(14 * var(--upx)) calc(64 * var(--upx)); }
   .cut-board .prep-work-object { width: calc(230 * var(--upx)); }
   .cut-pile { width: calc(150 * var(--upx)); height: calc(120 * var(--upx)); }
   .cut-card-figure { min-height: calc(96 * var(--upx)); }
   .cut-card-figure .cut-sample { width: calc(115 * var(--upx)); }
   .cut-count-value { font-size: calc(38 * var(--upx)); }
-  .kf-scene { --kf-side: calc(170 * var(--upx)); --kf-chip: calc(52 * var(--upx)); gap: calc(10 * var(--upx)); }
   .kf-stove { width: calc(360 * var(--upx)); height: calc(220 * var(--upx)); }
   .kf-flame { bottom: calc(38 * var(--upx)); width: calc(200 * var(--upx)); }
   .frying-pan { width: calc(300 * var(--upx)); height: calc(135 * var(--upx)); margin-bottom: calc(30 * var(--upx)); }
@@ -2455,7 +2409,7 @@
   .kf-count strong { font-size: calc(42 * var(--upx)); }
   .kf-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
   .kf-chip { font-size: calc(24 * var(--upx)); }
-  .batter-prep-scene { --bowl: calc(290 * var(--upx)); --ring: calc(340 * var(--upx)); grid-template-columns: calc(170 * var(--upx)) minmax(0,1fr) calc(170 * var(--upx)); gap: calc(10 * var(--upx)); }
+  .batter-prep-scene { --bowl: calc(290 * var(--upx)); --ring: calc(340 * var(--upx)); }
   .bt-ing-art i { width: calc(52 * var(--upx)); height: calc(52 * var(--upx)); }
   .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
   .bt-count strong { font-size: calc(42 * var(--upx)); }
@@ -2463,19 +2417,17 @@
   .whisk-tool { width: calc(38 * var(--upx)); height: calc(158 * var(--upx)); }
   .whisk-tool::before { height: calc(110 * var(--upx)); }
   .whisk-tool::after { width: calc(38 * var(--upx)); height: calc(62 * var(--upx)); }
-  .skewer-prep-scene { grid-template-columns: calc(170 * var(--upx)) 1fr calc(170 * var(--upx)); gap: calc(10 * var(--upx)); }
   .sk-ing-art { height: calc(64 * var(--upx)); }
   .sk-ing-art .sk-piece { width: calc(38 * var(--upx)); height: calc(26 * var(--upx)); }
   .sk-slot { width: calc(78 * var(--upx)); height: calc(48 * var(--upx)); }
   .sk-piece { width: calc(62 * var(--upx)); height: calc(40 * var(--upx)); }
   .sk-piece.greenOnion { width: calc(56 * var(--upx)); height: calc(32 * var(--upx)); }
   .sk-count strong { font-size: calc(42 * var(--upx)); }
-  .one-shot-scene { --os-vessel: calc(330 * var(--upx)); grid-template-columns: calc(170 * var(--upx)) minmax(0,1fr) calc(170 * var(--upx)); gap: calc(10 * var(--upx)); }
+  .one-shot-scene { --os-vessel: calc(330 * var(--upx)); }
   .os-ing-art { min-height: calc(64 * var(--upx)); }
   .os-ing-art .os-art { width: min(100%,calc(104 * var(--upx))); }
   .os-count strong { font-size: calc(42 * var(--upx)); }
   .os-guide-figure .os-vessel { width: calc(140 * var(--upx)); }
-  .sauce-lab { grid-template-columns: calc(172 * var(--upx)) minmax(0,1fr) calc(172 * var(--upx)); gap: calc(10 * var(--upx)); }
   .sc-goal { grid-template-columns: calc(56 * var(--upx)) minmax(0,1fr); }
   .sc-bottle.mini { --bw: calc(46 * var(--upx)); }
   .sc-bottle.tiny { --bw: calc(34 * var(--upx)); }
@@ -2486,7 +2438,6 @@
   .sc-pourer .sc-bottle { --bw: calc(78 * var(--upx)); }
   .shrimp-coat-order { gap:3px; font-size:10px; }
   .shrimp-coat-order span { padding:4px; }
-  .fp-scene { --fp-side: calc(180 * var(--upx)); gap: calc(10 * var(--upx)); }
   .md-scene { --md-plate-w: calc(300 * var(--upx)); --md-plate-h: calc(140 * var(--upx)); }
   .md-ingredient { width: calc(108 * var(--upx)); height: calc(82 * var(--upx)); }
   .axis-x .md-hint { width: calc(230 * var(--upx)); height: calc(46 * var(--upx)); }

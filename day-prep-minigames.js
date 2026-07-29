@@ -239,6 +239,10 @@ function startDayPrepMini(task){
   dom.miniStation.textContent=`준비 테이블 · ${task.objectLabel}`;
   dom.miniFeedback.textContent="";
   dom.miniContent.innerHTML="";
+  // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
+  // ⚠️ 이 함수는 startMini 를 거치지 않는 별도 진입로라, 거기와 따로 비워야 합니다.
+  //    안 비우면 앞 게임 칩(예: "드래그 : 육수 붓기")이 다음 준비 게임에 남습니다.
+  setMiniTipHint("");
   dom.miniClose.hidden=false;
   dom.miniOverlay.classList.add("open");
 

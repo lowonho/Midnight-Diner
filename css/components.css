@@ -1,3 +1,9 @@
+/* JS 가 요소 하나를 숨길 때 씁니다. (UI_CLASS.hidden)
+   원래 game.js 가 style.display 로 직접 껐다 켰는데, 인라인 스타일은
+   CSS 로 덮어쓸 수 없어서 클래스로 바꿨습니다.
+   HUD 뭉치를 통째로 감추는 .hidden-hud(투명 + 클릭 차단)와는 다릅니다. */
+.is-hidden { display: none !important; }
+
 .wood-panel {
   color: var(--cream);
   background:

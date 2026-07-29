@@ -165,18 +165,20 @@ const audio = {
 };
 
 function showGameHud(show) {
-  [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle("hidden-hud",!show));
+  [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle(UI_CLASS.hudHidden,!show));
 }
 
 function openSettings(from=state.screen) {
   if(from==="game")saveGame();
-  state.settingsFrom=from; state.paused=true; dom.pauseMessage.textContent=from==="title"?"소리 설정을 변경할 수 있습니다.":"게임이 일시정지되었습니다.";
-  dom.returnTitleButton.style.display=from==="title"||storyIsActive()?"none":"block";
-  dom.resumeButton.textContent=from==="title"?"설정 닫기":"게임으로 돌아가기";
-  dom.settingsOverlay.classList.add("open"); audio.click();
+  const fromTitle=from==="title";
+  state.settingsFrom=from; state.paused=true;
+  dom.pauseMessage.textContent=fromTitle?UI_TEXT.pauseFromTitle:UI_TEXT.pauseFromGame;
+  dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||storyIsActive());
+  dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
+  dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen); audio.click();
 }
 function closeSettings() {
-  dom.settingsOverlay.classList.remove("open");
+  dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
   state.paused=state.settingsFrom==="title" || state.phase==="result";
   audio.click();
 }
@@ -191,21 +193,16 @@ function isSpecialFood(dishId,order=null){
   return !!dishId && getCurrentDayData()?.specialMenu===dishId;
 }
 
+// 무엇을 그릴지만 정하고, 어떻게 생겼는지는 ui-hud.js 가 정합니다.
 function buildMenuCards() {
-  dom.menuCards.innerHTML="";
-  selectedDishes().forEach(dish=>{
-    const b=document.createElement("button"); b.type="button"; b.className="menu-card"; b.dataset.id=dish.id;
-    const orderCount=state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0;
-    const required=getCurrentDayData().requiredMenus.includes(dish.id);
-    // 음식 그림은 food-props.js 가 메뉴 id 로 찾아 줍니다. (표에 없는 메뉴만 자리표시)
-    // 특별음식이면 sparkle 클래스가 붙고 반짝임은 CSS 가 돌립니다. (css/hud.css)
-    const iconUrl=foodPropUrl(dish.id);
-    const sparkle=isSpecialFood(dish.id)?" sparkle":"";
-    const icon=iconUrl?`<span class="food-icon${sparkle}" style="background-image:url('${iconUrl}')"></span>`:'<span class="food-icon menu-icon-placeholder">🍽</span>';
-    b.innerHTML=`<strong>${dish.name}</strong>${icon}${required?'<small class="menu-tag">필수</small>':""}${orderCount?`<span class="order-count">주문 ${orderCount}</span>`:""}`;
-    b.disabled=true;
-    dom.menuCards.appendChild(b);
-  });
+  renderMenuCards(dom.menuCards,selectedDishes().map(dish=>({
+    id:dish.id,
+    name:dish.name,
+    iconUrl:foodPropUrl(dish.id),
+    sparkle:isSpecialFood(dish.id),
+    required:getCurrentDayData().requiredMenus.includes(dish.id),
+    orderCount:state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0
+  })));
 }
 
 function currentRequirement() {
@@ -227,7 +224,7 @@ function interact() {
   if(storyDialogueIsActive() || state.paused || state.mini || !["day","night"].includes(state.phase)) return;
   if(state.phase==="day"){
     const prepObject=nearestPrepObject();
-    if(!prepObject){showToast("앞 테이블의 준비 재료 가까이 이동하세요.",true);return;}
+    if(!prepObject){showToast(UI_TEXT.toast.prepTooFar,true);return;}
     state.player.facing="down";
     startPrepTask(prepObject.task.id);
     return;
@@ -243,11 +240,11 @@ function interact() {
     tryDeliver();
     return;
   }
-  if(!station){ showToast("사용할 집기 가까이 이동하세요.",true); return; }
+  if(!station){ showToast(UI_TEXT.toast.stationTooFar,true); return; }
   state.player.facing=station.facing;
-  if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast("씻을 그릇이 없습니다.");return;} startMini("dishwasher",station.id,{utility:true}); return; }
-  if(station.id==="trash") { if(state.trash<=0){showToast("버릴 쓰레기가 없습니다.");return;} startMini("trash",station.id,{utility:true}); return; }
-  if(station.id!==required){ showToast(`지금은 ${required?stationById(required).label:"주문 선택"} 단계입니다.`,true); return; }
+  if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast(UI_TEXT.toast.noDishes);return;} startMini("dishwasher",station.id,{utility:true}); return; }
+  if(station.id==="trash") { if(state.trash<=0){showToast(UI_TEXT.toast.noTrash);return;} startMini("trash",station.id,{utility:true}); return; }
+  if(station.id!==required){ showToast(UI_TEXT.toast.wrongStep(required?stationById(required).label:UI_TEXT.toast.orderSelect),true); return; }
   startCookMini(station.id);
 }
 
@@ -256,7 +253,8 @@ function startMini(type,stationId,context) {
   // 밤 조리는 type 이 곧 엔진 이름이고, 낮 준비는 startDayPrepMini 가 "dayPrep" 을 넣습니다.
   state.mini={type,engine:type,stationId,context:context||{},time:8,score:0,data:{},complete:false};
   dom.miniStation.textContent=stationById(stationId)?.label||stationId;
-  dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add("open");
+  dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add(UI_CLASS.overlayOpen);
+  setMiniTipHint("");   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
   dom.miniClose.hidden=true;
   setupMini(); audio.click();
 }
@@ -270,8 +268,8 @@ function setupMini() {
   // 공용 패널(제목·설명·제한시간)을 채우는 도우미. 각 엔진의 setup 이 불러 씁니다.
   const set=(title,desc,time)=>{
     const special=m.context.special;
-    dom.miniTitle.textContent=special?`특별 조리 · ${title}`:title;
-    dom.miniDescription.textContent=special?`${desc} 평소보다 조금 더 섬세한 조리가 필요합니다.`:desc;
+    dom.miniTitle.textContent=special?UI_TEXT.miniTitleSpecial(title):title;
+    dom.miniDescription.textContent=special?UI_TEXT.miniDescSpecial(desc):desc;
     m.time=special?Math.max(5.5,time/difficulty):time;
     dom.miniTimer.textContent=m.time.toFixed(1);
   };
@@ -287,20 +285,20 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
-  dom.miniFeedback.textContent=score>=90?`완벽해요! ${score}점`:score>=70?`좋아요! ${score}점`:`조금 아쉬워요. ${score}점`;
+  dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   score>=70?audio.success():audio.bad();
   setTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
-  state.mini=null;dom.miniOverlay.classList.remove("open");
+  state.mini=null;dom.miniOverlay.classList.remove(UI_CLASS.overlayOpen);
   if(m.context.mode==="story"){
     completeStoryCookStep(score);
     updateUI(true);
     return;
   }
   if(m.context.utility){
-    if(m.type==="dishwasher"){state.dirtyDishes=0;state.cleanliness=clamp(state.cleanliness+12,0,100);showToast("식기가 깨끗해졌습니다.");}
-    else{state.trash=0;state.cleanliness=clamp(state.cleanliness+8,0,100);showToast("쓰레기를 정리했습니다.");}
+    if(m.type==="dishwasher"){state.dirtyDishes=0;state.cleanliness=clamp(state.cleanliness+12,0,100);showToast(UI_TEXT.toast.dishesClean);}
+    else{state.trash=0;state.cleanliness=clamp(state.cleanliness+8,0,100);showToast(UI_TEXT.toast.trashCleared);}
     updateUI(true);saveGame();return;
   }
   if(m.context.mode==="prep"){
@@ -310,15 +308,15 @@ function completeMiniContext(m,score) {
     if(run.stepIndex>=dish.prep.length){
       const q=Math.round(run.scores.reduce((a,b)=>a+b,0)/run.scores.length);const inv=state.inventory[dish.id];
       const newCount=inv.count+3;inv.quality=Math.round((inv.quality*inv.count+q*3)/newCount);inv.count=newCount;state.prepRun=null;
-      spawnPopup(state.player.x,state.player.y-70,`${dish.name} +3 · 품질 ${q}`);showToast(`${dish.name} 3인분 준비 완료!`);audio.success();
-    }else showToast(`다음 단계: ${STATIONS[dish.prep[run.stepIndex]].label}`);
+      spawnPopup(state.player.x,state.player.y-70,UI_TEXT.popup.prepGain(dish.name,q));showToast(UI_TEXT.toast.prepDone(dish.name));audio.success();
+    }else showToast(UI_TEXT.toast.prepNext(STATIONS[dish.prep[run.stepIndex]].label));
   }else if(m.context.mode==="cook"){
     const order=state.orders.find(o=>o.id===m.context.orderId);if(!order)return;order.cookScores.push(score);order.cookStep++;
     const dish=dishById(order.dishId);state.trash=Math.min(6,state.trash+(m.stationId==="fryer"?1:0));
     if(order.cookStep>=dish.cook.length){
       state.inventory[dish.id].count--;state.carrying={orderId:order.id,dishId:dish.id,cookScore:Math.round(order.cookScores.reduce((a,b)=>a+b,0)/order.cookScores.length)};
-      showToast(`${dish.name} 완성! 주문한 손님에게 가져다주세요.`);spawnPopup(state.player.x,state.player.y-75,"완성!");
-    }else showToast(`다음 조리: ${stationById(dish.cook[order.cookStep].station)?.label||dish.cook[order.cookStep].station}`);
+      showToast(UI_TEXT.toast.cookDone(dish.name));spawnPopup(state.player.x,state.player.y-75,UI_TEXT.popup.cookDone);
+    }else showToast(UI_TEXT.toast.cookNext(stationById(dish.cook[order.cookStep].station)?.label||dish.cook[order.cookStep].station));
   }
   updateUI(true);saveGame();
 }
@@ -368,20 +366,18 @@ function updateMini(dt) {
 // updatePlayer(), movePlayer()          → player.js
 // updateParticles(), spawnPopup()        → fx.js
 
-function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classList.toggle("bad",bad);dom.toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>dom.toast.classList.remove("show"),1800);}
+function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classList.toggle(UI_CLASS.toastBad,bad);dom.toast.classList.add(UI_CLASS.toastShow);clearTimeout(toastTimer);toastTimer=setTimeout(()=>dom.toast.classList.remove(UI_CLASS.toastShow),1800);}
 
 function updateUI(force=false) {
   if(state.screen!=="game")return;
-  dom.gameApp.classList.remove("phase-title");
-  dom.gameApp.classList.toggle("phase-prep",state.phase===GAME_PHASES.PREP);
-  dom.gameApp.classList.toggle("phase-open",state.phase===GAME_PHASES.OPEN);
-  dom.gameApp.classList.toggle("phase-result",state.phase===GAME_PHASES.RESULT);
-  const phaseLabels={[GAME_PHASES.MENU_SELECT]:"메뉴 선택",[GAME_PHASES.PREP]:"낮 재료 준비",[GAME_PHASES.OPEN]:"밤 영업",[GAME_PHASES.RESULT]:"영업 종료"};
-  dom.phaseName.textContent=phaseLabels[state.phase]||"영업 준비";
-  dom.dayText.textContent=state.day;dom.timeLabel.textContent=state.phase===GAME_PHASES.PREP?"준비":"남은 시간";dom.timeText.textContent=state.phase===GAME_PHASES.PREP?"제한 없음":state.phase===GAME_PHASES.OPEN?formatTime(state.phaseTime):"-";dom.moneyText.textContent=`${state.money.toLocaleString()}원`;dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?`${avgSatisfaction()}점`:"-";
-  dom.phaseBadge.textContent=state.phase===GAME_PHASES.PREP?"준비":state.phase===GAME_PHASES.OPEN?"영업 중":state.phase===GAME_PHASES.MENU_SELECT?"선택":"정산";dom.leftTitle.textContent=state.phase===GAME_PHASES.PREP?"오늘의 준비":"현재 주문";
-  dom.phaseButton.style.display=state.phase===GAME_PHASES.PREP?"block":"none";dom.phaseButton.textContent=[3,4].includes(Number(state.day))&&prepComplete()?`Day ${state.day} 준비 완료 · 영업 시작`:"영업 시작";dom.phaseButton.disabled=state.phase===GAME_PHASES.PREP&&(!prepComplete()||!!state.mini);
-  dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.width=`${state.cleanliness}%`;dom.cleaningText.textContent=`설거지 ${state.dirtyDishes} · 쓰레기 ${state.trash}`;
+  const isPrep=state.phase===GAME_PHASES.PREP, isOpen=state.phase===GAME_PHASES.OPEN;
+  dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isPrep);
+  dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
+  dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
+  dom.dayText.textContent=state.day;dom.timeLabel.textContent=isPrep?UI_TEXT.timeLabelPrep:UI_TEXT.timeLabelOther;dom.timeText.textContent=isPrep?UI_TEXT.timeNoLimit:isOpen?formatTime(state.phaseTime):UI_TEXT.blank;dom.moneyText.textContent=UI_TEXT.money(state.money);dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
+  dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isPrep?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
+  dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=[3,4].includes(Number(state.day))&&prepComplete()?UI_TEXT.phaseButtonReady(state.day):UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
+  dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.setProperty(UI_VAR.cleanliness,`${state.cleanliness}%`);dom.cleaningText.textContent=UI_TEXT.cleaning(state.dirtyDishes,state.trash);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
@@ -393,7 +389,7 @@ function updateUI(force=false) {
 }
 function updatePrompt(){
   const prompt=dom.stationPrompt;
-  const hide=(mobileAction=false)=>{prompt.classList.remove("show");prompt.disabled=true;dom.actionButton.classList.toggle("available",mobileAction);};
+  const hide=(mobileAction=false)=>{prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);};
   if(state.paused||!["day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
   let text="",x=0,y=0;
@@ -402,10 +398,10 @@ function updatePrompt(){
     const station=nearestStation();
     const dish=dishById(state.carrying.dishId);
     if(station?.id==="trash"&&dish&&state.inventory[dish.id]?.count>0){
-      text=`E · ${dish.name} 폐기`;
+      text=UI_TEXT.prompt.discard(dish.name);
       x=station.ix;y=station.y+station.h+60;
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
-      text=`E · ${order.slot+1}번 손님에게 서빙`;
+      text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }
   }else{
@@ -413,14 +409,14 @@ function updatePrompt(){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
       // 판정은 prep.js 가 이름표 강조에 쓰는 것과 같은 함수입니다.
       const prepObject=nearestPrepObject();
-      if(prepObject&&prepObjectUsable(prepObject,prepObject)){text=`E · ${prepObject.task.objectLabel}`;x=prepObject.x;y=prepObject.y-58;}
+      if(prepObject&&prepObjectUsable(prepObject,prepObject)){text=UI_TEXT.prompt.prepObject(prepObject.task.objectLabel);x=prepObject.x;y=prepObject.y-58;}
     }else{
       const required=currentRequirement();
       const station=nearestStation(required);
       if(station){
-      if(station.id==="dishwasher"&&state.dirtyDishes>0)text="E · 설거지하기";
-      else if(station.id==="trash"&&state.trash>0)text="E · 쓰레기 정리";
-      else if(station.id===required)text=`E · ${station.label} 사용`;
+      if(station.id==="dishwasher"&&state.dirtyDishes>0)text=UI_TEXT.prompt.dishwasher;
+      else if(station.id==="trash"&&state.trash>0)text=UI_TEXT.prompt.trash;
+      else if(station.id===required)text=UI_TEXT.prompt.station(station.label);
       if(text){x=station.ix;y=station.id==="griddle"?station.iy-58:station.y+station.h+60;}
       }
     }
@@ -429,9 +425,11 @@ function updatePrompt(){
   // 화면에는 키캡 'E' 만 보입니다. 설명 문구는 스크린리더용으로만 남깁니다.
   // (textContent 로 넣으면 index.html 의 키캡 span 이 지워집니다)
   prompt.setAttribute("aria-label",text);prompt.disabled=false;
-  prompt.style.left=`${x/W*100}%`;prompt.style.top=`${y/H*100}%`;
-  prompt.classList.add("show");
-  dom.actionButton.classList.add("available");
+  // 좌표만 넘기고, 그 값으로 어디에 앉힐지는 CSS 가 정합니다. (css/interaction.css)
+  prompt.style.setProperty(UI_VAR.promptX,`${x/W*100}%`);
+  prompt.style.setProperty(UI_VAR.promptY,`${y/H*100}%`);
+  prompt.classList.add(UI_CLASS.promptShow);
+  dom.actionButton.classList.add(UI_CLASS.actionAvailable);
 }
 
 function draw(){
@@ -466,7 +464,7 @@ function draw(){
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 // 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
-dom.codexButton.addEventListener("click",()=>{audio.click();showToast("도감은 준비 중입니다.");});
+dom.codexButton.addEventListener("click",()=>{audio.click();showToast(UI_TEXT.toast.codexSoon);});
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
@@ -494,7 +492,7 @@ window.addEventListener("keydown",e=>{
     return;
   }
   if(k==="escape"){
-    if(dom.settingsOverlay.classList.contains("open"))closeSettings();else if(state.screen==="game")openSettings("game");return;
+    if(dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen))closeSettings();else if(state.screen==="game")openSettings("game");return;
   }
   if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
@@ -503,8 +501,8 @@ window.addEventListener("keyup",e=>{
   if(state.mini)miniEngine(state.mini)?.keyup?.(state.mini,e.key.toLowerCase(),e);
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
-function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.transform=`translate(${px}px,${py}px)`;state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
-function endJoystick(e){if(e.pointerId!==joystickPointer)return;joystickPointer=null;state.joyX=0;state.joyY=0;dom.joystickKnob.style.transform="translate(0,0)";}
+function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.setProperty(UI_VAR.knobX,`${px}px`);dom.joystickKnob.style.setProperty(UI_VAR.knobY,`${py}px`);state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
+function endJoystick(e){if(e.pointerId!==joystickPointer)return;joystickPointer=null;state.joyX=0;state.joyY=0;dom.joystickKnob.style.removeProperty(UI_VAR.knobX);dom.joystickKnob.style.removeProperty(UI_VAR.knobY);}
 dom.joystick.addEventListener("pointerdown",beginJoystick);dom.joystick.addEventListener("pointermove",moveJoystick);dom.joystick.addEventListener("pointerup",endJoystick);dom.joystick.addEventListener("pointercancel",endJoystick);
 
 class DinerScene extends Phaser.Scene {
@@ -523,7 +521,7 @@ class DinerScene extends Phaser.Scene {
     createPlayer(this);       // player.js
 
     markTitleGameReady();
-    buildMenuCards();showGameHud(false);dom.titleScreen.classList.add("active");dom.gameScreen.classList.remove("active");updateUI(true);draw();syncPhaserObjects();
+    buildMenuCards();showGameHud(false);dom.titleScreen.classList.add(UI_CLASS.screenActive);dom.gameScreen.classList.remove(UI_CLASS.screenActive);updateUI(true);draw();syncPhaserObjects();
     setTimeout(runStoryQaFromQuery,0);
   }
 
