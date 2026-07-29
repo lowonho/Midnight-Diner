@@ -166,6 +166,67 @@ function qaJumpToDay(day){
 }
 
 /* ============================================================
+   2-1. 같은 Day 안에서 낮 ↔ 밤 즉시 전환
+
+   [왜 필요한가] 밤 화면 하나를 보려고 낮 준비를 전부 끝내는 시간을
+   없애기 위한 기능입니다. 날짜 버튼과 달리 Day 는 그대로 둡니다.
+   ============================================================ */
+
+// 밤으로 넘어가려면 준비가 끝나 있어야 합니다(night.js beginNight 검사).
+// 그래서 건너뛰지 않고 오늘 목록을 실제 완료 함수로 처리해 재료 수량까지 맞춥니다.
+function qaFinishTodayPrep(){
+  const dayData=getCurrentDayData();
+  if(state.phase===GAME_PHASES.MENU_SELECT||!state.selectedMenus?.length){
+    const picks=[...dayData.requiredMenus];
+    dayData.optionalMenus.forEach(id=>{if(picks.length<dayData.minSelectedMenus&&!picks.includes(id))picks.push(id);});
+    setSelectedMenus(picks);
+  }
+  state.phase=GAME_PHASES.PREP;state.paused=false;state.prepRun=null;
+  dom.menuSelectOverlay.classList.remove("open");
+  selectedPrepTasks().forEach(task=>completeDayPrepTask(task.id));
+  // 오늘 준비 목록이 비어 있는 메뉴(그날 아직 안 열린 작업 등)는 재료가 채워지지 않습니다.
+  // 재료가 하나도 없으면 밤 전환 자체가 막히므로 QA에서만 직접 채워 둡니다.
+  selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
+    if(!state.inventory[dish.id]?.count)state.inventory[dish.id]={count:Math.max(1,Math.floor(Number(dish.prepYield)||3)),quality:100};
+  });
+}
+
+function qaSwitchToNight(){
+  if(!QA_MODE_ENABLED)return false;
+  if(!qaEnsureSession())return false;
+  if(state.phase===GAME_PHASES.OPEN){qaRefreshPanel("이미 밤 영업 중입니다.");return false;}
+  qaCancelTransientState();
+  qaFinishTodayPrep();
+  updateUI(true);
+  beginNight();   // 손님 수·이야기 손님까지 실제 규칙대로 시작합니다
+  syncPhaserObjects();
+  if(state.phase!==GAME_PHASES.OPEN){qaRefreshPanel("밤 전환이 막혔습니다. 위 안내 토스트를 확인해 주세요.");return false;}
+  qaRefreshPanel(`Day ${state.day} 밤 영업으로 전환했습니다.`);
+  return true;
+}
+
+// 준비 진행도와 재료는 일부러 그대로 둡니다. 처음부터 다시 보려면 날짜 버튼을 쓰세요.
+function qaSwitchToDay(){
+  if(!QA_MODE_ENABLED)return false;
+  if(!qaEnsureSession())return false;
+  if(state.phase===GAME_PHASES.PREP){qaRefreshPanel("이미 낮 준비 중입니다.");return false;}
+  qaCancelTransientState();
+  state.phase=GAME_PHASES.PREP;state.phaseTime=null;state.paused=false;state.selectedOrderId=null;
+  // 남겨 두면 손님과 주문 말풍선이 낮 화면에 그대로 그려집니다.
+  state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;state.prepRun=null;
+  state.spawnedCustomers=0;state.nightCustomerTarget=0;
+  if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
+  resetPlayerPosition();   // 시작 좌표는 player.js PLAYER_START
+  updateUI(true);syncPhaserObjects();
+  qaRefreshPanel(`Day ${state.day} 낮 준비로 전환했습니다. (준비 진행도·재료는 그대로)`);
+  return true;
+}
+
+function qaTogglePhase(){
+  return state.phase===GAME_PHASES.OPEN?qaSwitchToDay():qaSwitchToNight();
+}
+
+/* ============================================================
    3. 미니게임 바로 실행
 
    [왜 필요한가] 게임 하나를 확인하려고 그 장면까지 플레이해서
@@ -337,6 +398,10 @@ function qaRefreshPanel(message=""){
   panel.querySelector("[data-qa-prev]").disabled=day<=DayManager.minDay;
   panel.querySelector("[data-qa-next]").disabled=day>=DayManager.maxDay;
   panel.querySelector("[data-qa-abort]").disabled=!state.mini;
+  // 정산(result) 중에는 낮으로만 돌아갈 수 있어 "밤"을 현재 상태로 표시하지 않습니다.
+  const nightNow=state.phase===GAME_PHASES.OPEN;
+  panel.querySelector('[data-qa-phase="day"]').classList.toggle("active",state.phase===GAME_PHASES.PREP);
+  panel.querySelector('[data-qa-phase="night"]').classList.toggle("active",nightNow);
   panel.querySelector("[data-qa-state]").textContent=[
     `현재: Day ${day} · ${state.phase}`,
     `미니게임: ${state.mini?`${state.mini.type} → ${state.mini.engine}`:"없음"}`,
@@ -373,6 +438,12 @@ function qaBuildPanel(){
       <div data-qa-view="day">
         <div class="qa-day-nav"><button data-qa-prev type="button">이전</button><strong>DAY 이동</strong><button data-qa-next type="button">다음</button></div>
         <div class="qa-day-grid">${Array.from({length:DayManager.maxDay},(_,index)=>`<button data-qa-day="${index+1}" type="button">D${index+1}</button>`).join("")}</div>
+        <strong class="qa-phase-title">지금 Day 안에서 낮밤 전환</strong>
+        <div class="qa-phase-switch">
+          <button data-qa-phase="day" type="button">☀ 낮 준비 (Alt+D)</button>
+          <button data-qa-phase="night" type="button">🌙 밤 영업 (Alt+N)</button>
+        </div>
+        <small class="qa-phase-hint">밤으로 갈 때는 오늘 준비를 자동으로 끝내고 실제 영업 시작 절차를 그대로 탑니다. 낮으로 돌아올 때는 준비 진행도와 재료를 그대로 둡니다.</small>
       </div>
       <div data-qa-view="mini" hidden>
         <input data-qa-search class="qa-mini-search" type="search" placeholder="메뉴·게임 이름으로 찾기" />
@@ -381,7 +452,7 @@ function qaBuildPanel(){
       </div>
       <pre data-qa-state></pre>
       <button data-qa-abort class="qa-abort" type="button">미니게임 강제 종료 (Alt+0)</button>
-      <small>Alt + 1~7 날짜 이동 · Alt + 0 미니게임 닫기</small>
+      <small>Alt + 1~7 날짜 이동 · Alt + 0 미니게임 닫기 · Alt + D/N 낮·밤 전환 (Alt + \` 토글)</small>
       <button class="qa-exit" data-qa-exit type="button">QA 모드 종료</button>
     </div>`;
   document.body.appendChild(panel);
@@ -390,6 +461,9 @@ function qaBuildPanel(){
   panel.querySelectorAll("[data-qa-day]").forEach(button=>button.addEventListener("click",()=>qaJumpToDay(Number(button.dataset.qaDay))));
   panel.querySelector("[data-qa-prev]").addEventListener("click",()=>qaJumpToDay(DayManager.currentDay-1));
   panel.querySelector("[data-qa-next]").addEventListener("click",()=>qaJumpToDay(DayManager.currentDay+1));
+  panel.querySelectorAll("[data-qa-phase]").forEach(button=>button.addEventListener("click",()=>{
+    if(button.dataset.qaPhase==="night")qaSwitchToNight();else qaSwitchToDay();
+  }));
   panel.querySelectorAll("[data-qa-prep]").forEach(button=>button.addEventListener("click",()=>qaPlayPrepMini(button.dataset.qaPrep)));
   panel.querySelectorAll("[data-qa-cook]").forEach(button=>button.addEventListener("click",()=>qaPlayCookMini(button.dataset.qaCook,Number(button.dataset.qaStep||0))));
   panel.querySelectorAll("[data-qa-utility]").forEach(button=>button.addEventListener("click",()=>qaPlayUtilityMini(button.dataset.qaUtility)));
@@ -416,7 +490,11 @@ function initializeQaMode(){
       return;
     }
     if(/^[1-7]$/.test(event.key)){event.preventDefault();qaJumpToDay(Number(event.key));return;}
-    if(event.key==="0"){event.preventDefault();qaAbortMini();}
+    if(event.key==="0"){event.preventDefault();qaAbortMini();return;}
+    // 한글 입력 상태에서도 같은 자리를 누르면 되도록 event.key 대신 event.code 로 봅니다.
+    if(event.code==="KeyD"){event.preventDefault();qaSwitchToDay();return;}
+    if(event.code==="KeyN"){event.preventDefault();qaSwitchToNight();return;}
+    if(event.code==="Backquote"){event.preventDefault();qaTogglePhase();}
   });
   // game.js 의 ✕ 버튼은 낮 준비만 닫습니다. QA로 연 밤 조리도 닫히게 이어 붙입니다.
   dom.miniClose?.addEventListener("click",()=>{if(state.mini&&!isDayPrepMini())qaAbortMini();});
