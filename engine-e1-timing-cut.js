@@ -74,6 +74,20 @@ function cutRecoveryDelay(data,grade){
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
 
+function cutIngredientSfx(ingredient){
+  if(ingredient==="radish")return "knife_daikon";
+  if(ingredient==="tofu"||ingredient==="fishCake")return "cut_soft";
+  if(ingredient==="kimchi")return "cut_wet";
+  return "cut_crisp"; // 양배추 · 대파처럼 아삭한 채소
+}
+
+function playCutIngredientSfx(data,tapStep=0){
+  const name=data.ingredient==="chicken"
+    ?tapStep===1?"cut_meat1":"cut_meat2"
+    :cutIngredientSfx(data.ingredient);
+  audio.play?.(name,{owner:state.mini});
+}
+
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
 }
@@ -252,7 +266,6 @@ function renderTimingCut(){
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
         <i class="cut-spark"></i>
       </div>
-      <div class="cut-pile" aria-label="썰어 놓은 ${cutIngredientLabel(data)}">${cutPiecesMarkup(data.ingredient,data.successes)}</div>
       ${cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker)}
       <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
   const footer=`${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
@@ -276,6 +289,7 @@ function timingCutAction(){
   }
   const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
   if(grade==="miss"){
+    data.mistakes=(data.mistakes||0)+1;
     data.inputLocked=true;
     const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
     board?.classList.add("cut-miss");work?.classList.add("slice-miss");
@@ -291,12 +305,13 @@ function timingCutAction(){
   }
   if(data.requiresDoubleTap){
     data.tapStep=1;data.tapWindow=CUT_FEEL_CONFIG.doubleTapWindow;data.pendingGrade=grade;
+    playCutIngredientSfx(data,1);
     const work=dom.miniContent.querySelector("#prepWorkObject");
     work?.classList.add("tough-first-hit");
     dom.miniContent.querySelector(".cut-board")?.classList.add("cut-embedded");
     dom.miniContent.querySelector("#toughCutHint")?.classList.add("first-done");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 한 번 더!";
-    dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";audio.click();
+    dom.miniFeedback.textContent="칼이 걸렸어요 · 빠르게 Space 한 번 더!";
     return;
   }
   completeTimingCut(m,grade);
@@ -304,6 +319,7 @@ function timingCutAction(){
 
 function completeTimingCut(m,grade="good"){
   const data=m.data;
+  playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
   data.inputLocked=true;data.phase="impact";
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
@@ -314,24 +330,20 @@ function completeTimingCut(m,grade="good"){
   const nextAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
-  dom.miniContent.querySelector(`.cut-line[data-cut-index="${data.successes-1}"]`)?.classList.add("done");
+  dom.miniContent.querySelector(`.cut-line[data-cut-index="${data.successes-1}"]`)?.classList.add("done","fresh-cut");
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   // 방금 썬 조각을 오른쪽 더미에 바로 얹습니다. (다시 그릴 때 정식으로 다시 깔립니다)
-  const pile=dom.miniContent.querySelector(".cut-pile");
-  if(pile)pile.innerHTML=cutPiecesMarkup(data.ingredient,data.successes,data.successes-1);
   updateCutCountCard(data.successes,data.total);
   dom.miniFeedback.textContent=data.requiresDoubleTap?"질긴 고기 절단 성공!":grade==="perfect"?"완벽한 타이밍!":"절단 성공";
   if(data.successes>=data.total){
     data.phase="complete";board?.classList.add("cut-complete");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
     dom.miniFeedback.textContent=`${cutIngredientLabel(data)} 손질 완료!`;
-    audio.success();
     setTimeout(()=>{
       if(state.mini===m&&!m.complete&&typeof data.onComplete==="function")data.onComplete();
     },CUT_FEEL_CONFIG.completeDelayMs);
     return;
   }
-  if(grade==="perfect")audio.success();else audio.click();
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.inputLocked=false;data.phase="ready";renderTimingCut();
@@ -370,6 +382,76 @@ function setupTteokbokkiCut(taskId){
      스토리 PR-02 튜토리얼에서만 불립니다. (story.js)
    ============================================================ */
 
+function chopCutX(data){
+  const verticalCount=data.tofuStyle?data.total-1:data.total;
+  return (Math.min(data.cuts,verticalCount-1)+1)/(verticalCount+1)*100;
+}
+
+function renderNightChop(m){
+  const data=m.data;
+  const horizontalReady=data.tofuStyle&&data.cuts>=data.total-1;
+  const objectId=data.tofuStyle?"tofuCookObject":"storyChopObject";
+  const objectAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
+  const board=`
+    <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
+      ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",cutIngredientLabel(data))}
+      ${Array.from({length:data.total},(_,index)=>{
+        const done=index<data.cuts?"done":"";
+        if(data.tofuStyle&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}" data-cut-index="${index}" data-tofu-cut="${index}"></i>`;
+        return `<i class="cut-line ${done}" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${(index+1)/((data.tofuStyle?data.total-1:data.total)+1)*100}%"></i>`;
+      }).join("")}
+      <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
+      <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
+      <i class="cut-spark"></i>
+    </div>
+    ${cutTimingBarMarkup(data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1],data.zoneWidth,data.marker)}
+    <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
+  const label=data.tofuStyle
+    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===data.total-1?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`
+    :`${data.cuts} / ${data.total}`;
+  const footer=`<span class="cut-step-note" id="nightCutStep">${label}</span><button class="mini-action cut-action" id="miniAction" type="button">${data.tofuStyle?"두부 썰기":"썰기"}</button>`;
+  dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.cuts,total:data.total,footer});
+  dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
+}
+
+function showNightChopImpact(m,cutIndex,grade){
+  const data=m.data;
+  const work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
+  const board=dom.miniContent.querySelector(".cut-board");
+  const judgement=dom.miniContent.querySelector("#cutJudgement");
+  work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.classList.add("done","fresh-cut");
+  work?.classList.remove("slice-hit","slice-good","slice-perfect");
+  board?.classList.remove("cut-good","cut-perfect");
+  if(work){void work.offsetWidth;work.classList.add("slice-hit",grade==="perfect"?"slice-perfect":"slice-good");}
+  board?.classList.add(grade==="perfect"?"cut-perfect":"cut-good");
+  if(judgement){judgement.textContent=grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
+  updateCutCountCard(data.cuts,data.total);
+  setTimeout(()=>{
+    if(state.mini!==m)return;
+    work?.classList.remove("slice-hit","slice-good","slice-perfect");
+    board?.classList.remove("cut-good","cut-perfect");
+  },240);
+}
+
+function moveNightChopTarget(m){
+  const data=m.data,work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
+  const horizontalReady=data.tofuStyle&&data.cuts>=data.total-1;
+  work?.style.setProperty("--cut-x",`${chopCutX(data)}%`);
+  work?.classList.toggle("horizontal-cut",horizontalReady);
+  work?.querySelector(".cut-guide")?.classList.toggle("horizontal",horizontalReady);
+  const zoneStart=data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1];
+  const success=dom.miniContent.querySelector(".cut-timing .prep-success-zone");
+  const perfect=dom.miniContent.querySelector(".cut-timing .prep-perfect-zone");
+  const perfectWidth=data.zoneWidth*CUT_FEEL_CONFIG.perfectZoneRatio;
+  if(success){success.style.left=`${zoneStart*100}%`;success.style.width=`${data.zoneWidth*100}%`;}
+  if(perfect){perfect.style.left=`${(zoneStart+(data.zoneWidth-perfectWidth)/2)*100}%`;perfect.style.width=`${perfectWidth*100}%`;}
+  const marker=dom.miniContent.querySelector("#dayPrepMarker");if(marker)marker.style.left="0%";
+  const label=dom.miniContent.querySelector("#nightCutStep");
+  if(label)label.textContent=data.tofuStyle
+    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:`다음은 가로 썰기 · ${data.cuts} / ${data.total}`
+    :`${data.cuts} / ${data.total}`;
+}
+
 registerMiniEngine("chop",{
   setup(m,{set}){
     const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
@@ -381,13 +463,10 @@ registerMiniEngine("chop",{
       10
     );
     m.data=isTofu
-      ?{marker:0,dir:1,speed:.78,hits:[],cuts:0,total:6,tofuStyle:true,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
-      :{marker:0,dir:1,speed:.92,hits:[],cuts:0};
+      ?{marker:0,dir:1,speed:.78,hits:[],cuts:0,total:6,tofuStyle:true,ingredient:"tofu",ingredientLabel:"두부",ingredientCount:1,assetPrefix:"",zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
+      :{marker:0,dir:1,speed:.92,hits:[],cuts:0,total:5,tofuStyle:false,ingredient:"radish",ingredientLabel:"절임무",ingredientCount:1,assetPrefix:"",zoneWidth:.24,zoneStarts:[.38,.38,.38,.38,.38]};
     if(isTofu)dom.miniTimer.textContent="0 / 6";
-    dom.miniContent.innerHTML=isTofu
-      ?`<div class="prep-work-object tofu-shape tofu-cook-object" id="tofuCookObject" aria-label="두부">${Array.from({length:5},(_,index)=>`<i class="cut-line" data-tofu-cut="${index}" style="left:${(index+1)/6*100}%"></i>`).join("")}<i class="cut-line tofu-horizontal-line" data-tofu-cut="5"></i><i class="knife-effect"></i></div><div class="prep-timing-bar"><i class="prep-success-zone" id="tofuSuccessZone" style="left:${m.data.zoneStarts[0]*100}%;width:${m.data.zoneWidth*100}%"></i><i id="miniMarker" class="prep-timing-marker"></i></div><div class="cut-count">세로 썰기 · 0 / 6</div><button class="mini-action" id="miniAction" type="button">두부 썰기</button>`
-      :`<div class="progress-track"><i class="progress-zone" style="left:38%;width:24%"></i><i class="progress-perfect" style="left:47%;width:6%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">0 / 5회</div><button class="mini-action" id="miniAction" type="button">썰기</button>`;
-    dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
+    renderNightChop(m);
   },
 
   // 두부 썰기는 타이머 자리에 "3 / 6" 처럼 횟수를 쓰므로 시간이 흐르지 않습니다.
@@ -396,34 +475,44 @@ registerMiniEngine("chop",{
   },
 
   update(m,dt){
-    advanceBounceMarker(m,dt);
+    if(m.data.finishing)return;
+    advanceBounceMarker(m,dt,{selector:"#dayPrepMarker"});
   },
 
   action(m){
     if(m.data.tofuStyle){tofuChopAction(m);return;}
-    const score=markerScore(m,.5);
-    m.data.hits.push(score);m.data.cuts++;audio.click();
-    dom.miniContent.querySelector(".cut-count").textContent=`${m.data.cuts} / 5회`;
-    m.data.marker=0;m.data.dir=1;m.data.speed+=.08;
-    if(m.data.cuts>=5)finishMini(Math.round(m.data.hits.reduce((a,b)=>a+b,0)/m.data.hits.length));
+    if(m.data.finishing)return;
+    const data=m.data,cutIndex=data.cuts;
+    const score=markerScore(m,.5),grade=cutTimingGrade(data.marker,data.zoneStarts[cutIndex],data.zoneWidth)==="perfect"?"perfect":"good";
+    data.hits.push(score);data.cuts++;playCutIngredientSfx(data);
+    showNightChopImpact(m,cutIndex,grade);
+    data.marker=0;data.dir=1;data.speed+=.08;
+    if(data.cuts>=data.total){
+      data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
+      setTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((a,b)=>a+b,0)/data.hits.length));},320);
+      return;
+    }
+    moveNightChopTarget(m);
   }
 });
 
 function tofuChopAction(m){
-  const data=m.data,zoneStart=data.zoneStarts[data.cuts];
+  const data=m.data;if(data.finishing)return;
+  const cutIndex=data.cuts,zoneStart=data.zoneStarts[cutIndex];
   if(!isInsideCutZone(data.marker,zoneStart,data.zoneWidth)){
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 초록 구간에서 다시 썰어주세요.";audio.bad();return;
   }
+  const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
   data.hits.push(cutZoneScore(data.marker,zoneStart,data.zoneWidth));
-  const tofuObject=dom.miniContent.querySelector("#tofuCookObject");
-  tofuObject?.querySelector(`[data-tofu-cut="${data.cuts}"]`)?.classList.add("done");
-  tofuObject?.classList.remove("slice-hit");if(tofuObject){void tofuObject.offsetWidth;tofuObject.classList.add("slice-hit");}
-  data.cuts++;audio.click();
+  data.cuts++;playCutIngredientSfx(data);
+  showNightChopImpact(m,cutIndex,grade);
   dom.miniTimer.textContent=`${data.cuts} / ${data.total}`;
-  dom.miniContent.querySelector(".cut-count").textContent=data.cuts<5?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===5?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`;
-  if(data.cuts>=data.total){finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));return;}
-  if(data.cuts===5)tofuObject?.classList.add("horizontal-cut");
-  const successZone=dom.miniContent.querySelector("#tofuSuccessZone");
-  if(successZone)successZone.style.left=`${data.zoneStarts[data.cuts]*100}%`;
-  data.marker=0;data.dir=1;data.speed+=.05;dom.miniFeedback.textContent="절단 성공";
+  if(data.cuts>=data.total){
+    data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
+    dom.miniFeedback.textContent="두부 썰기 완료!";
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));},320);
+    return;
+  }
+  data.marker=0;data.dir=1;data.speed+=.05;moveNightChopTarget(m);
+  dom.miniFeedback.textContent=grade==="perfect"?"완벽한 절단!":"절단 성공";
 }

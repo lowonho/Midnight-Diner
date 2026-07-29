@@ -67,7 +67,6 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
   if(state.phase==="result")renderNightResult();
   else audio.startBgm();
-  audio.success();
   setTimeout(resumeStoryForCurrentPhase,0);
   return true;
 }
@@ -81,7 +80,7 @@ function startGame(){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();
   state.screen="game";state.phase=GAME_PHASES.PREP;state.paused=false;state.settingsFrom="game";
   state.day=DayManager.setDay(1);state.money=0;state.popularity=0;state.story=createStoryState();state.departures=[];nextOrderId=1;resetDay(true);
-  openGameScreen();audio.startBgm();audio.success();
+  openGameScreen();audio.startBgm();
   queueStoryMoments(["newGame","dayStart"]);
 }
 
@@ -94,6 +93,8 @@ function returnTitle(){
     showToast("자동 저장에 실패해 타이틀로 이동하지 않았습니다.",true);
     return;
   }
+  // 캡처 단계에서 막 재생한 타이틀 복귀 클릭음은 남기고 조리음만 정리합니다.
+  audio.stopAllFiles?.("ui_click");
   clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
   dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");

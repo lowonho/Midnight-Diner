@@ -26,7 +26,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
   // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
@@ -69,6 +69,13 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   batterKimchi:"assets/prep/batter/kimchi.png",
   batterBowl:"assets/prep/batter/bowl.png",
   batterDone:"assets/prep/batter/batter-done.png",
+  // E9는 단계별 반죽과 거품기를 선택 에셋으로 교체할 수 있습니다. 파일이 없으면 CSS 도형을 씁니다.
+  batterMix0:"assets/prep/batter/mix-0.png",
+  batterMix1:"assets/prep/batter/mix-1.png",
+  batterMix2:"assets/prep/batter/mix-2.png",
+  batterMix3:"assets/prep/batter/mix-3.png",
+  batterMix4:"assets/prep/batter/mix-4.png",
+  batterWhisk:"assets/prep/batter/whisk.png",
   // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
   sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",
@@ -144,10 +151,11 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
   cookSkewerFood:"assets/prep/two-side/skewer.png",
-  tteokSoakEmpty:"assets/prep/day4/tteokbokki/soak-empty.png",
-  tteokSoakTteok:"assets/prep/day4/tteokbokki/soak-tteok.png",
-  tteokSoakWater:"assets/prep/day4/tteokbokki/soak-water.png",
-  tteokSoakComplete:"assets/prep/day4/tteokbokki/soak-complete.png"
+  // E8 불리기. 볼·물통은 공용이고 떡/우동 한 장을 반복 배치합니다.
+  soakBowl:"assets/prep/soak/bowl.png",
+  soakWater:"assets/prep/soak/water-pitcher.png",
+  soakTteok:"assets/prep/soak/tteok.png",
+  soakUdon:"assets/prep/soak/udon.png"
 });
 const dayPrepAssets={};
 
@@ -232,7 +240,7 @@ function startDayPrepMini(task){
     type:`day-prep-${task.id}`,
     engine:"dayPrep",          // 각 setup 이 setDayPrepData 로 실제 엔진 이름을 채웁니다
     stationId:"prepTable",
-    context:{mode:"dayPrep",taskId:task.id},
+    context:{mode:"dayPrep",taskId:task.id,menuId:task.menuId},
     complete:false,
     data:{}
   };
@@ -257,15 +265,32 @@ registerDayPrepEngine("dayPrep",{});
 function finishDayPrepTask(taskId,message){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
   m.complete=true;
+  audio.stopOwner?.(m);
   completeDayPrepTask(taskId);
   dom.miniTimer.textContent="완료";
   dom.miniFeedback.textContent=message;
   dom.miniContent.classList.add("prep-complete-flash");
-  setTimeout(()=>{if(state.mini===m)closeDayPrepMini(true);},520);
+  const grade=m.data.completionGrade||((m.data.mistakes||m.data.errors||m.data.warnings||m.data.timedOut)?"good":"perfect");
+  audio.result?.(grade);
+  setTimeout(()=>advanceDayPrepDish(m,taskId),520);
+}
+
+function advanceDayPrepDish(m,taskId){
+  if(state.mini!==m)return false;
+  const task=PREP_TASKS[taskId],nextTask=task&&nextPrepTaskForDish(task.menuId);
+  const blocked=nextTask&&(nextTask.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
+  if(nextTask&&!blocked){
+    dom.miniContent.classList.remove("prep-complete-flash");
+    startDayPrepMini(nextTask);
+    return true;
+  }
+  closeDayPrepMini(true);
+  return false;
 }
 
 function closeDayPrepMini(completed=false){
   if(!isDayPrepMini())return;
+  audio.stopOwner?.(state.mini);
   state.mini=null;
   state.joyX=0;state.joyY=0;state.player.moving=false;
   dom.miniOverlay.classList.remove("open");

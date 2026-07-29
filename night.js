@@ -144,7 +144,7 @@ function beginNight() {
   }finally{
     spawningInitialNightOrders=false;
   }
-  showToast(`밤 영업 시작! 오늘은 약 ${state.nightCustomerTarget}명의 손님이 방문합니다.`);audio.success();updateUI(true);saveGame();
+  showToast(`밤 영업 시작! 오늘은 약 ${state.nightCustomerTarget}명의 손님이 방문합니다.`);updateUI(true);saveGame();
   queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
 }
 
@@ -283,7 +283,7 @@ function selectOrder(id) {
   const lockedOrderId=activeStoryCookOrderId();
   if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 주문을 완성해 주세요.");return;}
   const order=state.orders.find(o=>o.id===id);if(!order)return;
-  state.selectedOrderId=id;audio.click();updateUI(true);saveGame();
+  state.selectedOrderId=id;updateUI(true);saveGame();
 }
 
 function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId)||null;}

@@ -59,7 +59,6 @@ const DISHES = MENU_DATA.map(menu=>({
 let nextOrderId = 1;
 let toastTimer = 0;
 let joystickPointer = null;
-let bgmTimer = null;
 
 const state = {
   screen:"title",
@@ -122,6 +121,94 @@ function syncAudioControls(){
 
 const audio = {
   ctx:null, master:null, bgm:null, sfx:null,
+  bgmFiles:Object.freeze({day:"assets/bgm/bgm_day.mp3",night:"assets/bgm/bgm_night.mp3"}),
+  // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
+  // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
+  files:Object.freeze({
+    pan_sizzle:["assets/sfx/sfx_pan_sizzle_loop.MP3"],
+    deep_fry:["assets/sfx/sfx_deep_fry_loop.MP3"],
+    griddle_sizzle:["assets/sfx/sfx_griddle_sizzle_loop.MP3"],
+    gas_flame:["assets/sfx/sfx_gas_flame_loop.MP3"],
+    clear_simmer:["assets/sfx/sfx_clear_simmer_loop.MP3"],
+    thick_boil:["assets/sfx/sfx_thick_boil_loop.MP3"],
+    knife_daikon:["assets/sfx/sfx_knife_daikon.MP3"],
+    cut_crisp:["assets/sfx/sfx_cut_crisp.MP3"],
+    cut_soft:["assets/sfx/sfx_cut_soft.MP3"],
+    cut_wet:["assets/sfx/sfx_cut_wet.MP3"],
+    cut_meat1:["assets/sfx/sfx_cut_meat1.MP3"],
+    cut_meat2:["assets/sfx/sfx_cut_meat2.MP3"],
+    metal_scrape:["assets/sfx/sfx_metal_scrape1.MP3","assets/sfx/sfx_metal_scrape2.MP3"],
+    wood_stir:["assets/sfx/sfx_wood_stir1.MP3","assets/sfx/sfx_wood_stir2.MP3"],
+    mandoline_slide:["assets/sfx/sfx_mandoline_slide1.MP3","assets/sfx/sfx_mandoline_slide2.MP3"],
+    fry_basket_lift:["assets/sfx/sfx_fry_basket_lift.MP3"],
+    fry_basket_shake:["assets/sfx/sfx_fry_basket_shake.MP3"],
+    pancake_flip:["assets/sfx/sfx_pancake_flip.MP3"],
+    charcoal_grill:["assets/sfx/sfx_charcoal_grill_loop.MP3"],
+    whisk_mix:["assets/sfx/sfx_whisk_mix_loop1.MP3","assets/sfx/sfx_whisk_mix_loop2.MP3"],
+    input_wrong:["assets/sfx/sfx_input_wrong.MP3"],
+    result_perfect:["assets/sfx/sfx_result_perfect.MP3"],
+    result_good:["assets/sfx/sfx_result_good.MP3"],
+    timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
+    ui_click:["assets/sfx/sfx_ui_click.MP3"]
+  }),
+  preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
+  bgmElements:new Map(),bgmElement:null,bgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,
+  preload(){
+    Object.values(this.files).flat().forEach(src=>{
+      if(this.preloaded.has(src))return;
+      const element=new Audio();element.preload="auto";element.src=src;this.preloaded.set(src,element);element.load();
+    });
+    Object.entries(this.bgmFiles).forEach(([track,src])=>{
+      if(this.bgmElements.has(track))return;
+      const element=new Audio();element.preload="auto";element.src=src;element.loop=true;
+      this.bgmElements.set(track,element);element.load();
+    });
+  },
+  fileGain(entry){return clamp(state.audio.master*state.audio.sfx*.72*(entry.gain??1),0,1);},
+  bgmFileGain(){return clamp(state.audio.master*state.audio.bgm*.32,0,1);},
+  pickFile(name){
+    const variants=this.files[name];if(!variants?.length)return null;
+    const index=this.variantCursor[name]||0;this.variantCursor[name]=(index+1)%variants.length;
+    return variants[index%variants.length];
+  },
+  play(name,{loop=false,owner=null,gain=1}={}){
+    const src=this.pickFile(name);if(!src)return null;
+    if(loop&&owner){
+      const current=this.loopFiles.get(owner)?.get(name);
+      if(current&&!current.element.ended)return current;
+    }
+    const element=this.preloaded.get(src)?.cloneNode(true)||new Audio(src);
+    const entry={name,element,owner,gain,loop,pausedBySettings:false};
+    element.loop=loop;element.preload="auto";element.volume=this.fileGain(entry);
+    const cleanup=()=>this.releaseFile(entry);
+    element.addEventListener("ended",cleanup,{once:true});element.addEventListener("error",cleanup,{once:true});
+    this.activeFiles.add(entry);
+    if(owner){
+      if(!this.ownerFiles.has(owner))this.ownerFiles.set(owner,new Set());
+      this.ownerFiles.get(owner).add(entry);
+    }
+    if(loop&&owner){
+      if(!this.loopFiles.has(owner))this.loopFiles.set(owner,new Map());
+      this.loopFiles.get(owner).set(name,entry);
+    }
+    const started=element.play();
+    if(started?.catch)started.catch(()=>cleanup());
+    return entry;
+  },
+  loop(name,owner,gain=1){return this.play(name,{loop:true,owner,gain});},
+  releaseFile(entry){
+    this.activeFiles.delete(entry);
+    if(entry.owner){
+      const owned=this.ownerFiles.get(entry.owner);owned?.delete(entry);if(owned&&!owned.size)this.ownerFiles.delete(entry.owner);
+      const loops=this.loopFiles.get(entry.owner);if(loops?.get(entry.name)===entry)loops.delete(entry.name);if(loops&&!loops.size)this.loopFiles.delete(entry.owner);
+    }
+  },
+  stopFile(entry){if(!entry)return;entry.element.pause();entry.element.currentTime=0;this.releaseFile(entry);},
+  stop(name,owner){const entry=this.loopFiles.get(owner)?.get(name);if(entry)this.stopFile(entry);},
+  stopOwner(owner){[...(this.ownerFiles.get(owner)||[])].forEach(entry=>this.stopFile(entry));},
+  stopAllFiles(exceptName=null){[...this.activeFiles].filter(entry=>entry.name!==exceptName).forEach(entry=>this.stopFile(entry));},
+  pauseLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&!entry.element.paused){entry.pausedBySettings=true;entry.element.pause();}});},
+  resumeLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&entry.pausedBySettings){entry.pausedBySettings=false;entry.element.play().catch(()=>this.stopFile(entry));}});},
   init() {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -134,10 +221,13 @@ const audio = {
     this.apply();
   },
   apply() {
-    if (!this.ctx) return;
-    this.master.gain.value = state.audio.master;
-    this.bgm.gain.value = state.audio.bgm * .18;
-    this.sfx.gain.value = state.audio.sfx * .35;
+    if(this.ctx){
+      this.master.gain.value = state.audio.master;
+      this.bgm.gain.value = state.audio.bgm * .18;
+      this.sfx.gain.value = state.audio.sfx * .35;
+    }
+    this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
+    if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
   },
   tone(freq=440,duration=.09,type="square",gain=.12,when=0,target="sfx") {
     if (!this.ctx) return;
@@ -147,23 +237,67 @@ const audio = {
     const t=this.ctx.currentTime+when; o.start(t); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.001,t+duration); o.stop(t+duration+.02);
   },
   click(){ this.tone(520,.05,"square",.08); },
+  uiClick(){ this.play("ui_click",{gain:1.35}); },
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
-  bad(){ this.tone(160,.18,"sawtooth",.1); },
+  bad(){ this.play("input_wrong",{gain:.9}); },
+  result(scoreOrGrade){
+    const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
+    const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
+    if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
+  },
   serve(){ this.tone(523,.08,"triangle",.12); this.tone(659,.08,"triangle",.1,.08); this.tone(784,.13,"triangle",.09,.16); },
   startBgm(){
-    if (!this.ctx || bgmTimer) return;
-    const notesDay=[261.6,329.6,392,329.6], notesNight=[220,277.2,329.6,392];
-    let i=0;
-    bgmTimer=setInterval(()=>{
-      if (state.paused || state.screen==="title") return;
-      const notes=state.phase==="night"?notesNight:notesDay;
-      this.tone(notes[i%notes.length],.55,"sine",.045,0,"bgm");
-      this.tone(notes[(i+2)%notes.length]/2,.7,"triangle",.025,.02,"bgm");
-      i++;
-    },720);
+    if(!this.ctx)return;
+    this.bgmStarted=true;this.syncBgm(true);
   },
-  stopBgm(){ if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;} }
+  syncBgm(force=false){
+    if(!this.bgmStarted)return;
+    const track=state.phase==="night"?"night":"day";
+    if(force||track!==this.bgmTrack){
+      if(this.bgmElement){this.bgmElement.pause();this.bgmElement.currentTime=0;}
+      this.bgmTrack=track;this.bgmElement=this.bgmElements.get(track)||null;
+      this.bgmPlayPending=false;this.bgmFadeStart=0;
+    }
+    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&!state.paused;
+    if(!shouldPlay){
+      if(this.bgmElement&&!this.bgmElement.paused)this.bgmElement.pause();
+      this.bgmPlayPending=false;this.bgmFadeStart=0;return;
+    }
+    const element=this.bgmElement;if(!element)return;
+    const now=performance.now();
+    if(element.paused&&!this.bgmPlayPending){
+      element.volume=0;this.bgmFadeStart=now;this.bgmPlayPending=true;
+      const started=element.play();
+      if(started?.then)started.then(()=>{this.bgmPlayPending=false;}).catch(()=>{this.bgmPlayPending=false;});
+      else this.bgmPlayPending=false;
+    }
+    if(!element.paused&&this.bgmFadeStart){
+      const progress=clamp((now-this.bgmFadeStart)/this.bgmFadeDuration,0,1);
+      element.volume=this.bgmFileGain()*progress;
+      if(progress>=1)this.bgmFadeStart=0;
+    }else if(!element.paused&&!this.bgmFadeStart)element.volume=this.bgmFileGain();
+  },
+  stopBgm(){
+    this.bgmStarted=false;this.bgmPlayPending=false;this.bgmFadeStart=0;this.bgmTrack=null;
+    this.bgmElements.forEach(element=>{element.pause();element.currentTime=0;element.volume=0;});
+    this.bgmElement=null;
+  }
 };
+audio.preload();
+
+// 실제 메뉴·설정 버튼 클릭을 한곳에서 받아 누락과 이중 재생을 막습니다.
+// 미니게임 조작 버튼은 조리 효과음 영역이므로 이 목록에 넣지 않습니다.
+const UI_CLICK_SELECTOR=[
+  "#startButton","#continueButton","#titleSettingsButton",
+  "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
+  "#menuSelectConfirm",".menu-select-option",".order-row",
+  "#phaseButton","#nextDayButton","#miniClose","#miniPause"
+].join(",");
+document.addEventListener("click",event=>{
+  const control=event.target.closest?.(UI_CLICK_SELECTOR);
+  if(!control||control.disabled||control.getAttribute("aria-disabled")==="true")return;
+  audio.uiClick();
+},true);
 
 function showGameHud(show) {
   [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle(UI_CLASS.hudHidden,!show));
@@ -182,14 +316,14 @@ function openSettings(from=state.screen) {
   dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
   dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||saveBlocked);
   dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
-  dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen); audio.click();
+  dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);audio.pauseLoops();
 }
 function closeSettings() {
   // 저장 슬롯 창이 떠 있으면 그것만 닫고 설정창은 남깁니다.
   if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()){closeSaveSlotDialog();return;}
   dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
   state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
-  audio.click();
+  if(state.settingsFrom!=="title")audio.resumeLoops();
 }
 
 /* 반짝임(fx_perfect_sparkle)을 달 음식인지. 메뉴 카드·손님 말풍선·요리사 손
@@ -265,7 +399,7 @@ function startMini(type,stationId,context) {
   dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add(UI_CLASS.overlayOpen);
   setMiniTipHint("");   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
   dom.miniClose.hidden=true;
-  setupMini(); audio.click();
+  setupMini();
 }
 
 function setupMini() {
@@ -297,8 +431,9 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  audio.stopOwner(m);
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
-  score>=70?audio.success():audio.bad();
+  audio.result(score);
   setTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
@@ -320,7 +455,7 @@ function completeMiniContext(m,score) {
     if(run.stepIndex>=dish.prep.length){
       const q=Math.round(run.scores.reduce((a,b)=>a+b,0)/run.scores.length);const inv=state.inventory[dish.id];
       const newCount=inv.count+3;inv.quality=Math.round((inv.quality*inv.count+q*3)/newCount);inv.count=newCount;state.prepRun=null;
-      spawnPopup(state.player.x,state.player.y-70,UI_TEXT.popup.prepGain(dish.name,q));showToast(UI_TEXT.toast.prepDone(dish.name));audio.success();
+      spawnPopup(state.player.x,state.player.y-70,UI_TEXT.popup.prepGain(dish.name,q));showToast(UI_TEXT.toast.prepDone(dish.name));
     }else showToast(UI_TEXT.toast.prepNext(STATIONS[dish.prep[run.stepIndex]].label));
   }else if(m.context.mode==="cook"){
     const order=state.orders.find(o=>o.id===m.context.orderId);if(!order)return;order.cookScores.push(score);order.cookStep++;
@@ -334,6 +469,7 @@ function completeMiniContext(m,score) {
 }
 
 function update(dt) {
+  audio.syncBgm?.();
   if(state.paused){
     if(state.mini){updateMini(dt);updateUI(false);}
     // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
@@ -372,7 +508,10 @@ function updateMini(dt) {
   const engine=miniEngine(m);if(!engine)return;
   // 제한시간을 깎을지는 엔진이 정합니다(두부 썰기·기름 털기·낮 준비는 멈춰 있습니다).
   if(engine.timerRuns?engine.timerRuns(m):true){
+    if(m.time>3)m.timerWarningPlayed=false;
+    const previousTime=m.time;
     m.time-=dt;dom.miniTimer.textContent=Math.max(0,m.time).toFixed(1);
+    if(previousTime>3&&m.time<=3&&!m.timerWarningPlayed){m.timerWarningPlayed=true;audio.play("timer_warning",{owner:m,gain:.85});}
   }
   engine.update?.(m,dt);
   if(Number.isFinite(m.time)&&m.time<=0){
@@ -484,7 +623,7 @@ function draw(){
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 // 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
-dom.codexButton.addEventListener("click",()=>{audio.click();showToast(UI_TEXT.toast.codexSoon);});
+dom.codexButton.addEventListener("click",()=>showToast(UI_TEXT.toast.codexSoon));
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);

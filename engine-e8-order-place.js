@@ -8,9 +8,8 @@
    · batterIngredients  김치전 반죽 — 밀가루 → 물 → 김치 순서로 클릭.
                         3개를 다 넣으면 곧바로 거품기(E9)로 넘어갑니다.
                         → engine-e9-whisk.js 의 setupWhiskBatter 호출
-   · skewer             닭꼬치 꽂기 — 닭 → 파 → 닭 → 파 → 닭 을 4꼬치.
-                        (밤 조리 굽기 4개 · game-data.js 의 prepYield:4 와 같은 수)
-                        클릭으로 고르거나 드래그로 놓을 수 있습니다.
+   · skewer             닭꼬치 꽂기 — 꼬치마다 닭·파를 최소 한 번씩 쓰고
+                        나머지 순서는 자유롭게 5칸을 채웁니다. 총 3꼬치.
    · tteokSoak /        떡·우동면 불리기 — 재료 → 물 순서로 클릭.
      udonSoak           두 게임이 renderTteokSoak과 공통 순서 판정을 함께 씁니다.
    ============================================================ */
@@ -20,8 +19,66 @@ registerDayPrepSetup("skewer",()=>setupChickenSkewer());
 registerDayPrepSetup("tteokSoak",()=>setupTteokSoak());
 registerDayPrepSetup("udonSoak",()=>setupUdonSoak());
 
-// 셋 다 클릭·드래그만 쓰므로 키 처리가 없습니다.
+// 셋 다 포인터 클릭·드래그로 조작하므로 키 처리가 없습니다.
 registerDayPrepEngine("orderPlace",{});
+
+/* ---- E8 공통 포인터 배치 -----------------------------------
+   짧게 누르면 자동 배치, 누른 채 움직이면 재료 그림이 포인터를 따라갑니다.
+   브라우저 기본 drag 이벤트를 쓰지 않아 마우스와 터치가 같은 흐름을 공유합니다. */
+function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghostSelector,onPlace,onMiss}){
+  let active=null,suppressClick=false;
+
+  function targetAt(x,y){return document.elementFromPoint(x,y)?.closest(targetSelector)||null;}
+  function clearTarget(){dom.miniContent.querySelectorAll(`${targetSelector}.order-drop-ready`).forEach(target=>target.classList.remove("order-drop-ready"));}
+  function moveGhost(event){
+    if(!active)return;
+    const dx=event.clientX-active.startX,dy=event.clientY-active.startY;
+    if(!active.dragging&&Math.hypot(dx,dy)>=5){
+      active.dragging=true;active.source.classList.add("order-source-dragging");
+      active.ghost=document.createElement("span");active.ghost.className=`order-drag-ghost ${active.item}`;
+      const art=active.source.querySelector(ghostSelector);
+      active.ghost.innerHTML=art?art.outerHTML:active.source.textContent;
+      document.body.appendChild(active.ghost);
+    }
+    if(!active.dragging)return;
+    event.preventDefault();
+    active.ghost.style.left=`${event.clientX}px`;active.ghost.style.top=`${event.clientY}px`;
+    clearTarget();targetAt(event.clientX,event.clientY)?.classList.add("order-drop-ready");
+  }
+  function finishPointer(event,cancelled=false){
+    if(!active||active.pointerId!==event.pointerId)return;
+    const drag=active;active=null;clearTarget();
+    drag.source.classList.remove("order-source-dragging");drag.ghost?.remove();
+    if(!drag.dragging)return;
+    suppressClick=true;setTimeout(()=>{suppressClick=false;},0);
+    const target=cancelled?null:targetAt(event.clientX,event.clientY);
+    if(target)onPlace(drag.item,target,true,drag.source);
+    else onMiss?.(drag.item,drag.source);
+  }
+
+  sources.forEach(source=>{
+    source.addEventListener("pointerdown",event=>{
+      if(event.pointerType==="mouse"&&event.button!==0||source.disabled)return;
+      active={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,item:itemFromSource(source),source,dragging:false,ghost:null};
+      source.setPointerCapture?.(event.pointerId);
+    });
+    source.addEventListener("pointermove",moveGhost);
+    source.addEventListener("pointerup",event=>finishPointer(event));
+    source.addEventListener("pointercancel",event=>finishPointer(event,true));
+    source.addEventListener("lostpointercapture",event=>finishPointer(event,true));
+    source.addEventListener("click",event=>{
+      if(suppressClick){event.preventDefault();return;}
+      onPlace(itemFromSource(source),dom.miniContent.querySelector(targetSelector),false,source);
+    });
+    source.addEventListener("dragstart",event=>event.preventDefault());
+  });
+}
+
+function pulseOrderTarget(target,className="order-place-reject"){
+  if(!target)return;
+  target.classList.remove(className);void target.offsetWidth;target.classList.add(className);
+  setTimeout(()=>target.classList.remove(className),360);
+}
 
 /* ---- 김치전 반죽 재료 넣기 ---------------------------------
    화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
@@ -87,7 +144,7 @@ function batterSceneMarkup(center,addedCount,done=0){
 }
 
 function setupKimchiBatter(){
-  setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS});
+  setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS,mistakes:0,lastPlaced:null});
   dom.miniTitle.textContent="김치전 반죽";
   dom.miniDescription.textContent="부침가루 → 물 → 김치 순서로 재료를 볼에 넣어주세요!";
   renderKimchiBatterIngredients();
@@ -97,42 +154,52 @@ function renderKimchiBatterIngredients(){
   const data=state.mini.data,current=data.ingredients[data.step];
   dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
   dom.miniContent.innerHTML=batterSceneMarkup(`
-      <div class="bt-bowl-wrap">${batterBowlMarkup(`step-${data.step}`)}</div>
+      <div class="bt-bowl-wrap ${data.lastPlaced?`receive-${data.lastPlaced}`:""}" data-order-target="batter">${batterBowlMarkup(`step-${data.step}`)}</div>
       <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"이제 저어 주세요"}</p>`,
     data.step);
-  dom.miniContent.querySelectorAll("[data-batter-ingredient]").forEach(button=>button.addEventListener("click",()=>addBatterIngredient(button.dataset.batterIngredient,button)));
+  bindOrderPlacementPointers({
+    sources:dom.miniContent.querySelectorAll("[data-batter-ingredient]"),
+    targetSelector:'[data-order-target="batter"]',
+    itemFromSource:source=>source.dataset.batterIngredient,
+    ghostSelector:".bt-ing-art",
+    onPlace:(ingredientId,target,dragged,source)=>addBatterIngredient(ingredientId,source,target),
+    onMiss:()=>{dom.miniFeedback.textContent="재료를 반죽 볼 안에 놓아주세요.";pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="batter"]'));}
+  });
 }
 
-function addBatterIngredient(ingredientId,button){
+function addBatterIngredient(ingredientId,button,target){
   const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="batter")return;
   const expected=m.data.ingredients[m.data.step],result=placeOrderedItem(m.data,ingredientId);
-  if(!result.accepted){dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();return;}
+  if(!result.accepted){m.data.mistakes++;dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();pulseOrderTarget(target);return;}
+  m.data.lastPlaced=ingredientId;
   button.classList.add("pouring");button.disabled=true;audio.click();
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     // 재료를 다 넣으면 게임 종류가 거품기(E9)로 바뀝니다.
-    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter();
+    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter("kimchiBatter",m.data.mistakes);
     else renderKimchiBatterIngredients();
   },420);
 }
 
 /* ---- 닭꼬치 꽂기 -------------------------------------------
    화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
-     왼쪽   재료 카드 2장 — 닭고기 ×12 / 파 ×8, 쓸 때마다 개수가 줄어듭니다
-     가운데 꼬치 4개 — 아래에서 위로 5칸씩 채웁니다
-     오른쪽 완성 개수 + 참고 모양
-   재료 카드를 꼬치로 끌어다 놓거나, 카드를 눌러 집은 뒤 꼬치를 눌러도 됩니다.
-   꼬치 4개는 어느 것부터 채워도 되고, 각 꼬치 안에서만 순서를 지키면 됩니다.
+     왼쪽   닭고기·파 재료 카드 — 수량 제한 없이 자유롭게 선택
+     가운데 현재 조립 중인 큰 꼬치 하나 — 아래에서 위로 5칸
+     오른쪽 완성 개수 + 닭·파 최소 한 개씩 조건
+   재료 카드를 클릭하면 자동으로 꽂히고, 꼬치 끝으로 직접 끌어도 됩니다.
+   한 꼬치 안의 순서는 자유지만 닭과 파가 최소 한 개씩 있어야 완성됩니다.
 
    모양·크기는 css/day-prep-minigames.css 의 "닭꼬치 꽂기" 구역에 모여 있습니다.
    공용 프레임(css/minigame-frame.css, ui-mini-frame.js)은 건드리지 않고,
    이 게임이 켜져 있을 때만 적용되는 규칙으로 덮어씁니다.
    ------------------------------------------------------------ */
 
-const SKEWER_ORDER=["chicken","greenOnion","chicken","greenOnion","chicken"];  // 아래 → 위 순서
+const SKEWER_SLOT_COUNT=5;
+const SKEWER_EXAMPLE_ORDER=["chicken","greenOnion","chicken","greenOnion","chicken"];
 const SKEWER_TOTAL=SKEWER_BATCH_SIZE;                                          // 만들 꼬치 수
 const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
+const SKEWER_INGREDIENTS=Object.freeze(Object.keys(SKEWER_LABEL));
 // assets/prep/skewer/ 에 파일을 넣으면 CSS 도형 대신 그림이 자동으로 쓰입니다.
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
@@ -140,7 +207,7 @@ const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
 // E8의 공통 순서 데이터. 새 게임은 순서와 트랙 수만 추가하고 같은 판정을 씁니다.
 const ORDER_PLACE_CONFIG=Object.freeze({
   batter:Object.freeze({order:Object.freeze(BATTER_INGREDIENTS.map(item=>item.id)),tracks:1}),
-  skewer:Object.freeze({order:Object.freeze([...SKEWER_ORDER]),tracks:SKEWER_TOTAL}),
+  skewer:Object.freeze({order:Object.freeze([...SKEWER_EXAMPLE_ORDER]),tracks:SKEWER_TOTAL,freeOrder:true,required:Object.freeze([...SKEWER_INGREDIENTS])}),
   tteokSoak:Object.freeze({order:Object.freeze(["tteok","water"]),tracks:1}),
   udonSoak:Object.freeze({order:Object.freeze(["udon","water"]),tracks:1})
 });
@@ -164,12 +231,29 @@ function placeOrderedItem(data,item,trackIndex=0){
   return {accepted:true,expected:null,complete:track.length>=data.order.length};
 }
 
+function allowedSkewerIngredients(stack){
+  if(!stack||stack.length>=SKEWER_SLOT_COUNT)return [];
+  if(stack.length===SKEWER_SLOT_COUNT-1){
+    const missing=SKEWER_INGREDIENTS.find(ingredient=>!stack.includes(ingredient));
+    if(missing)return [missing];
+  }
+  return [...SKEWER_INGREDIENTS];
+}
+
+function placeFreeSkewerItem(data,item,trackIndex=0){
+  const stack=data.placements[trackIndex];
+  if(!stack)return {accepted:false,reason:"missingTrack",allowed:[],complete:false};
+  const allowed=allowedSkewerIngredients(stack);
+  if(!allowed.includes(item))return {accepted:false,reason:stack.length>=SKEWER_SLOT_COUNT?"full":"requiredVariety",allowed,complete:false};
+  stack.push(item);
+  const complete=stack.length===SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient));
+  return {accepted:true,reason:"",allowed:allowedSkewerIngredients(stack),complete};
+}
+
 function setupChickenSkewer(){
-  const stock={chicken:0,greenOnion:0};
-  SKEWER_ORDER.forEach(ingredient=>{stock[ingredient]+=SKEWER_TOTAL;});
-  setDayPrepData({...createOrderPlacementState("skewer"),total:SKEWER_TOTAL,stock,selected:null});
+  setDayPrepData({...createOrderPlacementState("skewer"),total:SKEWER_TOTAL,mistakes:0,lastPlaced:null,finishing:false,completionGrade:""});
   dom.miniTitle.textContent="닭꼬치 꽂기";
-  dom.miniDescription.textContent="닭과 파를 번갈아 순서대로 꽂아주세요! (재료를 끌어다 놓거나 눌러서 집으세요)";
+  dom.miniDescription.textContent="닭과 파를 최소 한 번씩 사용해 원하는 순서로 꼬치 3개를 만들어주세요!";
   renderChickenSkewer();
 }
 
@@ -180,13 +264,18 @@ function skewerPieceMarkup(ingredient,extraClass=""){
 }
 
 // 꼬치 하나. 아래에서 위로 채우므로 화면에는 슬롯을 뒤집어 그립니다.
-function skewerRackMarkup(stack,index){
-  const done=stack.length>=SKEWER_ORDER.length;
-  const slots=SKEWER_ORDER.map((ingredient,slot)=>{
-    if(slot<stack.length)return `<span class="sk-slot filled">${skewerPieceMarkup(stack[slot])}</span>`;
-    return `<span class="sk-slot empty hint-${ingredient} ${slot===stack.length?"next":""}"></span>`;
+function skewerRackMarkup(stack,index,{active=false,lastPlaced=null}={}){
+  const done=stack.length>=SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient));
+  const allowed=allowedSkewerIngredients(stack);
+  const slots=Array.from({length:SKEWER_SLOT_COUNT},(_,slot)=>{
+    if(slot<stack.length){
+      const fresh=lastPlaced?.track===index&&lastPlaced.slot===slot;
+      return `<span class="sk-slot filled">${skewerPieceMarkup(stack[slot],fresh?"fresh":"")}</span>`;
+    }
+    const forced=slot===stack.length&&allowed.length===1?`hint-${allowed[0]}`:"free";
+    return `<span class="sk-slot empty ${forced} ${slot===stack.length?"next":""}"></span>`;
   }).reverse().join("");
-  return `<div class="sk-rack ${done?"done":""}" data-skewer="${index}" role="button" tabindex="0" aria-label="${index+1}번 꼬치 · ${stack.length} / ${SKEWER_ORDER.length}">
+  return `<div class="sk-rack ${active?"active":""} ${done?"done":""}" data-skewer="${index}" aria-label="${index+1}번 꼬치 · ${stack.length} / ${SKEWER_SLOT_COUNT}">
       ${skewerRodMarkup()}<div class="sk-slots">${slots}</div>
     </div>`;
 }
@@ -197,22 +286,30 @@ function skewerRodMarkup(){
 
 function renderChickenSkewer(){
   const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
-  const data=m.data,done=skewerDoneCount(data);
+  const data=m.data,done=skewerDoneCount(data),activeIndex=Math.min(done,data.total-1),activeStack=data.placements[activeIndex]||[];
+  const allowed=allowedSkewerIngredients(activeStack);
   dom.miniTimer.textContent=`${done} / ${data.total}`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
   dom.miniContent.innerHTML=`
     <div class="skewer-prep-scene">
       <aside class="sk-col">
         <h3 class="sk-col-title">★ 재료 ★</h3>
-        ${Object.keys(SKEWER_LABEL).map(ingredient=>{
-          const left=data.stock[ingredient];
-          return `<button type="button" class="sk-panel sk-ing-card ${ingredient} ${left<=0?"used-up":""} ${data.selected===ingredient?"selected":""}" data-ingredient="${ingredient}" draggable="${left>0}" ${left<=0?"disabled":""}>
+        ${SKEWER_INGREDIENTS.map(ingredient=>{
+          const forced=allowed.length===1&&allowed[0]===ingredient;
+          const blocked=allowed.length>0&&!allowed.includes(ingredient);
+          return `<button type="button" class="sk-panel sk-ing-card ${ingredient} ${forced?"required":""} ${blocked?"blocked":""}" data-ingredient="${ingredient}" ${data.finishing||blocked?"disabled":""}>
             <span class="sk-ing-art">${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}</span>
-            <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>×${left}</b></span>
+            <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>${forced?"필수":blocked?"조건 완료":"자유"}</b></span>
           </button>`;
         }).join("")}
       </aside>
 
-      <div class="sk-board" style="--sk-count:${data.total}">${data.placements.map((stack,index)=>skewerRackMarkup(stack,index)).join("")}</div>
+      <div class="sk-board sk-single-board ${data.finishing?"complete":""}">
+        <div class="sk-finished-strip">${Array.from({length:data.total},(_,index)=>`<span class="${index<done?"done":index===activeIndex?"active":""}">${index<done?"✓":index+1}</span>`).join("")}</div>
+        <p class="sk-active-title">${data.finishing?"꼬치 조립 완료":`${activeIndex+1}번 꼬치 · ${activeStack.length} / ${SKEWER_SLOT_COUNT}`}</p>
+        <div class="sk-active-rack" data-order-target="skewer" data-skewer="${activeIndex}">${skewerRackMarkup(activeStack,activeIndex,{active:true,lastPlaced:data.lastPlaced})}</div>
+        <p class="sk-free-rule">${allowed.length===1?`마지막은 <b>${SKEWER_LABEL[allowed[0]]}</b>를 꽂아주세요`:`닭·파를 섞되 <b>순서는 자유!</b>`}</p>
+        ${data.finishing?`<strong class="order-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
+      </div>
 
       <aside class="sk-col">
         <div class="sk-panel sk-count">
@@ -220,8 +317,8 @@ function renderChickenSkewer(){
           <strong>${done} / ${data.total}</strong>
         </div>
         <div class="sk-panel sk-guide">
-          <h3 class="sk-col-title">참고 모양</h3>
-          <div class="sk-guide-skewer">${skewerRodMarkup()}<span class="sk-guide-pieces">${[...SKEWER_ORDER].reverse().map(ingredient=>skewerPieceMarkup(ingredient,"mini")).join("")}</span></div>
+          <h3 class="sk-col-title">조립 조건</h3>
+          <div class="sk-free-guide">${skewerPieceMarkup("chicken","mini")}${skewerPieceMarkup("greenOnion","mini")}<p>닭과 파<br /><b>최소 1개씩</b><br />나머지는 자유</p></div>
         </div>
       </aside>
     </div>`;
@@ -230,74 +327,48 @@ function renderChickenSkewer(){
 
 function bindChickenSkewerEvents(){
   const scene=dom.miniContent.querySelector(".skewer-prep-scene");if(!scene)return;
-  scene.querySelectorAll("[data-ingredient]").forEach(card=>{
-    const ingredient=card.dataset.ingredient;
-    card.addEventListener("click",()=>selectSkewerIngredient(ingredient));
-    card.addEventListener("dragstart",event=>{
-      event.dataTransfer.setData("text/plain",ingredient);event.dataTransfer.effectAllowed="copy";
-      card.classList.add("dragging");selectSkewerIngredient(ingredient);
-    });
-    card.addEventListener("dragend",()=>card.classList.remove("dragging"));
-  });
-  scene.querySelectorAll(".sk-rack").forEach(rack=>{
-    const index=Number(rack.dataset.skewer);
-    // 놓기(드래그) — dragover 를 막아야 drop 이 들어옵니다. 슬롯에서 올라온 이벤트도 여기서 받습니다.
-    rack.addEventListener("dragover",event=>{event.preventDefault();event.dataTransfer.dropEffect="copy";rack.classList.add("drop-hover");});
-    rack.addEventListener("dragleave",event=>{if(!rack.contains(event.relatedTarget))rack.classList.remove("drop-hover");});
-    rack.addEventListener("drop",event=>{
-      event.preventDefault();rack.classList.remove("drop-hover");
-      placeSkewerPiece(index,event.dataTransfer.getData("text/plain"));
-    });
-    // 집어 든 재료를 클릭/엔터로 놓기
-    rack.addEventListener("click",()=>placeSelectedSkewerPiece(index));
-    rack.addEventListener("keydown",event=>{
-      if(event.key!=="Enter"&&event.key!==" ")return;
-      event.preventDefault();placeSelectedSkewerPiece(index);
-    });
+  bindOrderPlacementPointers({
+    sources:scene.querySelectorAll("[data-ingredient]"),
+    targetSelector:'[data-order-target="skewer"]',
+    itemFromSource:source=>source.dataset.ingredient,
+    ghostSelector:".sk-piece",
+    onPlace:(ingredient,target)=>placeSkewerPiece(Number(target.dataset.skewer),ingredient,target),
+    onMiss:()=>{dom.miniFeedback.textContent="재료를 꼬치 끝에 놓아주세요.";pulseOrderTarget(scene.querySelector('[data-order-target="skewer"]'));}
   });
 }
 
 function skewerDoneCount(data){
-  return data.placements.filter(stack=>stack.length>=data.order.length).length;
+  return data.placements.filter(stack=>stack.length>=SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient))).length;
 }
 
-// 재료 집기. 다시 그리지 않고 선택 표시만 바꿉니다.
-function selectSkewerIngredient(ingredient){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
-  if(!m.data.stock[ingredient])return;
-  m.data.selected=ingredient;
-  dom.miniContent.querySelectorAll("[data-ingredient]").forEach(card=>card.classList.toggle("selected",card.dataset.ingredient===ingredient));
-  dom.miniFeedback.textContent=`${SKEWER_LABEL[ingredient]}를 집었습니다. 꼬치를 누르거나 끌어다 놓으세요.`;
-}
-
-function placeSelectedSkewerPiece(skewerIndex){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
-  if(!m.data.selected){dom.miniFeedback.textContent="왼쪽에서 재료를 먼저 집으세요.";return;}
-  placeSkewerPiece(skewerIndex,m.data.selected);
-}
-
-function placeSkewerPiece(skewerIndex,ingredient){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer")return;
+// 현재 큰 꼬치에 재료 한 조각을 넣습니다.
+function placeSkewerPiece(skewerIndex,ingredient,target){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="skewer"||m.data.finishing)return;
   const data=m.data,stack=data.placements[skewerIndex];
   if(!stack||!SKEWER_LABEL[ingredient])return;
-  if(stack.length>=SKEWER_ORDER.length)return rejectSkewerPiece(skewerIndex,"이 꼬치는 이미 다 찼습니다.");
-  if(!data.stock[ingredient])return rejectSkewerPiece(skewerIndex,`${SKEWER_LABEL[ingredient]}가 남아 있지 않습니다.`);
-  const result=placeOrderedItem(data,ingredient,skewerIndex);
-  if(!result.accepted)return rejectSkewerPiece(skewerIndex,`이번에는 ${SKEWER_LABEL[result.expected]} 차례입니다.`);
+  const activeIndex=skewerDoneCount(data);if(skewerIndex!==activeIndex)return;
+  const result=placeFreeSkewerItem(data,ingredient,skewerIndex);
+  if(!result.accepted){
+    data.mistakes++;
+    const required=result.allowed[0];
+    return rejectSkewerPiece(skewerIndex,required?`이 꼬치에는 ${SKEWER_LABEL[required]}도 최소 한 개 필요합니다.`:"이 꼬치는 이미 다 찼습니다.",target);
+  }
 
-  data.stock[ingredient]--;data.selected=null;audio.click();
+  data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.click();
   const done=skewerDoneCount(data);
-  dom.miniFeedback.textContent=stack.length>=SKEWER_ORDER.length
+  dom.miniFeedback.textContent=result.complete
     ? `꼬치 ${done} / ${data.total} 완성!`
     : `${SKEWER_LABEL[ingredient]}를 꽂았습니다.`;
-  renderChickenSkewer();
-  if(done>=data.total)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);
+  if(done>=data.total){
+    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderChickenSkewer();
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);},720);
+  }else renderChickenSkewer();
 }
 
 // 잘못 놓았을 때: 상태는 그대로 두고 해당 꼬치만 흔듭니다.
-function rejectSkewerPiece(skewerIndex,message){
+function rejectSkewerPiece(skewerIndex,message,target){
   dom.miniFeedback.textContent=message;audio.bad();
-  const rack=dom.miniContent.querySelector(`.sk-rack[data-skewer="${skewerIndex}"]`);
+  const rack=target||dom.miniContent.querySelector(`.sk-rack[data-skewer="${skewerIndex}"]`);
   if(!rack)return;
   rack.classList.remove("reject");void rack.offsetWidth;rack.classList.add("reject");
   setTimeout(()=>rack.classList.remove("reject"),340);
@@ -307,42 +378,53 @@ function rejectSkewerPiece(skewerIndex,message){
 
 function setupTteokSoak(){
   if(Number(state.day)<4||!state.mini)return;
-  setDayPrepData({...createOrderPlacementState("tteokSoak"),taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false});
+  setDayPrepData({...createOrderPlacementState("tteokSoak"),taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false,mistakes:0,lastAdded:null,completionGrade:""});
   dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
-  dom.miniDescription.textContent="떡을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
+  dom.miniDescription.textContent="떡을 볼에 넣은 뒤 물을 부어 잠시 불려주세요. 재료를 클릭하거나 볼로 끌어도 됩니다.";
   renderTteokSoak();
 }
 
 function setupUdonSoak(){
   if(Number(state.day)<3||!state.mini)return;
-  setDayPrepData({...createOrderPlacementState("udonSoak"),taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false});
+  setDayPrepData({...createOrderPlacementState("udonSoak"),taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false,mistakes:0,lastAdded:null,completionGrade:""});
   dom.miniTitle.textContent="볶음우동 · 우동면 불려두기";
-  dom.miniDescription.textContent="우동면을 클릭해 볼에 넣고, 물통을 클릭해 물을 채우세요. 별도의 대기 시간은 없습니다.";
+  dom.miniDescription.textContent="우동면을 볼에 넣은 뒤 물을 부어 잠시 불려주세요. 재료를 클릭하거나 볼로 끌어도 됩니다.";
   renderTteokSoak();
 }
 
 function renderTteokSoak(){
   const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId))return;
   const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,count=Object.values(data.added).filter(Boolean).length,isUdon=key==="udon";
+  const ingredientAsset=isUdon?"soakUdon":"soakTteok";
+  const sourceArt=(asset,kind,alt)=>`<span class="soak-source-art ${kind} ${hasDayPrepAsset(asset)?"has-asset":""}"><i></i>${dayPrepAssetMarkup(asset,"soak-source-asset",alt)}</span>`;
+  const bowlPieces=data.added[key]?Array.from({length:isUdon?5:7},()=>hasDayPrepAsset(ingredientAsset)?dayPrepAssetMarkup(ingredientAsset,"soak-piece-asset",label):"<b></b>").join(""):"빈 볼";
   dom.miniTimer.textContent=`${count} / 2`;
   dom.miniContent.innerHTML=`
     ${data.menuId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",0):""}
-    <div class="tteok-soak-scene">
-      <button type="button" class="tteok-source ${isUdon?"udon-source":""} ${data.added[key]?"added":""}" data-soak-item="${key}" ${data.added[key]||data.finishing?"disabled":""}><i></i><strong>${label}</strong></button>
-      <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${data.added.water?"has-water":""} ${data.added[key]?"has-ingredient":""}" aria-label="${label}을 불리는 볼"><i class="water-fill"></i>${!isUdon?dayPrepAssetMarkup(data.added[key]&&data.added.water?"tteokSoakComplete":data.added[key]?"tteokSoakTteok":data.added.water?"tteokSoakWater":"tteokSoakEmpty","soak-state-asset",""):""}<span>${data.added[key]?Array.from({length:isUdon?5:7},()=>"<b></b>").join(""):"빈 볼"}</span></div>
-      <button type="button" class="water-source ${data.added.water?"added":""}" data-soak-item="water" ${data.added.water||data.finishing?"disabled":""}><i></i><strong>물통</strong></button>
+    <div class="tteok-soak-scene ${data.finishing?"settling":""}">
+      <button type="button" class="tteok-source ${isUdon?"udon-source":""} ${data.added[key]?"added":""} ${data.lastAdded===key?"just-added":""}" data-soak-item="${key}" ${data.added[key]||data.finishing?"disabled":""}>${sourceArt(ingredientAsset,key,label)}<strong>${label}</strong></button>
+      <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${hasDayPrepAsset("soakBowl")?"has-asset":""} ${data.added.water?"has-water":""} ${data.added[key]?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">${dayPrepAssetMarkup("soakBowl","soak-bowl-asset","불리기 볼")}<i class="water-fill"></i><span>${bowlPieces}</span>${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}</div>
+      <button type="button" class="water-source ${data.added.water?"added":""} ${data.lastAdded==="water"?"just-added":""}" data-soak-item="water" ${data.added.water||data.finishing?"disabled":""}>${sourceArt("soakWater","water","물통")}<strong>물통</strong></button>
+      ${data.finishing?`<strong class="order-result soak-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
     </div>
     <div class="cut-count">${label} ${data.added[key]?"✓":"○"} · 물 ${data.added.water?"✓":"○"}</div>`;
-  dom.miniContent.querySelectorAll("[data-soak-item]").forEach(button=>button.addEventListener("click",()=>addTteokSoakItem(button.dataset.soakItem)));
+  bindOrderPlacementPointers({
+    sources:dom.miniContent.querySelectorAll("[data-soak-item]"),
+    targetSelector:'[data-order-target="soak"]',
+    itemFromSource:source=>source.dataset.soakItem,
+    ghostSelector:".soak-source-art",
+    onPlace:(item,target)=>addTteokSoakItem(item,target),
+    onMiss:()=>{dom.miniFeedback.textContent="재료를 가운데 볼 안에 놓아주세요.";pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="soak"]'));}
+  });
 }
 
-function addTteokSoakItem(item){
+function addTteokSoakItem(item,target){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
   const data=m.data,result=placeOrderedItem(data,item);
-  if(!result.accepted){dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();return;}
-  data.added[item]=true;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 채웠습니다.";
+  if(!result.accepted){data.mistakes++;dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();pulseOrderTarget(target);return;}
+  data.added[item]=true;data.lastAdded=item;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 붓는 중입니다.";
   if(Object.values(m.data.added).every(Boolean)){
-    data.finishing=true;renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 모두 들어갔습니다. 불려두기 완료!`;
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},360);
+    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 들어갔습니다. 잠시 불리는 중...`;
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},1500);
   }else renderTteokSoak();
 }

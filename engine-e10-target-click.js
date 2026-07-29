@@ -1,12 +1,12 @@
 "use strict";
 
 /* ============================================================
-   E10 표적 클릭 (낮 준비) — 멸치 머리 떼기
+   E10 표적 손질 (낮 준비) — 멸치 머리 떼기
 
-   멸치 5마리가 도마에 무작위 위치·각도·크기로 흩어집니다.
+   멸치 7마리가 도마에 무작위 위치·각도·크기로 흩어집니다.
    (마리 수는 day-prep-minigames.js 의 DAY_PREP_MINI_CONFIG.cleanAnchovy.total)
-   각 멸치의 원형 "머리"만 정확히 눌러야 손질됩니다.
-   몸통을 누르면 실패가 아니라 안내 문구만 뜨고 다시 시도할 수 있습니다.
+   머리를 누른 채 좌우로 세 번 크게 흔들면 접합부가 버티다가 뜯어집니다.
+   몸통을 누르면 실패가 아니라 안내만 보여주고 다시 시도할 수 있습니다.
 
    [화면 구성] 컨셉 이미지와 같은 3열입니다.
      [재료 카드] [도마] [완성 개수 카드 · 참고 모양 카드]
@@ -15,7 +15,7 @@
    css/day-prep-minigames.css 에서 .anchovy-screen 이 있을 때만
    가운데 열 제한을 풀어 좌우 카드 자리를 확보합니다.
 
-   5마리를 다 손질하면 냄비에 넣는 연출(E11, engine-e11-one-shot.js)로
+   7마리를 다 손질하면 냄비에 넣는 연출(E11, engine-e11-one-shot.js)로
    넘어가고 거기서 태스크가 완료됩니다.
 
    이 엔진을 쓰는 게임은 지금 이것 하나뿐입니다.
@@ -23,20 +23,22 @@
 
 registerDayPrepSetup("anchovy",()=>setupAnchovyPrep());
 
-// 클릭만 쓰므로 키 처리가 없습니다.
-registerDayPrepEngine("anchovy",{});
+// 포인터로 머리를 잡아 흔드는 게임이라 키 처리는 없습니다.
+registerDayPrepEngine("anchovy",{
+  update(m,dt){updateAnchovyTimer(m,dt);}
+});
 
 function setupAnchovyPrep(){
   const config=DAY_PREP_MINI_CONFIG.cleanAnchovy;
   // 도마를 3x3 칸으로 나눠 그중 total 칸을 골라 한 마리씩 놓습니다.
   // 칸 안에서 위치·각도·크기를 조금씩 흔들어 자연스럽게 흩어 보이게 합니다.
   const slots=shuffle(Array.from({length:9},(_,index)=>index)).slice(0,config.total);
-  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,items:slots.map((slot,index)=>({
+  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
     id:index,cleaned:false,x:3+(slot%3)*30+Math.random()*6,y:5+Math.floor(slot/3)*29+Math.random()*7,
     rotation:-14+Math.random()*28,scale:.9+Math.random()*.18,flip:Math.random()>.5?-1:1
   }))});
   dom.miniTitle.textContent=config.title;
-  dom.miniDescription.textContent="멸치 머리를 클릭해 떼어주세요!";
+  dom.miniDescription.textContent="멸치 머리를 잡고 좌우로 흔들어 뜯어주세요. 제한시간 안에 모두 손질해야 합니다!";
   renderAnchovyPrep();
 }
 
@@ -62,12 +64,14 @@ function renderAnchovyPrep(){
         ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
           <button class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</button>
           <button class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</button>
+          <span class="anchovy-joint" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>`).join("")}
       </div>
       <aside class="anchovy-right">
         <div class="anchovy-card anchovy-count-card">
           <h3 class="anchovy-card-title">완성 개수</h3>
           <p class="anchovy-count" id="anchovyCount"><b>${data.cleaned}</b> / ${data.total}</p>
+          <p class="anchovy-time" id="anchovyTime"><span>남은 시간</span><b>${data.timeLeft.toFixed(1)}초</b></p>
         </div>
         <div class="anchovy-card anchovy-ref-card">
           <h3 class="anchovy-card-title">참고 모양</h3>
@@ -77,19 +81,135 @@ function renderAnchovyPrep(){
     </div>`;
   // 사이드 카드의 견본 멸치는 클릭 대상이 아니므로 도마 안쪽만 골라 겁니다.
   dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-body").forEach(button=>button.addEventListener("click",()=>{
-    dom.miniFeedback.textContent="몸통이 아니라 머리를 클릭하세요.";
+    dom.miniFeedback.textContent="몸통이 아니라 머리를 잡아주세요.";
   }));
-  dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head").forEach(button=>button.addEventListener("click",()=>cleanAnchovyHead(button)));
+  bindAnchovyTugControls();
 }
 
-function cleanAnchovyHead(button){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="anchovy")return;
-  const wrapper=button.closest(".anchovy"),item=m.data.items.find(entry=>entry.id===Number(wrapper.dataset.id));
-  if(!item||item.cleaned)return;
-  item.cleaned=true;m.data.cleaned++;
-  wrapper.classList.add("cleaned");button.disabled=true;
+function createAnchovyGrip(pointerId,x,y){
+  return {pointerId,startX:x,startY:y,peakX:x,direction:0,reversals:0,lastDirection:1};
+}
+
+function updateAnchovyGrip(grip,x,swingDistance){
+  if(!grip.direction){
+    const first=x-grip.peakX;
+    if(Math.abs(first)>=swingDistance*.45){grip.direction=Math.sign(first);grip.peakX=x;grip.lastDirection=grip.direction;}
+    return false;
+  }
+  if(grip.direction>0){
+    grip.peakX=Math.max(grip.peakX,x);
+    if(x<=grip.peakX-swingDistance){grip.direction=-1;grip.peakX=x;grip.lastDirection=-1;grip.reversals++;return true;}
+  }else{
+    grip.peakX=Math.min(grip.peakX,x);
+    if(x>=grip.peakX+swingDistance){grip.direction=1;grip.peakX=x;grip.lastDirection=1;grip.reversals++;return true;}
+  }
+  return false;
+}
+
+function anchovyTugPose(tugX,tugY,flip=1){
+  // 판정은 포인터의 전체 이동량을 쓰되, 화면에서는 접합부가 벌어지지 않을 만큼만 움직입니다.
+  return {
+    x:clamp(tugX*.12,-5,5)*flip,
+    y:clamp(tugY*.12,-1.5,1.5),
+    turn:tugX*.28*flip
+  };
+}
+
+function bindAnchovyTugControls(){
+  dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head").forEach(button=>{
+    button.addEventListener("pointerdown",event=>startAnchovyTug(button,event));
+    button.addEventListener("pointermove",event=>moveAnchovyTug(button,event));
+    button.addEventListener("pointerup",event=>releaseAnchovyTug(button,event));
+    button.addEventListener("pointercancel",event=>releaseAnchovyTug(button,event,true));
+    button.addEventListener("lostpointercapture",event=>releaseAnchovyTug(button,event,true));
+    button.addEventListener("dragstart",event=>event.preventDefault());
+  });
+}
+
+function activeAnchovyMini(){
+  const m=state.mini;
+  return isDayPrepMini(m)&&m.data.mode==="anchovy"&&!m.data.timedOut&&!m.data.finishing?m:null;
+}
+
+function startAnchovyTug(button,event){
+  const m=activeAnchovyMini();if(!m||event.pointerType==="mouse"&&event.button!==0)return;
+  // 한 번에 한 머리만 잡습니다. 두 번째 손가락이 현재 당기기를 가로채지 못하게 합니다.
+  if(m.data.grip)return;
+  const wrapper=button.closest(".anchovy"),item=m.data.items.find(entry=>entry.id===Number(wrapper?.dataset.id));
+  if(!wrapper||!item||item.cleaned)return;
+  event.preventDefault();
+  m.data.grip={...createAnchovyGrip(event.pointerId,event.clientX,event.clientY),id:item.id,flip:item.flip,button,wrapper};
+  wrapper.classList.remove("tug-snap");wrapper.classList.add("grabbing");wrapper.dataset.tug="0";
+  button.setPointerCapture?.(event.pointerId);
+  dom.miniFeedback.textContent=`${item.id+1}번 멸치 머리를 잡았습니다 · 좌우로 흔드세요!`;
+  audio.click();
+}
+
+function moveAnchovyTug(button,event){
+  const m=activeAnchovyMini(),grip=m?.data.grip;
+  if(!grip||grip.button!==button||grip.pointerId!==event.pointerId)return;
+  event.preventDefault();
+  const tugX=clamp(event.clientX-grip.startX,-42,42),tugY=clamp(event.clientY-grip.startY,-12,12);
+  const pose=anchovyTugPose(tugX,tugY,grip.flip||1);
+  // 머리 안쪽을 회전축으로 고정해 흔드는 동안에는 몸통에 붙어 있고, 성공 순간에만 분리합니다.
+  grip.wrapper.style.setProperty("--tug-x",`${pose.x}px`);
+  grip.wrapper.style.setProperty("--tug-y",`${pose.y}px`);
+  grip.wrapper.style.setProperty("--tug-turn",`${pose.turn}deg`);
+  if(!updateAnchovyGrip(grip,event.clientX,m.data.swingDistance))return;
+  grip.wrapper.dataset.tug=String(grip.reversals);
+  grip.wrapper.classList.remove("tug-pulse");void grip.wrapper.offsetWidth;grip.wrapper.classList.add("tug-pulse");
+  dom.miniFeedback.textContent=`흔들기 ${Math.min(grip.reversals,m.data.requiredShakes)} / ${m.data.requiredShakes}`;
+  if(grip.reversals>=m.data.requiredShakes)finishAnchovyTug(m,grip);
+}
+
+function releaseAnchovyTug(button,event,cancelled=false){
+  const m=state.mini,grip=m?.data?.grip;
+  if(!grip||grip.button!==button||grip.pointerId!==event.pointerId)return;
+  m.data.grip=null;
+  grip.wrapper.classList.remove("grabbing","tug-pulse");grip.wrapper.classList.add("tug-snap");
+  delete grip.wrapper.dataset.tug;
+  grip.wrapper.style.removeProperty("--tug-x");grip.wrapper.style.removeProperty("--tug-y");grip.wrapper.style.removeProperty("--tug-turn");
+  if(!cancelled)dom.miniFeedback.textContent="아직 붙어 있어요 · 머리를 놓지 말고 조금 더 크게 흔들어주세요!";
+}
+
+function finishAnchovyTug(m,grip){
+  const item=m.data.items.find(entry=>entry.id===grip.id);if(!item||item.cleaned)return;
+  item.cleaned=true;m.data.cleaned++;m.data.grip=null;
+  try{grip.button.releasePointerCapture?.(grip.pointerId);}catch{}
+  // 마지막 포인터 방향과 무관하게 머리의 바깥쪽으로 뜯어 둡니다.
+  // 멸치 전체 반전은 부모 transform이 처리하므로 로컬 좌표는 항상 음수여야 합니다.
+  grip.wrapper.style.setProperty("--tear-x","calc(-38 * var(--upx))");
+  grip.wrapper.classList.remove("grabbing","tug-pulse");grip.wrapper.classList.add("cleaned","torn");
+  grip.button.disabled=true;
   dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
   dom.miniContent.querySelector("#anchovyCount").innerHTML=`<b>${m.data.cleaned}</b> / ${m.data.total}`;
-  dom.miniFeedback.textContent="머리 손질 성공";
-  if(m.data.cleaned===m.data.total)showOdenIngredientDrop("cleanAnchovy","anchovy","멸치 손질 완료");
+  dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.success();
+  if(m.data.cleaned===m.data.total){m.data.finishing=true;showOdenIngredientDrop("cleanAnchovy","anchovy","멸치 손질 완료");}
+}
+
+function updateAnchovyTimer(m,dt){
+  if(m.data.timedOut||m.data.finishing)return;
+  const previousTime=m.data.timeLeft;
+  m.data.timeLeft=Math.max(0,m.data.timeLeft-dt);
+  if(previousTime>7&&m.data.timeLeft<=7&&!m.data.timerWarningPlayed){m.data.timerWarningPlayed=true;audio.play?.("timer_warning",{owner:m,gain:.85});}
+  const timer=dom.miniContent.querySelector("#anchovyTime");
+  if(timer){timer.classList.toggle("warning",m.data.timeLeft<=7);timer.querySelector("b").textContent=`${m.data.timeLeft.toFixed(1)}초`;}
+  if(m.data.timeLeft<=0)timeoutAnchovy(m);
+}
+
+function timeoutAnchovy(m){
+  if(state.mini!==m||m.data.timedOut||m.data.finishing)return;
+  m.data.timedOut=true;
+  if(m.data.grip){
+    const grip=m.data.grip;m.data.grip=null;
+    try{grip.button.releasePointerCapture?.(grip.pointerId);}catch{}
+    grip.wrapper.classList.remove("grabbing","tug-pulse");
+    grip.wrapper.style.removeProperty("--tug-x");grip.wrapper.style.removeProperty("--tug-y");grip.wrapper.style.removeProperty("--tug-turn");
+  }
+  const area=dom.miniContent.querySelector("#anchovyWorkArea");if(!area)return;
+  area.classList.add("time-over");
+  area.querySelectorAll("button").forEach(button=>button.disabled=true);
+  area.insertAdjacentHTML("beforeend",`<div class="anchovy-timeout"><strong>TIME OVER</strong><span>${m.data.cleaned} / ${m.data.total} 손질</span><button type="button" id="anchovyRetry">다시 시도</button></div>`);
+  area.querySelector("#anchovyRetry").addEventListener("click",setupAnchovyPrep);
+  dom.miniFeedback.textContent="시간이 끝났습니다. 다시 도전해보세요!";audio.bad();
 }

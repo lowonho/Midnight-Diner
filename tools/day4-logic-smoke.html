@@ -10,12 +10,15 @@ const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...m
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
 const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniStation:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
-const audio={click(){},success(){},bad(){}};
+const playedSfx=[];
+const audio={click(){},success(){},bad(){},play(name){playedSfx.push(name);},loop(name){playedSfx.push(name);}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
+function setMiniTipHint(){}
 </script>
 <script src="../day.js"></script>
+<script src="../prep.js"></script>
 <script src="../day-prep-minigames.js"></script>
 <script src="../engine-e1-timing-cut.js"></script>
 <script src="../engine-e2-alternate-input.js"></script>
@@ -53,6 +56,15 @@ try{
 
   const day4Ids=selectedPrepTasks().map(task=>task.id);
   assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+  const prepGroups=prepDishGroups();
+  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="soakTteok","Prep table keeps one grouped slot and next step per dish");
+  state.prepProgress.soakTteok=true;
+  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Grouped prep slot and sequence advance to the dish's next task");
+  let chainedPrepTask="";const originalStartDayPrepMini=startDayPrepMini;
+  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"soakTteok"}};state.mini=chainMini;
+  assert(advanceDayPrepDish(chainMini,"soakTteok")&&chainedPrepTask==="cutTteokbokkiCabbage","Completed prep step automatically starts the same dish's next step");
+  startDayPrepMini=originalStartDayPrepMini;state.mini=null;
+  state.prepProgress.soakTteok=false;
 
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
   const day3Ids=selectedPrepTasks().map(task=>task.id);
@@ -74,18 +86,21 @@ try{
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",requiredHits:2,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4],title:"E1 smoke",description:"smoke"});
   state.mini.data.marker=.5;timingCutAction();
-  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect"),"E1 perfect impact state");
+  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line.done").length===1,"E1 perfect impact stays on one large ingredient without a side pile");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  playedSfx.length=0;
   startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitZoneWidth:.2,speed:.7,zoneStarts:[.4],requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
   state.mini.data.marker=.5;timingCutAction();
   assert(state.mini.data.tapStep===1&&state.mini.data.successes===0,"E1 chicken first tap embeds knife");
+  assert(playedSfx.join(",")==="cut_meat1","E1 chicken first tap plays meat sound 1");
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
+  assert(playedSfx.join(",")==="cut_meat1,cut_meat2","E1 chicken second tap plays meat sound 2");
 
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
   assert(SHRIMP_COAT_STEPS.map(item=>item.presses).join(",")==="10,8,12"&&PREP_TASKS.coatShrimp,"Shrimp coating counts and merged task");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
-  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2,"Kimchi direction config");
-  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4,"Yakisoba direction config");
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
   assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
@@ -106,13 +121,24 @@ try{
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
+  function slideE3Surface(surface,direction,pointerId){
+    const delta={left:[-50,0],right:[50,0],up:[0,-50],down:[0,50]}[direction];
+    surface.setPointerCapture=()=>{};
+    surface.getBoundingClientRect=()=>({left:0,top:0,width:100,height:100,right:100,bottom:100});
+    surface.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:50,clientY:50,bubbles:true}));
+    surface.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX:50+delta[0],clientY:50+delta[1],bubbles:true}));
+    surface.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX:50+delta[0]*2,clientY:50+delta[1]*2,bubbles:true}));
+    surface.dispatchEvent(new PointerEvent("pointerup",{pointerId,pointerType:"mouse",clientX:50+delta[0],clientY:50+delta[1],bubbles:true}));
+  }
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupKimchiFry("fryTofuKimchi");
-  const kimchiDirection=state.mini.data.sequence[0];kimchiFryInput(kimchiDirection,false);
-  assert(state.mini.data.successes===1&&dom.miniContent.querySelector(".kf-wood-spatula")&&dom.miniContent.querySelector(`#fryWorkArea.stir-${kimchiDirection}`),"E3 kimchi wooden spatula action");
+  assert(MINI_ENGINES.direction.key(state.mini,"arrowleft",{repeat:false})===false&&state.mini.data.successes===0,"E3 kimchi arrow keys do not advance the game");
+  const kimchiDirection=state.mini.data.sequence[0];slideE3Surface(dom.miniContent.querySelector(".kf-scene"),kimchiDirection,31);
+  assert(state.mini.data.successes===1&&state.mini.data.errors===0&&dom.miniContent.querySelector(".kf-wood-spatula")&&dom.miniContent.querySelector(`#fryWorkArea.stir-${kimchiDirection}`),"E3 kimchi accepts only one full sweep per drag");
   const stirMini={engine:"stir",complete:false,data:{}};state.mini=stirMini;
   MINI_ENGINES.stir.setup(stirMini,{set:()=>{}});
-  const stirDirection=stirMini.data.arrows[0];stirInput(stirDirection,false);
-  assert(stirMini.data.index===1&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba twin spatulas and noodle action");
+  assert(typeof MINI_ENGINES.stir.key==="undefined"&&stirMini.data.index===0,"E3 yakisoba arrow keys are not registered as game input");
+  const stirDirection=stirMini.data.arrows[0];slideE3Surface(dom.miniContent.querySelector(".yk-scene"),stirDirection,32);
+  assert(stirMini.data.index===1&&stirMini.data.errors===0&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba accepts only one full sweep per drag");
   while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);
   assert(stirMini.data.phase==="complete"&&stirMini.data.inputLocked&&dom.miniContent.querySelector("#e3Result.perfect"),"E3 full sequence grade and delayed completion state");
   state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
@@ -120,20 +146,22 @@ try{
   assert(finishedScore===100,"E3 shared controller completion");
 
   finishedScore=null;
+  playedSfx.length=0;
   const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
   const initialHeatPower=heatMini.data.power;
   MINI_ENGINES.heat.key(heatMini,"arrowright",{repeat:false});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini,"arrowright");
-  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5,"E4 hold input, oden pot, and shared flame");
+  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5&&playedSfx.join(",")==="clear_simmer","E4 oden keeps simmer audio without gas flame audio");
   heatMini.data.enteredZone=true;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
   heatMini.data.value=.5;heatMini.data.power=.5;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
+  playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
-  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki","E4 tteokbokki pot variant");
+  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki keeps boil audio without gas flame audio");
   finishedScore=null;
   for(let tap=0;tap<4;tap++){setHeatControl(tteokHeatMini,1,true);setHeatControl(tteokHeatMini,1,false);}
   for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
@@ -145,6 +173,8 @@ try{
   assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&dom.miniContent.querySelector(".doneness-good")&&dom.miniContent.querySelector(".doneness-perfect")&&!dom.miniContent.querySelector("#cookVisualLabel"),"E5 image-only cooking state with GOOD/PERFECT zones");
   pancakeMini.data.marker=.76;updateTwoSideCookVisual(pancakeMini.data);twoSideCookAction();
   assert(pancakeMini.data.phase==="flip"&&pancakeMini.data.hits[0]===100,"E5 pancake front timing enters flip phase");
+  playedSfx.length=0;pancakeMini.data.flipCharge=72;releasePancakeFlip();
+  assert(pancakeMini.data.phase==="flipping"&&playedSfx.join(",")==="pancake_flip","E5 pancake down input starts flip sound immediately");
   assert(twoSideCookGrade({hits:[100,96,98],flipErrors:0,cookErrors:0})==="perfect"&&twoSideCookGrade({hits:[100,96,98],flipErrors:1,cookErrors:0})==="good","E5 PERFECT and GOOD grading");
   const skewerCookMini={engine:"twoSideCook",context:{mode:"cook",dishId:"skewer"},complete:false,data:{}};state.mini=skewerCookMini;
   MINI_ENGINES.twoSideCook.setup(skewerCookMini,{set:(title,description,time)=>{skewerCookMini.time=time;},dish:dishById("skewer")});
@@ -169,34 +199,112 @@ try{
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.flow).join(",")==="thick,syrup,thin"&&DAY_PREP_ASSET_PATHS.sauceFlowThin&&DAY_PREP_ASSET_PATHS.sauceFlowSyrup&&DAY_PREP_ASSET_PATHS.sauceFlowThick,"E7 data-driven viscosity and three reusable stream assets");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupSauceRecipe("tteokbokki");
   const sauceMini=state.mini;
-  assert(dom.miniContent.querySelectorAll(".sc-goal-meter").length===3&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 meters and viscosity-specific streams");
+  assert(dom.miniContent.querySelectorAll(".sc-goal").length===3&&!dom.miniContent.querySelector(".sc-goal-meter")&&!dom.miniContent.querySelector(".sc-undo")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 one-pour cards and viscosity-specific streams");
   MINI_ENGINES.sauceMeasure.key(sauceMini," ",{repeat:true});
   assert(sauceMini.data.sauces[0].amount===0,"E7 held Space cannot auto-pour repeatedly");
-  sauceMini.data.sauces[0].amount=90;addYakisobaSauce("gochujang");
-  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 exact measure keeps input locked while bottle flies");
+  addYakisobaSauce("gochujang");
+  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 one click pours the full recipe amount while the bottle flies");
   finishSaucePour(sauceMini);
   assert(sauceMini.data.cursor===1&&!sauceMini.data.pourLocked,"E7 next ingredient is selected after bottle returns");
-  sauceMini.data.sauces[1].amount=60;addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);undoYakisobaSauce("oligosaccharide");
-  assert(sauceMini.data.mistakes===1&&sauceMini.data.undos===1&&sauceMini.data.sauces[1].amount===60&&sauceCompletionGrade(sauceMini.data)==="good","E7 overpour and undo produce GOOD");
-  sauceMini.data.mistakes=0;sauceMini.data.undos=0;sauceMini.data.pourLocked=false;sauceMini.data.sauces.forEach(item=>{item.amount=item.target;});checkYakisobaSauceComplete(sauceMini);
-  assert(sauceMini.data.finishing&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 exact recipe mixes and completes PERFECT");
+  addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);
+  assert(sauceMini.data.sauces[1].amount===60&&sauceMini.data.cursor===2&&sauceCompletionGrade(sauceMini.data)==="perfect","E7 second ingredient is also a single full pour");
+  addYakisobaSauce("soy");finishSaucePour(sauceMini);
+  assert(sauceMini.data.finishing&&sauceMini.data.sauces.every(item=>item.amount===item.target)&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 three one-time pours mix and complete PERFECT");
 
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
-  assert(WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 data config");
+  state.mini={context:{mode:"dayPrep",taskId:"mixKimchiBatter"},complete:false,data:{}};setupKimchiBatter();
+  assert(!!dom.miniContent.querySelector('[data-order-target="batter"]')&&typeof bindOrderPlacementPointers==="function","E8 batter uses the shared pointer placement target");
+  const batterSource=dom.miniContent.querySelector('[data-batter-ingredient="flour"]'),batterTarget=dom.miniContent.querySelector('[data-order-target="batter"]');
+  batterSource.setPointerCapture=()=>{};
+  const originalElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>batterTarget;
+  batterSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:31,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
+  batterSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:31,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  batterSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:31,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  document.elementFromPoint=originalElementFromPoint;
+  assert(state.mini.data.step===1&&!document.querySelector(".order-drag-ghost"),"E8 pointer drag places flour and cleans its ghost");
+  const freeSkewer=createOrderPlacementState("skewer");let freeResult;
+  ["chicken","greenOnion","greenOnion","greenOnion","greenOnion"].forEach(item=>{freeResult=placeFreeSkewerItem(freeSkewer,item,0);});
+  assert(freeResult.complete&&freeSkewer.placements[0].join(",")==="chicken,greenOnion,greenOnion,greenOnion,greenOnion","E8 skewer accepts any order containing chicken and green onion");
+  const forcedSkewer=createOrderPlacementState("skewer");
+  for(let index=0;index<4;index++)placeFreeSkewerItem(forcedSkewer,"chicken",0);
+  const sameFifth=placeFreeSkewerItem(forcedSkewer,"chicken",0),requiredFifth=placeFreeSkewerItem(forcedSkewer,"greenOnion",0);
+  assert(!sameFifth.accepted&&sameFifth.allowed[0]==="greenOnion"&&requiredFifth.complete,"E8 fifth skewer slot enforces the missing ingredient only");
+  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"assembleChickenSkewer"},complete:false,data:{}};setupChickenSkewer();
+  const skewerSequences=[["chicken","greenOnion","greenOnion","greenOnion","greenOnion"],["greenOnion","chicken","chicken","chicken","chicken"],["chicken","chicken","greenOnion","chicken","greenOnion"]];
+  skewerSequences.forEach((sequence,track)=>sequence.forEach(item=>placeSkewerPiece(track,item,dom.miniContent.querySelector('[data-order-target="skewer"]'))));
+  assert(state.mini.data.finishing&&state.mini.data.completionGrade==="perfect"&&skewerDoneCount(state.mini.data)===3&&!!dom.miniContent.querySelector(".order-result.perfect"),"E8 three freely ordered skewers complete through the live renderer");
+  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"soakTteok"},complete:false,data:{}};setupTteokSoak();
+  addTteokSoakItem("water",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  addTteokSoakItem("tteok",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  addTteokSoakItem("water",dom.miniContent.querySelector('[data-order-target="soak"]'));
+  assert(state.mini.data.finishing&&state.mini.data.completionGrade==="good"&&!!dom.miniContent.querySelector(".soak-bubbles"),"E8 soak rejects water-first then settles with shared feedback");
+  assert(WHISK_CONFIG.kimchiBatter.targetTurns===4&&WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 four-turn data config");
+  const smoothWhisk=createWhiskState();
+  for(let index=0;index<=130;index++)sampleWhiskMotion(smoothWhisk,index*Math.PI*2/32,.35);
+  assert(smoothWhisk.progressAngle===smoothWhisk.targetAngle&&smoothWhisk.mistakes===0,"E9 smooth same-direction circles complete PERFECT eligibility");
+  const roughWhisk=createWhiskState();
+  sampleWhiskMotion(roughWhisk,0,.35);sampleWhiskMotion(roughWhisk,.3,.35);sampleWhiskMotion(roughWhisk,.1,.35);sampleWhiskMotion(roughWhisk,.2,.1);
+  assert(roughWhisk.progressAngle>0&&roughWhisk.mistakes===2,"E9 reversal and leaving the bowl band do not add progress and mark GOOD");
+  state.mini={context:{mode:"dayPrep",taskId:"mixKimchiBatter"},complete:false,data:{}};setupWhiskBatter("kimchiBatter",1);
+  assert(state.mini.data.mistakes===1&&!!dom.miniContent.querySelector(".whisk-wire")&&dom.miniContent.querySelectorAll(".bt-batter-stage-assets").length===1,"E9 inherits E8 mistakes and exposes replaceable whisk/batter asset layers");
+  const whiskWork=dom.miniContent.querySelector("#whiskWorkArea");whiskWork.setPointerCapture=()=>{};whiskWork.getBoundingClientRect=()=>({left:0,top:0,width:100,height:100});
+  whiskWork.dispatchEvent(new PointerEvent("pointerdown",{pointerId:99,pointerType:"mouse",button:0,clientX:85,clientY:50,bubbles:true}));
+  whiskWork.dispatchEvent(new PointerEvent("pointermove",{pointerId:99,pointerType:"mouse",clientX:83.4,clientY:60.3,bubbles:true}));
+  whiskWork.dispatchEvent(new PointerEvent("pointerup",{pointerId:99,pointerType:"mouse",clientX:83.4,clientY:60.3,bubbles:true}));
+  assert(state.mini.data.progressAngle>0&&!state.mini.data.pointerActive&&state.mini.data.mistakes===2,"E9 pointer listeners add circular progress and releasing lowers the final grade without resetting it");
+  const anchovyGrip=createAnchovyGrip(1,0,0);
+  [20,-1,20,-1].forEach(x=>updateAnchovyGrip(anchovyGrip,x,18));
+  assert(anchovyGrip.reversals===3,"E10 anchovy needs three deliberate left-right reversals");
+  const anchovyPose=anchovyTugPose(42,12,1);
+  assert(anchovyPose.x===5&&anchovyPose.y<1.5&&anchovyPose.turn<12,"E10 head stays attached while the full pointer motion drives the shake");
+  state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
+  setupAnchovyPrep();
+  const anchovyHead=dom.miniContent.querySelector("#anchovyWorkArea .anchovy-head");
+  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-joint").length===7,"E10 renders seven anchovies with asset-free joint tension feedback");
+  anchovyHead.setPointerCapture=()=>{};anchovyHead.releasePointerCapture=()=>{};
+  startAnchovyTug(anchovyHead,{pointerId:7,pointerType:"mouse",button:0,clientX:0,clientY:0,preventDefault(){}});
+  const secondAnchovyHead=dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head")[1];
+  startAnchovyTug(secondAnchovyHead,{pointerId:8,pointerType:"touch",button:0,clientX:0,clientY:0,preventDefault(){}});
+  assert(state.mini.data.grip.pointerId===7,"E10 ignores a second pointer while one anchovy head is held");
+  [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
+  assert(anchovyHead.closest(".anchovy").dataset.tug==="1"&&!anchovyHead.closest(".anchovy").classList.contains("torn"),"E10 first reversal weakens the joint without detaching the head");
+  [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
+  assert(state.mini.data.cleaned===1&&anchovyHead.closest(".anchovy").classList.contains("torn")&&anchovyHead.closest(".anchovy").style.getPropertyValue("--tear-x").includes("-38"),`E10 pointer tug completes outward and leaves one head beside the body: cleaned=${state.mini.data.cleaned}, classes=${anchovyHead.closest(".anchovy").className}`);
+  MINI_ENGINES.anchovy.update(state.mini,25);
+  assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector("#anchovyRetry"),"E10 anchovy time limit and retry flow");
   assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
+  assert(ONE_SHOT_VARIANTS.place.finishDelay>ONE_SHOT_VARIANTS.drop.finishDelay&&ONE_SHOT_VARIANTS.pour.pourDuration===900,"E11 place, drop, and pour variants share input but keep separate finish timing");
   state.mini={complete:false,data:{}};
-  startOneShot({vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
+  startOneShot({variant:"place",vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
   assert(oneShotData().items.length===2&&oneShotData().vessel===ONE_SHOT_VESSELS.plate,"E11 shared one-shot data");
+  const osSource=dom.miniContent.querySelector('[data-os-item="tofu"]'),osDrop=dom.miniContent.querySelector(".os-drop");osSource.setPointerCapture=()=>{};
+  const e11ElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>osDrop;
+  osSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:51,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
+  osSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
+  osSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));document.elementFromPoint=e11ElementFromPoint;
+  assert(oneShotData().placed[0]==="tofu"&&!document.querySelector(".os-drag-ghost")&&dom.miniContent.querySelector(".os-board.variant-place"),"E11 custom pointer drag places tofu and cleans its ghost");
+  placeOneShotItem("friedKimchi");
+  assert(oneShotData().finishing&&oneShotData().actionPhase==="complete"&&dom.miniContent.querySelectorAll(".os-drop .os-food").length===2&&dom.miniContent.querySelector(".os-complete-sparks"),"E11 plating snaps both foods to their asset-safe slots and finishes visually");
+  state.prepProgress.cutRadish=true;state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
+  showOdenIngredientDrop("cleanAnchovy","anchovy","done");
+  assert(oneShotData().variant==="drop"&&oneShotData().preset.includes("radish")&&dom.miniContent.querySelector(".os-board.variant-drop"),"E11 pot drop reuses the controller and keeps already prepared ingredients visible");
+  state.mini={context:{mode:"dayPrep",taskId:"addOdenBroth"},complete:false,data:{}};setupOdenBroth("addOdenBroth");
+  const brothMini=state.mini,brothData=oneShotData();placeOneShotItem("broth");
+  assert(brothData.variant==="pour"&&brothData.actionPhase==="pouring"&&!brothData.placed.length&&dom.miniContent.querySelector(".os-pour-action.pouring .os-pour-stream"),"E11 broth drop starts the bottle and stream animation before filling");
+  settleOneShotPour(brothMini,brothData,"broth");
+  assert(brothData.actionPhase==="returning"&&brothData.placed[0]==="broth"&&dom.miniContent.querySelector(".os-vessel.pot.filled")&&dom.miniContent.querySelector(".os-pour-action.returning"),"E11 broth fills the pot while the bottle returns");
+  completeOneShotPour(brothMini,brothData);
+  assert(brothData.actionPhase==="complete"&&dom.miniContent.querySelector(".os-board.variant-pour.complete .os-complete-sparks"),"E11 pour reaches the shared visual completion state");
   const tofuMenu=menuDataById("tofu");
   assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
   MINI_ENGINES.chop.setup(state.mini,{set(){}});
-  assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the six-cut tofu controller");
+  assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelector(".cut-screen .cut-board")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the shared large-board six-cut controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>`${item.target}/${item.step}`).join(",")==="120/30,60/20,30/10","Tteokbokki sauce recipe");
+  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 59";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 99";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

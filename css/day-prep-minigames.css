@@ -264,10 +264,8 @@
 .cut-board {
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: space-evenly;
-  gap: calc(14 * var(--upx));
+  display: grid;
+  place-items: center;
   padding: calc(22 * var(--upx)) calc(24 * var(--upx)) calc(76 * var(--upx));
   border: calc(6 * var(--upx)) solid #8a5a2e;
   border-radius: calc(20 * var(--upx));
@@ -280,6 +278,18 @@
 .cut-board:not(:has(.cut-timing)) { padding-bottom: calc(22 * var(--upx)); }
 .cut-board .prep-work-object,
 .cut-board .rapid-cut-stage { flex: none; }
+.cut-board .prep-work-object {
+  width: min(86%,calc(500 * var(--upx)));
+  height: calc(178 * var(--upx));
+  transform-origin: 50% 78%;
+}
+.cut-board .prep-work-object.radish-shape { width:min(78%,calc(450 * var(--upx))); height:calc(190 * var(--upx)); }
+.cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.kimchi-shape,
+.cut-board .prep-work-object.chicken-shape,
+.cut-board .prep-work-object.cabbage-shape { width:min(78%,calc(460 * var(--upx))); height:calc(196 * var(--upx)); }
+.cut-board .prep-work-object.fishCake-shape { width:min(80%,calc(470 * var(--upx))); height:calc(182 * var(--upx)); }
+.cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(236 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
    올라가므로 테두리·바닥만 끄고 안쪽 배치(px)는 그대로 둡니다. */
 .cut-board .rapid-cut-stage { border: 0; background: none; box-shadow: none; overflow: visible; }
@@ -319,9 +329,9 @@
 .cut-screen .cut-slash-back { --knife-turn: -30deg; }
 /* 임시 칼 : 손잡이(::before) + 칼날(::after). 에셋을 넣으면 둘 다 사라집니다. */
 .cut-screen .knife-effect:not(.has-prep-asset) {
-  top: calc(-96 * var(--upx));
-  width: calc(26 * var(--upx));
-  height: calc(158 * var(--upx));
+  top: calc(-142 * var(--upx));
+  width: calc(52 * var(--upx));
+  height: calc(238 * var(--upx));
   border-radius: 0;
   background: none;
 }
@@ -330,8 +340,8 @@
   position: absolute;
   left: 50%;
   top: 0;
-  width: calc(22 * var(--upx));
-  height: calc(56 * var(--upx));
+  width: calc(29 * var(--upx));
+  height: calc(84 * var(--upx));
   border-radius: calc(7 * var(--upx));
   background: linear-gradient(#5d3620,#38200f);
   transform: translateX(-50%);
@@ -341,19 +351,19 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(48 * var(--upx));
+  top: calc(72 * var(--upx));
   bottom: 0;
   background: linear-gradient(100deg,#fbfdfb 0 20%,#ccd3cf 56%,#8b9490);
   /* 칼끝이 아래를 향한 식칼 모양 */
-  clip-path: polygon(0 0,100% 0,100% 72%,58% 100%,0 84%);
+  clip-path: polygon(8% 0,100% 0,100% 72%,58% 100%,0 84%);
 }
-.cut-screen .knife-effect.has-prep-asset { top: calc(-70 * var(--upx)); }
+.cut-screen .knife-effect.has-prep-asset { top:calc(-116 * var(--upx)); width:calc(150 * var(--upx)); height:calc(230 * var(--upx)); }
 /* 두부 마지막 한 번은 가로 썰기라 칼도 눕습니다 (기존 규칙을 도마 안에서 다시 잡습니다) */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect {
-  left: calc(-14 * var(--upx));
+  left: calc(-22 * var(--upx));
   top: 50%;
-  width: calc(205 * var(--upx));
-  height: calc(12 * var(--upx));
+  width: calc(404 * var(--upx));
+  height: calc(20 * var(--upx));
   transform: translateY(-50%);
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
@@ -412,10 +422,34 @@
 .cut-judgement.miss { color: #f0a08b; }
 .cut-board.cut-miss { animation: cut-board-miss .15s ease-out; }
 .cut-board.cut-perfect { box-shadow: inset 0 0 0 calc(3 * var(--upx)) #5b3416,inset 0 0 calc(45 * var(--upx)) rgba(255,184,66,.24),0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45); }
-.cut-board.cut-complete .cut-pile { animation: cut-pile-complete .48s cubic-bezier(.2,.9,.2,1); }
+.cut-board.cut-complete .prep-work-object { animation:cut-object-complete .48s cubic-bezier(.2,.9,.2,1); }
+
+/* 잘린 조각을 옆에 쌓지 않고 큰 재료 본체 안에서 절단면이 벌어지도록 표현합니다. */
+.cut-screen .cut-line.done {
+  width:calc(8 * var(--upx));
+  border-left:0;
+  border-radius:calc(4 * var(--upx));
+  background:linear-gradient(90deg,rgba(65,31,13,.72),rgba(255,243,202,.48),rgba(65,31,13,.72));
+  box-shadow:calc(-3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(0,0,0,.28),calc(3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(255,255,255,.22);
+  opacity:1;
+  transform:translateX(-50%);
+}
+.cut-screen .fishcake-diagonal.done { transform-origin:center; }
+.cut-screen .fishcake-diagonal.slash-forward.done { transform:translateX(-50%) rotate(28deg); }
+.cut-screen .fishcake-diagonal.slash-back.done { transform:translateX(-50%) rotate(-28deg); }
+.cut-screen .tofu-horizontal-line.done {
+  left:calc(-5 * var(--upx)) !important;
+  right:calc(-5 * var(--upx));
+  width:auto;
+  height:calc(8 * var(--upx));
+  border:0;
+  background:linear-gradient(rgba(65,31,13,.72),rgba(255,243,202,.5),rgba(65,31,13,.72));
+  box-shadow:0 calc(-3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.25),0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(255,255,255,.2);
+  transform:translateY(-50%);
+}
+.cut-screen .cut-line.fresh-cut { animation:cut-seam-open .28s cubic-bezier(.2,.8,.2,1); }
 
 /* 썰어 놓은 조각 더미 (도마 오른쪽) */
-.cut-pile { position: relative; flex: none; width: calc(200 * var(--upx)); height: calc(150 * var(--upx)); }
 .cut-piece {
   position: absolute;
   width: calc(52 * var(--upx));
@@ -546,10 +580,15 @@
   0% { opacity: 0; translate: calc(-22 * var(--upx)) calc(-30 * var(--upx)); scale: .65; }
   100% { opacity: 1; translate: 0 0; scale: 1; }
 }
-@keyframes cut-pile-complete {
-  0% { transform: scale(.96); filter: brightness(1); }
-  50% { transform: scale(1.07); filter: brightness(1.24); }
-  100% { transform: scale(1); filter: brightness(1); }
+@keyframes cut-seam-open {
+  0% { opacity:.25; filter:brightness(1.8); scale:.25 1; }
+  55% { opacity:1; filter:brightness(1.45); scale:1.35 1; }
+  100% { opacity:1; filter:brightness(1); scale:1 1; }
+}
+@keyframes cut-object-complete {
+  0% { transform:scale(.97); filter:brightness(1); }
+  48% { transform:translateY(calc(-8 * var(--upx))) scale(1.045); filter:brightness(1.2); }
+  100% { transform:scale(1); filter:brightness(1); }
 }
 
 @media (prefers-reduced-motion:reduce) {
@@ -558,8 +597,8 @@
   .cut-screen .prep-work-object.slice-hit .cut-spark,
   .cut-judgement.show,
   .cut-board.cut-miss,
-  .cut-piece.fresh,
-  .cut-board.cut-complete .cut-pile { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .cut-piece.fresh,.cut-screen .cut-line.fresh-cut,
+  .cut-board.cut-complete .prep-work-object { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
 /* ── 멸치 머리 떼기(E10) — 컨셉 화면 구성 ─────────────────────
@@ -614,6 +653,24 @@
   line-height: 1.1;
 }
 .anchovy-count b { color: #f2a03c; }
+.anchovy-time {
+  margin: calc(12 * var(--upx)) 0 0;
+  padding-top: calc(11 * var(--upx));
+  border-top: 1px solid rgba(232,190,111,.28);
+  display: grid;
+  place-items: center;
+  gap: calc(2 * var(--upx));
+  color: #c9b58d;
+  font-size: calc(14 * var(--upx));
+  font-weight: 800;
+}
+.anchovy-time b {
+  color: #f4d58b;
+  font-size: calc(25 * var(--upx));
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.anchovy-time.warning b { color: #ff725f; animation: anchovy-time-warning .7s ease-in-out infinite alternate; }
 .anchovy-ref-card { grid-template-rows: auto minmax(0,1fr); align-content: stretch; }
 .anchovy-ref-card .anchovy-card-figure { height: auto; }
 
@@ -678,14 +735,62 @@
   border-radius: 50%;
   background: radial-gradient(circle at 62% 38%, #8b9698, #677274);
   z-index: 2;
+  transform-origin: right center;
   transition: transform .18s ease, box-shadow .12s ease;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
 .anchovy-head:hover { box-shadow: 0 0 0 calc(4 * var(--upx)) rgba(255,224,141,.5); }
+.anchovy.grabbing { z-index: 10; }
+.anchovy.grabbing .anchovy-head {
+  cursor: grabbing;
+  transition: none;
+  transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0));
+  box-shadow: 0 0 0 calc(2 * var(--upx)) rgba(255,224,141,.58);
+}
+/* 머리와 몸통 사이의 결 세 줄. 방향을 한 번 바꿀 때마다 하나씩 끊어져
+   글을 읽지 않아도 현재 흔들기 진행을 볼 수 있습니다. 별도 에셋은 필요 없습니다. */
+.anchovy-joint {
+  position: absolute;
+  z-index: 4;
+  left: calc(52 * var(--upx));
+  top: calc(20 * var(--upx));
+  width: calc(14 * var(--upx));
+  height: calc(27 * var(--upx));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+.anchovy-joint i {
+  display: block;
+  width: 100%;
+  height: calc(3 * var(--upx));
+  border-radius: 50%;
+  background: #e4a253;
+  box-shadow: 0 0 calc(3 * var(--upx)) rgba(255,205,119,.55);
+  transform-origin: right center;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.anchovy.grabbing .anchovy-joint { opacity: 1; }
+.anchovy[data-tug="1"] .anchovy-joint i:nth-child(1),
+.anchovy[data-tug="2"] .anchovy-joint i:nth-child(-n+2) { opacity: .18; transform: scaleX(.28) rotate(-18deg); }
+.anchovy.cleaned .anchovy-joint { opacity: 0; }
+.anchovy.tug-pulse .anchovy-body { animation: anchovy-body-resist .16s ease-out; }
+.anchovy.tug-snap:not(.cleaned) .anchovy-head { animation: anchovy-head-snap .24s ease-out; }
 /* 손질이 끝나면 머리가 몸통에서 떨어져 나가고 잘린 면이 드러납니다 */
 .anchovy.cleaned .anchovy-head {
   pointer-events: none;
-  transform: translate(calc(-30 * var(--upx)), calc(-9 * var(--upx))) rotate(-18deg);
+  transform: translate(calc(-38 * var(--upx)), calc(-2 * var(--upx))) rotate(-14deg);
 }
+.anchovy.cleaned.torn .anchovy-head {
+  animation: anchovy-head-tear .42s cubic-bezier(.2,.8,.25,1) forwards;
+}
+.anchovy.cleaned.torn .anchovy-body { animation: anchovy-body-recoil .32s ease-out; }
 .anchovy.cleaned .anchovy-body::before {
   content: "";
   position: absolute;
@@ -710,6 +815,71 @@
 .anchovy-preview .anchovy-body,
 .anchovy-preview .anchovy-head { cursor: default; }
 .anchovy-preview.cleaned .anchovy-body::before { display: none; }
+
+.anchovy-work-area.time-over .anchovy {
+  pointer-events: none;
+  filter: grayscale(.55) brightness(.65) drop-shadow(0 calc(5 * var(--upx)) calc(6 * var(--upx)) rgba(30,12,4,.45));
+}
+.anchovy-timeout {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 50%;
+  min-width: calc(260 * var(--upx));
+  padding: calc(22 * var(--upx)) calc(28 * var(--upx));
+  border: calc(3 * var(--upx)) solid #b47a38;
+  border-radius: calc(13 * var(--upx));
+  background: rgba(23,11,5,.94);
+  box-shadow: 0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.55), inset 0 0 calc(20 * var(--upx)) rgba(190,112,38,.13);
+  transform: translate(-50%,-50%);
+  display: grid;
+  place-items: center;
+  gap: calc(8 * var(--upx));
+  color: var(--cream);
+  text-align: center;
+}
+.anchovy-timeout strong { color: #ff725f; font-size: calc(29 * var(--upx)); letter-spacing: .08em; }
+.anchovy-timeout span { color: #d9c39a; font-size: calc(17 * var(--upx)); font-weight: 800; }
+.anchovy-timeout button {
+  margin-top: calc(6 * var(--upx));
+  padding: calc(9 * var(--upx)) calc(24 * var(--upx));
+  border: 2px solid #ddaa55;
+  border-radius: calc(7 * var(--upx));
+  background: linear-gradient(#8e4a22,#5f2d16);
+  color: #fff2c9;
+  font: inherit;
+  font-size: calc(16 * var(--upx));
+  font-weight: 900;
+  cursor: pointer;
+}
+.anchovy-timeout button:hover { filter: brightness(1.14); }
+
+@keyframes anchovy-time-warning { to { opacity: .58; transform: scale(1.04); } }
+@keyframes anchovy-body-resist {
+  35% { transform: scaleX(.975) rotate(-.7deg); transform-origin: left center; }
+  70% { transform: scaleX(1.012) rotate(.45deg); transform-origin: left center; }
+}
+@keyframes anchovy-head-snap {
+  0% { transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0)); }
+  65% { transform: translate(calc(4 * var(--upx)),0) rotate(4deg); }
+  100% { transform: translate(0,0) rotate(0); }
+}
+@keyframes anchovy-head-tear {
+  0% { transform: translate(var(--tug-x,0),var(--tug-y,0)) rotate(var(--tug-turn,0)); opacity: 1; }
+  55% { transform: translate(var(--tear-x),calc(-10 * var(--upx))) rotate(-25deg); opacity: 1; }
+  100% { transform: translate(var(--tear-x),calc(-2 * var(--upx))) rotate(-14deg); opacity: 1; }
+}
+@keyframes anchovy-body-recoil {
+  35% { transform: translateX(calc(7 * var(--upx))) scaleX(.98); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .anchovy-time.warning b,
+  .anchovy.tug-pulse .anchovy-body,
+  .anchovy.tug-snap:not(.cleaned) .anchovy-head,
+  .anchovy.cleaned.torn .anchovy-head,
+  .anchovy.cleaned.torn .anchovy-body { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
 
 /* ── 단발 액션 (engine-e11) ──────────────────────────────────
    두부김치 플레이팅(밤 조리) · 냄비에 넣기 · 육수 넣기(낮 준비)
@@ -760,6 +930,7 @@
   background: linear-gradient(#2b1b11,#180e08);
   color: #f0dcb4;
   cursor: grab;
+  touch-action: none;
 }
 .os-ing-card:active { cursor: grabbing; }
 .os-ing-card.selected { border-color: #ffe08d; box-shadow: inset 0 0 0 2px #ffe08d, 0 0 calc(16 * var(--upx)) rgba(255,224,141,.4); transform: translateY(calc(-3 * var(--upx))); }
@@ -818,6 +989,23 @@
   transform: translateY(-50%);
 }
 
+/* Pointer Events 공통 드래그 그림. E8과 같은 방식이라 마우스와 터치가 동일하게 움직입니다. */
+.os-drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: calc(158 * var(--upx));
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-50%,-50%) rotate(-5deg) scale(1.06);
+  filter: drop-shadow(0 calc(9 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.52));
+}
+.os-drag-ghost .os-ing-art { width: 100%; min-height: 0; }
+.os-drag-ghost .os-art { width: 100%; }
+.os-drag-ghost.returning { transition: left .22s ease,top .22s ease,opacity .22s ease,transform .22s ease; opacity: .25; transform: translate(-50%,-50%) scale(.72); }
+
 /* 그릇 : 접시(플레이팅) / 냄비(어묵탕) */
 .os-vessel { position: relative; width: 100%; height: 100%; }
 .os-vessel-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
@@ -861,8 +1049,11 @@
   top: calc(-2 * var(--upx));
   height: 24%;
   border-radius: 50%;
-  background: #a76a32;
+  background: #241b16;
+  transition: background .25s ease,box-shadow .25s ease;
 }
+.os-vessel.pot.filled .os-vessel-shape::after { background:#a76a32; box-shadow:0 0 calc(14 * var(--upx)) rgba(218,147,66,.35); }
+.os-vessel.pot.receiving .os-vessel-shape::after { animation:os-pot-liquid-rise .9s ease both; }
 .os-vessel.has-asset .os-vessel-shape { display: none; }
 
 /* 그릇 안에 놓인 재료 자리 */
@@ -871,11 +1062,12 @@
 .os-food.just-added .os-art { animation: os-drop-in .34s ease; }
 .os-food.slot-plate-left { left: 7%; top: 50%; width: 44%; transform: translateY(-52%); }
 .os-food.slot-plate-right { right: 5%; top: 50%; width: 46%; transform: translateY(-50%); }
-.os-food.slot-pot-a { left: 17%; top: 38%; width: 22%; }
-.os-food.slot-pot-b { left: 40%; top: 35%; width: 21%; }
-.os-food.slot-pot-c { left: 61%; top: 38%; width: 22%; }
+.os-food.slot-pot-a { z-index:2; left: 17%; top: 38%; width: 22%; }
+.os-food.slot-pot-b { z-index:2; left: 40%; top: 35%; width: 21%; }
+.os-food.slot-pot-c { z-index:2; left: 61%; top: 38%; width: 22%; }
 /* 육수는 조각이 아니라 국물이 차오르는 것으로 그립니다 */
 .os-food.slot-fill {
+  z-index: 1;
   left: 9%;
   right: 9%;
   top: 30%;
@@ -885,6 +1077,49 @@
   box-shadow: 0 0 calc(20 * var(--upx)) rgba(214,146,66,.6);
 }
 .os-food.slot-fill .os-art { display: none; }
+
+/* place / drop / pour 는 같은 배치 판정을 쓰고 이 마무리 움직임만 다릅니다. */
+.os-board.variant-place .os-food.just-added .os-art { animation: os-plate-place .46s cubic-bezier(.2,.82,.28,1); }
+.os-board.variant-drop .os-food.just-added .os-art { animation: os-pot-drop .48s cubic-bezier(.18,.78,.3,1); }
+.os-board.variant-pour .os-food.slot-fill { animation: os-broth-fill .38s ease-out both; }
+.os-board.complete .os-vessel:not(.guide) { animation: os-vessel-finish .68s cubic-bezier(.2,.8,.25,1) both; }
+
+/* 육수통은 놓은 뒤 냄비 위에서 기울고, CSS 육수 줄기와 함께 돌아갑니다. */
+.os-pour-action {
+  position: absolute;
+  z-index: 8;
+  left: 54%;
+  top: 2%;
+  width: calc(150 * var(--upx));
+  height: calc(270 * var(--upx));
+  pointer-events: none;
+}
+.os-pour-jug { position: absolute; z-index: 2; left: 0; top: 0; width: 100%; transform-origin: 32% 76%; }
+.os-pour-action.pouring .os-pour-jug { animation: os-pour-jug .9s cubic-bezier(.2,.72,.25,1) both; }
+.os-pour-action.returning .os-pour-jug { animation: os-pour-return .38s ease-in both; }
+.os-pour-stream {
+  position: absolute;
+  z-index: 1;
+  left: calc(3 * var(--upx));
+  top: calc(105 * var(--upx));
+  width: calc(16 * var(--upx));
+  height: calc(155 * var(--upx));
+  border-radius: 50% 50% calc(8 * var(--upx)) calc(8 * var(--upx));
+  background: linear-gradient(90deg,#9c5c28,#e2a657 48%,#a9682e);
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(229,167,85,.46);
+  transform-origin: top center;
+  opacity: 0;
+}
+.os-pour-action.pouring .os-pour-stream { animation: os-pour-stream .9s ease both; }
+.os-vessel.pot.receiving .os-food:not(.slot-fill) { animation: os-food-float .42s ease-in-out infinite alternate; }
+
+/* 완료는 등급 글자 없이 접시/냄비와 작은 빛만으로 보여줍니다. */
+.os-complete-sparks { position: absolute; z-index: 9; inset: 13%; pointer-events: none; }
+.os-complete-sparks i { position: absolute; left: 50%; top: 50%; width: calc(8 * var(--upx)); height: calc(8 * var(--upx)); border-radius: 50%; background: #ffe49a; box-shadow: 0 0 calc(12 * var(--upx)) #ffc85f; animation: os-complete-spark .68s ease-out both; }
+.os-complete-sparks i:nth-child(1){--spark-x:-190;--spark-y:-88}.os-complete-sparks i:nth-child(2){--spark-x:-150;--spark-y:92}.os-complete-sparks i:nth-child(3){--spark-x:-32;--spark-y:-132}.os-complete-sparks i:nth-child(4){--spark-x:62;--spark-y:126}.os-complete-sparks i:nth-child(5){--spark-x:168;--spark-y:-74}.os-complete-sparks i:nth-child(6){--spark-x:192;--spark-y:72}
+.os-board.complete.variant-place .os-food.slot-plate-right::before,
+.os-board.complete.variant-place .os-food.slot-plate-right::after { content:""; position:absolute; z-index:4; left:42%; top:0; width:calc(9 * var(--upx)); height:calc(32 * var(--upx)); border-radius:50%; border-left:calc(3 * var(--upx)) solid rgba(255,246,222,.62); animation:os-plating-steam 1s ease-out infinite; }
+.os-board.complete.variant-place .os-food.slot-plate-right::after { left:62%; animation-delay:.24s; }
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .os-count { text-align: center; }
@@ -1009,6 +1244,22 @@
 
 @keyframes os-hint-blink { 50% { opacity: .35; } }
 @keyframes os-drop-in { from { opacity: 0; transform: translateY(calc(-70 * var(--upx))) rotate(-8deg) scale(.85); } }
+@keyframes os-plate-place { 0% { opacity:.25; transform:translateY(calc(-38 * var(--upx))) scale(.76) rotate(-5deg); } 68% { opacity:1; transform:translateY(calc(4 * var(--upx))) scale(1.04); } }
+@keyframes os-pot-drop { 0% { opacity:.2; transform:translateY(calc(-110 * var(--upx))) rotate(-10deg) scale(.82); } 72% { opacity:1; transform:translateY(calc(7 * var(--upx))) rotate(3deg) scale(1.04); } }
+@keyframes os-pour-jug { 0% { transform:translate(calc(-18 * var(--upx)),calc(20 * var(--upx))) rotate(0); } 24% { transform:translate(0,0) rotate(-12deg); } 38%,82% { transform:translate(0,0) rotate(-62deg); } 100% { transform:translate(0,0) rotate(-50deg); } }
+@keyframes os-pour-stream { 0%,30% { opacity:0; transform:scaleY(0); } 40%,80% { opacity:1; transform:scaleY(1); } 100% { opacity:0; transform:scaleY(.25); } }
+@keyframes os-pour-return { from { opacity:1; transform:rotate(-50deg); } to { opacity:0; transform:translate(calc(-125 * var(--upx)),calc(48 * var(--upx))) rotate(0) scale(.78); } }
+@keyframes os-pot-liquid-rise { 0%,28% { background:#241b16; transform:scaleY(.08); opacity:.35; } 82%,100% { background:#a76a32; transform:scaleY(1); opacity:1; } }
+@keyframes os-broth-fill { from { opacity:.25; transform:scale(.7); } 70% { opacity:1; transform:scale(1.04); } }
+@keyframes os-food-float { to { transform:translateY(calc(-4 * var(--upx))); } }
+@keyframes os-vessel-finish { 45% { transform:translateY(calc(-5 * var(--upx))) scale(1.035); filter:brightness(1.12); } 100% { transform:none; } }
+@keyframes os-complete-spark { from { opacity:1; transform:translate(-50%,-50%) scale(.35); } to { opacity:0; transform:translate(calc(-50% + var(--spark-x) * var(--upx)),calc(-50% + var(--spark-y) * var(--upx))) scale(1.15); } }
+@keyframes os-plating-steam { from { opacity:.7; transform:translateY(calc(12 * var(--upx))) scaleX(.7); } to { opacity:0; transform:translateY(calc(-22 * var(--upx))) translateX(calc(5 * var(--upx))) scaleX(1.2); } }
+@media (prefers-reduced-motion:reduce) {
+  .os-drag-ghost.returning,.os-food.just-added .os-art,.os-pour-action .os-pour-jug,.os-pour-action .os-pour-stream,
+  .os-vessel.pot.receiving .os-food,.os-vessel.pot.receiving .os-vessel-shape::after,.os-board.complete .os-vessel,.os-complete-sparks i,
+  .os-board.complete.variant-place .os-food.slot-plate-right::before,.os-board.complete.variant-place .os-food.slot-plate-right::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
 
 /* ── 김치 볶기 (engine-e3 · direction) ────────────────────────
    왼쪽 재료 · 가운데 불 위의 팬 · 오른쪽 진행도/다음 순서 3단이고,
@@ -1035,7 +1286,10 @@
   width: 100%;
   height: 100%;
   user-select: none;
+  touch-action: none;
+  cursor: grab;
 }
+.kf-scene.direction-sliding { cursor: grabbing; }
 
 /* 좌우 세로 칸 (김치전 반죽의 .bt-col 과 같은 톤) */
 .kf-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
@@ -1088,6 +1342,8 @@
   border-radius: calc(14 * var(--upx));
   background: linear-gradient(#3a2415,#22150c);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+  cursor: grab;
+  touch-action: none;
 }
 /* 가스레인지 상판. 팬이 그 위에 살짝 걸쳐 앉습니다 */
 .kf-stove {
@@ -1282,6 +1538,45 @@
    볼·고리 크기는 .batter-prep-scene 의 --bowl / --ring 두 값이 정합니다.
    안쪽 여백은 전부 % 라 두 값만 바꾸면 전체가 같은 비율로 커집니다. */
 
+/* E8 공통 포인터 배치: 원본 에셋 하나를 복제해 커서를 따라가게 합니다. */
+.order-drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: calc(92 * var(--upx));
+  height: calc(78 * var(--upx));
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-50%,-50%) rotate(-5deg) scale(1.08);
+  filter: drop-shadow(0 calc(9 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.5));
+}
+.order-drag-ghost > * { max-width: 100%; max-height: 100%; }
+.order-drag-ghost.flour .bt-ing-art i { border-radius:calc(7 * var(--upx)) calc(7 * var(--upx)) 46% 46%; background:linear-gradient(#c58c43,#89591f); box-shadow:inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(70,40,15,.45); }
+.order-drag-ghost.flour .bt-ing-art i::after { content:""; position:absolute; left:3%; right:3%; top:6%; height:48%; border-radius:50% 50% 40% 40%; background:radial-gradient(circle at 42% 26%,#fffdf6,#e4d9c0); }
+.order-drag-ghost.water .bt-ing-art i { width:calc(56 * var(--upx)); border-radius:calc(9 * var(--upx)) calc(9 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); background:linear-gradient(180deg,rgba(255,255,255,.9) 0 16%,#b6e2f4 17%,#5fb2d8); }
+.order-drag-ghost.kimchi .bt-ing-art i { border-radius:calc(12 * var(--upx)) calc(30 * var(--upx)) calc(14 * var(--upx)) calc(26 * var(--upx)); background:repeating-linear-gradient(110deg,#b9472f 0 calc(14 * var(--upx)),#d66135 calc(15 * var(--upx)) calc(26 * var(--upx)),#83964d calc(27 * var(--upx)) calc(31 * var(--upx))); }
+.order-source-dragging { opacity: .45; cursor: grabbing !important; }
+.order-drop-ready { outline: calc(4 * var(--upx)) solid #ffe08d; outline-offset: calc(5 * var(--upx)); filter: brightness(1.12); }
+.order-place-reject { animation: order-place-reject .34s ease; }
+.order-result {
+  position: absolute;
+  z-index: 15;
+  left: 50%;
+  top: 50%;
+  color: #fff0ae;
+  font-size: calc(52 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: .08em;
+  text-shadow: 0 calc(4 * var(--upx)) 0 #5b2d15,0 0 calc(18 * var(--upx)) rgba(255,214,112,.75);
+  pointer-events: none;
+}
+.order-result.good { color: #cfe7a4; }
+.order-result.show { animation: order-result-pop .72s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes order-place-reject { 25% { transform:translateX(calc(-8 * var(--upx))); } 60% { transform:translateX(calc(7 * var(--upx))); } 85% { transform:translateX(calc(-3 * var(--upx))); } }
+@keyframes order-result-pop { 0% { opacity:0; transform:translate(-50%,-40%) scale(.75); } 40%,80% { opacity:1; transform:translate(-50%,-50%) scale(1.05); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+
 .batter-prep-scene {
   /* 격자는 css/minigame-parts.css 공용 규격입니다.
      ⚠️ 하단 띠를 쓰면 가운데 세로가 525.6 이 되어 고리(468) 여백이 위아래
@@ -1310,6 +1605,7 @@
   background: linear-gradient(#2b1b11,#180e08);
   color: #f0dcb4;
   cursor: pointer;
+  touch-action: none;
 }
 .bt-ing-card:disabled { cursor: default; }
 .bt-ing-card.next { border-color: #ffe08d; box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); animation: sk-next-pulse 1.3s ease-in-out infinite; }
@@ -1348,6 +1644,10 @@
 
 /* 반죽 볼 (위에서 내려다본 모습) */
 .bt-bowl-wrap { position: relative; display: grid; place-items: center; width: var(--ring); height: var(--ring); max-width: 100%; touch-action: none; }
+.bt-bowl-wrap.order-drop-ready { border-radius: 50%; }
+.bt-bowl-wrap.receive-flour .bt-batter { animation: batter-receive-flour .42s ease; }
+.bt-bowl-wrap.receive-water .bt-batter { animation: batter-receive-water .42s ease; }
+.bt-bowl-wrap.receive-kimchi .bt-batter { animation: batter-receive-kimchi .42s ease; }
 .bt-bowl {
   position: relative;
   width: var(--bowl);
@@ -1415,11 +1715,36 @@
     radial-gradient(circle at 50% 52%,#dcac72,#c98d54);
   box-shadow: inset 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(255,226,169,.22);
 }
+@keyframes batter-receive-flour { 0% { opacity:.35; transform:scale(.25); } 65% { opacity:1; transform:scale(.68); } }
+@keyframes batter-receive-water { 35% { filter:brightness(1.35); transform:scale(.74); } }
+@keyframes batter-receive-kimchi { 35% { filter:saturate(1.8) brightness(1.12); transform:scale(1.02); } }
 /* 젓는 동안에는 반죽이 마우스 따라 출렁이고 저은 만큼 같이 돕니다 */
 .bt-bowl.whisk-bowl .bt-batter {
   transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
-  transition: background .25s ease;
+  transition: background .25s ease, opacity .2s ease;
 }
+
+/* 선택형 E9 반죽 에셋. mix-0~4 중 현재 단계 파일이 있을 때만 CSS 반죽을 대체합니다. */
+.bt-batter-stage-assets {
+  position: absolute;
+  inset: 8.5%;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
+}
+.bt-batter-stage-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .22s ease; }
+.bt-bowl.stage-0 .bt-batter-stage-asset.stage-0,
+.bt-bowl.stage-1 .bt-batter-stage-asset.stage-1,
+.bt-bowl.stage-2 .bt-batter-stage-asset.stage-2,
+.bt-bowl.stage-3 .bt-batter-stage-asset.stage-3,
+.bt-bowl.stage-4 .bt-batter-stage-asset.stage-4 { opacity: 1; }
+.bt-bowl.stage-0:has(.bt-batter-stage-asset.stage-0) .bt-batter,
+.bt-bowl.stage-1:has(.bt-batter-stage-asset.stage-1) .bt-batter,
+.bt-bowl.stage-2:has(.bt-batter-stage-asset.stage-2) .bt-batter,
+.bt-bowl.stage-3:has(.bt-batter-stage-asset.stage-3) .bt-batter,
+.bt-bowl.stage-4:has(.bt-batter-stage-asset.stage-4) .bt-batter { opacity: 0; }
 
 /* 원을 그리라는 안내 고리. 젓기 시작하면 사라집니다 */
 .bt-stir-guide { position: absolute; inset: 15%; border-radius: 50%; border: calc(5 * var(--upx)) dashed rgba(255,248,230,.5); opacity: 1; transition: opacity .25s ease; animation: bt-stir-hint 6s linear infinite; pointer-events: none; }
@@ -1447,13 +1772,24 @@
   -webkit-mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
   mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
   transform: translate(-50%,-50%);
+  transition: filter .15s ease, opacity .15s ease;
   pointer-events: none;
 }
+.whisk-work-area.off-course .bt-stir-ring { filter: hue-rotate(-38deg) saturate(1.7) brightness(1.15); opacity: .72; }
+.whisk-work-area.finishing .bt-stir-ring { filter: brightness(1.35); animation: whisk-ring-finish .72s ease both; }
 
-/* 나무 주걱 : 마우스를 따라다니고 손잡이가 볼 바깥을 향합니다 */
-.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(52 * var(--upx)); height: calc(215 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); pointer-events: none; }
-.whisk-tool::before { content: ""; position: absolute; left: 50%; top: 0; width: calc(17 * var(--upx)); height: calc(150 * var(--upx)); border-radius: calc(9 * var(--upx)); background: linear-gradient(90deg,#8b5a2b,#dfab66 45%,#96682f); transform: translateX(-50%); }
-.whisk-tool::after { content: ""; position: absolute; left: 50%; bottom: 0; width: calc(52 * var(--upx)); height: calc(84 * var(--upx)); border-radius: 46% 46% 50% 50%; background: radial-gradient(circle at 40% 30%,#eabd7c,#b07c3d); box-shadow: inset 0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(255,255,255,.28), 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45); transform: translateX(-50%); }
+/* 거품기 : 에셋이 없을 때 손잡이와 철사 세 겹을 CSS로 그립니다. */
+.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(70 * var(--upx)); height: calc(220 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); transform-origin: 50% 50%; pointer-events: none; filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.45)); }
+.whisk-tool::before { content: ""; position: absolute; z-index: 2; left: 50%; top: 0; width: calc(20 * var(--upx)); height: calc(137 * var(--upx)); border-radius: calc(10 * var(--upx)); background: linear-gradient(90deg,#6f431e,#d49a55 42%,#865224 75%,#4e2d15); box-shadow: inset 0 0 0 calc(2 * var(--upx)) rgba(255,225,172,.24); transform: translateX(-50%); }
+.whisk-tool::after { content: ""; position: absolute; z-index: 3; left: 50%; top: calc(126 * var(--upx)); width: calc(30 * var(--upx)); height: calc(18 * var(--upx)); border-radius: calc(7 * var(--upx)); background: linear-gradient(90deg,#7d7770,#f1eadf 48%,#847d75); transform: translateX(-50%); }
+.whisk-wire { position: absolute; z-index: 1; left: 50%; bottom: 0; width: calc(62 * var(--upx)); height: calc(94 * var(--upx)); border: calc(3 * var(--upx)) solid #d8d3ca; border-top: 0; border-radius: 12% 12% 50% 50%; transform: translateX(-50%); }
+.whisk-wire::before,.whisk-wire::after { content:""; position:absolute; left:50%; bottom:calc(-3 * var(--upx)); height:calc(92 * var(--upx)); border:calc(3 * var(--upx)) solid #bdb8b0; border-top:0; border-radius:10% 10% 50% 50%; transform:translateX(-50%); }
+.whisk-wire::before { width:calc(38 * var(--upx)); }
+.whisk-wire::after { width:calc(15 * var(--upx)); border-color:#eee9df; }
+.whisk-tool.has-asset::before,.whisk-tool.has-asset::after,.whisk-tool.has-asset .whisk-wire { display:none; }
+.whisk-tool-asset { width:100%; height:100%; object-fit:contain; }
+.whisk-work-area.finishing .whisk-tool { animation: whisk-tool-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+.whisk-result { z-index: 8; }
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .bt-count { text-align: center; }
@@ -1487,7 +1823,7 @@
 /* .sk-col-title · .sk-panel → css/minigame-parts.css */
 
 /* 재료 카드 */
-.sk-ing-card { display: grid; gap: calc(6 * var(--upx)); cursor: grab; }
+.sk-ing-card { display: grid; gap: calc(6 * var(--upx)); cursor: grab; touch-action:none; }
 .sk-ing-card:active { cursor: grabbing; }
 .sk-ing-art { position: relative; height: calc(92 * var(--upx)); }
 .sk-ing-art .sk-piece { position: absolute; left: 50%; top: 50%; width: calc(52 * var(--upx)); height: calc(36 * var(--upx)); }
@@ -1496,9 +1832,8 @@
 .sk-ing-art .sk-piece:nth-child(3) { transform: translate(-50%,-4%) rotate(-3deg); }
 .sk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(8 * var(--upx)); color: #f0dcb4; font-size: calc(22 * var(--upx)); font-weight: 800; }
 .sk-ing-name b { color: var(--gold-bright); font-size: calc(24 * var(--upx)); }
-.sk-ing-card.selected { border-color: #ffe08d; box-shadow: inset 0 0 0 2px #ffe08d, 0 0 calc(16 * var(--upx)) rgba(255,224,141,.4); transform: translateY(calc(-3 * var(--upx))); }
-.sk-ing-card.dragging { opacity: .5; }
-.sk-ing-card.used-up { opacity: .35; cursor: default; }
+.sk-ing-card.required { border-color:#ffe08d; box-shadow:inset 0 0 0 2px rgba(255,224,141,.75),0 0 calc(16 * var(--upx)) rgba(255,224,141,.35); animation:sk-next-pulse 1.1s ease-in-out infinite; }
+.sk-ing-card.blocked { opacity:.38; cursor:default; filter:grayscale(.35); }
 
 /* 가운데 도마 */
 /* 꼬치 칸 수는 engine-e8 의 SKEWER_TOTAL 이 --sk-count 로 넘겨 줍니다.
@@ -1513,6 +1848,24 @@
   background: linear-gradient(#4d2e1a,#33200f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
 }
+.sk-single-board {
+  position: relative;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto minmax(0,1fr) auto;
+  place-items: center;
+  gap: calc(5 * var(--upx));
+  overflow: hidden;
+}
+.sk-finished-strip { display:flex; align-items:center; justify-content:center; gap:calc(10 * var(--upx)); }
+.sk-finished-strip span { display:grid; place-items:center; width:calc(38 * var(--upx)); height:calc(38 * var(--upx)); border:2px solid #6d4931; border-radius:50%; background:#21140c; color:#9c805c; font-size:calc(17 * var(--upx)); font-weight:900; }
+.sk-finished-strip span.active { border-color:#ffe08d; color:#ffe08d; box-shadow:0 0 calc(10 * var(--upx)) rgba(255,224,141,.35); }
+.sk-finished-strip span.done { border-color:#789b4f; background:#30431f; color:#d9efa5; }
+.sk-active-title,.sk-free-rule { margin:0; color:#d8bb8b; text-align:center; font-size:calc(18 * var(--upx)); font-weight:800; }
+.sk-active-title { color:var(--gold-bright); font-size:calc(22 * var(--upx)); }
+.sk-free-rule b { color:#ffe08d; }
+.sk-active-rack { width:min(100%,calc(430 * var(--upx))); height:100%; min-height:0; display:grid; place-items:center; border-radius:calc(16 * var(--upx)); transition:filter .15s,outline .15s; }
+.sk-active-rack .sk-rack { width:calc(180 * var(--upx)); height:100%; min-height:calc(350 * var(--upx)); }
+.sk-single-board.complete .sk-active-rack { filter:brightness(1.15); }
 
 /* 꼬치 하나 */
 .sk-rack { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(46 * var(--upx)); cursor: pointer; }
@@ -1531,6 +1884,8 @@
 .sk-slot { display: grid; place-items: center; width: calc(104 * var(--upx)); height: calc(62 * var(--upx)); }
 .sk-slot.empty { border: calc(3 * var(--upx)) dashed rgba(255,244,214,.5); border-radius: calc(10 * var(--upx)); }
 .sk-slot.empty.hint-greenOnion { border-color: rgba(178,214,110,.55); background: rgba(150,196,90,.12); }
+.sk-slot.empty.hint-chicken { border-color:rgba(238,157,126,.62); background:rgba(224,128,94,.12); }
+.sk-slot.empty.free { border-color:rgba(255,244,214,.32); background:rgba(255,244,214,.05); }
 .sk-slot.next { border-color: #ffe08d; box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); animation: sk-next-pulse 1.3s ease-in-out infinite; }
 
 /* 재료 조각 (임시 도형) */
@@ -1540,6 +1895,8 @@
 .sk-piece.has-asset { border: 0; background: none; box-shadow: none; }
 .sk-piece.has-asset::after { display: none; }
 .sk-piece-asset { width: 100%; height: 100%; object-fit: contain; }
+.sk-piece.fresh { animation:sk-piece-insert .32s cubic-bezier(.2,.85,.25,1); }
+@keyframes sk-piece-insert { 0% { opacity:.35; transform:translateY(calc(-58 * var(--upx))) scale(1.12); } 72% { transform:translateY(calc(5 * var(--upx))) scale(.98); } 100% { opacity:1; transform:translateY(0) scale(1); } }
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .sk-count { text-align: center; }
@@ -1553,6 +1910,9 @@
 .sk-piece.mini { width: calc(58 * var(--upx)); height: calc(36 * var(--upx)); border-radius: calc(8 * var(--upx)); }
 .sk-piece.mini.greenOnion { width: calc(52 * var(--upx)); height: calc(28 * var(--upx)); }
 .sk-piece.mini.greenOnion::after { left: calc(6 * var(--upx)); width: calc(11 * var(--upx)); height: calc(11 * var(--upx)); }
+.sk-free-guide { flex:1; display:grid; grid-template-columns:1fr 1fr; place-items:center; align-content:center; gap:calc(12 * var(--upx)) calc(5 * var(--upx)); }
+.sk-free-guide p { grid-column:1/-1; margin:0; color:#d8bb8b; text-align:center; font-size:calc(17 * var(--upx)); font-weight:800; line-height:1.4; }
+.sk-free-guide p b { color:#ffe08d; }
 /* 김치 볶기 : 팬은 고정하고 나무 주걱과 김치만 좌우로 움직입니다. */
 .kf-board.stir-left .kf-wood-spatula { animation: kf-spatula-left .24s cubic-bezier(.2,.8,.3,1); }
 .kf-board.stir-right .kf-wood-spatula { animation: kf-spatula-right .24s cubic-bezier(.2,.8,.3,1); }
@@ -1725,27 +2085,8 @@
 .sc-goal-now { color: #a98d67; font-size: calc(17 * var(--upx)); font-weight: 800; }
 .sc-goal.exact { border-color: #93b264; box-shadow: inset 0 0 0 2px #4d6b32, 0 0 calc(14 * var(--upx)) rgba(160,205,110,.3); }
 .sc-goal.exact .sc-goal-now { color: #cfe6a2; }
-.sc-goal.over { border-color: #c4644a; box-shadow: inset 0 0 0 2px #5a2a1c; }
-.sc-goal.over .sc-goal-now { color: #ffb49a; }
-.sc-goal-meter { position:relative; grid-column:1/-1; height:calc(10 * var(--upx)); overflow:hidden; border:1px solid #68462f; border-radius:calc(6 * var(--upx)); background:#160d08; }
-.sc-goal-meter i { display:block; height:100%; background:linear-gradient(90deg,#a86b35,#e2ad5d); transition:width .22s ease,background .15s ease; }
-.sc-goal-meter b { position:absolute; right:0; inset-block:0; width:2px; background:#ffe7a9; }
-.sc-goal-meter.exact i { background:linear-gradient(90deg,#789b4f,#b7d77b); }
-.sc-goal-meter.over i { background:linear-gradient(90deg,#a73d2b,#ef7652); animation:sc-meter-over .4s ease-in-out infinite alternate; }
 /* 지금 고른 소스통 표시는 아래 "지금 고른 소스통" 구역에 모여 있습니다.
-   상태 색(exact/over)보다 뒤에 있어야 선택 표시가 이깁니다. */
-.sc-undo {
-  grid-column: 1 / -1;
-  padding: calc(5 * var(--upx));
-  border: 2px solid #d17a58;
-  border-radius: calc(7 * var(--upx));
-  background: #6c3024;
-  color: #ffe0ca;
-  font-size: calc(16 * var(--upx));
-  font-weight: 800;
-  cursor: pointer;
-}
-.sc-undo:active { transform: translateY(1px); }
+   완료 상태 색(exact)보다 뒤에 있어야 선택 표시가 이깁니다. */
 
 /* ── 가운데 : 나무 조리대 ──────────────────────────────────── */
 .sc-board {
@@ -1815,7 +2156,7 @@
 .sc-pourer.pouring .sc-pour-visual { animation:sc-fly-to-bowl .68s ease-in-out; }
 .sc-pourer.pouring .sc-bottle { transform-origin:50% 50%; animation:sc-bottle-pour .68s ease-in-out; }
 
-/* 소스통 옆 1회 추가량 딱지. 아래쪽 소스통은 조리대 밖으로 나가지 않게 옆에 답니다. */
+/* 소스통 옆 한 번 넣기 딱지. 아래쪽 소스통은 조리대 밖으로 나가지 않게 옆에 답니다. */
 .sc-step-badge {
   position: absolute;
   left: 50%;
@@ -2000,7 +2341,6 @@
 }
 @keyframes sc-splash { 45% { transform: translateY(calc(-6 * var(--upx))) scaleY(1.05); } }
 @keyframes sc-arrow-pulse { 50% { opacity: .5; } }
-@keyframes sc-meter-over { to { filter:brightness(1.32); } }
 @keyframes sc-sauce-mix { 0%,100% { transform:scale(1);filter:brightness(1); } 35% { transform:scaleX(1.06) scaleY(.94);filter:brightness(1.18); } 70% { transform:scaleX(.96) scaleY(1.04); } }
 @keyframes sc-result-in { to { opacity:1;transform:translate(-50%,-50%) scale(1); } }
 
@@ -2326,26 +2666,55 @@
   .kf-board.stir-left .frying-kimchi,.kf-board.stir-right .frying-kimchi,
   .kf-board.input-wrong .kf-wood-spatula,.kf-board.e3-complete .frying-kimchi,
   .sc-pourer.pouring .sc-pour-visual,.sc-pourer.pouring .sc-bottle,.sc-pourer.pouring .sc-pour-stream,.sc-bowl.splash .sc-sauce,
-  .sc-board.mixing .sc-sauce,.sc-result.show,.sc-goal-meter.over i { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .sc-board.mixing .sc-sauce,.sc-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
-/* Day 4 · 떡 불리기 */
+/* E8 · 떡/우동 불리기 */
 .day4-prep-flow { width:100%; padding:7px 9px; border:1px solid #735037; border-radius:9px; background:#1d120d; }
 .day4-prep-flow b { color:#8e7355; }
-.tteok-soak-scene { width:min(430px,100%); min-height:190px; padding:14px; display:grid; grid-template-columns:1fr 1.5fr 1fr; align-items:center; gap:14px; border:2px solid #65432d; border-radius:14px; background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 20px rgba(0,0,0,.28); }
-.tteok-source,.water-source { min-height:105px; border:2px solid #785033; border-radius:13px; background:#d2ae73; color:#352116; cursor:pointer; font-weight:900; }
-.tteok-source i { display:block; width:62px; height:48px; margin:0 auto 7px; border-radius:12px; background:repeating-linear-gradient(25deg,#f0e2bf 0 9px,#d6c59e 10px 13px); }
-.tteok-source.udon-source i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
-.water-source i { display:block; width:42px; height:64px; margin:0 auto 7px; border:4px solid #55727b; border-radius:8px 8px 17px 17px; background:linear-gradient(transparent 20%,#83c5d9 21%); }
+.mini-content:has(.tteok-soak-scene) { width:100%; }
+.tteok-soak-scene { position:relative; width:min(calc(940 * var(--upx)),100%); min-height:calc(330 * var(--upx)); padding:calc(24 * var(--upx)); display:grid; grid-template-columns:calc(210 * var(--upx)) minmax(0,1fr) calc(210 * var(--upx)); align-items:center; gap:calc(28 * var(--upx)); border:calc(5 * var(--upx)) solid #65432d; border-radius:calc(18 * var(--upx)); background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 calc(24 * var(--upx)) rgba(0,0,0,.28); }
+.tteok-source,.water-source { min-height:calc(150 * var(--upx)); border:2px solid #785033; border-radius:calc(13 * var(--upx)); background:#d2ae73; color:#352116; cursor:grab; font-size:calc(18 * var(--upx)); font-weight:900; touch-action:none; }
+.tteok-source:active,.water-source:active { cursor:grabbing; }
+.soak-source-art { display:grid; place-items:center; min-height:calc(96 * var(--upx)); margin:0 auto calc(8 * var(--upx)); }
+.soak-source-art i { display:block; width:calc(88 * var(--upx)); height:calc(66 * var(--upx)); border-radius:calc(12 * var(--upx)); background:repeating-linear-gradient(25deg,#f0e2bf 0 calc(9 * var(--upx)),#d6c59e calc(10 * var(--upx)) calc(13 * var(--upx))); }
+.soak-source-art.udon i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
+.soak-source-art.water i { width:calc(62 * var(--upx)); height:calc(92 * var(--upx)); border:4px solid #55727b; border-radius:calc(8 * var(--upx)) calc(8 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); background:linear-gradient(transparent 20%,#83c5d9 21%); }
+.soak-source-art.has-asset i { display:none; }
+.soak-source-asset { max-width:calc(110 * var(--upx)); max-height:calc(96 * var(--upx)); object-fit:contain; }
 .tteok-source.added,.water-source.added { opacity:.42; }
-.soaking-bowl { position:relative; height:110px; overflow:hidden; border:8px solid #98a3a5; border-top-width:4px; border-radius:15px 15px 85px 85px; background:#596264; }
-.soaking-bowl .water-fill { position:absolute; left:9px; right:9px; bottom:7px; height:0; border-radius:9px 9px 70px 70px; background:#78bad0; transition:height .25s; }
-.soaking-bowl.has-water .water-fill { height:72px; }
+.tteok-source.just-added { animation:soak-source-drop .42s ease; }
+.water-source.just-added { animation:soak-water-pour .72s ease; transform-origin:left bottom; }
+.soaking-bowl { position:relative; width:100%; max-width:calc(340 * var(--upx)); height:calc(230 * var(--upx)); justify-self:center; overflow:hidden; border:calc(12 * var(--upx)) solid #98a3a5; border-top-width:calc(6 * var(--upx)); border-radius:calc(18 * var(--upx)) calc(18 * var(--upx)) calc(130 * var(--upx)) calc(130 * var(--upx)); background:#596264; transition:filter .2s,outline .2s; }
+.soaking-bowl .water-fill { position:absolute; left:calc(12 * var(--upx)); right:calc(12 * var(--upx)); bottom:calc(10 * var(--upx)); height:0; border-radius:calc(12 * var(--upx)) calc(12 * var(--upx)) calc(105 * var(--upx)) calc(105 * var(--upx)); background:linear-gradient(rgba(176,231,242,.82),#67afc5); transition:height .45s ease; }
+.soaking-bowl.has-water .water-fill { height:calc(150 * var(--upx)); }
+.soak-bowl-asset { position:absolute; z-index:3; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
 .soaking-bowl span { position:absolute; z-index:2; inset:16px 10px 8px; display:flex; flex-wrap:wrap; justify-content:center; align-content:center; gap:5px; color:#cbd2cf; }
-.soaking-bowl b { width:28px; height:10px; border-radius:7px; background:#f1e3bf; transform:rotate(-12deg); box-shadow:0 2px 2px rgba(0,0,0,.2); }
-.soaking-bowl.udon-bowl b { width:35px; height:14px; border:4px double #f1dfb4; border-radius:50%; background:transparent; box-shadow:none; }
-.soak-state-asset { position:absolute; z-index:3; inset:0; width:100%; height:100%; object-fit:contain; }
-.soaking-bowl:has(.soak-state-asset) span,.soaking-bowl:has(.soak-state-asset) .water-fill { visibility:hidden; }
+.soaking-bowl span b { width:calc(38 * var(--upx)); height:calc(14 * var(--upx)); border-radius:calc(7 * var(--upx)); background:#f1e3bf; transform:rotate(-12deg); box-shadow:0 2px 2px rgba(0,0,0,.2); }
+.soaking-bowl.udon-bowl span b { width:calc(48 * var(--upx)); height:calc(20 * var(--upx)); border:4px double #f1dfb4; border-radius:50%; background:transparent; box-shadow:none; }
+.soak-piece-asset { width:calc(44 * var(--upx)); height:calc(28 * var(--upx)); object-fit:contain; transform:rotate(-10deg); }
+.udon-bowl .soak-piece-asset { width:calc(58 * var(--upx)); height:calc(38 * var(--upx)); }
+.soaking-bowl.settling span { animation:soak-food-settle 1.1s ease-in-out infinite alternate; }
+.soak-bubbles { position:absolute; z-index:4; inset:calc(35 * var(--upx)) calc(35 * var(--upx)); pointer-events:none; }
+.soak-bubbles b { position:absolute; width:calc(13 * var(--upx)); height:calc(13 * var(--upx)); border:2px solid rgba(228,250,255,.85); border-radius:50%; background:transparent; animation:soak-bubble-rise 1s ease-in infinite; }
+.soak-bubbles b:nth-child(1){left:18%;bottom:12%;}.soak-bubbles b:nth-child(2){left:42%;bottom:2%;animation-delay:.2s}.soak-bubbles b:nth-child(3){left:67%;bottom:15%;animation-delay:.4s}.soak-bubbles b:nth-child(4){left:82%;bottom:3%;animation-delay:.6s}
+.soak-result { animation-delay:.65s !important; }
+.order-drag-ghost .soak-source-art { margin:0; }
+.order-drag-ghost.tteok .soak-source-art i,.order-drag-ghost.udon .soak-source-art i { display:block; width:calc(82 * var(--upx)); height:calc(60 * var(--upx)); border-radius:calc(12 * var(--upx)); background:repeating-linear-gradient(25deg,#f0e2bf 0 calc(9 * var(--upx)),#d6c59e calc(10 * var(--upx)) calc(13 * var(--upx))); }
+.order-drag-ghost.udon .soak-source-art i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
+.order-drag-ghost.water .soak-source-art i { display:block; width:calc(54 * var(--upx)); height:calc(82 * var(--upx)); border:4px solid #55727b; border-radius:calc(8 * var(--upx)) calc(8 * var(--upx)) calc(20 * var(--upx)) calc(20 * var(--upx)); background:linear-gradient(transparent 20%,#83c5d9 21%); }
+.order-drag-ghost .soak-source-art.has-asset i { display:none; }
+@keyframes soak-source-drop { 50% { transform:translateX(calc(45 * var(--upx))) rotate(8deg); } }
+@keyframes soak-water-pour { 45% { transform:translateX(calc(-52 * var(--upx))) rotate(-34deg); } }
+@keyframes soak-food-settle { to { transform:translateY(calc(5 * var(--upx))) scale(.98); } }
+@keyframes soak-bubble-rise { 0% { opacity:0; transform:translateY(calc(35 * var(--upx))) scale(.6); } 35% { opacity:1; } 100% { opacity:0; transform:translateY(calc(-55 * var(--upx))) scale(1.15); } }
+@media (prefers-reduced-motion:reduce) {
+  .order-place-reject,.order-result.show,
+  .bt-bowl-wrap.receive-flour .bt-batter,.bt-bowl-wrap.receive-water .bt-batter,.bt-bowl-wrap.receive-kimchi .bt-batter,
+  .whisk-work-area.finishing .bt-stir-ring,.whisk-work-area.finishing .whisk-tool,
+  .sk-ing-card.required,.sk-slot.next,.sk-piece.fresh,
+  .tteok-source.just-added,.water-source.just-added,.soaking-bowl.settling span,.soak-bubbles b { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}
 
 /* Day 4 이후 · 빠른 칼질 */
 .rapid-cut-stage { position:relative; width:min(430px,100%); height:185px; overflow:hidden; border:2px solid #70472c; border-radius:15px; background:linear-gradient(#8b603d 0 69%,#4c2d1d 70%); }
@@ -2390,14 +2759,15 @@
 @keyframes sk-next-pulse { 50% { border-color:#fff2c4; box-shadow:0 0 calc(20 * var(--upx)) rgba(255,224,141,.5); } }
 /* 반죽 : 원을 그리라는 안내 고리가 천천히 한 바퀴 돕니다 */
 @keyframes bt-stir-hint { to { transform:rotate(360deg); } }
+@keyframes whisk-ring-finish { 45% { opacity:1; transform:translate(-50%,-50%) scale(1.035); } 100% { opacity:.25; transform:translate(-50%,-50%) scale(1); } }
+@keyframes whisk-tool-finish { 45% { transform:translate(-50%,-50%) rotate(calc(var(--tool-rot,20deg) + 24deg)) scale(1.04); } 100% { transform:translate(-50%,-50%) rotate(var(--tool-rot,20deg)) scale(.96); } }
 
 @media (max-width:600px) {
   .prep-work-object { width: 82%; height: calc(58 * var(--upx)); }
   .tofu-cook-object { width: calc(150 * var(--upx)); height: calc(150 * var(--upx)); }
   .anchovy-card-figure { height: calc(140 * var(--upx)); }
   .cut-board { padding: calc(16 * var(--upx)) calc(14 * var(--upx)) calc(64 * var(--upx)); }
-  .cut-board .prep-work-object { width: calc(230 * var(--upx)); }
-  .cut-pile { width: calc(150 * var(--upx)); height: calc(120 * var(--upx)); }
+  .cut-board .prep-work-object { width:min(84%,calc(420 * var(--upx))); }
   .cut-card-figure { min-height: calc(96 * var(--upx)); }
   .cut-card-figure .cut-sample { width: calc(115 * var(--upx)); }
   .cut-count-value { font-size: calc(38 * var(--upx)); }
@@ -2414,9 +2784,13 @@
   .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
   .bt-count strong { font-size: calc(42 * var(--upx)); }
   .bt-guide-figure .bt-bowl { width: calc(110 * var(--upx)); height: calc(110 * var(--upx)); }
-  .whisk-tool { width: calc(38 * var(--upx)); height: calc(158 * var(--upx)); }
-  .whisk-tool::before { height: calc(110 * var(--upx)); }
-  .whisk-tool::after { width: calc(38 * var(--upx)); height: calc(62 * var(--upx)); }
+  .whisk-tool { width: calc(52 * var(--upx)); height: calc(165 * var(--upx)); }
+  .whisk-tool::before { width: calc(15 * var(--upx)); height: calc(103 * var(--upx)); }
+  .whisk-tool::after { top: calc(94 * var(--upx)); width: calc(23 * var(--upx)); height: calc(14 * var(--upx)); }
+  .whisk-wire { width: calc(46 * var(--upx)); height: calc(70 * var(--upx)); }
+  .whisk-wire::before,.whisk-wire::after { height: calc(68 * var(--upx)); }
+  .whisk-wire::before { width: calc(28 * var(--upx)); }
+  .whisk-wire::after { width: calc(11 * var(--upx)); }
   .sk-ing-art { height: calc(64 * var(--upx)); }
   .sk-ing-art .sk-piece { width: calc(38 * var(--upx)); height: calc(26 * var(--upx)); }
   .sk-slot { width: calc(78 * var(--upx)); height: calc(48 * var(--upx)); }

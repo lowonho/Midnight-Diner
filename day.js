@@ -43,6 +43,14 @@ function selectedPrepTasks(){
   return selectedPrepTasksForChecklist().filter(task=>task.isImplemented);
 }
 
+function prepTasksForDish(menuId){
+  return selectedPrepTasks().filter(task=>task.menuId===menuId);
+}
+
+function nextPrepTaskForDish(menuId){
+  return prepTasksForDish(menuId).find(task=>!state.prepProgress?.[task.id])||null;
+}
+
 function prepTaskAvailableToday(task){
   return !!task&&(!task.minDay||Number(state.day)>=Number(task.minDay));
 }
@@ -241,7 +249,7 @@ function toggleMenuSelection(menuId){
   const selected=state.menuSelectionDraft.includes(menuId);
   if(!selected&&state.menuSelectionDraft.length>=maxSelectedMenus){showToast(`메뉴는 최대 ${maxSelectedMenus}개까지 선택할 수 있습니다.`,true);return false;}
   state.menuSelectionDraft=selected?state.menuSelectionDraft.filter(id=>id!==menuId):[...state.menuSelectionDraft,menuId];
-  renderMenuSelection();audio.click();
+  renderMenuSelection();
   return true;
 }
 
