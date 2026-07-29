@@ -20,6 +20,20 @@ function getCurrentDayData(){
   return DayManager.getDayData();
 }
 
+function maxSelectedMenusForDay(dayData){
+  const configuredMax=Math.max(1,Math.floor(Number(dayData.maxSelectedMenus)||1));
+  return Number(state.day)===5&&state.story?.flags?.day5_limit_menus
+    ?Math.min(configuredMax,3)
+    :configuredMax;
+}
+
+function prepYieldForDay(dish){
+  const configuredYield=Math.max(1,Math.floor(Number(dish.prepYield)||3));
+  return Number(state.day)===5&&state.story?.flags?.day5_reduce_portions
+    ?Math.max(1,Math.min(configuredYield,2))
+    :configuredYield;
+}
+
 function selectedDishes(){
   const selected=Array.isArray(state.selectedMenus)?state.selectedMenus:[];
   return selected.map(dishById).filter(Boolean);
@@ -46,11 +60,13 @@ function selectedPrepTasksForChecklist(){
 
 function normalizeDayPrepState(){
   const dayData=getCurrentDayData();
+  const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   const allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
   const saved=Array.isArray(state.selectedMenus)?state.selectedMenus.filter(id=>allowed.has(id)&&dishById(id)):[];
-  const valid=[...new Set([...dayData.requiredMenus,...saved])].slice(0,dayData.maxSelectedMenus);
+  const valid=[...new Set([...dayData.requiredMenus,...saved])].slice(0,maxSelectedMenus);
   state.selectedMenus=valid;
-  state.menuSelectionDraft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft.filter(id=>allowed.has(id)):[];
+  const draft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft.filter(id=>allowed.has(id)&&dishById(id)):[];
+  state.menuSelectionDraft=[...new Set([...dayData.requiredMenus,...draft])].slice(0,maxSelectedMenus);
   // 예전 세이브 호환. 준비 작업을 쪼개거나 합칠 때마다 여기에 한 줄씩 추가합니다.
   // 옛 항목이 완료였으면 그 자리를 대신하는 새 항목들도 완료로 쳐 줍니다.
   // (이 처리가 없으면 이미 끝낸 준비가 미완료로 되감깁니다)
@@ -66,8 +82,9 @@ function normalizeDayPrepState(){
 
 function setSelectedMenus(menuIds){
   const dayData=getCurrentDayData(),allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
+  const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   const unique=[...new Set(menuIds)].filter(id=>allowed.has(id)&&dishById(id));
-  if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length<dayData.minSelectedMenus||unique.length>dayData.maxSelectedMenus)return false;
+  if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length<dayData.minSelectedMenus||unique.length>maxSelectedMenus)return false;
   state.selectedMenus=unique;
   state.prepProgress=createDayPrepProgress();
   state.kimchiPrep=createKimchiPrepProgress();
@@ -142,7 +159,7 @@ function completeDayPrepTask(taskId){
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented&&prepTaskAvailableToday(item));
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
       // 기존 영업·주문·정산 호환용 내부 준비 수량이며 준비 화면에는 노출하지 않습니다.
-      const prepYield=Math.max(1,Math.floor(Number(dish.prepYield)||3));
+      const prepYield=prepYieldForDay(dish);
       state.inventory[dish.id]={count:prepYield,quality:100};
     }
   });
@@ -192,14 +209,15 @@ function updateDayObjective(){
 function renderMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return;
   const dayData=getCurrentDayData();
+  const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   const required=new Set(dayData.requiredMenus);
   const available=[...dayData.requiredMenus,...dayData.optionalMenus];
   const draft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft:[...dayData.requiredMenus];
-  state.menuSelectionDraft=[...new Set([...dayData.requiredMenus,...draft.filter(id=>available.includes(id))])].slice(0,dayData.maxSelectedMenus);
+  state.menuSelectionDraft=[...new Set([...dayData.requiredMenus,...draft.filter(id=>available.includes(id))])].slice(0,maxSelectedMenus);
   dom.menuSelectTitle.textContent=`Day ${state.day} · 오늘의 메뉴 선택`;
   dom.menuSelectDescription.textContent=dayData.isSpecialDay
-    ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${dayData.maxSelectedMenus}개를 선택하세요.`
-    :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${dayData.maxSelectedMenus}개를 선택하세요.`;
+    ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${maxSelectedMenus}개를 선택하세요.`
+    :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
   const signature=`${state.day}|${state.menuSelectionDraft.join(",")}`;
   if(dom.menuSelectGrid.dataset.signature!==signature){
     dom.menuSelectGrid.dataset.signature=signature;
@@ -210,7 +228,7 @@ function renderMenuSelection(){
     }).join("");
     dom.menuSelectGrid.querySelectorAll("[data-menu-id]").forEach(button=>button.addEventListener("click",()=>toggleMenuSelection(button.dataset.menuId)));
   }
-  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} · 최소 ${dayData.minSelectedMenus} / 최대 ${dayData.maxSelectedMenus}`;
+  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} · 최소 ${dayData.minSelectedMenus} / 최대 ${maxSelectedMenus}`;
   dom.menuSelectConfirm.disabled=state.menuSelectionDraft.length<dayData.minSelectedMenus||!dayData.requiredMenus.every(id=>state.menuSelectionDraft.includes(id));
   dom.menuSelectOverlay.classList.add("open");
 }
@@ -218,9 +236,10 @@ function renderMenuSelection(){
 function toggleMenuSelection(menuId){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return false;
   const dayData=getCurrentDayData();
+  const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   if(dayData.requiredMenus.includes(menuId))return false;
   const selected=state.menuSelectionDraft.includes(menuId);
-  if(!selected&&state.menuSelectionDraft.length>=dayData.maxSelectedMenus){showToast(`메뉴는 최대 ${dayData.maxSelectedMenus}개까지 선택할 수 있습니다.`,true);return false;}
+  if(!selected&&state.menuSelectionDraft.length>=maxSelectedMenus){showToast(`메뉴는 최대 ${maxSelectedMenus}개까지 선택할 수 있습니다.`,true);return false;}
   state.menuSelectionDraft=selected?state.menuSelectionDraft.filter(id=>id!==menuId):[...state.menuSelectionDraft,menuId];
   renderMenuSelection();audio.click();
   return true;

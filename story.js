@@ -2,11 +2,12 @@
 
 // 대본 데이터와 게임 로직을 분리하는 스토리 실행기입니다.
 // 자기소개 대사의 출력이 끝난 뒤에만 nameRevealed를 바꿉니다.
-const STORY_GUEST_IDS=["gicheol","seoyoon","narae","doyoon","miran","hyejin","sujin"];
+const STORY_GUEST_IDS=["gicheol"];
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
 let storyUiInitialized=false;
+const STORY_CHECKPOINT_VERSION=1;
 
 function createStoryGuestState(){
   return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
@@ -14,7 +15,7 @@ function createStoryGuestState(){
 
 function createStoryState(){
   return {
-    schemaVersion:1,
+    schemaVersion:2,
     prologueComplete:false,
     completed:{},
     choices:{},
@@ -32,14 +33,28 @@ function createStoryState(){
 function normalizeStoryState(raw){
   const base=createStoryState();
   if(!raw||typeof raw!=="object")return base;
-  base.schemaVersion=1;
+  base.schemaVersion=2;
   base.prologueComplete=!!raw.prologueComplete;
   base.completed={...(raw.completed||{})};
   base.choices={...(raw.choices||{})};
   base.flags={...(raw.flags||{})};
   base.pendingNightGuests=Array.isArray(raw.pendingNightGuests)
-    ?raw.pendingNightGuests.filter(plan=>plan&&typeof plan.guestId==="string").map(plan=>({...plan,special:!!plan.special,repeat:!!plan.repeat}))
-    :raw.pendingSpecialGuest?[{guestId:raw.pendingSpecialGuest,sceneId:null,special:true,repeat:false}]:[];
+    ?raw.pendingNightGuests
+      .filter(plan=>plan&&typeof plan.guestId==="string")
+      .map(plan=>({
+        ...plan,
+        sceneId:plan.sceneId||null,
+        dishId:typeof plan.dishId==="string"?plan.dishId:null,
+        arrival:["early","late","last"].includes(plan.arrival)?plan.arrival:"early",
+        deferUntilArrival:!!plan.deferUntilArrival,
+        guestOrder:plan.guestOrder!==false,
+        special:!!plan.special,
+        repeat:!!plan.repeat
+      }))
+    :raw.pendingSpecialGuest?[{
+      guestId:raw.pendingSpecialGuest,sceneId:null,dishId:null,arrival:"early",
+      deferUntilArrival:false,guestOrder:true,special:true,repeat:false
+    }]:[];
   base.specialServedDays={...(raw.specialServedDays||{})};
   base.storyCookResults={...(raw.storyCookResults||{})};
   base.activeStoryCook=null;
@@ -111,7 +126,7 @@ function storyRelationLabel(id){
 function updateRelationshipUI(){
   const list=document.getElementById("relationshipList");
   if(!list||!state.story)return;
-  const known=STORY_GUEST_IDS.filter(id=>id!=="sujin"&&isCharacterNameRevealed(id));
+  const known=STORY_GUEST_IDS.filter(id=>isCharacterNameRevealed(id));
   if(!known.length){
     list.innerHTML='<span class="relationship-empty">아직 이름을 아는 손님이 없습니다.</span>';
     return;
@@ -140,16 +155,168 @@ function storySceneIdsForMoment(moment,day=state.day){
 
 function queueStoryMoments(moments,onComplete=null){
   const ids=[];
-  moments.forEach(moment=>ids.push(...storySceneIdsForMoment(moment)));
+  moments.forEach(moment=>ids.push(
+    ...storySceneIdsForMoment(moment).filter(id=>!STORY_SCENES[id]?.deferUntilArrival)
+  ));
   playStoryScenes(ids,onComplete);
+}
+
+function resumeDeferredStoryOrderScene(){
+  if(storyIsActive()||state.phase!==GAME_PHASES.OPEN)return false;
+  const order=state.orders.find(item=>{
+    const scene=STORY_SCENES[item.storySceneId];
+    return item.customerType==="story"&&item.deferUntilArrival&&scene&&!state.story.completed[scene.id];
+  });
+  if(!order)return false;
+  return playStoryScenes([order.storySceneId],resumeDeferredStoryOrderScene);
 }
 
 function resumeStoryForCurrentPhase(){
   if(storyIsActive()||state.screen!=="game")return;
   if(state.day===1&&!state.story?.prologueComplete){queueStoryMoments(["newGame","dayStart"]);return;}
-  if(state.phase==="day")queueStoryMoments(["dayStart"]);
-  else if(state.phase==="night")queueStoryMoments(["nightStart"]);
-  else if(state.phase==="result")queueStoryMoments(["nightEnd"]);
+  if(state.phase===GAME_PHASES.MENU_SELECT||state.phase===GAME_PHASES.PREP)queueStoryMoments(["dayStart"]);
+  else if(state.phase===GAME_PHASES.OPEN)queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
+  else if(state.phase===GAME_PHASES.RESULT)queueStoryMoments(["nightEnd"]);
+}
+
+function cloneStoryCheckpointValue(value){
+  try{return JSON.parse(JSON.stringify(value));}
+  catch(_error){return null;}
+}
+
+function isStoryCheckpointRecord(value){
+  return !!value&&typeof value==="object"&&!Array.isArray(value);
+}
+
+function normalizeStoryCheckpoint(checkpoint){
+  if(!isStoryCheckpointRecord(checkpoint)||checkpoint.version!==STORY_CHECKPOINT_VERSION)return null;
+  if(!Array.isArray(checkpoint.queue)||!checkpoint.queue.length)return null;
+  if(!checkpoint.queue.every(id=>typeof id==="string"&&!!STORY_SCENES[id]))return null;
+  if(!Number.isInteger(checkpoint.queueIndex)||checkpoint.queueIndex<0||checkpoint.queueIndex>=checkpoint.queue.length)return null;
+  if(typeof checkpoint.sceneId!=="string"||checkpoint.queue[checkpoint.queueIndex]!==checkpoint.sceneId)return null;
+  if(!STORY_SCENES[checkpoint.sceneId]||state.story?.completed?.[checkpoint.sceneId])return null;
+  if(!Array.isArray(checkpoint.lines)||!checkpoint.lines.length)return null;
+  if(!checkpoint.lines.every(line=>isStoryCheckpointRecord(line)&&(typeof line.text==="string"||typeof line.prompt==="string")))return null;
+  if(!Number.isInteger(checkpoint.lineIndex)||checkpoint.lineIndex<0||checkpoint.lineIndex>=checkpoint.lines.length)return null;
+  if(!Array.isArray(checkpoint.actorIds))return null;
+  if(!checkpoint.actorIds.every(id=>typeof id==="string"&&!!STORY_CHARACTERS[id]))return null;
+  if(new Set(checkpoint.actorIds).size!==checkpoint.actorIds.length)return null;
+  if(typeof checkpoint.waitingForCook!=="boolean"||typeof checkpoint.suspended!=="boolean"||typeof checkpoint.wasPaused!=="boolean")return null;
+  if(checkpoint.waitingForCook!==checkpoint.suspended)return null;
+
+  const pendingCook=checkpoint.pendingCook==null?null:checkpoint.pendingCook;
+  if(checkpoint.suspended){
+    if(!isStoryCheckpointRecord(pendingCook)||pendingCook.sceneId!==checkpoint.sceneId)return null;
+    if(!Number.isFinite(pendingCook.orderId)||!Number.isInteger(pendingCook.lineIndex))return null;
+    if(pendingCook.lineIndex<0||pendingCook.lineIndex>=checkpoint.lines.length)return null;
+    if(!isStoryCheckpointRecord(pendingCook.config))return null;
+    if(pendingCook.choice!=null&&!isStoryCheckpointRecord(pendingCook.choice))return null;
+    if(pendingCook.choiceIndex!=null&&!Number.isInteger(pendingCook.choiceIndex))return null;
+  }else if(pendingCook!==null)return null;
+
+  const cloned=cloneStoryCheckpointValue({
+    version:STORY_CHECKPOINT_VERSION,
+    queue:checkpoint.queue,
+    queueIndex:checkpoint.queueIndex,
+    sceneId:checkpoint.sceneId,
+    lines:checkpoint.lines,
+    lineIndex:checkpoint.lineIndex,
+    actorIds:checkpoint.actorIds,
+    waitingForCook:checkpoint.waitingForCook,
+    suspended:checkpoint.suspended,
+    pendingCook,
+    wasPaused:checkpoint.wasPaused
+  });
+  return isStoryCheckpointRecord(cloned)?cloned:null;
+}
+
+function captureStoryCheckpoint(){
+  if(!storySession||state.story?.activeStoryCook)return null;
+  const sceneId=storySession.scene?.id;
+  if(!sceneId||state.story?.completed?.[sceneId])return null;
+  return normalizeStoryCheckpoint({
+    version:STORY_CHECKPOINT_VERSION,
+    queue:storySession.queue,
+    queueIndex:storySession.queueIndex,
+    sceneId,
+    lines:storySession.lines,
+    lineIndex:storySession.lineIndex,
+    actorIds:(storySession.actors||[]).map(actor=>actor.id),
+    waitingForCook:!!storySession.waitingForCook,
+    suspended:!!storySession.suspended,
+    pendingCook:storySession.pendingCook||null,
+    wasPaused:!!storySession.wasPaused
+  });
+}
+
+function clearStoryRuntime(){
+  const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
+  clearStoryTyping();
+  if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
+  const revealNotice=document.getElementById("storyRevealNotice");
+  const overlay=document.getElementById("storyOverlay");
+  const stage=document.getElementById("storyStage");
+  if(revealNotice)revealNotice.classList.remove("show");
+  if(overlay)overlay.classList.remove("open");
+  if(stage)stage.innerHTML="";
+  if(state.story)state.story.activeStoryCook=null;
+  storySession=null;
+  return hadRuntime;
+}
+
+function restoreStoryCheckpoint(checkpoint){
+  const restored=normalizeStoryCheckpoint(checkpoint);
+  clearStoryRuntime();
+  if(!restored)return false;
+
+  const scene=STORY_SCENES[restored.sceneId];
+  let pendingOrder=null;
+  if(restored.suspended){
+    if(state.phase!==GAME_PHASES.OPEN)return false;
+    pendingOrder=(state.orders||[]).find(order=>
+      order.id===restored.pendingCook.orderId
+      &&order.storySceneId===restored.sceneId
+    );
+    if(!pendingOrder)return false;
+  }
+
+  storySession={
+    queue:restored.queue,
+    queueIndex:restored.queueIndex,
+    scene,
+    lines:restored.lines,
+    lineIndex:restored.lineIndex,
+    actors:[],
+    wasPaused:restored.wasPaused,
+    onComplete:state.phase===GAME_PHASES.OPEN?resumeDeferredStoryOrderScene:null,
+    waitingForCook:restored.waitingForCook,
+    suspended:restored.suspended,
+    pendingCook:restored.pendingCook
+  };
+
+  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
+  restored.actorIds.forEach(ensureStoryActor);
+
+  if(restored.suspended){
+    pendingOrder.specialRecipe=!!restored.pendingCook.config.special;
+    state.selectedOrderId=pendingOrder.id;
+    state.paused=false;
+    document.getElementById("storyOverlay").classList.remove("open");
+    updateUI(true);
+    return true;
+  }
+
+  state.paused=true;
+  document.getElementById("storyOverlay").classList.add("open");
+  showStoryLine();
+  return true;
+}
+
+function storyTimeOfDayOverride(){
+  const scene=storySession?.scene
+    ||(state.story?.activeStoryCook?STORY_SCENES[state.story.activeStoryCook.sceneId]:null);
+  return scene&&["day","night"].includes(scene.timeOfDay)?scene.timeOfDay:null;
 }
 
 function playStoryScenes(sceneIds,onComplete=null){
@@ -183,6 +350,10 @@ function clearStoryTyping(){
 }
 
 function storyLineText(line){return line.prompt||line.text||"";}
+function setStoryNextButton(isCook=false){
+  const button=document.getElementById("storyNextButton");
+  button.innerHTML=isCook?'조리 시작 <span>▶</span>':'계속 <span>▼</span>';
+}
 
 function showStoryLine(){
   if(!storySession)return;
@@ -201,6 +372,7 @@ function showStoryLine(){
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId);
   choices.innerHTML="";choices.classList.remove("open");
+  setStoryNextButton(false);
   next.style.display=line.choices?"none":"block";
   const fullText=storyLineText(line);
   textEl.textContent="";
@@ -228,6 +400,7 @@ function finishStoryTyping(){
     typing.revealApplied=true;
     revealCharacterName(typing.line.reveal,true);
   }
+  if(typing.line.cook||typing.line.orderCook)setStoryNextButton(true);
   if(typing.line.choices)renderStoryChoices(typing.line);
 }
 
@@ -246,14 +419,17 @@ function renderStoryChoices(line){
 function chooseStoryOption(choice,index){
   if(!storySession)return;
   const scene=storySession.scene;
-  if(scene.specialCook&&!state.story.storyCookResults[scene.id]){
-    if(scene.moment==="nightStart"&&suspendStoryForOrderCook(scene,choice,index))return;
-    startStoryCookChallenge(scene,choice,index);
+  state.story.choices[scene.id]=index;
+  if(choice.flag)state.story.flags[choice.flag]=true;
+  if(choice.notice)showToast(choice.notice);
+  if(choice.orderCook){
+    audio?.click();
+    suspendStoryForOrderCook(scene,choice.orderCook,{
+      choice:{...choice},choiceIndex:index,lineIndex:storySession.lineIndex
+    });
     return;
   }
-  state.story.choices[scene.id]=index;
-  if(!scene.specialCook&&choice.affinity&&scene.character&&STORY_GUEST_IDS.includes(scene.character))getStoryGuestState(scene.character).affinity+=choice.affinity;
-  if(choice.flag)state.story.flags[choice.flag]=true;
+  if(choice.affinity&&scene.character&&STORY_GUEST_IDS.includes(scene.character))getStoryGuestState(scene.character).affinity+=choice.affinity;
   const reply={speaker:choice.speaker||scene.character||"protagonist",text:choice.reply||"고개를 끄덕였다."};
   storySession.lines.splice(storySession.lineIndex+1,0,reply);
   storySession.lineIndex++;
@@ -266,6 +442,17 @@ function storyAdvance(){
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   const line=storySession.lines[storySession.lineIndex];
   if(line?.choices)return true;
+  if(storySession.waitingForCook)return true;
+  if(line?.cook){
+    audio?.click();
+    startStoryCookChallenge(storySession.scene,line.cook,{lineIndex:storySession.lineIndex});
+    return true;
+  }
+  if(line?.orderCook){
+    audio?.click();
+    suspendStoryForOrderCook(storySession.scene,line.orderCook,{lineIndex:storySession.lineIndex});
+    return true;
+  }
   storySession.lineIndex++;
   audio?.click();
   showStoryLine();
@@ -348,27 +535,53 @@ function completeStoryScene(){
   if(!storySession)return;
   const scene=storySession.scene;
   state.story.completed[scene.id]=true;
-  if(scene.id==="PR-03")state.story.prologueComplete=true;
-  if(scene.id==="ED-02")state.story.endingSeen=true;
+  if(scene.completesPrologue)state.story.prologueComplete=true;
+  if(scene.ending)state.story.endingSeen=true;
   if(scene.character&&STORY_GUEST_IDS.includes(scene.character)){
     const guest=getStoryGuestState(scene.character);
-    if(!scene.specialCook)guest.affinity+=Number(scene.affinity)||0;
+    guest.affinity+=Number(scene.affinity)||0;
     guest.arcStep=Math.max(guest.arcStep,Number((scene.id.match(/-(\d\d)$/)||[])[1])||0);
     if(scene.regular)guest.regular=true;
   }
   updateRelationshipUI();
-  saveGame(true);
   storySession.queueIndex++;
   beginNextStoryScene();
+  // 완료된 현재 장면은 체크포인트를 만들 수 없으므로, 다음 장면으로
+  // 커서를 옮긴 뒤 완료 플래그와 새 재개 위치를 한 번에 저장합니다.
+  saveGame(true);
 }
 
-function startStoryCookChallenge(scene,choice,index){
+function storyCookingTier(score,thresholds=null){
+  const custom=thresholds&&typeof thresholds==="object"?thresholds:null;
+  const great=Number.isFinite(custom?.great)?custom.great:80;
+  const hasWarm=custom?Object.prototype.hasOwnProperty.call(custom,"warm"):true;
+  const warm=hasWarm&&Number.isFinite(custom?.warm)?custom.warm:custom?null:60;
+  if(score>=great)return "great";
+  if(warm!=null&&score>=warm)return "warm";
+  return "soft";
+}
+
+function startStoryCookChallenge(scene,cook,metadata={}){
   if(!storySession||state.story.activeStoryCook)return false;
-  const dish=dishById(state.selectedDishId)||DISHES[0];
-  const steps=scene.id==="PR-02"&&!dish.cook.some(step=>step.game==="chop")
-    ?[{station:"board",game:"chop"},...dish.cook]
-    :[...dish.cook];
-  state.story.activeStoryCook={sceneId:scene.id,guestId:scene.character||null,dishId:dish.id,steps,stepIndex:0,scores:[],choice:{...choice},choiceIndex:index};
+  const dish=dishById(cook?.dishId||scene.dishId);
+  if(!dish||!Array.isArray(dish.cook)||!dish.cook.length){
+    showToast("조리할 메뉴 정보를 찾지 못했습니다.",true);
+    return false;
+  }
+  const lineIndex=Number.isInteger(metadata.lineIndex)?metadata.lineIndex:storySession.lineIndex;
+  state.story.activeStoryCook={
+    sceneId:scene.id,
+    guestId:scene.character||null,
+    dishId:dish.id,
+    steps:dish.cook.map(step=>({...step})),
+    stepIndex:0,
+    scores:[],
+    lineIndex,
+    resultKey:cook.resultKey||`${scene.id}:line:${lineIndex}`,
+    tutorial:!!cook.tutorial,
+    special:!!cook.special,
+    thresholds:cook.thresholds&&typeof cook.thresholds==="object"?{...cook.thresholds}:null
+  };
   storySession.waitingForCook=true;storySession.suspended=true;
   document.getElementById("storyOverlay").classList.remove("open");
   showToast(`${dish.name} 한 접시를 직접 완성해 보세요.`);
@@ -384,7 +597,8 @@ function launchStoryCookStep(){
   if(!step)return false;
   startMini(step.game,step.station,{
     mode:"story",storySceneId:challenge.sceneId,dishId:dish.id,
-    special:true,tutorial:challenge.sceneId==="PR-02",guestId:challenge.guestId
+    special:!!challenge.special,tutorial:!!challenge.tutorial,guestId:challenge.guestId,
+    resultKey:challenge.resultKey
   });
   return true;
 }
@@ -400,52 +614,91 @@ function completeStoryCookStep(score){
   }
 
   const average=Math.round(challenge.scores.reduce((sum,value)=>sum+value,0)/challenge.scores.length);
-  const tier=average>=85?"great":average>=65?"warm":"soft";
-  const scene=STORY_SCENES[challenge.sceneId];
-  const reply=recordSpecialCookChoice(scene,challenge.choice,challenge.choiceIndex,average,tier);
+  const tier=storyCookingTier(average,challenge.thresholds);
+  state.story.storyCookResults[challenge.resultKey]={
+    score:average,tier,day:state.day,dishId:challenge.dishId
+  };
   state.story.activeStoryCook=null;
 
   if(storySession){
     storySession.waitingForCook=false;storySession.suspended=false;
-    storySession.lines.splice(storySession.lineIndex+1,0,reply);
-    storySession.lineIndex++;
+    storySession.lineIndex=challenge.lineIndex+1;
+    state.paused=true;
     document.getElementById("storyOverlay").classList.add("open");
     showStoryLine();
   }
   return true;
 }
 
-function suspendStoryForOrderCook(scene,choice,index){
+function suspendStoryForOrderCook(scene,config,metadata={}){
+  if(!storySession||storySession.pendingCook)return false;
+  config=config&&typeof config==="object"?config:{};
   const order=state.orders.find(item=>item.storySceneId===scene.id);
-  if(!order)return false;
-  storySession.suspended=true;
-  storySession.pendingCook={sceneId:scene.id,orderId:order.id,choice:{...choice},choiceIndex:index};
+  if(!order){
+    showToast("이야기 손님의 주문을 찾지 못했습니다. 손님이 도착한 뒤 다시 시도해 주세요.",true);
+    return false;
+  }
+  order.specialRecipe=!!config.special;
+  storySession.waitingForCook=true;storySession.suspended=true;
+  storySession.pendingCook={
+    sceneId:scene.id,
+    orderId:order.id,
+    config:{
+      ...config,
+      thresholds:config.thresholds&&typeof config.thresholds==="object"?{...config.thresholds}:null,
+      replies:config.replies&&typeof config.replies==="object"?{...config.replies}:null
+    },
+    choice:metadata.choice?{...metadata.choice}:null,
+    choiceIndex:Number.isInteger(metadata.choiceIndex)?metadata.choiceIndex:null,
+    lineIndex:Number.isInteger(metadata.lineIndex)?metadata.lineIndex:storySession.lineIndex
+  };
   state.selectedOrderId=order.id;
   state.paused=false;
   document.getElementById("storyOverlay").classList.remove("open");
-  showToast(`${storyDisplayName(order.guestId)}을 위한 특별 조리를 완성해 주세요.`);
+  showToast(config.special
+    ?`${storyDisplayName(order.guestId)}을 위한 특별 조리를 완성해 주세요.`
+    :`${storyDisplayName(order.guestId)}의 주문을 조리해 제공해 주세요.`);
   updateUI(true);
+  saveGame(true);
   return true;
 }
 
-function recordSpecialCookChoice(scene,choice,index,score,tier){
-  state.story.choices[scene.id]=index;
-  if(choice.flag)state.story.flags[choice.flag]=true;
-  const potential=Math.max(0,Number(choice.affinity)||Number(scene.affinity)||0);
+function configuredStoryCookReply(scene,config,metadata,tier){
+  const configured=config.replies?.[tier];
+  if(configured&&typeof configured==="object"){
+    return {
+      speaker:configured.speaker||metadata.choice?.speaker||scene.character||"protagonist",
+      text:String(configured.text||"잘 먹었습니다.")
+    };
+  }
+  const fallback={
+    great:"정성 들인 맛이 제대로 전해졌어요.",
+    warm:"괜찮네요. 잘 먹었어요.",
+    soft:"맛은 그럭저럭이네요."
+  };
+  return {
+    speaker:metadata.choice?.speaker||scene.character||"protagonist",
+    text:typeof configured==="string"?configured:fallback[tier]
+  };
+}
+
+function recordStoryCookOutcome(scene,config,metadata,order,score,tier){
+  const choice=metadata.choice;
+  const index=metadata.choiceIndex;
+  if(Number.isInteger(index))state.story.choices[scene.id]=index;
+  if(choice?.flag)state.story.flags[choice.flag]=true;
+  const potential=Math.max(0,Number(choice?.affinity)||0);
   const affinityDelta=tier==="great"?potential:tier==="warm"?Math.min(1,potential):0;
   if(scene.character&&STORY_GUEST_IDS.includes(scene.character)){
     const guest=getStoryGuestState(scene.character);
     guest.affinity+=affinityDelta;
-    if(scene.id==="PR-02"&&guest.lastVisitDay!==state.day){guest.visits++;guest.lastVisitDay=state.day;}
   }
-  state.story.storyCookResults[scene.id]={score,tier,day:state.day,choiceIndex:index,affinityDelta};
-  const speaker=choice.speaker||scene.character||"owner";
-  const text=tier==="great"
-    ?choice.reply||"정성 들인 맛이 제대로 전해졌어요."
-    :tier==="warm"
-      ?`${choice.reply||"따뜻한 마음이 느껴져요."} 완벽하지 않아도 오늘의 저에게 잘 맞네요.`
-      :"조금 아쉬운 부분은 있어도 괜찮아요. 저를 생각하며 만든 건 알겠어요. 다음에 한 번 더 부탁할게요.";
-  return {speaker,text};
+  const resultKey=config.resultKey||scene.id;
+  state.story.storyCookResults[resultKey]={
+    score,tier,day:state.day,dishId:order.dishId,
+    choiceIndex:Number.isInteger(index)?index:null,affinityDelta
+  };
+  return configuredStoryCookReply(scene,config,metadata,tier);
 }
 
 function finishSuspendedStoryCook(order,satisfaction){
@@ -453,12 +706,14 @@ function finishSuspendedStoryCook(order,satisfaction){
   if(!storySession?.suspended||!pending||pending.orderId!==order.id)return false;
   const scene=STORY_SCENES[pending.sceneId];
   if(!scene)return false;
-  const tier=satisfaction>=85?"great":satisfaction>=65?"warm":"soft";
-  const reply=recordSpecialCookChoice(scene,pending.choice,pending.choiceIndex,satisfaction,tier);
-  storySession.pendingCook=null;storySession.suspended=false;
+  const tier=storyCookingTier(satisfaction,pending.config.thresholds);
+  const metadata={choice:pending.choice,choiceIndex:pending.choiceIndex};
+  const reply=recordStoryCookOutcome(scene,pending.config,metadata,order,satisfaction,tier);
+  const lineIndex=pending.lineIndex;
+  storySession.pendingCook=null;storySession.waitingForCook=false;storySession.suspended=false;
   state.paused=true;
-  storySession.lines.splice(storySession.lineIndex+1,0,reply);
-  storySession.lineIndex++;
+  storySession.lines.splice(lineIndex+1,0,reply);
+  storySession.lineIndex=lineIndex+1;
   document.getElementById("storyOverlay").classList.add("open");
   showStoryLine();
   return true;
@@ -475,7 +730,13 @@ function finishStorySession(){
   const wasPaused=storySession.wasPaused;
   storySession=null;
   state.paused=state.phase==="result"?true:wasPaused;
-  if(state.phase==="result")dom.nextDayButton.textContent=state.day===30&&state.story?.endingSeen?"자유 영업 시작":"다음 날 준비";
+  if(state.phase===GAME_PHASES.RESULT){
+    const finalDay=state.day>=DayManager.maxDay;
+    dom.nextDayButton.textContent=finalDay
+      ?state.story?.endingSeen?"엔딩 완료":`Day ${DayManager.maxDay} 완료`
+      :"다음 날 준비";
+    dom.nextDayButton.disabled=finalDay;
+  }
   updateRelationshipUI();
   updateUI(true);
   saveGame();
@@ -486,32 +747,59 @@ function prepareStoryNight(){
   if(!state.story)state.story=createStoryState();
   const plans=storySceneIdsForMoment("nightStart")
     .map(id=>STORY_SCENES[id])
-    .filter(scene=>scene&&!state.story.completed[scene.id]&&scene.character&&STORY_CHARACTERS[scene.character]&&scene.character!=="protagonist")
-    .map(scene=>({guestId:scene.character,sceneId:scene.id,special:!!scene.specialCook,repeat:false}));
+    .filter(scene=>
+      scene?.guestOrder===true
+      &&!state.story.completed[scene.id]
+      &&scene.character
+      &&STORY_CHARACTERS[scene.character]
+      &&scene.character!=="protagonist"
+    )
+    .map(scene=>({
+      guestId:scene.character,
+      sceneId:scene.id,
+      dishId:typeof scene.dishId==="string"?scene.dishId:null,
+      arrival:["early","late","last"].includes(scene.arrival)?scene.arrival:"early",
+      deferUntilArrival:!!scene.deferUntilArrival,
+      guestOrder:true,
+      special:false,
+      repeat:false
+    }));
 
   if(!plans.length){
     const regulars=STORY_GUEST_IDS.filter(id=>{
-      if(id==="sujin")return false;
       const guest=state.story.guestState[id];
       return guest?.regular&&guest.lastVisitDay<state.day&&isCharacterNameRevealed(id);
     });
-    const returnChance=state.day>30?.82:clamp(.42+state.popularity*.003,0,.68);
+    const returnChance=state.day>DayManager.maxDay
+      ?0.82
+      :clamp(.42+state.popularity*.003,0,.68);
     if(regulars.length&&Math.random()<returnChance){
       const guestId=regulars[Math.floor(Math.random()*regulars.length)];
-      plans.push({guestId,sceneId:null,special:false,repeat:true});
+      plans.push({
+        guestId,sceneId:null,dishId:null,arrival:"early",deferUntilArrival:false,
+        guestOrder:true,special:false,repeat:true
+      });
     }
   }
   state.story.pendingNightGuests=plans;
 }
 
-function decorateStoryOrder(order){
+function decorateStoryOrder(order,plan=null){
   order.customerType="general";order.guestId=null;order.specialRecipe=false;order.storySceneId=null;order.repeatVisit=false;
+  order.storyDishId=null;order.storyArrival=null;order.deferUntilArrival=false;order.guestOrder=false;
   order.bubble=pickGeneralGuestBubble("arrival");order.bubbleTime=4.5;order.waitingTime=0;order.waitingBubbleShown=false;
-  const plan=state.story?.pendingNightGuests?.shift();
   if(!plan)return order;
+  const plans=state.story?.pendingNightGuests||[];
+  const planIndex=plans.indexOf(plan);
+  if(planIndex>=0)plans.splice(planIndex,1);
   const character=STORY_CHARACTERS[plan.guestId];
   order.customerType="story";order.guestId=plan.guestId;order.specialRecipe=!!plan.special;
   order.storySceneId=plan.sceneId||null;order.repeatVisit=!!plan.repeat;
+  order.storyDishId=plan.dishId||null;
+  order.storyArrival=["early","late","last"].includes(plan.arrival)?plan.arrival:"early";
+  order.deferUntilArrival=!!plan.deferUntilArrival;
+  order.guestOrder=plan.guestOrder!==false;
+  if(order.storyDishId)order.dishId=order.storyDishId;
   order.variant=character?.portraitRow??order.variant;
   order.bubble=plan.repeat
     ?REGULAR_GUEST_BUBBLES[plan.guestId]||"오늘도 잘 부탁드려요."
@@ -522,11 +810,18 @@ function decorateStoryOrder(order){
 
 function normalizeStoryOrder(order){
   if(!order||typeof order!=="object")return order;
-  if(!order.customerType)order.customerType="general";
+  const scene=STORY_SCENES[order.storySceneId]||null;
+  if(!order.customerType)order.customerType=order.storySceneId?"story":"general";
   if(!("guestId" in order))order.guestId=null;
   order.specialRecipe=!!order.specialRecipe;
   order.storySceneId=order.storySceneId||null;
   order.repeatVisit=!!order.repeatVisit;
+  order.storyDishId=order.storyDishId||scene?.dishId||null;
+  order.storyArrival=["early","late","last"].includes(order.storyArrival)
+    ?order.storyArrival
+    :["early","late","last"].includes(scene?.arrival)?scene.arrival:null;
+  order.deferUntilArrival=!!(order.deferUntilArrival||scene?.deferUntilArrival);
+  order.guestOrder=order.guestOrder!==false&&(order.customerType==="story"||scene?.guestOrder===true);
   if(!Number.isFinite(order.bubbleTime))order.bubbleTime=0;
   if(!Number.isFinite(order.waitingTime))order.waitingTime=0;
   order.waitingBubbleShown=!!order.waitingBubbleShown;
@@ -539,16 +834,13 @@ function storyOrderLabel(order){
 
 function applyStoryCookingResult(order,satisfaction){
   if(!order?.guestId)return null;
-  const tier=satisfaction>=85?"great":satisfaction>=65?"warm":"soft";
+  const pending=storySession?.pendingCook;
+  const thresholds=pending?.orderId===order.id?pending.config?.thresholds:null;
+  const tier=storyCookingTier(satisfaction,thresholds);
   if(STORY_GUEST_IDS.includes(order.guestId)){
     const guest=getStoryGuestState(order.guestId);
-    if(order.specialRecipe&&!order.storySceneId)guest.affinity+=tier==="great"?2:tier==="warm"?1:0;
-    else if(!order.storySceneId&&tier==="great")guest.affinity++;
+    if(!order.storySceneId&&tier==="great")guest.affinity++;
     if(guest.lastVisitDay!==state.day){guest.visits++;guest.lastVisitDay=state.day;}
-  }
-  if(order.specialRecipe){
-    state.story.specialServedDays[state.day]=true;
-    state.story.flags[`special_${order.guestId}_${state.day}`]=tier;
   }
   if(order.storySceneId)state.story.storyCookResults[order.storySceneId]={score:satisfaction,tier,day:state.day};
   return {tier,text:pickGeneralGuestBubble(tier),name:storyDisplayName(order.guestId),special:order.specialRecipe};
@@ -573,10 +865,11 @@ function runStoryQaFromQuery(){
   openGameScreen();buildMenuCards();updateUI(true);syncPhaserObjects();
   if(params.get("qa-order")==="1"&&state.phase==="night"){
     state.phaseTime=NIGHT_DURATION;state.orders=[];state.respawns=[];state.spawnedCustomers=0;state.nightCustomerTarget=4;
-    state.selectedMenus=["kimchi"];
-    state.inventory.kimchi={count:4,quality:85};
+    const qaDish=dishById(qaScene.dishId)||dishById("kimchi")||DISHES[0];
+    state.selectedMenus=[qaDish.id];
+    state.inventory[qaDish.id]={count:4,quality:85};
     if(qaScene.character&&STORY_GUEST_IDS.includes(qaScene.character))revealCharacterName(qaScene.character,false);
-    prepareStoryNight();spawnOrder(0);
+    prepareStoryNight();spawnOrder(0,{forceStory:true});
     updateUI(true);
   }
   playStoryScenes([sceneId]);

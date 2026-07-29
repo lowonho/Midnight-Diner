@@ -26,7 +26,8 @@ const dom = Object.fromEntries([
   "relationshipList",
   "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
-  "resumeButton","returnTitleButton","miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
+  "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
+  "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
   "joystick","joystickKnob","actionButton"
@@ -169,17 +170,25 @@ function showGameHud(show) {
 }
 
 function openSettings(from=state.screen) {
-  if(from==="game")saveGame();
+  if(from==="game")saveGame(true);
   const fromTitle=from==="title";
+  // 미니게임 중이거나 이야기 조리 중이면 저장·타이틀 이동을 막습니다.
+  const saveBlocked=!!state.mini||!!state.story?.activeStoryCook;
   state.settingsFrom=from; state.paused=true;
-  dom.pauseMessage.textContent=fromTitle?UI_TEXT.pauseFromTitle:UI_TEXT.pauseFromGame;
-  dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||storyIsActive());
+  dom.pauseMessage.textContent=fromTitle?UI_TEXT.pauseFromTitle
+    :saveBlocked?UI_TEXT.pauseSaveBlocked:UI_TEXT.pauseFromGame;
+  dom.saveLoadActions.hidden=from!=="game";
+  dom.manualSaveButton.disabled=saveBlocked;
+  dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
+  dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||saveBlocked);
   dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
   dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen); audio.click();
 }
 function closeSettings() {
+  // 저장 슬롯 창이 떠 있으면 그것만 닫고 설정창은 남깁니다.
+  if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()){closeSaveSlotDialog();return;}
   dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
-  state.paused=state.settingsFrom==="title" || state.phase==="result";
+  state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
   audio.click();
 }
 
@@ -268,13 +277,16 @@ function setupMini() {
   // 공용 패널(제목·설명·제한시간)을 채우는 도우미. 각 엔진의 setup 이 불러 씁니다.
   const set=(title,desc,time)=>{
     const special=m.context.special;
-    dom.miniTitle.textContent=special?UI_TEXT.miniTitleSpecial(title):title;
-    dom.miniDescription.textContent=special?UI_TEXT.miniDescSpecial(desc):desc;
-    m.time=special?Math.max(5.5,time/difficulty):time;
+    const tutorial=m.context.tutorial;   // 스토리 튜토리얼 조리 (사장의 안내)
+    dom.miniTitle.textContent=special?UI_TEXT.miniTitleSpecial(title)
+      :tutorial?UI_TEXT.miniTitleTutorial(title):title;
+    dom.miniDescription.textContent=special?UI_TEXT.miniDescSpecial(desc)
+      :tutorial?UI_TEXT.miniDescTutorial(desc):desc;
+    m.time=(special||tutorial)?Math.max(5.5,time/difficulty):time;
     dom.miniTimer.textContent=m.time.toFixed(1);
   };
   engine.setup?.(m,{dish,set,difficulty});
-  if(m.context.special&&Number.isFinite(m.data.speed))m.data.speed*=difficulty;
+  if((m.context.special||m.context.tutorial)&&Number.isFinite(m.data.speed))m.data.speed*=difficulty;
 }
 
 // Space · ACTION 버튼 · 미니게임 안 조작 버튼이 모두 여기로 들어옵니다.
@@ -318,7 +330,7 @@ function completeMiniContext(m,score) {
       showToast(UI_TEXT.toast.cookDone(dish.name));spawnPopup(state.player.x,state.player.y-75,UI_TEXT.popup.cookDone);
     }else showToast(UI_TEXT.toast.cookNext(stationById(dish.cook[order.cookStep].station)?.label||dish.cook[order.cookStep].station));
   }
-  updateUI(true);saveGame();
+  updateUI(true);saveGame(storyCookingIsActive());
 }
 
 function update(dt) {
@@ -328,16 +340,22 @@ function update(dt) {
     // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
     // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
     else updatePrompt();
+    if(state.screen==="game"&&storyDialogueIsActive())updateAutosave(dt);
     return;
   }
   if(state.phase==="night"){
     if(!storyCookingIsActive())state.phaseTime-=dt;
-    if(state.phaseTime<=0){state.phaseTime=0;endNight();return;}
+    if(state.phaseTime<=0){
+      state.phaseTime=0;
+      if(tryEndNight("timeout"))return;
+    }
     state.orders.forEach(order=>order.entered=clamp(order.entered+dt*2.1,0,1));
-    state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(r=>spawnOrder(r.slot));
+    state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(processOrderRespawn);
     if(state.trash>=4)state.cleanliness=clamp(state.cleanliness-dt*.45,0,100);
     const noActiveOrders=state.orders.length===0&&!state.carrying&&state.respawns.length===0;
-    if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){endNight();return;}
+    if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){
+      if(tryEndNight("complete"))return;
+    }
   }
   state.orders.forEach(order=>{
     order.waitingTime=(order.waitingTime||0)+dt;
@@ -434,7 +452,9 @@ function updatePrompt(){
 
 function draw(){
   if(!ctx)return;
-  syncStageTimeOfDay(state.phase);
+  const storyTime=storyTimeOfDayOverride();
+  if(storyTime)setTimeOfDay(storyTime);
+  else syncStageTimeOfDay(state.phase);
 
   // 프레임 캔버스는 요리사를 사이에 두고 앞뒤 두 장입니다. (draw-utils.js)
   // 같은 층 안에서는 그리는 순서가 곧 앞뒤 관계입니다.
@@ -480,6 +500,12 @@ dom.stationPrompt.addEventListener("click",interact);
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
+  if(k==="escape"){
+    if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())closeSaveSlotDialog();
+    else if(dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen))closeSettings();
+    else if(state.screen==="game")openSettings("game");
+    return;
+  }
   if(state.mini){
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
@@ -490,9 +516,6 @@ window.addEventListener("keydown",e=>{
   if(storyDialogueIsActive()){
     if(k==="e"||k==="enter")storyAdvance();
     return;
-  }
-  if(k==="escape"){
-    if(dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen))closeSettings();else if(state.screen==="game")openSettings("game");return;
   }
   if(k==="e"){interact();return;}
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}

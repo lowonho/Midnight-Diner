@@ -59,12 +59,17 @@ const UI_TEXT = Object.freeze({
   /* ── 설정 / 일시정지 ──────────────────────────────── */
   pauseFromTitle: "소리 설정을 변경할 수 있습니다.",
   pauseFromGame: "게임이 일시정지되었습니다.",
+  // 미니게임·이야기 조리 중에는 저장과 타이틀 이동을 막습니다.
+  pauseSaveBlocked: "진행 중인 조리를 마치면 저장과 타이틀 이동을 사용할 수 있습니다.",
   resumeFromTitle: "설정 닫기",
   resumeFromGame: "게임으로 돌아가기",
 
   /* ── 미니게임 ─────────────────────────────────────── */
   miniTitleSpecial: title => `특별 조리 · ${title}`,
   miniDescSpecial: desc => `${desc} 평소보다 조금 더 섬세한 조리가 필요합니다.`,
+  // 스토리 튜토리얼 조리 (사장이 옆에서 알려주는 단계)
+  miniTitleTutorial: title => `조리 안내 · ${title}`,
+  miniDescTutorial: desc => `${desc} 사장의 안내에 따라 천천히 조리해 보세요.`,
   miniScore: score => score>=90?`완벽해요! ${score}점`:score>=70?`좋아요! ${score}점`:`조금 아쉬워요. ${score}점`,
 
   /* ── 토스트 ───────────────────────────────────────── */
