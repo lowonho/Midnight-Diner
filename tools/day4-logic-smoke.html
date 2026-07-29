@@ -32,6 +32,25 @@ function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
 try{
   const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 
+  const expectedMenuProgression={
+    1:{required:["oden","tofu"],optional:[],max:2},
+    2:{required:["kimchi","skewer"],optional:["oden","tofu"],max:3},
+    3:{required:["yakisoba","shrimpTempura"],optional:["oden","kimchi","tofu","skewer"],max:4},
+    4:{required:["tteokbokki","fries"],optional:["oden","kimchi","tofu","skewer","yakisoba","shrimpTempura"],max:5}
+  };
+  Object.entries(expectedMenuProgression).forEach(([day,expected])=>{
+    const data=DAY_DATA[day];
+    const available=[...data.requiredMenus,...data.optionalMenus];
+    const unlocked=MENU_DATA.filter(menu=>menu.unlockDay<=Number(day)).map(menu=>menu.id);
+    assert(JSON.stringify(data.requiredMenus)===JSON.stringify(expected.required),`Day ${day} required menus: ${data.requiredMenus}`);
+    assert(JSON.stringify(data.optionalMenus)===JSON.stringify(expected.optional),`Day ${day} optional menus: ${data.optionalMenus}`);
+    assert(data.maxSelectedMenus===expected.max&&data.maxSelectedMenus<=5,`Day ${day} selection cap: ${data.maxSelectedMenus}`);
+    assert(unlocked.every(id=>available.includes(id))&&available.every(id=>unlocked.includes(id)),`Day ${day} unlock set: ${available}`);
+    assert(data.requiredMenus.every(id=>menuDataById(id)?.unlockDay===Number(day)),`Day ${day} required unlock timing`);
+    assert(data.optionalMenus.every(id=>menuDataById(id)?.unlockDay<Number(day)),`Day ${day} optional unlock timing`);
+    assert(!!data.skipMenuSelect===(Number(day)===1),`Day ${day} menu selection phase`);
+  });
+
   const day4Ids=selectedPrepTasks().map(task=>task.id);
   assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
 

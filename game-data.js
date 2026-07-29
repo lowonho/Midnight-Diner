@@ -51,7 +51,7 @@ const MENU_DATA=Object.freeze([
 const DAY_DATA=Object.freeze({
   1:{day:1,requiredMenus:["oden","tofu"],optionalMenus:[],minSelectedMenus:2,maxSelectedMenus:2,specialMenu:null,isSpecialDay:false,skipMenuSelect:true},
   2:{day:2,requiredMenus:["kimchi","skewer"],optionalMenus:["oden","tofu"],minSelectedMenus:2,maxSelectedMenus:3,specialMenu:null,isSpecialDay:false},
-  3:{day:3,requiredMenus:["yakisoba","shrimpTempura"],optionalMenus:[],minSelectedMenus:2,maxSelectedMenus:2,specialMenu:null,isSpecialDay:false,skipMenuSelect:true},
+  3:{day:3,requiredMenus:["yakisoba","shrimpTempura"],optionalMenus:["oden","kimchi","tofu","skewer"],minSelectedMenus:2,maxSelectedMenus:4,specialMenu:null,isSpecialDay:false},
   4:{day:4,requiredMenus:["tteokbokki","fries"],optionalMenus:["oden","kimchi","tofu","skewer","yakisoba","shrimpTempura"],minSelectedMenus:2,maxSelectedMenus:5,specialMenu:null,isSpecialDay:false},
   5:{day:5,requiredMenus:["kimchi"],optionalMenus:["oden","tofu","skewer","yakisoba","shrimpTempura","tteokbokki","fries"],minSelectedMenus:2,maxSelectedMenus:5,specialMenu:"kimchi",isSpecialDay:true},
   6:{day:6,requiredMenus:[],optionalMenus:["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteokbokki","fries"],minSelectedMenus:2,maxSelectedMenus:5,specialMenu:null,isSpecialDay:false},
