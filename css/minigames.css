@@ -811,7 +811,10 @@
   grid-template-rows: minmax(0,1fr) auto;
   gap: calc(16 * var(--upx));
   user-select: none;
+  touch-action: none;
+  cursor: grab;
 }
+.yk-scene.direction-sliding { cursor: grabbing; }
 
 /* 좌우 세로 칸 */
 .yk-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }

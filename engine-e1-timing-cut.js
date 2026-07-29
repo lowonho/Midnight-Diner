@@ -78,11 +78,15 @@ function cutIngredientSfx(ingredient){
   if(ingredient==="radish")return "knife_daikon";
   if(ingredient==="tofu"||ingredient==="fishCake")return "cut_soft";
   if(ingredient==="kimchi")return "cut_wet";
-  if(ingredient==="chicken")return "cut_meat";
   return "cut_crisp"; // 양배추 · 대파처럼 아삭한 채소
 }
 
-function playCutIngredientSfx(data){audio.play?.(cutIngredientSfx(data.ingredient),{owner:state.mini});}
+function playCutIngredientSfx(data,tapStep=0){
+  const name=data.ingredient==="chicken"
+    ?tapStep===1?"cut_meat1":"cut_meat2"
+    :cutIngredientSfx(data.ingredient);
+  audio.play?.(name,{owner:state.mini});
+}
 
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
@@ -301,6 +305,7 @@ function timingCutAction(){
   }
   if(data.requiresDoubleTap){
     data.tapStep=1;data.tapWindow=CUT_FEEL_CONFIG.doubleTapWindow;data.pendingGrade=grade;
+    playCutIngredientSfx(data,1);
     const work=dom.miniContent.querySelector("#prepWorkObject");
     work?.classList.add("tough-first-hit");
     dom.miniContent.querySelector(".cut-board")?.classList.add("cut-embedded");
@@ -314,7 +319,7 @@ function timingCutAction(){
 
 function completeTimingCut(m,grade="good"){
   const data=m.data;
-  playCutIngredientSfx(data);
+  playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
   data.inputLocked=true;data.phase="impact";
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");

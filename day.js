@@ -222,13 +222,12 @@ function toggleMenuSelection(menuId){
   const selected=state.menuSelectionDraft.includes(menuId);
   if(!selected&&state.menuSelectionDraft.length>=dayData.maxSelectedMenus){showToast(`메뉴는 최대 ${dayData.maxSelectedMenus}개까지 선택할 수 있습니다.`,true);return false;}
   state.menuSelectionDraft=selected?state.menuSelectionDraft.filter(id=>id!==menuId):[...state.menuSelectionDraft,menuId];
-  renderMenuSelection();audio.uiClick();
+  renderMenuSelection();
   return true;
 }
 
 function confirmMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT||!setSelectedMenus(state.menuSelectionDraft)){showToast("메뉴 선택을 확인해 주세요.",true);return false;}
-  audio.uiClick();
   state.phase=GAME_PHASES.PREP;state.paused=false;
   dom.menuSelectOverlay.classList.remove("open");
   showToast("오늘의 메뉴가 저장되었습니다. 영업 준비를 시작합니다.");

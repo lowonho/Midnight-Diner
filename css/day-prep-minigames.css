@@ -1315,7 +1315,10 @@
   grid-template-rows: minmax(0,1fr) auto;
   gap: calc(16 * var(--upx));
   user-select: none;
+  touch-action: none;
+  cursor: grab;
 }
+.kf-scene.direction-sliding { cursor: grabbing; }
 
 /* 좌우 세로 칸 (김치전 반죽의 .bt-col 과 같은 톤) */
 .kf-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
@@ -1371,7 +1374,6 @@
   cursor: grab;
   touch-action: none;
 }
-.kf-board.direction-sliding { cursor: grabbing; }
 /* 가스레인지 상판. 팬이 그 위에 살짝 걸쳐 앉습니다 */
 .kf-stove {
   position: relative;

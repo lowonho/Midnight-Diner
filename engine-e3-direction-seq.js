@@ -44,7 +44,9 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   kimchi:Object.freeze({
     total:10,
     directions:Object.freeze(["left","right"]),
-    slideStep:.09,
+    // 작업 영역 짧은 변의 45%를 한 번에 밀어야 판정합니다.
+    // 화살표마다 손을 떼고 팬을 가로지르듯 크게 휘젓습니다.
+    slideStep:.45,
     wrongPenalty:0,
     ingredients:Object.freeze([
       Object.freeze({id:"kimchi",label:"썰은 김치",count:1,asset:"fryIngKimchi"}),
@@ -54,7 +56,8 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   yakisoba:Object.freeze({
     total:12,
     directions:Object.freeze(["left","up","right","down"]),
-    slideStep:.09,
+    // 철판도 한 획마다 짧은 변의 45%를 크게 밀도록 김치 볶기와 통일합니다.
+    slideStep:.45,
     wrongPenalty:12
   })
 });
@@ -92,27 +95,30 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
 registerDayPrepEngine("direction",{});
 
 /* ---- 공통 슬라이드 입력 ------------------------------------
-   누른 지점부터 작업 영역 짧은 변의 slideStep 만큼 밀 때마다 방향 입력 1회입니다.
-   기준점을 현재 위치로 옮기므로 손을 떼지 않고 길게 밀어도 연속으로 볶을 수 있습니다. */
-function bindDirectionSlide({surfaceSelector,isActive,onDirection}){
+   누른 지점부터 작업 영역 짧은 변의 slideStep 만큼 크게 밀면 방향 입력 1회입니다.
+   한 번 누른 동안에는 한 획만 인정하며, 다음 화살표는 손을 떼고 다시 휘젓습니다. */
+function bindDirectionSlide({surfaceSelector,gestureScaleSelector,isActive,onDirection}){
   const surface=dom.miniContent.querySelector(surfaceSelector);if(!surface)return;
   surface.addEventListener("pointerdown",event=>{
     const m=state.mini;if(!isActive(m)||m.complete||m.data.inputLocked||m.data.phase==="complete")return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
-    event.preventDefault();m.data.drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY};
+    event.preventDefault();m.data.drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,accepted:false};
     surface.setPointerCapture?.(event.pointerId);surface.classList.add("direction-sliding");
   });
   surface.addEventListener("pointermove",event=>{
     const m=state.mini,drag=m?.data?.drag;if(!isActive(m)||m.complete||!drag||drag.pointerId!==event.pointerId)return;
     event.preventDefault();
+    if(drag.accepted)return;
     if(m.data.inputLocked||m.data.phase==="complete"){
       drag.x=event.clientX;drag.y=event.clientY;return;
     }
-    const rect=surface.getBoundingClientRect(),config=DIRECTION_SEQUENCE_CONFIG[m.data.configId];
-    const step=Math.min(rect.width,rect.height)*(config?.slideStep||.09);
+    const scaleSurface=gestureScaleSelector?dom.miniContent.querySelector(gestureScaleSelector):surface;
+    const scaleRect=(scaleSurface||surface).getBoundingClientRect(),surfaceRect=surface.getBoundingClientRect();
+    const scaleSize=Math.min(scaleRect.width,scaleRect.height),surfaceSize=Math.min(surfaceRect.width,surfaceRect.height);
+    const config=DIRECTION_SEQUENCE_CONFIG[m.data.configId],step=(scaleSize||surfaceSize)*(config?.slideStep||.17);
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
     if(!step||Math.max(Math.abs(dx),Math.abs(dy))<step)return;
-    drag.x=event.clientX;drag.y=event.clientY;
+    drag.accepted=true;
     onDirection(Math.abs(dx)>=Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
   });
   const finish=event=>{
@@ -244,7 +250,8 @@ function renderKimchiFry(){
       </div>
     </div>`;
   bindDirectionSlide({
-    surfaceSelector:"#fryWorkArea",
+    surfaceSelector:".kf-scene",
+    gestureScaleSelector:"#fryWorkArea",
     isActive:m=>isDayPrepMini(m)&&m.data.mode==="direction"&&m.data.configId==="kimchi",
     onDirection:direction=>kimchiFryInput(direction)
   });
@@ -398,7 +405,8 @@ function renderStirScene(){
       </div>
     </div>`;
   bindDirectionSlide({
-    surfaceSelector:"#stirPlate",
+    surfaceSelector:".yk-scene",
+    gestureScaleSelector:"#stirPlate",
     isActive:m=>m?.engine==="stir"&&m.data.configId==="yakisoba",
     onDirection:direction=>stirInput(direction)
   });
