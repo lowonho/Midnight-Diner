@@ -11,7 +11,7 @@ function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
 const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniStation:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
 const playedSfx=[];
-const audio={click(){},success(){},bad(){},play(name){playedSfx.push(name);}};
+const audio={click(){},success(){},bad(){},play(name){playedSfx.push(name);},loop(name){playedSfx.push(name);}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
@@ -122,20 +122,22 @@ try{
   assert(finishedScore===100,"E3 shared controller completion");
 
   finishedScore=null;
+  playedSfx.length=0;
   const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
   const initialHeatPower=heatMini.data.power;
   MINI_ENGINES.heat.key(heatMini,"arrowright",{repeat:false});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini,"arrowright");
-  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5,"E4 hold input, oden pot, and shared flame");
+  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5&&playedSfx.join(",")==="clear_simmer","E4 oden keeps simmer audio without gas flame audio");
   heatMini.data.enteredZone=true;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
   heatMini.data.value=.5;heatMini.data.power=.5;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
+  playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
-  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki","E4 tteokbokki pot variant");
+  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki keeps boil audio without gas flame audio");
   finishedScore=null;
   for(let tap=0;tap<4;tap++){setHeatControl(tteokHeatMini,1,true);setHeatControl(tteokHeatMini,1,false);}
   for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
@@ -147,6 +149,8 @@ try{
   assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&dom.miniContent.querySelector(".doneness-good")&&dom.miniContent.querySelector(".doneness-perfect")&&!dom.miniContent.querySelector("#cookVisualLabel"),"E5 image-only cooking state with GOOD/PERFECT zones");
   pancakeMini.data.marker=.76;updateTwoSideCookVisual(pancakeMini.data);twoSideCookAction();
   assert(pancakeMini.data.phase==="flip"&&pancakeMini.data.hits[0]===100,"E5 pancake front timing enters flip phase");
+  playedSfx.length=0;pancakeMini.data.flipCharge=72;releasePancakeFlip();
+  assert(pancakeMini.data.phase==="flipping"&&playedSfx.join(",")==="pancake_flip","E5 pancake down input starts flip sound immediately");
   assert(twoSideCookGrade({hits:[100,96,98],flipErrors:0,cookErrors:0})==="perfect"&&twoSideCookGrade({hits:[100,96,98],flipErrors:1,cookErrors:0})==="good","E5 PERFECT and GOOD grading");
   const skewerCookMini={engine:"twoSideCook",context:{mode:"cook",dishId:"skewer"},complete:false,data:{}};state.mini=skewerCookMini;
   MINI_ENGINES.twoSideCook.setup(skewerCookMini,{set:(title,description,time)=>{skewerCookMini.time=time;},dish:dishById("skewer")});
@@ -277,6 +281,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 89";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 90";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>

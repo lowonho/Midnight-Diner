@@ -447,6 +447,8 @@ function releasePancakeFlip() {
   }
   data.hits.push(Math.round(clamp(100 - Math.abs(charge - 72) * 2.4, 35, 100)));
   dom.miniFeedback.textContent = charge > 90 ? "강한 반동으로 뒤집었습니다!" : "반동을 이용해 깔끔하게 뒤집었습니다!";
+  // 반동을 모은 뒤 ↓를 누른 바로 그 순간에 뒤집기 효과음을 시작합니다.
+  audio.play?.("pancake_flip",{owner:m});
   startTwoSideFlipAnimation(m);
   return true;
 }
@@ -455,8 +457,6 @@ function startTwoSideFlipAnimation(m) {
   m.data.phase = "flipping"; renderTwoSideCook();
   setTimeout(() => {
     if (state.mini !== m || m.complete) return;
-    // 팬이 공중에서 돌아오는 620ms 뒤, 착지 프레임과 동시에 팬 랜딩음을 냅니다.
-    audio.play?.("pancake_flip",{owner:m});
     m.data.phase = "cook"; m.data.side = 1; m.data.marker = 0; m.data.dir = 1; m.data.speed = TWO_SIDE_COOK_CONFIG[m.data.dishStyle].sideSpeeds[1];
     dom.miniFeedback.textContent = "뒤집기 완료 · 뒷면을 익히세요."; renderTwoSideCook();
   }, 620);

@@ -132,7 +132,7 @@ registerMiniEngine("heat",{
       outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
       holdingDown:false,holdingUp:false,phase:"ready"
     };
-    audio.loop?.("gas_flame",m,.42);
+    // 냄비의 끓는 루프만 비교 청음할 수 있도록 가스불 효과음은 잠시 제외합니다.
     if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
     else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.55);
     dom.miniContent.innerHTML=`${heatSceneMarkup(config)}

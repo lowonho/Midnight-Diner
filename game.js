@@ -242,7 +242,7 @@ const audio = {
   result(scoreOrGrade){
     const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
     const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
-    if(perfect)this.play("result_perfect");else if(good)this.play("result_good");else this.bad();
+    if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
   },
   serve(){ this.tone(523,.08,"triangle",.12); this.tone(659,.08,"triangle",.1,.08); this.tone(784,.13,"triangle",.09,.16); },
   startBgm(){
