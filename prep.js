@@ -71,11 +71,10 @@ function prepObjectRange(){
 // 준비 작업 수만큼 상자를 늘어놓지 않고 메뉴 하나당 한 자리만 씁니다.
 // 각 자리의 그림과 상호작용 대상은 그 메뉴에서 다음으로 해야 할 작업으로 바뀝니다.
 function prepDishGroups(){
-  const tasks=selectedPrepTasks();
   return selectedDishes().map(dish=>{
-    const dishTasks=tasks.filter(task=>task.menuId===dish.id);
+    const dishTasks=prepTasksForDish(dish.id);
     if(!dishTasks.length)return null;
-    const task=dishTasks.find(item=>!state.prepProgress?.[item.id])||dishTasks[dishTasks.length-1];
+    const task=nextPrepTaskForDish(dish.id)||dishTasks[dishTasks.length-1];
     return {dish,tasks:dishTasks,task};
   }).filter(Boolean);
 }

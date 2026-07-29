@@ -29,6 +29,14 @@ function selectedPrepTasks(){
   return selectedPrepTasksForChecklist().filter(task=>task.isImplemented);
 }
 
+function prepTasksForDish(menuId){
+  return selectedPrepTasks().filter(task=>task.menuId===menuId);
+}
+
+function nextPrepTaskForDish(menuId){
+  return prepTasksForDish(menuId).find(task=>!state.prepProgress?.[task.id])||null;
+}
+
 function prepTaskAvailableToday(task){
   return !!task&&(!task.minDay||Number(state.day)>=Number(task.minDay));
 }

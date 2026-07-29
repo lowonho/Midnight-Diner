@@ -240,7 +240,7 @@ function startDayPrepMini(task){
     type:`day-prep-${task.id}`,
     engine:"dayPrep",          // 각 setup 이 setDayPrepData 로 실제 엔진 이름을 채웁니다
     stationId:"prepTable",
-    context:{mode:"dayPrep",taskId:task.id},
+    context:{mode:"dayPrep",taskId:task.id,menuId:task.menuId},
     complete:false,
     data:{}
   };
@@ -268,7 +268,20 @@ function finishDayPrepTask(taskId,message){
   dom.miniContent.classList.add("prep-complete-flash");
   const grade=m.data.completionGrade||((m.data.mistakes||m.data.errors||m.data.warnings||m.data.timedOut)?"good":"perfect");
   audio.result?.(grade);
-  setTimeout(()=>{if(state.mini===m)closeDayPrepMini(true);},520);
+  setTimeout(()=>advanceDayPrepDish(m,taskId),520);
+}
+
+function advanceDayPrepDish(m,taskId){
+  if(state.mini!==m)return false;
+  const task=PREP_TASKS[taskId],nextTask=task&&nextPrepTaskForDish(task.menuId);
+  const blocked=nextTask&&(nextTask.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
+  if(nextTask&&!blocked){
+    dom.miniContent.classList.remove("prep-complete-flash");
+    startDayPrepMini(nextTask);
+    return true;
+  }
+  closeDayPrepMini(true);
+  return false;
 }
 
 function closeDayPrepMini(completed=false){

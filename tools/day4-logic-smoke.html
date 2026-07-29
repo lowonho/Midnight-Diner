@@ -37,9 +37,13 @@ try{
   const day4Ids=selectedPrepTasks().map(task=>task.id);
   assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
   const prepGroups=prepDishGroups();
-  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2,"Prep table keeps one grouped slot per dish");
+  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="soakTteok","Prep table keeps one grouped slot and next step per dish");
   state.prepProgress.soakTteok=true;
-  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage","Grouped prep slot advances to the dish's next task");
+  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Grouped prep slot and sequence advance to the dish's next task");
+  let chainedPrepTask="";const originalStartDayPrepMini=startDayPrepMini;
+  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"soakTteok"}};state.mini=chainMini;
+  assert(advanceDayPrepDish(chainMini,"soakTteok")&&chainedPrepTask==="cutTteokbokkiCabbage","Completed prep step automatically starts the same dish's next step");
+  startDayPrepMini=originalStartDayPrepMini;state.mini=null;
   state.prepProgress.soakTteok=false;
 
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
@@ -281,6 +285,6 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 90";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 91";
 }catch(error){document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}
 </script>
