@@ -304,20 +304,20 @@ function renderFryPrepScreen(view,onKey){
   dom.miniContent.innerHTML=`
     <div class="fp-scene ${view.phase?`phase-${view.phase}`:""}">
       <div class="fp-col">
-        <h3 class="fp-col-title starred">재료</h3>
         <div class="fp-panel fp-ing-panel">
+          <h3 class="fp-col-title starred">재료</h3>
           <div class="fp-ing-list">${view.ingredients.map(fryPrepIngredientMarkup).join("")}</div>
         </div>
       </div>
       <div class="fp-board">${view.stage}<span class="e2-result" id="e2Result" aria-live="polite"></span></div>
       <div class="fp-col">
-        <h3 class="fp-col-title">진행도</h3>
         <div class="fp-panel fp-count">
+          <h3 class="fp-col-title">진행도</h3>
           <strong><b>${view.done}</b> / ${view.total}</strong>
           <div class="fp-bar"><i style="width:${view.percent}%"></i></div>
         </div>
-        <h3 class="fp-col-title">조작</h3>
         <div class="fp-panel fp-control">
+          <h3 class="fp-col-title">조작</h3>
           <div class="fp-keys">${keys.map((entry,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${entry.value}">${entry.glyph}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>
           ${view.controlName?`<p class="fp-control-name">${view.controlName}</p>`:""}
           ${view.controlDesc?`<p class="fp-control-desc">${view.controlDesc}</p>`:""}

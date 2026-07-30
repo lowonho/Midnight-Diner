@@ -55,6 +55,8 @@ function setupWhiskBatter(configId="kimchiBatter",inheritedMistakes=0){
   const m=setDayPrepData(createWhiskState(configId,inheritedMistakes));
   if(!m)return;
   dom.miniTitle.textContent="김치전 반죽";
+  // 재료 넣기(E8)에서 넘어온 부제를 젓기용으로 바꿉니다
+  dom.miniStation.textContent="마우스로 원을 그리며 반죽을 저어주세요!";
   dom.miniDescription.textContent="마우스를 누른 채 볼 안에서 원을 그리며 반죽을 저어주세요!";
   dom.miniTimer.textContent="0 / 1";
   dom.miniContent.innerHTML=batterSceneMarkup(`

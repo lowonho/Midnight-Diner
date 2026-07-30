@@ -97,9 +97,16 @@ function sauceBottleMarkup(item,extraClass=""){
 }
 
 // 왼쪽 재료 목표 카드. 고른 소스통은 테두리가 밝아집니다.
+// 좌 칸 통일 뒤로는 .sc-ing-panel 안에 들어가는 '안쪽 카드'라 바깥 카드
+// 껍데기(.sc-panel)를 쓰지 않습니다. 겉모습은 css/minigame-parts.css 가 줍니다.
 function sauceGoalMarkup(item,selected){
   const status=sauceStatus(item);
-  return `<div class="sc-panel sc-goal ${status} ${selected?"selected":""}">
+  // [그림 | 이름 · 레시피 분량 · 투입 여부] 가로 2열입니다.
+  // ⚠️ 세로 2줄(E8 반죽 꼴)로 바꿨다가 되돌렸습니다. 세 줄을 세로로 쌓으면
+  //    카드 한 장이 최소 169 를 요구하는데, 떡볶이 양념장은 위에 준비 진행 띠가
+  //    붙어 좌 칸이 480 뿐이라 카드 세 장이 각 153 밖에 못 씁니다. 48 이 넘쳤습니다.
+  //    가로로 두면 그림(110)과 글자(114)가 나란히 서서 최소 134 면 되고 둘 다 들어갑니다.
+  return `<div class="sc-goal ${status} ${selected?"selected":""}">
       <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
       <span class="sc-goal-info">
         <b class="sc-goal-name">${item.label}</b>
@@ -133,8 +140,10 @@ function renderYakisobaSauce(){
     ${data.recipeId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",4):""}
     <div class="sauce-lab">
       <aside class="sc-col">
-        <h3 class="sc-col-title starred">재료 목표</h3>
-        ${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}
+        <div class="sc-panel sc-ing-panel">
+          <h3 class="sc-col-title starred">재료 목표</h3>
+          <div class="sc-ing-list">${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}</div>
+        </div>
       </aside>
 
       <div class="sc-board ${exact===total?"done mixing":""}" style="--sauce-main:${data.recipe.bowlColor||"#a24a1f"};--sauce-dark:${data.recipe.bowlDark||"#3d1a0e"}">

@@ -326,11 +326,11 @@ function closeSettings() {
   if(state.settingsFrom!=="title")audio.resumeLoops();
 }
 
-/* 반짝임(fx_perfect_sparkle)을 달 음식인지. 메뉴 카드·손님 말풍선·요리사 손
-   세 군데가 같은 기준을 씁니다.
+/* 반짝임(fx_perfect_sparkle)을 달 음식인지. 요리사가 손에 들고 있을 때만
+   씁니다 (player.js syncCarriedFoodFx). 메뉴판 카드·손님 말풍선에서는 뺐습니다.
      · 그날의 특별음식 (DAY_DATA.specialMenu — day.js 메뉴 선택 화면의 "특별음식")
      · 이야기 손님의 특별 조리 주문 (order.specialRecipe)
-   조리 점수와는 무관합니다. 점수로 그림이 바뀌는 건 _perfect 프랍 쪽입니다. */
+   조리 점수와는 무관합니다. 점수로 그림이 바뀌는 건 프랍 등급(food-props.js) 쪽입니다. */
 function isSpecialFood(dishId,order=null){
   if(order?.specialRecipe) return true;
   return !!dishId && getCurrentDayData()?.specialMenu===dishId;
@@ -342,7 +342,6 @@ function buildMenuCards() {
     id:dish.id,
     name:dish.name,
     iconUrl:foodPropUrl(dish.id),
-    sparkle:isSpecialFood(dish.id),
     required:getCurrentDayData().requiredMenus.includes(dish.id),
     orderCount:state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0
   })));
@@ -395,7 +394,7 @@ function startMini(type,stationId,context) {
   // engine 은 mini-engine.js 의 등록소에서 찾을 이름입니다.
   // 밤 조리는 type 이 곧 엔진 이름이고, 낮 준비는 startDayPrepMini 가 "dayPrep" 을 넣습니다.
   state.mini={type,engine:type,stationId,context:context||{},time:8,score:0,data:{},complete:false};
-  dom.miniStation.textContent=stationById(stationId)?.label||stationId;
+  setMiniSubtitle(type);   // 타이틀 아래 부제 (ui-mini-frame.js 의 MINI_SUBTITLE)
   dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add(UI_CLASS.overlayOpen);
   setMiniTipHint("");   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
   dom.miniClose.hidden=true;

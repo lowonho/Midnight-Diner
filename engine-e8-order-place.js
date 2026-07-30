@@ -292,15 +292,17 @@ function renderChickenSkewer(){
   dom.miniContent.innerHTML=`
     <div class="skewer-prep-scene">
       <aside class="sk-col">
-        <h3 class="sk-col-title">★ 재료 ★</h3>
-        ${SKEWER_INGREDIENTS.map(ingredient=>{
-          const forced=allowed.length===1&&allowed[0]===ingredient;
-          const blocked=allowed.length>0&&!allowed.includes(ingredient);
-          return `<button type="button" class="sk-panel sk-ing-card ${ingredient} ${forced?"required":""} ${blocked?"blocked":""}" data-ingredient="${ingredient}" ${data.finishing||blocked?"disabled":""}>
-            <span class="sk-ing-art">${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}</span>
-            <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>${forced?"필수":blocked?"조건 완료":"자유"}</b></span>
-          </button>`;
-        }).join("")}
+        <div class="sk-panel sk-ing-panel">
+          <h3 class="sk-col-title starred">재료</h3>
+          <div class="sk-ing-list">${SKEWER_INGREDIENTS.map(ingredient=>{
+            const forced=allowed.length===1&&allowed[0]===ingredient;
+            const blocked=allowed.length>0&&!allowed.includes(ingredient);
+            return `<button type="button" class="sk-ing-card ${ingredient} ${forced?"required":""} ${blocked?"blocked":""}" data-ingredient="${ingredient}" ${data.finishing||blocked?"disabled":""}>
+              <span class="sk-ing-art">${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}</span>
+              <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>${forced?"필수":blocked?"조건 완료":"자유"}</b></span>
+            </button>`;
+          }).join("")}</div>
+        </div>
       </aside>
 
       <div class="sk-board sk-single-board ${data.finishing?"complete":""}">

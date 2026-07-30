@@ -101,23 +101,9 @@
   background-size: contain;
 }
 
-/* 특별음식 반짝임. 시트가 프랍과 같은 264x152 규격이라 아이콘 위에 그대로 덮습니다.
-   프레임 전환은 CSS 가 하고 JS 는 관여하지 않습니다.
-   [값 맞추기] 6프레임 · 8fps = 0.75s. food-props.js 의 FOOD_FX.sparkle 과 같아야 합니다.
-   background-size 600% 기준 background-position 0%~100% 가 프레임 0~5 이고,
-   steps(6) 이 그 여섯 지점에 정확히 서도록 끝값을 120% 로 둡니다. */
-.food-icon.sparkle::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url("../assets/food/fx_perfect_sparkle.webp") no-repeat 0 0 / 600% 100%;
-  animation: food-sparkle .75s steps(6) infinite;
-  pointer-events: none;
-}
-@keyframes food-sparkle { to { background-position-x: 120%; } }
-@media (prefers-reduced-motion: reduce) {
-  .food-icon.sparkle::after { animation: none; }
-}
+/* [삭제됨] 특별음식 반짝임(.food-icon.sparkle::after)은 메뉴판에서 뺐습니다.
+   반짝임은 요리사가 음식을 손에 들고 있을 때만 나옵니다 — player.js 의
+   syncCarriedFoodFx() 가 Phaser 스프라이트로 돌립니다. */
 .menu-icon-placeholder {
   display: grid;
   place-items: center;

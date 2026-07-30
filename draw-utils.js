@@ -167,7 +167,7 @@ function drawFixtureLabel(text,x,y,float){
 }
 
 // 음식 그림은 food-props.js 로 옮겼습니다. 캔버스에 그리는 함수는
-// 그 파일의 drawFoodProp(dishId, centerX, centerY, maxW, maxH, perfect) 입니다.
+// 그 파일의 drawFoodProp(dishId, centerX, centerY, maxW, maxH, grade) 입니다.
 // (예전 drawFoodIcon(index, ...) 은 스프라이트시트 인덱스를 받았습니다)
 
 // 캔버스 텍스트 줄바꿈. 호출 전에 ctx.font 를 먼저 설정해야 합니다.

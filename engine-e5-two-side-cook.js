@@ -235,11 +235,11 @@ function twoSideStageMarkup(data, extraClass = "") {
     </div>`;
 }
 
-function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePercent }) {
+function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, total, timePercent }) {
   return `<div class="ts-scene">
       <aside class="ts-col">
-        <h3 class="ts-col-title starred">재료</h3>
         <div class="ts-panel ts-ing-panel">
+          <h3 class="ts-col-title starred">재료</h3>
           <div class="ts-ing-list">${view.ingredients.map(twoSideIngredientMarkup).join("")}</div>
         </div>
       </aside>
@@ -252,14 +252,17 @@ function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePer
         <div class="ts-gauge-slot">${gauge}</div>
       </div>
       <aside class="ts-col">
-        <h3 class="ts-col-title">진행도</h3>
         <div class="ts-panel ts-count">
+          <h3 class="ts-col-title">진행도</h3>
           <strong><b>${done}</b> / ${total}</strong>
           <div class="ts-time" title="남은 시간"><i id="tsTimeBar" style="width:${timePercent}%"></i></div>
         </div>
-        <h3 class="ts-col-title">조작</h3>
-        <div class="ts-panel ts-control">${control}</div>
+        <div class="ts-panel ts-control">
+          <h3 class="ts-col-title">조작</h3>
+          ${control}
+        </div>
       </aside>
+      <div class="mg-strip">${strip}</div>
     </div>`;
 }
 
@@ -268,15 +271,20 @@ function renderTwoSideCook() {
   const data = m.data, isSkewer = data.dishStyle === "skewer", view = TWO_SIDE_VIEW[data.dishStyle];
   // 진행도 = 뒤집어 놓은 개수. 김치전은 1장, 닭꼬치는 준비 배치와 같은 3개입니다.
   const done = isSkewer ? (data.side === 1 ? view.total : data.flippedSkewers || 0) : (data.side === 1 ? 1 : 0);
-  let board = "", gauge = "", control = "";
+  // strip : 하단 공용 띠에 들어갈 것. 지금은 굽기 단계의 조작 버튼 하나뿐이고,
+  //         비어 있는 단계에서는 .mg-strip:empty 가 접혀 3열이 613.2 를 그대로 씁니다.
+  let board = "", gauge = "", control = "", strip = "";
   if (data.phase === "cook") {
     const sideLabel = data.side === 0 ? "앞면" : "뒷면", config = TWO_SIDE_COOK_CONFIG[data.dishStyle];
     dom.miniDescription.textContent = `${sideLabel}을 익히다가 포인터가 작은 금색 구간 또는 주변 초록 구간에 들어오면 Space를 누르세요.`;
     board = twoSideStageMarkup(data);
-    gauge = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
+    // 두꺼운 바는 전부 하단 공용 띠에 모읍니다 — 익힘 게이지가 띠로 내려가고
+    // Space 버튼이 그 자리(가운데 게이지 슬롯)로 올라옵니다. 겉모습 규칙은
+    // .ts-scene 을 타므로 두 자리 어디에 있어도 그대로 적용됩니다.
+    gauge = `<button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
+    control = twoSideKeysMarkup(view);
+    strip = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
       <p class="cut-count">${sideLabel} 익히기</p>`;
-    control = `${twoSideKeysMarkup(view)}
-      <button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
   } else if (data.phase === "skewerFlip" || data.phase === "skewerTurning") {
     const current = Math.min(data.flippedSkewers || 0, SKEWER_BATCH_SIZE - 1);
     dom.miniDescription.textContent = "현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";
@@ -300,7 +308,7 @@ function renderTwoSideCook() {
     control = twoSideKeysMarkup(view);
   }
   dom.miniContent.innerHTML = twoSideScreenMarkup(view, {
-    board, gauge, control, done, total: view.total,
+    board, gauge, control, strip, done, total: view.total,
     timePercent: data.timeLimit ? clamp(m.time / data.timeLimit, 0, 1) * 100 : 100
   });
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click", miniAction);

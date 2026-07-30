@@ -118,7 +118,7 @@ const UI_TEXT = Object.freeze({
    "어떻게 생겼는지"는 여기서만 정합니다.
    ============================================================ */
 
-// card = {id, name, iconUrl, sparkle, required, orderCount}
+// card = {id, name, iconUrl, required, orderCount}
 function menuCardElement(card){
   const button=document.createElement("button");
   button.type="button";
@@ -127,9 +127,9 @@ function menuCardElement(card){
   button.disabled=true;   // 표시 전용입니다. 선택은 메뉴 선택 화면(day.js)에서 합니다.
 
   // 음식 그림은 food-props.js 가 메뉴 id 로 찾아 줍니다. (표에 없는 메뉴만 자리표시)
-  // 특별음식이면 sparkle 클래스가 붙고 반짝임은 CSS 가 돌립니다. (css/hud.css)
+  // 특별음식 반짝임은 메뉴판에서 뺐습니다 — 요리사가 들고 있을 때만 나옵니다. (player.js)
   const icon=card.iconUrl
-    ? `<span class="${UI_CLASS.menuCardIcon}${card.sparkle?" "+UI_CLASS.menuCardSparkle:""}" style="background-image:url('${card.iconUrl}')"></span>`
+    ? `<span class="${UI_CLASS.menuCardIcon}" style="background-image:url('${card.iconUrl}')"></span>`
     : `<span class="${UI_CLASS.menuCardIcon} ${UI_CLASS.menuCardIconEmpty}">🍽</span>`;
   const tag=card.required?`<small class="${UI_CLASS.menuCardTag}">필수</small>`:"";
   const orders=card.orderCount?`<span class="${UI_CLASS.menuCardOrderCount}">주문 ${card.orderCount}</span>`:"";

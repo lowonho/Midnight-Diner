@@ -55,10 +55,16 @@ function renderAnchovyPrep(){
   dom.miniTimer.textContent=`${data.cleaned} / ${data.total}`;
   dom.miniContent.innerHTML=`
     <div class="anchovy-screen">
-      <aside class="anchovy-card anchovy-ingredient-card">
-        <h3 class="anchovy-card-title starred">재료</h3>
-        <div class="anchovy-card-figure">${anchovySampleMarkup(false,-32,.72)}</div>
-        <p class="anchovy-card-caption">멸치 <b>×${data.total}</b></p>
+      <aside class="anchovy-col">
+        <div class="anchovy-card anchovy-ing-panel">
+          <h3 class="anchovy-card-title starred">재료</h3>
+          <div class="anchovy-ing-list">
+            <div class="anchovy-ing-card">
+              <div class="anchovy-card-figure">${anchovySampleMarkup(false,-32,.72)}</div>
+              <p class="anchovy-card-caption">멸치 <b>×${data.total}</b></p>
+            </div>
+          </div>
+        </div>
       </aside>
       <div class="anchovy-work-area" id="anchovyWorkArea">
         ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">

@@ -244,7 +244,9 @@ function startDayPrepMini(task){
     complete:false,
     data:{}
   };
-  dom.miniStation.textContent=`준비 테이블 · ${task.objectLabel}`;
+  // 타이틀 아래 부제 (ui-mini-frame.js 의 MINI_SUBTITLE).
+  // 더 정확한 문장을 만들 수 있는 게임은 각자 setup 에서 덮어씁니다.
+  setMiniSubtitle(task.miniGame);
   dom.miniFeedback.textContent="";
   dom.miniContent.innerHTML="";
   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.

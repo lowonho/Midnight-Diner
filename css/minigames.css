@@ -232,31 +232,35 @@
   /* 격자는 css/minigame-parts.css 공용 규격입니다.
      ⚠️ 원래 이 게임만 좌 200 / 우 300 으로 좌우가 달랐습니다. 이제 둘 다 250 입니다. */
 }
-/* 재료 카드는 내용만큼만, 가운데와 오른쪽은 플레이 영역 높이를 다 씁니다 */
-.fry-ing-card { align-self: start; }
+/* ⚠️ 여기 있던 `.fry-ing-card { align-self: start }` 가 좌 칸을 250 에서 끊던
+   규칙입니다. 좌 칸을 12화면 공통 틀(.fry-col > .fry-ing-panel > .fry-ing-list)로
+   바꾸면서 지웠습니다. 이제 세 열이 모두 플레이 영역 높이를 다 씁니다. */
 
 /* ── 좌우 카드 공통 ─────────────────────────────────────────── */
 /* .fry-card 와 .fry-card-title 은 css/minigame-parts.css 에 있습니다. */
 
-/* ── 왼쪽 재료 카드 ─────────────────────────────────────────── */
+/* ── 왼쪽 재료 카드 ───────────────────────────────────────────
+   E8 반죽(.bt-ing-card) · E10 과 같은 결입니다.
+   ⚠️ 여기 있던 액자(테두리 2px #5d3b22 + 검은 배경 + 안쪽 그림자)를 뺐습니다.
+      카드 안에 상자가 한 겹 더 들어가 '박스 안 박스'로 보였습니다.
+      그림은 카드 위에 바로 놓입니다. 높이는 공용 --mg-ing-card-h 가 정합니다. */
 .fry-ing-figure {
   position: relative;
-  height: calc(150 * var(--upx));
   display: grid;
   place-items: center;
-  border: 2px solid #5d3b22;
-  border-radius: calc(8 * var(--upx));
-  background: #0e0805;
-  box-shadow: inset 0 0 calc(16 * var(--upx)) rgba(0,0,0,.6);
 }
+/* 이름 줄 규격도 E8 반죽(.bt-ing-name) · E10 과 같습니다 */
 .fry-ing-name {
   margin: 0;
-  color: var(--cream);
-  text-align: center;
-  font-size: calc(18 * var(--upx));
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: calc(7 * var(--upx));
+  color: #f0dcb4;
+  font-size: calc(21 * var(--upx));
   font-weight: 800;
 }
-.fry-ing-name b { color: var(--gold-bright); }
+.fry-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 .fry-ing-art { position: relative; display: block; width: calc(150 * var(--upx)); height: calc(110 * var(--upx)); }
 .fry-ing-art.has-fry-asset { display: grid; place-items: center; }
 .fry-ing-asset { max-width: 100%; max-height: calc(130 * var(--upx)); object-fit: contain; }
@@ -523,7 +527,13 @@
 .oil-tap-guide b { color: #ffe09a; font-size: calc(22 * var(--upx)); }
 
 /* ── 오른쪽 진행도 카드 ─────────────────────────────────────── */
-.fry-side { height: 100%; display: grid; align-content: start; gap: calc(20 * var(--upx)); }
+/* 진행도 카드는 내용만큼, 조작 카드는 남는 자리를 다 씁니다.
+   원래 `align-content: start` 라 조작 카드가 245 에서 멈추고 아래가 117.6 비었습니다.
+   E2(.fp-control) · E5(.ts-control) 와 같이 칸을 끝까지 쓰게 맞췄습니다. */
+/* 간격은 원래 20 이었습니다 → 공용 --mg-col-gap(12). 조작 카드가 362.6 → 370.6 */
+.fry-side { height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr); gap: var(--mg-col-gap); }
+/* 늘어난 카드 안에서 단계 안내는 세로 가운데로 모입니다 (E2 조작 카드와 같은 결) */
+.fry-control-card { align-content: center; }
 .fry-progress-value {
   margin: 0;
   color: var(--gold-bright);
@@ -598,14 +608,15 @@
 }
 
 /* 2번 : Space › Space */
+/* 이 키캡이 공용 --mg-key-* 의 본보기입니다. 값은 변수 쪽에 있습니다. */
 .fry-key {
   min-width: calc(78 * var(--upx));
   padding: calc(9 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #7a6a4d;
-  border-radius: calc(7 * var(--upx));
-  background: linear-gradient(#efe6d3,#c9bda4);
-  color: #2d1b11;
-  box-shadow: 0 calc(3 * var(--upx)) 0 #6a5a41;
+  border: 2px solid var(--mg-key-border);
+  border-radius: var(--mg-key-radius);
+  background: var(--mg-key-bg);
+  color: var(--mg-key-color);
+  box-shadow: var(--mg-key-shadow);
   text-align: center;
   font-size: calc(17 * var(--upx));
   font-weight: 900;
@@ -808,7 +819,7 @@
 .yk-scene.direction-sliding { cursor: grabbing; }
 
 /* 좌우 세로 칸 */
-.yk-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+.yk-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .yk-col-title · .yk-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 철판에 올라가 있으므로 보여주기만 합니다 */
@@ -1232,22 +1243,13 @@
    (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  채썰기·김치 볶기와 같습니다.
-   css/minigame-frame.css 는 건드리지 않고, 아래 세 줄만 이 화면이 떠 있을
+   css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 화면이 떠 있을
    때 한정으로 공용 규칙을 덮어씁니다.
      · .mini-content 기본 폭(가운데 922px)을 사이드 칸까지 쓰도록 100% 로
      · 공용 타이머 카드는 오른쪽 '진행도' 카드와 자리가 겹치므로 숨김
        (남은 시간은 진행도 카드 아래 가는 띠 .ts-time 이 대신 보여 줍니다)
-     · 타이틀 패널 윗줄(#miniStation)을 타이틀 아래로 내려 부제로 씁니다
 
    칸 크기는 .ts-scene 의 --ts-side(좌우 칸 폭) 하나가 정합니다. */
-.mini-overlay:has(.ts-scene) #miniStation {
-  order: 2;
-  color: var(--cream);
-  font-size: calc(19 * var(--upx));
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
 /* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .ts-scene {
   width: 100%;
@@ -1256,18 +1258,24 @@
 }
 
 /* 좌우 세로 칸 (채썰기 .fp-col 과 같은 톤) */
-.ts-col { display: flex; flex-direction: column; gap: calc(10 * var(--upx)); min-width: 0; }
+/* 간격은 원래 10 이었습니다 → 공용 --mg-col-gap(12). 조작 카드가 372.6 → 370.6 */
+.ts-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .ts-col-title · .ts-panel → css/minigame-parts.css */
 
 /* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ──────────────────── */
 .ts-ing-panel { flex: 1; display: flex; flex-direction: column; }
-.ts-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: calc(10 * var(--upx)); }
+/* 카드 높이는 --mg-ing-card-h 를 넘지 않고, 남으면 세로 가운데로 모입니다.
+   김치전은 재료가 하나뿐이라 1fr 이면 카드가 칸 전체(467.2)로 늘어나
+   E1 · E6 · E10 · E11(280)과 그림 자리가 어긋났습니다. */
+.ts-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--mg-ing-card-h)); align-content: center; gap: calc(10 * var(--upx)); }
+/* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css.
+   원래 이 화면만 테두리·배경이 없어 카드가 안 보였는데, 13화면을 한 벌로
+   맞추면서 공용 카드를 쓰게 했습니다. 여기 padding 을 다시 적으면
+   공용값(8/6)을 덮으니 적지 마세요. */
 .ts-ing-card {
   display: grid;
   grid-template-rows: minmax(0,1fr) auto;
   gap: calc(6 * var(--upx));
-  padding: calc(6 * var(--upx)) calc(5 * var(--upx));
-  color: #f0dcb4;
 }
 .ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
 .ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
@@ -1320,7 +1328,10 @@
 .ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
 .ts-count strong b { color: #f2a03c; }
 /* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
-.ts-time { height: calc(9 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(5 * var(--upx)); background: #140c07; }
+/* ⚠️ 여기 있던 `margin-top: 8` 을 뺐습니다. 카드에 이미 `row-gap: 6` 이 있어
+   간격은 그대로 남고, 카드가 필요로 하는 높이가 144.8 → 136.8 로 줄어
+   기본 진행도 카드(140.6) 안에 들어갑니다. */
+.ts-time { height: calc(9 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(5 * var(--upx)); background: #140c07; }
 .ts-time i { display: block; height: 100%; background: linear-gradient(90deg,#8f4a2c,#e5bf6c); transition: width .12s linear; }
 
 .ts-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
@@ -1332,24 +1343,27 @@
 .ts-keys.layout-column { flex-direction: column; align-items: flex-start; align-self: stretch; }
 .ts-keys.layout-column .ts-key-row { display: grid; grid-template-columns: var(--ts-key-w) minmax(0,1fr); align-items: center; width: 100%; }
 .ts-keys.layout-column .ts-key-link { width: var(--ts-key-w); text-align: center; }
+/* 겉모습은 공용 --mg-key-* (css/minigame-parts.css) 한 곳이 정합니다.
+   크기·글꼴만 이 화면 것입니다 — 글리프 하나가 들어가는 큰 사각입니다. */
 .ts-key {
   width: var(--ts-key-w);
   height: calc(54 * var(--upx));
   padding: 0;
-  border: 2px solid #8a5c32;
-  border-radius: calc(8 * var(--upx));
-  background: linear-gradient(#efe1c0,#cbb48b);
-  color: #3a2413;
+  border: 2px solid var(--mg-key-border);
+  border-radius: var(--mg-key-radius);
+  background: var(--mg-key-bg);
+  color: var(--mg-key-color);
   font-size: calc(30 * var(--upx));
   font-weight: 900;
   line-height: 1;
   cursor: pointer;
-  box-shadow: inset 0 0 0 2px #fff3d6, 0 calc(3 * var(--upx)) 0 #4a2e1a;
+  box-shadow: var(--mg-key-shadow);
 }
 .ts-key:disabled { cursor: default; opacity: .78; }
-.ts-key.expected { border-color: #ffd98a; background: linear-gradient(#ffd88a,#e29a3c); box-shadow: inset 0 0 0 2px #fff3d6, 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
+/* 지금 눌러야 할 키 · 눌린 키 — E6 `.fry-key.active` 와 같은 결로 맞췄습니다 */
+.ts-key.expected { border-color: #ffe08d; background: linear-gradient(#ffdb9a,#c27b3b); box-shadow: var(--mg-key-shadow), 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
 .ts-key:not(:disabled):active,
-.ts-key.holding { transform: translateY(calc(2 * var(--upx))); box-shadow: inset 0 0 0 2px #fff3d6; }
+.ts-key.holding { transform: translateY(calc(3 * var(--upx))); box-shadow: none; }
 .ts-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-weight: 900; line-height: 1; }
 .ts-key-text { display: flex; flex-direction: column; align-items: flex-start; gap: calc(2 * var(--upx)); color: var(--gold-bright); }
 .ts-key-text b { font-size: calc(19 * var(--upx)); font-weight: 800; }
@@ -1461,9 +1475,27 @@
 
 /* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
 .ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }
-.ts-gauge-slot .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
+/* 조작 버튼이 익힘 게이지와 자리를 바꿔 가운데로 올라왔습니다.
+   `.ts-action` 의 `width:100%` 는 원래 우측 조작 카드(250) 안에서 쓰던 값이라
+   824.2 짜리 가운데 칸에서는 화면을 가로지르는 띠처럼 보입니다.
+   (띠에 있을 때는 `.mg-strip .mini-action { width:auto }` 가 같은 일을 했습니다) */
+.ts-gauge-slot .ts-action {
+  width: auto;
+  min-width: calc(240 * var(--upx));
+  padding: calc(12 * var(--upx)) calc(24 * var(--upx));
+  font-size: calc(17 * var(--upx));
+}
+/* ⚠️ 아래 게이지 겉모습은 원래 `.ts-gauge-slot` 에 묶여 있었습니다. 익힘 게이지를
+   하단 공용 띠로 내리면서 `.ts-scene`(E5 화면 뿌리 — 게이지 슬롯과 띠를 모두
+   감쌉니다)으로 올렸습니다. 이래야 게이지가 두 자리 어디에 있어도 같게 보입니다.
+   다시 `.ts-gauge-slot` 으로 되돌리면 띠에 내려간 게이지가 기본 34짜리
+   민무늬 바로 풀려 버립니다. */
+.ts-scene .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
+/* 띠 안에서는 가로로 눕습니다 — 게이지 옆에 `앞면 익히기` 문구가 붙습니다.
+   1360.2 를 꽉 채우지 않고 900 으로 모아 마커를 눈으로 쫓기 쉽게 둡니다. */
+.mg-strip .doneness-gauge { width: calc(900 * var(--upx)); max-width: 100%; }
 /* 익힘 게이지 : 좁은 금색 PERFECT를 초록 GOOD이 감싸는 썰기식 판정 구간 */
-.ts-gauge-slot .doneness-gauge {
+.ts-scene .doneness-gauge {
   height: calc(38 * var(--upx));
   margin-top: calc(14 * var(--upx));
   overflow: visible;
@@ -1472,11 +1504,11 @@
     repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,0) 1px calc(26 * var(--upx))),
     linear-gradient(#8e2f26,#5f1d18);
 }
-.ts-gauge-slot .doneness-good,
-.ts-gauge-slot .doneness-perfect { position:absolute; inset-block:0; }
-.ts-gauge-slot .doneness-good { background:linear-gradient(#8fbf55,#5f8a37); box-shadow:inset 0 0 0 2px rgba(218,246,166,.55); }
-.ts-gauge-slot .doneness-perfect { z-index:1; background:linear-gradient(#ffe49a,#dca84c); box-shadow:inset 0 0 0 2px rgba(255,248,200,.85),0 0 calc(8 * var(--upx)) rgba(255,216,115,.45); }
-.ts-gauge-slot .progress-marker {
+.ts-scene .doneness-good,
+.ts-scene .doneness-perfect { position:absolute; inset-block:0; }
+.ts-scene .doneness-good { background:linear-gradient(#8fbf55,#5f8a37); box-shadow:inset 0 0 0 2px rgba(218,246,166,.55); }
+.ts-scene .doneness-perfect { z-index:1; background:linear-gradient(#ffe49a,#dca84c); box-shadow:inset 0 0 0 2px rgba(255,248,200,.85),0 0 calc(8 * var(--upx)) rgba(255,216,115,.45); }
+.ts-scene .progress-marker {
   z-index: 2;
   top: calc(-20 * var(--upx));
   width: 0;
