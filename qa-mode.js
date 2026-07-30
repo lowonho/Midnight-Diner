@@ -33,7 +33,6 @@ const QA_STORY_MOMENT_LABELS=Object.freeze({
   nightEnd:"마감"
 });
 const QA_STORY_KIND_LABELS=Object.freeze({
-  direction:"연출",
   sound:"음향",
   bubble:"일반 손님",
   gameplay:"게임",
@@ -412,7 +411,7 @@ function qaStoryLineTextValue(line){
 function qaStoryLineSpeaker(line){
   if(line?.speaker)return STORY_CHARACTERS[line.speaker]?.name||line.speaker;
   if(typeof line?.speakerLabel==="string"&&line.speakerLabel.trim())return line.speakerLabel.trim();
-  return QA_STORY_KIND_LABELS[line?.kind]||"이야기";
+  return QA_STORY_KIND_LABELS[line?.kind]||"";
 }
 
 function qaStoryBranchEntries(line){

@@ -94,7 +94,7 @@ check(qaStoryClampLineIndex(pr01,9999)===pr01.lines.length-1,
 check(qaStoryClampLineIndex(pr01,4.9)===4,"대사 위치는 정수 인덱스로 보정해야 합니다.");
 check(qaStoryLineSpeaker({speaker:"owner"})==="사장","고유 인물은 실제 이름으로 목록에 표시해야 합니다.");
 check(qaStoryLineSpeaker({speakerLabel:"손님 1"})==="손님 1","일반 손님 이름표를 보존해야 합니다.");
-check(qaStoryLineSpeaker({kind:"direction"})==="연출","연출문은 종류를 이름표로 표시해야 합니다.");
+check(qaStoryLineSpeaker({kind:"direction"})==="","상황 설명 자막에는 별도 명칭을 표시하지 않아야 합니다.");
 
 const c102ChoiceLine=STORY_SCENES["C1-02"].lines.find(line=>line.choices);
 const c102Branches=qaStoryBranchEntries(c102ChoiceLine);

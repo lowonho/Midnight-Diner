@@ -122,6 +122,12 @@ assert(revealed[0].text.includes("박기철이라고 합니다"),"이름 공개 
 assert(!Object.values(STORY_SCENES).some(scene=>scene.lines.some(line=>
   line.kind==="direction"&&line.text?.includes("이름표")&&line.text.includes("???")
 )),"이름 공개 규칙을 플레이어에게 출력되는 연출문에 넣으면 안 됩니다.");
+const gicheolEntranceCaption=STORY_SCENES["PR-01"].lines.find(line=>
+  line.text==="택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
+);
+assert(gicheolEntranceCaption?.kind==="direction"
+  &&storySpeakerLabel(gicheolEntranceCaption)==="",
+  "박기철 등장 상황은 자막으로 출력하되 인물 이름표는 표시하지 않아야 합니다.");
 
 const prologueCookSequence=STORY_SCENES["PR-01"].lines
   .filter(line=>line.cook)
@@ -184,10 +190,24 @@ same(generalOrders.map(storySpeakerLabel),["손님 1","손님 2"],
   "프롤로그 일반 손님의 주문에는 순서대로 손님 1, 손님 2 이름표가 표시되어야 합니다.");
 assert(generalOrders.every(line=>!line.speaker),
   "일반 손님 이름표는 고유 인물이나 초상을 만들지 않는 표시 전용 값이어야 합니다.");
-assert(STORY_SCENES["PR-01"].lines
-  .find(line=>line.text?.startsWith("식당 구석에 자리를 잡은 다은은"))
-  ?.text.includes("\\n"),
-  "긴 프롤로그 연출문에는 읽기 좋은 수동 줄바꿈이 있어야 합니다.");
+const prologueLines=STORY_SCENES["PR-01"].lines;
+const reflectionCaptionIndex=prologueLines.findIndex(line=>
+  line.text==="식품 개발을 할 때는 레시피를 적어가며 대화 없이 조리만 하던 것과는 사뭇 다른 모습이다.\\n사장이 너무 바빠 주문이 계속 밀리고 있지만 손님은 계속 밀려들어왔다."
+);
+assert(reflectionCaptionIndex>=0
+  &&prologueLines[reflectionCaptionIndex].kind==="direction"
+  &&storySpeakerLabel(prologueLines[reflectionCaptionIndex])==="",
+  "식품 개발 시절과 바쁜 식당을 대비하는 원문 자막을 이름표 없이 출력해야 합니다.");
+assert(prologueLines[reflectionCaptionIndex+1]?.text
+  ==="퇴사를 해서 그런지 아니면 가게 분위기에 휩쓸렸는지 다은은 용기를 내어 사장에게 말을 건다."
+  &&prologueLines[reflectionCaptionIndex+2]?.speaker==="protagonist",
+  "다은이 용기를 내는 자막 뒤에 주인공 대사가 이어져야 합니다.");
+const handQuestionIndex=prologueLines.findIndex(line=>
+  line.speaker==="owner"&&line.text==="손을 보니 요리 좀 해본 사람 같네. 맞나?"
+);
+assert(prologueLines[handQuestionIndex+1]?.text
+  ==="8년 동안 식품 개발을 하며 많은 요리를 해 온 다은의 손에 굳은살이 이리저리 배겨있었다.",
+  "손을 본 사장의 질문 다음 자막은 원문대로 '배겨있었다'로 출력해야 합니다.");
 assert(!STORY_SCENES["PR-02"].lines.some(line=>line.cook),
   "PR-02는 가게를 맡기는 제안부터 시작하고 조리는 PR-01에서 끝나야 합니다.");
 
@@ -313,7 +333,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 75");
+console.log("STORY_CONTRACT_OK 79");
 `;
 
 const context={
