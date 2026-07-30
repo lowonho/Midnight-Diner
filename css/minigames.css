@@ -1315,7 +1315,10 @@
 .ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
 .ts-count strong b { color: #f2a03c; }
 /* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
-.ts-time { height: calc(9 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(5 * var(--upx)); background: #140c07; }
+/* ⚠️ 여기 있던 `margin-top: 8` 을 뺐습니다. 카드에 이미 `row-gap: 6` 이 있어
+   간격은 그대로 남고, 카드가 필요로 하는 높이가 144.8 → 136.8 로 줄어
+   기본 진행도 카드(140.6) 안에 들어갑니다. */
+.ts-time { height: calc(9 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(5 * var(--upx)); background: #140c07; }
 .ts-time i { display: block; height: 100%; background: linear-gradient(90deg,#8f4a2c,#e5bf6c); transition: width .12s linear; }
 
 .ts-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
