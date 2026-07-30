@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const sources=["game-data.js","story-data.js","story.js","save.js"]
+const sources=["game-data.js","story-data.js","story-cinematic.js","story.js","save.js"]
   .map(file=>fs.readFileSync(path.join(root,file),"utf8"));
 
 const bootstrap=`

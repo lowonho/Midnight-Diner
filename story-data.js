@@ -65,10 +65,27 @@ const STORY_SCENES = {
     specialCook: false,
     timeOfDay: "night",
     lines: [
-      { kind: "direction", text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고 종이 상자 하나를 안은 채 건물을 나온다." },
-      { speaker: "protagonist", text: "(한숨을 쉬며) 끝났네." },
-      { kind: "direction", text: "굵은 비가 갑자기 떨어진다. 우산이 없는 다은은 골목의 작은 식당으로 뛰어든다. 늦은 시간인데도 가게 안은 많은 손님으로 붐빈다." },
-      { kind: "sound", text: "빗소리, 오래된 문종, 겹쳐 들리는 짧은 주문." },
+      {
+        kind: "direction",
+        text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고 종이 상자 하나를 안은 채 건물을 나온다.",
+        cinematic: { id: "pr01Exterior", beat: "exit" }
+      },
+      {
+        speaker: "protagonist",
+        text: "(한숨을 쉬며) 끝났네.",
+        cinematic: { id: "pr01Exterior", beat: "pause" }
+      },
+      {
+        kind: "direction",
+        text: "굵은 비가 갑자기 떨어진다. 우산이 없는 다은은 골목의 작은 식당으로 뛰어든다. 늦은 시간인데도 가게 안은 많은 손님으로 붐빈다.",
+        cinematic: { id: "pr01Exterior", beat: "rainRun" }
+      },
+      {
+        kind: "sound",
+        text: "빗소리, 오래된 문종, 겹쳐 들리는 짧은 주문.",
+        cinematic: { id: "pr01Exterior", beat: "enter" }
+      },
+      { kind: "direction", text: "바쁜 와중에 사장은 다은이 들어오는 것을 보고 얘기한다." },
       { speaker: "owner", text: "마지막 날이라서 그런지 손님이 많아… 지금 주문하면 오래 걸리는데 괜찮나?" },
       { speaker: "protagonist", text: "아, 저는 잠깐 비만 피하려고..." },
       { speaker: "owner", text: "그럼 저기 빈자리에서 조금 쉬다 가게. 혹시 주문하고 싶다면 주문하고." },

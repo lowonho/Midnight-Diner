@@ -6,8 +6,10 @@ const STORY_GUEST_IDS=["gicheol"];
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
+let storySceneIntroTimer=null;
 let storyUiInitialized=false;
 const STORY_CHECKPOINT_VERSION=1;
+const STORY_SCENE_INTRO_DURATION=1700;
 
 function createStoryGuestState(){
   return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
@@ -90,6 +92,38 @@ function storyDisplayName(id){
   const character=STORY_CHARACTERS[id];
   if(!character)return id;
   return isCharacterNameRevealed(id)?character.name:"???";
+}
+
+function storySceneCardText(scene){
+  return scene?`${scene.id} · ${scene.title}`:"";
+}
+
+function clearStorySceneIntro(){
+  if(storySceneIntroTimer){clearTimeout(storySceneIntroTimer);storySceneIntroTimer=null;}
+  document.getElementById("storySceneMeta")?.classList.remove("show");
+  document.getElementById("storyOverlay")?.classList.remove("scene-intro");
+  if(storySession)storySession.sceneIntroActive=false;
+}
+
+function finishStorySceneIntro(){
+  if(!storySession?.sceneIntroActive)return false;
+  clearStorySceneIntro();
+  showStoryLine();
+  return true;
+}
+
+function showStorySceneIntro(){
+  if(!storySession?.scene)return false;
+  clearStorySceneIntro();
+  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    showStoryLine();
+    return false;
+  }
+  storySession.sceneIntroActive=true;
+  document.getElementById("storySceneMeta")?.classList.add("show");
+  document.getElementById("storyOverlay")?.classList.add("scene-intro");
+  storySceneIntroTimer=setTimeout(finishStorySceneIntro,STORY_SCENE_INTRO_DURATION);
+  return true;
 }
 
 function revealCharacterName(id,showNotice=true){
@@ -252,6 +286,8 @@ function captureStoryCheckpoint(){
 function clearStoryRuntime(){
   const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
   clearStoryTyping();
+  clearStorySceneIntro();
+  clearStoryCinematic();
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
@@ -294,7 +330,7 @@ function restoreStoryCheckpoint(checkpoint){
     pendingCook:restored.pendingCook
   };
 
-  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
   restored.actorIds.forEach(ensureStoryActor);
 
@@ -340,9 +376,9 @@ function beginNextStoryScene(){
   storySession.lines=scene.lines.map(line=>({...line,choices:line.choices?.map(choice=>({...choice}))}));
   storySession.lineIndex=0;
   resetStoryStage();
-  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
-  showStoryLine();
+  showStorySceneIntro();
 }
 
 function clearStoryTyping(){
@@ -367,6 +403,7 @@ function showStoryLine(){
   const choices=document.getElementById("storyChoices");
   const next=document.getElementById("storyNextButton");
   const speakerId=line.speaker||null;
+  applyStoryCinematic(line);
   speakerEl.classList.remove("revealed");
   speakerEl.hidden=!speakerId;
   speakerEl.textContent=storyDisplayName(speakerId);
@@ -440,6 +477,7 @@ function chooseStoryOption(choice,index){
 
 function storyAdvance(){
   if(!storySession)return false;
+  if(storySession.sceneIntroActive)return finishStorySceneIntro();
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   const line=storySession.lines[storySession.lineIndex];
   if(line?.choices)return true;
@@ -467,6 +505,7 @@ const STORY_ACTOR_MARGIN=2;
 const STORY_ACTOR_GUTTER=1.5;
 
 function resetStoryStage(){
+  clearStoryCinematic();
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
   if(storySession)storySession.actors=[];
@@ -723,6 +762,7 @@ function finishSuspendedStoryCook(order,satisfaction){
 function finishStorySession(){
   if(!storySession)return;
   clearStoryTyping();
+  clearStorySceneIntro();
   clearTimeout(storyRevealTimer);
   document.getElementById("storyRevealNotice").classList.remove("show");
   document.getElementById("storyOverlay").classList.remove("open");
@@ -874,6 +914,7 @@ function runStoryQaFromQuery(){
     updateUI(true);
   }
   playStoryScenes([sceneId]);
+  clearStorySceneIntro();
   const lineIndex=Math.max(0,Number(params.get("qa-line"))||0);
   for(let i=0;i<lineIndex;i++){
     const line=storySession?.lines[i];

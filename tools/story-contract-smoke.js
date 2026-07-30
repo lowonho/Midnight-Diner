@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const files=["game-data.js","story-data.js","story.js","day.js","night.js","save.js"];
+const files=["game-data.js","story-data.js","story-cinematic.js","story.js","day.js","night.js","save.js"];
 const sources=files.map(file=>fs.readFileSync(path.join(root,file),"utf8"));
 
 const bootstrap=`
@@ -85,6 +85,8 @@ same([...scheduled].sort(),Object.keys(STORY_SCENES).sort(),"모든 장면은 �
 assert(new Set(scheduled).size===scheduled.length,"장면이 중복 스케줄되면 안 됩니다.");
 assert(STORY_SCENES["PR-02"].completesPrologue===true,"PR-02가 프롤로그를 끝내야 합니다.");
 assert(STORY_SCENES["C1-END"].ending===true,"C1-END가 제1장 엔딩이어야 합니다.");
+assert(storySceneCardText(STORY_SCENES["PR-01"])==="PR-01 · 비를 피한 곳",
+  "장면 시작 카드는 장면 코드와 제목을 함께 표시해야 합니다.");
 
 const revealed=[];
 Object.values(STORY_SCENES).forEach(scene=>scene.lines.forEach((line,index)=>{
@@ -98,6 +100,29 @@ const prologueCookSequence=STORY_SCENES["PR-01"].lines
   .filter(line=>line.cook)
   .map(line=>line.cook.dishId);
 same(prologueCookSequence,["tofu","oden","skewer","shrimpTempura","yakisoba","kimchi"],"PR-01 조리 순서");
+const prologueOpening=STORY_SCENES["PR-01"].lines.slice(0,6);
+same(prologueOpening.slice(0,4).map(line=>line.cinematic?.beat),
+  ["exit","pause","rainRun","enter"],
+  "PR-01 외부 연출은 회사 퇴장·정지·빗속 이동·식당 입장 순서여야 합니다.");
+same(storyCinematicBeatPlan(prologueOpening[0]),
+  {from:.08,to:.28,duration:2400,rain:false,fade:false},
+  "회사 퇴장 연출은 주인공을 화면 왼쪽에서 안쪽으로 자동 이동시켜야 합니다.");
+same(storyCinematicBeatPlan(prologueOpening[1]),
+  {at:.28,rain:false},
+  "주인공 독백에서는 이동을 멈춰야 합니다.");
+same(storyCinematicBeatPlan(prologueOpening[2]),
+  {from:.28,to:.78,duration:3200,rain:true,fade:false},
+  "비가 시작되면 주인공이 식당 방향으로 자동 이동해야 합니다.");
+same(storyCinematicBeatPlan(prologueOpening[3]),
+  {from:.78,to:.90,duration:1100,rain:true,fade:true},
+  "식당 입장 연출에서는 주인공이 오른쪽으로 이동하며 사라져야 합니다.");
+assert(prologueOpening[0].text.includes("회사 출입증")&&prologueOpening[0].text.includes("종이 상자"),
+  "첫 자동 이동 연출에는 회사 퇴장과 종이 상자 설정이 남아 있어야 합니다.");
+assert(prologueOpening[4].kind==="direction"
+  &&prologueOpening[4].text==="바쁜 와중에 사장은 다은이 들어오는 것을 보고 얘기한다.",
+  "식당에 들어온 뒤 사장의 첫 대사 전에 요청한 연출 문장이 있어야 합니다.");
+assert(prologueOpening[5].speaker==="owner",
+  "추가 연출 문장 바로 다음에 사장의 첫 대사가 이어져야 합니다.");
 assert(!STORY_SCENES["PR-02"].lines.some(line=>line.cook),
   "PR-02는 가게를 맡기는 제안부터 시작하고 조리는 PR-01에서 끝나야 합니다.");
 
@@ -223,7 +248,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 50");
+console.log("STORY_CONTRACT_OK 60");
 `;
 
 const context={
