@@ -239,25 +239,28 @@
 /* ── 좌우 카드 공통 ─────────────────────────────────────────── */
 /* .fry-card 와 .fry-card-title 은 css/minigame-parts.css 에 있습니다. */
 
-/* ── 왼쪽 재료 카드 ─────────────────────────────────────────── */
+/* ── 왼쪽 재료 카드 ───────────────────────────────────────────
+   E8 반죽(.bt-ing-card) · E10 과 같은 결입니다.
+   ⚠️ 여기 있던 액자(테두리 2px #5d3b22 + 검은 배경 + 안쪽 그림자)를 뺐습니다.
+      카드 안에 상자가 한 겹 더 들어가 '박스 안 박스'로 보였습니다.
+      그림은 카드 위에 바로 놓입니다. 높이는 공용 --mg-ing-card-h 가 정합니다. */
 .fry-ing-figure {
   position: relative;
-  height: calc(150 * var(--upx));
   display: grid;
   place-items: center;
-  border: 2px solid #5d3b22;
-  border-radius: calc(8 * var(--upx));
-  background: #0e0805;
-  box-shadow: inset 0 0 calc(16 * var(--upx)) rgba(0,0,0,.6);
 }
+/* 이름 줄 규격도 E8 반죽(.bt-ing-name) · E10 과 같습니다 */
 .fry-ing-name {
   margin: 0;
-  color: var(--cream);
-  text-align: center;
-  font-size: calc(18 * var(--upx));
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: calc(7 * var(--upx));
+  color: #f0dcb4;
+  font-size: calc(21 * var(--upx));
   font-weight: 800;
 }
-.fry-ing-name b { color: var(--gold-bright); }
+.fry-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 .fry-ing-art { position: relative; display: block; width: calc(150 * var(--upx)); height: calc(110 * var(--upx)); }
 .fry-ing-art.has-fry-asset { display: grid; place-items: center; }
 .fry-ing-asset { max-width: 100%; max-height: calc(130 * var(--upx)); object-fit: contain; }
