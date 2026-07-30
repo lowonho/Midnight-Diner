@@ -86,7 +86,7 @@ function isCharacterNameRevealed(id){
 }
 
 function storyDisplayName(id){
-  if(!id)return "이야기";
+  if(!id)return "";
   const character=STORY_CHARACTERS[id];
   if(!character)return id;
   return isCharacterNameRevealed(id)?character.name:"???";
@@ -368,7 +368,8 @@ function showStoryLine(){
   const next=document.getElementById("storyNextButton");
   const speakerId=line.speaker||null;
   speakerEl.classList.remove("revealed");
-  speakerEl.textContent=speakerId?storyDisplayName(speakerId):"이야기";
+  speakerEl.hidden=!speakerId;
+  speakerEl.textContent=storyDisplayName(speakerId);
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId);
   choices.innerHTML="";choices.classList.remove("open");

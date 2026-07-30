@@ -2,6 +2,8 @@
 
 // 제1장 제작 범위는 프롤로그와 Day 1~7입니다.
 // 고유 인물은 김다은, 사장, 박기철, 팀장만 사용합니다.
+// TODO(audio-assets): kind가 "sound"인 줄은 임시 화면용 음향 지시문입니다.
+// 대응하는 사운드 에셋을 연결할 때 해당 지시문이 대화로 출력되지 않도록 제거합니다.
 const STORY_CHARACTERS = {
   protagonist: { name: "김다은", role: "식당 운영자", portraitRow: null, alwaysKnown: true },
   owner: { name: "사장", role: "기존 식당 사장", portraitRow: null, alwaysKnown: true },

@@ -64,6 +64,7 @@ const tierReply=(cook,score)=>cook.replies[storyCookingTier(score,cook.threshold
 
 assert(STORY_CHARACTERS.protagonist.name==="김다은","주인공의 확정 이름은 김다은이어야 합니다.");
 state.story=createStoryState();
+assert(storyDisplayName(null)==="","화자가 없는 연출 줄에는 '이야기' 이름표를 표시하지 않아야 합니다.");
 assert(storyDisplayName("protagonist")==="김다은","대화 이름표에는 김다은이 표시되어야 합니다.");
 assert(storyDisplayName("gicheol")==="???","박기철은 자기소개 전까지 이름이 숨겨져야 합니다.");
 
