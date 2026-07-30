@@ -141,11 +141,11 @@ registerMiniEngine("heat",{
     dom.miniContent.innerHTML=`<div class="heat-scene">
       <div class="heat-play">
         ${heatSceneMarkup(config)}
-        <div class="heat-wrap"><button id="heatDown" class="heat-button" type="button" aria-label="불 줄이기">−</button><div class="heat-gauge"><i class="heat-target" style="left:${config.targetStart*100}%;width:${(config.targetEnd-config.targetStart)*100}%"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button" aria-label="불 키우기">＋</button></div>
-      </div>
-      <div class="mg-strip heat-strip">
         <div class="heat-hold"><i id="heatHoldFill"></i></div>
         <p class="cut-count">적정 온도 유지: <span id="zoneTime">0.0</span> / ${config.targetHold.toFixed(1)}초</p>
+      </div>
+      <div class="mg-strip heat-strip">
+        <div class="heat-wrap"><button id="heatDown" class="heat-button" type="button" aria-label="불 줄이기">−</button><div class="heat-gauge"><i class="heat-target" style="left:${config.targetStart*100}%;width:${(config.targetEnd-config.targetStart)*100}%"></i><i id="heatNeedle" class="heat-needle"></i></div><button id="heatUp" class="heat-button" type="button" aria-label="불 키우기">＋</button></div>
       </div>
     </div>`;
     bindHeatButton(m,"#heatDown",-1);bindHeatButton(m,"#heatUp",1);

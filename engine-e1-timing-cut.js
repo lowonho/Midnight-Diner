@@ -277,10 +277,12 @@ function renderTimingCut(){
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
         <i class="cut-spark"></i>
       </div>
-      ${cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker)}
+      <div class="cut-footer">${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
+        <button class="mini-action cut-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
       <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
-  const footer=`${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
-      <button class="mini-action cut-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button>`;
+  // 두꺼운 바는 하단 공용 띠에 모읍니다 — 타이밍 바가 띠로 내려가고
+  // 썰기 버튼이 그 자리(도마 아래)로 올라옵니다.
+  const footer=cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker);
   dom.miniContent.innerHTML=`
     ${data.tteokbokkiFlowIndex!=null?day4PrepFlowMarkup("tteokbokki",data.tteokbokkiFlowIndex):""}
     ${cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer})}`;
@@ -403,6 +405,10 @@ function renderNightChop(m){
   const horizontalReady=data.tofuStyle&&data.cuts>=data.total-1;
   const objectId=data.tofuStyle?"tofuCookObject":"storyChopObject";
   const objectAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
+  // 단계 문구는 board 안(도마 아래 줄)에서 쓰므로 board 보다 먼저 만듭니다.
+  const label=data.tofuStyle
+    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===data.total-1?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`
+    :`${data.cuts} / ${data.total}`;
   const board=`
     <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",cutIngredientLabel(data))}
@@ -415,12 +421,10 @@ function renderNightChop(m){
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
       <i class="cut-spark"></i>
     </div>
-    ${cutTimingBarMarkup(data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1],data.zoneWidth,data.marker)}
+    <div class="cut-footer"><span class="cut-step-note" id="nightCutStep">${label}</span><button class="mini-action cut-action" id="miniAction" type="button">${data.tofuStyle?"두부 썰기":"썰기"}</button></div>
     <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
-  const label=data.tofuStyle
-    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===data.total-1?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`
-    :`${data.cuts} / ${data.total}`;
-  const footer=`<span class="cut-step-note" id="nightCutStep">${label}</span><button class="mini-action cut-action" id="miniAction" type="button">${data.tofuStyle?"두부 썰기":"썰기"}</button>`;
+  // 두꺼운 바는 하단 공용 띠에 모읍니다 (낮 준비 경로와 같은 처리).
+  const footer=cutTimingBarMarkup(data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1],data.zoneWidth,data.marker);
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.cuts,total:data.total,footer});
   dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
 }

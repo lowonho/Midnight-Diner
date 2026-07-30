@@ -278,12 +278,13 @@ function renderTwoSideCook() {
     const sideLabel = data.side === 0 ? "앞면" : "뒷면", config = TWO_SIDE_COOK_CONFIG[data.dishStyle];
     dom.miniDescription.textContent = `${sideLabel}을 익히다가 포인터가 작은 금색 구간 또는 주변 초록 구간에 들어오면 Space를 누르세요.`;
     board = twoSideStageMarkup(data);
-    gauge = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
-      <p class="cut-count">${sideLabel} 익히기</p>`;
-    // 조작 버튼은 우측 카드가 아니라 하단 띠로 내려갑니다(E1 타이밍 칼질과 같은 처리).
-    // Space 한 번으로 판정이 갈리는 게임이라 버튼이 게이지 바로 아래 한 줄에 있어야 합니다.
+    // 두꺼운 바는 전부 하단 공용 띠에 모읍니다 — 익힘 게이지가 띠로 내려가고
+    // Space 버튼이 그 자리(가운데 게이지 슬롯)로 올라옵니다. 겉모습 규칙은
+    // .ts-scene 을 타므로 두 자리 어디에 있어도 그대로 적용됩니다.
+    gauge = `<button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
     control = twoSideKeysMarkup(view);
-    strip = `<button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
+    strip = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
+      <p class="cut-count">${sideLabel} 익히기</p>`;
   } else if (data.phase === "skewerFlip" || data.phase === "skewerTurning") {
     const current = Math.min(data.flippedSkewers || 0, SKEWER_BATCH_SIZE - 1);
     dom.miniDescription.textContent = "현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";

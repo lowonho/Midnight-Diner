@@ -1268,12 +1268,14 @@
    김치전은 재료가 하나뿐이라 1fr 이면 카드가 칸 전체(467.2)로 늘어나
    E1 · E6 · E10 · E11(280)과 그림 자리가 어긋났습니다. */
 .ts-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--mg-ing-card-h)); align-content: center; gap: calc(10 * var(--upx)); }
+/* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css.
+   원래 이 화면만 테두리·배경이 없어 카드가 안 보였는데, 13화면을 한 벌로
+   맞추면서 공용 카드를 쓰게 했습니다. 여기 padding 을 다시 적으면
+   공용값(8/6)을 덮으니 적지 마세요. */
 .ts-ing-card {
   display: grid;
   grid-template-rows: minmax(0,1fr) auto;
   gap: calc(6 * var(--upx));
-  padding: calc(6 * var(--upx)) calc(5 * var(--upx));
-  color: #f0dcb4;
 }
 .ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
 .ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
@@ -1473,9 +1475,27 @@
 
 /* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
 .ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }
-.ts-gauge-slot .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
+/* 조작 버튼이 익힘 게이지와 자리를 바꿔 가운데로 올라왔습니다.
+   `.ts-action` 의 `width:100%` 는 원래 우측 조작 카드(250) 안에서 쓰던 값이라
+   824.2 짜리 가운데 칸에서는 화면을 가로지르는 띠처럼 보입니다.
+   (띠에 있을 때는 `.mg-strip .mini-action { width:auto }` 가 같은 일을 했습니다) */
+.ts-gauge-slot .ts-action {
+  width: auto;
+  min-width: calc(240 * var(--upx));
+  padding: calc(12 * var(--upx)) calc(24 * var(--upx));
+  font-size: calc(17 * var(--upx));
+}
+/* ⚠️ 아래 게이지 겉모습은 원래 `.ts-gauge-slot` 에 묶여 있었습니다. 익힘 게이지를
+   하단 공용 띠로 내리면서 `.ts-scene`(E5 화면 뿌리 — 게이지 슬롯과 띠를 모두
+   감쌉니다)으로 올렸습니다. 이래야 게이지가 두 자리 어디에 있어도 같게 보입니다.
+   다시 `.ts-gauge-slot` 으로 되돌리면 띠에 내려간 게이지가 기본 34짜리
+   민무늬 바로 풀려 버립니다. */
+.ts-scene .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
+/* 띠 안에서는 가로로 눕습니다 — 게이지 옆에 `앞면 익히기` 문구가 붙습니다.
+   1360.2 를 꽉 채우지 않고 900 으로 모아 마커를 눈으로 쫓기 쉽게 둡니다. */
+.mg-strip .doneness-gauge { width: calc(900 * var(--upx)); max-width: 100%; }
 /* 익힘 게이지 : 좁은 금색 PERFECT를 초록 GOOD이 감싸는 썰기식 판정 구간 */
-.ts-gauge-slot .doneness-gauge {
+.ts-scene .doneness-gauge {
   height: calc(38 * var(--upx));
   margin-top: calc(14 * var(--upx));
   overflow: visible;
@@ -1484,11 +1504,11 @@
     repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,0) 1px calc(26 * var(--upx))),
     linear-gradient(#8e2f26,#5f1d18);
 }
-.ts-gauge-slot .doneness-good,
-.ts-gauge-slot .doneness-perfect { position:absolute; inset-block:0; }
-.ts-gauge-slot .doneness-good { background:linear-gradient(#8fbf55,#5f8a37); box-shadow:inset 0 0 0 2px rgba(218,246,166,.55); }
-.ts-gauge-slot .doneness-perfect { z-index:1; background:linear-gradient(#ffe49a,#dca84c); box-shadow:inset 0 0 0 2px rgba(255,248,200,.85),0 0 calc(8 * var(--upx)) rgba(255,216,115,.45); }
-.ts-gauge-slot .progress-marker {
+.ts-scene .doneness-good,
+.ts-scene .doneness-perfect { position:absolute; inset-block:0; }
+.ts-scene .doneness-good { background:linear-gradient(#8fbf55,#5f8a37); box-shadow:inset 0 0 0 2px rgba(218,246,166,.55); }
+.ts-scene .doneness-perfect { z-index:1; background:linear-gradient(#ffe49a,#dca84c); box-shadow:inset 0 0 0 2px rgba(255,248,200,.85),0 0 calc(8 * var(--upx)) rgba(255,216,115,.45); }
+.ts-scene .progress-marker {
   z-index: 2;
   top: calc(-20 * var(--upx));
   width: 0;
