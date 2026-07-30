@@ -49,7 +49,16 @@
   --mg-marker-w:  calc(7 * var(--upx));   /* 포인터 마커 폭 */
   --mg-marker-h:  calc(44 * var(--upx));  /* 포인터 마커 높이 (바 위아래로 5씩 튀어나옴) */
   --mg-action-h:  calc(56 * var(--upx));  /* 조작 버튼 높이 */
-  --mg-prog-h:    calc(110 * var(--upx)); /* 우측 진행 카드 높이 */
+
+  /* 우측 열 맨 위 '진행도 / 완성 개수' 카드 높이.
+     원래 104.8 · 107.8 · 116.6 · 123.8 · 140.6 · 198.1 여섯 가지로 흩어져 있었습니다.
+     두 가지로 묶었습니다.
+       기본        140.6  — 숫자만 있는 카드
+       시간 있음   198.1  — '남은 시간' 줄이 하나 더 붙는 카드 (E5 · E6 · E10)
+     기준값은 원래 있던 것 중 가장 큰 쪽입니다. 줄이면 잘리는 카드가 생겨서
+     넓은 쪽에 맞췄습니다. */
+  --mg-prog-h:      calc(140.6 * var(--upx));
+  --mg-prog-time-h: calc(198.1 * var(--upx));
 }
 
 /* ---- 3열 격자 (11종 공통) -----------------------------------
@@ -222,6 +231,37 @@
   display: grid;
   gap: calc(10 * var(--upx));
   align-content: start;
+}
+
+/* ---- 우측 진행도 카드 높이 통일 ------------------------------
+   ⚠️ 이 규칙은 위 `.cut-card` 카드 껍데기(display:grid) 보다 뒤에 있어야
+      display:flex 이 살아납니다. 순서를 바꾸지 마세요.
+
+   높이를 고정하면서 안쪽 내용은 가운데로 모읍니다. 원래 카드보다 커지는
+   화면(예: E11 123.8 → 140.6)에서 숫자가 위로 쏠려 보이지 않게 하려는 것입니다. */
+.cut-count-card,
+.fp-count,
+.kf-count,
+.yk-count,
+.ts-count,
+.sc-count,
+.bt-count,
+.sk-count,
+.os-count,
+.fry-progress-card,
+.anchovy-count-card {
+  flex: none;
+  height: var(--mg-prog-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(6 * var(--upx));
+}
+/* '남은 시간' 줄이 하나 더 들어가는 셋 */
+.ts-count,            /* .ts-time     — 남은 시간 바 */
+.fry-progress-card,   /* .fry-time-bar — 남은 시간 바 */
+.anchovy-count-card { /* .anchovy-time — 남은 시간 글자 */
+  height: var(--mg-prog-time-h);
 }
 
 /* ---- 카드 제목 ---------------------------------------------- */
