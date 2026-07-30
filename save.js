@@ -105,12 +105,17 @@ function clearSaveData(slotId=AUTO_SAVE_SLOT){
   try{
     localStorage.removeItem(saveKeyForSlot(slotId));
     if(slotId===AUTO_SAVE_SLOT)autosaveElapsed=0;
-  }catch(error){console.warn(`${slotId} 저장 데이터를 삭제하지 못했습니다.`,error);}
+    return true;
+  }catch(error){
+    console.warn(`${slotId} 저장 데이터를 삭제하지 못했습니다.`,error);
+    return false;
+  }
 }
 
 function clearAllSaveData(){
-  SAVE_SLOT_DEFS.forEach(definition=>clearSaveData(definition.id));
+  const cleared=SAVE_SLOT_DEFS.map(definition=>clearSaveData(definition.id)).every(Boolean);
   autosaveElapsed=0;
+  return cleared;
 }
 
 function restoreGameState(data){
