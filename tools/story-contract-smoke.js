@@ -107,6 +107,9 @@ const scheduled=Object.values(STORY_EVENT_SCHEDULE)
   .flatMap(days=>Object.values(days).flat());
 same([...scheduled].sort(),Object.keys(STORY_SCENES).sort(),"모든 장면은 정확히 한 번 스케줄되어야 합니다.");
 assert(new Set(scheduled).size===scheduled.length,"장면이 중복 스케줄되면 안 됩니다.");
+assert(!Object.values(STORY_SCENES).some(scene=>
+  scene.lines.some(line=>line.kind==="gameplay")),
+  "게임플레이 구현 규칙은 플레이어에게 출력되는 스토리 줄에 포함하면 안 됩니다.");
 assert(STORY_SCENES["PR-02"].completesPrologue===true,"PR-02가 프롤로그를 끝내야 합니다.");
 assert(STORY_SCENES["C1-END"].ending===true,"C1-END가 제1장 엔딩이어야 합니다.");
 assert(storySceneCardText(STORY_SCENES["PR-01"])==="PR-01 · 비를 피한 곳",
@@ -216,7 +219,10 @@ assert(g02.day===2&&g02.dishId==="kimchi"&&g02.arrival==="late"&&g02.deferUntilA
   "G-02는 Day 2 후반 김치전 주문이어야 합니다.");
 assert(g02.lines.some(line=>line.text==="그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다 김치전은 덤이고요"),
   "G-02 재방문 예고 대사");
-const g02Cook=g02.lines.find(line=>line.orderCook).orderCook;
+const g02CookLine=g02.lines.find(line=>line.orderCook);
+assert(g02CookLine.speaker==="gicheol",
+  "G-02 조리는 구현 설명문이 아니라 박기철의 주문 대사에서 시작해야 합니다.");
+const g02Cook=g02CookLine.orderCook;
 assert(storyCookingTier(59,g02Cook.thresholds)==="soft"
   &&storyCookingTier(60,g02Cook.thresholds)==="warm"
   &&storyCookingTier(79,g02Cook.thresholds)==="warm"
@@ -249,7 +255,10 @@ const managerScene=STORY_SCENES["C1-04B"];
 assert(managerScene.day===7&&managerScene.dishId==="yakisoba"
   &&managerScene.arrival==="last"&&managerScene.deferUntilArrival,
   "팀장은 Day 7의 마지막 볶음우동 손님이어야 합니다.");
-const managerCook=managerScene.lines.find(line=>line.orderCook).orderCook;
+const managerCookLine=managerScene.lines.find(line=>line.orderCook);
+assert(managerCookLine.speaker==="manager",
+  "팀장 조리는 구현 설명문이 아니라 팀장의 주문 대사에서 시작해야 합니다.");
+const managerCook=managerCookLine.orderCook;
 assert(tierReply(managerCook,59)==="맛은 그럭저럭이네요.","팀장 59점 반응");
 assert(tierReply(managerCook,60)==="괜찮네요. 잘 먹었어요.","팀장 60점 반응");
 assert(tierReply(managerCook,79)==="괜찮네요. 잘 먹었어요.","팀장 79점 반응");
@@ -333,7 +342,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 79");
+console.log("STORY_CONTRACT_OK 82");
 `;
 
 const context={

@@ -35,7 +35,6 @@ const QA_STORY_MOMENT_LABELS=Object.freeze({
 const QA_STORY_KIND_LABELS=Object.freeze({
   sound:"음향",
   bubble:"일반 손님",
-  gameplay:"게임",
   system:"시스템",
   journal:"일지"
 });

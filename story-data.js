@@ -102,7 +102,6 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "식품 개발을 좀 해봤지만…\n가게 주방에서 조리해본 적은 없어요." },
       { speaker: "owner", text: "그럼 레시피를 알려주겠네.\n바쁜 건 맞지만 다치지 않도록 천천히 해.", showGameUI: true },
       { kind: "direction", text: "사장이 앞치마를 건네고 다은은 바로 앞치마를 맨다.", showGameUI: true },
-      { kind: "gameplay", text: "주방 안을 직접 이동한다.\n기구에서 멀리 있을 때는 버튼을 숨기고, 가까이 가면 기구 이름과 상호작용 버튼을 표시한다.", showGameUI: true },
       { speaker: "owner", text: "두부김치는 두부를 일정한 크기로 썰고\n접시에 담으면 되네.", showGameUI: true, cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu" } },
       { speaker: "owner", text: "어묵탕은 국물이 맑게 우러나도록\n적당한 불로 끓이면 되네.", showGameUI: true, cook: { dishId: "oden", tutorial: true, resultKey: "pr01_oden" } },
       { speaker: "owner", text: "닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\n뒷면도 타지 않게 구우면 되네.", showGameUI: true, cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
@@ -167,7 +166,6 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 식당 일지에 있는 레시피 중 두 개씩 늘려보자." },
       { kind: "direction", text: "다은은 식당 일지를 편다." },
       { speaker: "protagonist", text: "일단 해볼게… 어묵탕과 두부김치. 어렵지 않은 메뉴네?" },
-      { kind: "gameplay", text: "오늘 해금된 어묵탕과 두부김치를 모두 준비한다. 준비가 끝나면 ‘영업준비 완료’를 직접 눌러 밤 영업을 시작한다." },
       { kind: "system", text: "인기도 0 · 예상 손님 수 적음" }
     ]
   },
@@ -211,10 +209,9 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "이사님, 오늘은 뭘 드시겠어요?" },
       { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시기사를 하고 있죠.", reveal: "gicheol" },
       { speaker: "protagonist", text: "그렇다면 박 기사님, 오늘의 식사는 어떻게 하실 건가요?" },
-      { speaker: "gicheol", text: "오늘은… 오! 오늘도 김치전이 준비되어 있군요? 오늘도 김치전 주시죠!" },
       {
-        kind: "gameplay",
-        text: "김다은은 김치전을 조리한다. 완성도에 따라 박기철의 반응이 달라진다.",
+        speaker: "gicheol",
+        text: "오늘은… 오! 오늘도 김치전이 준비되어 있군요? 오늘도 김치전 주시죠!",
         orderCook: {
           special: false,
           thresholds: { great: 80, warm: 60 },
@@ -394,8 +391,7 @@ const STORY_SCENES = {
     timeOfDay: "night",
     lines: [
       { kind: "direction", text: "낮 준비를 마치고 ‘영업준비 완료’를 누르자, 다은은 자연스럽게 주방을 둘러본다." },
-      { speaker: "protagonist", text: "생각보다 가게에 익숙해진 것 같네." },
-      { kind: "gameplay", text: "일반 영업 한 차례를 진행한다. 새로운 시스템이나 고유 손님 이벤트는 열리지 않는다. 좋아하는 메뉴와 동선을 편하게 반복해 보는 숨 고르기 구간이다." }
+      { speaker: "protagonist", text: "생각보다 가게에 익숙해진 것 같네." }
     ]
   },
 
@@ -430,8 +426,7 @@ const STORY_SCENES = {
       { kind: "direction", text: "다은은 잠시 망설이다 ‘팀장님, 제가 지금 식당을 하고 있어서요. 만나려면 찾아오셔야 할 것 같아요.’라고 답하고 식당 위치와 영업 시간을 보낸다." },
       { speaker: "protagonist", text: "갑자기 팀장님이 연락하시다니 무슨 일이지?" },
       { kind: "direction", text: "혼란스러워하던 다은은 이내 생각을 접고 다시 영업 준비를 시작한다." },
-      { speaker: "protagonist", text: "에휴, 복잡하니까 오늘 메뉴에는 볶음우동을 넣어야겠다. 음식 볶으면서 복잡한 생각을 날려버려야겠어!" },
-      { kind: "gameplay", text: "7일차 영업 준비 메뉴에는 볶음우동이 필수로 들어간다." }
+      { speaker: "protagonist", text: "에휴, 복잡하니까 오늘 메뉴에는 볶음우동을 넣어야겠다. 음식 볶으면서 복잡한 생각을 날려버려야겠어!" }
     ]
   },
 
@@ -460,10 +455,9 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "제 거라고 하기에는 애매해요. 한 달만 가게를 해보라고 빌려주신 거라서." },
       { speaker: "manager", text: "한 달 빌린 거라도 사장은 사장이지. 지금부터 팀장이 아니라 손님으로 있어도 될까?" },
       { speaker: "protagonist", text: "주문은 뭘로 하시겠습니까, 손님?" },
-      { speaker: "manager", text: "식당하더니 능청스러워졌네. 메뉴가… 오? 볶음우동이 있네? 철판에서 맛있게 볶아줘." },
       {
-        kind: "gameplay",
-        text: "팀장의 주문은 7일차 마지막 조리다. 볶음우동 특별 난이도로 조리하며 완성도에 따라 팀장의 반응이 달라진다.",
+        speaker: "manager",
+        text: "식당하더니 능청스러워졌네. 메뉴가… 오? 볶음우동이 있네? 철판에서 맛있게 볶아줘.",
         orderCook: {
           special: true,
           thresholds: { great: 60 },
