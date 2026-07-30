@@ -303,9 +303,11 @@ function clearStoryRuntime(){
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
   const stage=document.getElementById("storyStage");
+  const nextButton=document.getElementById("storyNextButton");
   if(revealNotice)revealNotice.classList.remove("show");
   if(overlay)overlay.classList.remove("open");
   if(stage)stage.innerHTML="";
+  if(nextButton)nextButton.disabled=false;
   if(state.story)state.story.activeStoryCook=null;
   storySession=null;
   return hadRuntime;
@@ -470,6 +472,12 @@ function renderStoryChoices(line){
 
 function chooseStoryOption(choice,index){
   if(!storySession)return;
+  // QA_REMOVE: 일차별 미리보기에서는 선택 결과를 실제 진행도에 기록하지 않습니다.
+  if(storySession.qaPreview){
+    return typeof qaStoryPreviewChoice==="function"
+      ?qaStoryPreviewChoice(choice,index)
+      :true;
+  }
   const scene=storySession.scene;
   state.story.choices[scene.id]=index;
   if(choice.flag)state.story.flags[choice.flag]=true;
@@ -491,6 +499,10 @@ function chooseStoryOption(choice,index){
 
 function storyAdvance(){
   if(!storySession)return false;
+  // QA_REMOVE: 미리보기에서는 조리·선택·완료 처리 없이 대사 인덱스만 이동합니다.
+  if(storySession.qaPreview){
+    return typeof qaStoryStep==="function"?qaStoryStep(1):true;
+  }
   if(storySession.sceneIntroActive)return finishStorySceneIntro();
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   const line=storySession.lines[storySession.lineIndex];
@@ -910,6 +922,7 @@ function pickGeneralGuestBubble(type){
 function cookingDifficultyMultiplier(context){return context?.tutorial?.9:context?.special?1.25:1;}
 
 function runStoryQaFromQuery(){
+  if(!window.QA_MODE?.enabled)return false;
   const params=new URLSearchParams(location.search);
   const sceneId=params.get("qa-story");
   if(!sceneId||!STORY_SCENES[sceneId])return false;
@@ -930,7 +943,10 @@ function runStoryQaFromQuery(){
   }
   playStoryScenes([sceneId]);
   clearStorySceneIntro();
-  const lineIndex=Math.max(0,Number(params.get("qa-line"))||0);
+  const lineIndex=Math.max(
+    0,
+    Math.min(qaScene.lines.length-1,Math.floor(Number(params.get("qa-line"))||0))
+  );
   for(let i=0;i<lineIndex;i++){
     const line=storySession?.lines[i];
     if(line?.reveal)revealCharacterName(line.reveal,false);

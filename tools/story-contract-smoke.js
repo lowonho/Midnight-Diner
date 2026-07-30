@@ -68,6 +68,30 @@ assert(storyDisplayName(null)==="","화자가 없는 연출 줄에는 '이야기
 assert(storyDisplayName("protagonist")==="김다은","대화 이름표에는 김다은이 표시되어야 합니다.");
 assert(storyDisplayName("gicheol")==="???","박기철은 자기소개 전까지 이름이 숨겨져야 합니다.");
 
+const qaStoryStepDeltas=[];
+const qaStoryChoices=[];
+function qaStoryStep(delta){qaStoryStepDeltas.push(delta);return true;}
+function qaStoryPreviewChoice(choice,index){qaStoryChoices.push({choice,index});return true;}
+const qaProgressBefore=JSON.stringify(state.story);
+storySession={
+  qaPreview:true,
+  scene:STORY_SCENES["C1-02"],
+  lines:STORY_SCENES["C1-02"].lines.map(line=>({...line})),
+  lineIndex:0
+};
+assert(storyAdvance()===true&&qaStoryStepDeltas[0]===1,
+  "QA 스토리 미리보기의 다음 버튼은 일반 장면 진행 대신 한 줄 이동을 호출해야 합니다.");
+const qaChoice=STORY_SCENES["C1-02"].lines.find(line=>line.choices).choices[1];
+assert(chooseStoryOption(qaChoice,1)===true
+  &&qaStoryChoices[0].choice===qaChoice
+  &&qaStoryChoices[0].index===1,
+  "QA 스토리 미리보기의 선택지는 실제 분기 처리 대신 미리보기 핸들러를 호출해야 합니다.");
+assert(JSON.stringify(state.story)===qaProgressBefore,
+  "QA 대사 이동과 선택지 확인은 스토리 진행도에 영향을 주면 안 됩니다.");
+storySession=null;
+assert(runStoryQaFromQuery()===false,
+  "qa=1 저장 방지 모드가 아니면 URL 스토리 QA를 실행하면 안 됩니다.");
+
 same(Object.keys(STORY_CHARACTERS),["protagonist","owner","manager","gicheol"],"제1장 고유 인물 목록");
 assert(Object.keys(STORY_SCENES).length===13,"프롤로그+제1장 장면은 13개여야 합니다.");
 assert(DayManager.maxDay===7,"데모 마지막 날은 Day 7이어야 합니다.");
@@ -286,7 +310,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 70");
+console.log("STORY_CONTRACT_OK 74");
 `;
 
 const context={

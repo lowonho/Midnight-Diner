@@ -102,6 +102,8 @@ function saveManualGame(slotId){
 }
 
 function clearSaveData(slotId=AUTO_SAVE_SLOT){
+  // QA_REMOVE: QA 스토리 탐색 중에는 기존 저장 슬롯을 삭제하지 않습니다.
+  if(window.QA_MODE?.enabled)return false;
   try{
     localStorage.removeItem(saveKeyForSlot(slotId));
     if(slotId===AUTO_SAVE_SLOT)autosaveElapsed=0;

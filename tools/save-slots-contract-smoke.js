@@ -240,6 +240,14 @@ assert(saveManualGame("manual2"),"manual2 재작성");
 applySlotMarker("M3-RESTORED",3);
 assert(saveManualGame("manual3"),"manual3 재작성");
 
+const slotsBeforeQaDelete=allSlotRaw();
+window.QA_MODE={enabled:true};
+assert(clearSaveData("manual2")===false,
+  "QA 모드에서는 기존 저장 슬롯 삭제를 거부해야 합니다.");
+same(allSlotRaw(),slotsBeforeQaDelete,
+  "QA 모드의 삭제 요청은 어떤 저장 슬롯도 바꾸면 안 됩니다.");
+window.QA_MODE=null;
+
 MANUAL_SAVE_SLOTS.forEach(slotId=>{
   const snapshot=allSlotRaw();
   autosaveElapsed=3.25;
@@ -383,7 +391,7 @@ assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 
-console.log("SAVE_SLOTS_CONTRACT_OK 56");
+console.log("SAVE_SLOTS_CONTRACT_OK 58");
 `;
 
 const context={
