@@ -100,6 +100,14 @@ const prologueCookSequence=STORY_SCENES["PR-01"].lines
   .filter(line=>line.cook)
   .map(line=>line.cook.dishId);
 same(prologueCookSequence,["tofu","oden","skewer","shrimpTempura","yakisoba","kimchi"],"PR-01 조리 순서");
+const prologueTutorialLines=STORY_SCENES["PR-01"].lines.filter(line=>line.cook?.tutorial);
+assert(prologueTutorialLines.every(line=>line.showGameUI===true),
+  "사장이 조리를 안내하는 모든 튜토리얼 줄에서는 게임 UI를 보여야 합니다.");
+const recipeGuideIndex=STORY_SCENES["PR-01"].lines.findIndex(line=>line.text?.includes("레시피를 알려주겠네"));
+assert(recipeGuideIndex>=0&&STORY_SCENES["PR-01"].lines[recipeGuideIndex].showGameUI===true,
+  "사장이 레시피 안내를 시작하는 대사부터 게임 UI가 보여야 합니다.");
+assert(STORY_SCENES["PR-01"].lines[recipeGuideIndex-1].showGameUI!==true,
+  "레시피 안내 전 일반 대화에서는 다른 게임 UI를 계속 숨겨야 합니다.");
 const prologueOpening=STORY_SCENES["PR-01"].lines.slice(0,6);
 same(prologueOpening.slice(0,4).map(line=>line.cinematic?.beat),
   ["exit","pause","rainRun","enter"],
@@ -248,7 +256,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 60");
+console.log("STORY_CONTRACT_OK 63");
 `;
 
 const context={

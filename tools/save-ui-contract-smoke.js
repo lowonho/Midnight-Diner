@@ -7,6 +7,8 @@ const vm=require("node:vm");
 const root=path.resolve(__dirname,"..");
 const indexSource=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
+const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
+const packageData=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
 let contractChecks=0;
 
 function assert(condition,message){
@@ -42,6 +44,29 @@ assert(
   saveUiScriptIndex>gameScriptIndex,
   "save-ui.js는 게임 전역 함수를 사용할 수 있도록 game.js 뒤에 로드되어야 합니다."
 );
+
+assert(indexSource.includes("<title>달빛식탁 - 낮의 준비, 밤의 한 접시</title>"),
+  "브라우저 제목에 새 게임명 달빛식탁이 표시되어야 합니다.");
+assert(indexSource.includes("<strong>달빛식탁</strong>"),
+  "타이틀과 게임 HUD 로고에 달빛식탁이 표시되어야 합니다.");
+assert(indexSource.includes('aria-label="달빛식탁 게임 화면"')
+  &&indexSource.includes('aria-label="달빛식탁 게임"'),
+  "게임 화면 접근성 이름도 달빛식탁으로 변경되어야 합니다.");
+assert(!indexSource.includes("심야식당"),
+  "실제 게임 화면에 이전 게임명 심야식당이 남아 있으면 안 됩니다.");
+assert(packageData.description.startsWith("달빛식탁 Phaser 프로토타입"),
+  "프로젝트 설명에도 새 게임명을 사용해야 합니다.");
+
+const storyUiOnlyRule=storyCssSource.match(
+  /\.game-frame:has\(>\s*#storyOverlay\.open:not\(\.show-game-ui\)\)\s*>\s*:not\(#gameCanvas\):not\(#storyOverlay\)\s*\{([^}]+)\}/
+);
+assert(storyUiOnlyRule,
+  "스토리 대화가 열리면 게임 캔버스와 스토리 오버레이 외 형제 UI를 숨기는 규칙이 있어야 합니다.");
+const normalizedStoryUiOnlyRule=storyUiOnlyRule[1].replace(/\s+/g,"");
+assert(normalizedStoryUiOnlyRule.includes("opacity:0!important")
+  &&normalizedStoryUiOnlyRule.includes("visibility:hidden!important")
+  &&normalizedStoryUiOnlyRule.includes("pointer-events:none!important"),
+  "스토리 중 다른 UI는 보이지 않고 입력도 받지 않아야 합니다.");
 
 const bootstrap=`
 let runtimeChecks=0;

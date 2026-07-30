@@ -10,6 +10,7 @@ let storySceneIntroTimer=null;
 let storyUiInitialized=false;
 const STORY_CHECKPOINT_VERSION=1;
 const STORY_SCENE_INTRO_DURATION=1700;
+const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
 
 function createStoryGuestState(){
   return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
@@ -96,6 +97,10 @@ function storyDisplayName(id){
 
 function storySceneCardText(scene){
   return scene?`${scene.id} · ${scene.title}`:"";
+}
+
+function setStoryGameUiVisible(visible){
+  document.getElementById("storyOverlay")?.classList.toggle(STORY_GAME_UI_VISIBLE_CLASS,!!visible);
 }
 
 function clearStorySceneIntro(){
@@ -287,6 +292,7 @@ function clearStoryRuntime(){
   const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
   clearStoryTyping();
   clearStorySceneIntro();
+  setStoryGameUiVisible(false);
   clearStoryCinematic();
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
@@ -376,6 +382,7 @@ function beginNextStoryScene(){
   storySession.lines=scene.lines.map(line=>({...line,choices:line.choices?.map(choice=>({...choice}))}));
   storySession.lineIndex=0;
   resetStoryStage();
+  setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
   showStorySceneIntro();
@@ -403,6 +410,7 @@ function showStoryLine(){
   const choices=document.getElementById("storyChoices");
   const next=document.getElementById("storyNextButton");
   const speakerId=line.speaker||null;
+  setStoryGameUiVisible(line.showGameUI===true);
   applyStoryCinematic(line);
   speakerEl.classList.remove("revealed");
   speakerEl.hidden=!speakerId;
@@ -763,6 +771,7 @@ function finishStorySession(){
   if(!storySession)return;
   clearStoryTyping();
   clearStorySceneIntro();
+  setStoryGameUiVisible(false);
   clearTimeout(storyRevealTimer);
   document.getElementById("storyRevealNotice").classList.remove("show");
   document.getElementById("storyOverlay").classList.remove("open");

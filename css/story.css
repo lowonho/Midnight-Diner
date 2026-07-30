@@ -24,6 +24,16 @@
   pointer-events: none;
 }
 .story-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+/* 스토리 대화 중에는 Phaser 장면과 자막 UI만 남깁니다.
+   사장이 조리를 알려주는 줄(.show-game-ui)은 튜토리얼 HUD를 볼 수 있도록 예외입니다.
+   각 UI의 open/show 상태 자체는 건드리지 않아 대화가 끝나면 원래 상태로 복귀합니다. */
+.game-frame:has(> #storyOverlay.open:not(.show-game-ui)) > :not(#gameCanvas):not(#storyOverlay) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .story-overlay.story-cinematic-active {
   background: linear-gradient(180deg,rgba(6,4,3,.16),rgba(6,4,3,.12) 52%,rgba(6,4,3,.92) 82%);
 }

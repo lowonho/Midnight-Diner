@@ -2,7 +2,7 @@
   "name": "midnight-diner",
   "version": "1.0.0",
   "private": true,
-  "description": "심야식당 Phaser 프로토타입. 게임은 빌드 없이 index.html 로 바로 실행됩니다. 여기 의존성은 에셋 변환 스크립트 전용입니다.",
+  "description": "달빛식탁 Phaser 프로토타입. 게임은 빌드 없이 index.html 로 바로 실행됩니다. 여기 의존성은 에셋 변환 스크립트 전용입니다.",
   "type": "commonjs",
   "scripts": {
     "test:story": "node tools/story-contract-smoke.js",
