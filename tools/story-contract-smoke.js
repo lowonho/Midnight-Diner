@@ -103,6 +103,24 @@ same(prologueCookSequence,["tofu","oden","skewer","shrimpTempura","yakisoba","ki
 const prologueTutorialLines=STORY_SCENES["PR-01"].lines.filter(line=>line.cook?.tutorial);
 assert(prologueTutorialLines.every(line=>line.showGameUI===true),
   "사장이 조리를 안내하는 모든 튜토리얼 줄에서는 게임 UI를 보여야 합니다.");
+assert(prologueTutorialLines.every(line=>
+  line.speaker==="owner"&&storySpeakerLabel(line)==="사장"),
+  "프롤로그 조리 시작 안내는 설명문이 아니라 사장의 대사로 표시되어야 합니다.");
+same(
+  Object.fromEntries(prologueTutorialLines.map(line=>[line.cook.dishId,line.text])),
+  {
+    tofu:"두부김치는 두부를 일정한 크기로 썰고\\n접시에 담으면 되네.",
+    oden:"어묵탕은 국물이 맑게 우러나도록\\n적당한 불로 끓이면 되네.",
+    skewer:"닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\\n뒷면도 타지 않게 구우면 되네.",
+    shrimpTempura:"새우튀김은 튀김옷이 노릇해졌을 때 건져서\\n바스켓을 가볍게 털어 기름을 빼면 되네.",
+    yakisoba:"볶음우동은 면과 채소, 소스를 철판에 올리고\\n뒤집개로 골고루 볶으면 되네.",
+    kimchi:"김치전은 반죽을 팬에 고르게 펴고\\n앞면이 노릇해지면 뒤집어 뒷면까지 익히면 되네."
+  },
+  "프롤로그 음식별 사장 조리 안내 대사"
+);
+assert(!STORY_SCENES["PR-01"].lines.some(line=>
+  line.text?.includes("사장의 안내에 따라")),
+  "프롤로그 조리 안내에 포괄적인 설명문이 남아 있으면 안 됩니다.");
 const recipeGuideIndex=STORY_SCENES["PR-01"].lines.findIndex(line=>line.text?.includes("레시피를 알려주겠네"));
 assert(recipeGuideIndex>=0&&STORY_SCENES["PR-01"].lines[recipeGuideIndex].showGameUI===true,
   "사장이 레시피 안내를 시작하는 대사부터 게임 UI가 보여야 합니다.");
@@ -268,7 +286,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 67");
+console.log("STORY_CONTRACT_OK 70");
 `;
 
 const context={
