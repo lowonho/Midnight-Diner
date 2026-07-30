@@ -123,10 +123,16 @@ function cutDoneSampleMarkup(data,total){
 // 비어 있으면 .mg-strip:empty 가 접어서 3열이 613.2 를 그대로 씁니다.
 function cutScreenMarkup(data,{board,done,total,footer=""}){
   return `<div class="cut-screen">
-      <aside class="cut-card cut-ing-card">
-        <h3 class="cut-card-title starred">재료</h3>
-        <div class="cut-card-figure">${cutSampleMarkup(data,0)}</div>
-        <p class="cut-card-caption">${cutIngredientLabel(data)} <b>×${data.ingredientCount||1}</b></p>
+      <aside class="cut-col">
+        <div class="cut-card cut-ing-panel">
+          <h3 class="cut-card-title starred">재료</h3>
+          <div class="cut-ing-list">
+            <div class="cut-ing-card">
+              <div class="cut-card-figure">${cutSampleMarkup(data,0)}</div>
+              <p class="cut-card-caption">${cutIngredientLabel(data)} <b>×${data.ingredientCount||1}</b></p>
+            </div>
+          </div>
+        </div>
       </aside>
       <div class="cut-main">
         <div class="cut-board">${board}</div>

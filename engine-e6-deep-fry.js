@@ -271,10 +271,16 @@ function renderFryer() {
   if (raised) { dom.miniDescription.textContent = `스페이스바를 빠르게 두 번 탁탁 눌러 ${itemName}의 기름을 털어내세요.`; dom.miniTimer.textContent = `탁탁 ${taps} / 2`; }
   dom.miniContent.innerHTML = `
     <div class="fry-screen">
-      <aside class="fry-card fry-ing-card">
-        <h3 class="fry-card-title starred">재료</h3>
-        <div class="fry-ing-figure">${fryIngredientArt(data.fryerStyle, itemName)}</div>
-        <p class="fry-ing-name">${itemName} <b>× 1</b></p>
+      <aside class="fry-col">
+        <div class="fry-card fry-ing-panel">
+          <h3 class="fry-card-title starred">재료</h3>
+          <div class="fry-ing-list">
+            <div class="fry-ing-card">
+              <div class="fry-ing-figure">${fryIngredientArt(data.fryerStyle, itemName)}</div>
+              <p class="fry-ing-name">${itemName} <b>× 1</b></p>
+            </div>
+          </div>
+        </div>
       </aside>
 
       <div class="fry-work-area">

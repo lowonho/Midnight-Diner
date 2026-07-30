@@ -59,6 +59,12 @@
      넓은 쪽에 맞췄습니다. */
   --mg-prog-h:      calc(140.6 * var(--upx));
   --mg-prog-time-h: calc(198.1 * var(--upx));
+
+  /* 좌 재료 패널 안에서 카드 한 장이 갖는 높이.
+     재료가 하나뿐인 화면(E1 · E6 · E10)에서만 씁니다. 묶어 두지 않으면
+     카드 한 장이 칸 전체(523.2)로 늘어나 그림이 허공에 뜹니다.
+     원래 그림 자리가 200 · 150 · 190 으로 셋이 달랐던 것을 여기로 모았습니다. */
+  --mg-ing-card-h: calc(280 * var(--upx));
 }
 
 /* ---- 3열 격자 (11종 공통) -----------------------------------
@@ -233,6 +239,98 @@
   align-content: start;
 }
 
+/* ---- 좌 재료 패널 — 12화면 공용 틀 ---------------------------
+   좌 칸은 원래 세 가지 모양이 섞여 있었습니다.
+     P족(7)  aside.○-col > .○-ing-panel > 제목 + .○-ing-list > 카드 N
+     L족(2)  aside.○-col > 제목 + 카드 N      (E7 · E8꼬치 — 제목이 카드 밖)
+     S족(3)  aside.○-card 자체가 카드 한 장   (E1 · E6 · E10 — 목록이 없음)
+   P족으로 통일했습니다. 이유는 둘입니다.
+     · 재료 패널 배경이 12화면 모두 한 장(250 x 칸 높이)이 됩니다 — 에셋 한 벌로 끝납니다
+     · 제목이 언제나 패널 안 맨 위 같은 자리에 앉습니다 (L족은 나무 바닥 위에 떴습니다)
+
+   ⚠️ 이 블록은 바로 위 `.cut-card { display:grid }` 보다 뒤에 있어야 합니다.
+      순서를 바꾸면 좌 패널이 다시 grid 로 돌아가 목록이 늘어나지 않습니다. */
+
+/* S족이 쓸 열 껍데기. P족(.fp-col · .bt-col …)과 같은 값입니다. */
+.cut-col,
+.fry-col,
+.anchovy-col {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12 * var(--upx));
+  min-width: 0;
+}
+
+/* 패널이 칸 높이를 다 씁니다.
+   E1 이 300, E6 이 250 에서 끊기던 것이 여기서 풀립니다. */
+.sc-ing-panel,
+.sk-ing-panel,
+.cut-ing-panel,
+.fry-ing-panel,
+.anchovy-ing-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--upx));
+  min-height: 0;
+}
+
+/* 재료가 둘 이상인 화면 — 남은 자리를 카드가 똑같이 나눠 갖습니다.
+   .bt-ing-list · .kf-ing-list · .fp-ing-list · .ts-ing-list 와 같은 방식입니다. */
+.sc-ing-list,
+.sk-ing-list {
+  flex: 1;
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: calc(10 * var(--upx));
+  min-height: 0;
+}
+
+/* 재료가 하나뿐인 화면 — 카드를 세로 가운데에 두고 높이를 --mg-ing-card-h 로 묶습니다.
+   E11(.os-ing-list)이 같은 이유로 쓰던 방식입니다. */
+.cut-ing-list,
+.fry-ing-list,
+.anchovy-ing-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+.cut-ing-card,
+.fry-ing-card,
+.anchovy-ing-card {
+  flex: 0 1 var(--mg-ing-card-h);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(8 * var(--upx));
+}
+
+/* 패널 안쪽 카드 겉모습 — .bt-ing-card · .os-ing-card 와 같은 값입니다.
+   ⚠️ E7 .sc-goal 과 E8꼬치 .sk-ing-card 는 원래 바깥 카드 껍데기(.○-panel)를
+      쓰고 있었습니다. 패널 안으로 들어가면서 안쪽 카드 모양으로 바뀝니다. */
+.sc-goal,
+.sk-ing-card,
+.cut-ing-card,
+.fry-ing-card,
+.anchovy-ing-card {
+  padding: calc(8 * var(--upx)) calc(6 * var(--upx));
+  border: 2px solid #7d4f2a;
+  border-radius: calc(9 * var(--upx));
+  background: linear-gradient(#2b1b11,#180e08);
+  color: #f0dcb4;
+}
+
+/* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
+   원래 200(E1) · 150(E6) · 190(E10) 으로 셋이 달랐던 에셋 자리가 하나가 됩니다. */
+.cut-ing-card .cut-card-figure,
+.fry-ing-card .fry-ing-figure,
+.anchovy-ing-card .anchovy-card-figure {
+  height: auto;
+  min-height: 0;
+}
+
 /* ---- 우측 진행도 카드 높이 통일 ------------------------------
    ⚠️ 이 규칙은 위 `.cut-card` 카드 껍데기(display:grid) 보다 뒤에 있어야
       display:flex 이 살아납니다. 순서를 바꾸지 마세요.
@@ -285,9 +383,9 @@
 }
 
 /* 제목 양옆의 ★ 는 .starred 를 붙였을 때만 나옵니다.
-   ⚠️ 닭꼬치(.sk-col-title)만 engine-e8-order-place.js 가 "★ 재료 ★" 를
-      글자로 직접 써서 이 규칙을 안 탑니다. 맞추려면 그 한 줄을
-      <h3 class="sk-col-title starred">재료</h3> 로 고치면 됩니다. */
+   닭꼬치(.sk-col-title)만 engine-e8-order-place.js 가 "★ 재료 ★" 를 글자로
+   직접 써서 이 규칙을 안 탔는데, 좌 칸 통일 때 .starred 로 바꿨습니다.
+   이제 13화면이 같은 ★ 를 씁니다. */
 /* ---- 게이지 바 + 포인터 마커 (공용 규격) --------------------
    원래 높이가 28(.progress-track) · 30(.prep-timing-bar) · 34(.doneness-gauge)
    · 38(.heat-gauge) · 46(.fry-temp-track) 다섯 가지였습니다.

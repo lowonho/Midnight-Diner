@@ -201,13 +201,11 @@
   font-weight: 800;
 }
 .cut-card-caption b { color: var(--gold-bright); }
-/* 왼쪽 재료 카드는 세로 가운데에 앉습니다 (레퍼런스와 같은 위치) */
-.cut-ing-card {
-  align-self: center;
-  height: min(calc(300 * var(--upx)), 100%);
-  grid-template-rows: auto minmax(0,1fr) auto;
-  align-content: stretch;
-}
+/* 왼쪽 재료 카드는 세로 가운데에 앉습니다 (레퍼런스와 같은 위치)
+   ⚠️ 여기 있던 `height: min(300, 100%)` 이 좌 칸을 300 에서 끊던 규칙입니다.
+      좌 칸을 12화면 공통 틀(.cut-col > .cut-ing-panel > .cut-ing-list)로
+      바꾸면서 지웠습니다. 이제 패널이 칸 높이(523.2)를 다 쓰고, 카드 높이는
+      css/minigame-parts.css 의 --mg-ing-card-h 하나가 정합니다. */
 /* 오른쪽 두 카드는 위에서부터 차곡차곡 쌓입니다 */
 .cut-side {
   height: 100%;
@@ -919,7 +917,9 @@
 /* 카드는 세로로 쌓고 가운데 정렬합니다. 재료가 하나뿐인 게임(냄비에 넣기·육수)에서
    카드 한 장이 칸 전체로 늘어나지 않도록 높이를 flex-basis 로 묶어 둡니다. */
 .os-ing-list { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: calc(10 * var(--upx)); }
-.os-ing-card { flex: 0 1 calc(238 * var(--upx)); min-height: 0; }
+/* 카드 높이는 좌 칸 공용 변수(--mg-ing-card-h)를 씁니다. 원래 238 이었는데
+   E1 · E6 · E10 과 그림 자리를 맞추려고 280 으로 모았습니다. */
+.os-ing-card { flex: 0 1 var(--mg-ing-card-h); min-height: 0; }
 .os-ing-card {
   display: grid;
   grid-template-rows: minmax(0,1fr) auto;
@@ -1822,10 +1822,13 @@
 .sk-col { display: flex; flex-direction: column; gap: calc(14 * var(--upx)); min-width: 0; }
 /* .sk-col-title · .sk-panel → css/minigame-parts.css */
 
-/* 재료 카드 */
-.sk-ing-card { display: grid; gap: calc(6 * var(--upx)); cursor: grab; touch-action:none; }
+/* 재료 카드
+   좌 칸 통일 뒤로는 .sk-ing-list 가 남은 자리를 카드 2장에 똑같이 나눠 주므로,
+   그림 자리(.sk-ing-art)가 늘어난 만큼 받아 가고 이름 줄은 아래에 붙습니다.
+   조각은 전부 top/left 50% 기준이라 자리가 커져도 가운데를 지킵니다. */
+.sk-ing-card { display: grid; grid-template-rows: minmax(0,1fr) auto; gap: calc(6 * var(--upx)); cursor: grab; touch-action:none; }
 .sk-ing-card:active { cursor: grabbing; }
-.sk-ing-art { position: relative; height: calc(92 * var(--upx)); }
+.sk-ing-art { position: relative; min-height: calc(92 * var(--upx)); }
 .sk-ing-art .sk-piece { position: absolute; left: 50%; top: 50%; width: calc(52 * var(--upx)); height: calc(36 * var(--upx)); }
 .sk-ing-art .sk-piece:nth-child(1) { transform: translate(-92%,-80%) rotate(-8deg); }
 .sk-ing-art .sk-piece:nth-child(2) { transform: translate(-8%,-72%) rotate(7deg); }

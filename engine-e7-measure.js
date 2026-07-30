@@ -97,9 +97,11 @@ function sauceBottleMarkup(item,extraClass=""){
 }
 
 // 왼쪽 재료 목표 카드. 고른 소스통은 테두리가 밝아집니다.
+// 좌 칸 통일 뒤로는 .sc-ing-panel 안에 들어가는 '안쪽 카드'라 바깥 카드
+// 껍데기(.sc-panel)를 쓰지 않습니다. 겉모습은 css/minigame-parts.css 가 줍니다.
 function sauceGoalMarkup(item,selected){
   const status=sauceStatus(item);
-  return `<div class="sc-panel sc-goal ${status} ${selected?"selected":""}">
+  return `<div class="sc-goal ${status} ${selected?"selected":""}">
       <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
       <span class="sc-goal-info">
         <b class="sc-goal-name">${item.label}</b>
@@ -133,8 +135,10 @@ function renderYakisobaSauce(){
     ${data.recipeId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",4):""}
     <div class="sauce-lab">
       <aside class="sc-col">
-        <h3 class="sc-col-title starred">재료 목표</h3>
-        ${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}
+        <div class="sc-panel sc-ing-panel">
+          <h3 class="sc-col-title starred">재료 목표</h3>
+          <div class="sc-ing-list">${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}</div>
+        </div>
       </aside>
 
       <div class="sc-board ${exact===total?"done mixing":""}" style="--sauce-main:${data.recipe.bowlColor||"#a24a1f"};--sauce-dark:${data.recipe.bowlDark||"#3d1a0e"}">

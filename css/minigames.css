@@ -232,8 +232,9 @@
   /* 격자는 css/minigame-parts.css 공용 규격입니다.
      ⚠️ 원래 이 게임만 좌 200 / 우 300 으로 좌우가 달랐습니다. 이제 둘 다 250 입니다. */
 }
-/* 재료 카드는 내용만큼만, 가운데와 오른쪽은 플레이 영역 높이를 다 씁니다 */
-.fry-ing-card { align-self: start; }
+/* ⚠️ 여기 있던 `.fry-ing-card { align-self: start }` 가 좌 칸을 250 에서 끊던
+   규칙입니다. 좌 칸을 12화면 공통 틀(.fry-col > .fry-ing-panel > .fry-ing-list)로
+   바꾸면서 지웠습니다. 이제 세 열이 모두 플레이 영역 높이를 다 씁니다. */
 
 /* ── 좌우 카드 공통 ─────────────────────────────────────────── */
 /* .fry-card 와 .fry-card-title 은 css/minigame-parts.css 에 있습니다. */
@@ -1252,7 +1253,10 @@
 
 /* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ──────────────────── */
 .ts-ing-panel { flex: 1; display: flex; flex-direction: column; }
-.ts-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: calc(10 * var(--upx)); }
+/* 카드 높이는 --mg-ing-card-h 를 넘지 않고, 남으면 세로 가운데로 모입니다.
+   김치전은 재료가 하나뿐이라 1fr 이면 카드가 칸 전체(467.2)로 늘어나
+   E1 · E6 · E10 · E11(280)과 그림 자리가 어긋났습니다. */
+.ts-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--mg-ing-card-h)); align-content: center; gap: calc(10 * var(--upx)); }
 .ts-ing-card {
   display: grid;
   grid-template-rows: minmax(0,1fr) auto;
