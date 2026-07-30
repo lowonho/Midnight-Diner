@@ -102,15 +102,22 @@ function saveManualGame(slotId){
 }
 
 function clearSaveData(slotId=AUTO_SAVE_SLOT){
+  // QA_REMOVE: QA 스토리 탐색 중에는 기존 저장 슬롯을 삭제하지 않습니다.
+  if(window.QA_MODE?.enabled)return false;
   try{
     localStorage.removeItem(saveKeyForSlot(slotId));
     if(slotId===AUTO_SAVE_SLOT)autosaveElapsed=0;
-  }catch(error){console.warn(`${slotId} 저장 데이터를 삭제하지 못했습니다.`,error);}
+    return true;
+  }catch(error){
+    console.warn(`${slotId} 저장 데이터를 삭제하지 못했습니다.`,error);
+    return false;
+  }
 }
 
 function clearAllSaveData(){
-  SAVE_SLOT_DEFS.forEach(definition=>clearSaveData(definition.id));
+  const cleared=SAVE_SLOT_DEFS.map(definition=>clearSaveData(definition.id)).every(Boolean);
   autosaveElapsed=0;
+  return cleared;
 }
 
 function restoreGameState(data){

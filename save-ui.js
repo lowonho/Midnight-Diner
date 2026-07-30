@@ -51,10 +51,10 @@ function openSaveSlotDialog(mode="load",origin="title",trigger=null){
     ?"저장하기"
     :saveSlotDialogOrigin==="game"?"불러오기":"이어하기";
   elements.description.textContent=saveSlotDialogMode==="save"
-    ?"수동 저장 슬롯을 선택하세요. 자동 저장 슬롯은 게임 진행에 따라 갱신됩니다."
+    ?"수동 저장 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다."
     :(saveSlotDialogOrigin==="game"
-      ?"불러올 슬롯을 선택하세요. 현재 진행 상황은 선택한 저장 시점으로 바뀝니다."
-      :"이어갈 저장 슬롯을 선택하세요.");
+      ?"불러올 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다."
+      :"이어갈 저장 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다.");
   setSaveSlotStatus("");
   renderSaveSlotList();
   elements.overlay.classList.add("open");
@@ -107,7 +107,7 @@ function renderSaveSlotList(){
 
 function createSaveSlotItem(slot){
   const item=document.createElement("div");
-  item.className="save-slot-item";
+  item.className=`save-slot-item${slot.data?" has-data":""}`;
   item.setAttribute("role","listitem");
 
   const button=document.createElement("button");
@@ -163,6 +163,17 @@ function createSaveSlotItem(slot){
 
   button.append(name,details,savedTime);
   item.append(button);
+  if(slot.data){
+    const deleteButton=document.createElement("button");
+    deleteButton.type="button";
+    deleteButton.className="save-slot-delete";
+    deleteButton.dataset.slotId=slot.id;
+    deleteButton.textContent="삭제";
+    deleteButton.title=`${slot.label} 데이터 삭제`;
+    deleteButton.setAttribute("aria-label",`${slot.label} 저장 데이터 삭제`);
+    deleteButton.addEventListener("click",event=>deleteSaveSlot(slot,event));
+    item.append(deleteButton);
+  }
   return item;
 }
 
@@ -256,6 +267,49 @@ function loadFromSelectedSlot(slot){
     return;
   }
   closeSaveSlotDialog();
+}
+
+function deleteSaveSlot(slot,event=null){
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  if(!slot?.data)return false;
+
+  const autoSaveNotice=!slot.manual&&saveSlotDialogOrigin==="game"
+    ?"\n게임을 계속하면 현재 진행 상황이 다시 자동 저장됩니다."
+    :"";
+  if(!window.confirm(
+    `${slot.label} 데이터를 삭제할까요?\n삭제한 데이터는 복구할 수 없습니다.${autoSaveNotice}`
+  ))return false;
+
+  let deleted=false;
+  try{
+    deleted=typeof clearSaveData==="function"&&clearSaveData(slot.id);
+  }catch(error){
+    console.warn("저장 데이터를 삭제하지 못했습니다.",error);
+  }
+  if(!deleted){
+    setSaveSlotStatus("저장 데이터를 삭제하지 못했습니다.",true);
+    return false;
+  }
+
+  renderSaveSlotList();
+  if(typeof updateContinueButton==="function")updateContinueButton();
+  const {list,close,load}=saveSlotElements();
+  if(load&&typeof hasAnySaveData==="function"){
+    load.disabled=saveSlotDialogOrigin!=="game"||!hasAnySaveData();
+  }
+  setSaveSlotStatus(
+    !slot.manual&&saveSlotDialogOrigin==="game"
+      ?"자동 저장 데이터를 삭제했습니다. 게임을 계속하면 다시 자동 저장됩니다."
+      :`${slot.label} 데이터를 삭제했습니다.`
+  );
+  requestAnimationFrame(()=>{
+    const nextControl=list?.querySelector(
+      ".save-slot-card:not(:disabled), .save-slot-delete:not(:disabled)"
+    );
+    (nextControl||close)?.focus();
+  });
+  return true;
 }
 
 function setSaveSlotStatus(message,isError=false){

@@ -25,25 +25,55 @@
 }
 .story-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
 
+/* 스토리 대화 중에는 Phaser 장면과 자막 UI만 남깁니다.
+   사장이 조리를 알려주는 줄(.show-game-ui)은 튜토리얼 HUD를 볼 수 있도록 예외입니다.
+   각 UI의 open/show 상태 자체는 건드리지 않아 대화가 끝나면 원래 상태로 복귀합니다. */
+.game-frame:has(> #storyOverlay.open:not(.show-game-ui)) > :not(#gameCanvas):not(#storyOverlay) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.story-overlay.story-cinematic-active {
+  background: linear-gradient(180deg,rgba(6,4,3,.16),rgba(6,4,3,.12) 52%,rgba(6,4,3,.92) 82%);
+}
+
 .story-scene-meta {
-  flex: none;
-  align-self: flex-start;
-  max-width: 70%;
+  position: absolute;
+  z-index: 20;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: calc(10 * var(--upx));
-  padding: calc(7 * var(--upx)) calc(12 * var(--upx));
-  border: 1px solid rgba(224,163,77,.65);
-  border-radius: calc(6 * var(--upx));
-  background: rgba(22,12,8,.88);
-  box-shadow: 0 calc(4 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
+  justify-content: center;
+  gap: calc(18 * var(--upx));
+  background: rgba(8,5,4,.96);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.035);
+  transition: opacity .28s ease,visibility .28s ease,transform .45s ease;
+  pointer-events: none;
+}
+.story-scene-meta.show {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
 }
 .story-scene-meta span {
   color: #c79550;
-  font-size: calc(11 * var(--upx));
-  letter-spacing: .12em;
+  font-size: calc(17 * var(--upx));
+  letter-spacing: .22em;
 }
-.story-scene-meta strong { color: #ffe09a; font-size: calc(15 * var(--upx)); }
+.story-scene-meta strong {
+  min-width: min(calc(620 * var(--upx)),72%);
+  padding: calc(18 * var(--upx)) calc(32 * var(--upx));
+  border-block: 1px solid rgba(224,163,77,.65);
+  color: #ffe09a;
+  font-size: calc(35 * var(--upx));
+  letter-spacing: .03em;
+  text-align: center;
+  text-shadow: 0 0 calc(28 * var(--upx)) rgba(255,195,98,.24);
+}
 
 /* 배우 무대: 주인공은 항상 왼쪽 끝, 대화 상대는 등장 순서대로 오른쪽 끝까지 균등 배치됩니다.
    위치와 폭은 story.js가 --actor-x / --actor-w 로 넣어 주며, 인원이 늘면 부드럽게 다시 벌어집니다. */
@@ -52,6 +82,15 @@
   z-index: 2;
   flex: 1 1 auto;
   min-height: 0;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .2s ease,visibility .2s ease;
+}
+.story-overlay.scene-intro .story-stage,
+.story-overlay.scene-intro .story-dialogue-box,
+.story-overlay.story-cinematic-active .story-stage {
+  opacity: 0;
+  visibility: hidden;
 }
 .story-actor {
   position: absolute;
@@ -147,6 +186,7 @@
 /* 선택지 유무·대사 길이와 상관없이 높이 고정(최대 상태 기준: 이름줄 + 2줄 대사 + 선택지 한 줄) */
 .story-dialogue-box {
   position: relative;
+  z-index: 4;
   flex: none;
   display: flex;
   flex-direction: column;
@@ -155,6 +195,9 @@
   border-radius: calc(10 * var(--upx));
   background: linear-gradient(rgba(33,19,13,.97),rgba(18,10,7,.98));
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #25130c,inset 0 0 0 calc(5 * var(--upx)) #c1843e,0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.75);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .2s ease,visibility .2s ease;
 }
 .story-speaker-row {
   position: relative;
@@ -195,6 +238,7 @@
   color: #f1e0c2;
   font-size: calc(18 * var(--upx));
   line-height: 1.7;
+  white-space: pre-line;
   word-break: keep-all;
 }
 /* 선택지는 개수와 무관하게 항상 가로 한 줄로 나열합니다(개수가 늘면 칸 폭만 좁아짐).
@@ -249,4 +293,10 @@
 }
 @keyframes storyNext {
   50% { transform: translateY(calc(3 * var(--upx))); opacity: .45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-scene-meta,
+  .story-stage,
+  .story-dialogue-box { transition: none; }
 }

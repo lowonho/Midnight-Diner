@@ -6,8 +6,11 @@ const STORY_GUEST_IDS=["gicheol"];
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
+let storySceneIntroTimer=null;
 let storyUiInitialized=false;
 const STORY_CHECKPOINT_VERSION=1;
+const STORY_SCENE_INTRO_DURATION=1700;
+const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
 
 function createStoryGuestState(){
   return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
@@ -86,10 +89,51 @@ function isCharacterNameRevealed(id){
 }
 
 function storyDisplayName(id){
-  if(!id)return "이야기";
+  if(!id)return "";
   const character=STORY_CHARACTERS[id];
   if(!character)return id;
   return isCharacterNameRevealed(id)?character.name:"???";
+}
+
+function storySpeakerLabel(line){
+  if(line?.speaker)return storyDisplayName(line.speaker);
+  return typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+}
+
+function storySceneCardText(scene){
+  return scene?`${scene.id} · ${scene.title}`:"";
+}
+
+function setStoryGameUiVisible(visible){
+  document.getElementById("storyOverlay")?.classList.toggle(STORY_GAME_UI_VISIBLE_CLASS,!!visible);
+}
+
+function clearStorySceneIntro(){
+  if(storySceneIntroTimer){clearTimeout(storySceneIntroTimer);storySceneIntroTimer=null;}
+  document.getElementById("storySceneMeta")?.classList.remove("show");
+  document.getElementById("storyOverlay")?.classList.remove("scene-intro");
+  if(storySession)storySession.sceneIntroActive=false;
+}
+
+function finishStorySceneIntro(){
+  if(!storySession?.sceneIntroActive)return false;
+  clearStorySceneIntro();
+  showStoryLine();
+  return true;
+}
+
+function showStorySceneIntro(){
+  if(!storySession?.scene)return false;
+  clearStorySceneIntro();
+  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    showStoryLine();
+    return false;
+  }
+  storySession.sceneIntroActive=true;
+  document.getElementById("storySceneMeta")?.classList.add("show");
+  document.getElementById("storyOverlay")?.classList.add("scene-intro");
+  storySceneIntroTimer=setTimeout(finishStorySceneIntro,STORY_SCENE_INTRO_DURATION);
+  return true;
 }
 
 function revealCharacterName(id,showNotice=true){
@@ -252,13 +296,18 @@ function captureStoryCheckpoint(){
 function clearStoryRuntime(){
   const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
   clearStoryTyping();
+  clearStorySceneIntro();
+  setStoryGameUiVisible(false);
+  clearStoryCinematic();
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
   const stage=document.getElementById("storyStage");
+  const nextButton=document.getElementById("storyNextButton");
   if(revealNotice)revealNotice.classList.remove("show");
   if(overlay)overlay.classList.remove("open");
   if(stage)stage.innerHTML="";
+  if(nextButton)nextButton.disabled=false;
   if(state.story)state.story.activeStoryCook=null;
   storySession=null;
   return hadRuntime;
@@ -294,7 +343,7 @@ function restoreStoryCheckpoint(checkpoint){
     pendingCook:restored.pendingCook
   };
 
-  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
   restored.actorIds.forEach(ensureStoryActor);
 
@@ -340,9 +389,10 @@ function beginNextStoryScene(){
   storySession.lines=scene.lines.map(line=>({...line,choices:line.choices?.map(choice=>({...choice}))}));
   storySession.lineIndex=0;
   resetStoryStage();
-  document.getElementById("storySceneTitle").textContent=`${scene.id} · ${scene.title}`;
+  setStoryGameUiVisible(false);
+  document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
-  showStoryLine();
+  showStorySceneIntro();
 }
 
 function clearStoryTyping(){
@@ -367,8 +417,12 @@ function showStoryLine(){
   const choices=document.getElementById("storyChoices");
   const next=document.getElementById("storyNextButton");
   const speakerId=line.speaker||null;
+  const speakerLabel=storySpeakerLabel(line);
+  setStoryGameUiVisible(line.showGameUI===true);
+  applyStoryCinematic(line);
   speakerEl.classList.remove("revealed");
-  speakerEl.textContent=speakerId?storyDisplayName(speakerId):"이야기";
+  speakerEl.hidden=!speakerLabel;
+  speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId);
   choices.innerHTML="";choices.classList.remove("open");
@@ -418,6 +472,12 @@ function renderStoryChoices(line){
 
 function chooseStoryOption(choice,index){
   if(!storySession)return;
+  // QA_REMOVE: 일차별 미리보기에서는 선택 결과를 실제 진행도에 기록하지 않습니다.
+  if(storySession.qaPreview){
+    return typeof qaStoryPreviewChoice==="function"
+      ?qaStoryPreviewChoice(choice,index)
+      :true;
+  }
   const scene=storySession.scene;
   state.story.choices[scene.id]=index;
   if(choice.flag)state.story.flags[choice.flag]=true;
@@ -439,6 +499,11 @@ function chooseStoryOption(choice,index){
 
 function storyAdvance(){
   if(!storySession)return false;
+  // QA_REMOVE: 미리보기에서는 조리·선택·완료 처리 없이 대사 인덱스만 이동합니다.
+  if(storySession.qaPreview){
+    return typeof qaStoryStep==="function"?qaStoryStep(1):true;
+  }
+  if(storySession.sceneIntroActive)return finishStorySceneIntro();
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   const line=storySession.lines[storySession.lineIndex];
   if(line?.choices)return true;
@@ -466,6 +531,7 @@ const STORY_ACTOR_MARGIN=2;
 const STORY_ACTOR_GUTTER=1.5;
 
 function resetStoryStage(){
+  clearStoryCinematic();
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
   if(storySession)storySession.actors=[];
@@ -722,6 +788,8 @@ function finishSuspendedStoryCook(order,satisfaction){
 function finishStorySession(){
   if(!storySession)return;
   clearStoryTyping();
+  clearStorySceneIntro();
+  setStoryGameUiVisible(false);
   clearTimeout(storyRevealTimer);
   document.getElementById("storyRevealNotice").classList.remove("show");
   document.getElementById("storyOverlay").classList.remove("open");
@@ -854,6 +922,7 @@ function pickGeneralGuestBubble(type){
 function cookingDifficultyMultiplier(context){return context?.tutorial?.9:context?.special?1.25:1;}
 
 function runStoryQaFromQuery(){
+  if(!window.QA_MODE?.enabled)return false;
   const params=new URLSearchParams(location.search);
   const sceneId=params.get("qa-story");
   if(!sceneId||!STORY_SCENES[sceneId])return false;
@@ -873,7 +942,11 @@ function runStoryQaFromQuery(){
     updateUI(true);
   }
   playStoryScenes([sceneId]);
-  const lineIndex=Math.max(0,Number(params.get("qa-line"))||0);
+  clearStorySceneIntro();
+  const lineIndex=Math.max(
+    0,
+    Math.min(qaScene.lines.length-1,Math.floor(Number(params.get("qa-line"))||0))
+  );
   for(let i=0;i<lineIndex;i++){
     const line=storySession?.lines[i];
     if(line?.reveal)revealCharacterName(line.reveal,false);

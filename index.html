@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#120b08" />
-  <title>심야식당 - 낮의 준비, 밤의 한 접시</title>
+  <title>달빛식탁 - 낮의 준비, 밤의 한 접시</title>
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -38,7 +38,7 @@
         <div class="title-logo" id="gameTitle">
           <span class="logo-spark">✦</span>
           <small>낮의 준비 · 밤의 한 접시</small>
-          <strong>심야식당</strong>
+          <strong>달빛식탁</strong>
           <em>오늘도 영업합니다</em>
         </div>
         <p>낮에는 재료를 정성껏 준비하고, 밤에는 손님에게 맛있는 안주를 내어주세요.<br />새 게임을 시작하거나 자동 저장·수동 저장 슬롯을 골라 이어서 플레이하세요.</p>
@@ -49,15 +49,15 @@
       </div>
     </section>
 
-    <main id="gameScreen" class="app-screen game-screen" aria-label="심야식당 게임 화면">
+    <main id="gameScreen" class="app-screen game-screen" aria-label="달빛식탁 게임 화면">
       <section id="gameApp" class="game-app">
-        <section class="game-frame" aria-label="심야식당 게임">
+        <section class="game-frame" aria-label="달빛식탁 게임">
           <div id="gameCanvas" role="img" aria-label="캐릭터가 움직이는 식당 주방"></div>
 
           <header id="topHud" class="top-hud hidden-hud">
             <div class="small-logo wood-panel">
               <span>✦</span>
-              <strong>심야식당</strong>
+              <strong>달빛식탁</strong>
               <small id="phaseName">낮 준비</small>
             </div>
             <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
@@ -133,15 +133,15 @@
             <button id="actionButton" class="action-button" type="button">ACTION</button>
           </div>
 
-          <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySpeaker">
-            <div class="story-scene-meta">
+          <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySceneTitle">
+            <div id="storySceneMeta" class="story-scene-meta">
               <span id="storyDayLabel">DAY 1</span>
               <strong id="storySceneTitle">비를 피한 곳</strong>
             </div>
             <div id="storyStage" class="story-stage" aria-hidden="true"></div>
             <div class="story-dialogue-box">
               <div class="story-speaker-row">
-                <strong id="storySpeaker">이야기</strong>
+                <strong id="storySpeaker" hidden></strong>
                 <span id="storyRelationBadge" class="story-relation-badge"></span>
                 <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
               </div>
@@ -248,6 +248,7 @@
   <script src="prep.js"></script>        <!-- 낮 준비물 -->
   <script src="fx.js"></script>          <!-- 파티클 · 팝업 · 안내 화살표 -->
   <script src="story-data.js"></script>
+  <script src="story-cinematic.js"></script><!-- 프롤로그 등 스토리 전용 자동 이동 연출 -->
   <script src="story.js"></script>
   <script src="day.js"></script>
 

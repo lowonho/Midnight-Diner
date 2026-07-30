@@ -20,6 +20,28 @@ window.QA_MODE=Object.freeze({enabled:QA_MODE_ENABLED});
 const QA_UNLOCK_CLICKS=10;        // 처마를 몇 번 눌러야 QA 버튼이 나오는지
 const QA_UNLOCK_RESET_MS=2500;    // 이 간격 안에 이어 눌러야 연속 클릭으로 셉니다
 const QA_UNLOCK_KEY="midnightDiner.qaUnlocked";
+const QA_STORY_MOMENT_ORDER=Object.freeze({
+  newGame:0,
+  dayStart:1,
+  nightStart:2,
+  nightEnd:3
+});
+const QA_STORY_MOMENT_LABELS=Object.freeze({
+  newGame:"프롤로그",
+  dayStart:"낮 시작",
+  nightStart:"밤 영업",
+  nightEnd:"마감"
+});
+const QA_STORY_KIND_LABELS=Object.freeze({
+  sound:"음향",
+  bubble:"일반 손님",
+  system:"시스템",
+  journal:"일지"
+});
+let qaStorySelectedDay=0;
+let qaStorySelectedSceneId=null;
+let qaStorySelectedLine=0;
+let qaStoryReturnContext=null;
 
 function qaBeginSession(message="임시 QA 세션을 시작했습니다."){
   if(!titleGameReady)return;
@@ -133,11 +155,15 @@ function qaMenuNames(ids){
   return ids.map(id=>menuDataById(id)?.displayName||id).join(", ")||"없음";
 }
 
-function qaCancelTransientState(){
-  if(typeof storyTypingTimer!=="undefined"&&storyTypingTimer)clearTimeout(storyTypingTimer);
-  if(typeof storyRevealTimer!=="undefined"&&storyRevealTimer)clearTimeout(storyRevealTimer);
-  if(typeof storySession!=="undefined")storySession=null;
-  document.getElementById("storyOverlay")?.classList.remove("open");
+function qaCancelTransientState({preserveStoryReturn=false}={}){
+  if(typeof clearStoryRuntime==="function")clearStoryRuntime();
+  else{
+    if(typeof storyTypingTimer!=="undefined"&&storyTypingTimer)clearTimeout(storyTypingTimer);
+    if(typeof storyRevealTimer!=="undefined"&&storyRevealTimer)clearTimeout(storyRevealTimer);
+    if(typeof storySession!=="undefined")storySession=null;
+    document.getElementById("storyOverlay")?.classList.remove("open");
+  }
+  if(!preserveStoryReturn)qaStoryReturnContext=null;
   dom.settingsOverlay.classList.remove("open");
   dom.resultOverlay.classList.remove("open");
   dom.menuSelectOverlay.classList.remove("open");
@@ -332,6 +358,358 @@ function qaAbortMini(){
   return true;
 }
 
+/* ============================================================
+   3-1. 일차별 스토리 · 대사 미리보기
+
+   실제 진행용 storyAdvance / chooseStoryOption 흐름을 실행하지 않고,
+   qaPreview 세션에서 원본 대사를 앞뒤로 확인합니다.
+   ============================================================ */
+
+function qaStoryDayForScene(scene){
+  if(!scene)return 0;
+  return scene.moment==="newGame"?0:Math.max(1,Math.min(DayManager.maxDay,Number(scene.day)||1));
+}
+
+function qaStoryDayLabel(day){
+  return Number(day)===0?"프롤로그 · 0일차":`${Number(day)}일차`;
+}
+
+function qaStorySceneList(){
+  return Object.values(STORY_SCENES)
+    .map((scene,sourceIndex)=>({
+      id:scene.id,
+      scene,
+      day:qaStoryDayForScene(scene),
+      moment:scene.moment,
+      sourceIndex,
+      lines:(scene.lines||[]).map((line,index)=>({index,line}))
+    }))
+    .sort((a,b)=>{
+      const dayDifference=a.day-b.day;
+      if(dayDifference)return dayDifference;
+      const momentDifference=(QA_STORY_MOMENT_ORDER[a.moment]??99)
+        -(QA_STORY_MOMENT_ORDER[b.moment]??99);
+      return momentDifference||a.sourceIndex-b.sourceIndex;
+    });
+}
+
+function qaStoryScenesForDay(day){
+  return qaStorySceneList().filter(entry=>entry.day===Number(day));
+}
+
+function qaStoryClampLineIndex(scene,index){
+  const last=Math.max(0,(scene?.lines?.length||1)-1);
+  const parsed=Math.floor(Number(index));
+  return Math.max(0,Math.min(last,Number.isFinite(parsed)?parsed:0));
+}
+
+function qaStoryLineTextValue(line){
+  return String(line?.prompt||line?.text||"");
+}
+
+function qaStoryLineSpeaker(line){
+  if(line?.speaker)return STORY_CHARACTERS[line.speaker]?.name||line.speaker;
+  if(typeof line?.speakerLabel==="string"&&line.speakerLabel.trim())return line.speakerLabel.trim();
+  return QA_STORY_KIND_LABELS[line?.kind]||"";
+}
+
+function qaStoryBranchEntries(line){
+  const branches=[];
+  const addReplies=(replies,prefix)=>{
+    Object.entries(replies||{}).forEach(([tier,text])=>{
+      const value=typeof text==="object"?text?.text:text;
+      if(value)branches.push({label:`${prefix} · ${tier}`,text:String(value)});
+    });
+  };
+  (line?.choices||[]).forEach((choice,index)=>{
+    branches.push({label:`선택 ${index+1}`,text:String(choice.text||"")});
+    if(choice.reply)branches.push({
+      label:`선택 ${index+1} 응답 · ${STORY_CHARACTERS[choice.speaker]?.name||choice.speaker||"주인공"}`,
+      text:String(choice.reply)
+    });
+    addReplies(choice.orderCook?.replies,`선택 ${index+1} 조리 반응`);
+  });
+  addReplies(line?.orderCook?.replies,"조리 반응");
+  return branches;
+}
+
+function qaStoryPreviewIsActive(){
+  return !!(typeof storySession!=="undefined"&&storySession?.qaPreview);
+}
+
+function qaStoryPanel(){
+  return document.getElementById("qaModePanel");
+}
+
+function qaCreateStorySceneButton(entry,panel){
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="qa-story-scene";
+  button.dataset.qaStoryScene=entry.id;
+  button.classList.toggle("active",entry.id===qaStorySelectedSceneId);
+
+  const title=document.createElement("strong");
+  title.textContent=`${entry.id} · ${entry.scene.title}`;
+  const meta=document.createElement("small");
+  meta.textContent=`${QA_STORY_MOMENT_LABELS[entry.moment]||entry.moment} · 대사 ${entry.lines.length}개`;
+  button.append(title,meta);
+  button.addEventListener("click",()=>{
+    qaStorySelectedSceneId=entry.id;
+    qaStorySelectedLine=0;
+    qaRenderStoryBrowser(panel);
+    qaOpenStoryScene(entry.id,0);
+  });
+  return button;
+}
+
+function qaCreateStoryLineButton(entry,lineEntry,panel){
+  const {line,index}=lineEntry;
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="qa-story-line";
+  button.dataset.qaStoryLine=String(index);
+  button.classList.toggle(
+    "active",
+    entry.id===qaStorySelectedSceneId&&index===qaStorySelectedLine
+  );
+  const number=document.createElement("b");
+  number.textContent=String(index+1).padStart(2,"0");
+  const speaker=document.createElement("strong");
+  speaker.textContent=qaStoryLineSpeaker(line);
+  const text=document.createElement("small");
+  text.textContent=qaStoryLineTextValue(line).replace(/\s+/g," ").trim()||"(표시 문구 없음)";
+  button.append(number,speaker,text);
+  button.title=qaStoryLineTextValue(line);
+  button.addEventListener("click",()=>qaOpenStoryScene(entry.id,index));
+  return button;
+}
+
+function qaRenderStoryBranches(panel,line){
+  const wrap=panel?.querySelector("[data-qa-story-branches]");
+  if(!wrap)return;
+  const entries=qaStoryBranchEntries(line);
+  wrap.replaceChildren();
+  wrap.hidden=!entries.length;
+  entries.forEach(entry=>{
+    const row=document.createElement("div");
+    const label=document.createElement("strong");
+    const text=document.createElement("span");
+    label.textContent=entry.label;
+    text.textContent=entry.text;
+    row.append(label,text);
+    wrap.append(row);
+  });
+}
+
+function qaUpdateStoryControls(panel=qaStoryPanel()){
+  if(!panel)return;
+  const entry=qaStorySceneList().find(item=>item.id===qaStorySelectedSceneId);
+  const active=qaStoryPreviewIsActive()&&storySession.scene?.id===entry?.id;
+  const total=entry?.lines.length||0;
+  const index=entry?qaStoryClampLineIndex(entry.scene,qaStorySelectedLine):0;
+  const prev=panel.querySelector("[data-qa-story-prev]");
+  const next=panel.querySelector("[data-qa-story-next]");
+  const position=panel.querySelector("[data-qa-story-position]");
+  const close=panel.querySelector("[data-qa-story-close]");
+  if(prev)prev.disabled=!active||index<=0;
+  if(next)next.disabled=!active||index>=total-1;
+  if(close)close.disabled=!active;
+  if(position)position.textContent=entry
+    ?`${entry.id} · ${index+1} / ${total}`
+    :"장면을 선택하세요";
+}
+
+function qaRenderStoryBrowser(panel=qaStoryPanel()){
+  if(!panel)return;
+  const dayTitle=panel.querySelector("[data-qa-story-day-title]");
+  if(dayTitle)dayTitle.textContent=qaStoryDayLabel(qaStorySelectedDay);
+  panel.querySelectorAll("[data-qa-story-day]").forEach(button=>{
+    button.classList.toggle("active",Number(button.dataset.qaStoryDay)===qaStorySelectedDay);
+  });
+
+  const scenes=qaStoryScenesForDay(qaStorySelectedDay);
+  if(!scenes.some(entry=>entry.id===qaStorySelectedSceneId)){
+    qaStorySelectedSceneId=scenes[0]?.id||null;
+    qaStorySelectedLine=0;
+  }
+  const sceneList=panel.querySelector("[data-qa-story-scenes]");
+  sceneList?.replaceChildren(...scenes.map(entry=>qaCreateStorySceneButton(entry,panel)));
+
+  const selected=scenes.find(entry=>entry.id===qaStorySelectedSceneId)||null;
+  if(selected)qaStorySelectedLine=qaStoryClampLineIndex(selected.scene,qaStorySelectedLine);
+  const lineList=panel.querySelector("[data-qa-story-lines]");
+  lineList?.replaceChildren(...(selected?.lines||[]).map(lineEntry=>
+    qaCreateStoryLineButton(selected,lineEntry,panel)
+  ));
+  const selectedLine=selected?.scene.lines?.[qaStorySelectedLine]||null;
+  qaRenderStoryBranches(panel,selectedLine);
+  qaUpdateStoryControls(panel);
+  lineList?.querySelector(".qa-story-line.active")?.scrollIntoView?.({block:"nearest"});
+}
+
+function qaSelectStoryDay(day){
+  const nextDay=Math.max(0,Math.min(DayManager.maxDay,Math.floor(Number(day)||0)));
+  if(qaStoryPreviewIsActive())qaCloseStoryPreview("",false);
+  qaStorySelectedDay=nextDay;
+  qaStorySelectedSceneId=qaStoryScenesForDay(nextDay)[0]?.id||null;
+  qaStorySelectedLine=0;
+  qaRenderStoryBrowser();
+  qaRefreshPanel(`${qaStoryDayLabel(nextDay)} 대사 목록을 열었습니다.`);
+  return true;
+}
+
+function qaSeedStoryPreviewState(sceneId,lineIndex){
+  state.story=createStoryState();
+  const entries=qaStorySceneList();
+  const currentIndex=entries.findIndex(entry=>entry.id===sceneId);
+  entries.forEach((entry,index)=>{
+    if(index>currentIndex)return;
+    const lineLimit=index<currentIndex?entry.lines.length:lineIndex;
+    entry.lines.slice(0,lineLimit).forEach(({line})=>{
+      if(line.reveal)getStoryGuestState(line.reveal).nameRevealed=true;
+    });
+    if(index<currentIndex&&entry.scene.character&&STORY_GUEST_IDS.includes(entry.scene.character)){
+      const guest=getStoryGuestState(entry.scene.character);
+      guest.affinity+=Number(entry.scene.affinity)||0;
+      if(entry.scene.regular)guest.regular=true;
+    }
+  });
+  updateRelationshipUI();
+}
+
+function qaShowStoryLineAt(lineIndex){
+  if(!qaStoryPreviewIsActive())return false;
+  const scene=storySession.scene;
+  const target=qaStoryClampLineIndex(scene,lineIndex);
+  clearStoryTyping();
+  clearStorySceneIntro();
+  if(typeof storyRevealTimer!=="undefined"&&storyRevealTimer){
+    clearTimeout(storyRevealTimer);
+    storyRevealTimer=null;
+  }
+  document.getElementById("storyRevealNotice")?.classList.remove("show");
+  qaSeedStoryPreviewState(scene.id,target);
+  resetStoryStage();
+  for(let index=0;index<target;index++){
+    const line=storySession.lines[index];
+    if(line?.speaker)ensureStoryActor(line.speaker);
+  }
+  storySession.lineIndex=target;
+  qaStorySelectedDay=qaStoryDayForScene(scene);
+  qaStorySelectedSceneId=scene.id;
+  qaStorySelectedLine=target;
+  document.getElementById("storyOverlay")?.classList.add("open");
+  showStoryLine();
+  finishStoryTyping();
+
+  const nextButton=document.getElementById("storyNextButton");
+  if(nextButton){
+    const atLast=target>=storySession.lines.length-1;
+    nextButton.disabled=atLast;
+    nextButton.style.display="block";
+    nextButton.innerHTML=atLast?'마지막 대사 <span>■</span>':'다음 대사 <span>▼</span>';
+  }
+  qaRenderStoryBrowser();
+  qaRefreshPanel(
+    `${qaStoryDayLabel(qaStorySelectedDay)} · ${scene.id} · ${target+1}/${storySession.lines.length}`
+  );
+  return true;
+}
+
+function qaOpenStoryScene(sceneId,lineIndex=0){
+  if(!QA_MODE_ENABLED)return false;
+  const scene=STORY_SCENES[sceneId];
+  if(!scene)return false;
+  if(!qaEnsureSession())return false;
+
+  if(!qaStoryPreviewIsActive()){
+    qaStoryReturnContext={
+      day:state.day,
+      phase:state.phase,
+      phaseTime:state.phaseTime,
+      paused:state.paused,
+      story:state.story
+    };
+  }
+  qaCancelTransientState({preserveStoryReturn:true});
+  state.day=DayManager.setDay(Number(scene.day)||1);
+  state.phase=scene.timeOfDay==="night"?GAME_PHASES.OPEN:GAME_PHASES.PREP;
+  state.phaseTime=state.phase===GAME_PHASES.OPEN
+    ?(typeof NIGHT_DURATION==="number"?NIGHT_DURATION:0)
+    :null;
+  state.paused=true;
+  state.screen="game";
+  openGameScreen();
+  buildMenuCards();
+  updateUI(true);
+  syncPhaserObjects();
+
+  storySession={
+    qaPreview:true,
+    queue:[sceneId],
+    queueIndex:0,
+    scene,
+    lines:JSON.parse(JSON.stringify(scene.lines||[])),
+    lineIndex:0,
+    actors:[],
+    wasPaused:true,
+    onComplete:null,
+    waitingForCook:false,
+    suspended:false,
+    pendingCook:null
+  };
+  setStoryGameUiVisible(false);
+  document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
+  document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"
+    ?"PROLOGUE · DAY 0"
+    :`DAY ${scene.day}`;
+  document.getElementById("storyOverlay").classList.add("open");
+  return qaShowStoryLineAt(lineIndex);
+}
+
+function qaStoryStep(delta){
+  if(!qaStoryPreviewIsActive())return false;
+  const target=storySession.lineIndex+Number(delta||0);
+  if(target<0||target>=storySession.lines.length){
+    qaUpdateStoryControls();
+    return false;
+  }
+  return qaShowStoryLineAt(target);
+}
+
+function qaStoryPreviewChoice(choice,index){
+  if(!qaStoryPreviewIsActive())return false;
+  const reply=choice?.reply
+    ||Object.values(choice?.orderCook?.replies||{}).map(value=>
+      typeof value==="object"?value.text:value
+    ).filter(Boolean).join(" / ");
+  qaRefreshPanel(
+    `선택 ${Number(index)+1}: ${choice?.text||""}${reply?`\n응답: ${reply}`:""}`
+  );
+  return true;
+}
+
+function qaCloseStoryPreview(message="스토리 미리보기를 닫았습니다.",refresh=true){
+  if(!qaStoryPreviewIsActive())return false;
+  clearStoryRuntime();
+  const context=qaStoryReturnContext;
+  qaStoryReturnContext=null;
+  if(context){
+    state.day=DayManager.setDay(context.day);
+    state.phase=context.phase;
+    state.phaseTime=context.phaseTime;
+    state.paused=context.paused;
+    state.story=context.story;
+  }else{
+    state.paused=false;
+  }
+  updateUI(true);
+  syncPhaserObjects();
+  qaRenderStoryBrowser();
+  if(refresh)qaRefreshPanel(message);
+  return true;
+}
+
 /* ---- 목록 마크업 ------------------------------------------ */
 
 function qaMiniButtonMarkup(attribute,value,label,note,extra=""){
@@ -412,17 +790,21 @@ function qaRefreshPanel(message=""){
     data.specialMenu?`특별: ${qaMenuNames([data.specialMenu])}`:"특별: 없음",
     message
   ].filter(Boolean).join("\n");
+  qaUpdateStoryControls(panel);
 }
 
 function qaExitMode(){
   const url=new URL(window.location.href);
-  url.searchParams.delete("qa");
+  ["qa","qaStart","qa-story","qa-line","qa-choice","qa-order","qa-score"]
+    .forEach(key=>url.searchParams.delete(key));
   window.location.href=url.toString();
 }
 
 function qaSelectTab(panel,name){
   panel.querySelectorAll("[data-qa-tab]").forEach(button=>button.classList.toggle("active",button.dataset.qaTab===name));
   panel.querySelectorAll("[data-qa-view]").forEach(view=>{view.hidden=view.dataset.qaView!==name;});
+  panel.classList.toggle("story-tab",name==="story");
+  if(name==="story")qaRenderStoryBrowser(panel);
 }
 
 function qaBuildPanel(){
@@ -433,6 +815,7 @@ function qaBuildPanel(){
     <div class="qa-mode-body">
       <div class="qa-tabs">
         <button data-qa-tab="day" class="active" type="button">날짜 이동</button>
+        <button data-qa-tab="story" type="button">스토리</button>
         <button data-qa-tab="mini" type="button">미니게임</button>
       </div>
       <div data-qa-view="day">
@@ -450,9 +833,30 @@ function qaBuildPanel(){
         <div class="qa-mini-list">${qaMiniListMarkup()}</div>
         <small class="qa-mini-hint">Day 전용 작업은 그 날짜로 자동 이동합니다. 나머지는 지금 날짜 규칙을 따릅니다(Day 4+ 는 빠른 칼질).</small>
       </div>
+      <div data-qa-view="story" hidden>
+        <div class="qa-story-heading">
+          <strong data-qa-story-day-title>${qaStoryDayLabel(qaStorySelectedDay)}</strong>
+          <small>일차 → 장면 → 대사 순서로 선택</small>
+        </div>
+        <div class="qa-story-day-grid">
+          ${Array.from({length:DayManager.maxDay+1},(_,day)=>
+            `<button data-qa-story-day="${day}" type="button" title="${qaStoryDayLabel(day)}">${day===0?"P":`D${day}`}</button>`
+          ).join("")}
+        </div>
+        <div data-qa-story-scenes class="qa-story-scenes"></div>
+        <div class="qa-story-nav">
+          <button data-qa-story-prev type="button">◀ 이전 대사</button>
+          <strong data-qa-story-position>장면을 선택하세요</strong>
+          <button data-qa-story-next type="button">다음 대사 ▶</button>
+        </div>
+        <div data-qa-story-lines class="qa-story-lines"></div>
+        <div data-qa-story-branches class="qa-story-branches" hidden></div>
+        <button data-qa-story-close class="qa-story-close" type="button">스토리 미리보기 닫기</button>
+        <small class="qa-story-hint">대사를 누르면 실제 대화 UI에서 바로 확인합니다. 미리보기에서는 조리·선택 결과·완료 처리를 실행하지 않습니다.</small>
+      </div>
       <pre data-qa-state></pre>
       <button data-qa-abort class="qa-abort" type="button">미니게임 강제 종료 (Alt+0)</button>
-      <small>Alt + 1~7 날짜 이동 · Alt + 0 미니게임 닫기 · Alt + D/N 낮·밤 전환 (Alt + \` 토글)</small>
+      <small>Alt + 1~7 날짜 이동 · Alt + ←/→ 대사 이동 · Alt + 0 미니게임 닫기 · Alt + D/N 낮·밤 전환 (Alt + \` 토글)</small>
       <button class="qa-exit" data-qa-exit type="button">QA 모드 종료</button>
     </div>`;
   document.body.appendChild(panel);
@@ -464,6 +868,12 @@ function qaBuildPanel(){
   panel.querySelectorAll("[data-qa-phase]").forEach(button=>button.addEventListener("click",()=>{
     if(button.dataset.qaPhase==="night")qaSwitchToNight();else qaSwitchToDay();
   }));
+  panel.querySelectorAll("[data-qa-story-day]").forEach(button=>button.addEventListener("click",()=>{
+    qaSelectStoryDay(Number(button.dataset.qaStoryDay));
+  }));
+  panel.querySelector("[data-qa-story-prev]").addEventListener("click",()=>qaStoryStep(-1));
+  panel.querySelector("[data-qa-story-next]").addEventListener("click",()=>qaStoryStep(1));
+  panel.querySelector("[data-qa-story-close]").addEventListener("click",()=>qaCloseStoryPreview());
   panel.querySelectorAll("[data-qa-prep]").forEach(button=>button.addEventListener("click",()=>qaPlayPrepMini(button.dataset.qaPrep)));
   panel.querySelectorAll("[data-qa-cook]").forEach(button=>button.addEventListener("click",()=>qaPlayCookMini(button.dataset.qaCook,Number(button.dataset.qaStep||0))));
   panel.querySelectorAll("[data-qa-utility]").forEach(button=>button.addEventListener("click",()=>qaPlayUtilityMini(button.dataset.qaUtility)));
@@ -473,6 +883,7 @@ function qaBuildPanel(){
     panel.classList.toggle("collapsed");event.currentTarget.textContent=panel.classList.contains("collapsed")?"+":"−";
   });
   panel.querySelector("[data-qa-exit]").addEventListener("click",qaExitMode);
+  qaRenderStoryBrowser(panel);
   return panel;
 }
 
@@ -488,6 +899,12 @@ function initializeQaMode(){
       // 밤 조리 게임은 ESC 처리가 없어서 QA에서만 탈출구를 하나 열어 둡니다.
       if(event.key==="Escape"&&state.mini&&!isDayPrepMini())qaAbortMini();
       return;
+    }
+    if(qaStoryPreviewIsActive()&&event.key==="ArrowLeft"){
+      event.preventDefault();qaStoryStep(-1);return;
+    }
+    if(qaStoryPreviewIsActive()&&event.key==="ArrowRight"){
+      event.preventDefault();qaStoryStep(1);return;
     }
     if(/^[1-7]$/.test(event.key)){event.preventDefault();qaJumpToDay(Number(event.key));return;}
     if(event.key==="0"){event.preventDefault();qaAbortMini();return;}

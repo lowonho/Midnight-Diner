@@ -38,7 +38,8 @@
 
 .save-action-button:focus-visible,
 .save-slot-close:focus-visible,
-.save-slot-card:focus-visible {
+.save-slot-card:focus-visible,
+.save-slot-delete:focus-visible {
   outline: calc(3 * var(--upx)) solid #ffe09a;
   outline-offset: calc(3 * var(--upx));
 }
@@ -116,7 +117,15 @@
   scrollbar-width: thin;
 }
 
-.save-slot-item { min-width: 0; }
+.save-slot-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: calc(9 * var(--upx));
+  min-width: 0;
+}
+
+.save-slot-item:not(.has-data) .save-slot-card { grid-column: 1 / -1; }
 
 .save-slot-card {
   display: grid;
@@ -156,6 +165,26 @@
 }
 
 .save-slot-card.is-empty { background: rgba(16, 10, 7, .74); }
+
+.save-slot-delete {
+  align-self: stretch;
+  min-width: calc(70 * var(--upx));
+  min-height: calc(44 * var(--upx));
+  padding: calc(10 * var(--upx));
+  border: 1px solid #81463b;
+  border-radius: calc(7 * var(--upx));
+  color: #e8b5a8;
+  font-size: calc(13 * var(--upx));
+  font-weight: 800;
+  background: linear-gradient(rgba(77, 35, 30, .94), rgba(34, 18, 16, .98));
+  cursor: pointer;
+}
+
+.save-slot-delete:hover {
+  border-color: #ce7462;
+  color: #ffe1d8;
+  background: linear-gradient(rgba(112, 47, 39, .96), rgba(48, 22, 19, .98));
+}
 
 .save-slot-name {
   display: flex;
@@ -219,6 +248,11 @@
   .save-slot-card {
     grid-template-columns: minmax(calc(135 * var(--upx)), .72fr) minmax(0, 1.5fr);
     min-height: calc(102 * var(--upx));
+  }
+  .save-slot-item { gap: calc(7 * var(--upx)); }
+  .save-slot-delete {
+    min-width: calc(58 * var(--upx));
+    padding-inline: calc(7 * var(--upx));
   }
   .save-slot-time {
     grid-column: 1 / -1;

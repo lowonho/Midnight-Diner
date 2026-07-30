@@ -2,6 +2,8 @@
 
 // 제1장 제작 범위는 프롤로그와 Day 1~7입니다.
 // 고유 인물은 김다은, 사장, 박기철, 팀장만 사용합니다.
+// TODO(audio-assets): kind가 "sound"인 줄은 임시 화면용 음향 지시문입니다.
+// 대응하는 사운드 에셋을 연결할 때 해당 지시문이 대화로 출력되지 않도록 제거합니다.
 const STORY_CHARACTERS = {
   protagonist: { name: "김다은", role: "식당 운영자", portraitRow: null, alwaysKnown: true },
   owner: { name: "사장", role: "기존 식당 사장", portraitRow: null, alwaysKnown: true },
@@ -63,45 +65,64 @@ const STORY_SCENES = {
     specialCook: false,
     timeOfDay: "night",
     lines: [
-      { kind: "direction", text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고 종이 상자 하나를 안은 채 건물을 나온다." },
-      { speaker: "protagonist", text: "(한숨을 쉬며) 끝났네." },
-      { kind: "direction", text: "굵은 비가 갑자기 떨어진다. 우산이 없는 다은은 골목의 작은 식당으로 뛰어든다. 늦은 시간인데도 가게 안은 많은 손님으로 붐빈다." },
-      { kind: "sound", text: "빗소리, 오래된 문종, 겹쳐 들리는 짧은 주문." },
-      { speaker: "owner", text: "마지막 날이라서 그런지 손님이 많아… 지금 주문하면 오래 걸리는데 괜찮나?" },
+      {
+        kind: "direction",
+        text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고\n종이 상자 하나를 안은 채 건물을 나온다.",
+        cinematic: { id: "pr01Exterior", beat: "exit" }
+      },
+      {
+        speaker: "protagonist",
+        text: "(한숨을 쉬며) 끝났네.",
+        cinematic: { id: "pr01Exterior", beat: "pause" }
+      },
+      {
+        kind: "direction",
+        text: "굵은 비가 갑자기 떨어진다. 우산이 없는 다은은 골목의 작은 식당으로 뛰어든다.\n늦은 시간인데도 가게 안은 많은 손님으로 붐빈다.",
+        cinematic: { id: "pr01Exterior", beat: "rainRun" }
+      },
+      {
+        kind: "sound",
+        text: "빗소리, 오래된 문종, 겹쳐 들리는 짧은 주문.",
+        cinematic: { id: "pr01Exterior", beat: "enter" }
+      },
+      { kind: "direction", text: "바쁜 와중에 사장은 다은이 들어오는 것을 보고 말한다." },
+      { speaker: "owner", text: "마지막 날이라서 그런지 손님이 많아…\n지금 주문하면 오래 걸리는데 괜찮나?" },
       { speaker: "protagonist", text: "아, 저는 잠깐 비만 피하려고..." },
-      { speaker: "owner", text: "그럼 저기 빈자리에서 조금 쉬다 가게. 혹시 주문하고 싶다면 주문하고." },
-      { kind: "bubble", text: "사장님! 여기 어묵탕 주세요." },
-      { kind: "bubble", text: "여기는 김치전 주세요!" },
-      { kind: "direction", text: "식당 구석에 자리를 잡은 다은은 사장이 혼자 분주히 주문을 받고 손님과 안부를 나누며 음식을 준비하는 모습을 바라본다. 식품 개발을 할 때 레시피를 적어 가며 대화 없이 조리만 하던 때와는 사뭇 다른 모습이다." },
-      { speaker: "protagonist", text: "사장님 비를 피하게 해주셔서 감사한데 혹시 도와드릴 게 있을까요?" },
+      { speaker: "owner", text: "그럼 저기 빈자리에서 조금 쉬다 가게.\n혹시 주문하고 싶다면 주문하고." },
+      { kind: "bubble", speakerLabel: "손님 1", text: "사장님! 여기 어묵탕 주세요." },
+      { kind: "bubble", speakerLabel: "손님 2", text: "여기는 김치전 주세요!" },
+      { kind: "direction", text: "식당 구석에 자리 잡은 다은은 잠시 한숨을 돌렸다.\n비를 맞아 놀란 가슴이 진정되자 사장이 혼자 분주히 돌아다니며 주문을 받고 손님과 안부도 전하며 음식을 준비하는 모습이 눈에 들어왔다." },
+      { kind: "direction", text: "식품 개발을 할 때는 레시피를 적어가며 대화 없이 조리만 하던 것과는 사뭇 다른 모습이다.\n사장이 너무 바빠 주문이 계속 밀리고 있지만 손님은 계속 밀려들어왔다." },
+      { kind: "direction", text: "퇴사를 해서 그런지 아니면 가게 분위기에 휩쓸렸는지 다은은 용기를 내어 사장에게 말을 건다." },
+      { speaker: "protagonist", text: "사장님 비를 피하게 해주셔서 감사한데\n혹시 도와드릴 게 있을까요?" },
       { speaker: "owner", text: "마음만은 고맙다고 하고 싶지만…" },
-      { kind: "direction", text: "사장은 굳은 표정으로 잠시 고민하다 다은의 손을 본다. 8년 동안 식품 개발을 하며 많은 요리를 해 온 손에는 굳은살이 이리저리 배어 있다." },
+      { kind: "direction", text: "사장은 굳은 표정으로 잠시 고민하다 다은의 손을 본다." },
       { speaker: "owner", text: "손을 보니 요리 좀 해본 사람 같네. 맞나?" },
-      { speaker: "protagonist", text: "식품 개발을 좀 해봤지만… 가게 주방에서 조리해본 적은 없어요." },
-      { speaker: "owner", text: "그럼 레시피를 알려주겠네. 바쁜 건 맞지만 다치지 않도록 천천히 해." },
-      { kind: "direction", text: "사장이 앞치마를 건네고 다은은 바로 앞치마를 맨다." },
-      { kind: "gameplay", text: "주방 안을 직접 이동한다. 기구에서 멀리 있을 때는 버튼을 숨기고, 가까이 가면 기구 이름과 상호작용 버튼을 표시한다." },
-      { kind: "gameplay", text: "사장의 안내에 따라 두부김치를 조리한다.", cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu" } },
-      { kind: "gameplay", text: "사장의 안내에 따라 어묵탕을 조리한다.", cook: { dishId: "oden", tutorial: true, resultKey: "pr01_oden" } },
-      { kind: "gameplay", text: "사장의 안내에 따라 닭꼬치를 조리한다.", cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
-      { kind: "gameplay", text: "사장의 안내에 따라 새우튀김을 조리한다.", cook: { dishId: "shrimpTempura", tutorial: true, resultKey: "pr01_shrimp_tempura" } },
-      { kind: "gameplay", text: "사장의 안내에 따라 볶음우동을 조리한다.", cook: { dishId: "yakisoba", tutorial: true, resultKey: "pr01_yakisoba" } },
-      { kind: "direction", text: "한참 요리를 하다 보니 손님들도 대부분 식사를 마치고 사장에게 작별 인사를 하고 나간다. 빗줄기가 서서히 잦아들 때 택시 기사 한 명이 문을 열고 들어온다." },
+      { kind: "direction", text: "8년 동안 식품 개발을 하며 많은 요리를 해 온 다은의 손에 굳은살이 이리저리 배겨있었다." },
+      { speaker: "protagonist", text: "식품 개발을 좀 해봤지만…\n가게 주방에서 조리해본 적은 없어요." },
+      { speaker: "owner", text: "그럼 레시피를 알려주겠네.\n바쁜 건 맞지만 다치지 않도록 천천히 해.", showGameUI: true },
+      { kind: "direction", text: "사장이 앞치마를 건네고 다은은 바로 앞치마를 맨다.", showGameUI: true },
+      { speaker: "owner", text: "두부김치는 두부를 일정한 크기로 썰고\n접시에 담으면 되네.", showGameUI: true, cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu" } },
+      { speaker: "owner", text: "어묵탕은 국물이 맑게 우러나도록\n적당한 불로 끓이면 되네.", showGameUI: true, cook: { dishId: "oden", tutorial: true, resultKey: "pr01_oden" } },
+      { speaker: "owner", text: "닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\n뒷면도 타지 않게 구우면 되네.", showGameUI: true, cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
+      { speaker: "owner", text: "새우튀김은 튀김옷이 노릇해졌을 때 건져서\n바스켓을 가볍게 털어 기름을 빼면 되네.", showGameUI: true, cook: { dishId: "shrimpTempura", tutorial: true, resultKey: "pr01_shrimp_tempura" } },
+      { speaker: "owner", text: "볶음우동은 면과 채소, 소스를 철판에 올리고\n뒤집개로 골고루 볶으면 되네.", showGameUI: true, cook: { dishId: "yakisoba", tutorial: true, resultKey: "pr01_yakisoba" } },
+      { kind: "direction", text: "한참 요리를 하다 보니 손님들도 대부분 식사를 마치고 사장에게 작별 인사를 하고 나간다.\n빗줄기가 서서히 잦아들 때 택시 기사 한 명이 문을 열고 들어온다." },
       { speaker: "gicheol", text: "사장님, 오늘 마지막 영업이라 하셔서. 늦었지만 왔습니다~" },
-      { kind: "direction", text: "택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다. 이름표는 계속 ‘???’로 표시된다." },
+      { kind: "direction", text: "택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다." },
       { speaker: "gicheol", text: "어? 마지막 영업날이라는데 알바생을 들이셨네요??" },
-      { speaker: "owner", text: "비 피하겠다고 들어온 손님인데 가게가 바쁜 걸 보고 도와주겠다고 해서… 초면인데 큰 도움을 줬어." },
-      { speaker: "gicheol", text: "어유 사장님이 도움이 됐다고 하실 정도면 꽤나 실력자신데요? 저도 한 번 맛봐도 되겠습니까? 늘 먹던 김치전 주세요~" },
-      { kind: "gameplay", text: "마지막 손님을 위해 김치전을 조리한다. 타이밍 판정은 넉넉하고 사장의 짧은 안내가 붙는다.", cook: { dishId: "kimchi", tutorial: true, resultKey: "pr01_kimchi" } },
-      { kind: "direction", text: "사장은 김치전을 부치는 다은을 말없이 바라본다. 김치전이 완성되자 접시를 마지막 손님에게 내어 준다." },
+      { speaker: "owner", text: "비 피하겠다고 들어온 손님인데 가게가 바쁜 걸 보고 도와주겠다고 해서…\n초면인데 큰 도움을 줬어." },
+      { speaker: "gicheol", text: "어유 사장님이 도움이 됐다고 하실 정도면 꽤나 실력자신데요?\n저도 한 번 맛봐도 되겠습니까? 늘 먹던 김치전 주세요~" },
+      { speaker: "owner", text: "김치전은 반죽을 팬에 고르게 펴고\n앞면이 노릇해지면 뒤집어 뒷면까지 익히면 되네.", showGameUI: true, cook: { dishId: "kimchi", tutorial: true, resultKey: "pr01_kimchi" } },
+      { kind: "direction", text: "사장은 김치전을 부치는 다은을 말없이 바라본다.\n김치전이 완성되자 접시를 마지막 손님에게 내어 준다." },
       { speaker: "owner", text: "여기 주문한 김치전이네." },
       { kind: "direction", text: "김치전을 맛본 손님은 놀란 표정을 짓는다." },
-      { speaker: "gicheol", text: "맛이 꽤나 좋은데요? 사장님 레시피대로 해도 이 맛을 내는 사람 없었는데? 사장님이 요리하신 거 내준 거 아니죠?" },
+      { speaker: "gicheol", text: "맛이 꽤나 좋은데요? 사장님 레시피대로 해도 이 맛을 내는 사람 없었는데?\n사장님이 요리하신 거 내준 거 아니죠?" },
       { speaker: "owner", text: "젊은 친구의 실력이 생각보다 대단해." },
       { speaker: "gicheol", text: "사장님! 이런 알바생 있으면 영업 더 하셔도 되는 거 아니에요?" },
       { speaker: "owner", text: "아가씨, 처음으로 주방에서 일해본 느낌이 어떤가?" },
       { kind: "direction", text: "다은은 조금 머뭇거리다 대답한다." },
-      { speaker: "protagonist", text: "제가 만든 음식을 맛있게 드셔주시는 분들을 보는 게 생각보다 즐겁네요." },
+      { speaker: "protagonist", text: "제가 만든 음식을 맛있게 드셔주시는 분들을 보는 게\n생각보다 즐겁네요." },
       { speaker: "owner", text: "그런가…" },
       { kind: "direction", text: "사장은 마음을 굳힌 듯 다은에게 말한다." }
     ]
@@ -124,8 +145,8 @@ const STORY_SCENES = {
       { speaker: "owner", text: "실력은 충분하고, 임대료나 재료비는 내가 내주지. 나도 손님을 두고 떠나는 게 영 마음에 걸려서 말이야. 내가 지금 건강해 보여도 꽤나 몸이 상했거든. 의사가 최소 한 달은 쉬라고 해서 말이네." },
       { kind: "direction", text: "다은은 잠깐 고민한다." },
       { speaker: "protagonist", text: "해볼게요. 딱 한 달만 해보겠습니다." },
-      { speaker: "owner", text: "좋아. 그렇다면 식당 운영에 대해서는 여기 가게 일지를 참고하게. 나도 가게를 운영하다 헷갈리면 이걸 찾아보거든. 자네도 여기에 이어서 써도 좋을 것 같네." },
-      { kind: "direction", text: "다은은 손때 묻은 식당 일지를 넘겨받고 식당 운영에 대해 간단히 배운 뒤 집으로 돌아간다." }
+      { speaker: "owner", text: "좋아. 그렇다면 식당 운영에 대해서는 여기 영업 일지를 참고하게. 나도 가게를 운영하다 헷갈리면 이걸 찾아보거든. 자네도 여기에 이어서 써도 좋을 것 같네." },
+      { kind: "direction", text: "다은은 손때 묻은 영업 일지를 넘겨받고 식당 운영에 대해 간단히 배운 뒤 집으로 돌아간다." }
     ]
   },
 
@@ -140,12 +161,11 @@ const STORY_SCENES = {
     specialCook: false,
     timeOfDay: "day",
     lines: [
-      { kind: "direction", text: "사장이 떠난 주방. 다은은 식당 일지를 천천히 살펴본다. 낮 준비 화면에는 시간 제한이 없다." },
+      { kind: "direction", text: "사장이 떠난 주방. 다은은 영업 일지를 천천히 살펴본다. 낮 준비 화면에는 시간 제한이 없다." },
       { speaker: "protagonist", text: "어젯밤 일이 꿈만 같네." },
-      { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 식당 일지에 있는 레시피 중 두 개씩 늘려보자." },
-      { kind: "direction", text: "다은은 식당 일지를 편다." },
+      { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 영업 일지에 있는 레시피 중 두 개씩 늘려보자." },
+      { kind: "direction", text: "다은은 영업 일지를 편다." },
       { speaker: "protagonist", text: "일단 해볼게… 어묵탕과 두부김치. 어렵지 않은 메뉴네?" },
-      { kind: "gameplay", text: "오늘 해금된 어묵탕과 두부김치를 모두 준비한다. 준비가 끝나면 ‘영업준비 완료’를 직접 눌러 밤 영업을 시작한다." },
       { kind: "system", text: "인기도 0 · 예상 손님 수 적음" }
     ]
   },
@@ -187,19 +207,18 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "하루 만에 단골 행세하시는 거예요?" },
       { speaker: "gicheol", text: "첫 손님이면 창립 멤버 아닙니까? 직급으로 치면 이사쯤 되겠네요." },
       { speaker: "protagonist", text: "이사님, 오늘은 뭘 드시겠어요?" },
-      { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시기사를 하고 있죠.", reveal: "gicheol" },
+      { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시 기사를 하고 있죠.", reveal: "gicheol" },
       { speaker: "protagonist", text: "그렇다면 박 기사님, 오늘의 식사는 어떻게 하실 건가요?" },
-      { speaker: "gicheol", text: "오늘은… 오! 오늘도 김치전이 준비되어 있군요? 오늘도 김치전 주시죠!" },
       {
-        kind: "gameplay",
-        text: "김다은은 김치전을 조리한다. 완성도에 따라 박기철의 반응이 달라진다.",
+        speaker: "gicheol",
+        text: "오늘은… 오! 오늘도 김치전이 준비되어 있군요? 오늘도 김치전 주시죠!",
         orderCook: {
           special: false,
           thresholds: { great: 80, warm: 60 },
           replies: {
-            great: "전 사장님이 해주신 맛이랑 똑같네요 앞으로도 자주 오겠습니다!",
+            great: "전 사장님이 해주신 맛이랑 똑같네요. 앞으로도 자주 오겠습니다!",
             warm: "맛이 조금 아쉽지만 잘 먹었습니다!",
-            soft: "맛은 비슷하게 나네요 앞으로를 기대하겠습니다."
+            soft: "맛은 비슷하게 나네요. 앞으로를 기대하겠습니다."
           }
         }
       },
@@ -234,7 +253,7 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "다음번에는 좋은 소식 들고 오세요~" },
       { speaker: "gicheol", text: "밥 먹으러 와서 숙제를 받아 가네요." },
       { speaker: "protagonist", text: "안 해도 혼내지는 않아요." },
-      { speaker: "gicheol", text: "그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다 김치전은 덤이고요" },
+      { speaker: "gicheol", text: "그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다. 김치전은 덤이고요." },
       { kind: "direction", text: "기철은 계산대에서 자기 이름과 연락처를 영수증에 또박또박 쓴다." },
       { speaker: "gicheol", text: "혹시 택시 타실 일 있으면 연락주세요. 싸게 모시겠습니다." },
       { speaker: "protagonist", text: "조심히 들어가세요~" },
@@ -372,8 +391,7 @@ const STORY_SCENES = {
     timeOfDay: "night",
     lines: [
       { kind: "direction", text: "낮 준비를 마치고 ‘영업준비 완료’를 누르자, 다은은 자연스럽게 주방을 둘러본다." },
-      { speaker: "protagonist", text: "생각보다 가게에 익숙해진 것 같네." },
-      { kind: "gameplay", text: "일반 영업 한 차례를 진행한다. 새로운 시스템이나 고유 손님 이벤트는 열리지 않는다. 좋아하는 메뉴와 동선을 편하게 반복해 보는 숨 고르기 구간이다." }
+      { speaker: "protagonist", text: "생각보다 가게에 익숙해진 것 같네." }
     ]
   },
 
@@ -408,8 +426,7 @@ const STORY_SCENES = {
       { kind: "direction", text: "다은은 잠시 망설이다 ‘팀장님, 제가 지금 식당을 하고 있어서요. 만나려면 찾아오셔야 할 것 같아요.’라고 답하고 식당 위치와 영업 시간을 보낸다." },
       { speaker: "protagonist", text: "갑자기 팀장님이 연락하시다니 무슨 일이지?" },
       { kind: "direction", text: "혼란스러워하던 다은은 이내 생각을 접고 다시 영업 준비를 시작한다." },
-      { speaker: "protagonist", text: "에휴, 복잡하니까 오늘 메뉴에는 볶음우동을 넣어야겠다. 음식 볶으면서 복잡한 생각을 날려버려야겠어!" },
-      { kind: "gameplay", text: "7일차 영업 준비 메뉴에는 볶음우동이 필수로 들어간다." }
+      { speaker: "protagonist", text: "에휴, 복잡하니까 오늘 메뉴에는 볶음우동을 넣어야겠다. 음식 볶으면서 복잡한 생각을 날려버려야겠어!" }
     ]
   },
 
@@ -433,15 +450,14 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "팀장님?" },
       { speaker: "manager", text: "갑자기 연락하고 찾아와서 미안해. 네가 힘들어하던 것도 잘 알고 있었고." },
       { speaker: "protagonist", text: "아뇨. 팀장님은 잘해주셨잖아요. 그냥 제 능력 부족인 거죠." },
-      { speaker: "manager", text: "다은 씨 능력은 충분해. 문제는 회사는 돈을 벌어야 하는 집단이라 그런 거지…" },
+      { speaker: "manager", text: "다은 씨 능력은 충분해. 문제는 회사가 돈을 벌어야 하는 집단이라는 거지…" },
       { speaker: "manager", text: "그래서 이 식당은 다은 씨 거야?" },
       { speaker: "protagonist", text: "제 거라고 하기에는 애매해요. 한 달만 가게를 해보라고 빌려주신 거라서." },
       { speaker: "manager", text: "한 달 빌린 거라도 사장은 사장이지. 지금부터 팀장이 아니라 손님으로 있어도 될까?" },
       { speaker: "protagonist", text: "주문은 뭘로 하시겠습니까, 손님?" },
-      { speaker: "manager", text: "식당하더니 능청스러워졌네. 메뉴가… 오? 볶음우동이 있네? 철판에서 맛있게 볶아줘." },
       {
-        kind: "gameplay",
-        text: "팀장의 주문은 7일차 마지막 조리다. 볶음우동 특별 난이도로 조리하며 완성도에 따라 팀장의 반응이 달라진다.",
+        speaker: "manager",
+        text: "식당하더니 능청스러워졌네. 메뉴가… 오? 볶음우동이 있네? 철판에서 맛있게 볶아줘.",
         orderCook: {
           special: true,
           thresholds: { great: 60 },

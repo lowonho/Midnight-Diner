@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const sources=["game-data.js","story-data.js","story.js","save.js"]
+const sources=["game-data.js","story-data.js","story-cinematic.js","story.js","save.js"]
   .map(file=>fs.readFileSync(path.join(root,file),"utf8"));
 
 const bootstrap=`
@@ -98,6 +98,9 @@ const same=(actual,expected,message)=>{
 };
 const rawSlot=slotId=>localStorage.getItem(saveKeyForSlot(slotId));
 const parsedSlot=slotId=>JSON.parse(rawSlot(slotId));
+const allSlotRaw=()=>Object.fromEntries(
+  SAVE_SLOT_DEFS.map(slot=>[slot.id,rawSlot(slot.id)])
+);
 const inventory=()=>Object.fromEntries(DISHES.map(dish=>[
   dish.id,{count:0,quality:0}
 ]));
@@ -236,11 +239,37 @@ applySlotMarker("M2-RESTORED",2);
 assert(saveManualGame("manual2"),"manual2 재작성");
 applySlotMarker("M3-RESTORED",3);
 assert(saveManualGame("manual3"),"manual3 재작성");
+
+const slotsBeforeQaDelete=allSlotRaw();
+window.QA_MODE={enabled:true};
+assert(clearSaveData("manual2")===false,
+  "QA 모드에서는 기존 저장 슬롯 삭제를 거부해야 합니다.");
+same(allSlotRaw(),slotsBeforeQaDelete,
+  "QA 모드의 삭제 요청은 어떤 저장 슬롯도 바꾸면 안 됩니다.");
+window.QA_MODE=null;
+
+MANUAL_SAVE_SLOTS.forEach(slotId=>{
+  const snapshot=allSlotRaw();
+  autosaveElapsed=3.25;
+  assert(clearSaveData(slotId),slotId+" 삭제는 성공을 반환해야 합니다.");
+  assert(rawSlot(slotId)===null,slotId+" 저장 데이터만 삭제되어야 합니다.");
+  SAVE_SLOT_DEFS.filter(slot=>slot.id!==slotId).forEach(slot=>{
+    assert(rawSlot(slot.id)===snapshot[slot.id],
+      slotId+" 삭제가 "+slot.id+" 슬롯에 영향을 주면 안 됩니다.");
+  });
+  assert(autosaveElapsed===3.25,
+    "수동 저장 삭제는 자동 저장 타이머를 초기화하면 안 됩니다.");
+  localStorage.setItem(saveKeyForSlot(slotId),snapshot[slotId]);
+});
+
 const manualsBeforeClear=MANUAL_SAVE_SLOTS.map(rawSlot);
-clearSaveData("auto");
+autosaveElapsed=4.5;
+assert(clearSaveData("auto"),"자동 저장 삭제는 성공을 반환해야 합니다.");
 assert(rawSlot("auto")===null,"자동 저장 삭제는 자동 저장만 지워야 합니다.");
 same(MANUAL_SAVE_SLOTS.map(rawSlot),manualsBeforeClear,
   "자동 저장 삭제 뒤에도 수동 저장 3개는 유지되어야 합니다.");
+assert(autosaveElapsed===0,
+  "자동 저장 삭제는 자동 저장 타이머를 초기화해야 합니다.");
 
 const manualsBeforeTimer=MANUAL_SAVE_SLOTS.map(rawSlot);
 applySlotMarker("FIVE-SECONDS",4);
@@ -362,7 +391,7 @@ assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 
-console.log("SAVE_SLOTS_CONTRACT_OK 36");
+console.log("SAVE_SLOTS_CONTRACT_OK 58");
 `;
 
 const context={
