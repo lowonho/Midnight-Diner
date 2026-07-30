@@ -174,12 +174,20 @@
   text-align: center;
   transform: translateX(-50%);
 }
+/* 타이틀 아래 부제 한 줄.
+   원래는 제목 위에 조리대 이름(예: "준비 테이블 · 무 바구니")을 작게 얹었는데,
+   그 자리가 "이 게임을 어떻게 하는지" 한 줄 안내로 더 쓸모 있어서 바꿨습니다.
+   order:2 로 제목 아래로 내려보냅니다(마크업 순서는 그대로 둡니다).
+   글은 ui-mini-frame.js 의 MINI_SUBTITLE 이 채웁니다. */
 .mini-title-panel #miniStation {
+  order: 2;
   margin: 0;
-  color: #c89654;
-  font-size: calc(1.2 * var(--mh));
-  letter-spacing: .2em;
+  color: var(--cream);
+  font-size: calc(19 * var(--upx));
+  font-weight: 700;
+  letter-spacing: 0;
 }
+.mini-title-panel #miniStation:empty { display: none; }
 .mini-title-panel #miniTitle {
   margin: 0;
   overflow: hidden;

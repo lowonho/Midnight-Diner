@@ -395,7 +395,7 @@ function startMini(type,stationId,context) {
   // engine 은 mini-engine.js 의 등록소에서 찾을 이름입니다.
   // 밤 조리는 type 이 곧 엔진 이름이고, 낮 준비는 startDayPrepMini 가 "dayPrep" 을 넣습니다.
   state.mini={type,engine:type,stationId,context:context||{},time:8,score:0,data:{},complete:false};
-  dom.miniStation.textContent=stationById(stationId)?.label||stationId;
+  setMiniSubtitle(type);   // 타이틀 아래 부제 (ui-mini-frame.js 의 MINI_SUBTITLE)
   dom.miniFeedback.textContent=""; dom.miniContent.innerHTML=""; dom.miniOverlay.classList.add(UI_CLASS.overlayOpen);
   setMiniTipHint("");   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
   dom.miniClose.hidden=true;

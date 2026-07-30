@@ -1232,22 +1232,13 @@
    (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  채썰기·김치 볶기와 같습니다.
-   css/minigame-frame.css 는 건드리지 않고, 아래 세 줄만 이 화면이 떠 있을
+   css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 화면이 떠 있을
    때 한정으로 공용 규칙을 덮어씁니다.
      · .mini-content 기본 폭(가운데 922px)을 사이드 칸까지 쓰도록 100% 로
      · 공용 타이머 카드는 오른쪽 '진행도' 카드와 자리가 겹치므로 숨김
        (남은 시간은 진행도 카드 아래 가는 띠 .ts-time 이 대신 보여 줍니다)
-     · 타이틀 패널 윗줄(#miniStation)을 타이틀 아래로 내려 부제로 씁니다
 
    칸 크기는 .ts-scene 의 --ts-side(좌우 칸 폭) 하나가 정합니다. */
-.mini-overlay:has(.ts-scene) #miniStation {
-  order: 2;
-  color: var(--cream);
-  font-size: calc(19 * var(--upx));
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
 /* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .ts-scene {
   width: 100%;

@@ -88,6 +88,61 @@ function setMiniTipHint(text){
   if(hint)hint.textContent=text||"";
 }
 
+/* ============================================================
+   타이틀 아래 부제 한 줄
+
+   원래 이 자리(#miniStation)에는 조리대 이름이 작게 올라가 있었습니다.
+     준비 테이블 · 무 바구니
+     어묵탕 · 무 썰기            ← 제목
+   채썰기(E2)와 양면 굽기(E5) 두 게임만 그 자리를 "어떻게 하는 게임인지"
+   한 줄 안내로 쓰고 있었는데, 그쪽이 훨씬 쓸모 있어서 전 게임 공통으로 바꿨습니다.
+     양배추 채썰기               ← 제목
+     좌우로 움직여 양배추를 채썰어주세요!
+
+   [글이 두 군데인 이유]
+   여기 부제는 "이 게임이 무엇인지" 한 줄로 고정입니다.
+   아래 TIP 줄(#miniDescription)은 "지금 이 단계에서 뭘 눌러야 하는지"라
+   진행에 따라 계속 바뀝니다. 둘은 역할이 다릅니다.
+
+   [키] 낮 준비는 PREP_TASKS 의 miniGame, 밤 조리는 MENU_DATA 의 cook[].game 입니다.
+        표에 없으면 부제 줄이 통째로 사라집니다(:empty 로 숨김).
+        게임이 스스로 더 정확한 문장을 만들 수 있으면 setup 에서
+        dom.miniStation.textContent 로 덮어쓰면 됩니다(E2 · E5 가 그렇게 합니다).
+   ============================================================ */
+const MINI_SUBTITLE = Object.freeze({
+  // ---- 낮 준비 ----
+  cut:              "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
+  tteokbokkiCut:    "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
+  anchovy:          "멸치 머리를 잡고 좌우로 흔들어 떼어주세요!",
+  odenBroth:        "육수통을 냄비로 끌어다 부어주세요!",
+  kimchiFry:        "화살표를 순서대로 눌러 김치를 볶아주세요!",
+  batter:           "재료를 순서대로 볼에 넣고 저어주세요!",
+  skewer:           "닭과 파를 번갈아 순서대로 꽂아주세요!",
+  yakisobaSauce:    "재료를 정확한 양만큼 계량해 넣어주세요!",
+  tteokbokkiSauce:  "재료를 정확한 양만큼 계량해 넣어주세요!",
+  udonSoak:         "우동면과 물을 순서대로 넣어주세요!",
+  tteokSoak:        "떡과 물을 순서대로 넣어주세요!",
+  // mandoline · potatoMandoline · potatoStarch · shrimpCoat 는 engine-e2 가 직접 채웁니다
+
+  // ---- 밤 조리 ----
+  heat:             "불을 조절해 적정 온도를 유지해주세요!",
+  stir:             "화살표를 순서대로 눌러 볶아주세요!",
+  fry:              "황금빛 구간에서 건진 뒤 기름을 털어주세요!",
+  chop:             "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
+  plateKimchi:      "볶은 김치를 접시에 옮겨 담아주세요!",
+  // twoSideCook 은 engine-e5 가 요리별로 직접 채웁니다
+
+  // ---- 밤 잡일 ----
+  dishwasher:       "쌓인 그릇을 눌러 설거지해주세요!",
+  trash:            "쓰레기를 눌러 정리해주세요!"
+});
+
+/* 부제를 채웁니다. 표에 없으면 빈 문자열이라 줄이 사라집니다. */
+function setMiniSubtitle(key){
+  const station=document.getElementById("miniStation");
+  if(station)station.textContent=MINI_SUBTITLE[key]||"";
+}
+
 /* 하단 공용 띠(.mg-strip)를 만들어 돌려줍니다.
    3열을 관통하는 가로 1363.2 짜리 칸이고, 비어 있으면 CSS 가 접습니다.
    각 엔진이 화면 마크업을 만들 때 3열 다음에 이 조각을 넣으면 됩니다.

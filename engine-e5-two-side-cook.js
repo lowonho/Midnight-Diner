@@ -238,8 +238,8 @@ function twoSideStageMarkup(data, extraClass = "") {
 function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, total, timePercent }) {
   return `<div class="ts-scene">
       <aside class="ts-col">
-        <h3 class="ts-col-title starred">재료</h3>
         <div class="ts-panel ts-ing-panel">
+          <h3 class="ts-col-title starred">재료</h3>
           <div class="ts-ing-list">${view.ingredients.map(twoSideIngredientMarkup).join("")}</div>
         </div>
       </aside>
@@ -252,13 +252,15 @@ function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, to
         <div class="ts-gauge-slot">${gauge}</div>
       </div>
       <aside class="ts-col">
-        <h3 class="ts-col-title">진행도</h3>
         <div class="ts-panel ts-count">
+          <h3 class="ts-col-title">진행도</h3>
           <strong><b>${done}</b> / ${total}</strong>
           <div class="ts-time" title="남은 시간"><i id="tsTimeBar" style="width:${timePercent}%"></i></div>
         </div>
-        <h3 class="ts-col-title">조작</h3>
-        <div class="ts-panel ts-control">${control}</div>
+        <div class="ts-panel ts-control">
+          <h3 class="ts-col-title">조작</h3>
+          ${control}
+        </div>
       </aside>
       <div class="mg-strip">${strip}</div>
     </div>`;
