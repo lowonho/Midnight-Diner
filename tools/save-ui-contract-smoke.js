@@ -67,6 +67,9 @@ assert(normalizedStoryUiOnlyRule.includes("opacity:0!important")
   &&normalizedStoryUiOnlyRule.includes("visibility:hidden!important")
   &&normalizedStoryUiOnlyRule.includes("pointer-events:none!important"),
   "스토리 중 다른 UI는 보이지 않고 입력도 받지 않아야 합니다.");
+const storyTextRule=storyCssSource.match(/\.story-text\s*\{([^}]+)\}/);
+assert(storyTextRule&&/white-space\s*:\s*pre-line\s*;/.test(storyTextRule[1]),
+  "스토리 자막은 데이터에 지정한 줄바꿈을 화면에 그대로 표시해야 합니다.");
 
 const bootstrap=`
 let runtimeChecks=0;

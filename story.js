@@ -95,6 +95,11 @@ function storyDisplayName(id){
   return isCharacterNameRevealed(id)?character.name:"???";
 }
 
+function storySpeakerLabel(line){
+  if(line?.speaker)return storyDisplayName(line.speaker);
+  return typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+}
+
 function storySceneCardText(scene){
   return scene?`${scene.id} · ${scene.title}`:"";
 }
@@ -410,11 +415,12 @@ function showStoryLine(){
   const choices=document.getElementById("storyChoices");
   const next=document.getElementById("storyNextButton");
   const speakerId=line.speaker||null;
+  const speakerLabel=storySpeakerLabel(line);
   setStoryGameUiVisible(line.showGameUI===true);
   applyStoryCinematic(line);
   speakerEl.classList.remove("revealed");
-  speakerEl.hidden=!speakerId;
-  speakerEl.textContent=storyDisplayName(speakerId);
+  speakerEl.hidden=!speakerLabel;
+  speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId);
   choices.innerHTML="";choices.classList.remove("open");

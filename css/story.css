@@ -238,6 +238,7 @@
   color: #f1e0c2;
   font-size: calc(18 * var(--upx));
   line-height: 1.7;
+  white-space: pre-line;
   word-break: keep-all;
 }
 /* 선택지는 개수와 무관하게 항상 가로 한 줄로 나열합니다(개수가 늘면 칸 폭만 좁아짐).

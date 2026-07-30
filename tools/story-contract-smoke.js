@@ -127,10 +127,22 @@ same(storyCinematicBeatPlan(prologueOpening[3]),
 assert(prologueOpening[0].text.includes("회사 출입증")&&prologueOpening[0].text.includes("종이 상자"),
   "첫 자동 이동 연출에는 회사 퇴장과 종이 상자 설정이 남아 있어야 합니다.");
 assert(prologueOpening[4].kind==="direction"
-  &&prologueOpening[4].text==="바쁜 와중에 사장은 다은이 들어오는 것을 보고 얘기한다.",
+  &&prologueOpening[4].text==="바쁜 와중에 사장은 다은이 들어오는 것을 보고 말한다.",
   "식당에 들어온 뒤 사장의 첫 대사 전에 요청한 연출 문장이 있어야 합니다.");
+assert(!Object.values(STORY_SCENES).some(scene=>
+  scene.lines.some(line=>line.text?.includes("얘기한다"))),
+  "스토리 연출 문구에 '얘기한다' 표현이 남아 있으면 안 됩니다.");
 assert(prologueOpening[5].speaker==="owner",
   "추가 연출 문장 바로 다음에 사장의 첫 대사가 이어져야 합니다.");
+const generalOrders=STORY_SCENES["PR-01"].lines.filter(line=>line.kind==="bubble");
+same(generalOrders.map(storySpeakerLabel),["손님 1","손님 2"],
+  "프롤로그 일반 손님의 주문에는 순서대로 손님 1, 손님 2 이름표가 표시되어야 합니다.");
+assert(generalOrders.every(line=>!line.speaker),
+  "일반 손님 이름표는 고유 인물이나 초상을 만들지 않는 표시 전용 값이어야 합니다.");
+assert(STORY_SCENES["PR-01"].lines
+  .find(line=>line.text?.startsWith("식당 구석에 자리를 잡은 다은은"))
+  ?.text.includes("\\n"),
+  "긴 프롤로그 연출문에는 읽기 좋은 수동 줄바꿈이 있어야 합니다.");
 assert(!STORY_SCENES["PR-02"].lines.some(line=>line.cook),
   "PR-02는 가게를 맡기는 제안부터 시작하고 조리는 PR-01에서 끝나야 합니다.");
 
@@ -256,7 +268,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 63");
+console.log("STORY_CONTRACT_OK 67");
 `;
 
 const context={
