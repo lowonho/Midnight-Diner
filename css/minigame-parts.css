@@ -97,6 +97,37 @@
 .mini-content:has(.skewer-prep-scene),
 .mini-content:has(.one-shot-scene) { width: 100%; }
 
+/* ---- 3열을 쓰지 않는 화면 (E4 하나뿐) -----------------------
+   E4 게이지 유지는 좌·우 칸에 넣을 내용이 원래 없습니다.
+   없는 내용을 만들어 넣느라 냄비·화력 게이지를 824.2 로 좁히지 않고,
+   폭 1360.2 를 전부 씁니다. 11종 중 유일한 예외입니다.
+
+   아래 띠는 3열 화면과 같은 규격(높이 78 · 행 간격 12)이라
+   화면을 넘겨도 아래쪽 줄의 위치와 높이가 튀지 않습니다. */
+.mini-content:has(.heat-scene) { width: 100%; }
+.heat-scene {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0,1fr);
+  grid-auto-rows: auto;
+  row-gap: var(--mg-row-gap);
+}
+.heat-play {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(14 * var(--upx));
+}
+/* 화력 게이지 줄은 넓어진 폭을 다 쓰지 않고 가운데로 모읍니다.
+   1360.2 를 꽉 채우면 ± 버튼이 화면 양 끝으로 벌어져 손이 멀어집니다. */
+.heat-play .heat-wrap { width: min(100%, calc(900 * var(--upx))); }
+.heat-strip { flex-direction: column; gap: calc(6 * var(--upx)); }
+.heat-strip .heat-hold { width: min(100%, calc(900 * var(--upx))); }
+.heat-strip .cut-count { margin: 0; }
+
 /* ---- 공용 진행 카드 #miniTimer ------------------------------
    원래 11종이 저마다 '완성 개수 / 진행도' 카드를 그리고, 겹치는 공용
    타이머 카드는 게임마다 한 줄씩 숨기고 있었습니다(11줄).
@@ -141,6 +172,16 @@
   min-width: 0;
 }
 .mg-strip:empty { display: none; }
+
+/* 띠 안에 들어온 조각들 보정 --------------------------------
+   원래 좁은 칸(824.2 또는 250) 안에 있던 것들이라 "폭을 다 쓰라"고
+   적혀 있는 경우가 있습니다. 띠는 1360.2 라 그대로 두면 화면 끝까지
+   늘어나므로, 띠 안에서만 원래 크기로 되돌립니다. */
+.mg-strip .mini-action { width: auto; }
+.mg-strip .cut-footer { width: auto; }
+/* 온도 바(E6)는 띠 높이 78 안에 마커 삼각형까지 들어가야 합니다.
+   바 34 + 마커가 위로 튀어나오는 5 → 위 여백을 12 로 줄입니다. */
+.mg-strip .fry-temp-bar { padding-top: calc(12 * var(--upx)); }
 
 /* ---- 좁은 화면 보정 -----------------------------------------
    변수만 줄이면 11종이 같이 줄어듭니다. */

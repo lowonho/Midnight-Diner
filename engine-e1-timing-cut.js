@@ -115,7 +115,12 @@ function cutDoneSampleMarkup(data,total){
   return `<div class="cut-done-bowl">${cutPiecesMarkup(data.ingredient,5)}</div>`;
 }
 
-// board : 도마 안쪽 마크업 / footer : 도마 아래 줄(조작 버튼 등)
+// board : 도마 안쪽 마크업 / footer : 하단 공용 띠에 들어갈 것(조작 버튼 등)
+//
+// footer 는 원래 도마 바로 아래(.cut-main 안)에 있었습니다. 통합 규격에서
+// 3열을 관통하는 하단 공용 띠(.mg-strip)로 내렸습니다. 폭이 824.2 → 1360.2 로
+// 넓어지고, 아래쪽 줄의 높이가 다른 미니게임과 같아집니다.
+// 비어 있으면 .mg-strip:empty 가 접어서 3열이 613.2 를 그대로 씁니다.
 function cutScreenMarkup(data,{board,done,total,footer=""}){
   return `<div class="cut-screen">
       <aside class="cut-card cut-ing-card">
@@ -125,7 +130,6 @@ function cutScreenMarkup(data,{board,done,total,footer=""}){
       </aside>
       <div class="cut-main">
         <div class="cut-board">${board}</div>
-        ${footer?`<div class="cut-footer">${footer}</div>`:""}
       </div>
       <aside class="cut-side">
         <div class="cut-card cut-count-card">
@@ -137,6 +141,7 @@ function cutScreenMarkup(data,{board,done,total,footer=""}){
           <div class="cut-card-figure">${cutDoneSampleMarkup(data,total)}</div>
         </div>
       </aside>
+      <div class="mg-strip">${footer?`<div class="cut-footer">${footer}</div>`:""}</div>
     </div>`;
 }
 

@@ -279,7 +279,6 @@ function renderFryer() {
 
       <div class="fry-work-area">
         ${fryerSceneMarkup(data, raised, finishing, itemName)}
-        ${data.phase === "frying" ? fryTempBarMarkup(config) : fryTapRowMarkup(taps)}
         ${finishing?`<strong class="e6-result ${data.completionGrade||"good"} show" id="e6Result">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
       </div>
 
@@ -291,6 +290,9 @@ function renderFryer() {
         </div>
         ${fryControlCardMarkup(data, raised, finishing, itemName, taps, config)}
       </aside>
+      <!-- 하단 공용 띠 : 온도 바(또는 기름 털기 안내). 원래 가운데 열 안에만 있어
+           824.2 였는데, 3열을 관통해 1360.2 를 씁니다. -->
+      <div class="mg-strip">${data.phase === "frying" ? fryTempBarMarkup(config) : fryTapRowMarkup(taps)}</div>
     </div>`;
   const marker = dom.miniContent.querySelector("#miniMarker"); if (marker) marker.style.left = `${data.marker * 100}%`;
   dom.miniContent.querySelectorAll("[data-fry-action]").forEach(button => button.addEventListener("click", miniAction));
