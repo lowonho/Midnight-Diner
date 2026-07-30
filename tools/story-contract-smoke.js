@@ -119,6 +119,9 @@ Object.values(STORY_SCENES).forEach(scene=>scene.lines.forEach((line,index)=>{
 assert(revealed.length===1&&revealed[0].scene==="G-02"&&revealed[0].reveal==="gicheol",
   "박기철의 자기소개 대사에서만 이름을 공개해야 합니다.");
 assert(revealed[0].text.includes("박기철이라고 합니다"),"이름 공개 대사에 자기소개가 있어야 합니다.");
+assert(!Object.values(STORY_SCENES).some(scene=>scene.lines.some(line=>
+  line.kind==="direction"&&line.text?.includes("이름표")&&line.text.includes("???")
+)),"이름 공개 규칙을 플레이어에게 출력되는 연출문에 넣으면 안 됩니다.");
 
 const prologueCookSequence=STORY_SCENES["PR-01"].lines
   .filter(line=>line.cook)
@@ -310,7 +313,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 74");
+console.log("STORY_CONTRACT_OK 75");
 `;
 
 const context={
