@@ -145,8 +145,8 @@ const STORY_SCENES = {
       { speaker: "owner", text: "실력은 충분하고, 임대료나 재료비는 내가 내주지. 나도 손님을 두고 떠나는 게 영 마음에 걸려서 말이야. 내가 지금 건강해 보여도 꽤나 몸이 상했거든. 의사가 최소 한 달은 쉬라고 해서 말이네." },
       { kind: "direction", text: "다은은 잠깐 고민한다." },
       { speaker: "protagonist", text: "해볼게요. 딱 한 달만 해보겠습니다." },
-      { speaker: "owner", text: "좋아. 그렇다면 식당 운영에 대해서는 여기 가게 일지를 참고하게. 나도 가게를 운영하다 헷갈리면 이걸 찾아보거든. 자네도 여기에 이어서 써도 좋을 것 같네." },
-      { kind: "direction", text: "다은은 손때 묻은 식당 일지를 넘겨받고 식당 운영에 대해 간단히 배운 뒤 집으로 돌아간다." }
+      { speaker: "owner", text: "좋아. 그렇다면 식당 운영에 대해서는 여기 영업 일지를 참고하게. 나도 가게를 운영하다 헷갈리면 이걸 찾아보거든. 자네도 여기에 이어서 써도 좋을 것 같네." },
+      { kind: "direction", text: "다은은 손때 묻은 영업 일지를 넘겨받고 식당 운영에 대해 간단히 배운 뒤 집으로 돌아간다." }
     ]
   },
 
@@ -161,10 +161,10 @@ const STORY_SCENES = {
     specialCook: false,
     timeOfDay: "day",
     lines: [
-      { kind: "direction", text: "사장이 떠난 주방. 다은은 식당 일지를 천천히 살펴본다. 낮 준비 화면에는 시간 제한이 없다." },
+      { kind: "direction", text: "사장이 떠난 주방. 다은은 영업 일지를 천천히 살펴본다. 낮 준비 화면에는 시간 제한이 없다." },
       { speaker: "protagonist", text: "어젯밤 일이 꿈만 같네." },
-      { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 식당 일지에 있는 레시피 중 두 개씩 늘려보자." },
-      { kind: "direction", text: "다은은 식당 일지를 편다." },
+      { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 영업 일지에 있는 레시피 중 두 개씩 늘려보자." },
+      { kind: "direction", text: "다은은 영업 일지를 편다." },
       { speaker: "protagonist", text: "일단 해볼게… 어묵탕과 두부김치. 어렵지 않은 메뉴네?" },
       { kind: "system", text: "인기도 0 · 예상 손님 수 적음" }
     ]
@@ -207,7 +207,7 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "하루 만에 단골 행세하시는 거예요?" },
       { speaker: "gicheol", text: "첫 손님이면 창립 멤버 아닙니까? 직급으로 치면 이사쯤 되겠네요." },
       { speaker: "protagonist", text: "이사님, 오늘은 뭘 드시겠어요?" },
-      { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시기사를 하고 있죠.", reveal: "gicheol" },
+      { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시 기사를 하고 있죠.", reveal: "gicheol" },
       { speaker: "protagonist", text: "그렇다면 박 기사님, 오늘의 식사는 어떻게 하실 건가요?" },
       {
         speaker: "gicheol",
@@ -216,9 +216,9 @@ const STORY_SCENES = {
           special: false,
           thresholds: { great: 80, warm: 60 },
           replies: {
-            great: "전 사장님이 해주신 맛이랑 똑같네요 앞으로도 자주 오겠습니다!",
+            great: "전 사장님이 해주신 맛이랑 똑같네요. 앞으로도 자주 오겠습니다!",
             warm: "맛이 조금 아쉽지만 잘 먹었습니다!",
-            soft: "맛은 비슷하게 나네요 앞으로를 기대하겠습니다."
+            soft: "맛은 비슷하게 나네요. 앞으로를 기대하겠습니다."
           }
         }
       },
@@ -253,7 +253,7 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "다음번에는 좋은 소식 들고 오세요~" },
       { speaker: "gicheol", text: "밥 먹으러 와서 숙제를 받아 가네요." },
       { speaker: "protagonist", text: "안 해도 혼내지는 않아요." },
-      { speaker: "gicheol", text: "그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다 김치전은 덤이고요" },
+      { speaker: "gicheol", text: "그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다. 김치전은 덤이고요." },
       { kind: "direction", text: "기철은 계산대에서 자기 이름과 연락처를 영수증에 또박또박 쓴다." },
       { speaker: "gicheol", text: "혹시 택시 타실 일 있으면 연락주세요. 싸게 모시겠습니다." },
       { speaker: "protagonist", text: "조심히 들어가세요~" },
@@ -450,7 +450,7 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "팀장님?" },
       { speaker: "manager", text: "갑자기 연락하고 찾아와서 미안해. 네가 힘들어하던 것도 잘 알고 있었고." },
       { speaker: "protagonist", text: "아뇨. 팀장님은 잘해주셨잖아요. 그냥 제 능력 부족인 거죠." },
-      { speaker: "manager", text: "다은 씨 능력은 충분해. 문제는 회사는 돈을 벌어야 하는 집단이라 그런 거지…" },
+      { speaker: "manager", text: "다은 씨 능력은 충분해. 문제는 회사가 돈을 벌어야 하는 집단이라는 거지…" },
       { speaker: "manager", text: "그래서 이 식당은 다은 씨 거야?" },
       { speaker: "protagonist", text: "제 거라고 하기에는 애매해요. 한 달만 가게를 해보라고 빌려주신 거라서." },
       { speaker: "manager", text: "한 달 빌린 거라도 사장은 사장이지. 지금부터 팀장이 아니라 손님으로 있어도 될까?" },

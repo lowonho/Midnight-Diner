@@ -217,7 +217,7 @@ assert(!STORY_SCENES["PR-02"].lines.some(line=>line.cook),
 const g02=STORY_SCENES["G-02"];
 assert(g02.day===2&&g02.dishId==="kimchi"&&g02.arrival==="late"&&g02.deferUntilArrival,
   "G-02는 Day 2 후반 김치전 주문이어야 합니다.");
-assert(g02.lines.some(line=>line.text==="그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다 김치전은 덤이고요"),
+assert(g02.lines.some(line=>line.text==="그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다. 김치전은 덤이고요."),
   "G-02 재방문 예고 대사");
 const g02CookLine=g02.lines.find(line=>line.orderCook);
 assert(g02CookLine.speaker==="gicheol",
