@@ -239,7 +239,8 @@
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0,1fr);
-  gap: calc(26 * var(--upx));
+  /* 원래 26 으로 13화면 중 가장 넓었습니다 → 공용 --mg-col-gap(12) */
+  gap: var(--mg-col-gap);
 }
 /* 늘어난 카드 안에서 견본 그림은 세로 가운데로 모입니다 */
 .cut-ref-card { align-content: center; }
@@ -686,7 +687,8 @@
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0,1fr);
-  gap: calc(20 * var(--upx));
+  /* 원래 20 → 공용 --mg-col-gap(12). 참고 모양 카드가 395.1 → 403.1 */
+  gap: var(--mg-col-gap);
 }
 .anchovy-count {
   margin: 0;
@@ -963,7 +965,7 @@
 }
 
 /* 좌우 세로 칸 */
-.os-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+.os-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .os-col-title · .os-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 끌어다 놓거나 눌러서 집습니다. 옮긴 카드는 흐려지며 ✓ 가 붙습니다 */
@@ -1346,7 +1348,7 @@
 .kf-scene.direction-sliding { cursor: grabbing; }
 
 /* 좌우 세로 칸 (김치전 반죽의 .bt-col 과 같은 톤) */
-.kf-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+.kf-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .kf-col-title · .kf-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 팬에 들어가 있으므로 보여주기만 합니다 */
@@ -1643,7 +1645,7 @@
 }
 
 /* 좌우 세로 칸 */
-.bt-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+.bt-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .bt-col-title · .bt-panel → css/minigame-parts.css */
 
 /* 왼쪽 재료 카드 : 넣을 차례가 깜빡이고, 넣은 재료는 흐려지며 ✓ 가 붙습니다 */
@@ -1873,7 +1875,8 @@
 }
 
 /* 좌우 세로 칸 */
-.sk-col { display: flex; flex-direction: column; gap: calc(14 * var(--upx)); min-width: 0; }
+/* 간격은 원래 14 였습니다 → 공용 --mg-col-gap(12). 참고 모양 카드가 458.6 → 460.6 */
+.sk-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .sk-col-title · .sk-panel → css/minigame-parts.css */
 
 /* 재료 카드
@@ -2122,7 +2125,7 @@
 }
 
 /* 좌우 세로 칸 (닭꼬치 .sk-col 과 같은 결) */
-.sc-col { display: flex; flex-direction: column; gap: calc(12 * var(--upx)); min-width: 0; }
+.sc-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .sc-col-title · .sc-panel → css/minigame-parts.css
    (원래 가로 여백만 11upx 로 혼자 달랐습니다. 되살리려면 아래 한 줄만 켜세요)
    .sc-panel { padding-inline: calc(11 * var(--upx)); } */
@@ -2442,7 +2445,8 @@
 }
 
 /* 좌우 세로 칸 (김치 볶기 .kf-col 과 같은 톤) */
-.fp-col { display: flex; flex-direction: column; gap: calc(10 * var(--upx)); min-width: 0; }
+/* 간격은 원래 10 이었습니다 → 공용 --mg-col-gap(12). 조작 카드가 462.6 → 460.6 */
+.fp-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
 /* .fp-col-title · .fp-panel → css/minigame-parts.css */
 
 /* ── 왼쪽 : 재료 카드 ──────────────────────────────────────── */
