@@ -46,7 +46,6 @@ const UI_CLASS = Object.freeze({
   /* 메뉴 카드 (ui-hud.js 가 그립니다) */
   menuCard: "menu-card",
   menuCardIcon: "food-icon",
-  menuCardSparkle: "sparkle",           // 특별음식 반짝임 — 연출은 css/hud.css
   menuCardIconEmpty: "menu-icon-placeholder",
   menuCardTag: "menu-tag",
   menuCardOrderCount: "order-count"

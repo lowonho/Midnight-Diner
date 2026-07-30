@@ -79,10 +79,9 @@ function drawCustomers(){
     roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
     ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
     roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
-    // 주문 표시라 아직 조리 전입니다. 완벽 조리 그림은 쓰지 않습니다.
+    // 주문 표시라 아직 조리 전입니다. 등급은 기본(normal) 그림을 씁니다.
+    // 반짝임은 요리사가 손에 들었을 때만 나옵니다. (player.js syncCarriedFoodFx)
     drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
-    // 특별음식이면 같은 사각형에 반짝임을 겹칩니다. (시트 규격이 프랍과 같음)
-    if(isSpecialFood(order.dishId,order))drawFoodFx("sparkle",x,y+H.iconY,H.iconW,H.iconH);
     ctx.fillStyle="#3b2518";ctx.beginPath();
     ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
 

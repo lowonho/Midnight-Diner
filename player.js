@@ -85,6 +85,8 @@ const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY
 //          side  x -29  앵커 표의 side x(-25.5)는 실제 측면 carry 포즈의 손보다
 //                       29px 뒤라서, 그대로 두면 음식이 어깨·가슴에 겹칩니다.
 //                       앞으로 밀어 뻗은 손 위에 오게 합니다.
+//                y   9  측면 포즈는 손이 앞으로 뻗어 있어 down 과 같은 14 를 주면
+//                       음식이 손보다 조금 내려앉아 보입니다. 5px 만 올립니다.
 //   dy     chef-carry-temp.js 를 지웠을 때 쓰이는 기본 높이(발바닥 기준).
 //
 // steam/sparkle = 음식 위에 겹치는 연출(food-props.js FOOD_FX).
@@ -93,12 +95,19 @@ const PLAYER_SPRITE = { frameW:192, frameH:320, w:87, h:233, anchorX:.5, anchorY
 //             멈춥니다. 0.7 을 넘기면 얼굴을 가려서 지저분해 보입니다.
 //   steam.dy  음식 세로 크기 대비 김 밑동 위치 (0 = 음식 중심, 양수 = 아래쪽).
 //             0.05 = 그릇 안에서 피어오르는 높이.
-//   sparkle 은 시트 규격이 프랍과 같아서 음식과 같은 크기·같은 자리입니다.
+//   sparkle.w   음식 폭 대비 반짝임 폭. 예전에는 음식과 같은 사각형(1.0)이었는데
+//               시트의 별이 작아서 접시에 파묻혀 잘 안 보였습니다. 1.3 이면
+//               별 하나하나가 눈에 들어옵니다. 1.5 를 넘기면 접시보다 별이
+//               더 커 보입니다. 세로는 시트 비율(프랍과 같음)로 따라옵니다.
+//   sparkle.dy  음식 세로 크기 대비 반짝임 중심 (0 = 음식 중심, 음수 = 위쪽).
+//               -0.45 면 별 무리가 접시 윗면과 그 위쪽에 걸칩니다. -0.6 을 넘겨
+//               올리면 별이 요리사 얼굴을 덮습니다.
 const PLAYER_CARRY = {
   food: {
     dy:-80, w:72,
-    hand:{ down:{x:0,y:14}, up:{x:0,y:-22}, side:{x:-29,y:14} },
-    steam:{ w:0.55, dy:0.05 }
+    hand:{ down:{x:0,y:14}, up:{x:0,y:-22}, side:{x:-29,y:9} },
+    steam:{ w:0.55, dy:0.05 },
+    sparkle:{ w:1.3, dy:-0.45 }
   }
 };
 
@@ -244,8 +253,8 @@ function syncPhaserObjects(){
   const held=state.carrying;
   carriedFood.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));
   if(held){
-    // 조리 점수가 높으면 완벽 조리 그림으로 바뀝니다. (그 그림이 있는 메뉴만)
-    setFoodPropTexture(carriedFood,held.dishId,foodPropIsPerfect(held.cookScore));
+    // 조리 점수에 따라 rough / normal / perfect 세 그림 중 하나로 바뀝니다.
+    setFoodPropTexture(carriedFood,held.dishId,foodPropGrade(held.cookScore));
     // 음식도 요리사와 같은 원근 배율을 받아야 합니다. 안 걸면 앞으로 걸어나올 때
     // 요리사만 커져서 손에 든 음식이 상대적으로 작아집니다.
     sizeFoodPropSprite(carriedFood,carriedFoodViewWidth(p.y));
@@ -280,11 +289,14 @@ function syncCarriedFoodFx(held){
   }
 
   if(carriedSparkle){
-    // 시트 규격이 프랍과 같아서 음식과 완전히 같은 사각형입니다.
+    // 음식 폭의 일부만 써서 접시 가운데 위쪽에 띄웁니다. (PLAYER_CARRY.food.sparkle)
+    // 시트 비율이 프랍과 같아서 폭만 정하면 세로는 따라옵니다.
+    const K=PLAYER_CARRY.food.sparkle;
     const special=(typeof isSpecialFood==="function")&&isSpecialFood(held?.dishId,carriedOrder(held));
+    const width=foodW*K.w;
     carriedSparkle.setVisible(visible&&!!special)
-      .setPosition(carriedFood.x,carriedFood.y)
-      .setDisplaySize(foodW,foodH)
+      .setPosition(carriedFood.x,carriedFood.y+foodH*K.dy)
+      .setDisplaySize(width,width*(carriedSparkle.height/carriedSparkle.width))
       .setDepth(carriedFood.depth);
   }
 }

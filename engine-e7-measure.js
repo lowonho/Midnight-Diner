@@ -101,16 +101,18 @@ function sauceBottleMarkup(item,extraClass=""){
 // 껍데기(.sc-panel)를 쓰지 않습니다. 겉모습은 css/minigame-parts.css 가 줍니다.
 function sauceGoalMarkup(item,selected){
   const status=sauceStatus(item);
-  // 배치·구성 모두 E8 반죽(.bt-ing-card)과 같습니다 — [그림 / 이름 + 굵은 수치] 두 줄뿐입니다.
-  // 원래 있던 '레시피 분량' 라벨과 '한 번에 넣기' 안내 줄은 뺐습니다.
-  //   · 분량 숫자는 이름 줄로 옮겨 붙었습니다 (E8 의 `부침가루 ×1` 과 같은 꼴)
-  //   · 조작 안내는 오른쪽 조작 카드와 TIP 줄에 이미 있습니다
-  //   · 넣기 완료는 E8 처럼 이름 뒤 ✓ 와 카드 테두리로 보여 줍니다
-  // 줄을 뺀 데는 자리 이유도 있습니다 — 떡볶이 양념장은 위에 진행 띠가 붙어
-  // 좌 칸이 480 뿐이라, 세 줄짜리 카드로는 세 장이 들어가지 않았습니다.
+  // [그림 | 이름 · 레시피 분량 · 투입 여부] 가로 2열입니다.
+  // ⚠️ 세로 2줄(E8 반죽 꼴)로 바꿨다가 되돌렸습니다. 세 줄을 세로로 쌓으면
+  //    카드 한 장이 최소 169 를 요구하는데, 떡볶이 양념장은 위에 준비 진행 띠가
+  //    붙어 좌 칸이 480 뿐이라 카드 세 장이 각 153 밖에 못 씁니다. 48 이 넘쳤습니다.
+  //    가로로 두면 그림(110)과 글자(114)가 나란히 서서 최소 134 면 되고 둘 다 들어갑니다.
   return `<div class="sc-goal ${status} ${selected?"selected":""}">
       <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
-      <span class="sc-goal-name">${item.label}<b>${item.target}g</b></span>
+      <span class="sc-goal-info">
+        <b class="sc-goal-name">${item.label}</b>
+        <span class="sc-goal-target">레시피 분량 <b>${item.target}g</b></span>
+        <span class="sc-goal-now">${status==="exact"?"✓ 넣기 완료":"한 번에 넣기"}</span>
+      </span>
     </div>`;
 }
 
