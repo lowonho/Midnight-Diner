@@ -144,7 +144,7 @@ assert(!Object.values(STORY_SCENES).some(scene=>scene.lines.some(line=>
   line.kind==="direction"&&line.text?.includes("이름표")&&line.text.includes("???")
 )),"이름 공개 규칙을 플레이어에게 출력되는 연출문에 넣으면 안 됩니다.");
 const gicheolEntranceCaption=STORY_SCENES["PR-01"].lines.find(line=>
-  line.text==="택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
+  line.text==="반갑게 인사를 마친 택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
 );
 assert(gicheolEntranceCaption?.kind==="direction"
   &&storySpeakerLabel(gicheolEntranceCaption)==="",
