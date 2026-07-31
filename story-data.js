@@ -107,7 +107,7 @@ const STORY_SCENES = {
       { speaker: "owner", text: "닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\n뒷면도 타지 않게 구우면 되네.", showGameUI: true, cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
       { speaker: "owner", text: "새우튀김은 튀김옷이 노릇해졌을 때 건져서\n바스켓을 가볍게 털어 기름을 빼면 되네.", showGameUI: true, cook: { dishId: "shrimpTempura", tutorial: true, resultKey: "pr01_shrimp_tempura" } },
       { speaker: "owner", text: "볶음우동은 면과 채소, 소스를 철판에 올리고\n뒤집개로 골고루 볶으면 되네.", showGameUI: true, cook: { dishId: "yakisoba", tutorial: true, resultKey: "pr01_yakisoba" } },
-      { kind: "direction", text: "한참 요리를 하다 보니 손님들도 대부분 식사를 마치고 사장에게 작별 인사를 하고 나간다.\n빗줄기가 서서히 잦아들 때 택시 기사 한 명이 문을 열고 들어온다." },
+      { kind: "direction", text: "한참 요리를 하다 보니 손님들도 대부분 식사를 마친 후 사장에게 작별 인사를 하고 나간다.\n빗줄기가 서서히 잦아들 때 택시 기사 한 명이 문을 열고 들어온다." },
       { speaker: "gicheol", text: "사장님, 오늘 마지막 영업이라 하셔서. 늦었지만 왔습니다~" },
       { kind: "direction", text: "택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다." },
       { speaker: "gicheol", text: "어? 마지막 영업날이라는데 알바생을 들이셨네요??" },
