@@ -25,7 +25,8 @@ var state={
   spawnedCustomers:0,
   nightCustomerTarget:0,
   selectedOrderId:null,
-  popularity:0
+  popularity:0,
+  player:{x:620,y:448,facing:"down",moving:false}
 };
 var nextOrderId=1;
 const localStorageData=new Map();
@@ -35,12 +36,29 @@ const localStorage={
   removeItem:key=>localStorageData.delete(key)
 };
 const window={QA_MODE:null,addEventListener(){}};
-const document={addEventListener(){},getElementById(){return null;}};
+const storyOverlayElement={classList:{add(){},remove(){},toggle(){}}};
+const document={
+  addEventListener(){},
+  getElementById(id){return id==="storyOverlay"?storyOverlayElement:null;}
+};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function buildMenuCards(){}
 function updateUI(){}
 function saveGame(){}
-function showToast(){}
+const storyToastMessages=[];
+function showToast(text){storyToastMessages.push(text);}
+const launchedStoryMinis=[];
+function startMini(type,stationId,context){launchedStoryMinis.push({type,stationId,context});}
+const testStations={
+  board:{id:"board",label:"도마"},
+  fridge:{id:"fridge",label:"냉장고",ix:290,iy:427,facing:"up"},
+  pot:{id:"pot",label:"냄비"},
+  pan:{id:"pan",label:"후라이팬"},
+  grill:{id:"grill",label:"직화구이"},
+  fryer:{id:"fryer",label:"튀김기"},
+  griddle:{id:"griddle",label:"철판"}
+};
+function stationById(id){return testStations[id]||null;}
 `;
 
 const test=`
@@ -126,7 +144,7 @@ assert(!Object.values(STORY_SCENES).some(scene=>scene.lines.some(line=>
   line.kind==="direction"&&line.text?.includes("이름표")&&line.text.includes("???")
 )),"이름 공개 규칙을 플레이어에게 출력되는 연출문에 넣으면 안 됩니다.");
 const gicheolEntranceCaption=STORY_SCENES["PR-01"].lines.find(line=>
-  line.text==="택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
+  line.text==="반갑게 인사를 마친 택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
 );
 assert(gicheolEntranceCaption?.kind==="direction"
   &&storySpeakerLabel(gicheolEntranceCaption)==="",
@@ -137,6 +155,21 @@ const prologueCookSequence=STORY_SCENES["PR-01"].lines
   .map(line=>line.cook.dishId);
 same(prologueCookSequence,["tofu","oden","skewer","shrimpTempura","yakisoba","kimchi"],"PR-01 조리 순서");
 const prologueTutorialLines=STORY_SCENES["PR-01"].lines.filter(line=>line.cook?.tutorial);
+same(
+  Object.fromEntries(prologueTutorialLines.map(line=>[
+    line.cook.dishId,
+    dishById(line.cook.dishId).cook.map(step=>[step.station,step.game])
+  ])),
+  {
+    tofu:[["board","chop"],["fridge","plateKimchi"]],
+    oden:[["pot","heat"]],
+    skewer:[["grill","twoSideCook"]],
+    shrimpTempura:[["fryer","fry"]],
+    yakisoba:[["griddle","stir"]],
+    kimchi:[["pan","twoSideCook"]]
+  },
+  "프롤로그 음식별 조리기구와 미니게임 연결"
+);
 assert(prologueTutorialLines.every(line=>line.showGameUI===true),
   "사장이 조리를 안내하는 모든 튜토리얼 줄에서는 게임 UI를 보여야 합니다.");
 assert(prologueTutorialLines.every(line=>
@@ -157,6 +190,37 @@ same(
 assert(!STORY_SCENES["PR-01"].lines.some(line=>
   line.text?.includes("사장의 안내에 따라")),
   "프롤로그 조리 안내에 포괄적인 설명문이 남아 있으면 안 됩니다.");
+
+const pr01=STORY_SCENES["PR-01"];
+const tofuTutorial=prologueTutorialLines.find(line=>line.cook.dishId==="tofu");
+state.story=createStoryState();
+state.paused=true;
+storySession={scene:pr01,lineIndex:pr01.lines.indexOf(tofuTutorial),waitingForCook:false,suspended:false};
+launchedStoryMinis.length=0;storyToastMessages.length=0;
+assert(startStoryCookChallenge(pr01,tofuTutorial.cook,{lineIndex:storySession.lineIndex})===true,
+  "프롤로그 조리 도전을 시작할 수 있어야 합니다.");
+assert(state.paused===false&&activeStoryCookStep()?.station==="board"
+  &&launchedStoryMinis.length===0&&storyToastMessages.at(-1).includes("도마")
+  &&state.player.x===testStations.fridge.ix&&state.player.y===testStations.fridge.iy,
+  "두부김치는 냉장고 쪽에서 이동 조작으로 돌아가 도마 상호작용을 기다려야 합니다.");
+assert(launchStoryCookStep("pot")===false&&launchedStoryMinis.length===0,
+  "현재 단계와 다른 조리기구에서는 프롤로그 미니게임이 시작되면 안 됩니다.");
+assert(launchStoryCookStep("board")===true
+  &&launchedStoryMinis.length===1
+  &&launchedStoryMinis[0].type==="chop",
+  "도마에서 상호작용했을 때만 두부 썰기 미니게임을 시작해야 합니다.");
+const originalSetTimeout=setTimeout;
+const scheduledStoryTimers=[];
+setTimeout=(callback,delay)=>{scheduledStoryTimers.push({callback,delay});return scheduledStoryTimers.length;};
+completeStoryCookStep(85);
+setTimeout=originalSetTimeout;
+assert(activeStoryCookStep()?.station==="fridge"
+  &&launchedStoryMinis.length===1
+  &&scheduledStoryTimers.length===0
+  &&storyToastMessages.at(-1).includes("냉장고"),
+  "두부 썰기 완료 뒤 다음 기구로 이동할 때 두 번째 미니게임을 예약하거나 자동 시작하면 안 됩니다.");
+state.story.activeStoryCook=null;storySession=null;state.paused=false;
+
 const recipeGuideIndex=STORY_SCENES["PR-01"].lines.findIndex(line=>line.text?.includes("레시피를 알려주겠네"));
 assert(recipeGuideIndex>=0&&STORY_SCENES["PR-01"].lines[recipeGuideIndex].showGameUI===true,
   "사장이 레시피 안내를 시작하는 대사부터 게임 UI가 보여야 합니다.");
@@ -178,8 +242,8 @@ same(storyCinematicBeatPlan(prologueOpening[2]),
 same(storyCinematicBeatPlan(prologueOpening[3]),
   {from:.78,to:.90,duration:1100,rain:true,fade:true},
   "식당 입장 연출에서는 주인공이 오른쪽으로 이동하며 사라져야 합니다.");
-assert(prologueOpening[0].text.includes("회사 출입증")&&prologueOpening[0].text.includes("종이 상자"),
-  "첫 자동 이동 연출에는 회사 퇴장과 종이 상자 설정이 남아 있어야 합니다.");
+assert(prologueOpening[0].text.includes("회사 출입증")&&prologueOpening[0].text.includes("종이박스"),
+  "첫 자동 이동 연출에는 회사 퇴장과 종이박스 설정이 남아 있어야 합니다.");
 assert(prologueOpening[4].kind==="direction"
   &&prologueOpening[4].text==="바쁜 와중에 사장은 다은이 들어오는 것을 보고 말한다.",
   "식당에 들어온 뒤 사장의 첫 대사 전에 요청한 연출 문장이 있어야 합니다.");
@@ -342,7 +406,7 @@ assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 �
 localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
 assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
 
-console.log("STORY_CONTRACT_OK 82");
+console.log("STORY_CONTRACT_OK 88");
 `;
 
 const context={

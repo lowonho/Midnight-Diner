@@ -118,7 +118,7 @@ function prepReachFront(){
    가로 거리만으로 정합니다. 세로 위치로는 구분되지 않습니다.
    ------------------------------------------------------------ */
 function nearestPrepObject(){
-  if(state.phase!=="day")return null;
+  if(state.phase!=="day"||state.story?.activeStoryCook)return null;
   const L=PREP_LAYOUT,front=prepReachFront();
   let best=null,bestDx=Infinity;
   prepObjectLayout().forEach(item=>{
@@ -153,7 +153,7 @@ function nearestPrepObject(){
 // 하나만 물어볼 때는 생략하면 알아서 구합니다.
 function prepObjectUsable(item,near=nearestPrepObject()){
   if(state.mini)return state.mini.context?.taskId===item.task.id;
-  if(state.paused||near?.task.id!==item.task.id)return false;
+  if(state.story?.activeStoryCook||state.paused||near?.task.id!==item.task.id)return false;
   if(state.prepProgress?.[item.task.id])return false;
   return !(item.task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
 }
@@ -164,7 +164,7 @@ function prepObjectUsable(item,near=nearestPrepObject()){
    ------------------------------------------------------------ */
 
 function drawPrepObjects(){
-  if(state.phase!=="day")return;
+  if(state.phase!=="day"||state.story?.activeStoryCook)return;
   const L=PREP_LAYOUT;
   // 가장 가까운 준비물은 전부가 공유하므로 여기서 한 번만 구합니다.
   const near=nearestPrepObject();

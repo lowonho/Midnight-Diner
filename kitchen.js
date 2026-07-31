@@ -303,7 +303,9 @@ function stationApproachDistance(station){
   let yDistance=Math.abs(player.y-station.iy);
   // 집기가 바라보는 쪽으로 기준점을 지나 더 밀착한 위치도 접근 영역입니다.
   if(station.facing==="up"&&player.y<=station.iy)yDistance=0;
-  if(station.facing==="down"&&player.y>=station.iy)yDistance=0;
+  // 일반 영업의 기존 넓은 철판 판정은 유지하되, 프롤로그에서는 실제로
+  // 철판 가까이 걸어가야 하므로 세로 거리까지 확인합니다.
+  if(station.facing==="down"&&player.y>=station.iy&&!state.story?.activeStoryCook)yDistance=0;
   return Math.hypot(player.x-closestX,yDistance);
 }
 
@@ -327,6 +329,7 @@ function nearestStation(preferredId=null){
    둥실대는 순간 = 정말 쓸 수 있는 순간이 됩니다.
 
      낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
+     프롤로그 조리 사장이 지정한 현재 조리 단계 집기만
      밤 · 들고 감  쓰레기통에 폐기할 때만
      밤          설거지·쓰레기 정리는 쌓였을 때, 나머지는 현재 조리 단계 집기만
      미니게임 중   그 집기만 (프롬프트는 숨지만 사용 중이므로 계속 강조)
@@ -336,7 +339,9 @@ function nearestStation(preferredId=null){
    ------------------------------------------------------------ */
 function stationUsable(s,near){
   if(state.mini)return state.mini.stationId===s.id;
-  if(state.paused||near?.id!==s.id||state.phase!=="night")return false;
+  if(state.paused||near?.id!==s.id)return false;
+  if(state.story?.activeStoryCook)return s.id===currentRequirement();
+  if(state.phase!=="night")return false;
   if(state.carrying){
     if(s.id!=="trash")return false;
     const dish=dishById(state.carrying.dishId);
@@ -396,7 +401,7 @@ function drawStations(){
 // (nearestStation 을 9번 돌 필요가 없습니다)
 function drawStationLabels(){
   if(trashInFront()) drawStation(STATIONS.trash);
-  const near=nearestStation();
+  const near=nearestStation(currentRequirement());
   Object.values(STATIONS).forEach(s=>labelStation(s,near));
 }
 

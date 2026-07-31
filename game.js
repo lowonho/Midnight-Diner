@@ -348,6 +348,8 @@ function buildMenuCards() {
 }
 
 function currentRequirement() {
+  const storyStep=activeStoryCookStep();
+  if(storyStep) return storyStep.station||null;
   if(state.phase==="day") {
     return null;
   }
@@ -362,8 +364,31 @@ function currentRequirement() {
 // nearestStation()  → kitchen.js
 // prepObjectLayout(), nearestPrepObject() → prep.js
 
+function nearestStoryCookStation(requiredId){
+  const required=stationById(requiredId);
+  // 철판만 VIEW 좌표 판정을 쓰므로 같은 반경을 논리 좌표로 환산해
+  // 프롤로그의 E 프롬프트와 철판 명패·조리 연출이 동시에 켜지게 합니다.
+  const reach=requiredId==="griddle"?toLogic(COUNTER_REACH):STATION_REACH;
+  if(required&&stationApproachDistance(required)<reach)return required;
+  const nearby=nearestStation();
+  return nearby?.id===requiredId?null:nearby;
+}
+
 function interact() {
   if(storyDialogueIsActive() || state.paused || state.mini || !["day","night"].includes(state.phase)) return;
+  const storyStep=activeStoryCookStep();
+  if(storyStep){
+    const required=storyStep.station;
+    const station=nearestStoryCookStation(required);
+    if(!station){showToast(UI_TEXT.toast.stationTooFar,true);return;}
+    state.player.facing=station.facing;
+    if(station.id!==required){
+      showToast(UI_TEXT.toast.wrongStep(stationById(required)?.label||required),true);
+      return;
+    }
+    launchStoryCookStep(station.id);
+    return;
+  }
   if(state.phase==="day"){
     const prepObject=nearestPrepObject();
     if(!prepObject){showToast(UI_TEXT.toast.prepTooFar,true);return;}
@@ -549,7 +574,15 @@ function updatePrompt(){
   if(state.paused||!["day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
   let text="",x=0,y=0;
-  if(state.phase==="night"&&state.carrying){
+  const storyStep=activeStoryCookStep();
+  if(storyStep){
+    const required=storyStep.station;
+    const station=nearestStoryCookStation(required);
+    if(station?.id===required){
+      text=UI_TEXT.prompt.station(station.label);
+      x=station.ix;y=station.id==="griddle"?station.iy-58:station.y+station.h+60;
+    }
+  }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
     const station=nearestStation();
     const dish=dishById(state.carrying.dishId);
@@ -652,7 +685,7 @@ window.addEventListener("keydown",e=>{
     return;
   }
   if(storyDialogueIsActive()){
-    if(k==="e"||k==="enter")storyAdvance();
+    if(k==="e"||e.code==="Space")storyAdvance();
     return;
   }
   if(k==="e"){interact();return;}
@@ -692,8 +725,14 @@ class DinerScene extends Phaser.Scene {
     syncPhaserObjects();
     // 카운터 연출은 VIEW 좌표를 쓰므로 플레이어 위치를 변환해서 넘깁니다.
     // 마지막 인자는 영업 중 여부. 준비 시간에는 수저통을 치웁니다.
-    updateCounter(time,delta,{x:toView(state.player.x),y:toView(state.player.y)},
-      state.phase==="night"||state.phase==="result");
+    const storyStep=activeStoryCookStep();
+    const storyGriddleReady=storyStep?.station==="griddle"
+      &&nearestStoryCookStation("griddle")?.id==="griddle";
+    const counterPlayer=state.story?.activeStoryCook&&!storyGriddleReady
+      ?null
+      :{x:toView(state.player.x),y:toView(state.player.y)};
+    updateCounter(time,delta,counterPlayer,
+      state.phase==="night"||state.phase==="result"||storyTimeOfDayOverride()==="night");
   }
 }
 
