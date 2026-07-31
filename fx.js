@@ -73,21 +73,23 @@ function drawParticles(){
 /* ------------------------------------------------------------
    3. 목표 지점 안내
    ------------------------------------------------------------
-   밤 조리 단계만 가리킵니다. 대상의 ix / iy (상호작용 지점)를 씁니다.
+   밤 조리 단계와 프롤로그 조리 단계를 가리킵니다.
+   대상의 ix / iy (상호작용 지점)를 씁니다.
 
-   [낮에는 안 그립니다] 낮 준비는 순서가 정해져 있지 않아서
+   [일반 낮 준비에는 안 그립니다] 낮 준비는 순서가 정해져 있지 않아서
    (선행 작업이 걸린 두부김치류만 예외) "다음 하나"를 가리킬 근거가
    없습니다. 예전에는 아직 안 한 것 중 첫 번째를 가리켰는데,
    아무 준비물이나 먼저 해도 되는 규칙과 어긋나 오해를 줬습니다.
    지금은 어떤 준비물이든 앞에 서면 이름표가 크게 둥실대므로
    (prep.js prepObjectUsable) 화살표 없이도 알 수 있습니다.
 
-   반대로 밤 조리는 currentRequirement() 가 단계를 강제하므로
+   반대로 밤 조리와 프롤로그 조리는 currentRequirement() 가 단계를 강제하므로
    가리킬 곳이 실제로 하나뿐이고, 그래서 화살표를 남겨 둡니다.
    ------------------------------------------------------------ */
 
 function drawGuidance(){
-  if(state.paused||state.mini||state.phase!=="night")return;
+  const storyCook=!!state.story?.activeStoryCook;
+  if(state.paused||state.mini||(state.phase!=="night"&&!storyCook))return;
   const requirement=currentRequirement();
   const target=requirement?stationById(requirement):null;
   if(!target)return;

@@ -192,6 +192,10 @@ function storyIsActive(){return !!storySession;}
 function storyDialogueIsActive(){return !!storySession&&!storySession.suspended;}
 function storyCookingIsActive(){return !!storySession?.suspended;}
 function activeStoryCookOrderId(){return storySession?.pendingCook?.orderId??null;}
+function activeStoryCookStep(){
+  const challenge=state.story?.activeStoryCook;
+  return challenge?.steps?.[challenge.stepIndex]||null;
+}
 
 function storySceneIdsForMoment(moment,day=state.day){
   return [...(STORY_EVENT_SCHEDULE[moment]?.[day]||[])];
@@ -649,18 +653,41 @@ function startStoryCookChallenge(scene,cook,metadata={}){
     thresholds:cook.thresholds&&typeof cook.thresholds==="object"?{...cook.thresholds}:null
   };
   storySession.waitingForCook=true;storySession.suspended=true;
+  const startStation=stationById(cook.startStation);
+  if(startStation&&state.player){
+    state.player.x=startStation.ix;
+    state.player.y=startStation.iy;
+    state.player.facing=startStation.facing;
+    state.player.moving=false;
+  }
+  state.paused=false;
   document.getElementById("storyOverlay").classList.remove("open");
-  showToast(`${dish.name} 한 접시를 직접 완성해 보세요.`);
-  launchStoryCookStep();
+  showStoryCookStationGuide();
+  updateUI(true);
   return true;
 }
 
-function launchStoryCookStep(){
+function storyCookStationGuideText(){
   const challenge=state.story?.activeStoryCook;
-  if(!challenge)return false;
+  const step=activeStoryCookStep();
+  if(!challenge||!step)return "";
   const dish=dishById(challenge.dishId)||DISHES[0];
-  const step=challenge.steps[challenge.stepIndex];
-  if(!step)return false;
+  const station=stationById(step.station);
+  return `${dish.name} 조리: ${station?.label||step.station} 가까이 이동해 상호작용하세요.`;
+}
+
+function showStoryCookStationGuide(){
+  const text=storyCookStationGuideText();
+  if(!text)return false;
+  showToast(text);
+  return true;
+}
+
+function launchStoryCookStep(stationId){
+  const challenge=state.story?.activeStoryCook;
+  const step=activeStoryCookStep();
+  if(!challenge||!step||stationId!==step.station)return false;
+  const dish=dishById(challenge.dishId)||DISHES[0];
   startMini(step.game,step.station,{
     mode:"story",storySceneId:challenge.sceneId,dishId:dish.id,
     special:!!challenge.special,tutorial:!!challenge.tutorial,guestId:challenge.guestId,
@@ -675,7 +702,9 @@ function completeStoryCookStep(score){
   challenge.scores.push(score);
   challenge.stepIndex++;
   if(challenge.stepIndex<challenge.steps.length){
-    setTimeout(launchStoryCookStep,300);
+    state.paused=false;
+    showStoryCookStationGuide();
+    updateUI(true);
     return true;
   }
 

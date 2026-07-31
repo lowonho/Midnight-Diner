@@ -67,7 +67,7 @@ const STORY_SCENES = {
     lines: [
       {
         kind: "direction",
-        text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고\n종이 상자 하나를 안은 채 건물을 나온다.",
+        text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고\n종이박스 하나를 안은 채 건물을 나온다.",
         cinematic: { id: "pr01Exterior", beat: "exit" }
       },
       {
@@ -102,7 +102,7 @@ const STORY_SCENES = {
       { speaker: "protagonist", text: "식품 개발을 좀 해봤지만…\n가게 주방에서 조리해본 적은 없어요." },
       { speaker: "owner", text: "그럼 레시피를 알려주겠네.\n바쁜 건 맞지만 다치지 않도록 천천히 해.", showGameUI: true },
       { kind: "direction", text: "사장이 앞치마를 건네고 다은은 바로 앞치마를 맨다.", showGameUI: true },
-      { speaker: "owner", text: "두부김치는 두부를 일정한 크기로 썰고\n접시에 담으면 되네.", showGameUI: true, cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu" } },
+      { speaker: "owner", text: "두부김치는 두부를 일정한 크기로 썰고\n접시에 담으면 되네.", showGameUI: true, cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu", startStation: "fridge" } },
       { speaker: "owner", text: "어묵탕은 국물이 맑게 우러나도록\n적당한 불로 끓이면 되네.", showGameUI: true, cook: { dishId: "oden", tutorial: true, resultKey: "pr01_oden" } },
       { speaker: "owner", text: "닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\n뒷면도 타지 않게 구우면 되네.", showGameUI: true, cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
       { speaker: "owner", text: "새우튀김은 튀김옷이 노릇해졌을 때 건져서\n바스켓을 가볍게 털어 기름을 빼면 되네.", showGameUI: true, cook: { dishId: "shrimpTempura", tutorial: true, resultKey: "pr01_shrimp_tempura" } },
