@@ -1888,17 +1888,29 @@
   height: 100%;
   user-select: none;
 
+  /* 칸 한 개와 조각 그림 한 장의 크기. 좁은 화면 보정도 이 네 값만 덮어씁니다.
+     조각(120x105)이 칸(104x66)보다 큰 것은 그림 둘레의 투명 여백까지
+     포함한 값이기 때문입니다. 실제로 그려지는 고기·파는 칸 안에 들어옵니다.
+     칸을 촘촘히(간격 0) 쌓아 조각끼리 딱 붙게 만든 값이라, 셋 중 하나만
+     바꾸면 조각 사이에 다시 틈이 생깁니다. */
+  --sk-slot-w:  calc(104 * var(--upx));
+  --sk-slot-h:  calc(66 * var(--upx));
+  --sk-piece-w: calc(120 * var(--upx));
+  --sk-piece-h: calc(105 * var(--upx));
+
   /* 빈 칸(재료를 아직 안 꽂은 자리)의 점선 테두리 4종.
-     칸 크기(104x70)를 그대로 viewBox 로 쓰므로 점 길이가 칸에 비례해 늘어납니다.
+     칸 크기(104x66)를 그대로 viewBox 로 쓰므로 점 길이가 칸에 비례해 늘어납니다.
      ⚠️ border-style:dashed 로 그리지 않는 이유 :
         점선의 점 길이를 브라우저가 "선 굵기"에서 알아서 정합니다. 굵기가
         3 * --upx 라 창을 줄이면 1px 밑으로 내려가고, 그러면 점이 붙어서
         실선처럼 보입니다. 여기 SVG 는 점 길이(11,8)가 칸 기준으로 고정이라
-        어떤 창 크기에서도 컨셉 이미지와 같은 점선이 나옵니다. */
-  --sk-dash-free:    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 70" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="66" rx="9" fill="%23fff4d6" fill-opacity=".05" stroke="%23fff4d6" stroke-opacity=".46" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
-  --sk-dash-chicken: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 70" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="66" rx="9" fill="%23e0805e" fill-opacity=".12" stroke="%23ee9d7e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
-  --sk-dash-onion:   url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 70" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="66" rx="9" fill="%2396c45a" fill-opacity=".14" stroke="%23b2d66e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
-  --sk-dash-next:    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 70" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="66" rx="9" fill="%23ffe08d" fill-opacity=".08" stroke="%23ffe08d" stroke-width="3.4" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+        어떤 창 크기에서도 컨셉 이미지와 같은 점선이 나옵니다.
+     ⚠️ 사각형을 2 만큼 안쪽으로 넣어 둔 것은 칸을 간격 0 으로 붙여 쌓기
+        때문입니다. 이 여백이 없으면 위아래 점선이 한 줄로 붙어 버립니다. */
+  --sk-dash-free:    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%23fff4d6" fill-opacity=".05" stroke="%23fff4d6" stroke-opacity=".46" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+  --sk-dash-chicken: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%23e0805e" fill-opacity=".12" stroke="%23ee9d7e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+  --sk-dash-onion:   url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%2396c45a" fill-opacity=".14" stroke="%23b2d66e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+  --sk-dash-next:    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%23ffe08d" fill-opacity=".08" stroke="%23ffe08d" stroke-width="3.4" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
 }
 
 /* 좌우 세로 칸 */
@@ -1943,19 +1955,27 @@
   gap: calc(5 * var(--upx));
   overflow: hidden;
 }
-.sk-finished-strip { display:flex; align-items:center; justify-content:center; gap:calc(10 * var(--upx)); }
-.sk-finished-strip span { display:grid; place-items:center; width:calc(38 * var(--upx)); height:calc(38 * var(--upx)); border:2px solid #6d4931; border-radius:50%; background:#21140c; color:#9c805c; font-size:calc(17 * var(--upx)); font-weight:900; }
+.sk-finished-strip { display:flex; align-items:center; justify-content:center; gap:calc(8 * var(--upx)); }
+.sk-finished-strip span { display:grid; place-items:center; width:calc(27 * var(--upx)); height:calc(27 * var(--upx)); border:2px solid #6d4931; border-radius:50%; background:#21140c; color:#9c805c; font-size:calc(13 * var(--upx)); font-weight:900; }
 .sk-finished-strip span.active { border-color:#ffe08d; color:#ffe08d; box-shadow:0 0 calc(10 * var(--upx)) rgba(255,224,141,.35); }
 .sk-finished-strip span.done { border-color:#789b4f; background:#30431f; color:#d9efa5; }
 .sk-active-title,.sk-free-rule { margin:0; color:#d8bb8b; text-align:center; font-size:calc(18 * var(--upx)); font-weight:800; }
 .sk-active-title { color:var(--gold-bright); font-size:calc(22 * var(--upx)); }
 .sk-free-rule b { color:#ffe08d; }
-.sk-active-rack { width:min(100%,calc(430 * var(--upx))); height:100%; min-height:0; display:grid; place-items:center; border-radius:calc(16 * var(--upx)); transition:filter .15s,outline .15s; }
+/* 드래그해서 놓을 수 있는 자리. 여기 테두리(.order-drop-ready)가 곧 안내선이라
+   폭·높이를 꼬치보다 넉넉히 잡되, 위 '○번 꼬치' 글줄과 붙지 않게 띄웁니다.
+   (원래 430 x 칸 전체였는데 테두리가 글자에 닿아 보였습니다) */
+.sk-active-rack { width:min(100%,calc(300 * var(--upx))); height:calc(100% - 22 * var(--upx)); min-height:0; display:grid; place-items:center; border-radius:calc(16 * var(--upx)); transition:filter .15s,outline .15s; }
 .sk-active-rack .sk-rack { width:calc(180 * var(--upx)); height:100%; min-height:calc(350 * var(--upx)); }
 .sk-single-board.complete .sk-active-rack { filter:brightness(1.15); }
+/* 5개를 다 꽂은 꼬치를 다음 꼬치로 넘어가기 전에 잠깐 보여줄 때 */
+.sk-single-board.holding .sk-active-rack { animation:sk-rack-done .5s cubic-bezier(.2,.85,.25,1); }
+@keyframes sk-rack-done { 40% { filter:brightness(1.28); transform:scale(1.035); } 100% { filter:brightness(1); transform:scale(1); } }
 
-/* 꼬치 하나 */
-.sk-rack { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(46 * var(--upx)); cursor: pointer; }
+/* 꼬치 하나.
+   아래 여백 78 은 마지막 조각 밑으로 남는 꼬챙이 길이 = 손잡이입니다.
+   위쪽(뾰족한 끝)에는 33 만 남으므로 아래가 확실히 길어 손잡이로 읽힙니다. */
+.sk-rack { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(78 * var(--upx)); cursor: pointer; }
 .sk-rack.drop-hover { filter: brightness(1.12); }
 .sk-rack.reject { animation: coat-wrong .3s ease; }
 .sk-rack.done .sk-rod { filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,224,141,.55)); }
@@ -1968,10 +1988,10 @@
 
 /* 슬롯 : 채워진 칸 / 비어 있는 칸(재료 색으로 힌트)
    빈 칸 테두리는 위 --sk-dash-* SVG 점선입니다(사연은 그쪽 주석 참고).
-   칸 높이 70 은 조각 그림(8:7 캔버스)이 안에 여유 있게 앉는 크기입니다.
-   5칸 + 사이 간격 4 = 366 이라 꼬챙이 뾰족한 끝 자리도 그대로 남습니다. */
-.sk-slots { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: calc(4 * var(--upx)); }
-.sk-slot { display: grid; place-items: center; width: calc(104 * var(--upx)); height: calc(70 * var(--upx)); }
+   칸 사이 간격은 0 입니다. 칸이 곧 조각의 간격이라, 간격을 주면 꽂힌 조각
+   사이가 그만큼 뜹니다. 대신 점선 사각형을 SVG 안에서 2 씩 들여 그립니다. */
+.sk-slots { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.sk-slot { display: grid; place-items: center; width: var(--sk-slot-w); height: var(--sk-slot-h); }
 .sk-slot.empty { border: 0; border-radius: calc(10 * var(--upx)); background: var(--sk-dash-free) center / 100% 100% no-repeat; }
 .sk-slot.empty.hint-greenOnion { background-image: var(--sk-dash-onion); }
 .sk-slot.empty.hint-chicken { background-image: var(--sk-dash-chicken); }
@@ -2001,7 +2021,8 @@
 .sk-piece.mini { width: calc(58 * var(--upx)); height: calc(36 * var(--upx)); border-radius: calc(8 * var(--upx)); }
 .sk-piece.mini.greenOnion { width: calc(52 * var(--upx)); height: calc(28 * var(--upx)); }
 .sk-piece.mini.greenOnion::after { left: calc(6 * var(--upx)); width: calc(11 * var(--upx)); height: calc(11 * var(--upx)); }
-.sk-free-guide { flex:1; display:grid; grid-template-columns:1fr 1fr; place-items:center; align-content:center; gap:calc(12 * var(--upx)) calc(5 * var(--upx)); }
+/* 조각 두 개를 세로로 세워 실제 꼬치처럼 보이게 합니다(원래는 가로 2칸이었습니다) */
+.sk-free-guide { flex:1; display:grid; grid-template-columns:1fr; place-items:center; align-content:center; gap:calc(10 * var(--upx)); }
 .sk-free-guide p { grid-column:1/-1; margin:0; color:#d8bb8b; text-align:center; font-size:calc(17 * var(--upx)); font-weight:800; line-height:1.4; }
 .sk-free-guide p b { color:#ffe08d; }
 
@@ -2012,9 +2033,21 @@
 
    조각 그림 2장(닭·파)은 512x448 = 8:7 캔버스 한가운데에 그려져 있습니다.
    두 장 모두 그림이 캔버스 가로의 81% 라, 상자를 8:7 로 주면 닭과 파의
-   크기 관계가 원본 그대로 유지됩니다. 칸(104x70)보다 상자가 조금 큰 것은
-   투명 여백까지 포함한 값이라 그림 자체는 칸 안에 들어옵니다. */
-.sk-slot .sk-piece.has-asset { width: calc(120 * var(--upx)); height: calc(105 * var(--upx)); }
+   크기 관계가 원본 그대로 유지됩니다. 칸보다 상자가 큰 것은 투명 여백까지
+   포함한 값이라 그림 자체는 칸 안에 들어옵니다.
+
+   ⚠️ 음수 마진이 꼭 필요합니다. 그리드의 `place-items:center` 는 아이템이
+      칸보다 **클 때** 가운데가 아니라 시작 모서리에 붙입니다(넘친 쪽을
+      잘라 먹지 않으려는 기본 동작). 그래서 조각이 칸 오른쪽·아래로만
+      8 / 19.5 씩 밀려 꼬챙이가 조각 왼쪽을 뚫고 지나가 보였습니다.
+      넘치는 만큼 마진으로 되돌려 놓으면 마진 상자가 딱 칸 크기가 되어
+      `center` 가 제대로 먹습니다. (transform 으로 옮기면 조각이 꽂힐 때의
+      .sk-piece.fresh 애니메이션과 부딪힙니다) */
+.sk-slot .sk-piece.has-asset {
+  width: var(--sk-piece-w);
+  height: var(--sk-piece-h);
+  margin: calc((var(--sk-slot-h) - var(--sk-piece-h)) / 2) calc((var(--sk-slot-w) - var(--sk-piece-w)) / 2);
+}
 /* 드래그 유령은 92x78 짜리 상자를 물려받습니다(.order-drag-ghost) */
 .order-drag-ghost .sk-piece.has-asset { width: 100%; height: 100%; }
 /* 좌 재료 카드 : 조각 3개를 흩뿌리는 대신 묶음 그림 한 장을 놓습니다.
@@ -2023,8 +2056,10 @@
 .sk-ing-art.has-group { display: grid; place-items: center; }
 .sk-ing-art.has-group .sk-piece.sample { display: none; }
 .sk-ing-group-asset { width: 100%; height: 100%; object-fit: contain; }
-/* 오른쪽 '조립 조건' 카드의 작은 조각 두 개 */
-.sk-free-guide .sk-piece.has-asset { width: calc(96 * var(--upx)); height: calc(84 * var(--upx)); }
+/* 오른쪽 '조립 조건' 카드의 작은 조각 두 개(세로로 쌓입니다).
+   상자에 그림 둘레의 투명 여백이 들어 있어 그냥 쌓으면 둘이 멀어 보입니다.
+   음수 마진으로 그 여백만큼 당겨 붙입니다. */
+.sk-free-guide .sk-piece.has-asset { width: calc(96 * var(--upx)); height: calc(84 * var(--upx)); margin: calc(-16 * var(--upx)) 0; }
 /* 꼬챙이 그림에는 위 뾰족한 끝이 이미 들어 있습니다.
    CSS 삼각형을 얹으려고 비워 뒀던 위쪽 24 를 되돌려 그림을 온전히 보여줍니다. */
 .sk-rod.has-asset { top: 0; }
@@ -2917,13 +2952,18 @@
   .whisk-wire::after { width: calc(11 * var(--upx)); }
   .sk-ing-art { height: calc(64 * var(--upx)); }
   .sk-ing-art .sk-piece { width: calc(38 * var(--upx)); height: calc(26 * var(--upx)); }
-  /* 칸은 큰 화면(104x70)과 같은 비율로 줄입니다. --sk-dash-* 점선이
-     viewBox 104x70 을 늘려 쓰기 때문에, 비율이 어긋나면 가로 점과 세로 점의
-     길이가 따로 놉니다. */
-  .sk-slot { width: calc(80 * var(--upx)); height: calc(54 * var(--upx)); }
+  /* 칸·조각은 큰 화면(104x66 / 120x105)과 같은 비율로 줄입니다.
+     --sk-dash-* 점선이 viewBox 104x66 을 늘려 쓰기 때문에 비율이 어긋나면
+     가로 점과 세로 점의 길이가 따로 놉니다. 조각을 칸 가운데로 되돌리는
+     음수 마진도 이 네 값에서 자동으로 계산됩니다. */
+  .skewer-prep-scene {
+    --sk-slot-w:  calc(80 * var(--upx));
+    --sk-slot-h:  calc(50.8 * var(--upx));
+    --sk-piece-w: calc(92 * var(--upx));
+    --sk-piece-h: calc(80.5 * var(--upx));
+  }
   .sk-piece { width: calc(62 * var(--upx)); height: calc(40 * var(--upx)); }
   .sk-piece.greenOnion { width: calc(56 * var(--upx)); height: calc(32 * var(--upx)); }
-  .sk-slot .sk-piece.has-asset { width: calc(92 * var(--upx)); height: calc(80.5 * var(--upx)); }
   .sk-free-guide .sk-piece.has-asset { width: calc(72 * var(--upx)); height: calc(63 * var(--upx)); }
   .sk-count strong { font-size: calc(42 * var(--upx)); }
   .one-shot-scene { --os-vessel: calc(330 * var(--upx)); }
