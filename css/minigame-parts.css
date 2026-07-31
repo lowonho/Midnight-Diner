@@ -79,6 +79,20 @@
      원래 그림 자리가 200 · 150 · 190 으로 셋이 달랐던 것을 여기로 모았습니다. */
   --mg-ing-card-h: calc(280 * var(--upx));
 
+  /* 좌 재료 패널 안쪽 간격 — 제목 ↔ 목록(panel) · 카드 ↔ 카드(list).
+     원래 패널 간격이 `10 / 없음`, 목록 간격이 `9 / 10` 으로 흩어져 있어서
+     조건이 같은데 카드 세로가 갈렸습니다.
+       E2   273.6  ↔  E8꼬치 268.6   ← .fp-ing-panel 에 gap 이 없어서 (2장 · 613.2 로 같은 조건)
+       E8반죽 176.4  ↔  E7   175.7   ← .bt-ing-list gap 이 9 라서 (3장 · 613.2 로 같은 조건)
+     둘 다 10 으로 모았습니다. 카드 세로가 8가지 → 5가지가 됩니다.
+     (남는 5가지는 카드 수 1·2·3 × 패널 높이 613.2·503.2 조합이라 구조입니다) */
+  --mg-ing-panel-gap: calc(10 * var(--upx));
+  --mg-ing-list-gap:  calc(10 * var(--upx));
+
+  /* 카드 '지금 차례' 표시 테두리. E2 만 #e3a94c 로 혼자 달랐습니다.
+     (E8반죽·E8꼬치는 sk-next-pulse 로 #fff2c4 까지 깜빡입니다 — 같은 색의 연출입니다) */
+  --mg-card-active: #ffe08d;
+
   /* 조작 키 버튼 겉모습 — E6 튀기기의 'Space' 키캡 모양으로 통일했습니다.
      원래 세 가지가 섞여 있었습니다.
        E2 · E5  밝은 사각 (테두리 #8a5c32 · 안쪽 흰 선 · 아래 그림자 #4a2e1a)
@@ -241,8 +255,58 @@
   }
 }
 
+/* ============================================================
+   패널 에셋 (미니게임-패널-에셋-발주서의 A1 · A2 · B · C)
+   ------------------------------------------------------------
+   9-slice 가 아니라 **크기별 통짜 그림**입니다. 자리마다 딱 맞는 파일이
+   따로 있어서 늘리거나 줄이지 않고 `100% 100%` 로 덮습니다.
+   PNG 원본은 assets/UI/Minigame/{A1,A2,B,C}/ 에 있고, 실제로 쓰는
+   WebP 는 tools/build-minigame-ui-webp.js 가 만듭니다.
+
+   [파일 이름의 숫자는 2배율입니다]
+   500x1226 = 화면에서 250 x 613.2. 발주서가 처음부터 2배로 크기를 지정했고
+   납품본도 그 크기라 빌드에서 줄이지 않습니다(common/ 만 4배율이라 절반으로 줄입니다).
+
+   ⚠️ 칸 높이나 카드 높이를 바꾸면 그림 크기도 같이 어긋납니다.
+      --mg-* 를 고쳤으면 shot-ui.js 로 다시 재고, 새 크기로 에셋을
+      다시 받아 gen-panel-spec.js 의 파일 목록을 갱신해야 합니다.
+
+   ⚠️ 변수 이름이 패널(--mg-panel-art)과 카드(--mg-card-art)로 나뉜 것은
+      일부러입니다. 커스텀 속성은 상속되기 때문에, 한 이름을 쓰면 좌 재료
+      패널(A1) 안에 든 재료 카드(B)가 패널 그림을 물려받아 버립니다.
+   ============================================================ */
+:root {
+  /* A1 좌 재료 패널 — 칸 높이 3종 */
+  --mg-art-a1-613: url("../assets/UI/Minigame/A1/mg-panel-500x1226.webp");
+  --mg-art-a1-523: url("../assets/UI/Minigame/A1/mg-panel-500x1046.webp");
+  --mg-art-a1-503: url("../assets/UI/Minigame/A1/mg-panel-500x1006.webp");
+
+  /* A2 우 아래 패널 — 진행도 카드를 뺀 남는 자리 4종 */
+  --mg-art-a2-460: url("../assets/UI/Minigame/A2/mg-panel-500x921.webp");
+  --mg-art-a2-403: url("../assets/UI/Minigame/A2/mg-panel-500x806.webp");
+  --mg-art-a2-370: url("../assets/UI/Minigame/A2/mg-panel-500x741.webp");
+  --mg-art-a2-350: url("../assets/UI/Minigame/A2/mg-panel-500x701.webp");
+
+  /* B 재료 카드 — 5종 (E3밤의 139.1 / 139 는 2배에서 278 한 장으로 합쳐집니다) */
+  --mg-art-b-280: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x560.webp");
+  --mg-art-b-268: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x537.webp");
+  --mg-art-b-213: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x427.webp");
+  --mg-art-b-175: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x351.webp");
+  --mg-art-b-139: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x278.webp");
+
+  /* C 진행도 카드 — 2종 (E10 만 큽니다) */
+  --mg-art-c-140: url("../assets/UI/Minigame/C/ui_minigame_panel_c_500x281.webp");
+  --mg-art-c-198: url("../assets/UI/Minigame/C/ui_minigame_panel_c_500x396.webp");
+}
+
 /* ---- 카드 껍데기 --------------------------------------------
-   안쪽 배치(그리드/플렉스)는 각 게임이 정합니다. 여기는 껍데기만입니다. */
+   안쪽 배치(그리드/플렉스)는 각 게임이 정합니다. 여기는 껍데기만입니다.
+
+   ⚠️ 테두리를 지우지 않고 `transparent` 로 남깁니다. 지우면 상자가 좌우·위아래로
+      4 씩 줄어 13화면 실측값이 전부 어긋납니다. 그림은 border-box 기준으로 깔아
+      그 테두리 자리까지 덮습니다.
+   ⚠️ 원래 있던 `inset 0 0 0 2px` 안쪽 선은 뺐습니다 — 그림 위에 겹쳐 그어져
+      액자가 두 겹으로 보입니다. 바깥 그림자는 나무 판에서 뜨게 하는 용도라 남깁니다. */
 .fp-panel,
 .kf-panel,
 .yk-panel,
@@ -255,11 +319,57 @@
 .anchovy-card,
 .fry-card {
   padding: calc(12 * var(--upx)) calc(10 * var(--upx));
-  border: 2px solid #8c592f;
+  border: 2px solid transparent;
   border-radius: calc(10 * var(--upx));
-  background: linear-gradient(#241610,#150d08);
-  box-shadow: inset 0 0 0 2px #3b2415, 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
+  /* 그림이 못 뜨는 브라우저에서도 글자가 읽히도록 바탕색을 깔아 둡니다.
+     --mg-panel-art 가 없으면 background-image 는 none 이 되고 이 색만 남습니다. */
+  background-color: #1c110b;
+  background-image: var(--mg-panel-art);
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
 }
+
+/* 🟦 A1 좌 재료 패널 — 칸 높이를 그대로 씁니다 */
+.fp-ing-panel,
+.sc-ing-panel,
+.bt-ing-panel,
+.sk-ing-panel,
+.anchovy-ing-panel,
+.os-ing-panel      { --mg-panel-art: var(--mg-art-a1-613); }
+.cut-ing-panel,
+.ts-ing-panel,
+.fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-523); }
+.kf-ing-panel,
+.yk-ing-panel      { --mg-panel-art: var(--mg-art-a1-503); }
+
+/* 🟦 A2 우 아래 패널 — 진행도 카드를 뺀 남는 자리 */
+.fp-control,
+.sc-control,
+.bt-guide,
+.sk-guide,
+.os-guide          { --mg-panel-art: var(--mg-art-a2-460); }
+.anchovy-ref-card  { --mg-panel-art: var(--mg-art-a2-403); }
+.cut-ref-card,
+.ts-control,
+.fry-control-card  { --mg-panel-art: var(--mg-art-a2-370); }
+.kf-next,
+.yk-next           { --mg-panel-art: var(--mg-art-a2-350); }
+
+/* 🟨 C 진행도 카드 — E10 만 큽니다 */
+.cut-count-card,
+.fp-count,
+.kf-count,
+.yk-count,
+.ts-count,
+.sc-count,
+.bt-count,
+.sk-count,
+.os-count,
+.fry-progress-card { --mg-panel-art: var(--mg-art-c-140); }
+.anchovy-count-card{ --mg-panel-art: var(--mg-art-c-198); }
 
 /* 이 셋은 카드 안쪽도 여기서 쌓습니다.
    나머지 8개는 각자 .○-ing-panel / .○-count 가 따로 정하고 있어서 건드리지 않습니다. */
@@ -303,7 +413,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: calc(10 * var(--upx));
+  gap: var(--mg-ing-panel-gap);
   min-height: 0;
 }
 
@@ -314,7 +424,7 @@
   flex: 1;
   display: grid;
   grid-auto-rows: 1fr;
-  gap: calc(10 * var(--upx));
+  gap: var(--mg-ing-list-gap);
   min-height: 0;
 }
 
@@ -348,13 +458,38 @@
 .fry-ing-card,
 .anchovy-ing-card,
 .ts-ing-card,
-.fp-ing-card {
+.fp-ing-card,
+.kf-ing-card,
+.yk-ing-card,
+.bt-ing-card,
+.os-ing-card {
   padding: calc(8 * var(--upx)) calc(6 * var(--upx));
-  border: 2px solid #7d4f2a;
+  /* 테두리는 `transparent` 로 남깁니다 — 지우면 카드가 좌우·위아래로 4 씩 줄어
+     226 x 실측 높이가 어긋납니다. 상태 표시(.active · .next · .selected · .required)가
+     이 자리에 금색을 칠하므로 자리 자체는 있어야 합니다. */
+  border: 2px solid transparent;
   border-radius: calc(9 * var(--upx));
-  background: linear-gradient(#2b1b11,#180e08);
+  background-color: #241610;
+  background-image: var(--mg-card-art);
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   color: #f0dcb4;
 }
+
+/* 🟪 B 재료 카드 — 카드 수와 패널 높이로 크기가 갈립니다 (5종) */
+.cut-ing-card,
+.ts-ing-card,
+.fry-ing-card,
+.anchovy-ing-card,
+.os-ing-card   { --mg-card-art: var(--mg-art-b-280); }
+.fp-ing-card,
+.sk-ing-card   { --mg-card-art: var(--mg-art-b-268); }
+.kf-ing-card   { --mg-card-art: var(--mg-art-b-213); }
+.sc-goal,
+.bt-ing-card   { --mg-card-art: var(--mg-art-b-175); }
+.yk-ing-card   { --mg-card-art: var(--mg-art-b-139); }
 
 /* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
    원래 200(E1) · 150(E6) · 190(E10) 으로 셋이 달랐던 에셋 자리가 하나가 됩니다. */
