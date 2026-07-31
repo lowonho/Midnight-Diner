@@ -222,11 +222,11 @@ function setupTimingCut(taskId){
     description:config.requiresDoubleTap
       ?"포인터가 초록 구간에 들어왔을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
       :config.horizontalLastCut
-      ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 세로 5번을 썬 뒤 마지막에 가로로 1번 썹니다."
+      ?`포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
       :taskId==="cutRadish"
       ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
       :taskId==="cutFishCake"
-      ?"포인터가 초록 구간에 들어왔을 때 Space를 눌러 어묵을 5조각으로 써세요."
+      ?"포인터가 초록 구간에 들어왔을 때 Space를 눌러 어묵을 4번 써세요."
       :`포인터가 초록 구간에 들어왔을 때 Space를 누르세요. ${PREP_TASKS[taskId].label} 작업입니다.`
   });
 }
@@ -257,21 +257,29 @@ function renderTimingCut(){
   // 두부는 마지막 한 번이 가로 썰기라 세로선 간격 계산에서 빼야 합니다.
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
+  // 제공된 단계 에셋의 실제 틈과 칼 안내선이 겹치도록 재료별 좌표를 사용합니다.
+  // 무·어묵·대파 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
+  const suppliedCutPositions={
+    radish:[79.7,61.4,41.7,22.1],
+    fishCake:[74.3,51.3,26.7],
+    greenOnion:[79.3,58.0,39.9,20.9]
+  };
+  const ingredientCutPositions=suppliedCutPositions[data.ingredient];
+  const cutPosition=index=>ingredientCutPositions
+    ?ingredientCutPositions[index]??ingredientCutPositions.at(-1)
+    :(index+1)/(verticalCount+1)*100;
   // 다음에 썰 자리(%). 칼과 점선 안내가 여기에 섭니다. 가로 썰기 차례면
   // 칼 위치를 CSS 가 따로 잡으므로 값은 그대로 두어도 됩니다.
-  const cutX=(Math.min(data.successes,verticalCount-1)+1)/(verticalCount+1)*100;
-  // 어묵은 한 번씩 방향을 바꿔 대각선으로 썰기 때문에 칼도 같이 기울입니다.
-  const slashNow=data.ingredient==="fishCake"?(data.successes%2?"cut-slash-back":"cut-slash-forward"):"";
+  const cutX=cutPosition(Math.min(data.successes,verticalCount-1));
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   const visualStage=Math.min(3,Math.floor(data.successes/Math.max(1,data.total)*4));
   const board=`
-      <div class="prep-work-object ${data.ingredient}-shape cut-visual-stage-${visualStage} ${slashNow} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
+      <div class="prep-work-object ${data.ingredient}-shape cut-visual-stage-${visualStage} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
         ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
         ${Array.from({length:data.total},(_,index)=>{
           const done=index<data.successes?"done":"";
           if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}" data-cut-index="${index}"></i>`;
-          const diagonal=data.ingredient==="fishCake"?`fishcake-diagonal ${index%2?"slash-back":"slash-forward"}`:"";
-          return `<i class="cut-line ${diagonal} ${done}" data-cut-index="${index}" style="left:${(index+1)/(verticalCount+1)*100}%"></i>`;
+          return `<i class="cut-line ${done}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>

@@ -79,17 +79,6 @@
   border-radius: calc(13 * var(--upx));
   background: linear-gradient(105deg,#d99c4d,#e8b767 48%,#c88239);
 }
-.fishCake-shape .fishcake-diagonal {
-  top: calc(-17 * var(--upx));
-  bottom: calc(-17 * var(--upx));
-  transform-origin: center;
-}
-.fishCake-shape .fishcake-diagonal.slash-forward { transform: rotate(28deg); }
-.fishCake-shape .fishcake-diagonal.slash-back { transform: rotate(-28deg); }
-.fishCake-shape .fishcake-diagonal.done {
-  border-color: #704326;
-  box-shadow: 2px 0 rgba(255,222,152,.45);
-}
 .cut-line {
   position: absolute;
   top: calc(-5 * var(--upx));
@@ -307,12 +296,17 @@
   height: calc(178 * var(--upx));
   transform-origin: 50% 78%;
 }
-.cut-board .prep-work-object.radish-shape { width:min(78%,calc(450 * var(--upx))); height:calc(190 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape { width:min(90%,calc(540 * var(--upx))); height:calc(150 * var(--upx)); }
 .cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.greenOnion-shape.has-prep-asset .cut-line {
+  display: none;
+}
 .cut-board .prep-work-object.kimchi-shape,
 .cut-board .prep-work-object.chicken-shape,
 .cut-board .prep-work-object.cabbage-shape { width:min(78%,calc(460 * var(--upx))); height:calc(196 * var(--upx)); }
-.cut-board .prep-work-object.fishCake-shape { width:min(80%,calc(470 * var(--upx))); height:calc(182 * var(--upx)); }
+.cut-board .prep-work-object.fishCake-shape { width:min(68%,calc(360 * var(--upx))); height:calc(255 * var(--upx)); }
 .cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(236 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
    올라가므로 테두리·바닥만 끄고 안쪽 배치(px)는 그대로 둡니다. */
@@ -458,9 +452,6 @@
   opacity:1;
   transform:translateX(-50%);
 }
-.cut-screen .fishcake-diagonal.done { transform-origin:center; }
-.cut-screen .fishcake-diagonal.slash-forward.done { transform:translateX(-50%) rotate(28deg); }
-.cut-screen .fishcake-diagonal.slash-back.done { transform:translateX(-50%) rotate(-28deg); }
 .cut-screen .tofu-horizontal-line.done {
   left:calc(-5 * var(--upx)) !important;
   right:calc(-5 * var(--upx));
@@ -500,7 +491,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 50% 45%,#f6f1d8 0 52%,#b7cf85 53%);
 }
-.cut-piece.fishCake { background: #dfa258; clip-path: polygon(0 0,100% 12%,88% 100%,10% 88%); }
+.cut-piece.fishCake { border-radius: calc(5 * var(--upx)); background: #dfa258; }
 .cut-piece.kimchi {
   border-color: #7a3826;
   border-radius: calc(8 * var(--upx)) calc(15 * var(--upx)) calc(9 * var(--upx)) calc(13 * var(--upx));
@@ -2896,7 +2887,7 @@
 .rapid-piece-pile { position:absolute; left:10px; bottom:7px; width:145px; height:55px; }
 .rapid-piece-pile i { position:absolute; width:30px; height:7px; border-radius:5px; background:#d4df9b; }
 .rapid-piece-pile.greenOnion i { width:14px; height:14px; border:4px solid #77a24e; border-radius:50%; background:#e8e0bd; }
-.rapid-piece-pile.fishCake i { width:25px; height:15px; border-radius:3px; background:#dfa258; clip-path:polygon(0 0,100% 10%,85% 100%,8% 88%); }
+.rapid-piece-pile.fishCake i { width:25px; height:15px; border-radius:3px; background:#dfa258; }
 .rapid-piece-pile.chicken i { width:26px; height:19px; background:#df927d; }
 .rapid-hold-meter { width:100%; height:16px; overflow:hidden; border:2px solid #765033; border-radius:8px; background:#1e120c; }
 .rapid-hold-meter.hidden { visibility:hidden; }
