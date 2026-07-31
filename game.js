@@ -685,7 +685,7 @@ window.addEventListener("keydown",e=>{
     return;
   }
   if(storyDialogueIsActive()){
-    if(k==="e"||k==="enter")storyAdvance();
+    if(k==="e"||e.code==="Space")storyAdvance();
     return;
   }
   if(k==="e"){interact();return;}
