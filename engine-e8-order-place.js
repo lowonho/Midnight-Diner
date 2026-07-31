@@ -200,9 +200,11 @@ const SKEWER_EXAMPLE_ORDER=["chicken","greenOnion","chicken","greenOnion","chick
 const SKEWER_TOTAL=SKEWER_BATCH_SIZE;                                          // 만들 꼬치 수
 const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
 const SKEWER_INGREDIENTS=Object.freeze(Object.keys(SKEWER_LABEL));
-// assets/prep/skewer/ 에 파일을 넣으면 CSS 도형 대신 그림이 자동으로 쓰입니다.
+// assets/minigame/E8/ 의 그림을 씁니다. 파일이 없으면 CSS 도형으로 되돌아갑니다.
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+//   piece  꼬치에 꽂히는 조각 한 개      group  좌측 재료 카드에 놓는 묶음 그림
 const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
+const SKEWER_GROUP_ASSET_KEY={chicken:"skewerChickenGroup",greenOnion:"skewerGreenOnionGroup"};
 
 // E8의 공통 순서 데이터. 새 게임은 순서와 트랙 수만 추가하고 같은 판정을 씁니다.
 const ORDER_PLACE_CONFIG=Object.freeze({
@@ -263,6 +265,18 @@ function skewerPieceMarkup(ingredient,extraClass=""){
   return `<span class="sk-piece ${ingredient} ${hasDayPrepAsset(key)?"has-asset":""} ${extraClass}">${dayPrepAssetMarkup(key,"sk-piece-asset",SKEWER_LABEL[ingredient])}</span>`;
 }
 
+// 왼쪽 재료 카드의 그림 자리.
+// 묶음 에셋이 있으면 그림 한 장으로 두고, 없으면 예전처럼 조각 3개를 흩뿌립니다.
+// 묶음을 쓸 때도 조각 한 개(.sample)를 숨겨서 남기는 이유 :
+// bindOrderPlacementPointers 가 드래그 유령을 만들 때 카드 안 첫 .sk-piece 를
+// 복제해 가기 때문입니다(ghostSelector). 없으면 유령이 글자만 남습니다.
+function skewerIngredientArtMarkup(ingredient){
+  const groupKey=SKEWER_GROUP_ASSET_KEY[ingredient];
+  if(!hasDayPrepAsset(groupKey))
+    return `<span class="sk-ing-art">${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}</span>`;
+  return `<span class="sk-ing-art has-group">${skewerPieceMarkup(ingredient,"sample")}${dayPrepAssetMarkup(groupKey,"sk-ing-group-asset",SKEWER_LABEL[ingredient])}</span>`;
+}
+
 // 꼬치 하나. 아래에서 위로 채우므로 화면에는 슬롯을 뒤집어 그립니다.
 function skewerRackMarkup(stack,index,{active=false,lastPlaced=null}={}){
   const done=stack.length>=SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient));
@@ -298,7 +312,7 @@ function renderChickenSkewer(){
             const forced=allowed.length===1&&allowed[0]===ingredient;
             const blocked=allowed.length>0&&!allowed.includes(ingredient);
             return `<button type="button" class="sk-ing-card ${ingredient} ${forced?"required":""} ${blocked?"blocked":""}" data-ingredient="${ingredient}" ${data.finishing||blocked?"disabled":""}>
-              <span class="sk-ing-art">${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}${skewerPieceMarkup(ingredient,"art")}</span>
+              ${skewerIngredientArtMarkup(ingredient)}
               <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>${forced?"필수":blocked?"조건 완료":"자유"}</b></span>
             </button>`;
           }).join("")}</div>

@@ -15,7 +15,9 @@
     "build:utensils": "node tools/build-utensils-webp.js",
     "verify:utensils": "node tools/build-utensils-webp.js --verify",
     "build:chef": "node tools/build-chef-sprites.js",
-    "verify:chef": "node tools/build-chef-sprites.js --verify"
+    "verify:chef": "node tools/build-chef-sprites.js --verify",
+    "build:minigame-art": "node tools/build-minigame-art-webp.js",
+    "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify"
   },
   "repository": {
     "type": "git",
