@@ -257,9 +257,15 @@ function renderTimingCut(){
   // 두부는 마지막 한 번이 가로 썰기라 세로선 간격 계산에서 빼야 합니다.
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
+  // 대파 에셋은 흰 뿌리 쪽(오른쪽)부터 왼쪽으로 절단선이 늘어납니다.
+  // 다른 재료의 기존 왼쪽→오른쪽 진행은 그대로 유지합니다.
+  const greenOnionCutPositions=[78.3,59.2,40.2,21.4];
+  const cutPosition=index=>data.ingredient==="greenOnion"
+    ?greenOnionCutPositions[index]??greenOnionCutPositions.at(-1)
+    :(index+1)/(verticalCount+1)*100;
   // 다음에 썰 자리(%). 칼과 점선 안내가 여기에 섭니다. 가로 썰기 차례면
   // 칼 위치를 CSS 가 따로 잡으므로 값은 그대로 두어도 됩니다.
-  const cutX=(Math.min(data.successes,verticalCount-1)+1)/(verticalCount+1)*100;
+  const cutX=cutPosition(Math.min(data.successes,verticalCount-1));
   // 어묵은 한 번씩 방향을 바꿔 대각선으로 썰기 때문에 칼도 같이 기울입니다.
   const slashNow=data.ingredient==="fishCake"?(data.successes%2?"cut-slash-back":"cut-slash-forward"):"";
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
@@ -271,7 +277,7 @@ function renderTimingCut(){
           const done=index<data.successes?"done":"";
           if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}" data-cut-index="${index}"></i>`;
           const diagonal=data.ingredient==="fishCake"?`fishcake-diagonal ${index%2?"slash-back":"slash-forward"}`:"";
-          return `<i class="cut-line ${diagonal} ${done}" data-cut-index="${index}" style="left:${(index+1)/(verticalCount+1)*100}%"></i>`;
+          return `<i class="cut-line ${diagonal} ${done}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
