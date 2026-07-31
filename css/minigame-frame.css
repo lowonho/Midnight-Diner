@@ -340,6 +340,51 @@
 #miniPause { display: none; }
 #miniClose[hidden] + #miniPause { display: grid; }
 
+/* ── 5. 미니게임 전용 마우스 포인터 ─────────────────────────────
+   패널 뭉치(뒤 패널 · 타이틀 · 플레이 영역 · TIP 줄 · 버튼) 위에 커서가
+   올라오면 기본 화살표 대신 손 그림이 나옵니다. 누르고 있는 동안
+   (클릭 · 드래그)에는 주먹을 쥔 그림으로 바뀝니다.
+   패널 밖 어두운 배경은 일부러 뺐습니다 — "패널 위" 에서만 바뀝니다.
+
+   그림은 assets/minigame/ui_drag_hand_pointer_*.png 가 마스터이고,
+   실제로 쓰는 WebP 는 tools/build-minigame-art-webp.js 가 만듭니다.
+
+   [왜 128x128 인가]
+   크롬은 커서 그림이 128x128 을 넘으면 **통째로 무시**하고 뒤에 적은
+   fallback(pointer)으로 조용히 되돌아갑니다. 빌드 스크립트가 딱 그 크기로
+   뽑습니다. 뒤의 `pointer` 는 그림을 못 읽는 브라우저용 예비값입니다.
+
+   [22 11 = 집게손가락 끝]
+   두 그림이 같은 512 캔버스에 같은 자리로 그려져 있어서 기준점도 같습니다.
+   기준점을 그림마다 다르게 잡으면 누를 때마다 커서가 톡 튑니다.
+
+   [!important 를 쓴 이유]
+   미니게임 안쪽에는 cursor 를 따로 정하는 규칙이 이미 여럿 있습니다
+   (재료 카드 grab · 버튼 pointer · .order-source-dragging 은 grabbing !important).
+   그걸 하나씩 지우면 게임별 CSS 를 전부 건드려야 해서, 손 그림 쪽이 패널
+   안에서 항상 이기도록 했습니다. 손 그림을 끄고 싶으면 이 블록만 지우면
+   원래 커서로 그대로 돌아갑니다. */
+.mini-overlay.open .mini-window,
+.mini-overlay.open .mini-title-panel,
+.mini-overlay.open .mini-title-panel *,
+.mini-overlay.open .mini-stage,
+.mini-overlay.open .mini-stage *,
+.mini-overlay.open .mini-tip,
+.mini-overlay.open .mini-tip *,
+.mini-overlay.open .mini-icon-button {
+  cursor: url("../assets/minigame/ui_drag_hand_pointer_normal.webp") 22 11, pointer !important;
+}
+.mini-overlay.open:active .mini-window,
+.mini-overlay.open:active .mini-title-panel,
+.mini-overlay.open:active .mini-title-panel *,
+.mini-overlay.open:active .mini-stage,
+.mini-overlay.open:active .mini-stage *,
+.mini-overlay.open:active .mini-tip,
+.mini-overlay.open:active .mini-tip *,
+.mini-overlay.open:active .mini-icon-button {
+  cursor: url("../assets/minigame/ui_drag_hand_pointer_click.webp") 22 11, pointer !important;
+}
+
 /* ── 좁은 화면 보정 : 글자만 조금 줄입니다(패널 비율은 그대로) ── */
 @media (max-width: 600px) {
   .mini-tip-label { letter-spacing: 0; }

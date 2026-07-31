@@ -59,10 +59,15 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   greenOnion4:"assets/prep/green-onion/green-onion-4.png",
   anchovyBody:"assets/prep/anchovy/anchovy-body.png",
   anchovyHead:"assets/prep/anchovy/anchovy-head.png",
-  // 닭꼬치 꽂기 (engine-e8). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  skewerChicken:"assets/prep/skewer/chicken-piece.png",
-  skewerGreenOnion:"assets/prep/skewer/green-onion-piece.png",
-  skewerStick:"assets/prep/skewer/stick.png",
+  // 닭꼬치 꽂기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //   piece  꼬치에 꽂히는 조각 한 개 (512x448 캔버스 한가운데)
+  //   group  좌측 재료 카드에 놓는 묶음 그림
+  skewerChicken:"assets/minigame/E8/food_skewer_chicken_piece.webp",
+  skewerGreenOnion:"assets/minigame/E8/food_skewer_green_onion_piece.webp",
+  skewerChickenGroup:"assets/minigame/E8/food_skewer_chicken_group.webp",
+  skewerGreenOnionGroup:"assets/minigame/E8/food_skewer_green_onion_group.webp",
+  skewerStick:"assets/minigame/E8/prop_skewer_stick.webp",
   // 김치전 반죽 (engine-e8 → e9). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   batterFlour:"assets/prep/batter/flour.png",
   batterWater:"assets/prep/batter/water.png",
