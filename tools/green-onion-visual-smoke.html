@@ -31,9 +31,9 @@
     const stage=Math.max(0,Math.min(4,Number(new URLSearchParams(location.search).get("stage"))||0));
     const work=document.getElementById("greenOnion");
     const guide=document.getElementById("guide");
-    document.getElementById("asset").src=`../assets/prep/green-onion/green-onion-${stage}.png`;
+    document.getElementById("asset").src=`../assets/prep/cutting/green-onion/green-onion-${stage}.png`;
     document.getElementById("label").textContent=`대파 썰기 에셋 · ${stage} / 4`;
-    const cutPositions=[78.3,59.2,40.2,21.4];
+    const cutPositions=[79.3,58.0,39.9,20.9];
     work.style.setProperty("--cut-x",`${cutPositions[Math.min(stage,3)]}%`);
     if(stage===4)guide.hidden=true;
     document.body.dataset.ready="true";

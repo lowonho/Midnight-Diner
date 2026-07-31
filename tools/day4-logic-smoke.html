@@ -90,7 +90,17 @@ try{
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeGreenOnion",ingredient:"greenOnion",requiredHits:4,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4],title:"E1 green onion smoke",description:"smoke"});
   const greenOnionLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
-  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="78.3%"&&greenOnionLines==="78.3%,59.2%,40.2%,21.4%","E1 green onion cuts follow the supplied sprite gaps from the white root side toward the green side");
+  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="79.3%"&&greenOnionLines==="79.3%,58%,39.9%,20.9%","E1 green onion cuts follow the supplied sprite gaps from the white root side toward the green side");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeRadish",ingredient:"radish",requiredHits:4,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4],title:"E1 radish smoke",description:"smoke"});
+  const radishLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
+  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="79.7%"&&radishLines==="79.7%,61.4%,41.7%,22.1%","E1 radish cuts follow the supplied sprite gaps from right to left");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4],horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
+  const fishCakeLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line:not(.tofu-horizontal-line)")].map(line=>line.style.left).join(",");
+  assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 fish cake uses three straight vertical cuts and one final horizontal cut");
+  state.mini.data.successes=3;renderTimingCut();
+  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&dom.miniContent.querySelector(".cut-guide.horizontal"),"E1 fish cake changes to a horizontal guide for its fourth cut");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
   startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitZoneWidth:.2,speed:.7,zoneStarts:[.4],requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
