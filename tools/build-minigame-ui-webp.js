@@ -37,10 +37,28 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 
-const SRC_DIR = path.join(__dirname, "..", "assets", "UI", "Minigame", "common");
+const UI_DIR = path.join(__dirname, "..", "assets", "UI", "Minigame");
 
-// 납품 PNG 는 전부 CSS 레이아웃 크기의 4배율입니다. 산출물은 그 절반(2배율).
-const SCALE = 0.5;
+/* [폴더마다 배율이 다릅니다 — 여기가 이 스크립트의 핵심입니다]
+
+   common/  공용 프레임(뒤 패널·타이틀·플레이 보드·TIP 줄·버튼)
+            납품 PNG 가 CSS 크기의 **4배율**이라 절반으로 줄여 2배율로 뽑습니다.
+            (4배율 그대로면 뒤 패널 한 장이 15MB 라 전체 용량을 혼자 다 먹습니다)
+
+   A1 A2 B C  미니게임-패널-에셋-발주서 대로 받은 칸 패널·재료 카드·진행도 카드.
+            발주서가 **처음부터 2배 픽셀로 크기를 지정**했고 납품본도 그 크기라
+            줄이지 않고 그대로 인코딩합니다. 여기서 또 줄이면 1배율이 되어
+            높은 DPI 화면에서 흐려집니다.
+
+   ⚠️ 새 폴더를 추가할 때 배율을 잘못 적으면 조용히 흐려지거나 용량만 먹습니다.
+      아래 표가 유일한 기준이니 폴더를 늘리면 여기부터 고치세요. */
+const GROUPS = [
+  { dir:"common", scale:0.5, label:"공용 프레임 (4배율 → 2배율)" },
+  { dir:"A1",     scale:1,   label:"A1 좌 재료 패널 (2배율 그대로)" },
+  { dir:"A2",     scale:1,   label:"A2 우 아래 패널 (2배율 그대로)" },
+  { dir:"B",      scale:1,   label:"B 재료 카드 (2배율 그대로)" },
+  { dir:"C",      scale:1,   label:"C 진행도 카드 (2배율 그대로)" }
+];
 
 // 납품 원본이 정말 4배율인지 확인하는 표입니다. 여기 적힌 값은
 // css/minigame-frame.css 의 1920x1080 기준 환산 주석과 같은 숫자입니다.
@@ -66,7 +84,13 @@ const LOSSLESS = new Set([
 const QUALITY = 90;
 const EFFORT = 6;   // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 작아집니다.
 
-const files = fs.readdirSync(SRC_DIR).filter(name => name.endsWith(".png"));
+// 폴더를 돌며 [원본 경로, 배율, 폴더이름] 목록을 만듭니다.
+const files = GROUPS.flatMap(g => {
+  const dir = path.join(UI_DIR, g.dir);
+  if(!fs.existsSync(dir)){ console.warn(`  ! ${g.dir}/ 폴더가 없습니다 — 건너뜁니다`); return []; }
+  return fs.readdirSync(dir).filter(n => n.endsWith(".png"))
+    .map(name => ({ name, src: path.join(dir,name), scale: g.scale, group: g.dir }));
+});
 
 function kb(bytes){ return Math.round(bytes/1024); }
 
@@ -76,33 +100,41 @@ function resized(src, w, h){
   return sharp(src).resize(w, h, { kernel: "lanczos3", fit: "fill" });
 }
 
-function targetSize(name, meta){
-  const w = Math.round(meta.width * SCALE);
-  const h = Math.round(meta.height * SCALE);
-  const expected = EXPECTED_1X[name];
+function targetSize(f, meta){
+  const w = Math.round(meta.width * f.scale);
+  const h = Math.round(meta.height * f.scale);
+
+  // common/ : 표에 적어 둔 1배율 값의 4배로 왔는지 확인합니다.
+  const expected = EXPECTED_1X[f.name];
   if(expected && (w !== expected[0]*2 || h !== expected[1]*2)){
-    console.warn(`  ! ${name} : 4배율 가정과 다릅니다. ` +
+    console.warn(`  ! ${f.name} : 4배율 가정과 다릅니다. ` +
       `원본 ${meta.width}x${meta.height} → ${w}x${h} (예상 ${expected[0]*2}x${expected[1]*2})`);
+  }
+  // A1 A2 B C : 파일 이름에 박힌 `500x1226` 이 곧 발주 크기입니다.
+  // 이름과 실제가 다르면 발주서와 어긋난 것이므로 바로 알려 줍니다.
+  const named = f.name.match(/(\d+)x(\d+)/);
+  if(!expected && named && (meta.width !== +named[1] || meta.height !== +named[2])){
+    console.warn(`  ! ${f.name} : 이름은 ${named[1]}x${named[2]} 인데 실제는 ${meta.width}x${meta.height} 입니다`);
   }
   return [w, h];
 }
 
 async function convert(){
   let pngTotal=0, webpTotal=0;
-  console.log("파일".padEnd(32), "원본크기".padStart(11), "출력크기".padStart(11),
+  console.log("파일".padEnd(40), "원본크기".padStart(11), "출력크기".padStart(11),
     "PNG".padStart(8), "WebP".padStart(8), "절감".padStart(7), "  모드");
-  for(const name of files){
-    const src=path.join(SRC_DIR,name);
+  for(const f of files){
+    const src=f.src;
     const out=src.replace(/\.png$/,".webp");
     const meta=await sharp(src).metadata();
-    const [w,h]=targetSize(name,meta);
-    const lossless=LOSSLESS.has(name);
+    const [w,h]=targetSize(f,meta);
+    const lossless=LOSSLESS.has(f.name);
     await resized(src,w,h)
       .webp(lossless?{lossless:true,effort:EFFORT}:{quality:QUALITY,effort:EFFORT,alphaQuality:100})
       .toFile(out);
     const a=fs.statSync(src).size, b=fs.statSync(out).size;
     pngTotal+=a; webpTotal+=b;
-    console.log(name.padEnd(32), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
+    console.log(`${f.group}/${f.name}`.padEnd(40), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
       `${kb(a)}KB`.padStart(8), `${kb(b)}KB`.padStart(8),
       `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(lossless?"무손실":`q${QUALITY}`));
   }
@@ -116,18 +148,18 @@ async function convert(){
 // (원본 4배율과 직접 비교하면 크기가 달라 비교 자체가 불가능합니다)
 async function verify(){
   console.log("\n품질 검증 (같은 크기로 축소한 무손실 기준본 대비)");
-  console.log("파일".padEnd(32), "알파최대오차".padStart(12), "RGB평균".padStart(9), "RGB최대".padStart(8));
-  for(const name of files){
-    const src=path.join(SRC_DIR,name);
+  console.log("파일".padEnd(40), "알파최대오차".padStart(12), "RGB평균".padStart(9), "RGB최대".padStart(8));
+  for(const f of files){
+    const src=f.src;
     const out=src.replace(/\.png$/,".webp");
     if(!fs.existsSync(out))continue;
     const meta=await sharp(src).metadata();
-    const [w,h]=targetSize(name,meta);
+    const [w,h]=targetSize(f,meta);
     const [a,b]=await Promise.all([
       resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
-    if(a.data.length!==b.data.length){ console.log(name,"크기 불일치!"); continue; }
+    if(a.data.length!==b.data.length){ console.log(f.name,"크기 불일치!"); continue; }
     let alphaMax=0,rgbSum=0,rgbMax=0,rgbCount=0;
     for(let i=0;i<a.data.length;i+=4){
       alphaMax=Math.max(alphaMax,Math.abs(a.data[i+3]-b.data[i+3]));
@@ -137,7 +169,7 @@ async function verify(){
         rgbSum+=d; rgbMax=Math.max(rgbMax,d); rgbCount++;
       }
     }
-    console.log(name.padEnd(32), String(alphaMax).padStart(12),
+    console.log(`${f.group}/${f.name}`.padEnd(40), String(alphaMax).padStart(12),
       (rgbCount?(rgbSum/rgbCount).toFixed(2):"-").padStart(9), String(rgbMax).padStart(8));
   }
 }
