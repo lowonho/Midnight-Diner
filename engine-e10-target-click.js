@@ -23,6 +23,10 @@
 
 registerDayPrepSetup("anchovy",()=>setupAnchovyPrep());
 
+// 도마 위 멸치 그림 4종. 종류마다 머리·몸통 크기가 달라서 붙이는 좌표도 다릅니다.
+// 그 좌표는 css/day-prep-minigames.css 의 .anchovy.v01 ~ .v04 변수에 있습니다.
+const ANCHOVY_VARIANTS=Object.freeze(["01","02","03","04"]);
+
 // 포인터로 머리를 잡아 흔드는 게임이라 키 처리는 없습니다.
 registerDayPrepEngine("anchovy",{
   update(m,dt){updateAnchovyTimer(m,dt);}
@@ -30,18 +34,24 @@ registerDayPrepEngine("anchovy",{
 
 function setupAnchovyPrep(){
   const config=DAY_PREP_MINI_CONFIG.cleanAnchovy;
-  // 도마를 3x3 칸으로 나눠 그중 total 칸을 골라 한 마리씩 놓습니다.
+  // 도마를 2열 x 4행(8칸)으로 나눠 그중 total 칸을 골라 한 마리씩 놓습니다.
   // 칸 안에서 위치·각도·크기를 조금씩 흔들어 자연스럽게 흩어 보이게 합니다.
   //
-  // ⚠️ x·y 는 .anchovy-floor(나무 쟁반 테두리 **안쪽** 바닥) 기준 %입니다.
-  //    멸치는 210x66 고정 크기에 ±14° 회전 · 최대 1.08배 확대가 걸려서
-  //    자기 자리보다 가로 11 · 세로 20 쯤 더 삐져나옵니다. 아래 범위는 그
-  //    몫까지 바닥 안에 들어오도록 잡은 값입니다(세로 시작을 5 → 7 로 올린
-  //    것도 위쪽 여유를 만들기 위해서입니다).
-  const slots=shuffle(Array.from({length:9},(_,index)=>index)).slice(0,config.total);
+  // ⚠️ 원래 3열 x 3행이었습니다. 멸치를 210 → 270 으로 키우면서 한 줄에 세
+  //    마리가 안 들어가(270 x 3 = 810 > 바닥 730) 2열로 바꿨습니다.
+  // ⚠️ x·y 는 .anchovy-floor(나무 쟁반 테두리 **안쪽** 바닥 730 x 506) 기준 %입니다.
+  //    멸치는 270 x 최대 65 크기에 ±9° 회전 · 최대 1.06배 확대가 걸려서 자기
+  //    자리보다 가로 14 · 세로 26 쯤 더 삐져나옵니다. 아래 범위는 그 몫까지
+  //    바닥 안에 들어오고, 옆·아래 이웃과도 안 겹치도록 잡은 값입니다.
+  //      가로 2~8% / 52~58%   (두 마리 사이 23 이상 벌어짐)
+  //      세로 6~9 / 30~33 / 54~57 / 78~81%   (줄 간격 24% = 121 > 한 마리 112)
+  const slots=shuffle(Array.from({length:8},(_,index)=>index)).slice(0,config.total);
+  // 멸치 그림 4종을 두 벌 섞어 돌려 씁니다. 7마리면 4종이 최소 한 번씩은 나옵니다.
+  // 붙이는 좌표는 css/day-prep-minigames.css 의 .anchovy.v01~v04 가 갖고 있습니다.
+  const variants=shuffle(ANCHOVY_VARIANTS.concat(ANCHOVY_VARIANTS)).slice(0,config.total);
   setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
-    id:index,cleaned:false,x:3+(slot%3)*30+Math.random()*6,y:7+Math.floor(slot/3)*28+Math.random()*6,
-    rotation:-14+Math.random()*28,scale:.9+Math.random()*.18,flip:Math.random()>.5?-1:1
+    id:index,cleaned:false,variant:variants[index],x:2+(slot%2)*50+Math.random()*6,y:6+Math.floor(slot/2)*24+Math.random()*3,
+    rotation:-9+Math.random()*18,scale:.94+Math.random()*.12,flip:Math.random()>.5?-1:1
   }))});
   dom.miniTitle.textContent=config.title;
   dom.miniDescription.textContent="멸치 머리를 잡고 좌우로 흔들어 뜯어주세요. 제한시간 안에 모두 손질해야 합니다!";
@@ -50,10 +60,21 @@ function setupAnchovyPrep(){
 
 // 사이드 카드(재료 · 참고 모양)에 들어가는 견본 멸치입니다.
 // 도마 위 멸치와 같은 조각을 쓰되 클릭 대상이 아니므로 <i> 로 그립니다.
-function anchovySampleMarkup(cleaned,turn,size){
-  const body=`<i class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</i>`;
-  const head=cleaned?"":`<i class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</i>`;
-  return `<div class="anchovy anchovy-preview ${cleaned?"cleaned":""}" style="--turn:${turn}deg;--size:${size};--flip:1" aria-hidden="true">${body}${head}</div>`;
+// 견본은 종류를 섞을 이유가 없어 01 로 고정합니다.
+function anchovySampleMarkup(cleaned,turn,size,variant="01"){
+  const bodyKey=`anchovyBody${variant}`,headKey=`anchovyHead${variant}`;
+  const body=`<i class="anchovy-body ${hasDayPrepAsset(bodyKey)?"has-prep-asset":""}">${dayPrepAssetMarkup(bodyKey,"anchovy-body-asset","")}</i>`;
+  const head=cleaned?"":`<i class="anchovy-head ${hasDayPrepAsset(headKey)?"has-prep-asset":""}">${dayPrepAssetMarkup(headKey,"anchovy-head-asset","")}</i>`;
+  return `<div class="anchovy anchovy-preview v${variant} ${cleaned?"cleaned":""}" style="--turn:${turn}deg;--size:${size};--flip:1" aria-hidden="true">${body}${head}</div>`;
+}
+
+// 왼쪽 재료 카드 그림. 이 게임은 "머리를 떼기 전"이라 통멸치 묶음을 씁니다.
+// (손질을 마친 뒤 냄비에 넣는 화면은 E11 이고, 거기서는 osAnchovy = 손질한
+//  멸치 묶음이 대신 나옵니다. 두 그림이 섞이지 않도록 여기서 갈라 놓습니다.)
+// 그림이 없으면 예전처럼 견본 멸치 한 마리를 그립니다.
+function anchovyIngredientArtMarkup(){
+  if(!hasDayPrepAsset("anchovyWholeGroup"))return anchovySampleMarkup(false,-32,.72);
+  return dayPrepAssetMarkup("anchovyWholeGroup","anchovy-group-asset","통멸치");
 }
 
 function renderAnchovyPrep(){
@@ -66,7 +87,7 @@ function renderAnchovyPrep(){
           <h3 class="anchovy-card-title starred">재료</h3>
           <div class="anchovy-ing-list">
             <div class="anchovy-ing-card">
-              <div class="anchovy-card-figure">${anchovySampleMarkup(false,-32,.72)}</div>
+              <div class="anchovy-card-figure">${anchovyIngredientArtMarkup()}</div>
               <p class="anchovy-card-caption">멸치 <b>×${data.total}</b></p>
             </div>
           </div>
@@ -74,9 +95,10 @@ function renderAnchovyPrep(){
       </aside>
       <div class="anchovy-work-area" id="anchovyWorkArea">
         <div class="anchovy-floor">
-        ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
-          <button class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</button>
-          <button class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</button>
+        ${data.items.map(item=>`<div class="anchovy v${item.variant} ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
+          <i class="anchovy-innards ${hasDayPrepAsset("anchovyInnards")?"has-prep-asset":""}" aria-hidden="true"></i>
+          <button class="anchovy-body ${hasDayPrepAsset(`anchovyBody${item.variant}`)?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup(`anchovyBody${item.variant}`,"anchovy-body-asset","")}</button>
+          <button class="anchovy-head ${hasDayPrepAsset(`anchovyHead${item.variant}`)?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup(`anchovyHead${item.variant}`,"anchovy-head-asset","")}</button>
           <span class="anchovy-joint" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>`).join("")}
         </div>

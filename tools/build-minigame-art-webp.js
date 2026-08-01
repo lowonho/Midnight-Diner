@@ -47,6 +47,24 @@ const FILES = [
   { file:"E8/food_skewer_chicken_group.png",     size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
   { file:"E8/food_skewer_green_onion_group.png", size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
   { file:"E8/prop_skewer_stick.png",             size:[128,960], css:".sk-rod 64x463"             },
+  /* E10 멸치. 머리/몸통 4종은 도마 위에서 한 마리 길이 270(--a-len) 으로 그려지고,
+     --size 로 최대 1.06배까지 커집니다. 그래서 "전체 길이 580 = 270 x 2배율에
+     여유를 더한 값" 을 기준으로 각 조각의 몫만큼 나눠 가집니다.
+     비율(머리 몫 / 몸통 몫)은 css/day-prep-minigames.css 의 --hd-w / --bd-w 와 같습니다. */
+  { file:"E10/food_anchovy_whole_01_body.png", size:[472,126], css:".anchovy 270 중 81.3%" },
+  { file:"E10/food_anchovy_whole_01_head.png", size:[154,102], css:".anchovy 270 중 26.6%" },
+  { file:"E10/food_anchovy_whole_02_body.png", size:[470,125], css:".anchovy 270 중 81.0%" },
+  { file:"E10/food_anchovy_whole_02_head.png", size:[158,103], css:".anchovy 270 중 27.3%" },
+  { file:"E10/food_anchovy_whole_03_body.png", size:[502, 93], css:".anchovy 270 중 86.5%" },
+  { file:"E10/food_anchovy_whole_03_head.png", size:[121, 74], css:".anchovy 270 중 20.9%" },
+  { file:"E10/food_anchovy_whole_04_body.png", size:[462,139], css:".anchovy 270 중 79.6%" },
+  { file:"E10/food_anchovy_whole_04_head.png", size:[169,111], css:".anchovy 270 중 29.1%" },
+  // 멸치 똥 — 머리 폭의 절반짜리 상자에 contain 으로 들어갑니다 (약 36x12)
+  { file:"E10/food_anchovy_innards.png",       size:[140, 46], css:".anchovy-innards 약 36x12" },
+  // 손질 전 통멸치 묶음 — E10(머리 떼기)의 왼쪽 재료 카드
+  { file:"E10/food_anchovy_whole_group_3.png", size:[560,134], css:"E10 재료 카드 약 210" },
+  // 손질한 멸치 묶음 — 어묵탕에 넣기(E11 .os-art 최대 158)의 재료 카드·냄비
+  { file:"E10/food_anchovy_cleaned_group.png", size:[560,191], css:"E11 재료 카드 · 냄비" },
   /* 나무 쟁반은 원본 크기 그대로 씁니다.
      플레이 칸이 824.2x613.2 라 2배율은 1648x1226 인데 납품본이 1580x1176 입니다.
      1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.

@@ -57,8 +57,21 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   greenOnion2:"assets/prep/green-onion/green-onion-2.png",
   greenOnion3:"assets/prep/green-onion/green-onion-3.png",
   greenOnion4:"assets/prep/green-onion/green-onion-4.png",
-  anchovyBody:"assets/prep/anchovy/anchovy-body.png",
-  anchovyHead:"assets/prep/anchovy/anchovy-head.png",
+  // 멸치 손질 (engine-e10). assets/minigame/E10/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //   whole 4종  도마 위 멸치. 머리와 몸통이 따로라 붙여 놓는 좌표는
+  //              css/day-prep-minigames.css 의 .anchovy.v01~v04 변수가 갖고 있습니다.
+  //   innards    머리를 뜯을 때 딸려 나오는 멸치 똥
+  //   wholeGroup 손질 **전** 통멸치 묶음 → E10(머리 떼기)의 재료 카드
+  //   group      손질 **후** 멸치 묶음   → E11(어묵탕에 넣기)의 재료 카드·냄비(osAnchovy)
+  //              두 그림이 섞이면 "머리를 떼기 전인데 이미 손질된 멸치" 가 보입니다.
+  ...Object.fromEntries(["01","02","03","04"].flatMap(no=>[
+    [`anchovyBody${no}`,`assets/minigame/E10/food_anchovy_whole_${no}_body.webp`],
+    [`anchovyHead${no}`,`assets/minigame/E10/food_anchovy_whole_${no}_head.webp`]
+  ])),
+  anchovyInnards:"assets/minigame/E10/food_anchovy_innards.webp",
+  anchovyWholeGroup:"assets/minigame/E10/food_anchovy_whole_group_3.webp",
+  anchovyGroup:"assets/minigame/E10/food_anchovy_cleaned_group.webp",
   // 닭꼬치 꽂기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   //   piece  꼬치에 꽂히는 조각 한 개 (512x448 캔버스 한가운데)
@@ -143,7 +156,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
   osRadish:"assets/prep/one-shot/radish.png",
   osFishCake:"assets/prep/one-shot/fish-cake.png",
-  osAnchovy:"assets/prep/one-shot/anchovy.png",
+  osAnchovy:"assets/minigame/E10/food_anchovy_cleaned_group.webp",   // 손질한 멸치 묶음 (E10 과 공용)
   osBroth:"assets/prep/one-shot/broth.png",
   osPlate:"assets/prep/one-shot/plate.png",
   osPlateDone:"assets/prep/one-shot/plate-done.png",
