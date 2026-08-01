@@ -32,9 +32,15 @@ function setupAnchovyPrep(){
   const config=DAY_PREP_MINI_CONFIG.cleanAnchovy;
   // 도마를 3x3 칸으로 나눠 그중 total 칸을 골라 한 마리씩 놓습니다.
   // 칸 안에서 위치·각도·크기를 조금씩 흔들어 자연스럽게 흩어 보이게 합니다.
+  //
+  // ⚠️ x·y 는 .anchovy-floor(나무 쟁반 테두리 **안쪽** 바닥) 기준 %입니다.
+  //    멸치는 210x66 고정 크기에 ±14° 회전 · 최대 1.08배 확대가 걸려서
+  //    자기 자리보다 가로 11 · 세로 20 쯤 더 삐져나옵니다. 아래 범위는 그
+  //    몫까지 바닥 안에 들어오도록 잡은 값입니다(세로 시작을 5 → 7 로 올린
+  //    것도 위쪽 여유를 만들기 위해서입니다).
   const slots=shuffle(Array.from({length:9},(_,index)=>index)).slice(0,config.total);
   setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
-    id:index,cleaned:false,x:3+(slot%3)*30+Math.random()*6,y:5+Math.floor(slot/3)*29+Math.random()*7,
+    id:index,cleaned:false,x:3+(slot%3)*30+Math.random()*6,y:7+Math.floor(slot/3)*28+Math.random()*6,
     rotation:-14+Math.random()*28,scale:.9+Math.random()*.18,flip:Math.random()>.5?-1:1
   }))});
   dom.miniTitle.textContent=config.title;
@@ -67,11 +73,13 @@ function renderAnchovyPrep(){
         </div>
       </aside>
       <div class="anchovy-work-area" id="anchovyWorkArea">
+        <div class="anchovy-floor">
         ${data.items.map(item=>`<div class="anchovy ${item.cleaned?"cleaned":""}" data-id="${item.id}" style="left:${item.x}%;top:${item.y}%;--turn:${item.rotation}deg;--size:${item.scale};--flip:${item.flip}">
           <button class="anchovy-body ${hasDayPrepAsset("anchovyBody")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup("anchovyBody","anchovy-body-asset","")}</button>
           <button class="anchovy-head ${hasDayPrepAsset("anchovyHead")?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup("anchovyHead","anchovy-head-asset","")}</button>
           <span class="anchovy-joint" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>`).join("")}
+        </div>
       </div>
       <aside class="anchovy-right">
         <div class="anchovy-card anchovy-count-card">

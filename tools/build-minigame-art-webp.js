@@ -46,7 +46,12 @@ const FILES = [
   { file:"E8/food_skewer_green_onion_piece.png", size:[240,210], css:".sk-slot .sk-piece 120x105" },
   { file:"E8/food_skewer_chicken_group.png",     size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
   { file:"E8/food_skewer_green_onion_group.png", size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
-  { file:"E8/prop_skewer_stick.png",             size:[128,960], css:".sk-rod 64x463"             }
+  { file:"E8/prop_skewer_stick.png",             size:[128,960], css:".sk-rod 64x463"             },
+  /* 나무 쟁반은 원본 크기 그대로 씁니다.
+     플레이 칸이 824.2x613.2 라 2배율은 1648x1226 인데 납품본이 1580x1176 입니다.
+     1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.
+     (가로세로비 1580/1176 = 1.3435 는 824.2/613.2 = 1.3441 과 0.04% 차이입니다) */
+  { file:"ui_play_tray_wood.png",                size:[1580,1176], css:"플레이 칸 824.2x613.2 (원본 배율 유지)" }
 ];
 
 const QUALITY = 90;
