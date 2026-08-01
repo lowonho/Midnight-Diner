@@ -664,7 +664,15 @@
 }
 
 /* 좌우 카드 (재료 · 완성 개수 · 참고 모양)
-   .anchovy-card 와 .anchovy-card-title 은 css/minigame-parts.css 에 있습니다. */
+   .anchovy-card 와 .anchovy-card-title 은 css/minigame-parts.css 에 있습니다.
+
+   ⚠️ 카드 안쪽 열을 minmax(0,1fr) 로 못박습니다. 공용 .anchovy-card 는
+      display:grid 만 있고 열 지정이 없어 기본값이 auto = **내용물의 max-content**
+      입니다. 그래서 안에 든 그림 상자가 250 보다 크면 카드가 통째로 그만큼
+      벌어집니다. 카드 그림(A1·A2·C)은 100% 100% 로 깔리므로 벌어진 만큼
+      가로로 늘어나 찌그러져 보입니다. */
+.anchovy-card { grid-template-columns: minmax(0,1fr); }
+
 .anchovy-card-figure {
   position: relative;
   height: calc(190 * var(--upx));
@@ -704,6 +712,13 @@
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0,1fr);
+  /* ⚠️ 가로도 열 하나로 못박습니다(위 .anchovy-card 와 같은 이유).
+     이게 없으면 두 카드가 우측 칸 250 이 아니라 **더 넓은 카드의 max-content**
+     를 같이 쓰게 되어, 진행도 카드까지 덩달아 끌려 나갑니다.
+       진행도  250 x 198.1  (에셋 C 500x396)
+       참고 모양 250 x 403.1 (에셋 A2 500x806)
+     이 두 크기가 그림 크기와 같아야 금테가 안 찌그러집니다. */
+  grid-template-columns: minmax(0,1fr);
   /* 원래 20 → 공용 --mg-col-gap(12). 참고 모양 카드가 395.1 → 403.1 */
   gap: var(--mg-col-gap);
 }
@@ -940,8 +955,21 @@
   transform: rotate(-22deg);
   filter: drop-shadow(0 calc(4 * var(--upx)) calc(6 * var(--upx)) rgba(20,8,3,.5));
 }
-/* 사이드 카드 안의 견본 멸치 (클릭 대상이 아닙니다) */
+/* 사이드 카드 안의 견본 멸치 (클릭 대상이 아닙니다)
+
+   [상자 = 보이는 크기]
+   도마 위 멸치는 absolute 라 상자가 실제보다 커도 아무 데도 영향을 안 줍니다.
+   그런데 견본은 카드 안에 흐름대로 놓이므로 상자 크기가 곧 카드 폭이 됩니다.
+   원래는 상자를 --a-len(270) 그대로 두고 transform: scale(--size) 로만 줄여서,
+   눈에는 216 인데 자리는 270 을 먹었습니다. transform 은 레이아웃을 안 바꾸기
+   때문입니다. 이 44 가 참고 모양 카드를 250 → 294.4 로 벌린 원인이었습니다.
+   --size 를 상자 크기 쪽에 넣고 transform 에서는 뺍니다 — 보이는 크기는 그대로. */
 .anchovy-preview { position: relative; }
+.anchovy.anchovy-preview:has(.has-prep-asset) {
+  width: calc(var(--a-len) * var(--size));
+  height: calc(var(--a-len) * var(--a-ratio) * var(--size));
+  transform: rotate(var(--turn)) scaleX(var(--flip));
+}
 .anchovy-preview .anchovy-body,
 .anchovy-preview .anchovy-head { cursor: default; }
 .anchovy-preview.cleaned .anchovy-body::before { display: none; }
@@ -2367,6 +2395,10 @@
   --md-basket-t: calc(var(--md-rig-t) + var(--md-rig-h) * .3502);
   --md-basket-w: calc(var(--md-rig-w) * .9143);
   --md-basket-h: calc(var(--md-rig-h) * .6498);
+  /* 판 위 재료 크기. 시안 그대로(1)면 재료가 채칼 난간 밖으로 나갑니다.
+     시안에서 잰 중심은 고정한 채 이 배율만큼 줄여 난간 안에 넣습니다.
+     ⚠️ 더 줄이면 재료가 판 위에서 헐렁해 보이고, 키우면 난간을 넘습니다. */
+  --md-ing-fit: .7;
   /* 판이 기운 각과, 그 각으로 한 번 밀리는 거리 */
   --md-slide-x: calc(22 * var(--upx));
   --md-slide-y: calc(13.8 * var(--upx));
@@ -2506,19 +2538,36 @@
 }
 .md-plate.has-asset .md-blade { display: none; }
 
-/* 썰리는 재료 — food_*_whole_01~07 을 진행도에 맞춰 갈아 끼웁니다.
+/* 썰리는 재료 — food_*_whole_01~08 을 진행도에 맞춰 갈아 끼웁니다.
 
-   ⚠️ **왼쪽 위를 기준으로 놓습니다** (가운데 정렬이 아닙니다).
-      마스터 7장은 가로가 고정(양배추 755 · 당근 896)이고 세로만 줄어듭니다 —
-      아래쪽이 깎여 나가고 위쪽 끝은 그대로입니다. 그래서 상자의 왼쪽 위에
-      붙이고 가로만 못박으면(아래 .md-ingredient-asset) 재료가 제자리에서
-      아래부터 깎입니다. 가운데 정렬하면 깎일 때마다 위로 떠오릅니다.
+   ⚠️ **아래를 기준으로 놓습니다** (top 이 아니라 bottom 입니다).
+      마스터 8장은 가로가 고정(양배추 755 · 당근 896)이고 세로만 줄어듭니다.
+      위를 기준으로 잡으면 재료가 제자리에 붙박인 채 아랫동아리만 사라져
+      "밑이 잘려 나간다"로 보입니다. 아래를 기준으로 잡으면 판에 닿은 면은
+      그대로고 위에서부터 낮아져 **덩어리가 통째로 작아지는** 것처럼 보입니다.
+      그래서 top / height 를 안 쓰고 left · bottom · width 만 씁니다.
 
-   자리·크기는 시안(composite_tests/test_*_on_mandoline)에서 재료 화소만
-   골라내 잰 값입니다 (빈 채칼 합본과 화소 차분 → 비율 오차 0.1%).
-   판 상자를 100 으로 볼 때
-     당근    좌 27.90%  상 14.60%  폭 52.50%  (높이는 그림이 정합니다)
-     양배추  좌 32.94%  상 13.31%  폭 47.46%
+   크기(--md-ing-w / -h)와 가로 중심(--md-ing-cx)은 시안
+   (composite_tests/test_*_on_mandoline)에서 재료 화소만 골라내 잰 값입니다
+   (빈 채칼 합본과 화소 차분 → 비율 오차 0.1%). 판 상자를 100 으로 볼 때
+     당근    폭 52.50%  높이 50.52%  가로중심 54.15%
+     양배추  폭 47.46%  높이 56.73%  가로중심 56.67%
+   시안 그대로(--md-ing-fit: 1)면 재료가 채칼 난간 밖으로 나갑니다.
+
+   [--md-ing-b = 재료 아래끝이 닿는 높이]
+   ⚠️ **앞(아래쪽) 난간은 넘으면 안 되고, 뒤(위쪽) 난간은 넘어도 됩니다.**
+      앞을 넘으면 재료가 난간 밖으로 흘러내린 것처럼 보이지만, 뒤는 재료가
+      판 안쪽 깊숙이 놓인 것으로 보여 자연스럽습니다.
+   채칼 그림에서 슬랫(줄무늬 면)의 위·아래 경계를 검출해 직선으로 뽑았습니다.
+     뒤 난간 안쪽  y = 0.600x - 199.2   (그림 1080x844 좌표)
+     앞 난간 안쪽  y = 0.647x + 180.7   ← 기울기 31.5도, 판 각도와 같습니다
+   난간이 비스듬해서 **재료 상자의 왼쪽 아래 모서리가 가장 먼저 앞 난간에
+   닿습니다.** 그 모서리에서 앞 난간까지의 한계는 당근·감자 51.0% ·
+   양배추 54.6% 인데, 상자 모서리는 그림상 투명한 자리라 실제로 닿는 것은
+   그보다 안쪽입니다. 49% 는 칼날이 있는 높이(46.8%)보다 조금 아래로,
+   썰리는 재료의 아래끝이 칼날에 맞닿아 보이는 자리입니다.
+   ⚠️ 여기서 더 내리면 앞 난간에 걸립니다 — 아래 --md-ing-drift 로
+      뒷장들이 최대 5.9%(24px) 더 내려간다는 것도 같이 보셔야 합니다.
 
    ⚠️ **재료 자체는 절대 회전시키지 않습니다.** 그림이 이미 판 각도(-32.1도)에
       맞춰 잘려 있습니다. CSS 로 한 번 더 돌리면 두 번 기울어집니다.
@@ -2530,20 +2579,35 @@
 .md-ingredient {
   position: absolute;
   z-index: 3;
-  left: 30%;
-  top: 14%;
-  width: 50%;
-  height: 42%;
+  left: calc(var(--md-ing-cx) - var(--md-ing-w) * var(--md-ing-fit) / 2);
+  /* --md-ing-drift : 장이 넘어갈 때마다 조금씩 아래로 미는 값 (01 은 0).
+     engine-e2-alternate-input.js 의 MANDOLINE_FRAME_DRIFT 가 넣어 줍니다. */
+  bottom: calc(100% - var(--md-ing-b) - var(--md-ing-drift,0) * var(--upx));
+  width: calc(var(--md-ing-w) * var(--md-ing-fit));
+  height: calc(var(--md-ing-h) * var(--md-ing-fit));
   transform: scale(var(--md-shorten,1));
   transform-origin: center;
   transition: transform .09s;
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(20,10,4,.5));
 }
-.md-ingredient.cabbage { left: 32.94%; top: 13.31%; width: 47.46%; height: 56.73%; border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%; background: radial-gradient(circle at 37% 36%,#e6f2bd 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(9 * var(--upx)),#83a856 calc(10 * var(--upx)) calc(16 * var(--upx))); }
-.md-ingredient.carrot { left: 27.90%; top: 14.60%; width: 52.50%; height: 50.52%; clip-path: polygon(0 36%,7% 18%,52% 2%,100% 50%,52% 98%,7% 82%); background: linear-gradient(#f6a049,#c9611f 62%,#a94a12); }
-/* 감자는 아직 판 위 그림이 없어 임시 도형입니다 */
-.md-ingredient.potato { left: 38%; top: 26%; width: 27%; height: 25%; border-radius: 48% 42% 45% 50%; background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554; }
-/* 그림이 있으면 상자 높이는 그림이 정합니다 — 깎일수록 낮아집니다 */
+.md-ingredient.cabbage {
+  --md-ing-w: 47.46%; --md-ing-h: 56.73%; --md-ing-cx: 56.67%; --md-ing-b: 49%;
+  border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%;
+  background: radial-gradient(circle at 37% 36%,#e6f2bd 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(9 * var(--upx)),#83a856 calc(10 * var(--upx)) calc(16 * var(--upx)));
+}
+.md-ingredient.carrot {
+  --md-ing-w: 52.50%; --md-ing-h: 50.52%; --md-ing-cx: 54.15%; --md-ing-b: 49%;
+  clip-path: polygon(0 36%,7% 18%,52% 2%,100% 50%,52% 98%,7% 82%);
+  background: linear-gradient(#f6a049,#c9611f 62%,#a94a12);
+}
+/* 감자는 시안이 따로 없습니다. 그림 비율(1.317)이 당근(1.329)과 거의 같아
+   당근 자리를 그대로 씁니다. */
+.md-ingredient.potato {
+  --md-ing-w: 52.50%; --md-ing-h: 50.52%; --md-ing-cx: 54.15%; --md-ing-b: 49%;
+  border-radius: 48% 42% 45% 50%;
+  background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554;
+}
+/* 그림이 있으면 상자 높이는 그림이 정합니다 — 깎일수록 아래 기준으로 낮아집니다 */
 .md-ingredient.has-asset { height: auto; border: 0; background: none; clip-path: none; }
 .md-ingredient-asset { display: block; width: 100%; height: auto; }
 /* 누른 방향으로 한 번 밀립니다 */
@@ -2588,13 +2652,12 @@
 /* 방금 떨어진 가닥만 떨어지는 시늉을 합니다. 더미 전체에 걸면 한 번 썰 때마다
    쌓여 있던 채까지 통째로 다시 나타나 더미가 깜빡입니다. */
 .md-pile i.fresh { animation: md-shred-drop .16s ease; }
-/* 양배추·당근은 채 그림 3종(p1~p3)을 돌려 씁니다.
-   ⚠️ **여섯 장이 한 배율(0.0942)로 뽑혀 있습니다.** 여기서 장마다 길이를
+/* 채 그림 3종(p1~p3)을 재료마다 돌려 씁니다.
+   ⚠️ **아홉 장이 한 배율(0.0942)로 뽑혀 있습니다.** 여기서 장마다 길이를
       맞추려 들면 굵기가 제각각이 되어 채가 아니라 다른 재료처럼 보입니다.
-      크기를 바꾸려면 여섯 값을 같은 비율로 함께 바꾸세요
-      (tools/build-minigame-art-webp.js 의 E2 채 6종도 같이). */
-.md-pile.cabbage i,
-.md-pile.carrot i {
+      크기를 바꾸려면 아홉 값을 같은 비율로 함께 바꾸세요
+      (tools/build-minigame-art-webp.js 의 E2 채 9종도 같이). */
+.md-pile i {
   background: center / contain no-repeat;
   filter: drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(30,14,2,.6));
 }
@@ -2604,14 +2667,9 @@
 .md-pile.carrot i.p1  { width: calc(9.5 * var(--upx));  height: calc(55.5 * var(--upx)); background-image: url("../assets/minigame/E2/food_carrot_shredded_piece_01.webp"); }
 .md-pile.carrot i.p2  { width: calc(14 * var(--upx));   height: calc(47 * var(--upx));   background-image: url("../assets/minigame/E2/food_carrot_shredded_piece_02.webp"); }
 .md-pile.carrot i.p3  { width: calc(12 * var(--upx));   height: calc(69.5 * var(--upx)); background-image: url("../assets/minigame/E2/food_carrot_shredded_piece_03.webp"); }
-/* 감자는 채 그림이 없어 임시 막대 그대로입니다 */
-.md-pile.potato i {
-  width: calc(64 * var(--upx));
-  height: calc(8 * var(--upx));
-  border-radius: calc(4 * var(--upx));
-  background: linear-gradient(#f7e0a2,#d9b45f);
-  box-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(30,14,2,.55);
-}
+.md-pile.potato i.p1  { width: calc(13.5 * var(--upx)); height: calc(49.5 * var(--upx)); background-image: url("../assets/minigame/E2/food_potato_shredded_piece_01.webp"); }
+.md-pile.potato i.p2  { width: calc(18.5 * var(--upx)); height: calc(48.5 * var(--upx)); background-image: url("../assets/minigame/E2/food_potato_shredded_piece_02.webp"); }
+.md-pile.potato i.p3  { width: calc(30 * var(--upx));   height: calc(79 * var(--upx));   background-image: url("../assets/minigame/E2/food_potato_shredded_piece_03.webp"); }
 
 /* 안내 화살표 : 채반 바로 아래 놓이는 커다란 양방향 화살표.
    채반 아래끝(496.8)에서 4 띄우면 아래끝이 565.3 — 칸(573.2) 안에 딱 듭니다.
@@ -2701,12 +2759,17 @@
 }
 .sc-board.done { box-shadow: inset 0 0 0 calc(3 * var(--upx)) #ffe08d, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4), 0 0 calc(18 * var(--upx)) rgba(255,224,141,.35); }
 
-/* 소스볼. --sauce-fill 이 안쪽 소스 높이(볼 높이의 %)입니다. */
+/* 소스볼. --sauce-fill 이 안쪽 소스 높이(볼 높이의 %)입니다.
+   ⚠️ top 은 볼 혼자 쓰는 값이 아닙니다. 아래 소스통이 볼 밑에 매달려 있어서
+      **볼을 내리면 고추기름 병이 도마 아래 액자에 깔립니다.** 볼 272 + 사이
+      13.8 + 병 151.4 = 437.2 를 홈선 안쪽 세로(46~573, 527)에 넣고 남는 89.8
+      을 위아래로 반씩 나눈 값이 36.8% 입니다 (볼 91.2~363.2). 볼을 옮기면
+      .sc-pourer 세 자리와 .sc-arrow, .sc-result 도 같은 만큼 따라와야 합니다. */
 .sc-bowl {
   position: absolute;
   z-index: 2;
   left: 50%;
-  top: 42%;
+  top: 36.8%;
   width: calc(320 * var(--upx));
   height: calc(272 * var(--upx));
   overflow: hidden;
@@ -2732,7 +2795,7 @@
 }
 .sc-bowl.splash .sc-sauce { animation: sc-splash .3s ease; }
 .sc-board.mixing .sc-sauce { animation:sc-sauce-mix .65s ease-in-out; }
-.sc-result { position:absolute; z-index:12; left:50%; top:43%; padding:calc(8 * var(--upx)) calc(24 * var(--upx)); border:2px solid currentColor; border-radius:calc(9 * var(--upx)); background:rgba(27,17,11,.88); color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
+.sc-result { position:absolute; z-index:12; left:50%; top:37.8%; padding:calc(8 * var(--upx)) calc(24 * var(--upx)); border:2px solid currentColor; border-radius:calc(9 * var(--upx)); background:rgba(27,17,11,.88); color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
 .sc-result.perfect { color:#ffe29a; }
 .sc-result.show { animation:sc-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
 
@@ -2750,12 +2813,22 @@
 }
 .sc-pourer[disabled] { cursor: default; }
 .sc-pourer:not([disabled]):hover .sc-bottle { transform: translateY(calc(-4 * var(--upx))); }
-.sc-pourer.at-left   { left: 2%;  top: 44%; transform: translateY(-50%); }
-.sc-pourer.at-right  { right: 2%; top: 50%; transform: translateY(-50%); }
-/* 아래 소스통만 여백이 5.5% 입니다. 도마 그림의 **아래 테두리가 위·옆보다
-   두꺼워서**(824.2x613.2 환산으로 위 18.2 · 옆 19.7 · 아래 37.2), 2% 로 두면
-   소스통 밑동이 테두리에 19 만큼 걸칩니다. */
-.sc-pourer.at-bottom { left: 50%; bottom: 5.5%; transform: translateX(-50%); }
+/* 세 자리 모두 **도마 그림의 안쪽 홈선 안쪽**에 들어와야 합니다.
+   824.2 x 613.2 로 재보면 홈선이 좌 46 · 우 782 · 위 46 · 아래 573 이고,
+   소스볼(.sc-bowl top:36.8%)은 좌 252.1 · 우 572.1 · 위 91.2 · 아래 363.2 를
+   씁니다. 예전 값(좌우 2% · 아래 5.5%)은 병이 좌우 22.2 에서 시작하고
+   밑동이 574.1 이라 셋 다 홈선을 밟았습니다. 남는 자리를 볼 쪽으로 몰아줍니다.
+     좌  8.6% · 38.8% → 가로 76.0~180.0   세로 149.9~328.8 (뱃지까지 366.1)
+     우  8.6% · 44.8% → 가로 644.4~748.4  세로 185.9~364.8 (뱃지까지 402.1)
+     아래 13.1%       → 가로 368.1~456.1  세로 377.0~528.4
+   ⚠️ 좌우를 여기서 더 당기면 병과 볼 사이 화살표(48 + 양옆 여유)가 병 뒤로
+      들어가 버립니다.
+   ⚠️ 아래 소스통은 볼 밑에 매달린 자리라 **볼 top 과 한 몸**입니다. 볼만
+      내리면 병이 아래 액자에 깔립니다 — 둘을 같이 옮기세요. 지금은 볼까지
+      13.8, 홈선까지 44.6 으로 위아래 여유가 반씩입니다. */
+.sc-pourer.at-left   { left: 8.6%;  top: 38.8%; transform: translateY(-50%); }
+.sc-pourer.at-right  { right: 8.6%; top: 44.8%; transform: translateY(-50%); }
+.sc-pourer.at-bottom { left: 50%; bottom: 13.1%; transform: translateX(-50%); }
 .sc-pourer.at-bottom .sc-bottle { --bw: calc(88 * var(--upx)); }
 .sc-pour-visual { position:relative; display:block; z-index:1; }
 .sc-pourer.pouring { z-index:8; }
@@ -2811,9 +2884,14 @@
   clip-path: polygon(0 30%,56% 30%,56% 0,100% 50%,56% 100%,56% 70%,0 70%);
   animation: sc-arrow-pulse 1.6s ease-in-out infinite;
 }
-.sc-arrow.at-left   { left: 16%;  top: 44%; transform: translateY(-50%); }
-.sc-arrow.at-right  { right: 16%; top: 50%; transform: translateY(-50%) rotate(180deg); }
-.sc-arrow.at-bottom { left: 50%;  bottom: 22%; transform: translateX(-50%) rotate(-90deg); }
+/* 소스통이 볼 쪽으로 붙은 만큼 화살표도 같이 따라옵니다. 병 끝(좌 180 ·
+   우 644.4)과 볼 끝(좌 252.1 · 우 572.1) 사이 72 짜리 틈 한가운데이고,
+   세로는 짝이 되는 .sc-pourer 와 같은 값입니다.
+   아래 화살표는 세로 여유가 없어 예전처럼 병 뒤에 가립니다 (병이 볼로 날아간
+   동안만 잠깐 보입니다). 병 자리(377.0~528.4) 안에 들어가는 값이어야 합니다. */
+.sc-arrow.at-left   { left: 22.7%;  top: 38.8%; transform: translateY(-50%); }
+.sc-arrow.at-right  { right: 22.7%; top: 44.8%; transform: translateY(-50%) rotate(180deg); }
+.sc-arrow.at-bottom { left: 50%;  bottom: 16.8%; transform: translateX(-50%) rotate(-90deg); }
 .sc-arrow.off { opacity: .16; animation: none; }
 
 /* ── 소스통 그림 (임시 도형) ────────────────────────────────
@@ -3015,6 +3093,23 @@
    공용 86 을 그대로 쓰면 칸의 40% 만 쓰고 그림이 우표만 하게 보입니다.
    재료가 4줄인 새우튀김 준비(같은 .fp-scene)는 86 그대로 둡니다. */
 .fp-scene:has(.md-scene) .fp-ing-asset { max-height: calc(190 * var(--upx)); }
+/* 감자만 그림이 가로로 깁니다(1.317). 세로 190 에 걸리기 전에 **가로 210 이
+   먼저 막혀서** 다른 카드보다 그림이 칸을 꽉 채워 보입니다. 가로를 178 로
+   잡아 양배추·당근과 비슷한 여백이 남게 합니다. */
+.fp-scene:has(.md-scene) .fp-ing-card.potato .fp-ing-asset { max-width: calc(178 * var(--upx)); }
+/* 감자 채썰기는 재료가 **한 줄뿐**입니다. 공용 규칙(.fp-ing-list 의
+   grid-auto-rows:1fr)이 그 한 장을 칸 높이(547.2)만큼 늘려서 카드 틀이
+   길쭉하게 일그러집니다.
+
+   재료가 하나뿐인 다른 화면들과 같은 결로 맞춥니다 — 높이를 공용
+   --mg-ing-card-h(280) 로 묶고 **세로 가운데**에 둡니다.
+   (E5 김치전 굽기 .ts-ing-list · E1 무 썰기 .cut-ing-list 와 같은 방식)
+   ⚠️ 재료가 둘인 양배추·당근 화면은 이 규칙에 안 걸립니다 — 거기서는
+      공용 1fr 이 그대로 살아 카드가 268.6 두 장으로 칸을 채웁니다. */
+.fp-ing-list:has(> .fp-ing-card:only-child) {
+  grid-auto-rows: minmax(0, var(--mg-ing-card-h));
+  align-content: center;
+}
 .fp-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .fp-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
@@ -3527,10 +3622,8 @@
     --md-deck-w: calc(430 * var(--upx));
     --md-deck-h: calc(126 * var(--upx));
   }
-  .md-ingredient { width: calc(126 * var(--upx)); height: calc(80 * var(--upx)); }
-  .md-ingredient.cabbage { width: calc(258 * var(--upx)); height: calc(176 * var(--upx)); }
-  .md-ingredient.carrot { width: calc(243 * var(--upx)); height: calc(56 * var(--upx)); }
-  .md-ingredient.potato { width: calc(114 * var(--upx)); height: calc(82 * var(--upx)); }
+  /* 판 위 재료는 판 상자의 % 라 --md-rig-w 만 줄이면 같이 줄어듭니다 —
+     여기서 따로 크기를 적으면 오히려 비율이 어긋납니다. */
   .md-pile { width: calc(266 * var(--upx)); height: calc(118 * var(--upx)); }
   .md-pile.potato i { width: calc(50 * var(--upx)); height: calc(7 * var(--upx)); }
   .md-hint { width: calc(392 * var(--upx)); height: calc(50.6 * var(--upx)); }

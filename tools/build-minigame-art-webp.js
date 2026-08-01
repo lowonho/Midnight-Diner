@@ -155,12 +155,15 @@ const FILES = [
         1648 인데 납품본이 1423 / 1357 입니다. 늘리면 없던 화소를 지어내는 셈이라
         그대로 둡니다 (ui_play_tray_wood 와 같은 판단입니다).
 
-     ⚠️ **세로를 억지로 맞추지 않습니다.** 가스버너는 612 / 616 / 607 로 장마다
-        다른데, 불꽃이 더 높이 솟은 장이 그만큼 캔버스가 큰 것입니다. 내용 폭(1411)과
-        아래 여백은 세 장이 같으므로, 화면에서 같은 폭으로 깔고 아래를 맞추면
-        (css/minigame-parts.css 의 .mg-burner-frame) 화구 몸통은 고정된 채
-        불꽃만 위로 늘었다 줄었다 합니다. 여기서 한 크기로 묶으면 오히려
-        몸통이 늘었다 줄었다 하며 들썩입니다. */
+     ⚠️ **여기서 크기를 건드리지 않습니다 (size:null).** 대신 PNG 마스터 쪽에서
+        캔버스를 맞춰 뒀습니다. 가스버너 납품본은 1412x612 / 1412x616 / 1411x607 로
+        장마다 캔버스가 달랐고, 02 장은 몸통이 캔버스 바닥에서 2px 떠 있어서
+        화면에서 아래를 맞춰 깔아도(css/minigame-parts.css 의 .mg-burner-frame)
+        화구가 초당 11번 1px 씩 들썩였습니다. 그래서 세 장 모두 **여백만 덧대어
+        1412x616** 로 통일했습니다 — 잘라낸 화소가 없으니 무손실입니다.
+        새 납품본을 받으면 세 장의 캔버스와 몸통 위치가 같은지 먼저 확인하고,
+        다르면 같은 방식으로 여백을 덧대 맞춘 뒤 이 스크립트를 돌리세요.
+        (철판 화구 3장은 원래부터 아래 여백 2 로 맞아 있어 손대지 않았습니다.) */
   ...["01","02","03"].flatMap(no=>[
     { file:`E3/fix_gas_burner_low_fire_${no}.png`, size:null, css:"가스버너 (원본 배율 유지)" },
     { file:`E3/fix_griddle_burner_fire_${no}.png`, size:null, css:"철판 화구 (원본 배율 유지)" }
@@ -195,10 +198,13 @@ const FILES = [
      **세로 190 이 먼저 막습니다** → 2배율 380. */
   { file:"E2/food_cabbage_ingredient.png",     size:[360,380], css:".fp-ing-asset 180x190" },
   { file:"E2/food_carrot_ingredient.png",      size:[359,380], css:".fp-ing-asset 179.5x190" },
-  /* 채반에 쌓이는 채 6종(양배추 3 · 당근 3).
-     ⚠️ **여섯 장을 한 배율(0.0942)로 묶습니다.** 한 벌로 그려진 그림이라
+  /* ⚠️ 감자 재료 카드는 food_potato_ingredient.png 가 아니라 판 위 그림의
+     첫 장(food_potato_whole_01)을 그대로 씁니다. 마스터 PNG 는 남겨 두되
+     여기서 뽑지 않습니다 — 안 쓰는 WebP 를 만들지 않기 위해서입니다. */
+  /* 채반에 쌓이는 채 9종(양배추 3 · 당근 3 · 감자 3).
+     ⚠️ **아홉 장을 한 배율(0.0942)로 묶습니다.** 한 벌로 그려진 그림이라
         장마다 길이에 맞춰 키우면 굵기가 제각각이 되어 채가 아니라
-        서로 다른 재료처럼 보입니다. 가장 긴 장(740)이 화면 69.7 이 되는 배율입니다.
+        서로 다른 재료처럼 보입니다. 가장 긴 장(840)이 화면 79 가 되는 배율입니다.
      면적이 작아 q90 아티팩트가 바로 보이므로 전부 무손실입니다. */
   { file:"E2/food_cabbage_shredded_piece_01.png", size:[ 89, 66], lossless:true, css:".md-pile i 44.5x33" },
   { file:"E2/food_cabbage_shredded_piece_02.png", size:[ 25, 94], lossless:true, css:".md-pile i 12.5x47" },
@@ -206,6 +212,9 @@ const FILES = [
   { file:"E2/food_carrot_shredded_piece_01.png",  size:[ 19,111], lossless:true, css:".md-pile i 9.5x55.5" },
   { file:"E2/food_carrot_shredded_piece_02.png",  size:[ 28, 94], lossless:true, css:".md-pile i 14x47" },
   { file:"E2/food_carrot_shredded_piece_03.png",  size:[ 24,139], lossless:true, css:".md-pile i 12x69.5" },
+  { file:"E2/food_potato_shredded_piece_01.png",  size:[ 27, 99], lossless:true, css:".md-pile i 13.5x49.5" },
+  { file:"E2/food_potato_shredded_piece_02.png",  size:[ 37, 97], lossless:true, css:".md-pile i 18.5x48.5" },
+  { file:"E2/food_potato_shredded_piece_03.png",  size:[ 60,158], lossless:true, css:".md-pile i 30x79" },
   /* 판 위에서 썰리는 재료 8장씩. 01 이 안 썰린 모습이고 08 이 다 썬 모습입니다.
      ⚠️ **가로를 7장 모두 같은 값으로 못박습니다.** 마스터는 가로가 고정(755 / 896)이고
         세로만 줄어듭니다 — 아래쪽이 깎여 나가고 **위쪽 끝은 그대로**입니다.
@@ -216,7 +225,9 @@ const FILES = [
   ...[496,496,496,480,438,348,282,211].map((h,i)=>({
     file:`E2/food_cabbage_whole_0${i+1}.png`, size:[531,h], css:".md-ingredient 265.7 폭 고정" })),
   ...[442,442,442,442,436,382,287,206].map((h,i)=>({
-    file:`E2/food_carrot_whole_0${i+1}.png`,  size:[588,h], css:".md-ingredient 294.0 폭 고정" }))
+    file:`E2/food_carrot_whole_0${i+1}.png`,  size:[588,h], css:".md-ingredient 294.0 폭 고정" })),
+  ...[425,425,425,416,394,358,305,250].map((h,i)=>({
+    file:`E2/food_potato_whole_0${i+1}.png`,  size:[560,h], css:".md-ingredient 273.7 폭 고정" }))
 ];
 
 const QUALITY = 90;

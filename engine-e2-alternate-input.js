@@ -106,25 +106,51 @@ const MANDOLINE_WHOLE_FRAMES=8;
 
 /* 판 위에서 썰리는 재료의 에셋 키. (경로는 day-prep-minigames.js 참고)
 
-   감자는 입력 한 번에 한 장씩(11장)이지만, 양배추·당근은 **8장을 진행도에
-   나눠 씁니다.** 썰어야 하는 횟수가 양배추 12 · 당근 10 이라 장수와 안 맞습니다.
-   0% 가 01, 100% 가 08 이 되도록 고르게 나누므로 양배추는 대략 1.7 번에 한 장,
-   당근은 대략 1.4 번에 한 장씩 넘어갑니다.
+   세 재료 모두 **8장을 진행도에 나눠 씁니다.** 썰어야 하는 횟수가
+   양배추 12 · 당근 10 · 감자 10 이라 장수와 딱 맞아떨어지지 않습니다.
+   0% 가 01, 100% 가 08 이 되도록 고르게 나누므로 양배추는 대략 1.7 번에
+   한 장, 당근·감자는 대략 1.4 번에 한 장씩 넘어갑니다.
    ⚠️ 한 번 누를 때마다 정확히 한 장씩 넘기려면 써는 횟수를 7 로 맞춰야
       합니다 — 그건 플레이 방식이 바뀌는 일이라 여기서는 안 했습니다
       (day-prep-minigames.js 의 DAY3_MANDOLINE_CONFIG.cycles). */
-function mandolineAssetKey(ingredient,successInputs=0,totalInputs=1){
-  if(ingredient==="potato")return `potatoMandoline${successInputs}`;
+function mandolineFrameIndex(successInputs,totalInputs){
   const last=MANDOLINE_WHOLE_FRAMES-1;
-  const frame=Math.max(0,Math.min(last,Math.round(successInputs/Math.max(1,totalInputs)*last)));
+  return Math.max(0,Math.min(last,Math.round(successInputs/Math.max(1,totalInputs)*last)));
+}
+
+function mandolineAssetKey(ingredient,successInputs=0,totalInputs=1){
+  const frame=mandolineFrameIndex(successInputs,totalInputs);
   return `mandoline${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}Whole${frame+1}`;
+}
+
+/* 장이 넘어갈 때마다 재료를 조금씩 아래로 밀어 주는 값 (1920 프레임 기준 px).
+   순서대로 whole_01 ~ whole_08 입니다.
+
+   ⚠️ **앞쪽 장들은 세로 길이가 똑같습니다** (양배추·감자 01~03 · 당근 01~04).
+      밀어 주지 않으면 여러 번 눌러도 재료가 꼼짝하지 않다가 다음 장에서
+      갑자기 내려앉습니다. 그래서 01→05 를 고르게 내려가게 하고, 06 부터는
+      그림 자체가 크게 줄어드니 자리를 잡아 둡니다 (아래끝 고정).
+   ⚠️ 값을 키우면 재료가 앞(아래쪽) 난간을 넘습니다 —
+      css/day-prep-minigames.css 의 --md-ing-b 설명을 함께 보세요.
+   ⚠️ **양배추·당근은 07·08 에서 다시 올립니다.** 그 두 장은 남은 조각이
+      아주 얇은데, 24 를 그대로 두면 얇은 조각이 앞 난간 쪽으로 훅 꺼지듯
+      내려앉아 보입니다. 감자는 마지막까지 두툼해서 그대로 둡니다. */
+const MANDOLINE_FRAME_DRIFT=Object.freeze({
+  cabbage:[0,6,12,18,24,24,16,8],
+  carrot: [0,6,12,18,24,24,16,8],
+  potato: [0,6,12,18,24,24,24,24]
+});
+const MANDOLINE_FRAME_DRIFT_DEFAULT=Object.freeze([0,6,12,18,24,24,24,24]);
+
+function mandolineFrameDrift(ingredient,frame){
+  const table=MANDOLINE_FRAME_DRIFT[ingredient]||MANDOLINE_FRAME_DRIFT_DEFAULT;
+  return table[Math.min(frame,table.length-1)]||0;
 }
 
 // 왼쪽 재료 카드의 에셋 키. 판 위 그림과 **일부러 다른 키**입니다 —
 // 카드는 재료 한 통을 통째로 보여 주고, 판 위는 썰리면서 줄어드는 그림이라
-// 같은 파일을 쓸 수 없습니다. 감자는 카드 그림이 따로 없어 판 쪽 키를 씁니다.
+// 같은 파일을 쓸 수 없습니다.
 function mandolineCardAssetKey(ingredient){
-  if(ingredient==="potato")return mandolineAssetKey(ingredient);
   return `mandolineCard${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}`;
 }
 
@@ -168,6 +194,8 @@ function mandolineSceneMarkup(data){
   // 그림이 있으면 깎인 모습이 그림 자체에 그려져 있으므로 줄이지 않습니다.
   // 임시 도형일 때만 진행도만큼 작게 그려 썰리는 시늉을 냅니다.
   const shorten=asset?1:Math.max(.34,1-percent/100*.62);
+  // 장이 넘어갈 때마다 조금씩 아래로 밀어 줍니다 (위 MANDOLINE_FRAME_DRIFT 참고)
+  const drift=asset?mandolineFrameDrift(data.ingredient,mandolineFrameIndex(data.successInputs,data.totalInputs)):0;
   // 썰린 채는 index 로 자리를 계산합니다 (Math.random 이면 누를 때마다 튑니다).
   // 황금각(2.39996rad)으로 돌려 가며 놓으면 가운데가 두껍고 가장자리가 성긴
   // 더미가 됩니다. 반지름은 index 18개마다 되풀이라 더미가 커져도 이미 놓인
@@ -192,7 +220,7 @@ function mandolineSceneMarkup(data){
       <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
       <div class="md-plate ${plateAsset?"has-asset":""}">
         ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
-        <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten}">${asset}</div>
+        <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten};--md-ing-drift:${drift}">${asset}</div>
       </div>
       <i class="md-hint ${hintAsset?"has-asset":""}" aria-hidden="true">${hintAsset}</i>
     </div>`;
@@ -209,8 +237,12 @@ function renderMandoline(){
   // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
   dom.miniTimer.textContent=`${data.successInputs} / ${data.totalInputs}`;
   renderFryPrepScreen({
+    // 재료가 하나뿐인 감자 화면에서는 금색 강조를 켜지 않습니다 —
+    // 구분할 다른 카드가 없어서 "지금 이 차례"라는 뜻이 사라집니다.
+    // (재료가 하나인 다른 화면들도 강조가 없습니다 — E5 김치전 굽기 참고)
     ingredients:chain.map(item=>({id:item.ingredient,label:item.label,count:1,
-      asset:mandolineCardAssetKey(item.ingredient),active:item.taskId===data.taskId})),
+      asset:mandolineCardAssetKey(item.ingredient),
+      active:chain.length>1&&item.taskId===data.taskId})),
     stage:mandolineSceneMarkup(data),
     done,
     total:chain.length,
