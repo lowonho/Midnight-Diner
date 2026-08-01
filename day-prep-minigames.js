@@ -19,7 +19,7 @@
 // 날짜별 준비 미니게임 모듈. 메뉴 Task ID별 진행 상태를 서로 분리합니다.
 const DAY_PREP_MINI_CONFIG = {
   cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.12,zoneStarts:[.14,.55,.29,.67],speed:.78},
-  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:5,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68,.43],speed:.8},
+  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68],speed:.8,horizontalLastCut:true},
   cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.51,.18,.62],speed:.74},
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.22,.58,.39],speed:.78},
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:4,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68],speed:.8,requiresDoubleTap:true},
@@ -38,11 +38,16 @@ const BREADCRUMB_KEY_PAIRS=Object.freeze([["a","d"],["q","e"],["f","j"],["z","c"
 // 아래 경로에 파일을 추가하면 CSS 프로토타입 대신 자동으로 이미지가 사용됩니다.
 // 누락된 선택 에셋은 로딩 실패로 취급하지 않고 기존 CSS 도형으로 대체합니다.
 const DAY_PREP_ASSET_PATHS = Object.freeze({
-  radish0:"assets/prep/radish/radish-0.png",
-  radish1:"assets/prep/radish/radish-1.png",
-  radish2:"assets/prep/radish/radish-2.png",
-  radish3:"assets/prep/radish/radish-3.png",
-  radish4:"assets/prep/radish/radish-4.png",
+  radish0:"assets/prep/cutting/radish/radish-0.png",
+  radish1:"assets/prep/cutting/radish/radish-1.png",
+  radish2:"assets/prep/cutting/radish/radish-2.png",
+  radish3:"assets/prep/cutting/radish/radish-3.png",
+  radish4:"assets/prep/cutting/radish/radish-4.png",
+  fishCake0:"assets/prep/cutting/fish-cake/fish-cake-0.png",
+  fishCake1:"assets/prep/cutting/fish-cake/fish-cake-1.png",
+  fishCake2:"assets/prep/cutting/fish-cake/fish-cake-2.png",
+  fishCake3:"assets/prep/cutting/fish-cake/fish-cake-3.png",
+  fishCake4:"assets/prep/cutting/fish-cake/fish-cake-4.png",
   kimchiCut0:"assets/prep/kimchi/kimchi-cut-0.png",
   kimchiCut1:"assets/prep/kimchi/kimchi-cut-1.png",
   kimchiCut2:"assets/prep/kimchi/kimchi-cut-2.png",
@@ -52,11 +57,11 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   chicken2:"assets/prep/chicken/chicken-2.png",
   chicken3:"assets/prep/chicken/chicken-3.png",
   chicken4:"assets/prep/chicken/chicken-4.png",
-  greenOnion0:"assets/prep/green-onion/green-onion-0.png",
-  greenOnion1:"assets/prep/green-onion/green-onion-1.png",
-  greenOnion2:"assets/prep/green-onion/green-onion-2.png",
-  greenOnion3:"assets/prep/green-onion/green-onion-3.png",
-  greenOnion4:"assets/prep/green-onion/green-onion-4.png",
+  greenOnion0:"assets/prep/cutting/green-onion/green-onion-0.png",
+  greenOnion1:"assets/prep/cutting/green-onion/green-onion-1.png",
+  greenOnion2:"assets/prep/cutting/green-onion/green-onion-2.png",
+  greenOnion3:"assets/prep/cutting/green-onion/green-onion-3.png",
+  greenOnion4:"assets/prep/cutting/green-onion/green-onion-4.png",
   // 멸치 손질 (engine-e10). assets/minigame/E10/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   //   whole 4종  도마 위 멸치. 머리와 몸통이 따로라 붙여 놓는 좌표는

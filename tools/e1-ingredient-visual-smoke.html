@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E1 ingredient visual smoke</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/day-prep-minigames.css">
+  <style>
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:#120b08; }
+    main { width:min(900px,90vw); }
+    h1 { margin:0 0 18px; color:#f6e4bd; font:700 24px/1.2 sans-serif; text-align:center; }
+    .cut-board { width:100%; height:480px; box-sizing:border-box; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="label"></h1>
+    <div class="cut-screen">
+      <div class="cut-board">
+        <div class="prep-work-object has-prep-asset" id="work">
+          <img class="prep-asset prep-object-asset" id="asset" alt="재료 썰기 단계" draggable="false">
+          <i class="cut-guide" id="guide"></i>
+          <i class="knife-effect"></i>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    "use strict";
+    const params=new URLSearchParams(location.search);
+    const ingredient=params.get("ingredient")==="fishCake"?"fishCake":"radish";
+    const stage=Math.max(0,Math.min(4,Number(params.get("stage"))||0));
+    const config=ingredient==="fishCake"
+      ?{folder:"fish-cake",file:"fish-cake",label:"어묵",positions:[74.3,51.3,26.7]}
+      :{folder:"radish",file:"radish",label:"무",positions:[79.7,61.4,41.7,22.1]};
+    const work=document.getElementById("work");
+    const guide=document.getElementById("guide");
+    work.classList.add(`${ingredient}-shape`);
+    if(ingredient==="fishCake")work.classList.add("tofu-cook-object");
+    document.getElementById("asset").src=`../assets/prep/cutting/${config.folder}/${config.file}-${stage}.png`;
+    document.getElementById("label").textContent=`${config.label} 썰기 에셋 · ${stage} / 4`;
+    work.style.setProperty("--cut-x",`${config.positions[Math.min(stage,config.positions.length-1)]}%`);
+    if(ingredient==="fishCake"&&stage===3){
+      work.classList.add("horizontal-cut");
+      guide.classList.add("horizontal");
+    }
+    if(stage===4)guide.hidden=true;
+    document.body.dataset.ready="true";
+  </script>
+</body>
+</html>
