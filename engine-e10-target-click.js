@@ -40,19 +40,30 @@ function setupAnchovyPrep(){
   // ⚠️ 원래 3열 x 3행이었습니다. 멸치를 210 → 270 으로 키우면서 한 줄에 세
   //    마리가 안 들어가(270 x 3 = 810 > 바닥 730) 2열로 바꿨습니다.
   // ⚠️ x·y 는 .anchovy-floor(나무 쟁반 테두리 **안쪽** 바닥 730 x 506) 기준 %입니다.
-  //    멸치는 270 x 최대 65 크기에 ±9° 회전 · 최대 1.06배 확대가 걸려서 자기
-  //    자리보다 가로 14 · 세로 26 쯤 더 삐져나옵니다. 아래 범위는 그 몫까지
+  //    멸치는 270 x 최대 66 크기에 ±11° 회전 · 최대 1.06배 확대가 걸려서 자기
+  //    자리보다 가로 14 · 세로 29 쯤 더 삐져나옵니다. 아래 범위는 그 몫까지
   //    바닥 안에 들어오고, 옆·아래 이웃과도 안 겹치도록 잡은 값입니다.
-  //      가로 2~8% / 52~58%   (두 마리 사이 23 이상 벌어짐)
-  //      세로 6~9 / 30~33 / 54~57 / 78~81%   (줄 간격 24% = 121 > 한 마리 112)
+  //      가로  왼줄 2~9% (짝수 줄) / 6~13% (홀수 줄)
+  //            오른줄 53~56% / 57~60%
+  //      세로  6~9 / 30~33 / 54~57 / 78~81%   (줄 간격 24% = 121 > 한 마리 118)
+  //
+  //    stagger : 한 줄 걸러 4% 씩 오른쪽으로 밀어 놓습니다. 8칸 격자를 그대로
+  //    쓰면 두 줄이 세로로 딱 맞아떨어져 "오와열 맞춘" 느낌이 납니다.
+  //    가로로 남는 자리가 190 뿐이라(730 - 270 x 2) 흔들 폭을 더 못 키우는
+  //    대신, 줄마다 어긋나게 해서 흩어진 느낌을 냅니다.
   const slots=shuffle(Array.from({length:8},(_,index)=>index)).slice(0,config.total);
   // 멸치 그림 4종을 두 벌 섞어 돌려 씁니다. 7마리면 4종이 최소 한 번씩은 나옵니다.
   // 붙이는 좌표는 css/day-prep-minigames.css 의 .anchovy.v01~v04 가 갖고 있습니다.
   const variants=shuffle(ANCHOVY_VARIANTS.concat(ANCHOVY_VARIANTS)).slice(0,config.total);
-  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>({
-    id:index,cleaned:false,variant:variants[index],x:2+(slot%2)*50+Math.random()*6,y:6+Math.floor(slot/2)*24+Math.random()*3,
-    rotation:-9+Math.random()*18,scale:.94+Math.random()*.12,flip:Math.random()>.5?-1:1
-  }))});
+  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>{
+    const col=slot%2,row=Math.floor(slot/2),stagger=(row%2)*4;
+    return {
+      id:index,cleaned:false,variant:variants[index],
+      x:(col?53:2)+stagger+Math.random()*(col?3:7),
+      y:6+row*24+Math.random()*3,
+      rotation:-11+Math.random()*22,scale:.94+Math.random()*.12,flip:Math.random()>.5?-1:1
+    };
+  })});
   dom.miniTitle.textContent=config.title;
   dom.miniDescription.textContent="멸치 머리를 잡고 좌우로 흔들어 뜯어주세요. 제한시간 안에 모두 손질해야 합니다!";
   renderAnchovyPrep();
@@ -99,7 +110,6 @@ function renderAnchovyPrep(){
           <i class="anchovy-innards ${hasDayPrepAsset("anchovyInnards")?"has-prep-asset":""}" aria-hidden="true"></i>
           <button class="anchovy-body ${hasDayPrepAsset(`anchovyBody${item.variant}`)?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 몸통">${dayPrepAssetMarkup(`anchovyBody${item.variant}`,"anchovy-body-asset","")}</button>
           <button class="anchovy-head ${hasDayPrepAsset(`anchovyHead${item.variant}`)?"has-prep-asset":""}" type="button" aria-label="${item.id+1}번 멸치 머리">${dayPrepAssetMarkup(`anchovyHead${item.variant}`,"anchovy-head-asset","")}</button>
-          <span class="anchovy-joint" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>`).join("")}
         </div>
       </div>

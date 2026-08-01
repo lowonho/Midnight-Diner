@@ -51,15 +51,15 @@ const FILES = [
      --size 로 최대 1.06배까지 커집니다. 그래서 "전체 길이 580 = 270 x 2배율에
      여유를 더한 값" 을 기준으로 각 조각의 몫만큼 나눠 가집니다.
      비율(머리 몫 / 몸통 몫)은 css/day-prep-minigames.css 의 --hd-w / --bd-w 와 같습니다. */
-  { file:"E10/food_anchovy_whole_01_body.png", size:[472,126], css:".anchovy 270 중 81.3%" },
-  { file:"E10/food_anchovy_whole_01_head.png", size:[154,102], css:".anchovy 270 중 26.6%" },
-  { file:"E10/food_anchovy_whole_02_body.png", size:[470,125], css:".anchovy 270 중 81.0%" },
-  { file:"E10/food_anchovy_whole_02_head.png", size:[158,103], css:".anchovy 270 중 27.3%" },
-  { file:"E10/food_anchovy_whole_03_body.png", size:[502, 93], css:".anchovy 270 중 86.5%" },
-  { file:"E10/food_anchovy_whole_03_head.png", size:[121, 74], css:".anchovy 270 중 20.9%" },
-  { file:"E10/food_anchovy_whole_04_body.png", size:[462,139], css:".anchovy 270 중 79.6%" },
-  { file:"E10/food_anchovy_whole_04_head.png", size:[169,111], css:".anchovy 270 중 29.1%" },
-  // 멸치 똥 — 머리 폭의 절반짜리 상자에 contain 으로 들어갑니다 (약 36x12)
+  { file:"E10/food_anchovy_whole_01_body.png", size:[484,129], css:".anchovy 270 중 83.5%" },
+  { file:"E10/food_anchovy_whole_01_head.png", size:[158,105], css:".anchovy 270 중 27.3%" },
+  { file:"E10/food_anchovy_whole_02_body.png", size:[483,129], css:".anchovy 270 중 83.2%" },
+  { file:"E10/food_anchovy_whole_02_head.png", size:[163,106], css:".anchovy 270 중 28.1%" },
+  { file:"E10/food_anchovy_whole_03_body.png", size:[526, 98], css:".anchovy 270 중 90.7%" },
+  { file:"E10/food_anchovy_whole_03_head.png", size:[127, 78], css:".anchovy 270 중 21.9%" },
+  { file:"E10/food_anchovy_whole_04_body.png", size:[475,143], css:".anchovy 270 중 82.0%" },
+  { file:"E10/food_anchovy_whole_04_head.png", size:[174,114], css:".anchovy 270 중 29.9%" },
+  // 멸치 똥 — 머리 폭의 0.62배 상자에 100% 100% 로 늘려 채웁니다 (약 46x11)
   { file:"E10/food_anchovy_innards.png",       size:[140, 46], css:".anchovy-innards 약 36x12" },
   // 손질 전 통멸치 묶음 — E10(머리 떼기)의 왼쪽 재료 카드
   { file:"E10/food_anchovy_whole_group_3.png", size:[560,134], css:"E10 재료 카드 약 210" },

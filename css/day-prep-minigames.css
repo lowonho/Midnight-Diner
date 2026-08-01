@@ -795,29 +795,23 @@
    머리와 몸통이 따로 그려져 있고 종류마다 크기가 달라서, 붙는 자리를
    따로 잡아야 머리와 몸통이 딱 붙습니다. 아래 값은 두 그림의 **잘린 단면**을
    맞춰 잰 값입니다 — 머리의 아가미 뒤 단면과 몸통의 절단면을 세로 중앙끼리
-   포갠 뒤, 가로로는 머리를 **머리 폭의 12% 만큼 몸통 쪽으로 더 밀어 넣었습니다.**
-   단면끼리 정확히 맞대기만 하면 머리 뒤쪽 아가미가 얇게 좁아지는 구간에서
-   바닥이 비쳐 머리가 떠 보였습니다. 아가미가 몸통 앞을 덮는 게 실제 모양이라
-   겹치는 쪽이 자연스럽습니다(머리가 몸통 위에 그려집니다).
+   포갠 뒤, 가로로는 머리를 **몸통 쪽으로 더 밀어 넣었습니다**(머리 폭의 22%,
+   가장 길쭉한 v03 만 34%). 단면끼리 정확히 맞대기만 하면 머리 뒤쪽 아가미가
+   얇게 좁아지는 구간에서 바닥이 비쳐 머리가 떠 보였습니다. 아가미가 몸통 앞을
+   덮는 게 실제 모양이라 겹치는 쪽이 자연스럽습니다(머리가 몸통 위에 그려집니다).
+   v03 만 더 넣은 것은 그림 자체가 길고 납작해서 같은 비율로는 덜 붙어 보이기 때문입니다.
      --a-ratio  멸치 한 마리 전체의 세로/가로 비 (길이에서 높이를 뽑습니다)
      --bd-*     몸통 상자     --hd-*  머리 상자   (둘 다 .anchovy 대비 %)
    상자 비율이 그림 비율과 같아서 object-fit:contain 이 여백 없이 꽉 찹니다.
    ⚠️ 에셋을 새로 받으면 이 값도 다시 재야 합니다. */
-.anchovy.v01 { --a-ratio:.216; --bd-l:18.7%; --bd-t:0%; --bd-w:81.3%; --bd-h:100%; --hd-l:0%; --hd-t:15.7%; --hd-w:26.6%; --hd-h:81.1%; }
-.anchovy.v02 { --a-ratio:.216; --bd-l:19.0%; --bd-t:0%; --bd-w:81.0%; --bd-h:100%; --hd-l:0%; --hd-t:14.6%; --hd-w:27.3%; --hd-h:82.3%; }
-.anchovy.v03 { --a-ratio:.161; --bd-l:13.5%; --bd-t:0%; --bd-w:86.5%; --bd-h:100%; --hd-l:0%; --hd-t:17.7%; --hd-w:20.9%; --hd-h:79.6%; }
-.anchovy.v04 { --a-ratio:.239; --bd-l:20.4%; --bd-t:0%; --bd-w:79.6%; --bd-h:100%; --hd-l:0%; --hd-t:15.9%; --hd-w:29.1%; --hd-h:80.1%; }
+.anchovy.v01 { --a-ratio:.222; --bd-l:16.5%; --bd-t:0%; --bd-w:83.5%; --bd-h:100%; --hd-l:0%; --hd-t:15.7%; --hd-w:27.3%; --hd-h:81.1%; }
+.anchovy.v02 { --a-ratio:.222; --bd-l:16.8%; --bd-t:0%; --bd-w:83.2%; --bd-h:100%; --hd-l:0%; --hd-t:14.6%; --hd-w:28.1%; --hd-h:82.3%; }
+.anchovy.v03 { --a-ratio:.169; --bd-l:9.3%;  --bd-t:0%; --bd-w:90.7%; --bd-h:100%; --hd-l:0%; --hd-t:17.7%; --hd-w:21.9%; --hd-h:79.6%; }
+.anchovy.v04 { --a-ratio:.246; --bd-l:18.0%; --bd-t:0%; --bd-w:82.0%; --bd-h:100%; --hd-l:0%; --hd-t:15.9%; --hd-w:29.9%; --hd-h:80.1%; }
 /* 그림이 붙었을 때만 위 좌표를 씁니다. 파일이 없으면 아래 CSS 도형 좌표가 그대로 남습니다. */
 .anchovy:has(.has-prep-asset) { height: calc(var(--a-len) * var(--a-ratio)); }
 .anchovy-body.has-prep-asset { left:var(--bd-l); top:var(--bd-t); width:var(--bd-w); height:var(--bd-h); border-radius:0; }
 .anchovy-head.has-prep-asset { left:var(--hd-l); top:var(--hd-t); width:var(--hd-w); height:var(--hd-h); border-radius:0; }
-/* 흔들기 진행 표시(결 세 줄)도 머리·몸통 이음매로 옮겨 줍니다 */
-.anchovy:has(.has-prep-asset) .anchovy-joint {
-  left: calc(var(--hd-l) + var(--hd-w) * .78);
-  top: calc(var(--hd-t) + var(--hd-h) * .3);
-  width: calc(var(--hd-w) * .22);
-  height: calc(var(--hd-h) * .42);
-}
 .anchovy-body,
 .anchovy-head {
   position: absolute;
@@ -849,7 +843,6 @@
   height: calc(60 * var(--upx));
   border-radius: 50%;
   background: radial-gradient(circle at 62% 38%, #8b9698, #677274);
-  /* 2 인 이유는 .anchovy-innards 주석 참고 — 내장이 몸통과 머리 사이에 끼입니다 */
   z-index: 2;
   transform-origin: right center;
   transition: transform .18s ease, box-shadow .12s ease;
@@ -871,36 +864,11 @@
   cursor: grabbing;
   box-shadow: 0 0 0 calc(2 * var(--upx)) rgba(255,224,141,.58);
 }
-/* 머리와 몸통 사이의 결 세 줄. 방향을 한 번 바꿀 때마다 하나씩 끊어져
-   글을 읽지 않아도 현재 흔들기 진행을 볼 수 있습니다. 별도 에셋은 필요 없습니다. */
-.anchovy-joint {
-  position: absolute;
-  z-index: 4;
-  left: calc(52 * var(--upx));
-  top: calc(20 * var(--upx));
-  width: calc(14 * var(--upx));
-  height: calc(27 * var(--upx));
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .12s ease;
-}
-.anchovy-joint i {
-  display: block;
-  width: 100%;
-  height: calc(3 * var(--upx));
-  border-radius: 50%;
-  background: #e4a253;
-  box-shadow: 0 0 calc(3 * var(--upx)) rgba(255,205,119,.55);
-  transform-origin: right center;
-  transition: opacity .12s ease, transform .12s ease;
-}
-.anchovy.grabbing .anchovy-joint { opacity: 1; }
-.anchovy[data-tug="1"] .anchovy-joint i:nth-child(1),
-.anchovy[data-tug="2"] .anchovy-joint i:nth-child(-n+2) { opacity: .18; transform: scaleX(.28) rotate(-18deg); }
-.anchovy.cleaned .anchovy-joint { opacity: 0; }
+/* 머리와 몸통 사이에 있던 '결 세 줄'(흔들기 진행 표시)은 뺐습니다.
+   손으로 그은 선이 그림 위에 얹혀 인위적으로 보였습니다. 진행은 TIP 줄의
+   "흔들기 2 / 3" 글과 몸통이 버티는 움직임(anchovy-body-resist)으로 보여줍니다.
+   되살리려면 이 자리에 .anchovy-joint 규칙과 engine-e10 의 <span> 을 함께
+   되돌리면 됩니다(흔든 횟수는 지금도 data-tug 로 남아 있습니다). */
 .anchovy.tug-pulse .anchovy-body { animation: anchovy-body-resist .16s ease-out; }
 .anchovy.tug-snap:not(.cleaned) .anchovy-head,
 .anchovy.tug-snap:not(.cleaned) .anchovy-innards { animation: anchovy-head-snap .24s ease-out; }
@@ -940,37 +908,36 @@
    머리 뒤쪽 단면에 매달려 있다가 머리를 뜯으면 딸려 나옵니다.
    머리와 **똑같은 transform** 을 걸어 함께 움직입니다.
 
-   [쌓임 순서가 손질 전후로 다릅니다]
-   손질 전  몸통 위 · 머리 아래(z-index:1)  → 이음매에서 내장이 슬쩍 비칩니다
-   손질 후  머리·몸통 **둘 다의 뒤**(z-index:-1) → 몸통 쪽 끝이 몸통에 가려
-            "몸통에서 뽑혀 나온" 모양이 됩니다
-   그래서 머리에 z-index:2 를 유지해야 합니다(그게 없으면 1 도 머리 위입니다).
+   z-index:-1 로 머리·몸통 **둘 다의 뒤**에 둡니다. 그래서 뜯기 전에는 몸통에
+   완전히 가려 안 보이고, 머리가 떨어져 나가면서 벌어진 틈으로 드러납니다.
+   (앞에 두면 손질 전에 몸 밖으로 삐져나온 것처럼 보입니다)
 
    [왜 머리의 자식이 아니라 형제인가]
-   머리 안에 넣으면 손질 후에도 몸통 뒤로 못 갑니다. 뜯기 연출로 머리에
-   transform 이 걸리는 순간 머리가 쌓임 맥락을 만들어 버리기 때문입니다.
+   머리 안에 넣으면 몸통 뒤로 못 갑니다. 뜯기 연출로 머리에 transform 이
+   걸리는 순간 머리가 쌓임 맥락을 만들어 버리기 때문입니다.
 
-   [transform-origin 이 44% 32% 인 이유]
+   [transform-origin 이 35.5% 34.8% 인 이유]
    머리의 회전축(right center)과 **같은 점**을 가리켜야 둘이 어긋나지
    않습니다. 아래 상자는 머리 상자를 기준으로 잡았으므로 그 점의 상대 위치가
-   종류와 무관하게 항상 ((1-.78)/.5, (.5-.42)/.25) = (44%, 32%) 로 떨어집니다.
-   그림은 background-position 으로 상자 **왼쪽**에 붙습니다. 그래야 머리
-   단면에서 시작해 몸통 쪽으로 늘어집니다. */
+   종류와 무관하게 항상 ((1-.78)/.62, (.5-.42)/.23) = (35.5%, 34.8%) 입니다.
+
+   [contain 이 아니라 100% 100% 인 이유]
+   그림(697x229 = 3.04)을 그대로 쓰면 뭉툭합니다. 상자를 4.1 : 1 로 잡고
+   가로로 늘려 조금 더 길쭉하게 뽑습니다. */
 .anchovy-innards {
   position: absolute;
-  z-index: 1;
+  z-index: -1;
   left: calc(var(--hd-l) + var(--hd-w) * .78);
   top: calc(var(--hd-t) + var(--hd-h) * .42);
-  width: calc(var(--hd-w) * .5);
-  height: calc(var(--hd-h) * .25);
-  background: url("../assets/minigame/E10/food_anchovy_innards.webp") left center / contain no-repeat;
-  transform-origin: 44% 32%;
+  width: calc(var(--hd-w) * .62);
+  height: calc(var(--hd-h) * .23);
+  background: url("../assets/minigame/E10/food_anchovy_innards.webp") center / 100% 100% no-repeat;
+  transform-origin: 35.5% 34.8%;
   pointer-events: none;
   transition: transform .18s ease;
 }
 /* 그림을 못 받았으면 아예 그리지 않습니다 */
 .anchovy-innards:not(.has-prep-asset) { display: none; }
-.anchovy.cleaned .anchovy-innards { z-index: -1; }
 /* 왼쪽 재료 카드 : 통멸치 묶음 한 장을 기울여 앉힙니다.
    그림이 가로 4.17 : 세로 1 로 아주 납작해서, 눕혀 놓으면 카드 위아래가
    텅 빕니다. 22도쯤 기울여 카드의 대각선을 쓰게 하면 같은 폭에서도 세로를
