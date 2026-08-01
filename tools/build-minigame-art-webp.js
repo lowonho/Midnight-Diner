@@ -54,14 +54,22 @@ const FILES = [
   { file:"E8/02_food_pancake_flour_panel.png",   size:[240,240], css:".bt-ing-asset 120x120" },
   { file:"E8/03_food_water_cup_panel.png",       size:[240,240], css:".bt-ing-asset 120x120" },
   /* 반죽 볼 9장. 넣은 재료 조합마다 한 장이고 전부 같은 자리에 겹칩니다.
-     자리는 .batter-prep-scene 의 --bowl (400) 이라 2배율이 800 입니다.
+     자리는 .batter-prep-scene 의 --bowl (400x400) 인데, 볼 둘레의 투명 여백을
+     잘라낸 납품본이라 그림 비율이 1.163(가로가 김)입니다. 정사각 칸에
+     object-fit:contain 으로 들어가면 **가로가 먼저 막혀** 400x344 로 그려집니다.
+     그래서 2배율이 800x688 입니다.
+
+     ⚠️ 9장을 **한 크기로 묶는 것이 중요합니다.** 마스터 PNG 는 장마다 자기
+        경계에 맞춰 잘려 있어 2202~2214 x 1894~1902 로 조금씩 다릅니다(비율 차 0.23%).
+        여기서 한 크기로 뽑아야 재료를 넣을 때 볼이 안 튑니다. 비율 차가
+        checkAspect 한계(2%)의 1/10 이라 찌그러짐은 눈에 안 보입니다.
      오른쪽 '참고 모양' 칸(172)에도 같은 파일을 줄여 씁니다. */
   ...["04_food_kimchi_batter_bowl_empty","05_food_kimchi_batter_bowl_water",
       "06_food_kimchi_batter_bowl_flour","07_food_kimchi_batter_bowl_kimchi",
       "08_food_kimchi_batter_bowl_kimchi_flour","09_food_kimchi_batter_bowl_water_flour",
       "10_food_kimchi_batter_bowl_water_kimchi","11_food_kimchi_batter_bowl_flour_kimchi",
       "12_food_kimchi_batter_bowl_all_unmixed"]
-    .map(name=>({ file:`E8/${name}.png`, size:[800,800], css:".bt-bowl 400x400 (--bowl)" })),
+    .map(name=>({ file:`E8/${name}.png`, size:[800,688], css:".bt-bowl 400x400 안에서 400x344" })),
   /* E10 멸치. 머리/몸통 4종은 도마 위에서 한 마리 길이 270(--a-len) 으로 그려지고,
      --size 로 최대 1.06배까지 커집니다. 그래서 "전체 길이 580 = 270 x 2배율에
      여유를 더한 값" 을 기준으로 각 조각의 몫만큼 나눠 가집니다.
