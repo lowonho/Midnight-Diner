@@ -62,8 +62,21 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   greenOnion2:"assets/prep/cutting/green-onion/green-onion-2.png",
   greenOnion3:"assets/prep/cutting/green-onion/green-onion-3.png",
   greenOnion4:"assets/prep/cutting/green-onion/green-onion-4.png",
-  anchovyBody:"assets/prep/anchovy/anchovy-body.png",
-  anchovyHead:"assets/prep/anchovy/anchovy-head.png",
+  // 멸치 손질 (engine-e10). assets/minigame/E10/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //   whole 4종  도마 위 멸치. 머리와 몸통이 따로라 붙여 놓는 좌표는
+  //              css/day-prep-minigames.css 의 .anchovy.v01~v04 변수가 갖고 있습니다.
+  //   innards    머리를 뜯을 때 딸려 나오는 멸치 똥
+  //   wholeGroup 손질 **전** 통멸치 묶음 → E10(머리 떼기)의 재료 카드
+  //   group      손질 **후** 멸치 묶음   → E11(어묵탕에 넣기)의 재료 카드·냄비(osAnchovy)
+  //              두 그림이 섞이면 "머리를 떼기 전인데 이미 손질된 멸치" 가 보입니다.
+  ...Object.fromEntries(["01","02","03","04"].flatMap(no=>[
+    [`anchovyBody${no}`,`assets/minigame/E10/food_anchovy_whole_${no}_body.webp`],
+    [`anchovyHead${no}`,`assets/minigame/E10/food_anchovy_whole_${no}_head.webp`]
+  ])),
+  anchovyInnards:"assets/minigame/E10/food_anchovy_innards.webp",
+  anchovyWholeGroup:"assets/minigame/E10/food_anchovy_whole_group_3.webp",
+  anchovyGroup:"assets/minigame/E10/food_anchovy_cleaned_group.webp",
   // 닭꼬치 꽂기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   //   piece  꼬치에 꽂히는 조각 한 개 (512x448 캔버스 한가운데)
@@ -73,19 +86,52 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   skewerChickenGroup:"assets/minigame/E8/food_skewer_chicken_group.webp",
   skewerGreenOnionGroup:"assets/minigame/E8/food_skewer_green_onion_group.webp",
   skewerStick:"assets/minigame/E8/prop_skewer_stick.webp",
-  // 김치전 반죽 (engine-e8 → e9). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  batterFlour:"assets/prep/batter/flour.png",
-  batterWater:"assets/prep/batter/water.png",
-  batterKimchi:"assets/prep/batter/kimchi.png",
+  // 김치전 반죽 재료 넣기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //   재료 3장   왼쪽 재료 카드에 놓는 그림 (부침가루 · 물컵 · 썰어 둔 김치)
+  //   볼 9장     **넣은 재료 조합마다 한 장**입니다. 어느 장을 쓸지는
+  //              engine-e8-order-place.js 의 BATTER_BOWL_ASSETS 가 고릅니다.
+  //              08(kimchi_flour) 과 11(flour_kimchi) 은 재료가 같고 넣은 순서만
+  //              다른 두 장이라, 그 순서 그대로 키를 나눠 두 장 다 씁니다.
+  batterFlour:"assets/minigame/E8/02_food_pancake_flour_panel.webp",
+  batterWater:"assets/minigame/E8/03_food_water_cup_panel.webp",
+  batterKimchi:"assets/minigame/E8/01_food_kimchi_chopped_panel.webp",
+  batterBowlEmpty:"assets/minigame/E8/04_food_kimchi_batter_bowl_empty.webp",
+  batterBowlWater:"assets/minigame/E8/05_food_kimchi_batter_bowl_water.webp",
+  batterBowlFlour:"assets/minigame/E8/06_food_kimchi_batter_bowl_flour.webp",
+  batterBowlKimchi:"assets/minigame/E8/07_food_kimchi_batter_bowl_kimchi.webp",
+  batterBowlKimchiFlour:"assets/minigame/E8/08_food_kimchi_batter_bowl_kimchi_flour.webp",
+  batterBowlWaterFlour:"assets/minigame/E8/09_food_kimchi_batter_bowl_water_flour.webp",
+  batterBowlWaterKimchi:"assets/minigame/E8/10_food_kimchi_batter_bowl_water_kimchi.webp",
+  batterBowlFlourKimchi:"assets/minigame/E8/11_food_kimchi_batter_bowl_flour_kimchi.webp",
+  batterBowlAll:"assets/minigame/E8/12_food_kimchi_batter_bowl_all_unmixed.webp",
+  // 젓기(engine-e9)가 쓰는 빈 볼. 반죽 그림이 볼까지 통째로 그려 주므로 실제로는 안 쓰입니다.
+  // (파일이 없어 hasDayPrepAsset 이 false 이고, .has-mix-art 가 CSS 임시 볼도 끕니다)
   batterBowl:"assets/prep/batter/bowl.png",
-  batterDone:"assets/prep/batter/batter-done.png",
-  // E9는 단계별 반죽과 거품기를 선택 에셋으로 교체할 수 있습니다. 파일이 없으면 CSS 도형을 씁니다.
-  batterMix0:"assets/prep/batter/mix-0.png",
-  batterMix1:"assets/prep/batter/mix-1.png",
-  batterMix2:"assets/prep/batter/mix-2.png",
-  batterMix3:"assets/prep/batter/mix-3.png",
-  batterMix4:"assets/prep/batter/mix-4.png",
-  batterWhisk:"assets/prep/batter/whisk.png",
+  // 김치전 반죽 젓기 (engine-e9). assets/minigame/E9/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //
+  //   batterMix0~9  저을수록 이어 붙는 **연속 그림 10장**입니다. 0 = 안 섞인 재료,
+  //                 9 = 완성. 진행도(0~100%)를 10칸으로 나눠 한 장씩 겹쳐 넘깁니다.
+  //   ⚠️ 배열 순서가 곧 재생 순서입니다. 파일 번호가 아닙니다 — 납품에 09 가 빠져 있어
+  //      08 다음이 10 입니다. 나중에 09 가 오면 여기와 tools/build-minigame-art-webp.js
+  //      두 곳의 배열에 같은 자리로 끼워 넣으면 됩니다.
+  //   ⚠️ E8 의 볼 9장과 섞지 마세요. E8 은 위에서 비스듬히 본 볼이고,
+  //      E9 는 원을 그리는 조작에 맞춘 **정면에서 내려다본** 볼입니다.
+  ...Object.fromEntries([
+    "01_food_kimchi_batter_mix_stage1_unmixed","02_food_kimchi_batter_mix_stage2_b",
+    "03_food_kimchi_batter_mix_stage2_c","04_food_kimchi_batter_mix_stage3_a",
+    "05_food_kimchi_batter_mix_stage3_b","06_food_kimchi_batter_mix_stage3_c",
+    "07_food_kimchi_batter_mix_stage4_a","08_food_kimchi_batter_mix_stage4_b",
+    "10_food_kimchi_batter_mix_stage4_c","11_food_kimchi_batter_mix_stage5_complete"
+  ].map((name,index)=>[`batterMix${index}`,`assets/minigame/E9/${name}.webp`])),
+  //   거품기 3종 — 반죽이 얼마나 묻었는지로 나뉩니다. 어느 것을 쓸지는
+  //   engine-e9-whisk.js 의 WHISK_CONFIG.whiskAssets 가 정합니다.
+  whiskClean:"assets/minigame/E9/12_prop_whisk_clean.webp",         // 아직 안 저었을 때
+  whiskLight:"assets/minigame/E9/13_prop_whisk_batter_light.webp",  // 젓다가 손을 뗐을 때
+  whiskMedium:"assets/minigame/E9/14_prop_whisk_batter_medium.webp",// 젓는 중
+  // 오른쪽 '참고 모양'(고르게 섞인 반죽)은 마지막 장과 같은 그림입니다.
+  batterDone:"assets/minigame/E9/11_food_kimchi_batter_mix_stage5_complete.webp",
   // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
   sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",
@@ -97,21 +143,47 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
-  // 김치 볶기 (engine-e3). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  fryingPan:"assets/prep/kimchi/frying-pan.png",
+  // 김치 볶기 (engine-e3). 화구는 아래 burnerGas1~3 레이어입니다.
+  // ⚠️ fryingPan 은 **E5 김치전 굽기와 공용**입니다 (같은 후라이팬).
+  //    손잡이까지 들어 있는 그림이라 몸통은 전체 폭의 79.7% 뿐입니다.
+  //    자리 잡는 방법은 css/day-prep-minigames.css 의 .frying-pan 주석 참고.
+  fryingPan:"assets/minigame/E3/fix_frying_pan_wide_inner_4x.webp",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
-  fryStove:"assets/prep/kimchi/stove.png",
   fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
-  fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
-  fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
-  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
-  stirGriddle:"assets/prep/yakisoba/griddle.png",
+  // 왼쪽 재료 카드 2장 — assets/minigame/E3/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  fryIngKimchi:"assets/minigame/E3/food_kimchi_sliced.webp",
+  fryIngSugar:"assets/minigame/E3/food_sugar.webp",
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 볶이는 면은 아직 CSS 임시 도형입니다.
+  // ⚠️ stirGriddle 은 이제 **불이 빠진 철판 한 장**입니다. 불은 따로 깔리는
+  //    화구 레이어(burnerGriddle1~3)가 그립니다.
+  stirGriddle:"assets/minigame/E3/fix_griddle_plate_wide_mild_trapezoid_4x.webp",
   stirNoodles:"assets/prep/yakisoba/noodles.png",
   stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
-  stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
-  stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
-  stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 왼쪽 재료 카드 3장 — assets/minigame/E3/ 의 납품 에셋입니다.
+  stirIngUdon:"assets/minigame/E3/food_udon_noodles.webp",
+  stirIngSauce:"assets/minigame/E3/food_udon_sauce.webp",
+  stirIngVeggie:"assets/minigame/E3/food_udon_vegetables.webp",
+  // 방향 화살표 4종 — 김치 볶기와 볶음우동이 **함께** 씁니다 (같은 컨트롤러).
+  // 아래 화살표 칩 안과 오른쪽 '다음 순서' 칸 두 자리에 같은 파일이 들어갑니다.
+  // 키 이름은 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
+  // directionArrowAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다.
+  // ⚠️ 칩의 나무틀은 여기 없습니다. 다른 UI 틀과 같은 배경 그림이라
+  //    css/day-prep-minigames.css(.kf-chip) · css/minigames.css(.yk-chip) 가 직접 씁니다.
+  ...Object.fromEntries(["left","up","right","down"].map(way=>
+    [`arrow${way[0].toUpperCase()}${way.slice(1)}`,`assets/minigame/E3/ui_arrow_${way}.webp`])),
+  // 화구 2종 x 3장 — 조리기구(팬·철판)와 분리된 바닥 레이어입니다.
+  //   gas      가스버너   → E3 김치 볶기(engine-e3) · E5 김치전 굽기(engine-e5)
+  //   griddle  철판 화구  → E3 볶음우동(engine-e3)
+  // 3장은 불이 흔들리는 애니메이션 프레임이고, 번호 순서가 곧 재생 순서입니다.
+  // ⚠️ 가스버너는 장마다 세로가 612/616/607 로 다릅니다. 불꽃이 더 솟은 장이
+  //    그만큼 캔버스가 큰 것이라 **일부러 안 맞췄습니다.** 내용 폭과 아래 여백이 같아서
+  //    같은 폭으로 깔고 아래를 맞추면 몸통은 고정된 채 불꽃만 움직입니다.
+  //    (css/minigame-parts.css 의 .mg-burner-frame)
+  ...Object.fromEntries(["01","02","03"].flatMap((no,index)=>[
+    [`burnerGas${index+1}`,`assets/minigame/E3/fix_gas_burner_low_fire_${no}.webp`],
+    [`burnerGriddle${index+1}`,`assets/minigame/E3/fix_griddle_burner_fire_${no}.webp`]
+  ])),
   // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
   heatOdenPot:"assets/prep/heat/oden-pot.png",
   heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
@@ -148,7 +220,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
   osRadish:"assets/prep/one-shot/radish.png",
   osFishCake:"assets/prep/one-shot/fish-cake.png",
-  osAnchovy:"assets/prep/one-shot/anchovy.png",
+  osAnchovy:"assets/minigame/E10/food_anchovy_cleaned_group.webp",   // 손질한 멸치 묶음 (E10 과 공용)
   osBroth:"assets/prep/one-shot/broth.png",
   osPlate:"assets/prep/one-shot/plate.png",
   osPlateDone:"assets/prep/one-shot/plate-done.png",
@@ -156,7 +228,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   osPotDone:"assets/prep/one-shot/pot-done.png",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
+  // 김치전 반죽 그릇 — assets/minigame/E5/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  cookPancakeBatter:"assets/minigame/E5/food_kimchi_batter_bowl_mixed_oblique.webp",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
@@ -185,6 +259,28 @@ function hasDayPrepAsset(key){
 function dayPrepAssetMarkup(key,className,alt=""){
   if(!hasDayPrepAsset(key))return "";
   return `<img class="prep-asset ${className}" src="${dayPrepAssets[key].src}" alt="${alt}" draggable="false" />`;
+}
+
+/* ---- 화구 (가스버너 · 철판 화구) ---------------------------
+   조리기구(팬·철판)와 **분리된 바닥 레이어**입니다. 원래는 팬/철판 그림 안에
+   불이 함께 그려져 있어서 조리기구를 옮기면 불도 따라다녔습니다. 이제 화구는
+   플레이 칸 바닥에 깔리고, 조리기구가 그 위에 얹힙니다.
+
+   세 화면이 함께 씁니다 — E3 김치 볶기 · E3 볶음우동 · E5 김치전 굽기.
+   (E5 닭꼬치는 가스불이 아니라 숯불 화로라 여기 해당 없습니다)
+
+   그림 3장을 겹쳐 두고 CSS 가 번갈아 켜서 불이 흔들리는 것처럼 보입니다.
+   재생은 전부 css/minigame-parts.css 의 .mg-burner 가 합니다 — 자바스크립트
+   타이머가 없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다. */
+const MINIGAME_BURNER_FRAMES=3;
+
+function minigameBurnerMarkup(kind){
+  const prefix=kind==="gas"?"burnerGas":"burnerGriddle";
+  const keys=Array.from({length:MINIGAME_BURNER_FRAMES},(_,index)=>`${prefix}${index+1}`);
+  // 한 장이라도 빠지면 그 순번에서 불이 깜빡 꺼져 보입니다. 전부 있을 때만 씁니다.
+  if(!keys.every(hasDayPrepAsset))return `<i class="mg-burner mg-burner-${kind} mg-burner-fallback" aria-hidden="true"></i>`;
+  const frames=keys.map(key=>`<img class="mg-burner-frame" src="${dayPrepAssets[key].src}" alt="" draggable="false" />`).join("");
+  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}</div>`;
 }
 
 function timingAssetKey(ingredient,successes,assetPrefix=""){
