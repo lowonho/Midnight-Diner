@@ -300,12 +300,13 @@
 .cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
 .cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.chicken-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.greenOnion-shape.has-prep-asset .cut-line {
   display: none;
 }
 .cut-board .prep-work-object.kimchi-shape,
-.cut-board .prep-work-object.chicken-shape,
 .cut-board .prep-work-object.cabbage-shape { width:min(78%,calc(460 * var(--upx))); height:calc(196 * var(--upx)); }
+.cut-board .prep-work-object.chicken-shape { width:min(86%,calc(500 * var(--upx))); height:calc(178 * var(--upx)); }
 .cut-board .prep-work-object.fishCake-shape { width:min(68%,calc(360 * var(--upx))); height:calc(255 * var(--upx)); }
 .cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(236 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에

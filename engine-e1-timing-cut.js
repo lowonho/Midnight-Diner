@@ -258,11 +258,12 @@ function renderTimingCut(){
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
   // 제공된 단계 에셋의 실제 틈과 칼 안내선이 겹치도록 재료별 좌표를 사용합니다.
-  // 무·어묵·대파 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
+  // 무·어묵·닭·대파 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
   const suppliedCutPositions={
     radish:[79.7,61.4,41.7,22.1],
     fishCake:[74.3,51.3,26.7],
-    greenOnion:[79.3,58.0,39.9,20.9]
+    chicken:[85.3,70.5,55.1,38.5,20.8],
+    greenOnion:[80.2,62.6,43.2,22.7]
   };
   const ingredientCutPositions=suppliedCutPositions[data.ingredient];
   const cutPosition=index=>ingredientCutPositions

@@ -29,23 +29,28 @@
   <script>
     "use strict";
     const params=new URLSearchParams(location.search);
-    const ingredient=params.get("ingredient")==="fishCake"?"fishCake":"radish";
-    const stage=Math.max(0,Math.min(4,Number(params.get("stage"))||0));
-    const config=ingredient==="fishCake"
-      ?{folder:"fish-cake",file:"fish-cake",label:"어묵",positions:[74.3,51.3,26.7]}
-      :{folder:"radish",file:"radish",label:"무",positions:[79.7,61.4,41.7,22.1]};
+    const requestedIngredient=params.get("ingredient");
+    const configs={
+      radish:{folder:"radish",file:"radish",label:"무",total:4,positions:[79.7,61.4,41.7,22.1]},
+      fishCake:{folder:"fish-cake",file:"fish-cake",label:"어묵",total:4,positions:[74.3,51.3,26.7]},
+      chicken:{folder:"chicken",file:"chicken",label:"닭",total:5,positions:[85.3,70.5,55.1,38.5,20.8]},
+      greenOnion:{folder:"green-onion",file:"green-onion",label:"대파",total:4,positions:[80.2,62.6,43.2,22.7]}
+    };
+    const ingredient=configs[requestedIngredient]?requestedIngredient:"radish";
+    const config=configs[ingredient];
+    const stage=Math.max(0,Math.min(config.total,Number(params.get("stage"))||0));
     const work=document.getElementById("work");
     const guide=document.getElementById("guide");
     work.classList.add(`${ingredient}-shape`);
     if(ingredient==="fishCake")work.classList.add("tofu-cook-object");
     document.getElementById("asset").src=`../assets/prep/cutting/${config.folder}/${config.file}-${stage}.png`;
-    document.getElementById("label").textContent=`${config.label} 썰기 에셋 · ${stage} / 4`;
+    document.getElementById("label").textContent=`${config.label} 썰기 에셋 · ${stage} / ${config.total}`;
     work.style.setProperty("--cut-x",`${config.positions[Math.min(stage,config.positions.length-1)]}%`);
     if(ingredient==="fishCake"&&stage===3){
       work.classList.add("horizontal-cut");
       guide.classList.add("horizontal");
     }
-    if(stage===4)guide.hidden=true;
+    if(stage===config.total)guide.hidden=true;
     document.body.dataset.ready="true";
   </script>
 </body>
