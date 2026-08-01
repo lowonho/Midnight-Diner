@@ -172,7 +172,10 @@ const FILES = [
              .kf-board / .ts-board 의 overflow:hidden 에 잘립니다.
        철판  화면 760 x 321 */
   { file:"E3/fix_frying_pan_wide_inner_4x.png",             size:[1280,556], css:".frying-pan · .two-side-pan 640x278" },
-  { file:"E3/fix_griddle_plate_wide_mild_trapezoid_4x.png", size:[1520,643], css:".yk-griddle 760x321" }
+  { file:"E3/fix_griddle_plate_wide_mild_trapezoid_4x.png", size:[1520,643], css:".yk-griddle 760x321" },
+  /* E5 김치전 굽기의 왼쪽 재료 카드(반죽 그릇 한 장).
+     그림칸이 210 x 225 인데 원본이 정사각이라 **가로 210 이 먼저 막습니다** → 2배율 420. */
+  { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" }
 ];
 
 const QUALITY = 90;

@@ -1476,6 +1476,10 @@
   display: grid;
   place-items: center;
   min-width: 0;
+  /* 팬이 커지면서 손잡이가 칸 오른쪽으로 80 나갑니다. 칸 경계를 보이지 않는
+     액자 선이라 보고 거기서 잘라 냅니다 — 안 그러면 옆 진행도 칸을 침범합니다.
+     ⚠️ 주걱(.kf-wood-spatula)이 팬 윗변에서 시작하므로 여기 걸리지 않습니다. */
+  overflow: hidden;
   cursor: grab;
   touch-action: none;
 }
@@ -1484,22 +1488,30 @@
    css/minigame-parts.css 의 .mg-burner 와 day-prep-minigames.js 의 minigameBurnerMarkup.
    여기서는 그 화구 **위 어디에 팬을 얹을지**만 정합니다. */
 .kf-board .mg-burner { z-index: 0; }
-/* 팬이 화구 위에 앉는 높이. 화구 그림(표시 높이 359.6)에서
+/* 팬 자리. 화구 그림(표시 폭 824.2 · 높이 359.6)의 실측값은 이렇습니다.
+     상판(화구 몸통)   가로 796
      삼발이            바닥에서 72 ~ 342
-     불꽃 링           바닥에서 125 ~ 345 (파란 밑동은 126 ~ 286)
+     불꽃 링           바닥에서 125 ~ 345
+     중앙 헤드(가스구) 바닥에서 142 ~ 260   ← 여기가 다 가려져야 합니다
 
-   [쌓이는 순서 — 팬 · 불 · 화구]
-   불은 화구 그림에 함께 그려져 있어서 팬과 화구 사이에 따로 끼울 수 없습니다.
-   대신 **팬 윗변을 불꽃 꼭대기보다 위로 올려** 같은 결과를 냅니다 —
-   235 + 235 = 470 > 345 이라 불이 팬 위로는 한 점도 솟지 않고,
-   팬 아래로만 불꽃 밑동이 비칩니다.
+   [드롭 142] 팬 바닥을 헤드 아래끝(142)에 맞췄습니다. 헤드가 딱 가려지고
+   그 아래 불꽃 밑동 125~142 만 팬 앞으로 비칩니다.
+   ⚠️ 키우면 헤드가 팬 아래로 드러납니다. 줄이면 불이 아예 안 보입니다(밑동이 125).
 
-   [보이는 양] 불꽃 밴드가 125~345(높이 220)이고 팬 바닥이 235 이므로
-   125~235, 즉 **절반**이 보입니다. 파란 밑동과 붉은 불이 함께 보입니다.
-   ⚠️ 줄이면 불이 더 보이다가 팬 위로 솟기 시작하고, 키우면 불이 가려집니다. */
+   [폭 820] 몸통이 653.5 로 화구 상판(796)의 82% — "거의 맞먹되 조금 작게" 입니다.
+   ⚠️ 더 키우면 세로도 같이 커져 칸(503)을 넘칩니다. 지금 팬 윗변이 498.2 로
+      여유가 4.8 뿐입니다. 폭을 올리려면 드롭을 같이 내려야 하고, 그러면 불이 사라집니다.
+
+   [쌓이는 순서 — 팬 · 불 · 화구] 불은 화구 그림에 함께 그려져 있어 사이에 끼울 수
+   없습니다. 대신 팬 윗변(498.2)이 불꽃 꼭대기(345)보다 위라 불이 팬 위로 솟지 않습니다. */
 .kf-board {
-  --kf-pan-drop: calc(235 * var(--upx));
-  --kf-pan-w: calc(540 * var(--upx));
+  --kf-pan-drop: calc(142 * var(--upx));
+  --kf-pan-w: calc(820 * var(--upx));
+  /* 몸통 중심(그림 왼쪽에서 39.9%)을 계산으로 맞춰 놓으면 눈으로는 아주 살짝
+     오른쪽으로 보입니다. 몸통과 손잡이를 잇는 목이 몸통 폭에 섞여 들어가서
+     계산상 중심이 그만큼 오른쪽으로 잡히기 때문입니다. 그 차이만 왼쪽으로 당깁니다.
+     ⚠️ 키우면 팬이 왼쪽으로, 줄이면 오른쪽으로 갑니다. 0 이면 계산값 그대로입니다. */
+  --kf-pan-nudge: calc(14 * var(--upx));
 }
 /* 후라이팬. 그림에 **손잡이가 함께 들어 있습니다.**
      몸통(타원)  그림 왼쪽부터 79.7% 까지
@@ -1518,7 +1530,7 @@
   bottom: var(--kf-pan-drop);
   width: var(--kf-pan-w);
   height: calc(var(--kf-pan-w) / 2.3022);
-  margin-left: calc(var(--kf-pan-w) * -0.399);
+  margin-left: calc(var(--kf-pan-w) * -0.399 - var(--kf-pan-nudge));
   border: calc(9 * var(--upx)) solid #57534d;
   border-radius: 50%;
   background: #292724;
@@ -1564,11 +1576,15 @@
   position: absolute;
   z-index: 4;
   left: 40%;                    /* 팬 그림의 몸통 중심(39.9%)에 맞춥니다 */
-  /* ⚠️ 원래 -74 였습니다. 팬이 화구 위로 올라가면서 주걱 손잡이가 칸 위로
-     뻗어 나갔습니다(팬 윗변 470 + 74 = 544 > 칸 503). -30 이면 칸 안에 듭니다. */
-  top: calc(-30 * var(--upx));
-  width: calc(25 * var(--upx));
-  height: calc(230 * var(--upx));
+  /* ⚠️ 원래 -74(팬 위로 튀어나옴) 였습니다. 팬이 커지면서 윗변이 498 까지 올라가
+     주걱 손잡이가 칸(503) 위로 넘쳤습니다. 0 이면 팬 윗변에서 시작해 칸 안에 듭니다. */
+  top: 0;
+  /* ⚠️ 원래 25 x 230 이었습니다. 팬이 470 → 820 으로 커지면서 주걱만 작게 남아
+     비례를 1.6 배로 키웠습니다 (아래 ::after 주걱 면도 같은 배율). */
+  width: calc(40 * var(--upx));
+  /* 손잡이 270 + 주걱 면 134 - 겹침 27 = 377 이 팬 윗변에서 내려가는 길이입니다.
+     팬 높이(356)보다 살짝 길어 주걱 면 끝이 팬 앞 테두리에 걸칩니다. */
+  height: calc(270 * var(--upx));
   border: calc(2 * var(--upx)) solid #6b3e19;
   border-radius: calc(14 * var(--upx));
   background: linear-gradient(90deg,#8a5123,#d49a53 42%,#a9662d 76%,#704019);
@@ -1581,9 +1597,9 @@
   content: "";
   position: absolute;
   left: 50%;
-  bottom: calc(-17 * var(--upx));
-  width: calc(70 * var(--upx));
-  height: calc(84 * var(--upx));
+  bottom: calc(-27 * var(--upx));
+  width: calc(112 * var(--upx));
+  height: calc(134 * var(--upx));
   border: calc(2 * var(--upx)) solid #6b3e19;
   border-radius: 46% 46% calc(15 * var(--upx)) calc(15 * var(--upx));
   background: linear-gradient(90deg,#9c622d,#d7a55e 46%,#9d612d);
@@ -2291,68 +2307,193 @@
    가운데 플레이 그림만 여기 있습니다. 바깥 3열 틀은 위 "튀김 준비"의
    .fp-scene 을 그대로 씁니다. (공용 프레임은 건드리지 않습니다)
 
-   볶음우동 채칼과 감자튀김 채칼은 방향만 다릅니다.
-     .axis-x  ← → : 채칼이 가로로 움직이고 채는 오른쪽에 쌓입니다
-     .axis-y  ↑ ↓ : 채칼이 세로로 움직이고 채는 아래에 쌓입니다
-   두 축이 공유하는 값은 .md-scene 에 모아 두고, 자리·방향만 축별로
-   덮어씁니다. 크기는 --md-plate-w / --md-plate-h 두 값이 정합니다.
+   컨셉 이미지와 같은 한 장면입니다. 조각들이 서로 겹쳐 앉으므로
+   전부 플레이 칸(788.2 x 573.2) 안 **제자리에 하나씩** 놓습니다.
+   자리는 %, 크기는 .md-scene 의 --md-* 다섯 값이 정합니다.
+
+     쌓이는 순서   오른쪽 다리 · 채반 · 왼쪽 다리 · 채 더미 · 채칼 판 · 화살표
+                  ↑ 채반 뒤       ↑ 채반 앞
+
+     .md-legs.right   짧은 뒷다리 — 채반 **뒤**로 들어갑니다 (z 0)
+     .md-basket       둥근 채반 (z 1)
+     .md-legs.left    긴 앞다리 A 자 — 채반 **앞**을 가로지릅니다 (z 2)
+     .md-pile         채반 안에 쌓이는 채 (z 3)
+     .md-plate        비스듬히 얹힌 채칼 판 + 칼날 + 재료 (z 4)
+     .md-hint         아래쪽 큰 양방향 화살표 (z 5)
+
+   ⚠️ 판만 --md-tilt 만큼 기울어 있고 다리·채반은 똑바로 서 있습니다.
+      다리를 판 안에 넣으면 판을 따라 같이 기울어 버려서 밖에 두었습니다.
+      재료(.md-ingredient)는 반대로 판 **안**에 있어야 합니다 —
+      md-slide-* 가 판 안쪽 좌표라 판의 기울기가 그대로 얹혀야
+      재료가 판을 따라 비스듬히 밀립니다.
+
+   볶음우동 채칼과 감자튀김 채칼은 입력 방향만 다릅니다. 지금 쓰는
+   세 재료가 전부 .axis-x 라 장면은 하나뿐이고, .axis-y 는 화살표만
+   세워 놓습니다. (판·채반·다리는 축과 상관없이 같은 자리입니다)
 
    그림은 전부 임시 CSS 도형입니다. assets/prep/mandoline/ 에 파일을
    넣으면 .has-asset 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   판 그림에는 다리와 기울기가 함께 그려져 있을 테니, 그때는 CSS 다리와
+   기울이기를 끕니다 (아래 .has-asset 규칙 두 줄).
    (감자는 손질 단계별 그림 11장을 씁니다 — assets/prep/day4/fries/) */
 .md-scene {
-  --md-plate-w: calc(430 * var(--upx));   /* 채칼 판 */
-  --md-plate-h: calc(190 * var(--upx));
+  /* ⚠️ 판 길이·기울기를 키우면 판이 채반 위를 덮어 채반이 반달로 보입니다.
+     지금은 판 아래끝이 채반 위끝보다 66 만 내려와 채반이 거의 다 보입니다. */
+  --md-deck-w: calc(520 * var(--upx));    /* 채칼 판 길이 */
+  --md-deck-h: calc(166 * var(--upx));    /* 채칼 판 폭 */
+  --md-tilt: 17deg;                       /* 판이 기운 각 */
+  --md-basket-w: calc(510 * var(--upx));  /* 채반 */
+  --md-basket-h: calc(224 * var(--upx));
   position: relative;
   width: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
 }
 
-/* 채칼 판 : 나무 틀 + 가운데 비스듬한 칼날 */
-.md-plate {
-  position: relative;
-  width: var(--md-plate-w);
-  height: var(--md-plate-h);
-  max-width: 100%;
-  border: calc(11 * var(--upx)) solid #8a5f34;
-  border-radius: calc(12 * var(--upx));
-  background: repeating-linear-gradient(94deg, #6d4526 0 calc(4 * var(--upx)), #7d5330 calc(5 * var(--upx)) calc(34 * var(--upx)));
-  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #5b3a1e, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.45), 0 calc(8 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
+/* 나무 조리대 : 채칼 화면에서만 컨셉 이미지의 밝은 도마 결로 바꿉니다.
+   같은 틀을 쓰는 감자튀김·새우튀김 준비는 원래 색 그대로 둡니다. */
+.fp-board:has(.md-scene) {
+  border-color: #6b4526;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,206,132,.15), transparent 64%),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.20) 0 calc(3 * var(--upx)), transparent calc(3 * var(--upx)) calc(172 * var(--upx))),
+    repeating-linear-gradient(179deg, rgba(0,0,0,.09) 0 calc(2 * var(--upx)), transparent calc(2 * var(--upx)) calc(21 * var(--upx))),
+    linear-gradient(#5d3b21,#3c2412);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #99693c, inset 0 calc(8 * var(--upx)) calc(30 * var(--upx)) rgba(0,0,0,.42);
 }
-.md-plate.has-asset { border: 0; background: none; box-shadow: none; }
+
+/* 채반 : 둥글게 짠 소쿠리. 바깥 고리(본체)와 안쪽 바닥(::before)의
+   부챗살 결은 repeating-conic-gradient 가 만듭니다. */
+.md-basket {
+  position: absolute;
+  z-index: 1;
+  left: 49%;
+  top: 67%;
+  width: var(--md-basket-w);
+  height: var(--md-basket-h);
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, #bd8850 0 3.4deg, #7b4f28 3.4deg 6.8deg);
+  box-shadow: 0 calc(13 * var(--upx)) calc(26 * var(--upx)) rgba(0,0,0,.55), inset 0 0 calc(22 * var(--upx)) rgba(0,0,0,.4);
+}
+/* 안쪽 바닥. 테두리보다 눈에 띄게 어두워야 그릇처럼 파여 보입니다 —
+   같은 밝기로 두면 채반이 아니라 둥근 깔개로 보입니다. */
+.md-basket::before {
+  content: "";
+  position: absolute;
+  inset: calc(38 * var(--upx));
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.22) 0 2.6deg, transparent 2.6deg 5.6deg),
+    radial-gradient(ellipse at 50% 32%, #5e3d20 0 42%, #2c1a0b 100%);
+  box-shadow: inset 0 calc(16 * var(--upx)) calc(30 * var(--upx)) rgba(0,0,0,.75);
+}
+.md-basket::after {    /* 테두리 안쪽 턱 */
+  content: "";
+  position: absolute;
+  inset: calc(31 * var(--upx));
+  border-radius: 50%;
+  border: calc(5 * var(--upx)) solid rgba(28,15,4,.62);
+  box-shadow: 0 calc(-2 * var(--upx)) 0 rgba(255,208,148,.22);
+}
+
+/* 다리 : 판을 받치는 나무 기둥. 왼쪽(높은 쪽)은 바깥으로 벌어진 A 자,
+   오른쪽(낮은 쪽)은 짧습니다. 자리는 판 양 끝 아래에 맞춰 두었습니다. */
+.md-legs { position: absolute; inset: 0; pointer-events: none; }
+.md-legs.right { z-index: 0; }
+.md-legs.left { z-index: 2; }
+.md-legs::before,
+.md-legs::after {
+  content: "";
+  position: absolute;
+  transform-origin: 50% 0;
+  border-radius: calc(6 * var(--upx));
+  background: linear-gradient(90deg,#6b4525,#9c6c3d 42%,#5b391c);
+  box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
+}
+.md-legs.left::before { left: 13.3%; top: 33.2%; width: calc(26 * var(--upx)); height: calc(250 * var(--upx)); transform: rotate(-8deg); }
+.md-legs.left::after { left: 19.3%; top: 35.8%; width: calc(24 * var(--upx)); height: calc(240 * var(--upx)); transform: rotate(9deg); }
+/* 뒷다리는 채반 테두리 **안쪽**에서 끝나야 채반 뒤로 들어간 것처럼 보입니다.
+   79% 를 넘기면 오른쪽 테두리 밖으로 삐져나와 따로 떠 보입니다. */
+.md-legs.right::before { left: 73.4%; top: 57.6%; width: calc(24 * var(--upx)); height: calc(118 * var(--upx)); transform: rotate(6deg); }
+.md-legs.right::after { left: 78%; top: 59.3%; width: calc(22 * var(--upx)); height: calc(106 * var(--upx)); transform: rotate(-5deg); }
+/* 판 그림에 다리가 함께 그려져 있으면 CSS 다리는 끕니다 */
+.md-scene:has(.md-plate.has-asset) .md-legs { display: none; }
+
+/* 채칼 판 : 다리 위에 비스듬히 얹힌 나무 판 + 가운데 갈매기꼴 칼날 */
+.md-plate {
+  position: absolute;
+  z-index: 4;
+  left: 45%;
+  top: 32%;
+  width: var(--md-deck-w);
+  height: var(--md-deck-h);
+  transform: translate(-50%,-50%) rotate(var(--md-tilt));
+  border: calc(13 * var(--upx)) solid #7b5330;
+  border-radius: calc(11 * var(--upx));
+  background: repeating-linear-gradient(90deg, #6a4526 0 calc(3 * var(--upx)), #7d5330 calc(3 * var(--upx)) calc(21 * var(--upx)));
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #563819, inset 0 calc(7 * var(--upx)) calc(22 * var(--upx)) rgba(0,0,0,.42), 0 calc(15 * var(--upx)) calc(24 * var(--upx)) rgba(0,0,0,.5);
+}
+.md-plate::before {    /* 위쪽 긴 변의 도드라진 난간 */
+  content: "";
+  position: absolute;
+  left: calc(-13 * var(--upx));
+  right: calc(-13 * var(--upx));
+  top: calc(-24 * var(--upx));
+  height: calc(15 * var(--upx));
+  border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 0 0;
+  background: linear-gradient(#a9784a,#7a5230);
+}
+.md-plate::after {     /* 아래쪽 긴 변 — 판의 두께가 보이는 면 */
+  content: "";
+  position: absolute;
+  left: calc(-13 * var(--upx));
+  right: calc(-13 * var(--upx));
+  bottom: calc(-37 * var(--upx));
+  height: calc(26 * var(--upx));
+  border-radius: 0 0 calc(9 * var(--upx)) calc(9 * var(--upx));
+  background: linear-gradient(#5f3d21,#3d2611);
+}
+/* 판 그림에는 기울기·두께가 함께 그려져 있으므로 여기서는 눕히지 않습니다 */
+.md-plate.has-asset { border: 0; background: none; box-shadow: none; transform: translate(-50%,-50%); }
+.md-plate.has-asset::before,
+.md-plate.has-asset::after { display: none; }
 .md-plate-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-/* 칼날 : 축에 따라 눕고 섭니다 */
+/* 칼날 : 판의 짧은 쪽을 끝에서 끝까지 가로지르는 갈매기꼴.
+   ⚠️ 폭(판의 긴 쪽 방향)을 키워 정사각에 가까워지면 칼날이 아니라
+      판에 꽂힌 깃발처럼 보입니다. 길쭉하게 유지하세요. */
 .md-blade {
   position: absolute;
   z-index: 2;
-  left: 50%;
+  left: 44%;
   top: 50%;
-  background: linear-gradient(160deg,#f7f9f5,#9aa19c 62%,#d5dad4);
-  box-shadow: 0 calc(2 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.45);
+  width: calc(88 * var(--upx));
+  height: 100%;
+  transform: translate(-50%,-50%);
+  background: linear-gradient(148deg,#e9eee8,#7d857f 56%,#ced4cd);
+  clip-path: polygon(0 0,42% 0,100% 50%,42% 100%,0 100%,58% 50%);
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5));
 }
-.axis-x .md-blade { width: calc(15 * var(--upx)); height: 76%; transform: translate(-50%,-50%) rotate(7deg); }
-.axis-y .md-blade { width: 76%; height: calc(15 * var(--upx)); transform: translate(-50%,-50%) rotate(-4deg); }
 .md-plate.has-asset .md-blade { display: none; }
 
-/* 썰리는 재료. --md-shorten 이 남은 길이(1 → 0.34)입니다 */
+/* 썰리는 재료. 판 위에 놓여 판을 따라 비스듬히 눕습니다.
+   --md-shorten 이 남은 길이(1 → 0.34)입니다 */
 .md-ingredient {
   position: absolute;
   z-index: 3;
-  left: 50%;
-  top: 50%;
-  width: calc(150 * var(--upx));
-  height: calc(112 * var(--upx));
+  left: 70%;      /* 칼날(44%) 위쪽 — 아직 안 썰린 쪽입니다 */
+  top: 40%;
+  width: calc(168 * var(--upx));
+  height: calc(104 * var(--upx));
   transform: translate(-50%,-50%) scale(var(--md-shorten,1));
   transform-origin: center;
   transition: transform .09s;
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(20,10,4,.5));
 }
-.md-ingredient.cabbage { border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%; background: radial-gradient(circle at 37% 36%,#e6f2bd 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(9 * var(--upx)),#83a856 calc(10 * var(--upx)) calc(16 * var(--upx))); }
-.md-ingredient.carrot { width: calc(96 * var(--upx)); height: calc(140 * var(--upx)); border-radius: 44% 44% 24% 24%; background: linear-gradient(90deg,#c9611f,#f6a049 46%,#bd5418); }
-.md-ingredient.potato { width: calc(126 * var(--upx)); border-radius: 48% 42% 45% 50%; background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554; }
-.md-ingredient.has-asset { border: 0; background: none; }
+.md-ingredient.cabbage { width: calc(176 * var(--upx)); height: calc(132 * var(--upx)); border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%; background: radial-gradient(circle at 37% 36%,#e6f2bd 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(9 * var(--upx)),#83a856 calc(10 * var(--upx)) calc(16 * var(--upx))); }
+/* 당근·감자는 판의 긴 축을 따라 눕습니다 (판이 이미 기울어 있어 그림도 같이 기웁니다) */
+.md-ingredient.carrot { width: calc(210 * var(--upx)); height: calc(92 * var(--upx)); clip-path: polygon(0 44%,9% 28%,100% 6%,100% 94%,9% 72%); background: linear-gradient(#f6a049,#c9611f 62%,#a94a12); }
+.md-ingredient.potato { width: calc(150 * var(--upx)); height: calc(108 * var(--upx)); border-radius: 48% 42% 45% 50%; background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554; }
+.md-ingredient.has-asset { border: 0; background: none; clip-path: none; }
 .md-ingredient-asset { width: 100%; height: 100%; object-fit: contain; }
 /* 누른 방향으로 한 번 밀립니다 */
 .md-ingredient.move-left { animation: md-slide-left .13s ease; }
@@ -2360,34 +2501,62 @@
 .md-ingredient.move-up { animation: md-slide-up .13s ease; }
 .md-ingredient.move-down { animation: md-slide-down .13s ease; }
 
-/* 썰린 채 더미 : 가로 채칼은 판 오른쪽, 세로 채칼은 판 아래 */
-.md-pile { position: absolute; }
+/* 썰린 채 더미 : 채반 한가운데에 수북이 쌓입니다.
+   가닥 자리(--md-x/--md-y)는 engine-e2-alternate-input.js 가 계산합니다. */
+.md-pile {
+  position: absolute;
+  z-index: 3;
+  left: 48%;
+  top: 68%;
+  width: calc(300 * var(--upx));
+  height: calc(140 * var(--upx));
+  transform: translate(-50%,-50%);
+}
+/* 더미가 앉은 자리의 그늘. 이게 없으면 가닥들이 채반 위에 떠 보입니다. */
+.md-pile::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 104%;
+  height: 78%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0,0,0,.5) 0 46%, transparent 78%);
+  transform: translate(-50%,-50%);
+}
 .md-pile i {
   position: absolute;
   left: var(--md-x);
   top: var(--md-y);
+  width: calc(64 * var(--upx));
+  height: calc(8 * var(--upx));
   border-radius: calc(4 * var(--upx));
-  transform: rotate(var(--md-turn));
-  animation: md-shred-drop .16s ease;
+  transform: translate(-50%,-50%) rotate(var(--md-turn));
+  box-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(30,14,2,.55);
 }
-.axis-x .md-pile { right: calc(50% - var(--md-plate-w) / 2 - calc(196 * var(--upx))); top: 50%; width: calc(180 * var(--upx)); height: calc(168 * var(--upx)); transform: translateY(-50%); }
-.axis-y .md-pile { left: 50%; top: calc(50% + var(--md-plate-h) / 2 + calc(16 * var(--upx))); width: calc(230 * var(--upx)); height: calc(120 * var(--upx)); transform: translateX(-50%); }
-.md-pile i { width: calc(74 * var(--upx)); height: calc(7 * var(--upx)); }
-.md-pile.cabbage i { background: #cfe595; }
-.md-pile.carrot i { background: #f4a24a; }
-.md-pile.potato i { background: #ecc873; }
+/* 방금 떨어진 가닥만 떨어지는 시늉을 합니다. 더미 전체에 걸면 한 번 썰 때마다
+   쌓여 있던 채까지 통째로 다시 나타나 더미가 깜빡입니다. */
+.md-pile i.fresh { animation: md-shred-drop .16s ease; }
+.md-pile.cabbage i { background: linear-gradient(#eaf4bd,#b6cd78); }
+.md-pile.carrot i { background: linear-gradient(#fbb96b,#dd7c2d); }
+.md-pile.potato i { background: linear-gradient(#f7e0a2,#d9b45f); }
 
-/* 안내 화살표 : 컨셉 이미지의 커다란 양방향 화살표 */
+/* 안내 화살표 : 컨셉 이미지의 커다란 양방향 화살표 (채반 아래) */
 .md-hint {
   position: absolute;
-  background: linear-gradient(#fff3d2,#e5b969);
-  clip-path: polygon(0 50%,17% 0,17% 33%,83% 33%,83% 0,100% 50%,83% 100%,83% 67%,17% 67%,17% 100%);
-  filter: drop-shadow(0 0 calc(16 * var(--upx)) rgba(255,214,130,.75));
+  z-index: 5;
+  left: 49%;
+  top: 92%;
+  width: calc(500 * var(--upx));
+  height: calc(56 * var(--upx));
+  transform: translate(-50%,-50%);
+  background: linear-gradient(#fffaea,#f0c977);
+  clip-path: polygon(0 50%,13% 2%,13% 32%,87% 32%,87% 2%,100% 50%,87% 98%,87% 68%,13% 68%,13% 98%);
+  filter: drop-shadow(0 0 calc(18 * var(--upx)) rgba(255,214,130,.8));
   animation: md-hint-pulse 1.7s ease-in-out infinite;
   pointer-events: none;
 }
-.axis-x .md-hint { left: 50%; top: calc(50% + var(--md-plate-h) / 2 + calc(34 * var(--upx))); width: calc(330 * var(--upx)); height: calc(64 * var(--upx)); transform: translateX(-50%); }
-.axis-y .md-hint { left: calc(50% - var(--md-plate-w) / 2 - calc(78 * var(--upx))); top: 50%; width: calc(280 * var(--upx)); height: calc(58 * var(--upx)); transform: translate(-50%,-50%) rotate(90deg); }
+.axis-y .md-hint { transform: translate(-50%,-50%) rotate(90deg); }
 
 /* ── 소스 제조 (engine-e7) ──────────────────────────────────
    왼쪽 재료 목표 · 가운데 조리대(소스볼 + 소스통 3개) · 오른쪽 완성 개수 3단.
@@ -3148,7 +3317,7 @@
 @keyframes md-slide-right { 50% { transform:translate(calc(-50% + 26 * var(--upx)),-50%) scale(var(--md-shorten,1)) rotate(4deg); } }
 @keyframes md-slide-up    { 50% { transform:translate(-50%,calc(-50% - 26 * var(--upx))) scale(var(--md-shorten,1)); } }
 @keyframes md-slide-down  { 50% { transform:translate(-50%,calc(-50% + 26 * var(--upx))) scale(var(--md-shorten,1)); } }
-@keyframes md-shred-drop { from { opacity:0; transform:translateY(calc(-24 * var(--upx))) rotate(var(--md-turn)); } to { opacity:1; transform:rotate(var(--md-turn)); } }
+@keyframes md-shred-drop { from { opacity:0; transform:translate(-50%,calc(-50% - 24 * var(--upx))) rotate(var(--md-turn)); } to { opacity:1; transform:translate(-50%,-50%) rotate(var(--md-turn)); } }
 @keyframes md-hint-pulse { 50% { opacity:.45; } }
 @keyframes coat-wrong { 25% { transform:translateX(-8px); } 55% { transform:translateX(7px); } 80% { transform:translateX(-4px); } }
 /* 닭꼬치·반죽 : 다음에 놓을(넣을) 칸이 천천히 깜빡입니다 */
@@ -3222,10 +3391,21 @@
   .sc-pourer .sc-bottle { --bw: calc(78 * var(--upx)); }
   .shrimp-coat-order { gap:3px; font-size:10px; }
   .shrimp-coat-order span { padding:4px; }
-  .md-scene { --md-plate-w: calc(300 * var(--upx)); --md-plate-h: calc(140 * var(--upx)); }
-  .md-ingredient { width: calc(108 * var(--upx)); height: calc(82 * var(--upx)); }
-  .axis-x .md-hint { width: calc(230 * var(--upx)); height: calc(46 * var(--upx)); }
-  .axis-y .md-hint { width: calc(190 * var(--upx)); height: calc(42 * var(--upx)); }
+  /* 좌우 칸이 250 → 170 으로 줄어 플레이 칸은 오히려 넓어지지만,
+     세로가 그대로라 판·채반만 낮춰 잡습니다 (자리 %는 그대로 씁니다) */
+  .md-scene {
+    --md-deck-w: calc(430 * var(--upx));
+    --md-deck-h: calc(126 * var(--upx));
+    --md-basket-w: calc(400 * var(--upx));
+    --md-basket-h: calc(188 * var(--upx));
+  }
+  .md-ingredient { width: calc(126 * var(--upx)); height: calc(80 * var(--upx)); }
+  .md-ingredient.cabbage { width: calc(132 * var(--upx)); height: calc(100 * var(--upx)); }
+  .md-ingredient.carrot { width: calc(160 * var(--upx)); height: calc(70 * var(--upx)); }
+  .md-ingredient.potato { width: calc(114 * var(--upx)); height: calc(82 * var(--upx)); }
+  .md-pile { width: calc(280 * var(--upx)); height: calc(130 * var(--upx)); }
+  .md-pile i { width: calc(66 * var(--upx)); height: calc(8 * var(--upx)); }
+  .md-hint { width: calc(380 * var(--upx)); height: calc(46 * var(--upx)); }
   .fp-count strong { font-size: calc(42 * var(--upx)); }
   .fp-key { width: calc(44 * var(--upx)); height: calc(42 * var(--upx)); font-size: calc(24 * var(--upx)); }
   .fp-control-desc { font-size: calc(13 * var(--upx)); }

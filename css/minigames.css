@@ -1361,7 +1361,12 @@
 .ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
 .ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
 .ts-ing-art.has-asset i { display: none; }
-.ts-ing-asset { max-width: 100%; max-height: calc(150 * var(--upx)); object-fit: contain; }
+/* ⚠️ 원래 max-height 가 150 이었습니다. 그림칸이 210 x 225 라 정사각 그림이
+   150 에서 먼저 막혀 카드(226 x 280) 안에서 작아 보였습니다. 210 으로 올려
+   **가로가 먼저 막게** 했습니다 (E10 재료 카드와 같은 방식).
+   그림칸 세로 225 보다 작으므로 카드를 밀어낼 일은 없습니다.
+   바로 아래 `.ts-ing-art i` 의 150 은 에셋이 없을 때 쓰는 임시 도형이라 그대로 둡니다. */
+.ts-ing-asset { max-width: 100%; max-height: calc(210 * var(--upx)); object-fit: contain; }
 .ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
@@ -1465,6 +1470,8 @@
   place-items: center;
   min-width: 0;
   min-height: 0;
+  /* 팬 손잡이가 칸 오른쪽으로 15 나갑니다 — E3 김치 볶기(.kf-board)와 같이 잘라 냅니다. */
+  overflow: hidden;
 }
 .e5-result {
   position:absolute;
@@ -1539,12 +1546,17 @@
    세로가 359.6 뿐이라 두 단계 모두 기본(가로 기준)으로 들어갑니다.
    되살리면 오히려 화구 가로가 1043 이 되어 칸을 넘칩니다. */
 /* 팬 자리는 E3 김치 볶기(--kf-pan-drop · --kf-pan-w)와 같은 뜻이고 값도 같습니다. */
-/* ⚠️ E3 김치 볶기는 235 인데 여기만 215 입니다. E5 굽기 칸은 아래 Space 버튼 줄
-   때문에 455.2 로 낮아서, 235 로 두면 팬 윗변(469.5)이 칸을 14 넘어 잘립니다.
-   215 면 팬이 449.5 로 딱 들어가고 불꽃도 125~215, 즉 41% 가 보입니다. */
+/* 드롭은 E3 김치 볶기와 같은 142 입니다 — 화구 중앙 헤드(바닥에서 142~260)가
+   딱 가려지는 높이입니다. 자세한 근거는 css/day-prep-minigames.css 의 .kf-board 주석 참고.
+   ⚠️ 폭만 E3(820)보다 작은 710 입니다. E5 굽기 칸은 아래 Space 버튼 줄 때문에
+      455.2 로 48 낮아서, 820 을 쓰면 팬 윗변이 498 로 칸을 43 넘어 잘립니다.
+      710 이면 450.4 로 들어갑니다 (여유 4.8). */
 .ts-board {
-  --ts-pan-drop: calc(215 * var(--upx));
-  --ts-pan-w: calc(540 * var(--upx));
+  --ts-pan-drop: calc(142 * var(--upx));
+  --ts-pan-w: calc(710 * var(--upx));
+  /* 왼쪽으로 살짝 당기는 보정 — 뜻과 이유는 .kf-board 의 --kf-pan-nudge 주석과 같습니다.
+     팬이 E3 보다 작은 만큼(710/820) 값도 그만큼 줄였습니다. */
+  --ts-pan-nudge: calc(12 * var(--upx));
 }
 /* 후라이팬은 E3 김치 볶기와 **같은 그림**이라 자리 잡는 방법도 같습니다.
    그림에 손잡이가 함께 들어 있어 몸통 중심이 왼쪽에서 39.9% 지점입니다.
@@ -1559,7 +1571,7 @@
   right: auto;
   bottom: var(--ts-pan-drop);
   margin: 0;                       /* .two-side-pan 기본 margin-bottom 30 을 지웁니다 */
-  margin-left: calc(var(--ts-pan-w) * -0.399);
+  margin-left: calc(var(--ts-pan-w) * -0.399 - var(--ts-pan-nudge));
 }
 /* 팬 그림 (E3 와 공용). 없으면 아래 CSS 임시 팬이 그대로 보입니다. */
 .two-side-pan.has-prep-asset { border-color: transparent; background: transparent; box-shadow: none; }

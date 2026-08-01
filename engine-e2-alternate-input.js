@@ -132,22 +132,38 @@ function setupMandoline(taskId,stageGrades=[]){
   renderMandoline();
 }
 
-// 가운데 채칼 그림. 재료는 썰릴수록 짧아지고, 썰린 채는 옆에 쌓입니다.
+// 한 번 썰 때마다 채반에 늘어나는 채 가닥 수. 한 가닥씩만 늘리면
+// 다 썰어도(최대 12번) 채반이 휑해서, 컨셉 이미지처럼 수북해지도록 세 가닥씩 놓습니다.
+const MANDOLINE_SHREDS_PER_CUT=4;
+
+// 가운데 채칼 그림. 컨셉 이미지와 같은 한 장면입니다 —
+// 다리 위에 비스듬히 얹힌 채칼 판, 그 아래 둥근 채반, 채반에 쌓이는 채, 큰 안내 화살표.
+// 재료는 썰릴수록 짧아집니다.
 // 전부 임시 CSS 도형이고, 에셋이 들어오면 .has-asset 이 붙어 그림으로 바뀝니다.
 function mandolineSceneMarkup(data){
   const percent=Math.round(data.successInputs/data.totalInputs*100);
   const shorten=Math.max(.34,1-percent/100*.62);
   const asset=dayPrepAssetMarkup(mandolineAssetKey(data.ingredient,data.successInputs),"md-ingredient-asset",`${data.label} 손질 ${percent}%`);
-  // 썰린 채는 index 로 자리를 계산합니다 (Math.random 이면 누를 때마다 튑니다)
-  const shreds=Array.from({length:data.successInputs},(_,index)=>
-    `<i style="--md-x:${8+(index%7)*12}%;--md-y:${7+(index%4)*21}%;--md-turn:${-20+(index%5)*10}deg"></i>`).join("");
+  // 썰린 채는 index 로 자리를 계산합니다 (Math.random 이면 누를 때마다 튑니다).
+  // 황금각(2.39996rad)으로 돌려 가며 놓으면 가운데가 두껍고 가장자리가 성긴
+  // 더미가 됩니다. 반지름은 index 18개마다 되풀이라 더미가 커져도 이미 놓인
+  // 가닥은 제자리에 그대로 있습니다.
+  // 방금 떨어진 마지막 묶음만 .fresh — 더미 전체에 떨어지는 시늉을 걸면 깜빡입니다.
+  const fresh=(data.successInputs-1)*MANDOLINE_SHREDS_PER_CUT;
+  const shreds=Array.from({length:data.successInputs*MANDOLINE_SHREDS_PER_CUT},(_,index)=>{
+    const angle=index*2.39996,radius=Math.sqrt((index%18+.5)/18);
+    return `<i class="${index>=fresh?"fresh":""}" style="--md-x:${(50+Math.cos(angle)*radius*40).toFixed(1)}%;--md-y:${(50+Math.sin(angle)*radius*29).toFixed(1)}%;--md-turn:${-34+(index*47)%68}deg"></i>`;
+  }).join("");
   const plateAsset=dayPrepAssetMarkup("mandolinePlate","md-plate-asset","채칼");
   return `<div class="md-scene axis-${data.axis}" id="mandolineScene">
+      <div class="md-basket" aria-hidden="true"></div>
+      <i class="md-legs right" aria-hidden="true"></i>
+      <i class="md-legs left" aria-hidden="true"></i>
+      <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
       <div class="md-plate ${plateAsset?"has-asset":""}">
         ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
         <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten}">${asset}</div>
       </div>
-      <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
       <i class="md-hint" aria-hidden="true"></i>
     </div>`;
 }

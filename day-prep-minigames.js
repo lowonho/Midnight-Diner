@@ -223,7 +223,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   osPotDone:"assets/prep/one-shot/pot-done.png",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  cookPancakeBatter:"assets/prep/two-side/pancake-batter.png",
+  // 김치전 반죽 그릇 — assets/minigame/E5/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  cookPancakeBatter:"assets/minigame/E5/food_kimchi_batter_bowl_mixed_oblique.webp",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
