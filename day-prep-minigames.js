@@ -176,10 +176,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //   gas      가스버너   → E3 김치 볶기(engine-e3) · E5 김치전 굽기(engine-e5)
   //   griddle  철판 화구  → E3 볶음우동(engine-e3)
   // 3장은 불이 흔들리는 애니메이션 프레임이고, 번호 순서가 곧 재생 순서입니다.
-  // ⚠️ 가스버너는 장마다 세로가 612/616/607 로 다릅니다. 불꽃이 더 솟은 장이
-  //    그만큼 캔버스가 큰 것이라 **일부러 안 맞췄습니다.** 내용 폭과 아래 여백이 같아서
-  //    같은 폭으로 깔고 아래를 맞추면 몸통은 고정된 채 불꽃만 움직입니다.
-  //    (css/minigame-parts.css 의 .mg-burner-frame)
+  // ⚠️ 가스버너 납품본은 세로가 612/616/607 로 장마다 달랐고 02 장은 몸통이 바닥에서
+  //    2px 떠 있어 화구가 들썩였습니다. 지금은 여백만 덧대 세 장 모두 1412x616 입니다.
+  //    새 납품본을 넣을 때도 세 장의 캔버스를 맞춰 주세요.
+  //    (css/minigame-parts.css 의 .mg-burner-frame · tools/build-minigame-art-webp.js)
   ...Object.fromEntries(["01","02","03"].flatMap((no,index)=>[
     [`burnerGas${index+1}`,`assets/minigame/E3/fix_gas_burner_low_fire_${no}.webp`],
     [`burnerGriddle${index+1}`,`assets/minigame/E3/fix_griddle_burner_fire_${no}.webp`]
@@ -187,14 +187,35 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
   heatOdenPot:"assets/prep/heat/oden-pot.png",
   heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
-  // 채칼 (engine-e2). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  // 감자는 손질 단계별 그림 11장을 따로 씁니다 (아래 potatoMandoline0~10)
-  mandolinePlate:"assets/prep/mandoline/plate.png",
-  mandolineCabbage:"assets/prep/mandoline/cabbage.png",
-  mandolineCarrot:"assets/prep/mandoline/carrot.png",
+  /* 채칼 (engine-e2). PNG 가 마스터이고 여기서 쓰는 WebP 는
+     tools/build-minigame-art-webp.js 산출물입니다.
+
+     [채칼 · 채반은 낱장이지만 한 덩어리로 놓입니다]
+     납품에 함께 온 합본(prop_mandoline_basket_empty)에서 두 낱장의 배율과
+     자리를 역산해 css/day-prep-minigames.css 의 --md-rig-* 로 옮겼습니다.
+     둘 중 하나만 크기를 바꾸면 합본 모양이 깨집니다.
+
+     [판 위에서 썰리는 재료 — whole 01~08]
+     01 이 안 썰린 모습이고 08 이 다 썬 모습입니다. 진행도에 맞춰 갈아 끼웁니다.
+     ⚠️ 재료 카드용 그림(mandolineCard*)과 키를 일부러 나눠 두었습니다 —
+        같은 키를 쓰면 카드에도 깎이는 그림이 들어갑니다.
+
+     도마는 그림에 액자가 그려져 있어 <img> 가 아니라 칸 배경으로 깝니다 —
+     css/day-prep-minigames.css 의 "나무 도마" 구역 (E7 소스 제조와 공용) */
+  mandolinePlate:"assets/minigame/E2/prop_mandoline_empty.webp",
+  mandolineColander:"assets/minigame/E2/prop_bamboo_colander_empty.webp",
+  mandolineArrow:"assets/minigame/E2/ui_arrow_horizontal_both.webp",
+  mandolineCardCabbage:"assets/minigame/E2/food_cabbage_ingredient.webp",
+  mandolineCardCarrot:"assets/minigame/E2/food_carrot_ingredient.webp",
+  // 감자 카드만 판 위 그림의 첫 장(안 썰린 모습)을 그대로 씁니다.
+  // 카드 자리(210 x 159.4)가 그림(560x425)의 2.7분의 1이라 따로 뽑을 필요가 없습니다.
+  mandolineCardPotato:"assets/minigame/E2/food_potato_whole_01.webp",
+  ...Object.fromEntries(["cabbage","carrot","potato"].flatMap(veg=>Array.from({length:8},(_,index)=>[
+    `mandoline${veg.charAt(0).toUpperCase()}${veg.slice(1)}Whole${index+1}`,
+    `assets/minigame/E2/food_${veg}_whole_0${index+1}.webp`
+  ]))),
   knife:"assets/prep/effects/knife.png",
   ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
-  ...Object.fromEntries(Array.from({length:11},(_,index)=>[`potatoMandoline${index}`,`assets/prep/day4/fries/potato-${index}.png`])),
   // 감자튀김 준비(봉투 흔들기). 봉투 그림 한 장에 감자채와 튀김가루가 함께 있고,
   // 숫자는 가루가 묻은 정도(%)입니다. 파일이 없으면 CSS 임시 봉투를 씁니다.
   friesShakeBag0:"assets/prep/day4/fries/shake-bag-0.png",
