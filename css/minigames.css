@@ -824,7 +824,11 @@
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 철판에 올라가 있으므로 보여주기만 합니다 */
 .yk-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
-.yk-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: var(--mg-ing-list-gap); }
+/* ⚠️ `1fr` 이 아니라 `minmax(0,1fr)` 입니다. `1fr` 은 `minmax(auto,1fr)` 이라
+   내용이 크면 행이 따라 커집니다. 재료 그림이 칸보다 조금만 커도 카드 3장이
+   같이 부풀어 패널을 뚫고 아래 화살표 칩 줄까지 내려옵니다(실제로 그랬습니다).
+   0 으로 막아 두면 카드 높이는 언제나 패널이 정합니다. */
+.yk-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,1fr); gap: var(--mg-ing-list-gap); }
 /* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css */
 .yk-ing-card {
   display: grid;
@@ -834,7 +838,25 @@
 .yk-ing-art { position: relative; display: grid; place-items: center; }
 .yk-ing-art i { position: relative; display: block; width: calc(86 * var(--upx)); height: calc(86 * var(--upx)); }
 .yk-ing-art.has-asset i { display: none; }
-.yk-ing-asset { max-width: 100%; max-height: calc(94 * var(--upx)); object-fit: contain; }
+/* 재료 그림은 **흐름에서 빼서** 그림칸(.yk-ing-art) 위에 덮습니다.
+   ⚠️ 원래 `max-height: calc(94 * var(--upx))` 였는데, 카드가 그림에 줄 수 있는
+      칸은 86 뿐이라 8 이 넘쳤습니다. 넘친 만큼 카드가 139.1 → 147 로 부풀고
+      3장이 쌓여 패널을 뚫고 아래 화살표 칩 줄과 12 겹쳤습니다.
+   숫자를 86 으로 고치는 것도, `max-height:100%` 로 두는 것도 답이 아닙니다.
+     · 숫자    이름 글꼴이나 카드 높이가 바뀌면 또 어긋납니다
+     · 100%    좌 칸은 flex(col → panel → list)로 높이가 내려오는데 중간에
+               min-height:0 이 없어 그림칸 높이가 확정되지 않습니다. % 가 풀려
+               그림이 원본 크기로 튀고 카드가 241 까지 커집니다 (실제로 그랬습니다)
+   absolute 로 띄우면 그림이 카드 높이 계산에 아예 참여하지 않으므로
+   무슨 그림이 들어와도 카드를 밀어낼 수 없습니다. 자리는 .yk-ing-art 가 정하고
+   그 안에서 object-fit:contain 이 비율을 지킵니다. (.yk-ing-art 는 position:relative) */
+.yk-ing-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .yk-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 우동 사리 / 소스병 / 손질 야채 */
@@ -1056,9 +1078,22 @@
   line-height: 1;
   text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
 }
+/* '다음 순서' 화살표 그림. 납품 원본이 256 이라 그 절반인 128 이 상한입니다.
+   더 키우면 없던 화소를 지어내는 셈이라 흐려집니다 (칸은 226 x 약 289 로 넉넉합니다). */
+.yk-next-arrow-asset {
+  width: calc(128 * var(--upx));
+  height: calc(128 * var(--upx));
+  object-fit: contain;
+  /* 칩 안 화살표와 같은 두 겹 빛인데, 그림이 2.7배 커서 번지는 거리도 같이 키웁니다.
+     (여기만 작게 두면 큰 화살표가 오히려 밋밋해 보입니다) */
+  filter:
+    drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,206,120,.6))
+    drop-shadow(0 0 calc(34 * var(--upx)) rgba(255,166,60,.38));
+}
 
-/* 아래 화살표 8칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
-   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다 */
+/* 아래 화살표 12칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
+   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다.
+   ⚠️ 다만 칩 나무틀 그림은 폭이 고정이라 따라오지 않습니다 — 아래 .yk-chip 주석 참고 */
 .yk-seq {
   grid-column: 1 / -1;
   display: grid;
@@ -1070,33 +1105,64 @@
   border-radius: calc(10 * var(--upx));
   background: linear-gradient(#1d120b,#120b07);
 }
+/* 칩 나무틀은 다른 UI 틀과 같은 "크기별 통짜 그림"입니다 (9-slice 아님).
+   ⚠️ 칸 수가 폭을 정하기 때문에 김치 볶기와 파일이 다릅니다.
+        볶음우동  12칸 → (1340.2 − 8x11) / 12 = 104.35 x 78 → _209x156
+        김치 볶기 10칸 → (1340.2 − 8x9)  / 10 = 126.8 x 78  → _254x156  (css/day-prep-minigames.css)
+      STIR_TOTAL 을 바꾸면 폭이 어긋납니다.
+      그때는 tools/build-minigame-art-webp.js 의 크기표부터 고치세요.
+   테두리는 `transparent` 로 남깁니다 — '지금 차례'가 이 자리에 금테를 그립니다. */
 .yk-chip {
   display: grid;
   place-items: center;
   height: var(--yk-chip);
-  border: 2px solid #6b452a;
+  border: 2px solid transparent;
   border-radius: calc(8 * var(--upx));
-  background: linear-gradient(#2a1a11,#170e08);
-  color: #e0a44a;
+  background-color: #2a1a11;
+  background-image: url("../assets/minigame/E3/ui_arrow_chip_209x156.webp");
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  color: #e0a44a;                  /* 그림이 못 뜰 때 남는 글자 화살표(←↑→↓) 색 */
   font-size: calc(40 * var(--upx));
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(12 * var(--upx)) rgba(224,164,74,.45);
-  transition: background .12s ease, color .12s ease, transform .12s ease;
+  transition: filter .12s ease, transform .12s ease;
+}
+/* 칩 안 화살표 그림. 나무틀 안쪽에 여백을 남기고 앉습니다.
+   빛의 사연(왜 box-shadow 가 아니라 drop-shadow 인지, 왜 두 겹인지)은
+   css/day-prep-minigames.css 의 .kf-chip-asset 주석에 적어 두었습니다. 값은 같습니다. */
+.yk-chip-asset {
+  width: calc(48 * var(--upx));
+  height: calc(48 * var(--upx));
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 calc(6 * var(--upx)) rgba(255,196,104,.55))
+    drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,166,60,.32));
 }
 .yk-chip.current {
   border-color: #ffd98a;
-  background: linear-gradient(#4a2f16,#2a1a0d);
   color: #ffdc95;
   box-shadow: 0 0 0 calc(3 * var(--upx)) #e8a33f, 0 0 calc(18 * var(--upx)) rgba(255,205,110,.55);
   transform: translateY(calc(-3 * var(--upx)));
+  filter: brightness(1.1);
 }
+/* 지금 차례 칸은 화살표도 한 단 더 달아오릅니다 */
+.yk-chip.current .yk-chip-asset {
+  filter:
+    drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,216,144,.78))
+    drop-shadow(0 0 calc(20 * var(--upx)) rgba(255,170,60,.45));
+}
+/* 다 볶은 칸. 그림이 깔려 있어 배경색 대신 밝기를 죽여 지나간 티를 냅니다.
+   화살표 빛도 같이 끕니다 — 남겨 두면 지나간 칸이 아직 차례처럼 보입니다. */
 .yk-chip.done {
-  border-color: #3f3125;
-  background: linear-gradient(#241c14,#16110c);
   color: #6d5a41;
   text-shadow: none;
+  filter: brightness(.5) saturate(.6);
 }
+.yk-chip.done .yk-chip-asset { filter: none; }
 .yk-chip.queued { opacity: .44; }
 .yk-chip.upcoming { opacity: .76; }
 .yk-chip.wrong { animation: yk-chip-wrong .26s ease; }
@@ -1151,7 +1217,9 @@
   .yk-ing-art i { width: calc(60 * var(--upx)); height: calc(60 * var(--upx)); }
   .yk-count strong { font-size: calc(42 * var(--upx)); }
   .yk-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
+  .yk-next-arrow-asset { width: calc(76 * var(--upx)); height: calc(76 * var(--upx)); }
   .yk-chip { font-size: calc(26 * var(--upx)); }
+  .yk-chip-asset { width: calc(32 * var(--upx)); height: calc(32 * var(--upx)); }
 }
 
 @media (prefers-reduced-motion:reduce) {

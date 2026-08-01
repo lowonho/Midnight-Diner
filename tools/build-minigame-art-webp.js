@@ -38,7 +38,11 @@ const ART_DIR = path.join(__dirname, "..", "assets", "minigame");
 /* [file]     ART_DIR 기준 상대 경로 (PNG 마스터)
    [size]     뽑아낼 WebP 크기 [가로, 세로]
    [css]      그 크기의 근거가 되는 화면 자리 (1920 프레임 기준 px). 주석용입니다.
-   [lossless] 무손실로 뽑을 것 — 면적이 작아 q90 아티팩트가 바로 눈에 띄는 것만 */
+   [lossless] 무손실로 뽑을 것 — 면적이 작아 q90 아티팩트가 바로 눈에 띄는 것만
+   [out]      출력 이름을 따로 줄 것. 기본은 file 의 확장자만 .webp 로 바꾼 이름입니다.
+              **한 마스터에서 여러 크기를 뽑을 때만** 씁니다 (E3 화살표 칩 참고).
+   [stretch]  가로세로비가 원본과 달라도 경고하지 말 것 — 늘려 쓰는 것이 의도인
+              UI 틀 그림 전용입니다. 음식 그림에는 절대 붙이지 마세요. */
 const FILES = [
   { file:"ui_drag_hand_pointer_normal.png", size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
   { file:"ui_drag_hand_pointer_click.png",  size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
@@ -113,7 +117,34 @@ const FILES = [
      플레이 칸이 824.2x613.2 라 2배율은 1648x1226 인데 납품본이 1580x1176 입니다.
      1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.
      (가로세로비 1580/1176 = 1.3435 는 824.2/613.2 = 1.3441 과 0.04% 차이입니다) */
-  { file:"ui_play_tray_wood.png",                size:[1580,1176], css:"플레이 칸 824.2x613.2 (원본 배율 유지)" }
+  { file:"ui_play_tray_wood.png",                size:[1580,1176], css:"플레이 칸 824.2x613.2 (원본 배율 유지)" },
+  /* E3 김치 볶기 (낮 준비) · 볶음우동 (밤 조리). 두 게임이 같은 컨트롤러라 한 폴더에 있습니다.
+     왼쪽 재료 카드 그림은 가로 210 까지 쓸 수 있는데 전부 그보다 좁아 **세로가 먼저 막습니다.**
+       김치 볶기  .kf-ing-asset  max-height 104   (그림칸 158.6 이라 여유 있음)
+       볶음우동   .yk-ing-asset  그림칸 86 을 그대로 (숫자를 박지 않습니다)
+     ⚠️ 볶음우동은 원래 max-height 94 였는데 그림칸이 86 뿐이라 카드가 139.1 → 147 로
+        부풀어 아래 화살표 칩 줄과 겹쳤습니다. css/minigames.css 의 .yk-ing-asset 주석 참고.
+        아래 크기는 그 수정 뒤 실측한 표시 크기의 2배입니다. */
+  { file:"E3/food_kimchi_sliced.png",      size:[259,208], css:".kf-ing-asset 129.5x104" },
+  { file:"E3/food_sugar.png",              size:[257,208], css:".kf-ing-asset 128.5x104" },
+  { file:"E3/food_udon_noodles.png",       size:[216,172], css:".yk-ing-asset 108x86" },
+  { file:"E3/food_udon_sauce.png",         size:[ 81,172], css:".yk-ing-asset 40.7x86 (세로로 긴 병)" },
+  { file:"E3/food_udon_vegetables.png",    size:[214,172], css:".yk-ing-asset 107.1x86" },
+  /* 화살표 4종. **한 파일이 두 자리에 쓰입니다** — 아래 칩 안(약 46)과
+     오른쪽 '다음 순서' 칸. 큰 쪽 기준으로 한 번만 뽑고 칩에서는 줄여 씁니다.
+     납품본이 256 이라 '다음 순서' 자리를 그 절반인 128 로 잡았습니다. 자리를 더
+     키우면 없던 화소를 지어내는 셈이라 흐려집니다 — 키우려면 마스터부터 다시 받으세요. */
+  ...["left","up","right","down"].map(way=>({
+    file:`E3/ui_arrow_${way}.png`, size:[256,256], css:".kf-next-arrow / .yk-next-arrow 128 (칩에서는 46)"
+  })),
+  /* 화살표 칩 나무틀. 다른 UI 틀과 같은 "크기별 통짜 그림"인데,
+     **칸 수가 게임마다 달라서 가로가 두 가지**입니다 (칩 줄 안쪽 폭 1340.2 공통).
+       김치 볶기  10칸 → (1340.2 − 8x9)  / 10 = 126.8
+       볶음우동   12칸 → (1340.2 − 8x11) / 12 = 104.35
+     세로는 둘 다 공용 띠 78 입니다. 한 마스터(1.368)에서 두 크기를 뽑으므로
+     가로세로비가 원본과 달라집니다 — 나무틀이라 늘려도 티가 안 나서 stretch 로 넘깁니다. */
+  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_254x156.webp", size:[254,156], stretch:true, css:"김치 볶기 칩 126.8x78" },
+  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_209x156.webp", size:[209,156], stretch:true, css:"볶음우동 칩 104.35x78" }
 ];
 
 const QUALITY = 90;
@@ -127,9 +158,16 @@ function resized(src, w, h){
   return sharp(src).resize(w, h, { kernel: "lanczos3", fit: "fill" });
 }
 
+// 산출물 경로. out 을 준 항목만 이름이 따로 가고, 나머지는 마스터와 같은 이름입니다.
+function outFile(entry){
+  return entry.out || entry.file.replace(/\.png$/, ".webp");
+}
+
 // 표에 적은 크기가 원본과 같은 비율인지 봅니다.
 // 어긋나면 fit:"fill" 이 그림을 찌그러뜨리므로 조용히 넘어가면 안 됩니다.
+// (stretch 항목은 늘려 쓰는 것이 의도라 건너뜁니다 — 위 [stretch] 설명 참고)
 function checkAspect(entry, meta){
+  if(entry.stretch)return;
   const src = meta.width / meta.height, out = entry.size[0] / entry.size[1];
   if(Math.abs(src - out) / src > 0.02){
     console.warn(`  ! ${entry.file} : 원본 ${meta.width}x${meta.height} 와 목표 ` +
@@ -149,7 +187,7 @@ async function convert(){
     "PNG".padStart(8), "WebP".padStart(8), "절감".padStart(7), "  모드");
   for(const entry of present){
     const src = path.join(ART_DIR, entry.file);
-    const out = src.replace(/\.png$/, ".webp");
+    const out = path.join(ART_DIR, outFile(entry));
     const meta = await sharp(src).metadata();
     checkAspect(entry, meta);
     const [w,h] = entry.size;
@@ -159,7 +197,7 @@ async function convert(){
       .toFile(out);
     const a = fs.statSync(src).size, b = fs.statSync(out).size;
     pngTotal += a; webpTotal += b;
-    console.log(entry.file.padEnd(44), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
+    console.log(outFile(entry).padEnd(44), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
       `${kb(a)}KB`.padStart(8), `${kb(b)}KB`.padStart(8),
       `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(entry.lossless?"무손실":`q${QUALITY}`));
   }
@@ -176,14 +214,14 @@ async function verify(){
   console.log("파일".padEnd(44), "알파최대오차".padStart(12), "RGB평균".padStart(9), "RGB최대".padStart(8));
   for(const entry of present){
     const src = path.join(ART_DIR, entry.file);
-    const out = src.replace(/\.png$/, ".webp");
+    const out = path.join(ART_DIR, outFile(entry));
     if(!fs.existsSync(out))continue;
     const [w,h] = entry.size;
     const [a,b] = await Promise.all([
       resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
-    if(a.data.length!==b.data.length){ console.log(entry.file,"크기 불일치!"); continue; }
+    if(a.data.length!==b.data.length){ console.log(outFile(entry),"크기 불일치!"); continue; }
     let alphaMax=0,rgbSum=0,rgbMax=0,rgbCount=0;
     for(let i=0;i<a.data.length;i+=4){
       alphaMax=Math.max(alphaMax,Math.abs(a.data[i+3]-b.data[i+3]));
@@ -193,7 +231,7 @@ async function verify(){
         rgbSum+=d; rgbMax=Math.max(rgbMax,d); rgbCount++;
       }
     }
-    console.log(entry.file.padEnd(44), String(alphaMax).padStart(12),
+    console.log(outFile(entry).padEnd(44), String(alphaMax).padStart(12),
       (rgbCount?(rgbSum/rgbCount).toFixed(2):"-").padStart(9), String(rgbMax).padStart(8));
   }
 }

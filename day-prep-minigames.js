@@ -138,21 +138,32 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
-  // 김치 볶기 (engine-e3). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // 김치 볶기 (engine-e3). 팬·화구는 아직 CSS 임시 도형입니다.
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   fryStove:"assets/prep/kimchi/stove.png",
   fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
-  fryIngKimchi:"assets/prep/kimchi/fry-ing-kimchi.png",
-  fryIngSugar:"assets/prep/kimchi/fry-ing-sugar.png",
-  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
+  // 왼쪽 재료 카드 2장 — assets/minigame/E3/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  fryIngKimchi:"assets/minigame/E3/food_kimchi_sliced.webp",
+  fryIngSugar:"assets/minigame/E3/food_sugar.webp",
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 철판·면은 아직 CSS 임시 도형입니다.
   // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
   stirGriddle:"assets/prep/yakisoba/griddle.png",
   stirNoodles:"assets/prep/yakisoba/noodles.png",
   stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
-  stirIngUdon:"assets/prep/yakisoba/ing-udon.png",
-  stirIngSauce:"assets/prep/yakisoba/ing-sauce.png",
-  stirIngVeggie:"assets/prep/yakisoba/ing-veggie.png",
+  // 왼쪽 재료 카드 3장 — assets/minigame/E3/ 의 납품 에셋입니다.
+  stirIngUdon:"assets/minigame/E3/food_udon_noodles.webp",
+  stirIngSauce:"assets/minigame/E3/food_udon_sauce.webp",
+  stirIngVeggie:"assets/minigame/E3/food_udon_vegetables.webp",
+  // 방향 화살표 4종 — 김치 볶기와 볶음우동이 **함께** 씁니다 (같은 컨트롤러).
+  // 아래 화살표 칩 안과 오른쪽 '다음 순서' 칸 두 자리에 같은 파일이 들어갑니다.
+  // 키 이름은 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
+  // directionArrowAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다.
+  // ⚠️ 칩의 나무틀은 여기 없습니다. 다른 UI 틀과 같은 배경 그림이라
+  //    css/day-prep-minigames.css(.kf-chip) · css/minigames.css(.yk-chip) 가 직접 씁니다.
+  ...Object.fromEntries(["left","up","right","down"].map(way=>
+    [`arrow${way[0].toUpperCase()}${way.slice(1)}`,`assets/minigame/E3/ui_arrow_${way}.webp`])),
   // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
   heatOdenPot:"assets/prep/heat/oden-pot.png",
   heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
