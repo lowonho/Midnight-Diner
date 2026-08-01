@@ -24,8 +24,12 @@ registerDayPrepEngine("orderPlace",{});
 
 /* ---- E8 공통 포인터 배치 -----------------------------------
    짧게 누르면 자동 배치, 누른 채 움직이면 재료 그림이 포인터를 따라갑니다.
-   브라우저 기본 drag 이벤트를 쓰지 않아 마우스와 터치가 같은 흐름을 공유합니다. */
-function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghostSelector,onPlace,onMiss}){
+   브라우저 기본 drag 이벤트를 쓰지 않아 마우스와 터치가 같은 흐름을 공유합니다.
+
+   dragOnly  짧게 누르는 자동 배치를 끕니다. 반드시 끌어다 놓아야 합니다.
+             (김치전 반죽은 "볼에 붓는" 동작이라 클릭 한 번으로 들어가면
+              재료가 어디로 갔는지 안 보입니다) */
+function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghostSelector,onPlace,onMiss,dragOnly=false}){
   let active=null,suppressClick=false;
 
   function targetAt(x,y){return document.elementFromPoint(x,y)?.closest(targetSelector)||null;}
@@ -68,6 +72,7 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
     source.addEventListener("lostpointercapture",event=>finishPointer(event,true));
     source.addEventListener("click",event=>{
       if(suppressClick){event.preventDefault();return;}
+      if(dragOnly){onMiss?.(itemFromSource(source),source);return;}
       onPlace(itemFromSource(source),dom.miniContent.querySelector(targetSelector),false,source);
     });
     source.addEventListener("dragstart",event=>event.preventDefault());
@@ -199,7 +204,7 @@ function setupKimchiBatter(){
   // holding : 재료를 다 넣고 젓기로 넘어가기 전, 담긴 볼을 보여 주는 동안만 true
   setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS,mistakes:0,lastPlaced:null,holding:false});
   dom.miniTitle.textContent="김치전 반죽";
-  dom.miniDescription.textContent="부침가루 → 물 → 김치 순서로 재료를 볼에 넣어주세요!";
+  dom.miniDescription.textContent="부침가루 → 물 → 김치 순서로 재료를 볼까지 끌어다 놓아주세요!";
   renderKimchiBatterIngredients();
 }
 
@@ -217,8 +222,9 @@ function renderKimchiBatterIngredients(){
     targetSelector:'[data-order-target="batter"]',
     itemFromSource:source=>source.dataset.batterIngredient,
     ghostSelector:".bt-ing-art",
+    dragOnly:true,               // 클릭 자동 배치 없이 볼까지 끌어다 놓아야 합니다
     onPlace:(ingredientId,target,dragged,source)=>addBatterIngredient(ingredientId,source,target),
-    onMiss:()=>{dom.miniFeedback.textContent="재료를 반죽 볼 안에 놓아주세요.";pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="batter"]'));}
+    onMiss:()=>{dom.miniFeedback.textContent="재료를 반죽 볼 안으로 끌어다 놓아주세요.";pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="batter"]'));}
   });
 }
 

@@ -100,17 +100,33 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   batterBowlWaterKimchi:"assets/minigame/E8/10_food_kimchi_batter_bowl_water_kimchi.webp",
   batterBowlFlourKimchi:"assets/minigame/E8/11_food_kimchi_batter_bowl_flour_kimchi.webp",
   batterBowlAll:"assets/minigame/E8/12_food_kimchi_batter_bowl_all_unmixed.webp",
-  // 젓기(engine-e9)가 쓰는 빈 볼과 완성 반죽. 아직 납품 전이라 CSS 임시 도형으로 그립니다.
-  // ⚠️ E8 의 볼 9장과 섞지 마세요. E8 은 "안 섞인 재료", E9 는 "섞이는 반죽"입니다.
+  // 젓기(engine-e9)가 쓰는 빈 볼. 반죽 그림이 볼까지 통째로 그려 주므로 실제로는 안 쓰입니다.
+  // (파일이 없어 hasDayPrepAsset 이 false 이고, .has-mix-art 가 CSS 임시 볼도 끕니다)
   batterBowl:"assets/prep/batter/bowl.png",
-  batterDone:"assets/prep/batter/batter-done.png",
-  // E9는 단계별 반죽과 거품기를 선택 에셋으로 교체할 수 있습니다. 파일이 없으면 CSS 도형을 씁니다.
-  batterMix0:"assets/prep/batter/mix-0.png",
-  batterMix1:"assets/prep/batter/mix-1.png",
-  batterMix2:"assets/prep/batter/mix-2.png",
-  batterMix3:"assets/prep/batter/mix-3.png",
-  batterMix4:"assets/prep/batter/mix-4.png",
-  batterWhisk:"assets/prep/batter/whisk.png",
+  // 김치전 반죽 젓기 (engine-e9). assets/minigame/E9/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //
+  //   batterMix0~9  저을수록 이어 붙는 **연속 그림 10장**입니다. 0 = 안 섞인 재료,
+  //                 9 = 완성. 진행도(0~100%)를 10칸으로 나눠 한 장씩 겹쳐 넘깁니다.
+  //   ⚠️ 배열 순서가 곧 재생 순서입니다. 파일 번호가 아닙니다 — 납품에 09 가 빠져 있어
+  //      08 다음이 10 입니다. 나중에 09 가 오면 여기와 tools/build-minigame-art-webp.js
+  //      두 곳의 배열에 같은 자리로 끼워 넣으면 됩니다.
+  //   ⚠️ E8 의 볼 9장과 섞지 마세요. E8 은 위에서 비스듬히 본 볼이고,
+  //      E9 는 원을 그리는 조작에 맞춘 **정면에서 내려다본** 볼입니다.
+  ...Object.fromEntries([
+    "01_food_kimchi_batter_mix_stage1_unmixed","02_food_kimchi_batter_mix_stage2_b",
+    "03_food_kimchi_batter_mix_stage2_c","04_food_kimchi_batter_mix_stage3_a",
+    "05_food_kimchi_batter_mix_stage3_b","06_food_kimchi_batter_mix_stage3_c",
+    "07_food_kimchi_batter_mix_stage4_a","08_food_kimchi_batter_mix_stage4_b",
+    "10_food_kimchi_batter_mix_stage4_c","11_food_kimchi_batter_mix_stage5_complete"
+  ].map((name,index)=>[`batterMix${index}`,`assets/minigame/E9/${name}.webp`])),
+  //   거품기 3종 — 반죽이 얼마나 묻었는지로 나뉩니다. 어느 것을 쓸지는
+  //   engine-e9-whisk.js 의 WHISK_CONFIG.whiskAssets 가 정합니다.
+  whiskClean:"assets/minigame/E9/12_prop_whisk_clean.webp",         // 아직 안 저었을 때
+  whiskLight:"assets/minigame/E9/13_prop_whisk_batter_light.webp",  // 젓다가 손을 뗐을 때
+  whiskMedium:"assets/minigame/E9/14_prop_whisk_batter_medium.webp",// 젓는 중
+  // 오른쪽 '참고 모양'(고르게 섞인 반죽)은 마지막 장과 같은 그림입니다.
+  batterDone:"assets/minigame/E9/11_food_kimchi_batter_mix_stage5_complete.webp",
   // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
   sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",

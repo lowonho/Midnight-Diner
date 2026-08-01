@@ -1776,7 +1776,12 @@
 
 /* 반죽 볼 (위에서 내려다본 모습) */
 .bt-bowl-wrap { position: relative; display: grid; place-items: center; width: var(--ring); height: var(--ring); max-width: 100%; touch-action: none; }
-.bt-bowl-wrap.order-drop-ready { border-radius: 50%; }
+/* 놓을 자리 표시에서 노란 테두리(.order-drop-ready 의 outline)만 뺍니다.
+   볼 그림이 이미 동그란데 그 바깥으로 원이 하나 더 그려져 겹쳐 보입니다.
+   밝아지는 것(filter)은 남겨 둬야 놓을 수 있는 자리인지 알 수 있습니다.
+   ⚠️ 꼬치(.sk-active-rack)·불리기(.soaking-bowl)는 테두리를 그대로 씁니다 —
+      거기는 놓을 자리가 동그랗지 않아 테두리가 실제로 도움이 됩니다. */
+.bt-bowl-wrap.order-drop-ready { outline: 0; }
 .bt-bowl-wrap.receive-flour .bt-batter { animation: batter-receive-flour .42s ease; }
 .bt-bowl-wrap.receive-water .bt-batter { animation: batter-receive-water .42s ease; }
 .bt-bowl-wrap.receive-kimchi .bt-batter { animation: batter-receive-kimchi .42s ease; }
@@ -1880,7 +1885,14 @@
   transition: background .25s ease, opacity .2s ease;
 }
 
-/* 선택형 E9 반죽 에셋. mix-0~4 중 현재 단계 파일이 있을 때만 CSS 반죽을 대체합니다. */
+/* E9 반죽 그림 10장 (batterMix0~9). 저을수록 이어지는 한 벌이라 전부 같은
+   자리에 겹쳐 두고, engine-e9-whisk.js 가 지금 장에만 .show 를 붙입니다.
+   opacity 전환이 짧게 겹치면서 장 넘김이 뚝뚝 끊기지 않고 이어집니다.
+
+   ⚠️ 이 그림들은 **볼까지 통째로** 그려져 있습니다. 그래서
+      · 자리가 볼 안쪽(8.5%)이 아니라 볼 전체(inset 0)입니다
+      · 저을 때 출렁·회전(--batter-x/--spin)을 걸지 않습니다.
+        걸면 반죽이 아니라 **볼째로** 돌아갑니다. */
 .bt-batter-stage-assets {
   position: absolute;
   inset: 8.5%;
@@ -1890,20 +1902,19 @@
   pointer-events: none;
   transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
 }
-.bt-batter-stage-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .22s ease; }
-.bt-bowl.stage-0 .bt-batter-stage-asset.stage-0,
-.bt-bowl.stage-1 .bt-batter-stage-asset.stage-1,
-.bt-bowl.stage-2 .bt-batter-stage-asset.stage-2,
-.bt-bowl.stage-3 .bt-batter-stage-asset.stage-3,
-.bt-bowl.stage-4 .bt-batter-stage-asset.stage-4 { opacity: 1; }
-.bt-bowl.stage-0:has(.bt-batter-stage-asset.stage-0) .bt-batter,
-.bt-bowl.stage-1:has(.bt-batter-stage-asset.stage-1) .bt-batter,
-.bt-bowl.stage-2:has(.bt-batter-stage-asset.stage-2) .bt-batter,
-.bt-bowl.stage-3:has(.bt-batter-stage-asset.stage-3) .bt-batter,
-.bt-bowl.stage-4:has(.bt-batter-stage-asset.stage-4) .bt-batter { opacity: 0; }
+.bt-bowl.has-mix-art .bt-batter-stage-assets { inset: 0; overflow: visible; transform: none; }
+.bt-batter-stage-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .18s linear; }
+.bt-batter-stage-asset.show { opacity: 1; }
+/* 그림이 볼까지 그려 주므로 CSS 임시 볼(바탕·안쪽 바닥·반죽 도형)은 전부 끕니다. */
+.bt-bowl.has-mix-art { background: none; box-shadow: none; }
+.bt-bowl.has-mix-art::before { display: none; }
+.bt-bowl.has-mix-art .bt-batter { display: none; }
 
-/* 원을 그리라는 안내 고리. 젓기 시작하면 사라집니다 */
-.bt-stir-guide { position: absolute; inset: 15%; border-radius: 50%; border: calc(5 * var(--upx)) dashed rgba(255,248,230,.5); opacity: 1; transition: opacity .25s ease; animation: bt-stir-hint 6s linear infinite; pointer-events: none; }
+/* 원을 그리라는 안내 고리. 젓기 시작하면 사라집니다.
+   방향은 시계·반시계 아무 쪽이나 되므로 화살표는 "여기를 따라 돌려라" 정도의
+   표시입니다. z-index 2 는 반죽 그림(.bt-batter-stage-assets 가 1)보다 위에
+   오게 하려는 것입니다 — 없으면 그림에 가려 안 보입니다. */
+.bt-stir-guide { position: absolute; z-index: 2; inset: 15%; border-radius: 50%; border: calc(5 * var(--upx)) dashed rgba(255,248,230,.5); opacity: 1; transition: opacity .25s ease; animation: bt-stir-hint 6s linear infinite; pointer-events: none; }
 .bt-stir-guide::after {
   content: "";
   position: absolute;
@@ -1936,6 +1947,19 @@
 
 /* 거품기 : 에셋이 없을 때 손잡이와 철사 세 겹을 CSS로 그립니다. */
 .whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(70 * var(--upx)); height: calc(220 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); transform-origin: 50% 50%; pointer-events: none; filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.45)); }
+/* 납품 거품기는 손잡이가 오른쪽 위로 뻗은 대각선 한 장이라 자리가 거의 정사각입니다.
+   ⚠️ 예전처럼 진행 방향으로 돌리지 않습니다(--tool-rot 을 안 씁니다). 손에 쥔 각도는
+      그대로 두고 자리만 따라가는 것이 자연스럽습니다.
+   ⚠️ left/top 은 **포인터 자리**이고, 그림에서 철사 머리는 한가운데가 아니라
+      왼쪽 아래(26%,73%)에 있습니다. 그래서 그만큼 당겨 머리가 포인터에 오게 합니다.
+      (세 장 다 같은 자리라 실측값 26/73 하나로 씁니다) */
+.whisk-tool.has-asset {
+  --whisk-head-x: 26%;
+  --whisk-head-y: 73%;
+  width: calc(240 * var(--upx));
+  height: calc(243 * var(--upx));
+  transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y)));
+}
 .whisk-tool::before { content: ""; position: absolute; z-index: 2; left: 50%; top: 0; width: calc(20 * var(--upx)); height: calc(137 * var(--upx)); border-radius: calc(10 * var(--upx)); background: linear-gradient(90deg,#6f431e,#d49a55 42%,#865224 75%,#4e2d15); box-shadow: inset 0 0 0 calc(2 * var(--upx)) rgba(255,225,172,.24); transform: translateX(-50%); }
 .whisk-tool::after { content: ""; position: absolute; z-index: 3; left: 50%; top: calc(126 * var(--upx)); width: calc(30 * var(--upx)); height: calc(18 * var(--upx)); border-radius: calc(7 * var(--upx)); background: linear-gradient(90deg,#7d7770,#f1eadf 48%,#847d75); transform: translateX(-50%); }
 .whisk-wire { position: absolute; z-index: 1; left: 50%; bottom: 0; width: calc(62 * var(--upx)); height: calc(94 * var(--upx)); border: calc(3 * var(--upx)) solid #d8d3ca; border-top: 0; border-radius: 12% 12% 50% 50%; transform: translateX(-50%); }
@@ -1943,8 +1967,18 @@
 .whisk-wire::before { width:calc(38 * var(--upx)); }
 .whisk-wire::after { width:calc(15 * var(--upx)); border-color:#eee9df; }
 .whisk-tool.has-asset::before,.whisk-tool.has-asset::after,.whisk-tool.has-asset .whisk-wire { display:none; }
-.whisk-tool-asset { width:100%; height:100%; object-fit:contain; }
+/* 거품기 3종을 겹쳐 두고 지금 상태(.show)만 보입니다 — engine-e9-whisk.js 의 renderWhiskTool.
+     state-clean  섞기 전 · state-mix 젓는 중 · state-rest 젓다 멈춤 */
+.whisk-tool-asset { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .14s linear; }
+.whisk-tool-asset.show { opacity:1; }
 .whisk-work-area.finishing .whisk-tool { animation: whisk-tool-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+/* 마무리 연출도 그림용은 따로입니다. 위 keyframes 는 --tool-rot 과
+   translate(-50%,-50%) 로 되돌려 버려서, 그대로 두면 거품기가 마지막에 튑니다. */
+.whisk-work-area.finishing .whisk-tool.has-asset { animation: whisk-tool-asset-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes whisk-tool-asset-finish {
+  45%  { transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y))) scale(1.06); }
+  100% { transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y))) scale(.96); }
+}
 .whisk-result { z-index: 8; }
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
@@ -3088,6 +3122,8 @@
   .bt-guide-figure .bt-bowl { width: calc(110 * var(--upx)); height: calc(110 * var(--upx)); }
   .bt-guide-note { font-size: calc(15 * var(--upx)); }
   .whisk-tool { width: calc(52 * var(--upx)); height: calc(165 * var(--upx)); }
+  /* 볼이 400 → 290 으로 줄어드는 화면이라 거품기도 같은 비율(0.725)로 줄입니다 */
+  .whisk-tool.has-asset { width: calc(174 * var(--upx)); height: calc(176 * var(--upx)); }
   .whisk-tool::before { width: calc(15 * var(--upx)); height: calc(103 * var(--upx)); }
   .whisk-tool::after { top: calc(94 * var(--upx)); width: calc(23 * var(--upx)); height: calc(14 * var(--upx)); }
   .whisk-wire { width: calc(46 * var(--upx)); height: calc(70 * var(--upx)); }

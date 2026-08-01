@@ -70,6 +70,27 @@ const FILES = [
       "10_food_kimchi_batter_bowl_water_kimchi","11_food_kimchi_batter_bowl_flour_kimchi",
       "12_food_kimchi_batter_bowl_all_unmixed"]
     .map(name=>({ file:`E8/${name}.png`, size:[800,688], css:".bt-bowl 400x400 안에서 400x344" })),
+  /* E9 김치전 반죽 젓기. 반죽 10장은 볼까지 통째로 그려진 **한 벌의 연속 그림**이라
+     E8 처럼 `--bowl`(400x400) 자리에 통째로 깔립니다. 원본 비율이 0.992(세로가 김)이라
+     정사각 칸에서는 세로가 먼저 막혀 397x400 으로 그려집니다 → 2배율 794x800.
+
+     ⚠️ 10장을 **한 크기로 묶어야 합니다.** 마스터가 880~881 x 886~888 로 미세하게
+        다른데, 여기서 한 크기로 뽑지 않으면 저을 때 볼이 1px 씩 들썩입니다.
+        비율 차가 0.15% 라 checkAspect(2%) 에 걸리지 않습니다.
+     ⚠️ 09 번은 **납품에 없습니다.** 번호가 아니라 이 배열 순서가 재생 순서이므로,
+        나중에 09 가 오면 08 과 10 사이에 끼워 넣기만 하면 됩니다.
+        (day-prep-minigames.js 의 E9_BATTER_MIX_FRAMES 도 같이 고쳐야 합니다) */
+  ...["01_food_kimchi_batter_mix_stage1_unmixed","02_food_kimchi_batter_mix_stage2_b",
+      "03_food_kimchi_batter_mix_stage2_c","04_food_kimchi_batter_mix_stage3_a",
+      "05_food_kimchi_batter_mix_stage3_b","06_food_kimchi_batter_mix_stage3_c",
+      "07_food_kimchi_batter_mix_stage4_a","08_food_kimchi_batter_mix_stage4_b",
+      "10_food_kimchi_batter_mix_stage4_c","11_food_kimchi_batter_mix_stage5_complete"]
+    .map(name=>({ file:`E9/${name}.png`, size:[794,800], css:".bt-bowl 400x400 안에서 397x400" })),
+  /* 거품기 3종. 대각선으로 그려져 있어 원본이 거의 정사각입니다.
+     .whisk-tool 자리가 240x243 이라 2배율이 480x486 입니다. */
+  { file:"E9/12_prop_whisk_clean.png",         size:[480,486], css:".whisk-tool 240x243 (섞기 전)" },
+  { file:"E9/13_prop_whisk_batter_light.png",  size:[480,486], css:".whisk-tool 240x243 (멈춤)"   },
+  { file:"E9/14_prop_whisk_batter_medium.png", size:[480,486], css:".whisk-tool 240x243 (젓는 중)" },
   /* E10 멸치. 머리/몸통 4종은 도마 위에서 한 마리 길이 270(--a-len) 으로 그려지고,
      --size 로 최대 1.06배까지 커집니다. 그래서 "전체 길이 580 = 270 x 2배율에
      여유를 더한 값" 을 기준으로 각 조각의 몫만큼 나눠 가집니다.
