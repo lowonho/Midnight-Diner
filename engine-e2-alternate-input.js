@@ -101,11 +101,31 @@ function mandolineTask(taskId){
   return null;
 }
 
-// 재료 그림 에셋 키. 감자만 손질 단계별로 11장(potatoMandoline0~10)이 있고,
-// 나머지는 한 장씩입니다. (경로는 day-prep-minigames.js 참고)
-function mandolineAssetKey(ingredient,successInputs=0){
+// 판 위에서 썰리는 재료 그림 장수 (food_*_whole_01~08). 01 이 안 썰린 모습입니다.
+const MANDOLINE_WHOLE_FRAMES=8;
+
+/* 판 위에서 썰리는 재료의 에셋 키. (경로는 day-prep-minigames.js 참고)
+
+   감자는 입력 한 번에 한 장씩(11장)이지만, 양배추·당근은 **8장을 진행도에
+   나눠 씁니다.** 썰어야 하는 횟수가 양배추 12 · 당근 10 이라 장수와 안 맞습니다.
+   0% 가 01, 100% 가 08 이 되도록 고르게 나누므로 양배추는 대략 1.7 번에 한 장,
+   당근은 대략 1.4 번에 한 장씩 넘어갑니다.
+   ⚠️ 한 번 누를 때마다 정확히 한 장씩 넘기려면 써는 횟수를 7 로 맞춰야
+      합니다 — 그건 플레이 방식이 바뀌는 일이라 여기서는 안 했습니다
+      (day-prep-minigames.js 의 DAY3_MANDOLINE_CONFIG.cycles). */
+function mandolineAssetKey(ingredient,successInputs=0,totalInputs=1){
   if(ingredient==="potato")return `potatoMandoline${successInputs}`;
-  return `mandoline${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}`;
+  const last=MANDOLINE_WHOLE_FRAMES-1;
+  const frame=Math.max(0,Math.min(last,Math.round(successInputs/Math.max(1,totalInputs)*last)));
+  return `mandoline${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}Whole${frame+1}`;
+}
+
+// 왼쪽 재료 카드의 에셋 키. 판 위 그림과 **일부러 다른 키**입니다 —
+// 카드는 재료 한 통을 통째로 보여 주고, 판 위는 썰리면서 줄어드는 그림이라
+// 같은 파일을 쓸 수 없습니다. 감자는 카드 그림이 따로 없어 판 쪽 키를 씁니다.
+function mandolineCardAssetKey(ingredient){
+  if(ingredient==="potato")return mandolineAssetKey(ingredient);
+  return `mandolineCard${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}`;
 }
 
 registerDayPrepEngine("mandoline",{
@@ -133,8 +153,10 @@ function setupMandoline(taskId,stageGrades=[]){
 }
 
 // 한 번 썰 때마다 채반에 늘어나는 채 가닥 수. 한 가닥씩만 늘리면
-// 다 썰어도(최대 12번) 채반이 휑해서, 컨셉 이미지처럼 수북해지도록 세 가닥씩 놓습니다.
+// 다 썰어도(최대 12번) 채반이 휑해서, 컨셉 이미지처럼 수북해지도록 네 가닥씩 놓습니다.
 const MANDOLINE_SHREDS_PER_CUT=4;
+// 채 그림 종류 수 (food_*_shredded_piece_01~03). 가닥마다 셋 중 하나를 씁니다.
+const MANDOLINE_SHRED_SHAPES=3;
 
 // 가운데 채칼 그림. 컨셉 이미지와 같은 한 장면입니다 —
 // 다리 위에 비스듬히 얹힌 채칼 판, 그 아래 둥근 채반, 채반에 쌓이는 채, 큰 안내 화살표.
@@ -142,21 +164,29 @@ const MANDOLINE_SHREDS_PER_CUT=4;
 // 전부 임시 CSS 도형이고, 에셋이 들어오면 .has-asset 이 붙어 그림으로 바뀝니다.
 function mandolineSceneMarkup(data){
   const percent=Math.round(data.successInputs/data.totalInputs*100);
-  const shorten=Math.max(.34,1-percent/100*.62);
-  const asset=dayPrepAssetMarkup(mandolineAssetKey(data.ingredient,data.successInputs),"md-ingredient-asset",`${data.label} 손질 ${percent}%`);
+  const asset=dayPrepAssetMarkup(mandolineAssetKey(data.ingredient,data.successInputs,data.totalInputs),"md-ingredient-asset",`${data.label} 손질 ${percent}%`);
+  // 그림이 있으면 깎인 모습이 그림 자체에 그려져 있으므로 줄이지 않습니다.
+  // 임시 도형일 때만 진행도만큼 작게 그려 썰리는 시늉을 냅니다.
+  const shorten=asset?1:Math.max(.34,1-percent/100*.62);
   // 썰린 채는 index 로 자리를 계산합니다 (Math.random 이면 누를 때마다 튑니다).
   // 황금각(2.39996rad)으로 돌려 가며 놓으면 가운데가 두껍고 가장자리가 성긴
   // 더미가 됩니다. 반지름은 index 18개마다 되풀이라 더미가 커져도 이미 놓인
   // 가닥은 제자리에 그대로 있습니다.
   // 방금 떨어진 마지막 묶음만 .fresh — 더미 전체에 떨어지는 시늉을 걸면 깜빡입니다.
+  // 가닥 모양(p1~p3)은 index 로 돌려 씁니다. 굽은 정도가 셋 다 달라서
+  // 회전값과 겹치면 같은 그림이 반복된다는 느낌이 나지 않습니다.
   const fresh=(data.successInputs-1)*MANDOLINE_SHREDS_PER_CUT;
   const shreds=Array.from({length:data.successInputs*MANDOLINE_SHREDS_PER_CUT},(_,index)=>{
     const angle=index*2.39996,radius=Math.sqrt((index%18+.5)/18);
-    return `<i class="${index>=fresh?"fresh":""}" style="--md-x:${(50+Math.cos(angle)*radius*40).toFixed(1)}%;--md-y:${(50+Math.sin(angle)*radius*29).toFixed(1)}%;--md-turn:${-34+(index*47)%68}deg"></i>`;
+    const shape=`p${index*5%MANDOLINE_SHRED_SHAPES+1}`;
+    return `<i class="${shape} ${index>=fresh?"fresh":""}" style="--md-x:${(50+Math.cos(angle)*radius*40).toFixed(1)}%;--md-y:${(50+Math.sin(angle)*radius*29).toFixed(1)}%;--md-turn:${-34+(index*47)%68}deg"></i>`;
   }).join("");
   const plateAsset=dayPrepAssetMarkup("mandolinePlate","md-plate-asset","채칼");
+  const basketAsset=dayPrepAssetMarkup("mandolineColander","md-basket-asset","채반");
+  const hintAsset=dayPrepAssetMarkup("mandolineArrow","md-hint-asset","좌우로 움직이기");
+  // 도마는 칸 배경으로 깔립니다 (css 의 "나무 도마" 구역) — 여기 조각이 없습니다.
   return `<div class="md-scene axis-${data.axis}" id="mandolineScene">
-      <div class="md-basket" aria-hidden="true"></div>
+      <div class="md-basket ${basketAsset?"has-asset":""}" aria-hidden="true">${basketAsset}</div>
       <i class="md-legs right" aria-hidden="true"></i>
       <i class="md-legs left" aria-hidden="true"></i>
       <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
@@ -164,7 +194,7 @@ function mandolineSceneMarkup(data){
         ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
         <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten}">${asset}</div>
       </div>
-      <i class="md-hint" aria-hidden="true"></i>
+      <i class="md-hint ${hintAsset?"has-asset":""}" aria-hidden="true">${hintAsset}</i>
     </div>`;
 }
 
@@ -180,7 +210,7 @@ function renderMandoline(){
   dom.miniTimer.textContent=`${data.successInputs} / ${data.totalInputs}`;
   renderFryPrepScreen({
     ingredients:chain.map(item=>({id:item.ingredient,label:item.label,count:1,
-      asset:mandolineAssetKey(item.ingredient),active:item.taskId===data.taskId})),
+      asset:mandolineCardAssetKey(item.ingredient),active:item.taskId===data.taskId})),
     stage:mandolineSceneMarkup(data),
     done,
     total:chain.length,

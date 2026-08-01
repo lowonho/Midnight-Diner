@@ -175,7 +175,48 @@ const FILES = [
   { file:"E3/fix_griddle_plate_wide_mild_trapezoid_4x.png", size:[1520,643], css:".yk-griddle 760x321" },
   /* E5 김치전 굽기의 왼쪽 재료 카드(반죽 그릇 한 장).
      그림칸이 210 x 225 인데 원본이 정사각이라 **가로 210 이 먼저 막습니다** → 2배율 420. */
-  { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" }
+  { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" },
+  /* ---- E2 채썰기 -------------------------------------------------
+     나무 도마. **E2 채썰기와 E7 소스 제조 두 칸이 함께 씁니다** — 액자가 그림에
+     그려져 있어 ui_play_tray_wood 와 같은 자리에 같은 방식으로 깔립니다.
+     4배율 마스터(3297x2453)를 정확히 절반으로 줄여 2배율을 만듭니다.
+     원본 비율 1.3441 이 플레이 칸(824.2 x 613.2 = 1.3441)과 같아 안 찌그러집니다.
+     ⚠️ 이 칸은 .md-scene(788.2)이 아니라 **액자 바깥 상자(824.2)** 기준입니다. */
+  { file:"E2/prop_cutting_board_fp_board_4x.png", size:[1648,1226], css:".fp-board / .sc-board 824.2x613.2" },
+  /* [채칼 · 채반은 원본 배율 그대로]
+     둘 다 납품본이 화면 크기의 1.9배 남짓이라 사실상 2배율입니다.
+     2배로 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다
+     (ui_play_tray_wood · E3 화구와 같은 판단입니다). */
+  { file:"E2/prop_mandoline_empty.png",        size:null, css:".md-plate 524.1x409.5 (원본 1080x844)" },
+  { file:"E2/prop_bamboo_colander_empty.png",  size:null, css:".md-basket 548.6x318.9 (원본 1089x633 = 1.99배)" },
+  // 좌우 화살표 — 화면 500 x 64.6
+  { file:"E2/ui_arrow_horizontal_both.png",    size:[1000,129], css:".md-hint 500x64.6" },
+  /* 왼쪽 재료 카드 2장. 그림칸이 210 x 215.6 인데 원본이 세로로 길어(0.946)
+     **세로 190 이 먼저 막습니다** → 2배율 380. */
+  { file:"E2/food_cabbage_ingredient.png",     size:[360,380], css:".fp-ing-asset 180x190" },
+  { file:"E2/food_carrot_ingredient.png",      size:[359,380], css:".fp-ing-asset 179.5x190" },
+  /* 채반에 쌓이는 채 6종(양배추 3 · 당근 3).
+     ⚠️ **여섯 장을 한 배율(0.0942)로 묶습니다.** 한 벌로 그려진 그림이라
+        장마다 길이에 맞춰 키우면 굵기가 제각각이 되어 채가 아니라
+        서로 다른 재료처럼 보입니다. 가장 긴 장(740)이 화면 69.7 이 되는 배율입니다.
+     면적이 작아 q90 아티팩트가 바로 보이므로 전부 무손실입니다. */
+  { file:"E2/food_cabbage_shredded_piece_01.png", size:[ 89, 66], lossless:true, css:".md-pile i 44.5x33" },
+  { file:"E2/food_cabbage_shredded_piece_02.png", size:[ 25, 94], lossless:true, css:".md-pile i 12.5x47" },
+  { file:"E2/food_cabbage_shredded_piece_03.png", size:[ 19,135], lossless:true, css:".md-pile i 9.5x67.5" },
+  { file:"E2/food_carrot_shredded_piece_01.png",  size:[ 19,111], lossless:true, css:".md-pile i 9.5x55.5" },
+  { file:"E2/food_carrot_shredded_piece_02.png",  size:[ 28, 94], lossless:true, css:".md-pile i 14x47" },
+  { file:"E2/food_carrot_shredded_piece_03.png",  size:[ 24,139], lossless:true, css:".md-pile i 12x69.5" },
+  /* 판 위에서 썰리는 재료 8장씩. 01 이 안 썰린 모습이고 08 이 다 썬 모습입니다.
+     ⚠️ **가로를 7장 모두 같은 값으로 못박습니다.** 마스터는 가로가 고정(755 / 896)이고
+        세로만 줄어듭니다 — 아래쪽이 깎여 나가고 **위쪽 끝은 그대로**입니다.
+        그래서 화면에서도 같은 가로로 깔고 위를 맞추면(css .md-ingredient-asset)
+        재료가 제자리에서 아래부터 깎입니다. 여기서 세로까지 한 값으로 묶으면
+        깎인 그림이 도로 늘어나 안 깎인 것처럼 보입니다.
+     세로는 각 장의 원본 비율 그대로입니다 (가로 x 원본세로 / 원본가로). */
+  ...[496,496,496,480,438,348,282,211].map((h,i)=>({
+    file:`E2/food_cabbage_whole_0${i+1}.png`, size:[531,h], css:".md-ingredient 265.7 폭 고정" })),
+  ...[442,442,442,442,436,382,287,206].map((h,i)=>({
+    file:`E2/food_carrot_whole_0${i+1}.png`,  size:[588,h], css:".md-ingredient 294.0 폭 고정" }))
 ];
 
 const QUALITY = 90;
