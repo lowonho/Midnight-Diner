@@ -78,6 +78,7 @@ const CUT_POSITION_PERCENTAGES=Object.freeze({
   fishCake:Object.freeze([74.3,51.3,26.7]),
   chicken:Object.freeze([85.3,70.5,55.1,38.5,20.8]),
   greenOnion:Object.freeze([80.2,62.6,43.2,22.7]),
+  kimchi:Object.freeze([80.8,64.4,48.1,31.7,15.5]),
   tofu:Object.freeze([85.2,71.3,57.5,43.6,29.7,15.5])
 });
 
@@ -272,7 +273,7 @@ function renderTimingCut(){
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
   // 제공된 단계 에셋의 실제 틈과 칼 안내선이 겹치도록 재료별 좌표를 사용합니다.
-  // 무·어묵·닭·대파·두부 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
+  // 무·어묵·닭·대파·김치·두부 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
   const cutPosition=index=>suppliedCutPosition(data.ingredient,index,verticalCount);
   // 다음에 썰 자리(%). 칼과 점선 안내가 여기에 섭니다. 가로 썰기 차례면
   // 칼 위치를 CSS 가 따로 잡으므로 값은 그대로 두어도 됩니다.

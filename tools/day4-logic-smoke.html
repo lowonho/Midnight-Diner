@@ -102,6 +102,10 @@ try{
   state.mini.data.successes=3;renderTimingCut();
   assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&dom.miniContent.querySelector(".cut-guide.horizontal"),"E1 fish cake changes to a horizontal guide for its fourth cut");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:5,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4,.4],title:"E1 kimchi smoke",description:"smoke"});
+  const kimchiLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuKimchi.total===5&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.total===5&&kimchiLines==="80.8%,64.4%,48.1%,31.7%,15.5%","E1 both kimchi tasks use all six supplied sprites across five vertical cuts");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4,.4,.4],title:"E1 tofu smoke",description:"smoke"});
   const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu uses all seven supplied sprites across six vertical cuts");
