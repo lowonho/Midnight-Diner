@@ -229,8 +229,9 @@ function pancakeCookFoodMarkup(){
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
 function twoSideStageMarkup(data, extraClass = "") {
   if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
+  // 화구(가스버너)와 팬은 분리된 두 겹입니다 — day-prep-minigames.js 의 minigameBurnerMarkup 참고
   return `<div class="ts-cooktop">
-      <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
+      ${minigameBurnerMarkup("gas")}
       <div class="two-side-pan pancake-cook ${extraClass} side-${data.side}">${pancakeCookFoodMarkup()}<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
     </div>`;
 }
@@ -295,7 +296,7 @@ function renderTwoSideCook() {
   } else if (data.phase === "flip") {
     dom.miniDescription.textContent = "앞 버튼(↑)을 꾹 눌렀다가 반동으로 뒤 버튼(↓)을 눌러 뒤집으세요!";
     board = `<div class="flip-rebound-scene">
-        <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
+        ${minigameBurnerMarkup("gas")}
         <div class="two-side-pan pancake-cook flip-ready cook-ready" id="reboundPan">${pancakeCookFoodMarkup()}</div>
         <div class="rebound-arrow" id="reboundArrow">↑</div>
       </div>`;

@@ -138,10 +138,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
-  // 김치 볶기 (engine-e3). 팬·화구는 아직 CSS 임시 도형입니다.
+  // 김치 볶기 (engine-e3). 팬은 아직 CSS 임시 도형입니다.
+  // (가스레인지는 아래 화구 레이어로 빠졌습니다 — burnerGas1~3)
   fryingPan:"assets/prep/kimchi/frying-pan.png",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
-  fryStove:"assets/prep/kimchi/stove.png",
   fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
   // 왼쪽 재료 카드 2장 — assets/minigame/E3/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
@@ -164,6 +164,18 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //    css/day-prep-minigames.css(.kf-chip) · css/minigames.css(.yk-chip) 가 직접 씁니다.
   ...Object.fromEntries(["left","up","right","down"].map(way=>
     [`arrow${way[0].toUpperCase()}${way.slice(1)}`,`assets/minigame/E3/ui_arrow_${way}.webp`])),
+  // 화구 2종 x 3장 — 조리기구(팬·철판)와 분리된 바닥 레이어입니다.
+  //   gas      가스버너   → E3 김치 볶기(engine-e3) · E5 김치전 굽기(engine-e5)
+  //   griddle  철판 화구  → E3 볶음우동(engine-e3)
+  // 3장은 불이 흔들리는 애니메이션 프레임이고, 번호 순서가 곧 재생 순서입니다.
+  // ⚠️ 가스버너는 장마다 세로가 612/616/607 로 다릅니다. 불꽃이 더 솟은 장이
+  //    그만큼 캔버스가 큰 것이라 **일부러 안 맞췄습니다.** 내용 폭과 아래 여백이 같아서
+  //    같은 폭으로 깔고 아래를 맞추면 몸통은 고정된 채 불꽃만 움직입니다.
+  //    (css/minigame-parts.css 의 .mg-burner-frame)
+  ...Object.fromEntries(["01","02","03"].flatMap((no,index)=>[
+    [`burnerGas${index+1}`,`assets/minigame/E3/fix_gas_burner_low_fire_${no}.webp`],
+    [`burnerGriddle${index+1}`,`assets/minigame/E3/fix_griddle_burner_fire_${no}.webp`]
+  ])),
   // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
   heatOdenPot:"assets/prep/heat/oden-pot.png",
   heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
@@ -237,6 +249,28 @@ function hasDayPrepAsset(key){
 function dayPrepAssetMarkup(key,className,alt=""){
   if(!hasDayPrepAsset(key))return "";
   return `<img class="prep-asset ${className}" src="${dayPrepAssets[key].src}" alt="${alt}" draggable="false" />`;
+}
+
+/* ---- 화구 (가스버너 · 철판 화구) ---------------------------
+   조리기구(팬·철판)와 **분리된 바닥 레이어**입니다. 원래는 팬/철판 그림 안에
+   불이 함께 그려져 있어서 조리기구를 옮기면 불도 따라다녔습니다. 이제 화구는
+   플레이 칸 바닥에 깔리고, 조리기구가 그 위에 얹힙니다.
+
+   세 화면이 함께 씁니다 — E3 김치 볶기 · E3 볶음우동 · E5 김치전 굽기.
+   (E5 닭꼬치는 가스불이 아니라 숯불 화로라 여기 해당 없습니다)
+
+   그림 3장을 겹쳐 두고 CSS 가 번갈아 켜서 불이 흔들리는 것처럼 보입니다.
+   재생은 전부 css/minigame-parts.css 의 .mg-burner 가 합니다 — 자바스크립트
+   타이머가 없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다. */
+const MINIGAME_BURNER_FRAMES=3;
+
+function minigameBurnerMarkup(kind){
+  const prefix=kind==="gas"?"burnerGas":"burnerGriddle";
+  const keys=Array.from({length:MINIGAME_BURNER_FRAMES},(_,index)=>`${prefix}${index+1}`);
+  // 한 장이라도 빠지면 그 순번에서 불이 깜빡 꺼져 보입니다. 전부 있을 때만 씁니다.
+  if(!keys.every(hasDayPrepAsset))return `<i class="mg-burner mg-burner-${kind} mg-burner-fallback" aria-hidden="true"></i>`;
+  const frames=keys.map(key=>`<img class="mg-burner-frame" src="${dayPrepAssets[key].src}" alt="" draggable="false" />`).join("");
+  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}</div>`;
 }
 
 function timingAssetKey(ingredient,successes,assetPrefix=""){

@@ -237,15 +237,12 @@ function renderKimchiFry(){
       </aside>
 
       <div class="kf-board cook-stage-${directionVisualStage(data.successes,data.total)}" id="fryWorkArea">
-        <div class="kf-stove ${hasDayPrepAsset("fryStove")?"has-asset":""}">
-          ${dayPrepAssetMarkup("fryStove","kf-stove-asset","가스레인지")}
-          <i class="kf-flame"></i>
-          <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
-            ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
-            <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
-            <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
-            <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
-          </div>
+        ${minigameBurnerMarkup("gas")}
+        <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
+          ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
+          <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
+          <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
+          <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -386,6 +383,7 @@ function renderStirScene(){
       </aside>
 
       <div class="yk-board cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}" id="stirWorkArea">
+        ${minigameBurnerMarkup("griddle")}
         <div class="yk-griddle ${hasDayPrepAsset("stirGriddle")?"has-asset":""}" id="stirPlate">
           ${dayPrepAssetMarkup("stirGriddle","yk-griddle-asset","철판")}
           <i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>
@@ -400,7 +398,6 @@ function renderStirScene(){
           </div>
           <i class="yk-spatula spatula-left ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","왼쪽 철판 뒤집개")}</i>
           <i class="yk-spatula spatula-right ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","오른쪽 철판 뒤집개")}</i>
-          <i class="yk-fire"></i>
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>

@@ -36,7 +36,8 @@ const sharp = require("sharp");
 const ART_DIR = path.join(__dirname, "..", "assets", "minigame");
 
 /* [file]     ART_DIR 기준 상대 경로 (PNG 마스터)
-   [size]     뽑아낼 WebP 크기 [가로, 세로]
+   [size]     뽑아낼 WebP 크기 [가로, 세로]. `null` 이면 원본 크기 그대로 —
+              납품본이 이미 2배율에 못 미쳐 줄일 것도 늘릴 것도 없을 때 씁니다.
    [css]      그 크기의 근거가 되는 화면 자리 (1920 프레임 기준 px). 주석용입니다.
    [lossless] 무손실로 뽑을 것 — 면적이 작아 q90 아티팩트가 바로 눈에 띄는 것만
    [out]      출력 이름을 따로 줄 것. 기본은 file 의 확장자만 .webp 로 바꾼 이름입니다.
@@ -144,7 +145,26 @@ const FILES = [
      세로는 둘 다 공용 띠 78 입니다. 한 마스터(1.368)에서 두 크기를 뽑으므로
      가로세로비가 원본과 달라집니다 — 나무틀이라 늘려도 티가 안 나서 stretch 로 넘깁니다. */
   { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_254x156.webp", size:[254,156], stretch:true, css:"김치 볶기 칩 126.8x78" },
-  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_209x156.webp", size:[209,156], stretch:true, css:"볶음우동 칩 104.35x78" }
+  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_209x156.webp", size:[209,156], stretch:true, css:"볶음우동 칩 104.35x78" },
+  /* 화구 2종 x 3장. 조리기구(팬·철판)와 분리된 **바닥 레이어**입니다.
+       gas      가스버너   → E3 김치 볶기 · E5 김치전 굽기
+       griddle  철판 화구  → E3 볶음우동
+     3장은 불이 흔들리는 애니메이션 프레임입니다. 번호 순서가 곧 재생 순서입니다.
+
+     ⚠️ **원본 배율 그대로 씁니다.** 플레이 칸 가로 824.2 를 꽉 채우므로 2배율은
+        1648 인데 납품본이 1423 / 1357 입니다. 늘리면 없던 화소를 지어내는 셈이라
+        그대로 둡니다 (ui_play_tray_wood 와 같은 판단입니다).
+
+     ⚠️ **세로를 억지로 맞추지 않습니다.** 가스버너는 612 / 616 / 607 로 장마다
+        다른데, 불꽃이 더 높이 솟은 장이 그만큼 캔버스가 큰 것입니다. 내용 폭(1411)과
+        아래 여백은 세 장이 같으므로, 화면에서 같은 폭으로 깔고 아래를 맞추면
+        (css/minigame-parts.css 의 .mg-burner-frame) 화구 몸통은 고정된 채
+        불꽃만 위로 늘었다 줄었다 합니다. 여기서 한 크기로 묶으면 오히려
+        몸통이 늘었다 줄었다 하며 들썩입니다. */
+  ...["01","02","03"].flatMap(no=>[
+    { file:`E3/fix_gas_burner_low_fire_${no}.png`, size:null, css:"가스버너 (원본 배율 유지)" },
+    { file:`E3/fix_griddle_burner_fire_${no}.png`, size:null, css:"철판 화구 (원본 배율 유지)" }
+  ])
 ];
 
 const QUALITY = 90;
@@ -167,7 +187,7 @@ function outFile(entry){
 // 어긋나면 fit:"fill" 이 그림을 찌그러뜨리므로 조용히 넘어가면 안 됩니다.
 // (stretch 항목은 늘려 쓰는 것이 의도라 건너뜁니다 — 위 [stretch] 설명 참고)
 function checkAspect(entry, meta){
-  if(entry.stretch)return;
+  if(entry.stretch||!entry.size)return;      // 원본 크기 그대로면 비율이 어긋날 수가 없습니다
   const src = meta.width / meta.height, out = entry.size[0] / entry.size[1];
   if(Math.abs(src - out) / src > 0.02){
     console.warn(`  ! ${entry.file} : 원본 ${meta.width}x${meta.height} 와 목표 ` +
@@ -190,7 +210,7 @@ async function convert(){
     const out = path.join(ART_DIR, outFile(entry));
     const meta = await sharp(src).metadata();
     checkAspect(entry, meta);
-    const [w,h] = entry.size;
+    const [w,h] = entry.size || [meta.width, meta.height];
     await resized(src, w, h)
       .webp(entry.lossless ? {lossless:true, effort:EFFORT}
                            : {quality:QUALITY, effort:EFFORT, alphaQuality:100})
@@ -216,7 +236,8 @@ async function verify(){
     const src = path.join(ART_DIR, entry.file);
     const out = path.join(ART_DIR, outFile(entry));
     if(!fs.existsSync(out))continue;
-    const [w,h] = entry.size;
+    const meta = await sharp(src).metadata();
+    const [w,h] = entry.size || [meta.width, meta.height];
     const [a,b] = await Promise.all([
       resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
