@@ -24,8 +24,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:3,zoneWidth:.16,zoneStarts:[.22,.58,.39],speed:.78},
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:5,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68,.42],speed:.8,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
-  // 두부는 세로 5번 뒤 마지막 1번을 가로로 썹니다. (horizontalLastCut)
-  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78,horizontalLastCut:true},
+  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 
@@ -63,6 +62,13 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   greenOnion2:"assets/prep/cutting/green-onion/green-onion-2.png",
   greenOnion3:"assets/prep/cutting/green-onion/green-onion-3.png",
   greenOnion4:"assets/prep/cutting/green-onion/green-onion-4.png",
+  tofu0:"assets/prep/cutting/tofu/tofu-0.png",
+  tofu1:"assets/prep/cutting/tofu/tofu-1.png",
+  tofu2:"assets/prep/cutting/tofu/tofu-2.png",
+  tofu3:"assets/prep/cutting/tofu/tofu-3.png",
+  tofu4:"assets/prep/cutting/tofu/tofu-4.png",
+  tofu5:"assets/prep/cutting/tofu/tofu-5.png",
+  tofu6:"assets/prep/cutting/tofu/tofu-6.png",
   anchovyBody:"assets/prep/anchovy/anchovy-body.png",
   anchovyHead:"assets/prep/anchovy/anchovy-head.png",
   // 닭꼬치 꽂기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.

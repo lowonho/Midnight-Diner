@@ -102,6 +102,10 @@ try{
   state.mini.data.successes=3;renderTimingCut();
   assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&dom.miniContent.querySelector(".cut-guide.horizontal"),"E1 fish cake changes to a horizontal guide for its fourth cut");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4,.4,.4,.4,.4],title:"E1 tofu smoke",description:"smoke"});
+  const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu uses all seven supplied sprites across six vertical cuts");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
   startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitZoneWidth:.2,speed:.7,zoneStarts:[.4],requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
   assert(DAY_PREP_MINI_CONFIG.cutSkewerChicken.total===5&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.zoneStarts.length===5,"E1 chicken uses all six supplied sprites across five cuts");
