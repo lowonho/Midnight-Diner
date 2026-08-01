@@ -81,10 +81,27 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   skewerChickenGroup:"assets/minigame/E8/food_skewer_chicken_group.webp",
   skewerGreenOnionGroup:"assets/minigame/E8/food_skewer_green_onion_group.webp",
   skewerStick:"assets/minigame/E8/prop_skewer_stick.webp",
-  // 김치전 반죽 (engine-e8 → e9). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  batterFlour:"assets/prep/batter/flour.png",
-  batterWater:"assets/prep/batter/water.png",
-  batterKimchi:"assets/prep/batter/kimchi.png",
+  // 김치전 반죽 재료 넣기 (engine-e8). assets/minigame/E8/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //   재료 3장   왼쪽 재료 카드에 놓는 그림 (부침가루 · 물컵 · 썰어 둔 김치)
+  //   볼 9장     **넣은 재료 조합마다 한 장**입니다. 어느 장을 쓸지는
+  //              engine-e8-order-place.js 의 BATTER_BOWL_ASSETS 가 고릅니다.
+  //              08(kimchi_flour) 과 11(flour_kimchi) 은 재료가 같고 넣은 순서만
+  //              다른 두 장이라, 그 순서 그대로 키를 나눠 두 장 다 씁니다.
+  batterFlour:"assets/minigame/E8/02_food_pancake_flour_panel.webp",
+  batterWater:"assets/minigame/E8/03_food_water_cup_panel.webp",
+  batterKimchi:"assets/minigame/E8/01_food_kimchi_chopped_panel.webp",
+  batterBowlEmpty:"assets/minigame/E8/04_food_kimchi_batter_bowl_empty.webp",
+  batterBowlWater:"assets/minigame/E8/05_food_kimchi_batter_bowl_water.webp",
+  batterBowlFlour:"assets/minigame/E8/06_food_kimchi_batter_bowl_flour.webp",
+  batterBowlKimchi:"assets/minigame/E8/07_food_kimchi_batter_bowl_kimchi.webp",
+  batterBowlKimchiFlour:"assets/minigame/E8/08_food_kimchi_batter_bowl_kimchi_flour.webp",
+  batterBowlWaterFlour:"assets/minigame/E8/09_food_kimchi_batter_bowl_water_flour.webp",
+  batterBowlWaterKimchi:"assets/minigame/E8/10_food_kimchi_batter_bowl_water_kimchi.webp",
+  batterBowlFlourKimchi:"assets/minigame/E8/11_food_kimchi_batter_bowl_flour_kimchi.webp",
+  batterBowlAll:"assets/minigame/E8/12_food_kimchi_batter_bowl_all_unmixed.webp",
+  // 젓기(engine-e9)가 쓰는 빈 볼과 완성 반죽. 아직 납품 전이라 CSS 임시 도형으로 그립니다.
+  // ⚠️ E8 의 볼 9장과 섞지 마세요. E8 은 "안 섞인 재료", E9 는 "섞이는 반죽"입니다.
   batterBowl:"assets/prep/batter/bowl.png",
   batterDone:"assets/prep/batter/batter-done.png",
   // E9는 단계별 반죽과 거품기를 선택 에셋으로 교체할 수 있습니다. 파일이 없으면 CSS 도형을 씁니다.

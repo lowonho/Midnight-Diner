@@ -47,6 +47,21 @@ const FILES = [
   { file:"E8/food_skewer_chicken_group.png",     size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
   { file:"E8/food_skewer_green_onion_group.png", size:[424,371], css:".sk-ing-art 210x210 안쪽"   },
   { file:"E8/prop_skewer_stick.png",             size:[128,960], css:".sk-rod 64x463"             },
+  /* E8 김치전 반죽 재료 넣기. 셋 다 원본이 정사각이라 목표도 정사각입니다.
+     재료 카드 3장은 .bt-ing-asset 이 max-height 120 으로 잡아 주는 자리(가로는 214 까지
+     쓸 수 있지만 정사각이라 세로가 먼저 막힙니다) 의 2배입니다. */
+  { file:"E8/01_food_kimchi_chopped_panel.png",  size:[240,240], css:".bt-ing-asset 120x120" },
+  { file:"E8/02_food_pancake_flour_panel.png",   size:[240,240], css:".bt-ing-asset 120x120" },
+  { file:"E8/03_food_water_cup_panel.png",       size:[240,240], css:".bt-ing-asset 120x120" },
+  /* 반죽 볼 9장. 넣은 재료 조합마다 한 장이고 전부 같은 자리에 겹칩니다.
+     자리는 .batter-prep-scene 의 --bowl (400) 이라 2배율이 800 입니다.
+     오른쪽 '참고 모양' 칸(172)에도 같은 파일을 줄여 씁니다. */
+  ...["04_food_kimchi_batter_bowl_empty","05_food_kimchi_batter_bowl_water",
+      "06_food_kimchi_batter_bowl_flour","07_food_kimchi_batter_bowl_kimchi",
+      "08_food_kimchi_batter_bowl_kimchi_flour","09_food_kimchi_batter_bowl_water_flour",
+      "10_food_kimchi_batter_bowl_water_kimchi","11_food_kimchi_batter_bowl_flour_kimchi",
+      "12_food_kimchi_batter_bowl_all_unmixed"]
+    .map(name=>({ file:`E8/${name}.png`, size:[800,800], css:".bt-bowl 400x400 (--bowl)" })),
   /* E10 멸치. 머리/몸통 4종은 도마 위에서 한 마리 길이 270(--a-len) 으로 그려지고,
      --size 로 최대 1.06배까지 커집니다. 그래서 "전체 길이 580 = 270 x 2배율에
      여유를 더한 값" 을 기준으로 각 조각의 몫만큼 나눠 가집니다.

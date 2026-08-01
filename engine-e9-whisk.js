@@ -67,7 +67,8 @@ function setupWhiskBatter(configId="kimchiBatter",inheritedMistakes=0){
         <strong class="order-result whisk-result" id="whiskResult" hidden></strong>
       </div>
       <p class="bt-progress">반죽 진행도 <b id="whiskProgressText">0%</b></p>`,
-    BATTER_INGREDIENTS.length);
+    // 오른쪽 참고 모양은 "고르게 섞인 반죽" — E8(재료 넣기)의 "재료 3가지" 와 다른 그림입니다.
+    BATTER_INGREDIENTS.length,{guide:"mixed"});
   const work=dom.miniContent.querySelector("#whiskWorkArea");
   work.addEventListener("pointerdown",event=>startWhiskPointer(event,work));
   work.addEventListener("pointermove",moveWhiskPointer);

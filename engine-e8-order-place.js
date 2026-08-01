@@ -95,23 +95,76 @@ function pulseOrderTarget(target,className="order-place-reject"){
    ------------------------------------------------------------ */
 
 // 넣는 순서 = 왼쪽 카드가 위에서 아래로 놓이는 순서입니다.
-// assets/prep/batter/ 에 파일을 넣으면 CSS 도형 대신 그림이 자동으로 쓰입니다.
+// 그림은 assets/minigame/E8/ 의 납품 에셋입니다 (day-prep-minigames.js 의 경로표 참고).
 const BATTER_INGREDIENTS=Object.freeze([
   {id:"flour",label:"부침가루",asset:"batterFlour"},
   {id:"water",label:"물",asset:"batterWater"},
   {id:"kimchi",label:"김치",asset:"batterKimchi"}
 ]);
 
+/* 볼 안을 그리는 그림은 **넣은 재료 조합마다 한 장**입니다.
+   키는 넣은 순서 그대로 이어 붙인 것입니다. 납품 파일 이름이 순서를 담고 있어서
+   (08 kimchi_flour ↔ 11 flour_kimchi — 재료는 같고 쌓인 순서만 다릅니다) 그대로 따랐습니다.
+   그림이 따로 없는 순서 두 가지는 재료가 같은 그림으로 되돌립니다.
+   셋 다 들어간 볼은 순서와 상관없이 한 장(batterBowlAll)입니다.
+
+   ⚠️ 지금 게임은 부침가루 → 물 → 김치 한 순서만 받으므로 실제로 보이는 것은
+      empty · flour · (flour,water) · all 네 장입니다. 나머지는 순서 규칙을
+      풀거나 바꿀 때 바로 쓰이도록 미리 이어 둔 것입니다. */
+const BATTER_BOWL_ASSETS=Object.freeze({
+  "":"batterBowlEmpty",
+  "flour":"batterBowlFlour",
+  "water":"batterBowlWater",
+  "kimchi":"batterBowlKimchi",
+  "kimchi,flour":"batterBowlKimchiFlour",
+  "flour,kimchi":"batterBowlFlourKimchi",
+  "water,flour":"batterBowlWaterFlour",
+  "water,kimchi":"batterBowlWaterKimchi",
+  "flour,water":"batterBowlWaterFlour",     // 전용 그림 없음 — 재료가 같은 09 로
+  "kimchi,water":"batterBowlWaterKimchi"    // 전용 그림 없음 — 재료가 같은 10 으로
+});
+
+function batterBowlAssetKey(added=[]){
+  if(added.length>=BATTER_INGREDIENTS.length)return "batterBowlAll";
+  return BATTER_BOWL_ASSETS[added.join(",")]||"batterBowlEmpty";
+}
+
 // 반죽 볼 하나. stateClass 로 담긴 양(step-0~3)이나 섞인 정도(stage-0~4)를 줍니다.
-function batterBowlMarkup(stateClass,{id="",extra=""}={}){
-  return `<div class="bt-bowl ${stateClass} ${hasDayPrepAsset("batterBowl")?"has-asset":""}"${id?` id="${id}"`:""}>
-      ${dayPrepAssetMarkup("batterBowl","bt-bowl-asset","반죽 볼")}<i class="bt-batter"></i>${extra}
+//   assetKey  볼 그림. E8은 재료 조합별 9장 중 하나를, E9는 빈 볼 한 장을 씁니다.
+//             그림이 볼 안까지 그려 주므로(E8), 있을 때는 CSS 반죽 도형을 끕니다(.state-art).
+function batterBowlMarkup(stateClass,{id="",extra="",assetKey="batterBowl"}={}){
+  const has=hasDayPrepAsset(assetKey),stateArt=has&&assetKey!=="batterBowl";
+  return `<div class="bt-bowl ${stateClass} ${has?"has-asset":""} ${stateArt?"state-art":""}"${id?` id="${id}"`:""}>
+      ${dayPrepAssetMarkup(assetKey,"bt-bowl-asset","반죽 볼")}<i class="bt-batter"></i>${extra}
     </div>`;
 }
 
+/* 오른쪽 '참고 모양' 칸. E8과 E9는 목표가 달라 그림도 다릅니다.
+     filled  E8 재료 넣기 — 세 가지가 다 담긴, 아직 안 섞인 볼
+     mixed   E9 젓기      — 고르게 섞인 완성 반죽
+   한 장으로 묶어 두면 재료를 넣는 동안 이미 섞인 반죽이 목표로 보입니다. */
+const BATTER_GUIDE=Object.freeze({
+  filled:{title:"참고 모양",note:"재료 3가지",alt:"재료를 다 넣은 볼"},
+  mixed:{title:"참고 모양",note:"고르게 섞인 반죽",alt:"완성된 반죽"}
+});
+
+function batterGuideMarkup(kind){
+  const guide=BATTER_GUIDE[kind]||BATTER_GUIDE.mixed;
+  const figure=kind==="filled"
+    ? batterBowlMarkup("step-3",{assetKey:"batterBowlAll"})
+    : hasDayPrepAsset("batterDone")
+      ? dayPrepAssetMarkup("batterDone","bt-guide-asset",guide.alt)
+      : batterBowlMarkup("stage-4");
+  return `<h3 class="bt-col-title">${guide.title}</h3>
+          <div class="bt-guide-figure">${figure}</div>
+          <p class="bt-guide-note">${guide.note}</p>`;
+}
+
 // 재료 넣기(E8)와 젓기(E9)가 함께 쓰는 화면 틀. 가운데(center)만 갈아 끼웁니다.
-//   addedCount 넣은 재료 수(왼쪽 카드 표시)   done 완성 개수(오른쪽 카드 표시)
-function batterSceneMarkup(center,addedCount,done=0){
+//   addedCount 넣은 재료 수(왼쪽 카드 표시)
+//   done       완성 개수(오른쪽 카드 표시)
+//   guide      오른쪽 참고 모양 종류 — "filled"(E8) / "mixed"(E9)
+function batterSceneMarkup(center,addedCount,{done=0,guide="mixed"}={}){
   return `<div class="batter-prep-scene">
       <aside class="bt-col">
         <div class="bt-panel bt-ing-panel">
@@ -133,18 +186,18 @@ function batterSceneMarkup(center,addedCount,done=0){
           <h3 class="bt-col-title">완성 개수</h3>
           <strong>${done} / 1</strong>
         </div>
-        <div class="bt-panel bt-guide">
-          <h3 class="bt-col-title">참고 모양</h3>
-          <div class="bt-guide-figure">${hasDayPrepAsset("batterDone")
-            ?dayPrepAssetMarkup("batterDone","bt-guide-asset","완성된 반죽")
-            :batterBowlMarkup("stage-4")}</div>
-        </div>
+        <div class="bt-panel bt-guide">${batterGuideMarkup(guide)}</div>
       </aside>
     </div>`;
 }
 
+// 마지막 재료를 넣은 뒤 젓기(E9)로 넘어가기 전에 볼을 보여 주는 시간.
+// 이 사이가 없으면 세 가지가 다 담긴 볼(12번 그림)이 화면에 뜨자마자 지워집니다.
+const BATTER_FULL_HOLD_MS=1150;
+
 function setupKimchiBatter(){
-  setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS,mistakes:0,lastPlaced:null});
+  // holding : 재료를 다 넣고 젓기로 넘어가기 전, 담긴 볼을 보여 주는 동안만 true
+  setDayPrepData({...createOrderPlacementState("batter"),ingredients:BATTER_INGREDIENTS,mistakes:0,lastPlaced:null,holding:false});
   dom.miniTitle.textContent="김치전 반죽";
   dom.miniDescription.textContent="부침가루 → 물 → 김치 순서로 재료를 볼에 넣어주세요!";
   renderKimchiBatterIngredients();
@@ -152,11 +205,13 @@ function setupKimchiBatter(){
 
 function renderKimchiBatterIngredients(){
   const data=state.mini.data,current=data.ingredients[data.step];
+  // 볼 그림은 지금까지 넣은 재료 조합으로 고릅니다 (placements[0] 이 넣은 순서 그대로입니다).
+  const added=data.placements[0]||[];
   dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
   dom.miniContent.innerHTML=batterSceneMarkup(`
-      <div class="bt-bowl-wrap ${data.lastPlaced?`receive-${data.lastPlaced}`:""}" data-order-target="batter">${batterBowlMarkup(`step-${data.step}`)}</div>
-      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"이제 저어 주세요"}</p>`,
-    data.step);
+      <div class="bt-bowl-wrap ${data.lastPlaced?`receive-${data.lastPlaced}`:""} ${data.holding?"filled":""}" data-order-target="batter">${batterBowlMarkup(`step-${data.step}`,{assetKey:batterBowlAssetKey(added)})}</div>
+      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"재료 준비 완료! <b>이제 저어 주세요</b>"}</p>`,
+    data.step,{guide:"filled"});
   bindOrderPlacementPointers({
     sources:dom.miniContent.querySelectorAll("[data-batter-ingredient]"),
     targetSelector:'[data-order-target="batter"]',
@@ -168,17 +223,27 @@ function renderKimchiBatterIngredients(){
 }
 
 function addBatterIngredient(ingredientId,button,target){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="batter")return;
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||m.data.orderConfigId!=="batter"||m.data.holding)return;
   const expected=m.data.ingredients[m.data.step],result=placeOrderedItem(m.data,ingredientId);
   if(!result.accepted){m.data.mistakes++;dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();pulseOrderTarget(target);return;}
   m.data.lastPlaced=ingredientId;
   button.classList.add("pouring");button.disabled=true;audio.click();
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
+  const filled=m.data.step>=m.data.ingredients.length;
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
-    // 재료를 다 넣으면 게임 종류가 거품기(E9)로 바뀝니다.
-    if(m.data.step>=m.data.ingredients.length)setupWhiskBatter("kimchiBatter",m.data.mistakes);
-    else renderKimchiBatterIngredients();
+    // 마지막 재료까지 넣었으면 곧바로 거품기(E9)로 갈아 끼우지 않습니다.
+    // 세 가지가 다 담긴 볼을 한 박자 보여 준 뒤에 넘깁니다.
+    m.data.holding=filled;
+    renderKimchiBatterIngredients();
+    if(!filled)return;
+    dom.miniFeedback.textContent="재료가 모두 들어갔습니다.";
+    setTimeout(()=>{
+      if(state.mini!==m||m.complete||!m.data.holding)return;
+      m.data.holding=false;
+      // 여기서 게임 종류가 거품기(E9)로 바뀝니다.
+      setupWhiskBatter("kimchiBatter",m.data.mistakes);
+    },BATTER_FULL_HOLD_MS);
   },420);
 }
 

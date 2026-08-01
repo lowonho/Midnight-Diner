@@ -1745,7 +1745,9 @@
 .bt-ing-art { position: relative; display: grid; place-items: center; }
 .bt-ing-art i { position: relative; display: block; width: calc(74 * var(--upx)); height: calc(74 * var(--upx)); }
 .bt-ing-art.has-asset i { display: none; }
-.bt-ing-asset { max-width: 100%; max-height: calc(84 * var(--upx)); object-fit: contain; }
+/* 카드 한 장이 176.4 이고 이름 줄이 아래 26 을 가져가므로 그림 자리는 126 쯤 남습니다.
+   납품 그림이 정사각(1024)이라 세로가 먼저 막힙니다 → 120 (뽑는 크기는 그 2배인 240). */
+.bt-ing-asset { max-width: 100%; max-height: calc(120 * var(--upx)); object-fit: contain; }
 .bt-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
 .bt-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 부침가루 한 그릇 / 물병 / 썰어 둔 김치 */
@@ -1798,6 +1800,30 @@
 .bt-bowl.has-asset { background: none; box-shadow: none; }
 .bt-bowl.has-asset::before { display: none; }
 .bt-bowl-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+
+/* 재료 넣기(E8)의 볼 그림은 **볼 안까지 그려져 있는** 조합별 9장입니다.
+   그래서 CSS 반죽 도형(.bt-batter)을 끕니다 — 켜 두면 그림 위에 겹쳐 그려집니다.
+   ⚠️ 젓기(E9)의 볼은 빈 볼 한 장이라 .state-art 가 붙지 않고, 반죽은 계속 CSS 로 그립니다. */
+.bt-bowl.state-art .bt-batter { display: none; }
+/* 재료가 담기는 순간의 반응. 도형이 아니라 그림 한 장이 통째로 바뀌므로
+   위 batter-receive-* (덩어리가 자라는 연출) 대신 짧게 번쩍이고 자리를 잡습니다. */
+.bt-bowl-wrap.receive-flour .state-art .bt-bowl-asset,
+.bt-bowl-wrap.receive-water .state-art .bt-bowl-asset,
+.bt-bowl-wrap.receive-kimchi .state-art .bt-bowl-asset { animation: batter-art-receive .42s ease; }
+@keyframes batter-art-receive {
+  0%   { transform: scale(.978); filter: brightness(1.32); }
+  55%  { transform: scale(1.014); filter: brightness(1.12); }
+  100% { transform: scale(1); filter: none; }
+}
+/* 세 가지를 다 넣고 젓기로 넘어가기 전, 담긴 볼을 보여 주는 한 박자
+   (engine-e8-order-place.js 의 BATTER_FULL_HOLD_MS). */
+.bt-bowl-wrap.filled .bt-bowl { animation: batter-filled-hold 1.15s ease both; }
+@keyframes batter-filled-hold {
+  0%   { transform: scale(1); }
+  22%  { transform: scale(1.035); filter: brightness(1.14); }
+  55%  { transform: scale(1.012); filter: brightness(1.04); }
+  100% { transform: scale(1); filter: none; }
+}
 
 /* 볼에 담긴 것. 재료 넣기 단계(step-N)는 양이 늘고, 젓기 단계(stage-N)는 색이 섞입니다 */
 .bt-batter { position: absolute; inset: 8.5%; border-radius: 50%; transform: scale(var(--fill,1)); transition: transform .3s ease, background .25s ease; }
@@ -1927,7 +1953,12 @@
 .bt-guide { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .bt-guide-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
 .bt-guide-figure .bt-bowl { width: calc(172 * var(--upx)); height: calc(172 * var(--upx)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.3), 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45); }
+/* 그림 볼은 테두리가 동그랗지 않아 위 그림자가 네모로 드러납니다.
+   (.bt-bowl.has-asset 이 위쪽에 있어서 여기서 다시 지워야 합니다) */
+.bt-guide-figure .bt-bowl.has-asset { box-shadow: none; }
 .bt-guide-asset { max-width: 100%; max-height: calc(170 * var(--upx)); object-fit: contain; }
+/* 참고 모양이 무엇인지 한 줄. E8(재료 3가지)과 E9(고르게 섞인 반죽)를 가릅니다. */
+.bt-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-weight: 700; text-align: center; }
 /* ── 닭꼬치 꽂기 (engine-e8) ────────────────────────────────
    왼쪽 재료 · 가운데 꼬치 3개 · 오른쪽 완성 개수/참고 모양 3단 구성입니다.
    재료 조각(.sk-piece)과 꼬챙이(.sk-rod)는 전부 임시 CSS 도형입니다.
@@ -2943,6 +2974,8 @@
 @media (prefers-reduced-motion:reduce) {
   .order-place-reject,.order-result.show,
   .bt-bowl-wrap.receive-flour .bt-batter,.bt-bowl-wrap.receive-water .bt-batter,.bt-bowl-wrap.receive-kimchi .bt-batter,
+  .bt-bowl-wrap.receive-flour .state-art .bt-bowl-asset,.bt-bowl-wrap.receive-water .state-art .bt-bowl-asset,
+  .bt-bowl-wrap.receive-kimchi .state-art .bt-bowl-asset,.bt-bowl-wrap.filled .bt-bowl,
   .whisk-work-area.finishing .bt-stir-ring,.whisk-work-area.finishing .whisk-tool,
   .sk-ing-card.required,.sk-slot.next,.sk-piece.fresh,
   .tteok-source.just-added,.water-source.just-added,.soaking-bowl.settling span,.soak-bubbles b { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
@@ -3050,8 +3083,10 @@
   .batter-prep-scene { --bowl: calc(290 * var(--upx)); --ring: calc(340 * var(--upx)); }
   .bt-ing-art i { width: calc(52 * var(--upx)); height: calc(52 * var(--upx)); }
   .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
+  .bt-ing-asset { max-height: calc(84 * var(--upx)); }
   .bt-count strong { font-size: calc(42 * var(--upx)); }
   .bt-guide-figure .bt-bowl { width: calc(110 * var(--upx)); height: calc(110 * var(--upx)); }
+  .bt-guide-note { font-size: calc(15 * var(--upx)); }
   .whisk-tool { width: calc(52 * var(--upx)); height: calc(165 * var(--upx)); }
   .whisk-tool::before { width: calc(15 * var(--upx)); height: calc(103 * var(--upx)); }
   .whisk-tool::after { top: calc(94 * var(--upx)); width: calc(23 * var(--upx)); height: calc(14 * var(--upx)); }
