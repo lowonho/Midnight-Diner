@@ -138,18 +138,21 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
-  // 김치 볶기 (engine-e3). 팬은 아직 CSS 임시 도형입니다.
-  // (가스레인지는 아래 화구 레이어로 빠졌습니다 — burnerGas1~3)
-  fryingPan:"assets/prep/kimchi/frying-pan.png",
+  // 김치 볶기 (engine-e3). 화구는 아래 burnerGas1~3 레이어입니다.
+  // ⚠️ fryingPan 은 **E5 김치전 굽기와 공용**입니다 (같은 후라이팬).
+  //    손잡이까지 들어 있는 그림이라 몸통은 전체 폭의 79.7% 뿐입니다.
+  //    자리 잡는 방법은 css/day-prep-minigames.css 의 .frying-pan 주석 참고.
+  fryingPan:"assets/minigame/E3/fix_frying_pan_wide_inner_4x.webp",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
   // 왼쪽 재료 카드 2장 — assets/minigame/E3/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   fryIngKimchi:"assets/minigame/E3/food_kimchi_sliced.webp",
   fryIngSugar:"assets/minigame/E3/food_sugar.webp",
-  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 철판·면은 아직 CSS 임시 도형입니다.
-  // stirGriddle 은 불까지 함께 그려진 철판 한 장이고, stirNoodles 는 그 위에 올라갑니다.
-  stirGriddle:"assets/prep/yakisoba/griddle.png",
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 볶이는 면은 아직 CSS 임시 도형입니다.
+  // ⚠️ stirGriddle 은 이제 **불이 빠진 철판 한 장**입니다. 불은 따로 깔리는
+  //    화구 레이어(burnerGriddle1~3)가 그립니다.
+  stirGriddle:"assets/minigame/E3/fix_griddle_plate_wide_mild_trapezoid_4x.webp",
   stirNoodles:"assets/prep/yakisoba/noodles.png",
   stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
   // 왼쪽 재료 카드 3장 — assets/minigame/E3/ 의 납품 에셋입니다.

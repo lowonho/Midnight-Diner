@@ -164,7 +164,15 @@ const FILES = [
   ...["01","02","03"].flatMap(no=>[
     { file:`E3/fix_gas_burner_low_fire_${no}.png`, size:null, css:"가스버너 (원본 배율 유지)" },
     { file:`E3/fix_griddle_burner_fire_${no}.png`, size:null, css:"철판 화구 (원본 배율 유지)" }
-  ])
+  ]),
+  /* E3 조리기구 2종. 화구와 달리 **4배율 마스터**라 절반으로 줄여 2배율을 만듭니다.
+       팬    화면 640 x 278 — 손잡이까지 포함한 크기입니다. 몸통(타원)은 그중 79.7%
+             뿐이고 나머지 오른쪽이 손잡이라, 자리를 잡을 때는 몸통 중심(그림 왼쪽에서
+             39.9%)을 화구 불꽃 링에 맞춥니다. 손잡이는 플레이 칸 밖으로 나가
+             .kf-board / .ts-board 의 overflow:hidden 에 잘립니다.
+       철판  화면 760 x 321 */
+  { file:"E3/fix_frying_pan_wide_inner_4x.png",             size:[1280,556], css:".frying-pan · .two-side-pan 640x278" },
+  { file:"E3/fix_griddle_plate_wide_mild_trapezoid_4x.png", size:[1520,643], css:".yk-griddle 760x321" }
 ];
 
 const QUALITY = 90;

@@ -1485,26 +1485,40 @@
    여기서는 그 화구 **위 어디에 팬을 얹을지**만 정합니다. */
 .kf-board .mg-burner { z-index: 0; }
 /* 팬이 화구 위에 앉는 높이. 화구 그림(표시 높이 359.6)에서
-     삼발이 앞다리 끝   바닥에서 약 83
-     불꽃 링           바닥에서 125 ~ 345
-   팬(높이 210)은 화구 앞에 그려지므로, 팬 위쪽 테두리가 불꽃 링 꼭대기(345)보다
-   아래에 있어야 불꽃이 팬 뒤로 솟아 보입니다 → 90 + 210 = 300 < 345.
-   동시에 삼발이 끝(83) 바로 위라 팬이 삼발이에 걸터앉습니다.
-   ⚠️ 이 값을 키우면 팬 위쪽이 불꽃 꼭대기를 넘어서면서 불이 안 보입니다.
-      줄이면 화구 몸통에 파묻힙니다. 불꽃이 보이는 정도를 정하는 값입니다. */
-.kf-board { --kf-pan-drop: calc(90 * var(--upx)); }
+     삼발이            바닥에서 72 ~ 342
+     불꽃 링           바닥에서 125 ~ 345 (파란 밑동은 126 ~ 286)
+
+   [쌓이는 순서 — 팬 · 불 · 화구]
+   불은 화구 그림에 함께 그려져 있어서 팬과 화구 사이에 따로 끼울 수 없습니다.
+   대신 **팬 윗변을 불꽃 꼭대기보다 위로 올려** 같은 결과를 냅니다 —
+   235 + 235 = 470 > 345 이라 불이 팬 위로는 한 점도 솟지 않고,
+   팬 아래로만 불꽃 밑동이 비칩니다.
+
+   [보이는 양] 불꽃 밴드가 125~345(높이 220)이고 팬 바닥이 235 이므로
+   125~235, 즉 **절반**이 보입니다. 파란 밑동과 붉은 불이 함께 보입니다.
+   ⚠️ 줄이면 불이 더 보이다가 팬 위로 솟기 시작하고, 키우면 불이 가려집니다. */
+.kf-board {
+  --kf-pan-drop: calc(235 * var(--upx));
+  --kf-pan-w: calc(540 * var(--upx));
+}
+/* 후라이팬. 그림에 **손잡이가 함께 들어 있습니다.**
+     몸통(타원)  그림 왼쪽부터 79.7% 까지
+     몸통 중심   그림 왼쪽에서 39.9%
+   그래서 그림을 그냥 가운데 정렬하면 몸통이 왼쪽으로 치우칩니다.
+   `left:50%` 로 놓고 몸통 중심만큼 되당기면 **몸통 한가운데가 화구 불꽃 링
+   중심에 정확히 옵니다.** 손잡이는 그 결과 오른쪽 736 에서 끝나며,
+   칸(824) 안이라 잘리지 않습니다.
+   ⚠️ 가운데 정렬에 `transform` 을 쓰지 않습니다 — 팬 위에서 도는
+      애니메이션(kf-food-*)과 transform 이 서로 덮어씁니다.
+   ⚠️ 세로는 그림 비율(2.3022)에서 뽑습니다. 폭만 바꾸면 같이 따라옵니다. */
 .frying-pan {
-  /* ⚠️ 가운데 정렬을 `transform: translateX(-50%)` 로 하지 않습니다.
-     팬 위에서 도는 애니메이션(kf-food-*)과 transform 이 서로 덮어씁니다.
-     좌우 0 + margin-inline:auto 는 transform 을 건드리지 않고 가운데로 보냅니다. */
   position: absolute;
   z-index: 1;
-  left: 0;
-  right: 0;
+  left: 50%;
   bottom: var(--kf-pan-drop);
-  width: calc(470 * var(--upx));
-  height: calc(210 * var(--upx));
-  margin-inline: auto;
+  width: var(--kf-pan-w);
+  height: calc(var(--kf-pan-w) / 2.3022);
+  margin-left: calc(var(--kf-pan-w) * -0.399);
   border: calc(9 * var(--upx)) solid #57534d;
   border-radius: 50%;
   background: #292724;
@@ -1522,10 +1536,14 @@
   transform-origin: left center;
   transform: rotate(12deg);
 }
+/* 볶이는 김치(CSS 그대로). 자리는 % 로 잡습니다 — 팬 그림의 오른쪽 20% 가
+   손잡이라, 고정 여백으로 두면 김치가 손잡이 위로 흘러넘칩니다.
+   ⚠️ 팬 안쪽 면에 여백이 남도록 일부러 작게 잡았습니다. 값을 줄이면 내용물이
+      팬 테두리(림)까지 차올라 꽉 낀 것처럼 보입니다. */
 .frying-kimchi {
   position: absolute;
   z-index: 2;
-  inset: calc(16 * var(--upx)) calc(34 * var(--upx));
+  inset: 14% 27% 16% 7%;
   border-radius: 46%;
   background: repeating-linear-gradient(110deg,#a83d28 0 calc(17 * var(--upx)),#d66135 calc(18 * var(--upx)) calc(30 * var(--upx)),#809142 calc(31 * var(--upx)) calc(35 * var(--upx)));
   transform-origin: center;
@@ -1545,8 +1563,10 @@
 .kf-wood-spatula {
   position: absolute;
   z-index: 4;
-  left: 48%;
-  top: calc(-74 * var(--upx));
+  left: 40%;                    /* 팬 그림의 몸통 중심(39.9%)에 맞춥니다 */
+  /* ⚠️ 원래 -74 였습니다. 팬이 화구 위로 올라가면서 주걱 손잡이가 칸 위로
+     뻗어 나갔습니다(팬 윗변 470 + 74 = 544 > 칸 503). -30 이면 칸 안에 듭니다. */
+  top: calc(-30 * var(--upx));
   width: calc(25 * var(--upx));
   height: calc(230 * var(--upx));
   border: calc(2 * var(--upx)) solid #6b3e19;
@@ -3147,8 +3167,7 @@
   .cut-card-figure { min-height: calc(96 * var(--upx)); }
   .cut-card-figure .cut-sample { width: calc(115 * var(--upx)); }
   .cut-count-value { font-size: calc(38 * var(--upx)); }
-  .kf-board { --kf-pan-drop: calc(96 * var(--upx)); }
-  .frying-pan { width: calc(300 * var(--upx)); height: calc(135 * var(--upx)); }
+  .kf-board { --kf-pan-drop: calc(112 * var(--upx)); --kf-pan-w: calc(380 * var(--upx)); }
   .frying-pan::after { width: calc(110 * var(--upx)); height: calc(18 * var(--upx)); }
   .kf-ing-art i { width: calc(64 * var(--upx)); height: calc(64 * var(--upx)); }
   .kf-count strong { font-size: calc(42 * var(--upx)); }
