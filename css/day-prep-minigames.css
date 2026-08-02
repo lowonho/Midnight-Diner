@@ -2363,7 +2363,7 @@
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(calc(95 * var(--upx))) rotate(12deg) scale(.65); } }
 @keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(calc(42 * var(--upx))) rotate(38deg); } 100% { opacity:.25; transform:translateX(calc(58 * var(--upx))) translateY(calc(24 * var(--upx))) rotate(52deg); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(calc(-18 * var(--upx))) translateY(-50%); } 50% { opacity:1; transform:translateX(calc(9 * var(--upx))) translateY(-50%); } 100% { opacity:0; transform:translateX(calc(16 * var(--upx))) translateY(-50%); } }
-/* ── 채칼 (engine-e2) — 양배추 · 당근 · 감자 ─────────────────
+/* ── 채칼 (engine-e12) — 양배추 · 당근 · 감자 ────────────────
    가운데 플레이 그림만 여기 있습니다. 바깥 3열 틀은 위 "튀김 준비"의
    .fp-scene 을 그대로 씁니다. (공용 프레임은 건드리지 않습니다)
 
@@ -2575,6 +2575,24 @@
 }
 .md-plate.has-asset .md-blade { display: none; }
 
+/* 재료 중심을 통과하는 실제 채칼 장축(약 33도)입니다. */
+.md-drag-track {
+  position: absolute;
+  z-index: 2;
+  left: 54%;
+  top: 49%;
+  width: 62%;
+  height: calc(5 * var(--upx));
+  border-radius: calc(4 * var(--upx));
+  background: repeating-linear-gradient(90deg,rgba(255,239,182,.78) 0 calc(16 * var(--upx)),transparent calc(16 * var(--upx)) calc(27 * var(--upx)));
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(70,34,12,.7);
+  opacity: .68;
+  transform: translate(-50%,-50%) rotate(33deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.md-scene.mandoline-dragging .md-drag-track { opacity: 1; }
+
 /* 썰리는 재료 — food_*_whole_01~08 을 진행도에 맞춰 갈아 끼웁니다.
 
    ⚠️ **아래를 기준으로 놓습니다** (top 이 아니라 bottom 입니다).
@@ -2618,15 +2636,20 @@
   z-index: 3;
   left: calc(var(--md-ing-cx) - var(--md-ing-w) * var(--md-ing-fit) / 2);
   /* --md-ing-drift : 장이 넘어갈 때마다 조금씩 아래로 미는 값 (01 은 0).
-     engine-e2-alternate-input.js 의 MANDOLINE_FRAME_DRIFT 가 넣어 줍니다. */
+     engine-e2-alternate-input.js 의 공용 채칼 화면 코드가 넣어 줍니다. */
   bottom: calc(100% - var(--md-ing-b) - var(--md-ing-drift,0) * var(--upx));
   width: calc(var(--md-ing-w) * var(--md-ing-fit));
   height: calc(var(--md-ing-h) * var(--md-ing-fit));
-  transform: scale(var(--md-shorten,1));
+  transform: translate(var(--md-drag-x,0px),var(--md-drag-y,0px)) scale(var(--md-shorten,1));
   transform-origin: center;
   transition: transform .09s;
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(20,10,4,.5));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
 }
+.md-ingredient.dragging { cursor: grabbing; transition: none; filter: drop-shadow(0 calc(8 * var(--upx)) calc(10 * var(--upx)) rgba(20,10,4,.62)) brightness(1.05); }
 .md-ingredient.cabbage {
   --md-ing-w: 47.46%; --md-ing-h: 56.73%; --md-ing-cx: 56.67%; --md-ing-b: 49%;
   border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%;
@@ -2646,7 +2669,7 @@
 }
 /* 그림이 있으면 상자 높이는 그림이 정합니다 — 깎일수록 아래 기준으로 낮아집니다 */
 .md-ingredient.has-asset { height: auto; border: 0; background: none; clip-path: none; }
-.md-ingredient-asset { display: block; width: 100%; height: auto; }
+.md-ingredient-asset { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
 /* 누른 방향으로 한 번 밀립니다 */
 .md-ingredient.move-left { animation: md-slide-left .13s ease; }
 .md-ingredient.move-right { animation: md-slide-right .13s ease; }

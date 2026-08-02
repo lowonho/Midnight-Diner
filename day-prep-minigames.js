@@ -206,7 +206,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
     [["Weak","weak"],["Medium","medium"],["Strong","strong"]].flatMap(([levelKey,levelFile])=>
       ["01","02","03","04"].map((no,index)=>
         [`boil${dishKey}${levelKey}${index+1}`,`assets/minigame/E4/food_${dishFile}_boil_${levelFile}_${no}.webp`])))),
-  /* 채칼 (engine-e2). PNG 가 마스터이고 여기서 쓰는 WebP 는
+  /* 채칼 (engine-e12, 에셋 폴더명은 기존 E2 유지). PNG 가 마스터이고 여기서 쓰는 WebP 는
      tools/build-minigame-art-webp.js 산출물입니다.
 
      [채칼 · 채반은 낱장이지만 한 덩어리로 놓입니다]

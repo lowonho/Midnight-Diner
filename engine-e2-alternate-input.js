@@ -1,10 +1,8 @@
 "use strict";
 
 /* ============================================================
-   E2 번갈아 입력 — 게임 5개
+   E2 번갈아 입력 — 게임 2개
 
-     양배추 채썰기 · 당근 채썰기   ← → 를 번갈아
-     감자 채썰기                   ← → 를 번갈아
      감자 전분 털기                무작위 알파벳 두 개를 번갈아
      새우 튀김옷                   무작위 알파벳 두 개를 번갈아
 
@@ -15,9 +13,9 @@
    · "지금 차례인가 / 다음 차례로 넘긴다" 판정은 아래 도우미 두 개로 합쳤습니다.
      방향형(expected 에 방향 문자열)과 키형(keys 배열 + expectedIndex) 두 가지
      데이터 모양을 모두 다룹니다.
-   · 채칼 3개(양배추 · 당근 · 감자)는 방향만 다르고 나머지가 같아서
-     엔진 · 시작함수 · 화면을 하나로 합쳤습니다.
-   · 네 게임 모두 화면 틀(재료 / 플레이 / 진행도·조작 3열)이 같아서
+   · E12 채칼은 이 파일의 공용 진행 도우미와 3열 화면만 공유합니다.
+     직접 잡기·포인터 캡처·대각선 왕복 판정은 engine-e12-grab-shake.js가 맡습니다.
+   · 준비 게임들은 화면 틀(재료 / 플레이 / 진행도·조작 3열)이 같아서
      renderFryPrepScreen 하나로 합쳤습니다. 가운데 플레이 그림만 게임별로
      따로 그립니다 — 채칼·봉투 흔들기·튀김옷은 그림이 완전히 다릅니다.
 
@@ -26,9 +24,6 @@
    각 단계가 바뀔 때 무작위 알파벳 쌍을 새로 뽑습니다.
    ============================================================ */
 
-// 채칼 두 종류(볶음우동 · 감자튀김)는 모두 ← → 입력을 씁니다.
-registerDayPrepSetup("mandoline",taskId=>setupMandoline(taskId));
-registerDayPrepSetup("potatoMandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
 registerDayPrepSetup("shrimpCoat",taskId=>setupShrimpCoat(taskId));
 
@@ -58,10 +53,10 @@ function advanceAlternateTurn(data,input){
 }
 
 /* ============================================================
-   1. 채칼 — 방향키를 번갈아 (양배추 · 당근 · 감자)
+   E12 공용 채칼 화면·진행 데이터 (양배추 · 당근 · 감자)
 
    ✅ 볶음우동 채칼과 감자튀김 채칼은 "움직이는 방향"만 다릅니다.
-      세 채칼 모두 같은 좌우 입력 엔진과 화면을 씁니다.
+      세 채칼 모두 같은 E12 직접 조작 엔진과 이 공용 화면을 씁니다.
       mandolineTask 가 한 모양으로 맞춰 읽습니다.
         ← → : day-prep-minigames.js 의 DAY3_MANDOLINE_CONFIG
         ← → : day4-prep-data.js 의 DAY4_PREP_CONFIG.potatoMandoline
@@ -154,27 +149,13 @@ function mandolineCardAssetKey(ingredient){
   return `mandolineCard${ingredient.charAt(0).toUpperCase()}${ingredient.slice(1)}`;
 }
 
-registerDayPrepEngine("mandoline",{
-  key(m,k,e){
-    if(!k.startsWith("arrow"))return false;
-    const direction=k.replace("arrow","");
-    if(!m.data.directions.includes(direction)){
-      rejectAlternateInput(m,`${MANDOLINE_ARROWS[m.data.expected]} 방향 차례입니다. 좌우 키를 번갈아 누르세요.`,"#mandolineScene");
-      return true;
-    }
-    mandolineInput(direction,e.repeat);
-    return true;
-  }
-});
-
 function setupMandoline(taskId,stageGrades=[]){
   const task=mandolineTask(taskId);
   if(!task||!state.mini||Number(state.day)<task.day)return;
   setDayPrepData(createAlternateFeelState({mode:"mandoline",...task,successInputs:0,expected:task.directions[0],stageGrades:[...stageGrades]}));
-  const way=task.axis==="x"?"좌우로":"위아래로";
   dom.miniTitle.textContent=`${task.label} 채썰기`;
-  dom.miniStation.textContent=`${way} 움직여 ${task.label}${koObjectParticle(task.label)} 채썰어주세요!`;
-  dom.miniDescription.textContent=`${way} 방향키를 번갈아 눌러 채칼을 움직여 채썰어주세요!`;
+  dom.miniStation.textContent=`${task.label}${koObjectParticle(task.label)} 직접 잡고 채칼 방향으로 크게 왕복해 주세요!`;
+  dom.miniDescription.textContent="재료를 잡아 왼쪽 위와 오른쪽 아래로 끝까지 왕복하세요. 방향키도 사용할 수 있습니다.";
   renderMandoline();
 }
 
@@ -211,7 +192,6 @@ function mandolineSceneMarkup(data){
   }).join("");
   const plateAsset=dayPrepAssetMarkup("mandolinePlate","md-plate-asset","채칼");
   const basketAsset=dayPrepAssetMarkup("mandolineColander","md-basket-asset","채반");
-  const hintAsset=dayPrepAssetMarkup("mandolineArrow","md-hint-asset","좌우로 움직이기");
   // 도마는 칸 배경으로 깔립니다 (css 의 "나무 도마" 구역) — 여기 조각이 없습니다.
   return `<div class="md-scene axis-${data.axis}" id="mandolineScene">
       <div class="md-basket ${basketAsset?"has-asset":""}" aria-hidden="true">${basketAsset}</div>
@@ -219,10 +199,9 @@ function mandolineSceneMarkup(data){
       <i class="md-legs left" aria-hidden="true"></i>
       <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
       <div class="md-plate ${plateAsset?"has-asset":""}">
-        ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
+        ${plateAsset}<i class="md-blade" aria-hidden="true"></i><i class="md-drag-track" aria-hidden="true"></i>
         <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten};--md-ing-drift:${drift}">${asset}</div>
       </div>
-      <i class="md-hint ${hintAsset?"has-asset":""}" aria-hidden="true">${hintAsset}</i>
     </div>`;
 }
 
@@ -232,7 +211,6 @@ function renderMandoline(){
   // 왼쪽 재료 카드 = 이 화면에서 이어서 썰 재료들. 지금 재료가 밝게 표시됩니다.
   const chain=MANDOLINE_CHAIN[data.chain].map(mandolineTask).filter(Boolean);
   const done=chain.filter(item=>state.prepProgress?.[item.taskId]).length;
-  const way=data.axis==="x"?"좌우로":"위아래로";
   // 공용 타이머 카드는 이 화면에서 숨기지만 내용은 계속 채워 둡니다.
   // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
   dom.miniTimer.textContent=`${data.successInputs} / ${data.totalInputs}`;
@@ -249,10 +227,12 @@ function renderMandoline(){
     percent,
     keys:data.directions.map(direction=>({value:direction,glyph:MANDOLINE_ARROWS[direction]})),
     expectedIndex:data.directions.indexOf(data.expected),
-    keyLink:"→",
-    controlName:`${way}<br />채칼 움직이기`,
+    keyLink:"또는",
+    controlName:"재료를 잡고<br />대각선으로 크게 왕복",
     phase:data.phase
   },direction=>mandolineInput(direction,false));
+  bindMandolineDrag();
+  updateMandolineDragPose(data);
 }
 
 function createAlternateFeelState(data){
@@ -300,7 +280,7 @@ function showAlternateGrade(grade){
   result.className=`e2-result show ${grade}`;
 }
 
-function mandolineInput(direction,repeat=false){
+function mandolineInput(direction,repeat=false,pointerDriven=false){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="mandoline")return false;
   const data=m.data;
   const result=acceptAlternateInput(data,direction,repeat);
@@ -311,7 +291,7 @@ function mandolineInput(direction,repeat=false){
   renderMandoline();
   // 다시 그린 직후에 붙여야 애니메이션이 살아납니다 (튀김 준비의 흔들림과 같은 이유)
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
-  if(ingredient){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
+  if(ingredient&&!pointerDriven){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
   dom.miniContent.querySelector(`[data-fry-prep-key="${direction}"]`)?.classList.add("pressed");
   if(data.successInputs>=data.totalInputs)finishMandolineStep(m);
   return true;

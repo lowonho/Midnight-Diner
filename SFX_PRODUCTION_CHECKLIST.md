@@ -30,7 +30,7 @@
 | 11 | E1 | `sfx_cut_meat` | 닭고기를 묵직하게 절단하는 소리 | `raw chicken chopping sound` | 0.15~0.3초 | ☐ |
 | 12 | E3 | `sfx_metal_scrape` | 철판 뒤집개로 철판과 우동면을 미는 소리 | `metal spatula griddle scrape` | 0.15~0.4초 | ☐ |
 | 13 | E3 | `sfx_wood_stir` | 나무 주걱으로 김치를 팬에서 미는 소리 | `wooden spatula stirring pan sound` | 0.15~0.35초 | ☐ |
-| 14 | E2 | `sfx_mandoline_slide` | 채칼 위로 양배추·당근·감자를 빠르게 미는 소리 | `mandoline slicer vegetable sound` | 0.1~0.25초 | ☐ |
+| 14 | E12 | `sfx_mandoline_slide` | 채칼 위로 양배추·당근·감자를 빠르게 미는 소리 | `mandoline slicer vegetable sound` | 0.1~0.25초 | ☐ |
 | 15 | E6 | `sfx_fry_basket_lift` | 금속 바스켓을 기름 위로 들어 올리는 소리 | `deep fryer basket lift sound` | 0.3~0.6초 | ☐ |
 | 16 | E6 | `sfx_fry_basket_shake` | 바스켓을 탁 움직여 기름을 터는 소리 | `fryer basket shake metal sound` | 0.12~0.3초 | ☐ |
 | 17 | E5 | `sfx_pancake_flip` | 김치전이 떠올라 뒤집힌 뒤 팬에 착지하는 전체 동작 | `pancake flip pan landing sound` | 0.4~0.8초 | ☐ |

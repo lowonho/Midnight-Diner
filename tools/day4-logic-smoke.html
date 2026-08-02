@@ -31,6 +31,7 @@ function setMiniTipHint(){}
 <script src="../engine-e9-whisk.js"></script>
 <script src="../engine-e10-target-click.js"></script>
 <script src="../engine-e11-one-shot.js"></script>
+<script src="../engine-e12-grab-shake.js"></script>
 <script>
 try{
   const assert=(condition,message)=>{if(!condition)throw new Error(message);};
@@ -128,8 +129,6 @@ try{
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
   assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.potAsset!==HEAT_CONFIG.tteokbokki.potAsset&&HEAT_CONFIG.oden.response!==HEAT_CONFIG.tteokbokki.response,"Heat shared config and dish variants");
-
   const alternate={keys:["a","d"],expectedIndex:0};
   assert(isAlternateTurn(alternate,"a")&&!isAlternateTurn(alternate,"d"),"E2 first alternating key");
   advanceAlternateTurn(alternate,"a");assert(isAlternateTurn(alternate,"d"),"E2 next alternating key");
@@ -138,7 +137,19 @@ try{
   const paused=createAlternateFeelState({keys:["a","d"],expectedIndex:0});acceptAlternateInput(paused,"a",false,1000);acceptAlternateInput(paused,"d",false,2401);
   assert(alternateCompletionGrade(smooth)==="perfect"&&alternateCompletionGrade(paused)==="good"&&smooth.expectedIndex===0,"E2 completion grade from smooth and paused input");
   state.day=6;state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupMandoline("sliceFriesPotato");mandolineInput("left",false);
+  assert(MINI_ENGINES.mandoline&&DAY_PREP_SETUPS.mandoline&&DAY_PREP_SETUPS.potatoMandoline,"E12 owns mandoline engine and setup registration");
   assert(state.mini.data.successInputs===1&&state.mini.data.expected==="right"&&dom.miniContent.querySelector("#mandolineIngredient.move-left"),"E2 mandoline input and visual state");
+  assert(mandolineDragProjection(83.9,54.5)>99&&Math.abs(mandolineDragProjection(-54.5,83.9))<1,"E2 mandoline projects pointer motion onto the illustrated diagonal rail");
+  const dragIngredient=dom.miniContent.querySelector("#mandolineIngredient"),dragPlate=dom.miniContent.querySelector(".md-plate");
+  dragPlate.getBoundingClientRect=()=>({left:0,top:0,width:500,height:400,right:500,bottom:400});dom.miniContent.setPointerCapture=()=>{};dom.miniContent.releasePointerCapture=()=>{};dom.miniContent.hasPointerCapture=()=>true;
+  dragIngredient.dispatchEvent(new PointerEvent("pointerdown",{pointerId:22,pointerType:"mouse",button:0,clientX:100,clientY:100,bubbles:true}));
+  dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId:22,pointerType:"mouse",clientX:205,clientY:168,bubbles:true}));
+  assert(state.mini.data.successInputs===2&&state.mini.data.expected==="left"&&state.mini.data.drag?.pointerId===22&&dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 held pointer makes one large diagonal mandoline stroke and survives rerender");
+  dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
+  assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
+  dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
+  assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.potAsset!==HEAT_CONFIG.tteokbokki.potAsset&&HEAT_CONFIG.oden.response!==HEAT_CONFIG.tteokbokki.response,"Heat shared config and dish variants");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
   for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
   assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
