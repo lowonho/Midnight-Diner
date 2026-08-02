@@ -479,7 +479,8 @@
   width:calc(220 * var(--upx));
   height:calc(410 * var(--upx));
   /* 칼 몸통 중심이 아니라 오른쪽 절삭날이 점선 위에 오도록 반 칼폭만 왼쪽으로 당깁니다. */
-  margin-left:calc(-10 * var(--upx));
+  /* --knife-x는 칼 중심이 아니라 세로 칼날의 보이는 왼쪽 끝입니다. */
+  margin-left:calc(30 * var(--upx));
   --knife-turn:0deg;
   transform-origin:50% 50%;
 }
