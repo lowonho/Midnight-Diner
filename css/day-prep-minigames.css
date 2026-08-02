@@ -2507,7 +2507,9 @@
 .md-scene {
   /* 채칼+채반 한 덩어리. 폭 585 면 덩어리 높이가 478.5 이고,
      위 6 에서 시작해 채반 아래끝이 484.5 — 그 아래 화살표(61.9) 자리가 남습니다.
-     ⚠️ 키우면 화살표가 도마 그림의 아래 테두리(칸 위쪽 기준 556)를 넘습니다. */
+     ⚠️ 585 는 예전 도마 그림(액자가 그려져 있어 아래 테두리가 칸 위쪽 기준
+        556)에 맞춘 값입니다. 지금 도마(fix_tempura_prep_board)는 액자가 없어
+        그 제한이 사라졌지만, 자리를 굳이 흔들지 않으려고 그대로 둡니다. */
   --md-rig-w: calc(585 * var(--upx));
   --md-rig-h: calc(var(--md-rig-w) / 1.2226);
   --md-rig-l: calc(50% - var(--md-rig-w) / 2);
@@ -2777,8 +2779,12 @@
      (위쪽은 채칼 판이 덮습니다). */
   left: calc(var(--md-basket-l) + var(--md-basket-w) / 2);
   top: calc(var(--md-basket-t) + var(--md-basket-h) * .52);
-  width: calc(300 * var(--upx));
-  height: calc(130 * var(--upx));
+  /* 채반 안쪽을 거의 가득 채우는 상자입니다. 가닥은 이 상자의 ±40%(가로) ·
+     ±29%(세로) 타원 안에 놓이므로, 상자를 키우면 더미가 그만큼 넓게 흩어집니다.
+     ⚠️ 여기서 더 키우면 가장자리 가닥이 채반 테두리를 넘습니다 —
+        1920 기준 채반 안쪽 폭이 약 475, 지금 가닥이 닿는 폭이 약 370 입니다. */
+  width: calc(420 * var(--upx));
+  height: calc(170 * var(--upx));
   transform: translate(-50%,-50%);
 }
 /* 더미가 앉은 자리의 그늘. 이게 없으면 가닥들이 채반 위에 떠 보입니다. */
@@ -2846,9 +2852,11 @@
 
 /* ── 소스 제조 (engine-e7) ──────────────────────────────────
    왼쪽 재료 목표 · 가운데 조리대(소스볼 + 소스통 3개) · 오른쪽 완성 개수 3단.
-   소스통(.sc-bottle)과 소스볼(.sc-bowl)은 전부 임시 CSS 도형입니다.
-   assets/prep/sauce/ 에 그림을 넣으면 .has-asset 이 붙어 도형이 꺼지고
-   <img>(.sc-bottle-asset / .sc-bowl-asset)가 대신 보입니다.
+   소스통(.sc-bottle) · 소스볼(.sc-bowl) · 화살표(.sc-arrow)는 assets/minigame/E7 의
+   납품 그림을 씁니다 — .has-asset 이 붙으면 아래 임시 CSS 도형이 꺼지고
+   <img>(.sc-bottle-asset / .sc-bowl-asset / .sc-arrow-asset)가 대신 보입니다.
+   도형 규칙은 그림이 빠졌을 때를 위해 남겨 둡니다 (지우지 마세요).
+   아직 그림이 없는 것은 부어지는 줄기(.sc-pour-stream) 하나뿐입니다.
 
    [공용 프레임과의 관계]
    css/minigame-frame.css 는 건드리지 않습니다. 아래 두 줄만 이 게임이
@@ -2888,7 +2896,30 @@
   gap: calc(8 * var(--upx));
   transition: border-color .15s, box-shadow .15s;
 }
-.sc-goal-art { display: grid; place-items: center; min-height: 0; }
+/* 그림칸에 순서 번호를 왼쪽 위에 얹습니다. 넣는 순서가 고정이라 카드만 봐도
+   몇 번째인지 읽혀야 합니다. 겹쳐 놓는 것이라 카드 높이는 그대로입니다. */
+.sc-goal-art { position: relative; display: grid; place-items: center; min-height: 0; }
+.sc-goal-order {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  min-width: calc(22 * var(--upx));
+  padding: 0 calc(4 * var(--upx));
+  border: 2px solid #8a5c32;
+  border-radius: calc(6 * var(--upx));
+  background: #1b100a;
+  color: #d8bb8b;
+  font-size: calc(16 * var(--upx));
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: center;
+}
+.sc-goal.turn .sc-goal-order { border-color: #ffe08d; background: #4b2c12; color: #fff1c6; }
+.sc-goal.exact .sc-goal-order { border-color: #4d6b32; color: #cfe6a2; }
+/* 차례를 기다리는 재료는 한 단계 죽여 둡니다 (다 넣은 것은 초록 표시가 이깁니다) */
+.sc-goal:not(.turn):not(.exact) .sc-goal-art,
+.sc-goal:not(.turn):not(.exact) .sc-goal-name { opacity: .62; }
 .sc-goal-info { display: grid; gap: calc(2 * var(--upx)); min-width: 0; }
 .sc-goal-name { color: #f0dcb4; font-size: calc(24 * var(--upx)); font-weight: 800; }
 .sc-goal-target { color: #d8bb8b; font-size: calc(18 * var(--upx)); font-weight: 700; }
@@ -2929,8 +2960,17 @@
   box-shadow: inset 0 calc(8 * var(--upx)) calc(18 * var(--upx)) rgba(60,38,20,.35), 0 calc(8 * var(--upx)) calc(16 * var(--upx)) rgba(0,0,0,.4);
   transform: translate(-50%,-50%);
 }
+/* 납품 소스볼(assets/minigame/E7)은 **볼과 소스가 한 장에 같이 그려져** 있습니다.
+   그래서 아래 임시 소스층(.sc-sauce)은 끄고, 넣은 재료 개수만큼 장을 갈아 끼웁니다
+   (engine-e7-measure.js 의 sauceBowlAssetKey · advanceSauceBowlStage).
+   ⚠️ 그림 비율 1.072 가 상자(320/272 = 1.176)보다 좁아 **세로 272 가 먼저 막힙니다**
+      → 291.6x272 로 그려집니다. 상자를 옮기거나 늘리면 tools 표의 583x544 도 같이. */
 .sc-bowl.has-asset { border: 0; background: none; box-shadow: none; overflow: visible; }
+.sc-bowl.has-asset .sc-sauce { display: none; }
 .sc-bowl-asset { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 소스가 그림 안에 있으니 튀김·섞임 연출도 그림째로 줍니다 (임시 도형 때와 같은 움직임) */
+.sc-bowl.splash .sc-bowl-asset { animation: sc-splash .3s ease; }
+.sc-board.mixing .sc-bowl-asset { animation: sc-sauce-mix .65s ease-in-out; }
 .sc-sauce {
   position: absolute;
   z-index: 1;
@@ -2963,21 +3003,31 @@
 }
 .sc-pourer[disabled] { cursor: default; }
 .sc-pourer:not([disabled]):hover .sc-bottle { transform: translateY(calc(-4 * var(--upx))); }
+/* 넣는 순서가 고정입니다. 차례가 아닌 소스통은 한 단계 죽여 두되 **막지는 않습니다** —
+   눌러 보면 어느 것이 먼저인지 알려 줍니다(engine-e7-measure.js 의 addYakisobaSauce). */
+.sc-pourer.waiting:not([disabled]) .sc-bottle { opacity: .55; filter: saturate(.65); }
+.sc-pourer.waiting:not([disabled]):hover .sc-bottle { opacity: .8; }
+.sc-pourer.wrong .sc-bottle { animation: sc-wrong .4s ease; }
 /* 세 자리 모두 **도마 그림의 안쪽 홈선 안쪽**에 들어와야 합니다.
    824.2 x 613.2 로 재보면 홈선이 좌 46 · 우 782 · 위 46 · 아래 573 이고,
    소스볼(.sc-bowl top:36.8%)은 좌 252.1 · 우 572.1 · 위 91.2 · 아래 363.2 를
    씁니다. 예전 값(좌우 2% · 아래 5.5%)은 병이 좌우 22.2 에서 시작하고
    밑동이 574.1 이라 셋 다 홈선을 밟았습니다. 남는 자리를 볼 쪽으로 몰아줍니다.
-     좌  8.6% · 38.8% → 가로 76.0~180.0   세로 149.9~328.8 (뱃지까지 366.1)
-     우  8.6% · 44.8% → 가로 644.4~748.4  세로 185.9~364.8 (뱃지까지 402.1)
+     좌  8.6% · 34.0% → 가로 76.0~180.0   세로 118.6~297.5 (뱃지까지 334.8)
+     우  8.6% · 40.0% → 가로 644.4~748.4  세로 155.4~334.3 (뱃지까지 371.6)
      아래 13.1%       → 가로 368.1~456.1  세로 377.0~528.4
-   ⚠️ 좌우를 여기서 더 당기면 병과 볼 사이 화살표(48 + 양옆 여유)가 병 뒤로
-      들어가 버립니다.
+   ⚠️ 좌우 세로는 원래 38.8% · 44.8% 였는데 **4.8%(약 29) 씩 올렸습니다.**
+      납품 소스통 그림이 CSS 임시 도형보다 아래로 무겁게 그려져 있어, 예전 값에
+      두면 병이 볼보다 처져 보였습니다. 위쪽 홈선까지 아직 72.6 이 남습니다.
+   ⚠️ 좌우를 **가로로** 더 당기면 병과 볼 사이 화살표(48 + 양옆 여유)가 병 뒤로
+      들어가 버립니다. 세로만 만지세요.
+   ⚠️ 좌우 두 자리의 6% 차이(계단)는 일부러입니다. 나란히 두면 양쪽
+      '한 번 넣기' 뱃지가 같은 높이에서 볼 테두리와 겹칩니다.
    ⚠️ 아래 소스통은 볼 밑에 매달린 자리라 **볼 top 과 한 몸**입니다. 볼만
       내리면 병이 아래 액자에 깔립니다 — 둘을 같이 옮기세요. 지금은 볼까지
       13.8, 홈선까지 44.6 으로 위아래 여유가 반씩입니다. */
-.sc-pourer.at-left   { left: 8.6%;  top: 38.8%; transform: translateY(-50%); }
-.sc-pourer.at-right  { right: 8.6%; top: 44.8%; transform: translateY(-50%); }
+.sc-pourer.at-left   { left: 8.6%;  top: 34.0%; transform: translateY(-50%); }
+.sc-pourer.at-right  { right: 8.6%; top: 40.0%; transform: translateY(-50%); }
 .sc-pourer.at-bottom { left: 50%; bottom: 13.1%; transform: translateX(-50%); }
 .sc-pourer.at-bottom .sc-bottle { --bw: calc(88 * var(--upx)); }
 .sc-pour-visual { position:relative; display:block; z-index:1; }
@@ -3039,10 +3089,17 @@
    세로는 짝이 되는 .sc-pourer 와 같은 값입니다.
    아래 화살표는 세로 여유가 없어 예전처럼 병 뒤에 가립니다 (병이 볼로 날아간
    동안만 잠깐 보입니다). 병 자리(377.0~528.4) 안에 들어가는 값이어야 합니다. */
-.sc-arrow.at-left   { left: 22.7%;  top: 38.8%; transform: translateY(-50%); }
-.sc-arrow.at-right  { right: 22.7%; top: 44.8%; transform: translateY(-50%) rotate(180deg); }
+.sc-arrow.at-left   { left: 22.7%;  top: 34.0%; transform: translateY(-50%); }
+.sc-arrow.at-right  { right: 22.7%; top: 40.0%; transform: translateY(-50%) rotate(180deg); }
 .sc-arrow.at-bottom { left: 50%;  bottom: 16.8%; transform: translateX(-50%) rotate(-90deg); }
 .sc-arrow.off { opacity: .16; animation: none; }
+/* 납품 화살표(assets/minigame/ui_arrow_right_01) — E2 새우와 **같은 한 장**을
+   세 자리가 돌려 씁니다. 임시 도형은 끄고 그림만 남깁니다.
+   ⚠️ 가로 48 은 그대로 두고 세로만 그림 비율(1.4347)에 맞춥니다. 위 자리 값이
+      "병 끝과 볼 끝 사이 72 짜리 틈의 한가운데" 로 잡혀 있어서, 가로를 키우면
+      그 계산이 통째로 어긋납니다. 세로는 가운데 정렬이라 늘려도 안 밀립니다. */
+.sc-arrow.has-asset { height: calc(33.5 * var(--upx)); background: none; clip-path: none; }
+.sc-arrow-asset { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 calc(10 * var(--upx)) rgba(255,214,130,.55)); }
 
 /* ── 소스통 그림 (임시 도형) ────────────────────────────────
    크기는 --bw(병 너비) 하나만 바꾸면 전체가 같이 줄고 늘어납니다. */
@@ -3123,7 +3180,28 @@
 .sc-bottle.has-asset .sc-cap,
 .sc-bottle.has-asset .sc-body,
 .sc-bottle.has-asset .sc-tag { display: none; }
-.sc-bottle-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 그림 두 장(닫힘 · 뚜껑 열림)이 겹쳐 있으므로 둘 다 상자에 띄웁니다.
+   닫힌 장은 상자를 그대로 쓰고(contain), 뚜껑 연 장만 아래 규칙이 따로 앉힙니다. */
+.sc-bottle-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* [뚜껑 연 소스통] 병을 들어 올리는 동안에만 보입니다.
+   ⚠️ 닫힌 장과 **같은 상자에 contain 으로 넣으면 안 됩니다.** 납품 그림이 짝마다
+      캔버스가 달라(뚜껑을 뺀 만큼 짧거나, 고추기름은 젖힌 뚜껑 때문에 오히려 큼)
+      뚜껑이 열리는 순간 병 몸통이 커졌다 작아졌다 합니다. 그래서 닫힌 장과 같은
+      배율이 되는 크기를 engine-e7-measure.js 의 sauceOpenBottleStyle 이 계산해
+      --open-* 로 넘겨 줍니다. 상자가 그림 비율과 딱 맞으므로 fill 이 안 찌그러집니다.
+   ⚠️ 아래끝을 닫힌 장의 아래끝(--open-bottom)에 맞춰 세웁니다. 뚜껑은 위로만
+      자라거나 줄어드는 부분이라, 이래야 몸통이 제자리에 섭니다.
+      고추기름은 젖힌 뚜껑이 상자 위로 삐져나오는데 자르지 않는 것이 맞습니다. */
+.sc-bottle-asset.is-open {
+  inset: auto auto var(--open-bottom,0) 50%;
+  width: var(--open-w,100%);
+  height: var(--open-h,100%);
+  object-fit: fill;
+  opacity: 0;
+  transform: translateX(-50%);
+}
+.sc-pourer.pouring .sc-bottle-asset.is-open { opacity: 1; }
+.sc-pourer.pouring .sc-bottle-asset:not(.is-open) { opacity: 0; }
 /* 카드·안내용 작은 병 (라벨은 옆 글씨와 겹치니 생략) */
 .sc-bottle.mini { --bw: calc(64 * var(--upx)); }
 .sc-bottle.tiny { --bw: calc(46 * var(--upx)); }
@@ -3176,6 +3254,8 @@
 }
 @keyframes sc-splash { 45% { transform: translateY(calc(-6 * var(--upx))) scaleY(1.05); } }
 @keyframes sc-arrow-pulse { 50% { opacity: .5; } }
+/* 차례가 아닌 소스통을 눌렀을 때. 좌우로 짧게 흔듭니다 (E2·E3 의 input-wrong 과 같은 결) */
+@keyframes sc-wrong { 0%,100% { transform:translateX(0); } 25% { transform:translateX(calc(-6 * var(--upx))); } 60% { transform:translateX(calc(5 * var(--upx))); } }
 @keyframes sc-sauce-mix { 0%,100% { transform:scale(1);filter:brightness(1); } 35% { transform:scaleX(1.06) scaleY(.94);filter:brightness(1.18); } 70% { transform:scaleX(.96) scaleY(1.04); } }
 @keyframes sc-result-in { to { opacity:1;transform:translate(-50%,-50%) scale(1); } }
 
@@ -3237,6 +3317,11 @@
    공용 86 을 그대로 쓰면 칸의 40% 만 쓰고 그림이 우표만 하게 보입니다.
    재료가 4줄인 새우튀김 준비(같은 .fp-scene)는 86 그대로 둡니다. */
 .fp-scene:has(.md-scene) .fp-ing-asset { max-height: calc(190 * var(--upx)); }
+/* 새우튀김 준비는 반대로 **줄입니다.** 재료가 4줄이라 카드가 140 뿐인데
+   공용 86 은 그림칸(86)을 세로로 딱 채우는 값이라, 납품 그림처럼 여백 없이
+   꽉 찬 그림을 넣으면 카드 테두리에 그대로 닿아 삐져나온 것처럼 보입니다.
+   가로도 카드(205.2)를 거의 채우므로 함께 조입니다. */
+.fp-scene:has(.fp-coat-row) .fp-ing-asset { max-width: 74%; max-height: calc(68 * var(--upx)); }
 /* 감자만 그림이 가로로 깁니다(1.317). 세로 190 에 걸리기 전에 **가로 210 이
    먼저 막혀서** 다른 카드보다 그림이 칸을 꽉 채워 보입니다. 가로를 178 로
    잡아 양배추·당근과 비슷한 여백이 남게 합니다. */
@@ -3290,6 +3375,8 @@
 .fp-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
 /* 키 버튼은 안내이면서 실제 버튼입니다 (키보드·마우스 둘 다 지원) */
 .fp-keys { display: flex; align-items: center; gap: calc(8 * var(--upx)); }
+/* 키가 없는 차례(새우 옮기기)에는 줄 자체를 접습니다 */
+.fp-keys:empty { display: none; }
 /* 겉모습은 공용 --mg-key-* (css/minigame-parts.css) 한 곳이 정합니다.
    크기·글꼴만 이 화면 것입니다 — 글리프 하나가 들어가는 큰 사각입니다. */
 .fp-key {
@@ -3416,18 +3503,94 @@
 .fp-wave.left { transform: scaleX(-1); }
 
 /* ── 새우튀김 준비 : 그릇 세 개 ──────────────────────────────
-   지나온 그릇은 흐려지고, 지금 그릇만 밝게 켜집니다. */
-.fp-coat-row { display: flex; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); }
-.fp-coat-station { position: relative; display: grid; place-items: center; opacity: .42; transition: opacity .15s; }
-.fp-coat-station.done { opacity: .72; }
+   지나온 그릇은 흐려지고, 지금 그릇만 밝게 켜집니다.
+
+   원래 세 그릇이 가로 한 줄이라 조리대(824.2 x 573.2 안쪽)의 가로만
+   꽉 차고 세로는 절반 넘게 비었습니다. 삼각형으로 세웠습니다.
+
+        [밀가루] →  [계란물]
+              [빵가루] ↙
+
+   마크업은 그대로입니다 — 그릇 div 셋과 그 사이 화살표 i 둘이
+   차례로 오고, 여기서 격자 칸만 지정합니다.
+   (밀가루/계란물/빵가루 클래스는 SHRIMP_COAT_STEPS 의 id 입니다)
+
+   [칸을 반씩 쪼갠 이유]  세 칸짜리 격자로 짜면 위 두 그릇 사이에 빵가루
+   그릇 한 칸(336)이 통째로 끼어 둘이 멀찍이 떨어집니다. **반 칸짜리 열 넷**을
+   깔고 그릇마다 두 칸씩 물리면, 위 두 그릇은 간격 하나(20)만 두고 붙고
+   아래 그릇은 그 둘 사이 한가운데(2·3열)에 정확히 걸립니다.
+     열   |  1  |  2  |  3  |  4  |
+     1행  |  밀가루   |  계란물   |
+     2행        |  빵가루   |
+   전체 가로 = 그릇 둘 + 간격 하나 = 336x2 + 20 = 692 (조리대 안쪽 788.2)
+   전체 세로 = 268x2 + 26 = 562 (조리대 안쪽 573.2)
+
+   ⚠️ 열 너비를 `auto` 로 두면 안 됩니다. 두 칸씩 걸친 것들만 있고 3열에는
+      화살표 하나가 혼자 있어서, 격자가 넷을 고르게 나누지 않고 제각각으로
+      벌립니다(실측 692 → 818, 조리대 밖으로 넘침). 반 칸 너비를 직접 못박습니다.
+   크기는 아래 세 값이 정합니다. 그릇 크기를 바꾸려면 여기만 고치면
+   열 너비 · 화살표 자리 · .fp-vessel 이 함께 따라갑니다. */
+.fp-coat-row {
+  --fp-bowl-w: calc(336 * var(--upx));
+  --fp-bowl-h: calc(268 * var(--upx));
+  /* 빵가루 그릇만 따로 큽니다 — 마지막 그릇이라 여기서 끝난다는 게 보이도록.
+     세로가 조리대 안쪽 573.2 에 걸리므로 268 + 8(간격) + 295 = 571 이 한계입니다.
+     가로는 자기 칸(336)을 넘어 좌우로 조금 삐져나오는데, 아랫줄의 1·4열이
+     비어 있어 부딪히는 것이 없습니다. */
+  --fp-bowl-w2: calc(370 * var(--upx));
+  --fp-bowl-h2: calc(295 * var(--upx));
+  --fp-bowl-gap: calc(20 * var(--upx));
+  --fp-bowl-row-gap: calc(8 * var(--upx));
+  display: grid;
+  grid-template-columns: repeat(4,calc((var(--fp-bowl-w) - var(--fp-bowl-gap)) / 2));
+  grid-template-rows: var(--fp-bowl-h) var(--fp-bowl-h2);
+  place-content: center;
+  place-items: center;
+  column-gap: var(--fp-bowl-gap);
+  row-gap: var(--fp-bowl-row-gap);
+}
+/* 그릇이 커지면서 .42 는 나무 도마가 비치는 유리그릇처럼 보였습니다.
+   지금 차례(1) · 지나온 그릇(.8) 과 구분은 되면서 그릇으로 보이는 선까지 올립니다. */
+.fp-coat-station { position: relative; display: grid; place-items: center; opacity: .58; transition: opacity .15s; }
+.fp-coat-station.done { opacity: .8; }
 .fp-coat-station.current { opacity: 1; }
-.fp-coat-arrow { flex: none; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+.fp-coat-station.flour { grid-area: 1 / 1 / 2 / 3; }
+.fp-coat-station.egg { grid-area: 1 / 3 / 2 / 5; }
+/* 빵가루는 아래 가운데 — 위 두 그릇 사이에 걸칩니다 */
+.fp-coat-station.breadcrumbs { grid-area: 2 / 2 / 3 / 4; }
+/* z-index 는 그릇 위로 올리려는 것입니다 — 그릇을 붙여 놓으면서 화살표 끝이
+   옆 그릇 상자에 몇 px 물리는데, 그냥 두면 뒤에 오는 그릇이 덮어 가립니다. */
+.fp-coat-arrow { position: relative; z-index: 3; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+/* 그림 화살표가 들어오면 글자 화살표 자리(글꼴 높이)를 없애야 상자가 그림에 맞습니다 */
+.fp-coat-arrow.has-asset { font-size: 0; line-height: 0; }
+.fp-coat-arrow-asset { display: block; width: calc(52 * var(--upx)); height: auto; filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(40,22,8,.55)); }
+/* 첫 화살표는 밀가루 → 계란물(오른쪽), 둘째는 계란물 → 빵가루(왼쪽 아래).
+   첫째는 2·3열에 걸치면 그 자리가 곧 위 두 그릇의 한가운데입니다.
+   둘째는 격자에 자리가 없어 계란물 아래 칸에 넣고, 거기서 두 그릇을 잇는
+   대각선 한가운데로 끌어올립니다 — 칸에 그냥 두면 오른쪽 끝에 혼자 떨어져
+   어느 그릇에서 어느 그릇으로 가라는 건지 안 읽힙니다.
+   올리는 양 = 두 그릇 중심 사이 거리의 절반 = (위칸/2 + 간격 + 아래칸/2) / 2.
+   ⚠️ 두 줄 높이가 서로 다르므로(268 · 295) 한 칸의 절반으로 계산하면 안 됩니다.
+   ⚠️ 둘 다 계란물 쪽으로 조금 밀어 둡니다. 정확한 중점에 두면 밀가루 그릇이
+      계란물 그릇보다 좁아서(295 vs 300) 화살표가 왼쪽으로 치우쳐 보이고,
+      아래 화살표도 빵가루 그릇이 커진 만큼 그쪽에 붙어 보입니다.
+      아래 화살표는 두 그릇을 잇는 대각선 방향(0.52, -0.85)으로 밉니다. */
+.fp-coat-row > i:nth-of-type(1) { grid-area: 1 / 2 / 2 / 4; transform: translateX(calc(6 * var(--upx))); }
+.fp-coat-row > i:nth-of-type(2) {
+  grid-area: 2 / 3;
+  transform: translateY(calc((var(--fp-bowl-h) / 2 + var(--fp-bowl-row-gap) + var(--fp-bowl-h2) / 2) / -2))
+             translate(calc(7 * var(--upx)),calc(-11 * var(--upx)))
+             rotate(135deg);
+}
+/* 그릇 자리. 납품 그림 셋 다 가로로 넓어(1.10 · 1.25 · 1.25) **세로 268 이 먼저
+   막히고** 가로는 295.3 / 333.9 / 335.6 으로 그려집니다. 상자 가로 336 은 가장
+   넓은 빵가루 그릇에 맞춘 값이라 어느 그릇도 잘리지 않습니다. */
 .fp-vessel {
   position: relative;
   display: grid;
   place-items: center;
-  width: calc(230 * var(--upx));
-  height: calc(220 * var(--upx));
+  width: var(--fp-bowl-w);
+  height: var(--fp-bowl-h);
   border: calc(7 * var(--upx)) solid #9c805d;
   border-top-width: calc(4 * var(--upx));
   border-radius: calc(14 * var(--upx)) calc(14 * var(--upx)) 46% 46%;
@@ -3440,10 +3603,56 @@
 .fp-vessel.breadcrumbs { background: radial-gradient(circle,#9c6a38 0 calc(2 * var(--upx)),transparent calc(2.5 * var(--upx))) 0 0/calc(11 * var(--upx)) calc(10 * var(--upx)),#deb877; }
 .fp-vessel.has-asset { border: 0; background: none; box-shadow: none; }
 .fp-vessel-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 빵가루 그릇만 큰 상자를 씁니다. 자기 칸(336)보다 넓어 좌우로 삐져나오지만
+   아랫줄 1·4열이 비어 있어 겹칠 것이 없습니다. */
+.fp-vessel.breadcrumbs { width: var(--fp-bowl-w2); height: var(--fp-bowl-h2); }
+/* 계란물 그릇은 셋 중 가장 납작해서(1.246) 옆의 밀가루 그릇(1.102)과 원근이
+   달라 보였습니다. 가로를 더 많이 깎아 원 쪽으로 당깁니다 — 300x258(1.163).
+   ⚠️ 그림 자체를 눌러 담은 것이라 살짝 찌그러집니다. 의도한 것이고,
+      WebP 도 같은 비율로 미리 눌러 뽑습니다(tools 표의 stretch 항목).
+      그래서 여기서는 object-fit:contain 이 그대로 딱 맞습니다. */
+.fp-vessel.egg .fp-vessel-asset { inset: calc(5 * var(--upx)) calc(18 * var(--upx)); }
+/* ── 그릇 안에서 새우가 앉는 높이 ──────────────────────────
+   그릇은 위에서 비스듬히 내려다본 그림이라, 음식이 담긴 면이 그릇 상자의
+   한가운데가 아니라 **조금 위쪽**에 있습니다. 새우를 상자 한가운데(기본)에
+   두면 음식보다 아래로 처져서 그릇 앞 테두리에 걸터앉은 것처럼 보입니다.
+   그래서 세 그릇 모두 조금씩 올립니다.
+   ⚠️ transform 이 아니라 top / left 로 옮깁니다. .fp-shrimp 의 transform 은
+      구르는 애니메이션이 쓰고 있어서, 여기서 겹쳐 쓰면 굴릴 때마다 제자리로
+      튕겨 내려갑니다. (.fp-shrimp 는 이미 position:relative 입니다)
+   ⚠️ margin 으로 하면 안 됩니다. 그릇이 place-items:center 라 **여백 상자**를
+      가운데 맞추므로 적은 값의 **절반만** 밀립니다 — 실측으로 확인했습니다
+      (margin-bottom 12 → 실제 6). top 은 적은 만큼 그대로 갑니다.
+   계란물과 빵가루는 더 올립니다 — 둘 다 담긴 면이 그릇 상자 위쪽에 치우쳐
+   있어서 공통값만으로는 새우가 앞 테두리 쪽으로 처져 보입니다.
+     계란물  그릇을 줄이면서 계란물 면이 같이 올라갔습니다
+             (상자 기준 아래끝 220.4 · 새우 아래끝은 원래 221.5 라 밖으로 걸침).
+             오른쪽으로도 조금 미는데, 그릇 그림이 왼쪽으로 살짝 치우쳐 있습니다.
+     빵가루  그릇만 커졌는데(295) 새우는 그대로라 상자 한가운데가 면보다 아래입니다
+             (면 5.6~255.5 의 한가운데는 130.5, 새우 중심은 147.5) */
+.fp-vessel .fp-shrimp { top: calc(-12 * var(--upx)); }
+.fp-vessel.egg .fp-shrimp { top: calc(-14 * var(--upx)); left: calc(7 * var(--upx)); }
+.fp-vessel.breadcrumbs .fp-shrimp { top: calc(-11 * var(--upx)); }
 
 /* 지금 그릇을 감싸는 빛 고리 */
 .fp-coat-station.current .fp-vessel { box-shadow: inset 0 calc(-10 * var(--upx)) calc(16 * var(--upx)) rgba(120,90,50,.28), 0 0 calc(26 * var(--upx)) rgba(255,205,110,.55); }
-.fp-sparks { position: absolute; inset: calc(-10 * var(--upx)); pointer-events: none; }
+/* ⚠️ 그림이 들어오면 상자 그림자를 **전부** 끕니다.
+   그릇은 둥근데 box-shadow 는 250x230 네모를 따라가서, 켜 두면 그릇 둘레에
+   네모난 후광이 서고 inset 쪽은 그림 밖 빈자리에 갈색 띠로 비칩니다.
+   대신 그림 실루엣을 따라가는 drop-shadow 로 바꿉니다 — 평소에는 그릇이
+   판에서 한 겹 떠 보이는 그림자, 지금 차례에는 금빛 후광입니다. */
+.fp-vessel.has-asset,
+.fp-coat-station.current .fp-vessel.has-asset { box-shadow: none; }
+.fp-vessel-asset { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)); }
+/* 후광은 두 겹입니다 — 좁고 진한 테두리 빛 + 넓게 퍼지는 빛.
+   한 겹으로는 나무 도마 위에서 거의 안 보입니다. */
+.fp-coat-station.current .fp-vessel-asset { filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(7 * var(--upx)) rgba(255,214,130,.95)) drop-shadow(0 0 calc(22 * var(--upx)) rgba(255,190,90,.65)); }
+/* ⚠️ 고리를 **납작하게 눌러** 씁니다. 그릇이 336x268 이라 원형 고리로 둘레를
+   돌리려면 반지름이 172 는 되어야 하는데, 그러면 위아래로 조리대 밖까지
+   삐져나갑니다(조리대 안쪽 세로 573.2 에 그릇 두 줄이 562 라 여유가 5.6뿐).
+   가로 172 · 세로 132 짜리 타원이면 세 그릇 모두 그림 바로 바깥을 돕니다. */
+.fp-sparks { position: absolute; inset: calc(-10 * var(--upx)); pointer-events: none; transform: scaleY(.767); --fp-spark-r: calc(var(--fp-bowl-w) / 2 + 4 * var(--upx)); }
+.fp-coat-station.breadcrumbs .fp-sparks { --fp-spark-r: calc(var(--fp-bowl-w2) / 2 + 2 * var(--upx)); }
 .fp-sparks b {
   position: absolute;
   left: 50%;
@@ -3453,7 +3662,11 @@
   border-radius: 50%;
   background: #ffdd98;
   box-shadow: 0 0 calc(8 * var(--upx)) rgba(255,214,130,.9);
-  transform: rotate(var(--fp-turn)) translateY(calc(-118 * var(--upx)));
+  /* 반지름은 그릇 상자의 반보다 커야 그릇 위가 아니라 둘레에 뜹니다.
+     그래서 그릇 폭에서 끌어옵니다 — 빵가루 그릇만 커서 고리도 같이 커집니다.
+     세로는 위 .fp-sparks 의 scaleY 가 눌러 줍니다.
+     (아래 fp-spark 키프레임도 같은 변수를 씁니다) */
+  transform: rotate(var(--fp-turn)) translateY(calc(0px - var(--fp-spark-r)));
   animation: fp-spark 1.6s ease-in-out infinite;
   animation-delay: calc(var(--fp-i) * -.16s);
 }
@@ -3484,8 +3697,61 @@
 .fp-shrimp b { position: absolute; z-index: 4; left: var(--fp-x); top: var(--fp-y); width: calc(10 * var(--upx)); height: calc(7 * var(--upx)); border-radius: 50%; background: #e3bd71; transform: rotate(var(--fp-turn)); }
 .fp-shrimp.has-asset::before,
 .fp-shrimp.has-asset::after,
-.fp-shrimp.has-asset .fp-shrimp-eye { display: none; }
+.fp-shrimp.has-asset .fp-shrimp-eye,
+/* 빵가루 알갱이도 끕니다 — 납품 그림에 이미 알갱이가 그려져 있습니다 */
+.fp-shrimp.has-asset b { display: none; }
 .fp-shrimp-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 납품 그림은 새우가 꼬리를 세운 모습이라 거의 정사각(680x639)입니다.
+   임시 도형 자리(150x84)에 넣으면 세로가 먼저 막혀 89x84 로 쪼그라들어서,
+   그림이 있을 때만 자리를 새우 비율에 맞춥니다. 186 은 가장 얕은 그릇
+   (빵가루 · 안쪽 약 278x198)에 새우가 안 걸리는 크기입니다. */
+.fp-shrimp.has-asset { width: calc(186 * var(--upx)); height: calc(175 * var(--upx)); }
+/* ── 굴러가는 느낌 : 누를 때마다 새우가 옆으로 넘어갑니다 ────
+   뒤집는 축이 **새우가 누운 방향(장축)** 입니다. 좌우(세로축)로 뒤집으면
+   머리와 꼬리가 자리를 바꿔서 "굴렀다"가 아니라 "돌아섰다"로 보입니다.
+   장축으로 뒤집으면 배와 등만 바뀌므로 제자리에서 데구루루 구릅니다.
+
+   [-39.3도]  납품 그림 10장의 알파 마스크 주축을 재서 나온 값입니다
+   (raw −39.3 · flour_full −39.4 · breadcrumb_full −39.3 으로 거의 같습니다).
+   그림을 다시 받아 새우가 누운 각도가 바뀌면 이 값도 다시 재야 합니다.
+
+   [축을 세우는 법]  어떤 각도 θ 의 선을 기준으로 뒤집는 것은
+   "θ 만큼 되돌려 눕히고 → 위아래로 뒤집고 → 다시 θ 만큼 세우기" 입니다.
+   CSS 는 오른쪽부터 적용되므로 rotate(θ) scaleY(-1) rotate(−θ) 순서입니다.
+
+   ⚠️ transform-origin 을 상자 한가운데(기본값)로 두면 안 됩니다. 새우 무게중심이
+      상자 중심에서 벗어나 있어(그림 기준 54.7% · 61.3%) 뒤집을 때마다 새우가
+      42 만큼 대각선으로 튑니다. 무게중심을 축으로 삼아야 제자리에서 구릅니다.
+
+   scaleY 가 1 → −1 로 지나가면 중간에 0 을 통과합니다. 그게 곧 반 바퀴라
+   따로 회전을 넣지 않아도 넘어가는 것처럼 보입니다. 누를 때마다 화면을
+   다시 그리므로 요소가 매번 새것이고, 그래서 애니메이션도 매번 처음부터 돕니다.
+
+   뒤집기는 **그림(img)** 에, 구르는 이동·회전은 **바깥 상자(.fp-shrimp)** 에
+   겁니다. 한 요소에 둘 다 걸면 transform 이 서로를 덮어씁니다.
+
+   [넘어갔을 때 16 만큼 끌어올리는 이유]
+   새우가 활처럼 굽어 있어서 장축으로 뒤집으면 머리와 꼬리가 축 반대편으로
+   넘어갑니다. 그래서 뒤집힌 쪽이 원래보다 아래로 더 내려가는데(납품 10장
+   실측 최대 115.9 화소 = 화면 31.7), 그대로 두면 머리가 그릇 아래 테두리를
+   뚫고 나옵니다.
+   ⚠️ 그 31.7 을 전부 올리면 이번엔 **제자리에서 구르는 느낌이 사라집니다** —
+      새우가 눈에 띄게 위로 솟았다가 돌아옵니다. 절반만 올려, 아래로는 안
+      비어져 나오면서(가장 얕은 빵가루 그릇 기준으로 확인) 구르는 자리는
+      거의 그대로인 선을 잡았습니다. 위로는 조금 더 나가지만 그릇 안쪽입니다.
+   ⚠️ translateY 는 base·rolled·키프레임 **네 곳 모두**에 적어야 합니다.
+      transform 은 함수 목록이 같아야 부드럽게 이어집니다. */
+.fp-shrimp-asset { transform-origin: 54.7% 61.3%; transform: translateY(0) rotate(-39.3deg) scaleY(1) rotate(39.3deg); }
+.fp-shrimp.rolled .fp-shrimp-asset { transform: translateY(calc(-16 * var(--upx))) rotate(-39.3deg) scaleY(-1) rotate(39.3deg); }
+@keyframes fp-shrimp-roll-over { from { transform: translateY(0) rotate(-39.3deg) scaleY(1) rotate(39.3deg); } }
+@keyframes fp-shrimp-roll-back { from { transform: translateY(calc(-16 * var(--upx))) rotate(-39.3deg) scaleY(-1) rotate(39.3deg); } }
+.fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp.rolled .fp-shrimp-asset { animation: fp-shrimp-roll-over .18s ease; }
+.fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp:not(.rolled) .fp-shrimp-asset { animation: fp-shrimp-roll-back .18s ease; }
+/* 단계별 그림이 따로 있으므로 임시 도형용 밝기 보정은 끕니다.
+   (그대로 두면 filter 가 통째로 덮여 그림자까지 사라집니다) */
+.fp-shrimp.has-asset.stage-1,
+.fp-shrimp.has-asset.stage-2,
+.fp-shrimp.has-asset.stage-3 { filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(48,25,10,.55)); }
 
 /* ── 누를 때마다 한 번씩 흔들립니다 (왼쪽 키 / 오른쪽 키) ──── */
 .fp-bag-scene.shake-left .fp-bag { animation: fp-shake-left .16s ease; }
@@ -3495,12 +3761,38 @@
 .fp-coat-station.shake-left .fp-shrimp { animation: fp-roll-left .18s ease; }
 .fp-coat-station.shake-right .fp-shrimp { animation: fp-roll-right .18s ease; }
 
+/* ── 옮기기 : 다 묻은 새우를 집어 다음 그릇에 놓습니다 ────────
+   포인터 처리는 E8 공용 배치기(engine-e8-order-place.js)를 그대로 씁니다.
+   그래서 끄는 동안 붙는 클래스도 E8 것과 같습니다 —
+   원본은 .order-source-dragging, 놓을 자리는 .order-drop-ready,
+   커서를 따라다니는 복제본은 .order-drag-ghost 입니다. */
+.fp-shrimp.carry { cursor: grab; touch-action: none; }
+.fp-shrimp.carry:active { cursor: grabbing; }
+/* 집어 갈 수 있다는 표시 — 다 묻은 새우가 그릇 위에서 살짝 떠 있습니다 */
+.fp-coat-row.carrying .fp-shrimp.carry { animation: fp-carry-bob 1.1s ease-in-out infinite; }
+@keyframes fp-carry-bob { 50% { transform: translateY(calc(-9 * var(--upx))); } }
+/* 놓을 그릇. 지금 차례 그릇과 같은 밝기로 켜고 금빛 테를 천천히 깜빡입니다
+   (E8 꼬치의 .sk-next-pulse 와 같은 결입니다) */
+.fp-coat-station.next-bowl { opacity: 1; }
+.fp-coat-station.next-bowl .fp-vessel-asset { animation: fp-next-bowl-pulse 1.1s ease-in-out infinite; }
+@keyframes fp-next-bowl-pulse {
+  0%,100% { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)); }
+  50% { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(20 * var(--upx)) rgba(255,205,110,.8)); }
+}
+/* 그릇 그림이 둥그니까 네모난 outline 대신 그림을 밝히는 것으로 바꿉니다
+   (.order-drop-ready 기본값은 노란 네모 테두리입니다) */
+.fp-coat-station.order-drop-ready { outline: 0; }
+.fp-coat-station.order-drop-ready .fp-vessel-asset { animation: none; filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(24 * var(--upx)) rgba(255,224,141,1)); }
+/* 커서를 따라오는 새우. E8 기본 상자(92x78)는 새우에 너무 작습니다 */
+.order-drag-ghost.shrimp { width: calc(186 * var(--upx)); height: calc(175 * var(--upx)); }
+
 @keyframes fp-shake-left { 40% { transform: translateX(calc(-18 * var(--upx))) rotate(-3.5deg); } 75% { transform: translateX(calc(7 * var(--upx))) rotate(1.5deg); } }
 @keyframes fp-shake-right { 40% { transform: translateX(calc(18 * var(--upx))) rotate(3.5deg); } 75% { transform: translateX(calc(-7 * var(--upx))) rotate(-1.5deg); } }
 @keyframes fp-wave-pop { 0% { opacity: .3; } 40% { opacity: 1; } 100% { opacity: .3; } }
-@keyframes fp-roll-left { 45% { transform: translateX(calc(-14 * var(--upx))) rotate(-14deg); } 80% { transform: translateX(calc(5 * var(--upx))) rotate(5deg); } }
-@keyframes fp-roll-right { 45% { transform: translateX(calc(14 * var(--upx))) rotate(14deg); } 80% { transform: translateX(calc(-5 * var(--upx))) rotate(-5deg); } }
-@keyframes fp-spark { 0%,100% { opacity: .25; transform: rotate(var(--fp-turn)) translateY(calc(-112 * var(--upx))) scale(.7); } 50% { opacity: 1; transform: rotate(var(--fp-turn)) translateY(calc(-124 * var(--upx))) scale(1); } }
+/* 새우가 커진 만큼(140 → 186) 구르는 거리도 같이 넓혔습니다 */
+@keyframes fp-roll-left { 45% { transform: translateX(calc(-19 * var(--upx))) rotate(-14deg); } 80% { transform: translateX(calc(7 * var(--upx))) rotate(5deg); } }
+@keyframes fp-roll-right { 45% { transform: translateX(calc(19 * var(--upx))) rotate(14deg); } 80% { transform: translateX(calc(-7 * var(--upx))) rotate(-5deg); } }
+@keyframes fp-spark { 0%,100% { opacity: .25; transform: rotate(var(--fp-turn)) translateY(calc(6 * var(--upx) - var(--fp-spark-r))) scale(.7); } 50% { opacity: 1; transform: rotate(var(--fp-turn)) translateY(calc(-6 * var(--upx) - var(--fp-spark-r))) scale(1); } }
 @keyframes fp-key-press { 50% { transform: translateY(calc(3 * var(--upx))) scale(.94); filter: brightness(1.18); } }
 @keyframes fp-key-wrong { 0%,100% { transform: translateX(0); } 40% { transform: translateX(calc(-4 * var(--upx))); } 75% { transform: translateX(calc(4 * var(--upx))); } }
 @keyframes e2-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
@@ -3509,6 +3801,9 @@
 
 @media (prefers-reduced-motion:reduce) {
   .fp-key.pressed,.fp-key.wrong,.e2-result.show,
+  .fp-coat-row.carrying .fp-shrimp.carry,
+  .fp-coat-station.next-bowl .fp-vessel-asset,
+  .fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp-asset,
   .fp-scene.input-wrong .fp-board,
   .fp-scene.stage-complete .fp-coat-station.current,
   .fp-scene.stage-complete .md-scene,
@@ -3516,47 +3811,480 @@
   .kf-board.stir-left .kf-wood-spatula,.kf-board.stir-right .kf-wood-spatula,
   .kf-board.stir-left .frying-kimchi,.kf-board.stir-right .frying-kimchi,
   .kf-board.input-wrong .kf-wood-spatula,.kf-board.e3-complete .frying-kimchi,
-  .sc-pourer.pouring .sc-pour-visual,.sc-pourer.pouring .sc-bottle,.sc-pourer.pouring .sc-pour-stream,.sc-bowl.splash .sc-sauce,
-  .sc-board.mixing .sc-sauce,.sc-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .sc-pourer.pouring .sc-pour-visual,.sc-pourer.pouring .sc-bottle,.sc-pourer.pouring .sc-pour-stream,
+  .sc-pourer.wrong .sc-bottle,
+  .sc-bowl.splash .sc-sauce,.sc-bowl.splash .sc-bowl-asset,
+  .sc-board.mixing .sc-sauce,.sc-board.mixing .sc-bowl-asset,.sc-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }
 
-/* E8 · 떡/우동 불리기 */
-.mini-content:has(.tteok-soak-scene) { width:100%; }
-.tteok-soak-scene { position:relative; width:min(calc(940 * var(--upx)),100%); min-height:calc(330 * var(--upx)); padding:calc(24 * var(--upx)); display:grid; grid-template-columns:calc(210 * var(--upx)) minmax(0,1fr) calc(210 * var(--upx)); align-items:center; gap:calc(28 * var(--upx)); border:calc(5 * var(--upx)) solid #65432d; border-radius:calc(18 * var(--upx)); background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 calc(24 * var(--upx)) rgba(0,0,0,.28); }
-.tteok-source,.water-source { min-height:calc(150 * var(--upx)); border:2px solid #785033; border-radius:calc(13 * var(--upx)); background:#d2ae73; color:#352116; cursor:grab; font-size:calc(18 * var(--upx)); font-weight:900; touch-action:none; }
-.tteok-source:active,.water-source:active { cursor:grabbing; }
-.soak-source-art { display:grid; place-items:center; min-height:calc(96 * var(--upx)); margin:0 auto calc(8 * var(--upx)); }
-.soak-source-art i { display:block; width:calc(88 * var(--upx)); height:calc(66 * var(--upx)); border-radius:calc(12 * var(--upx)); background:repeating-linear-gradient(25deg,#f0e2bf 0 calc(9 * var(--upx)),#d6c59e calc(10 * var(--upx)) calc(13 * var(--upx))); }
-.soak-source-art.udon i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
-.soak-source-art.water i { width:calc(62 * var(--upx)); height:calc(92 * var(--upx)); border:4px solid #55727b; border-radius:calc(8 * var(--upx)) calc(8 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); background:linear-gradient(transparent 20%,#83c5d9 21%); }
-.soak-source-art.has-asset i { display:none; }
-.soak-source-asset { max-width:calc(110 * var(--upx)); max-height:calc(96 * var(--upx)); object-fit:contain; }
-.tteok-source.added,.water-source.added { opacity:.42; }
-.tteok-source.just-added { animation:soak-source-drop .42s ease; }
-.water-source.just-added { animation:soak-water-pour .72s ease; transform-origin:left bottom; }
-.soaking-bowl { position:relative; width:100%; max-width:calc(340 * var(--upx)); height:calc(230 * var(--upx)); justify-self:center; overflow:hidden; border:calc(12 * var(--upx)) solid #98a3a5; border-top-width:calc(6 * var(--upx)); border-radius:calc(18 * var(--upx)) calc(18 * var(--upx)) calc(130 * var(--upx)) calc(130 * var(--upx)); background:#596264; transition:filter .2s,outline .2s; }
-.soaking-bowl .water-fill { position:absolute; left:calc(12 * var(--upx)); right:calc(12 * var(--upx)); bottom:calc(10 * var(--upx)); height:0; border-radius:calc(12 * var(--upx)) calc(12 * var(--upx)) calc(105 * var(--upx)) calc(105 * var(--upx)); background:linear-gradient(rgba(176,231,242,.82),#67afc5); transition:height .45s ease; }
-.soaking-bowl.has-water .water-fill { height:calc(150 * var(--upx)); }
-.soak-bowl-asset { position:absolute; z-index:3; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
-.soaking-bowl span { position:absolute; z-index:2; inset:16px 10px 8px; display:flex; flex-wrap:wrap; justify-content:center; align-content:center; gap:5px; color:#cbd2cf; }
-.soaking-bowl span b { width:calc(38 * var(--upx)); height:calc(14 * var(--upx)); border-radius:calc(7 * var(--upx)); background:#f1e3bf; transform:rotate(-12deg); box-shadow:0 2px 2px rgba(0,0,0,.2); }
-.soaking-bowl.udon-bowl span b { width:calc(48 * var(--upx)); height:calc(20 * var(--upx)); border:4px double #f1dfb4; border-radius:50%; background:transparent; box-shadow:none; }
-.soak-piece-asset { width:calc(44 * var(--upx)); height:calc(28 * var(--upx)); object-fit:contain; transform:rotate(-10deg); }
-.udon-bowl .soak-piece-asset { width:calc(58 * var(--upx)); height:calc(38 * var(--upx)); }
-.soaking-bowl.settling span { animation:soak-food-settle 1.1s ease-in-out infinite alternate; }
-.soak-bubbles { position:absolute; z-index:4; inset:calc(35 * var(--upx)) calc(35 * var(--upx)); pointer-events:none; }
-.soak-bubbles b { position:absolute; width:calc(13 * var(--upx)); height:calc(13 * var(--upx)); border:2px solid rgba(228,250,255,.85); border-radius:50%; background:transparent; animation:soak-bubble-rise 1s ease-in infinite; }
+/* ============================================================
+   E8 · 떡 / 우동면 불리기
+   ------------------------------------------------------------
+   [3열 화면]  다른 준비 미니게임과 같은 배치입니다.
+     왼쪽   재료 카드 2장 (떡·우동면 / 물)
+     가운데 볼 + 그 옆의 물병
+     오른쪽 진행도(물이 찬 정도 %) · 목표
+
+   격자·패널 껍데기·카드 제목은 css/minigame-parts.css 공용 규격이고
+   (.soak-scene · .soak-panel · .soak-ing-card · .soak-count · .soak-guide),
+   여기에는 이 게임에만 있는 볼·물병·물줄기만 적습니다.
+
+   ⚠️ 예전 화면(.tteok-soak-scene)은 좌우에 재료 버튼 두 개를 두고 가운데
+      볼 하나만 있던 1열짜리였습니다. 물도 "한 번 놓으면 끝" 이었는데,
+      지금은 물병을 기울일 때마다 볼 그림이 한 눈금씩 넘어갑니다.
+   ⚠️ 물이 찬 정도는 **볼 그림 자체**입니다(.soak-bowl-asset 6장).
+      납품본이 없을 때만 예전처럼 CSS 수위(--soak-fill · .water-fill)를 씁니다.
+      둘 다 engine-e8-order-place.js 의 updateSoakWater 가 넣습니다(0~100).
+   ============================================================ */
+.soak-scene {
+  /* 가운데 볼 크기. 물병 자리와 물줄기 좌표가 전부 이 값 기준입니다.
+     ⚠️ 비율(1.342)은 볼 납품 그림(1197x893 = 1.340)에 맞춘 것입니다. 여기를
+        바꾸면 그림이 상자 안에서 작아지거나(contain) tools/build-minigame-art-webp.js
+        의 1060x790 도 같이 고쳐야 합니다. */
+  --soak-bowl-w: calc(530 * var(--upx));
+  --soak-bowl-h: calc(395 * var(--upx));
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* 좌우 세로 칸 (김치전 반죽의 .bt-col 과 같은 톤) */
+.soak-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
+/* .soak-col-title · .soak-panel → css/minigame-parts.css */
+
+/* ---- 왼쪽 : 재료 카드 2장 ---------------------------------- */
+.soak-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
+.soak-ing-card {
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(6 * var(--upx));
+  cursor: grab;
+  touch-action: none;
+}
+.soak-ing-card:active { cursor: grabbing; }
+.soak-ing-card:disabled { cursor: default; }
+/* 물은 볼로 끌어다 놓는 것이 아니라 물병으로 붓습니다.
+   카드는 얼마나 부었는지 보여주는 자리라 눌러도 안내만 뜹니다. */
+.soak-ing-card.water { cursor: pointer; }
+.soak-ing-card.next { border-color: var(--mg-card-active); box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); animation: sk-next-pulse 1.3s ease-in-out infinite; }
+.soak-ing-card.added { opacity: .42; animation: none; }
+.soak-ing-card.added .soak-ing-name::after { content: "✓"; color: #a8c46a; }
+.soak-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
+.soak-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
+
+/* 재료 그림 자리. 에셋이 있으면 <img>, 없으면 <i> 임시 도형입니다.
+   드래그 유령(.order-drag-ghost)도 이 조각을 그대로 복제해 씁니다. */
+.soak-ing-art { position: relative; display: grid; place-items: center; min-height: 0; }
+/* ⚠️ i 에 position:relative 가 있어야 물병 손잡이(::after)가 **물병 옆**에 붙습니다.
+   빼면 손잡이가 .soak-ing-art 기준이 되어 카드 밖으로 튀어나갑니다. */
+.soak-ing-art i { position: relative; display: block; width: calc(96 * var(--upx)); height: calc(70 * var(--upx)); border-radius: calc(12 * var(--upx)); background: repeating-linear-gradient(25deg,#f0e2bf 0 calc(9 * var(--upx)),#d6c59e calc(10 * var(--upx)) calc(13 * var(--upx))); }
+.soak-ing-art.udon i { border: calc(5 * var(--upx)) double #c9ad78; border-radius: 50%; background: repeating-radial-gradient(ellipse at center,#f1dfb4 0 calc(3 * var(--upx)),#c9ad78 calc(4 * var(--upx)) calc(6 * var(--upx))); }
+/* 물 카드는 물병(주둥이 + 손잡이) 모양입니다 — 가운데 물병과 같은 그림입니다 */
+.soak-ing-art.water i { width: calc(68 * var(--upx)); height: calc(94 * var(--upx)); border: calc(4 * var(--upx)) solid #7fb6c9; border-radius: calc(10 * var(--upx)) calc(10 * var(--upx)) calc(24 * var(--upx)) calc(24 * var(--upx)); background: linear-gradient(rgba(255,255,255,.9) 0 22%,#b6e2f4 23%,#5fb2d8); box-shadow: inset 0 0 0 calc(2 * var(--upx)) rgba(255,255,255,.55); }
+.soak-ing-art.water i::after { content: ""; position: absolute; right: calc(-22 * var(--upx)); top: 34%; width: calc(26 * var(--upx)); height: calc(36 * var(--upx)); border: calc(5 * var(--upx)) solid #9dd6ec; border-left: 0; border-radius: 0 50% 50% 0; }
+.soak-ing-art.has-asset i { display: none; }
+.soak-art-asset { max-width: 100%; max-height: calc(120 * var(--upx)); object-fit: contain; }
+
+/* ---- 가운데 : 볼 + 물병 ------------------------------------ */
+.soak-board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 아래로 붙입니다. 남는 세로(약 61)를 **전부 판 위쪽에** 몰아 주려는 것입니다 —
+     물병을 기울일 때 그 위로 올라가는 자리입니다(--soak-tilt-y).
+     가운데 정렬이면 그 여유가 위아래로 반씩 갈려 물병이 잘립니다. */
+  justify-content: flex-end;
+  gap: calc(12 * var(--upx));
+  /* ⚠️ 물병이 도마 위로 살짝 넘어가는 것이 의도라 자르지 않습니다.
+     넘어가는 것은 **물병 위쪽뿐**입니다 — 볼은 판 안에 있고, 물병은 부을 때
+     왼쪽으로만 움직여 오른쪽 패널 쪽으로는 나가지 않습니다.
+     (예전에는 hidden 이었습니다. 그때는 물병을 판 밖으로 밀어내 잘라 썼습니다) */
+  overflow: visible;
+  padding: calc(14 * var(--upx)) calc(12 * var(--upx));
+  border: calc(6 * var(--upx)) solid #6d4527;
+  border-radius: calc(14 * var(--upx));
+  background: linear-gradient(#4d2e1a,#33200f);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+}
+/* 볼과 물병이 함께 앉는 판. 아래 좌표는 전부 이 상자 기준입니다.
+   볼은 판 왼쪽(16), 물병은 판 오른쪽(16)에 나란히 놓입니다.
+   물병을 기울이면 볼 위로 들려 옵니다 — 아래 .pouring 참고.
+
+   [세로 470 을 고른 방법] 판 안쪽 세로가 573.2 이고 아래에 안내문(약 30)과
+   간격(12)이 붙으므로, 판을 470 으로 잡으면 위로 61 이 남습니다. 그 61 이
+   **물병을 기울일 때 판 위로 넘어가는 몫**입니다(지금 47 을 씁니다).
+   ⚠️ 예전 420 은 남는 세로가 111 이나 되어 도마 위쪽이 휑했습니다. 판을 키운
+      만큼 물병 제자리(top 6)도 같이 올라가서 그 빈 곳을 채웁니다.
+
+   ⚠️ 폭을 % 가 아니라 고정값으로 두는 이유 : 물병이 기울어 볼 위로 오는 자리가
+      판 폭에서 역산한 상수입니다. 폭이 화면따라 변하면 물줄기가 볼을 벗어납니다.
+      폭을 바꾸면 아래 --soak-tilt-x / --soak-tilt-y 도 같이 바꾸세요. */
+.soak-stage {
+  /* 부을 때 볼 쪽으로 들고 오는 거리. **기울여 그린 물병(45도)을 CSS 로 20도 더
+     눕힌 자세** 기준입니다 — 그 자세의 주둥이가 상자 안에서 (-12.1, 129.6) 이고,
+     물줄기가 거기서 왼쪽으로 64 · 아래로 138 을 가므로, 제자리(540,6)에서
+     여기까지 옮기면 물이 볼 가로 55% 쯤(물 면 안쪽)에 떨어집니다.
+     실측은 tools/e8-soak-visual-smoke.html?pour=1 의 pouring.tipX / overRim 입니다. */
+  --soak-tilt-x: calc(-170 * var(--upx));
+  /* 위로 드는 높이. 물병 제자리(.soak-pitcher 의 top)가 이미 도마 위쪽이라
+     조금만 들어도 됩니다.
+     ⚠️ 이 값과 제자리 top 은 **짝**입니다. 붓는 자세의 높이는 둘의 합으로 정해지니,
+        제자리를 올리면 그만큼 여기를 줄여야 붓는 자세가 그대로 남습니다.
+     ⚠️ 물이 닿는 높이도 같이 움직입니다 — 지금은 볼 세로 32% 쯤(물 면 안쪽)입니다.
+        더 들면 물이 볼 뒤쪽 테두리로 넘어가니 실측(pouring.overRim)으로 확인하세요. */
+  --soak-tilt-y: calc(-30 * var(--upx));
+  position: relative;
+  width: min(calc(780 * var(--upx)),100%);
+  height: calc(470 * var(--upx));
+}
+.soak-board-note { margin: 0; color: #e0c391; font-size: calc(20 * var(--upx)); font-weight: 700; text-align: center; }
+.soak-board-note b { color: var(--gold-bright); }
+
+.soaking-bowl {
+  position: absolute;
+  /* 판 왼쪽에 붙여 놓습니다. 볼(530) + 물병(210) 이 판(780)에 나란히 들어가고,
+     둘을 한 덩어리로 보면 16 ~ 764 라 판을 꽉 씁니다.
+     ⚠️ 예전에는 볼이 판 한가운데였고 물병은 오른쪽으로 밀어내 잘라 썼습니다.
+        임시 도형일 때는 그래도 됐지만, 납품 물병은 **손잡이가 오른쪽에** 있어서
+        잘리면 주전자가 아니라 컵처럼 보입니다. 그래서 볼을 왼쪽으로 옮겼습니다.
+     ⚠️ transform 으로 옮기면 안 됩니다 — 잘못 놓았을 때 흔드는
+        order-place-reject 가 transform 을 덮어써 볼이 튑니다. */
+  left: calc(16 * var(--upx));
+  bottom: calc(16 * var(--upx));
+  /* ⚠️ 이 z-index 가 있어야 볼이 **쌓임 맥락**이 됩니다. 없으면 안쪽 그림
+     (.soak-bowl-asset z-index 3)이 볼 밖으로 올라가 물병(뒷 형제)을 덮어,
+     기울인 물병이 볼 뒤로 숨습니다. 물병은 아래에서 2 로 그 위에 얹습니다. */
+  z-index: 1;
+  width: var(--soak-bowl-w);
+  height: var(--soak-bowl-h);
+  overflow: hidden;
+  border: calc(12 * var(--upx)) solid #98a3a5;
+  border-top-width: calc(6 * var(--upx));
+  border-radius: calc(18 * var(--upx)) calc(18 * var(--upx)) calc(150 * var(--upx)) calc(150 * var(--upx));
+  /* 스테인리스 볼 안쪽 — 왼쪽 위에서 빛이 들어오는 결입니다 */
+  background: linear-gradient(105deg,#43494b 0 22%,#6d7679 46%,#4c5254 70%,#5f6a6d 100%);
+  box-shadow: inset 0 calc(14 * var(--upx)) calc(26 * var(--upx)) rgba(0,0,0,.45), 0 calc(10 * var(--upx)) calc(24 * var(--upx)) rgba(0,0,0,.5);
+  transition: filter .2s, outline .2s;
+}
+/* 볼 테두리 안쪽에 도는 얇은 하이라이트 — 그릇 입구처럼 보이게 합니다 */
+.soaking-bowl::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(30 * var(--upx));
+  border-radius: 50% / 100% 100% 0 0;
+  background: linear-gradient(rgba(226,236,238,.5),rgba(226,236,238,0));
+  pointer-events: none;
+}
+.soaking-bowl.has-asset { border: 0; background: none; box-shadow: none; }
+.soaking-bowl.has-asset::before { display: none; }
+/* 물이 차오르는 높이. --soak-fill 은 0~100 짜리 숫자입니다(단위 없음).
+   볼 안쪽을 다 채우면 재료가 잠기므로 100 에서 78% 까지만 올라갑니다.
+   ⚠️ 납품 그림이 **없을 때만** 쓰입니다. 그림이 있으면 물이 찬 정도까지
+      한 장에 그려져 있어서(.soak-bowl-asset) 이 수위를 아예 만들지 않습니다. */
+.soaking-bowl .water-fill {
+  position: absolute;
+  left: calc(12 * var(--upx));
+  right: calc(12 * var(--upx));
+  bottom: calc(10 * var(--upx));
+  height: calc(var(--soak-fill,0) * .78%);
+  border-radius: calc(12 * var(--upx)) calc(12 * var(--upx)) calc(120 * var(--upx)) calc(120 * var(--upx));
+  background: linear-gradient(rgba(176,231,242,.82),#67afc5);
+  box-shadow: inset 0 calc(3 * var(--upx)) 0 rgba(255,255,255,.45);
+  transition: height .42s ease;
+}
+/* ── 볼 그림 6장 (빈 볼 + 물 0/25/50/75/100) ────────────────
+   볼·재료·물이 한 장에 다 그려져 있어서, 물이 차오르는 모습은 이 장들을
+   갈아 끼워 만듭니다. 여섯 장을 같은 자리에 겹쳐 두고 지금 단계까지 켭니다
+   (engine-e8-order-place.js 의 soakBowlFramesMarkup).
+
+   ⚠️ **위 장이 아래 장을 덮는 구조라, 켠 장을 도로 끄지 않습니다.** 두 장이
+      서로 흐려지게(cross-fade) 하면 겹치는 순간 둘 다 반투명이 되어
+      볼 너머로 판 바닥이 비칩니다. 아래를 불투명하게 깔아 둔 채
+      맨 위 한 장만 스며들게 하는 이유입니다.
+   ⚠️ 나타나는 것은 transition 이 아니라 animation 입니다. 한 모금마다 부분
+      갱신하다가도 화면을 통째로 다시 그리는 순간(재료를 담을 때·다 찼을 때)이
+      있는데, transition 이면 그때 새로 만들어진 그림이 이미 불투명이라
+      그냥 뚝 나타납니다. animation 은 붙는 순간부터 다시 재생됩니다. */
+.soak-bowl-asset {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+}
+.soak-bowl-asset.on { opacity: 1; }
+.soak-bowl-asset.fresh { animation: soak-frame-in .42s ease; }
+/* 볼 안의 재료. 좌우를 좁혀 두 줄로 쌓이게 하고, 조각마다 각도를 달리해
+   한 줄로 나란히 눕는 것을 막습니다(가지런하면 담은 것이 아니라 붙여 둔 것처럼 보입니다).
+   ⚠️ 여기도 납품 그림이 **없을 때만** 쓰입니다 — 위 .soak-bowl-asset 참고. */
+.soak-bowl-food { position: absolute; z-index: 2; inset: 26% 20% calc(30 * var(--upx)); display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: calc(6 * var(--upx)) calc(4 * var(--upx)); }
+.soak-bowl-food b { width: calc(46 * var(--upx)); height: calc(17 * var(--upx)); border-radius: calc(9 * var(--upx)); background: linear-gradient(#fbf3de,#e2d2ab); transform: rotate(-13deg); box-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.32); }
+.soak-bowl-food > :nth-child(2n) { transform: rotate(11deg); }
+.soak-bowl-food > :nth-child(3n) { transform: rotate(-4deg); }
+.soak-bowl-food > :nth-child(5n) { transform: rotate(21deg); }
+.soaking-bowl.udon-bowl .soak-bowl-food b { width: calc(56 * var(--upx)); height: calc(24 * var(--upx)); border: calc(4 * var(--upx)) double #f1dfb4; border-radius: 50%; background: transparent; box-shadow: none; }
+/* (예전에 있던 .soak-piece-asset 은 없앴습니다 — 볼 안에 재료 그림을 낱개로
+   깔던 자리인데, 지금은 재료가 볼 그림에 함께 그려져 옵니다.
+   그림이 없을 때의 <b> 도형만 남겨 둡니다.) */
+.soaking-bowl.settling .soak-bowl-food { animation: soak-food-settle 1.1s ease-in-out infinite alternate; }
+.soak-bubbles { position: absolute; z-index: 4; inset: calc(40 * var(--upx)); pointer-events: none; }
+/* ⚠️ 납품 그림에서는 **물 면이 볼 상자 위쪽 절반**에 있습니다(비스듬히 내려다본
+   그림이라 아래 절반은 볼의 바깥 배입니다). 상자 기준 40 만 띄우면 기포가
+   물이 아니라 볼 바깥면에서 올라옵니다. 물 면 안쪽으로 다시 잡습니다. */
+.soaking-bowl.has-asset .soak-bubbles { inset: 10% 22% 46%; }
+.soak-bubbles b { position: absolute; width: calc(13 * var(--upx)); height: calc(13 * var(--upx)); border: 2px solid rgba(228,250,255,.85); border-radius: 50%; background: transparent; animation: soak-bubble-rise 1s ease-in infinite; }
 .soak-bubbles b:nth-child(1){left:18%;bottom:12%;}.soak-bubbles b:nth-child(2){left:42%;bottom:2%;animation-delay:.2s}.soak-bubbles b:nth-child(3){left:67%;bottom:15%;animation-delay:.4s}.soak-bubbles b:nth-child(4){left:82%;bottom:3%;animation-delay:.6s}
-.soak-result { animation-delay:.65s !important; }
-.order-drag-ghost .soak-source-art { margin:0; }
-.order-drag-ghost.tteok .soak-source-art i,.order-drag-ghost.udon .soak-source-art i { display:block; width:calc(82 * var(--upx)); height:calc(60 * var(--upx)); border-radius:calc(12 * var(--upx)); background:repeating-linear-gradient(25deg,#f0e2bf 0 calc(9 * var(--upx)),#d6c59e calc(10 * var(--upx)) calc(13 * var(--upx))); }
-.order-drag-ghost.udon .soak-source-art i { border:5px double #c9ad78; border-radius:50%; background:repeating-radial-gradient(ellipse at center,#f1dfb4 0 3px,#c9ad78 4px 6px); }
-.order-drag-ghost.water .soak-source-art i { display:block; width:calc(54 * var(--upx)); height:calc(82 * var(--upx)); border:4px solid #55727b; border-radius:calc(8 * var(--upx)) calc(8 * var(--upx)) calc(20 * var(--upx)) calc(20 * var(--upx)); background:linear-gradient(transparent 20%,#83c5d9 21%); }
-.order-drag-ghost .soak-source-art.has-asset i { display:none; }
-@keyframes soak-source-drop { 50% { transform:translateX(calc(45 * var(--upx))) rotate(8deg); } }
-@keyframes soak-water-pour { 45% { transform:translateX(calc(-52 * var(--upx))) rotate(-34deg); } }
-@keyframes soak-food-settle { to { transform:translateY(calc(5 * var(--upx))) scale(.98); } }
+
+/* 물병 : 눌러서 기울일 때마다 한 모금씩 부어집니다.
+   기울인 자세는 **그림 3장**(세워 둠 · 25도 · 45도)을 겹쳐 두고 갈아 끼웁니다.
+   ⚠️ CSS 로 돌리지 않습니다 — 세워 둔 그림을 rotate 로 돌리면 병 안의 물 면까지
+      같이 기울어 물이 한쪽 벽에 붙어 보입니다. 기울여 그린 두 장은 물 면이
+      수평으로 다시 그려져 있습니다.
+   ⚠️ 물병이 볼 위로 옮겨 가는 것(translate)은 그대로 CSS 입니다. 옮겨 가는 값
+      (--soak-tilt-x/y)과 물줄기 자리는 **45도 그림의 주둥이 위치**에서 나온
+      짝이라, 하나만 바꾸면 물줄기가 주둥이에서 떨어집니다. */
+.soak-pitcher {
+  position: absolute;
+  /* 판 오른쪽 끝. 손잡이까지 다 보이게 안쪽으로 넣어 둡니다
+     (예전 -72 는 판 밖으로 밀어내 손잡이를 잘라 쓰던 값입니다 — 위 .soaking-bowl 주석) */
+  right: calc(16 * var(--upx));
+  /* 제자리는 **판 위쪽(음수)** 입니다. 판(.soak-stage)은 볼에 맞춰 아래로 붙어
+     있어서, 물병을 판 안(0 이상)에 두면 도마 위쪽이 통째로 비어 보입니다.
+     ⚠️ 아래 --soak-tilt-y 와 짝입니다 — 붓는 자세의 높이가 둘의 합입니다.
+     ⚠️ 이만큼 올리면 물병 위끝이 도마 안쪽 위보다 살짝 위로 나갑니다.
+        .soak-board 를 overflow:visible 로 둔 것이 그래서입니다. */
+  top: calc(-52 * var(--upx));
+  z-index: 2;   /* 기울였을 때 볼 위로 올라옵니다 (위 .soaking-bowl 주석) */
+  width: calc(210 * var(--upx));
+  height: calc(240 * var(--upx));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+  transform-origin: 50% 100%;
+  transition: transform .32s cubic-bezier(.3,.8,.35,1), filter .2s;
+  filter: drop-shadow(0 calc(8 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.5));
+}
+/* 아직 재료를 안 담았거나 물을 다 부었을 때. 흐리게만 하고 형태는 그대로 둡니다 */
+.soak-pitcher:disabled { cursor: default; opacity: .5; }
+.soak-pitcher:not(:disabled):hover { filter: brightness(1.1) drop-shadow(0 calc(8 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.5)); }
+/* ── 물병 3자세 ────────────────────────────────────────────
+   세워 둠(맨 아래) · 25도 · 45도 를 같은 자리에 겹쳐 두고 **한 장씩 딱 갈아
+   끼웁니다.** 어느 순간에도 켜져 있는 장은 하나뿐입니다.
+
+   ⚠️ 서로 흐려지게(cross-fade) 하면 안 됩니다. 물병은 **유리라 그림 자체가
+      반투명**이라, 위 장이 아래 장을 못 가립니다. 흐리는 동안 두 자세가
+      한꺼번에 비쳐서 병이 두 개로 겹쳐 보입니다 — 그래서 keyframe 안에서
+      49.9% → 50% 로 값을 바로 튕겨 한 프레임에 갈아 끼웁니다.
+
+   ⚠️ transition 이 아니라 animation 인 이유 : 25도는 **지나가는 자세**입니다.
+      켜졌다가 꺼져야 하는데, transition 은 켠 상태와 끈 상태 두 가지밖에
+      못 오가서 중간에 잠깐 들르는 자세를 만들 수 없습니다.
+
+     들고 갈 때 (.pouring)   0ms 25도 → 160ms 45도, 그대로 유지(forwards)
+     돌아올 때               .pouring 이 떨어지면서 세워 둔 장으로 한 번에
+                             — 병을 다시 세우며 제자리로 미끄러지는 모습입니다 */
+.soak-pitcher-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.soak-pitcher.has-tilt .soak-pitcher-asset.tilt1,
+.soak-pitcher.has-tilt .soak-pitcher-asset.tilt2 { opacity: 0; }
+/* 그림에 그려진 기울기(25도 · 45도)에 CSS 로 더 눕힙니다 — 그림만으로는 붓는
+   자세가 눈에 덜 띕니다. 여기서 더한 각까지 합쳐 35도 · 65도로 보입니다.
+
+   ⚠️ **도는 중심이 병 몸통(55% 61%)입니다.** 주둥이를 중심으로 돌리면 주둥이는
+      제자리에 남는 대신 몸통이 통째로 위로 솟구쳐(20도에 66) 판을 넘어갑니다.
+      몸통을 축으로 돌리면 주둥이가 아래로 내려오면서 위로는 24 밖에 안 커져,
+      그만큼을 물병을 더 높이 드는 데(--soak-tilt-y) 쓸 수 있습니다.
+   ⚠️ 대신 주둥이가 (1.5, 87) → (-12.1, 129.6) 으로 **옮겨 갑니다.** 물줄기
+      자리(.soak-pour-stream 의 left/top)와 들고 오는 거리(--soak-tilt-x/y)가
+      전부 이 새 자리에서 나온 값이라, 각을 바꾸면 셋 다 다시 재야 합니다.
+   ⚠️ 회전은 **그림에만** 겁니다. 버튼(.soak-pitcher)에 걸면 그 안의 물줄기까지
+      같이 돌아가서, 포물선이 기울어 물이 옆으로 날아갑니다. */
+.soak-pitcher.has-tilt .soak-pitcher-asset.tilt1 { transform: rotate(-10deg); transform-origin: 55% 61%; }
+.soak-pitcher.has-tilt .soak-pitcher-asset.tilt2 { transform: rotate(-20deg); transform-origin: 55% 61%; }
+.soak-stage.pouring .soak-pitcher.has-tilt .soak-pitcher-asset       { animation: soak-pitcher-stand .32s linear forwards; }
+.soak-stage.pouring .soak-pitcher.has-tilt .soak-pitcher-asset.tilt1 { animation: soak-pitcher-tilt1 .32s linear forwards; }
+.soak-stage.pouring .soak-pitcher.has-tilt .soak-pitcher-asset.tilt2 { animation: soak-pitcher-tilt2 .32s linear forwards; }
+.soak-pitcher.has-asset .soak-pitcher-shape { display: none; }
+/* 에셋이 없을 때의 임시 물병 — 몸통 + 주둥이(::before) + 손잡이(::after) */
+.soak-pitcher-shape {
+  position: absolute;
+  left: 22%;
+  top: 12%;
+  width: 56%;
+  height: 82%;
+  border: calc(5 * var(--upx)) solid #8fc3d4;
+  border-radius: calc(14 * var(--upx)) calc(14 * var(--upx)) calc(34 * var(--upx)) calc(34 * var(--upx));
+  background: linear-gradient(rgba(255,255,255,.92) 0 20%,#b6e2f4 21%,#5aa9d0);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) rgba(255,255,255,.55);
+}
+.soak-pitcher-shape::before {
+  content: "";
+  position: absolute;
+  left: calc(-30 * var(--upx));
+  top: calc(-6 * var(--upx));
+  width: calc(40 * var(--upx));
+  height: calc(30 * var(--upx));
+  border: calc(5 * var(--upx)) solid #8fc3d4;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 60% 0 0 0;
+  background: linear-gradient(120deg,rgba(255,255,255,.85),rgba(140,205,230,.5));
+}
+.soak-pitcher-shape::after {
+  content: "";
+  position: absolute;
+  right: calc(-34 * var(--upx));
+  top: 24%;
+  width: calc(40 * var(--upx));
+  height: calc(64 * var(--upx));
+  border: calc(7 * var(--upx)) solid #8fc3d4;
+  border-left: 0;
+  border-radius: 0 50% 50% 0;
+}
+/* 붓는 자세. 클래스는 한 모금 시간(SOAK_POUR_MS)만큼 붙어 있습니다
+   (누르고 있으면 모금마다 다시 붙어 계속 이어집니다).
+   판 오른쪽에 놓인 물병을 볼 위까지 **들고 오기만** 합니다 — 기울이는 것은
+   위의 그림 3장이 합니다. */
+.soak-stage.pouring .soak-pitcher { transform: translate(var(--soak-tilt-x),var(--soak-tilt-y)); }
+/* 기울여 그린 그림이 없을 때(임시 도형)만 예전처럼 CSS 로 돌립니다.
+   ⚠️ 주둥이 자리가 달라 들고 오는 거리도 다릅니다 — 그림 기준 값을 쓰면
+      임시 도형의 주둥이가 볼 밖으로 나갑니다. 그래서 여기서 다시 잡습니다. */
+.soak-stage.pouring .soak-pitcher:not(.has-tilt) {
+  transform: translate(calc(-150 * var(--upx)),calc(-80 * var(--upx))) rotate(-40deg);
+}
+
+/* 주둥이에서 볼로 떨어지는 물줄기. 붓는 자세일 때만 보입니다.
+
+   물줄기는 **물병 안에** 들어 있습니다(주둥이 자리에 붙어 있어야 하므로).
+   자리는 45도 그림을 **20도 더 눕힌 뒤의** 주둥이(상자 안 -12.1, 129.6) 기준이고,
+   포물선이 시작하는 상자 안 x=100 자리가 거기 오도록 left 를 음수로 뺐습니다.
+   ⚠️ 세로는 주둥이 끝보다 12 위(129.6 → 117.6)에서 시작합니다. 끝에 딱 맞추면 물이
+      주둥이에 **닿기만 한** 것처럼 어색해서, 12 만큼 주둥이에 겹쳐 물립니다.
+      그만큼 떨어지는 거리도 짧아지므로 상자 세로는 150 그대로 둡니다 —
+      물이 닿는 자리는 아래 --soak-tilt-y 로 맞췄습니다.
+   ⚠️ 주둥이 자리는 **불투명한 유리만** 재서 나온 값입니다. 납품 그림에는 부드러운
+      그림자가 함께 그려져 있어서, 알파>0 으로 재면 그림자까지 잡혀 주둥이가
+      실제보다 아래·왼쪽으로 나옵니다(처음에 물이 주둥이에서 떨어져 보이던 이유).
+   ⚠️ 45도 장이 켜지는 것과 같은 시각(.16s)에 나와야 합니다. 곧바로 켜면
+      아직 25도 장이라 주둥이가 다른 데 있어서 물이 허공에서 나옵니다.
+
+   [모양] 네모난 막대가 아니라 **포물선**입니다. 주둥이에서 왼쪽 아래로 나가
+   점점 수직으로 서는 물줄기를, 가운데선
+     y = 150t · x = 100 − 128t + 64t²   (t = 0~1)
+   을 t 8등분한 점에서 폭 16→13 으로 좌우로 벌려 만든 다각형입니다.
+   ⚠️ clip-path 를 **% 로** 적습니다. path() 는 px 고정이라 --upx 배율을 안 탑니다. */
+.soak-pour-stream {
+  position: absolute;
+  z-index: 5;
+  left: calc(-112.1 * var(--upx));
+  top: calc(117.6 * var(--upx));   /* 주둥이 끝(129.6)보다 12 위 — 주둥이에 겹쳐 물립니다 */
+  width: calc(110 * var(--upx));
+  height: calc(150 * var(--upx));
+  /* 흐르는 결(반복 줄무늬) + 바탕 물색. 줄무늬는 아래 soak-stream-flow 가 내립니다 */
+  background:
+    repeating-linear-gradient(rgba(255,255,255,.34) 0 calc(5 * var(--upx)),rgba(255,255,255,0) calc(5 * var(--upx)) calc(15 * var(--upx))),
+    linear-gradient(rgba(240,252,255,.96),rgba(140,205,232,.72));
+  filter: drop-shadow(0 0 calc(6 * var(--upx)) rgba(190,235,255,.45));
+  clip-path: polygon(
+    98.18% 0%,   84.36% 12.5%, 72.36% 25%,   62.18% 37.5%, 53.86% 50%,
+    47.36% 62.5%, 42.64% 75%,  39.73% 87.5%, 38.64% 100%,
+    26.82% 100%, 27.55% 87.5%, 30.09% 75%,   34.45% 62.5%, 40.68% 50%,
+    48.73% 37.5%, 58.55% 25%,  70.18% 12.5%, 83.64% 0%
+  );
+  opacity: 0;
+  transform: scaleY(.15);
+  transform-origin: 50% 0;   /* 주둥이 쪽(위)을 붙잡고 아래로 뻗습니다 */
+  transition: opacity .12s linear, transform .18s ease;
+  pointer-events: none;
+}
+.soak-stage.pouring .soak-pour-stream { opacity: 1; transform: scaleY(1); transition-delay: .16s; animation: soak-stream-flow .42s linear .16s infinite; }
+/* 물줄기는 물병 그림 **위**에 얹힙니다(.soak-pour-stream 의 z-index 5).
+   위 top:75 로 물린 12 가 주둥이 끝에 겹쳐 보이면서, 물이 주둥이에 붙어
+   흘러나오는 것처럼 이어집니다. */
+/* 기울여 그린 그림이 없을 때(임시 도형)는 물병을 CSS 로 -40deg 돌립니다.
+   물줄기도 같이 기우니 같은 각만큼 되돌려(+40deg) 세우고, 주둥이 자리와 모양도
+   예전 네모 막대로 되돌립니다 — 위 .soak-stage.pouring 규칙과 짝입니다.
+   (포물선은 주둥이가 그림 기준일 때만 맞아떨어집니다) */
+.soak-pitcher:not(.has-tilt) .soak-pour-stream {
+  left: calc(8 * var(--upx));
+  top: calc(38 * var(--upx));
+  width: calc(20 * var(--upx));
+  height: calc(120 * var(--upx));
+  clip-path: none;
+  border-radius: 0 0 calc(10 * var(--upx)) calc(10 * var(--upx));
+  transform: rotate(40deg) scaleY(.15);
+}
+.soak-stage.pouring .soak-pitcher:not(.has-tilt) .soak-pour-stream { transform: rotate(40deg) scaleY(1); }
+
+/* 재료를 담았는데 아직 한 방울도 안 부었을 때만, 물병이 "눌러 달라"고 까딱입니다.
+   (.ready 는 engine-e8-order-place.js 가 붙이고 첫 모금에서 뗍니다)
+
+   ⚠️ `:not(.pouring)` 이 반드시 있어야 합니다. 애니메이션은 보통 선언보다 세서,
+      기울이는 동안에도 이 까딱임이 살아 있으면 .pouring 의 transform 을 덮어
+      물병이 -40deg 와 -5deg 사이를 계속 오갑니다. 물줄기도 같이 흔들려
+      볼 밖으로 벗어납니다. */
+.soak-stage.ready:not(.pouring) .soak-pitcher:not(:disabled) { animation: soak-pitcher-call 1.6s ease-in-out infinite; }
+
+/* ---- 오른쪽 : 진행도 · 목표 -------------------------------- */
+.soak-count { text-align: center; }
+.soak-count strong { display: block; color: var(--gold-bright); font-size: calc(48 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.soak-gauge { display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--upx)); padding: 0 calc(8 * var(--upx)); }
+.soak-gauge-track { flex: 1; height: calc(14 * var(--upx)); overflow: hidden; border: 2px solid #7a5734; border-radius: calc(7 * var(--upx)); background: #23150d; }
+.soak-gauge-track b { display: block; width: 0; height: 100%; background: linear-gradient(90deg,#6fb7d6,#bfe9f7); transition: width .42s ease; }
+.soak-guide { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
+.soak-guide-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
+.soak-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-weight: 700; text-align: center; line-height: 1.5; }
+/* 물방울 한 장이 두 자리에 쓰입니다 — 목표 칸의 큰 방울과 게이지 옆의 작은 방울.
+   ⚠️ 큰 쪽(116)이 tools/build-minigame-art-webp.js 의 2배율 기준입니다.
+      키우려면 거기 161x232 도 같이 고쳐야 합니다. */
+.soak-drop-asset { width: calc(80 * var(--upx)); height: calc(116 * var(--upx)); object-fit: contain; }
+.soak-drop-asset.tiny { flex: none; width: calc(18 * var(--upx)); height: calc(26 * var(--upx)); }
+/* 아래는 그림이 없을 때의 임시 물방울입니다 —
+   모서리 하나만 각진 사각형을 45° 돌린 고전적인 방법입니다 */
+.soak-drop {
+  width: calc(74 * var(--upx));
+  height: calc(74 * var(--upx));
+  border-radius: 0 50% 50% 50%;
+  background: radial-gradient(circle at 68% 68%,#cdeeff 0 18%,#57a8d4 62%,#2e6f9c 100%);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) rgba(255,255,255,.4);
+  transform: rotate(45deg);
+}
+.soak-drop.tiny { flex: none; width: calc(22 * var(--upx)); height: calc(22 * var(--upx)); box-shadow: none; }
+
+/* 완료 도장(PERFECT / GOOD)은 반죽·꼬치와 같은 .order-result 를 씁니다 */
+.soak-result { animation-delay: .65s !important; }
+
+/* 드래그 유령 — 카드 안 그림을 그대로 복제해 옵니다 */
+.order-drag-ghost .soak-ing-art { margin: 0; min-height: 0; }
+.order-drag-ghost .soak-ing-art i { display: block; }
+.order-drag-ghost .soak-ing-art.has-asset i { display: none; }
+
+@keyframes soak-food-settle { to { transform: translateY(calc(5 * var(--upx))) scale(.98); } }
 @keyframes soak-bubble-rise { 0% { opacity:0; transform:translateY(calc(35 * var(--upx))) scale(.6); } 35% { opacity:1; } 100% { opacity:0; transform:translateY(calc(-55 * var(--upx))) scale(1.15); } }
+/* 물줄기의 흐르는 결. 줄무늬 층(첫째)만 내리고 바탕 물색(둘째)은 세워 둡니다 —
+   둘 다 내리면 반복이 아닌 바탕이 밀려 위쪽에 빈 띠가 생깁니다.
+   30 은 줄무늬 주기(15)의 두 배라 이어 붙는 자리가 안 보입니다. */
+@keyframes soak-stream-flow { to { background-position: 0 calc(30 * var(--upx)),0 0; } }
+@keyframes soak-pitcher-call { 50% { transform: translateY(calc(-7 * var(--upx))) rotate(-5deg); } }
+/* 물이 한 눈금 차오를 때 새 볼 그림이 스며드는 시간. 아래 불투명한 장 위에서만
+   재생되므로 판 바닥이 비치지 않습니다 (위 .soak-bowl-asset 주석 참고) */
+@keyframes soak-frame-in { from { opacity: 0; } }
+/* 물병 자세 갈아 끼우기. 49.9% → 50% 에서 값이 바로 튀므로 두 자세가 겹쳐
+   비치는 구간이 없습니다 (위 .soak-pitcher-asset 주석 참고).
+   50% = .32s 의 절반 = 160ms 입니다 — 물줄기가 나오는 시각과 같습니다. */
+@keyframes soak-pitcher-stand { 0%,100% { opacity: 0; } }
+@keyframes soak-pitcher-tilt1 { 0%,49.9% { opacity: 1; } 50%,100% { opacity: 0; } }
+@keyframes soak-pitcher-tilt2 { 0%,49.9% { opacity: 0; } 50%,100% { opacity: 1; } }
+
 @media (prefers-reduced-motion:reduce) {
   .order-place-reject,.order-result.show,
   .bt-bowl-wrap.receive-flour .bt-batter,.bt-bowl-wrap.receive-water .bt-batter,.bt-bowl-wrap.receive-kimchi .bt-batter,
@@ -3564,7 +4292,17 @@
   .bt-bowl-wrap.receive-kimchi .state-art .bt-bowl-asset,.bt-bowl-wrap.filled .bt-bowl,
   .whisk-work-area.finishing .bt-stir-ring,.whisk-work-area.finishing .whisk-tool,
   .sk-ing-card.required,.sk-slot.next,.sk-piece.fresh,
-  .tteok-source.just-added,.water-source.just-added,.soaking-bowl.settling span,.soak-bubbles b { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+  .soak-ing-card.next,.soak-stage.ready .soak-pitcher,.soak-stage.pouring .soak-pour-stream,
+  .soaking-bowl.settling .soak-bowl-food,.soak-bubbles b,
+  .soak-bowl-asset.fresh,
+  .soak-stage.pouring .soak-pitcher-asset { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
+  /* 물병이 옮겨 가는 것과 물줄기·수위는 애니메이션이 아니라 전환이라 따로 끕니다.
+     ⚠️ 지연(delay)도 같이 0 으로 둡니다. 물줄기는 45도 자세에 맞춰 160ms 늦게
+        나오는데, 시간만 줄이고 지연을 남기면 물만 뒤늦게 튀어나옵니다.
+     물병 자세는 위 animation 쪽에서 끕니다 — 끝 상태(forwards)가 45도라
+        시간이 0 이어도 곧바로 붓는 자세가 됩니다. */
+  .soak-pitcher,.soak-pour-stream,
+  .soaking-bowl .water-fill,.soak-gauge-track b { transition-duration:.01ms !important; transition-delay:0s !important; }
 }
 
 /* Day 4 이후 · 빠른 칼질 */
@@ -3600,6 +4338,8 @@
    E8 김치전 반죽(.bt-board) · E8 닭꼬치(.sk-board) · E10 멸치(.anchovy-work-area)
    세 칸에 깔립니다. E9 반죽 젓기는 E8 반죽과 **같은 .bt-board** 를 갈아 끼우는
    구조라 자동으로 같이 적용됩니다.
+   (E8 불려두기는 아래 '나무 도마' 쪽입니다 — 액자가 없어야 물병을 판 위쪽까지
+    높이 들 수 있어서입니다.)
 
    세 칸 모두 3열 격자의 가운데 열이라 크기가 824.2 x 613.2 로 같고,
    그림(1580x1176 = 1.3435)도 같은 비율(1.3441)이라 100% 100% 로 늘려도
@@ -3631,32 +4371,55 @@
 .anchovy-work-area::after { display: none; }
 
 /* ============================================================
-   나무 도마 — 플레이 칸 바닥 (assets/minigame/E2/prop_cutting_board_fp_board_4x)
+   나무 도마 — 플레이 칸 바닥 (assets/minigame/fix_tempura_prep_board)
    ------------------------------------------------------------
-   E2 채썰기(.fp-board)와 E7 소스 제조(.sc-board) 두 칸이 함께 씁니다.
+   **네 칸이 한 장을 함께 씁니다.**
+     E1 썰기        .cut-board                 (타이밍 방식 · 빠른 칼질 공용)
+     E2 채썰기      .fp-board:has(.md-scene)
+     E2 새우튀김    .fp-board:has(.fp-coat-row)
+     E8 불려두기    .soak-board
    위 나무 쟁반과 같은 자리·같은 방식이고 그림만 다릅니다.
 
-   두 칸 모두 3열 격자의 가운데 열이라 824.2 x 613.2 로 같고, 4배율 마스터
-   (3297x2453 = 1.3441)가 그 비율(1.3441)과 같아 100% 100% 로 늘려도
-   찌그러지지 않습니다.
+   [불려두기가 쟁반이 아니라 여기인 이유] 물병을 볼 위로 **높이 들어 올려야**
+   하는데, 쟁반은 그림에 액자가 그려져 있어 여백(위 46)을 비워 둬야 하고
+   그만큼 들 수 있는 높이가 줄어듭니다. 이 도마는 액자가 없어 판을 꽉 쓰므로
+   물병이 판 위쪽까지 올라가도 어색하지 않습니다.
+
+   [예전 그림] E2 채썰기는 원래 E2/prop_cutting_board_fp_board_4x 를 썼습니다.
+   그쪽은 그림에 액자가 그려진 도마였고 이 그림은 액자 없는 통 도마입니다.
+   그 파일은 아직 E7 소스 제조(.sc-board)가 씁니다 — 지우지 마세요.
 
    ⚠️ `border-box` 를 반드시 적어야 합니다. background-origin 기본값이
-      padding-box 라 그냥 두면 그림이 안쪽 상자(812.2 x 601.2)에만 깔리고
-      테두리 6 만큼 어긋나 도마 액자가 잘려 보입니다.
-   ⚠️ E2 는 `:has(.md-scene)` 로 좁혀야 합니다. 같은 .fp-board 를
-      감자튀김 준비 · 새우튀김 준비도 쓰는데 그쪽은 도마가 아닙니다.
-   ⚠️ 이 블록은 .fp-board(2834줄) · .sc-board(2691줄) 원래 규칙보다
-      **뒤에** 있어야 배경을 덮어씁니다.
-
-   [그림에서 잰 나무가 시작하는 자리] 824.2 x 613.2 환산
-     좌 19.7  우 19.7  위 18.2  아래 37.2  (안쪽 홈선은 좌 27.0)
-   .md-scene 은 테두리 6 + 여백 12/14 라 18/20 에서 시작합니다. 위·좌우는
-   여유가 있고 **아래만 빠듯해서**, 채칼 덩어리(--md-rig-w)를 아래끝이
-   556 을 넘지 않는 585 로 잡았습니다.
+      padding-box 라 그냥 두면 그림이 안쪽 상자에만 깔리고 테두리 6 만큼
+      어긋나 도마 끝이 잘려 보입니다.
+   ⚠️ E2 는 `:has(...)` 로 좁혀야 합니다. 같은 .fp-board 를 감자튀김 준비도
+      쓰는데 그쪽은 아직 도마가 없습니다.
+   ⚠️ 이 블록은 .cut-board(277줄) · .fp-board(2834줄) · .soak-board(3710줄)
+      원래 규칙보다 **뒤에** 있어야 배경을 덮어씁니다.
+   ⚠️ 납품본 비율이 1.659 라 칸(1.344)과 다릅니다. 100% 100% 로 늘려 채우는 것이
+      의도입니다 — 나무결이라 늘려도 티가 안 납니다(tools 표의 주석 참고).
+      E1 은 .cut-main 의 2행 격자 때문에 824.2 x 603.2 라 세로만 10 짧습니다.
+      늘려 까는 그림이라 그 차이는 눈에 띄지 않습니다.
    ============================================================ */
+.cut-board,
 .fp-board:has(.md-scene),
-.sc-board {
+.fp-board:has(.fp-coat-row),
+.soak-board {
   /* 테두리는 지우지 않고 색만 없앱니다 — 지우면 안쪽 상자가 12 커집니다 */
+  border-color: transparent;
+  border-radius: calc(20 * var(--upx));
+  background: url("../assets/minigame/fix_tempura_prep_board.webp") border-box center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+/* 썰기 성공 표시. 도마 그림에 액자가 없으므로 안쪽 테두리 선은 빼고
+   따뜻한 발광만 남깁니다 (원래 규칙은 476줄. .sc-board.done 과 같은 처리). */
+.cut-board.cut-perfect { box-shadow: inset 0 0 calc(45 * var(--upx)) rgba(255,184,66,.28); }
+
+/* ── E7 소스 제조 도마 (assets/minigame/E2/prop_cutting_board_fp_board_4x) ──
+   여기만 예전 그림을 그대로 씁니다 — 액자가 그림에 그려져 있습니다.
+   4배율 마스터(3297x2453 = 1.3441)가 칸 비율(824.2/613.2 = 1.3441)과 같아
+   100% 100% 로 늘려도 찌그러지지 않습니다. */
+.sc-board {
   border-color: transparent;
   border-radius: calc(20 * var(--upx));
   background: url("../assets/minigame/E2/prop_cutting_board_fp_board_4x.webp") border-box center / 100% 100% no-repeat;
@@ -3741,6 +4504,20 @@
   .sk-piece.greenOnion { width: calc(56 * var(--upx)); height: calc(32 * var(--upx)); }
   .sk-free-guide .sk-piece.has-asset { width: calc(72 * var(--upx)); height: calc(63 * var(--upx)); }
   .sk-count strong { font-size: calc(42 * var(--upx)); }
+  /* 불리기 : 볼·물병·물줄기가 한 덩어리라 판 크기와 함께 비율대로 줄입니다.
+     판이 780 → 560 으로 줄어드는 만큼 기울일 때 옮겨 가는 거리도 다시 잽니다
+     (볼은 판 한가운데라 --soak-tilt-x 만 맞으면 물줄기가 볼 안에 떨어집니다). */
+  .soak-scene { --soak-bowl-w: calc(330 * var(--upx)); --soak-bowl-h: calc(212 * var(--upx)); }
+  .soak-stage { --soak-tilt-x: calc(-110 * var(--upx)); width: min(calc(560 * var(--upx)),100%); height: calc(320 * var(--upx)); }
+  .soak-pitcher { right: calc(-52 * var(--upx)); width: calc(152 * var(--upx)); height: calc(174 * var(--upx)); }
+  .soak-pour-stream { left: calc(6 * var(--upx)); top: calc(28 * var(--upx)); width: calc(15 * var(--upx)); height: calc(88 * var(--upx)); }
+  .soak-ing-art i { width: calc(70 * var(--upx)); height: calc(52 * var(--upx)); }
+  .soak-ing-art.water i { width: calc(48 * var(--upx)); height: calc(68 * var(--upx)); }
+  .soak-art-asset { max-height: calc(84 * var(--upx)); }
+  .soak-count strong { font-size: calc(38 * var(--upx)); }
+  .soak-drop { width: calc(52 * var(--upx)); height: calc(52 * var(--upx)); }
+  .soak-guide-note { font-size: calc(15 * var(--upx)); }
+  .soak-board-note { font-size: calc(16 * var(--upx)); }
   .one-shot-scene { --os-vessel: calc(330 * var(--upx)); }
   .os-ing-art { min-height: calc(64 * var(--upx)); }
   .os-ing-art .os-art { width: min(100%,calc(104 * var(--upx))); }
@@ -3764,7 +4541,7 @@
   }
   /* 판 위 재료는 판 상자의 % 라 --md-rig-w 만 줄이면 같이 줄어듭니다 —
      여기서 따로 크기를 적으면 오히려 비율이 어긋납니다. */
-  .md-pile { width: calc(266 * var(--upx)); height: calc(118 * var(--upx)); }
+  .md-pile { width: calc(372 * var(--upx)); height: calc(154 * var(--upx)); }
   .md-pile.potato i { width: calc(50 * var(--upx)); height: calc(7 * var(--upx)); }
   .md-hint { width: calc(392 * var(--upx)); height: calc(50.6 * var(--upx)); }
   .fp-count strong { font-size: calc(42 * var(--upx)); }

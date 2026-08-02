@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>도마 그림 visual smoke (E1 썰기 · E2 채썰기)</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다. DAY_PREP_ASSET_PATHS 의 경로가
+       index.html(루트) 기준이라, 이게 없으면 tools/assets/... 를 찾다 전부 실패해
+       임시 CSS 도형만 보입니다. 아래 경로도 전부 루트 기준으로 적습니다. -->
+  <base href="../">
+  <!-- 실제 게임과 같은 순서 · 같은 파일입니다 (index.html 참고) -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    /* 오버레이는 평소 숨어 있습니다 — 스모크에서는 항상 켭니다 */
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- .active 가 없으면 .app-screen 이 display:none 이라 화면이 통째로 0x0 이 됩니다 -->
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- 게임 파일을 그대로 불러다 씁니다. 화면을 베껴 적으면 진짜 화면과 어긋납니다. -->
+  <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
+  <!-- 오류는 **전부 모읍니다.** 하나만 남기면 뒤에 난 오류가 첫 원인을 덮어씁니다 -->
+  <script>window.__errors=[];window.addEventListener("error",e=>{window.__errors.push(`${e.message} @ ${e.filename}:${e.lineno}`);document.body.dataset.error=window.__errors.join(" || ");});</script>
+  <script src="ui-mini-frame.js"></script>
+  <script>
+    "use strict";
+    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, 두 게임이 실제로 만지는
+       것만 흉내 냅니다 — 전역 state / dom / audio 셋입니다. */
+    const state = { day:3, mini:null, prepProgress:{} };
+    const audio = new Proxy({}, { get:() => () => {} });
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+    /* 완료 연출이 부르는 **다른 파일의** 함수들. 여기서는 화면만 보므로 삼킵니다.
+       ⚠️ 여기에 놓을 수 있는 것은 아래에서 불러오는 파일에 **없는** 이름뿐입니다.
+          있는 이름(finishDayPrepTask 등)을 const 로 또 선언하면 그 파일이
+          "already been declared" 로 통째로 죽고, 화면이 빈 액자만 남습니다. */
+    const showToast = () => {};                 // game.js
+    const showOdenIngredientDrop = () => {};    // engine-e11-one-shot.js
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e1-timing-cut.js"></script>
+  <script src="engine-e2-alternate-input.js"></script>
+  <!-- 채칼은 E12(잡고 흔들기)가 등록·조작을 맡습니다. renderMandoline 이
+       bindMandolineDrag 를 부르므로 이 파일이 없으면 화면이 통째로 죽습니다. -->
+  <script src="engine-e12-grab-shake.js"></script>
+  <script>
+    "use strict";
+    /* ?game=e1  E1 썰기   (?task=cutRadish|cutFishCake|cutTofuKimchi|… ?done=0..)
+       ?game=e2  E2 채썰기 (?task=sliceYakisobaCabbage|sliceYakisobaCarrot ?done=0..)
+       도마 그림(assets/minigame/fix_tempura_prep_board)이 두 화면에서 제대로
+       깔리는지 보는 용도입니다. */
+    const params = new URLSearchParams(location.search);
+    const game = params.get("game") === "e2" ? "e2" : "e1";
+    const done = Math.max(0, Number(params.get("done")) || 0);
+
+    loadDayPrepAssets().then(() => {
+      // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (day-prep-minigames.js)
+      state.mini = { context:{ mode:"dayPrep" }, engine:null, complete:false, data:null };
+      if(game === "e1"){
+        setupTimingCut(params.get("task") || "cutRadish");
+        if(done){ state.mini.data.successes = Math.min(done, state.mini.data.total); renderTimingCut(); }
+      }else{
+        setupMandoline(params.get("task") || "sliceYakisobaCabbage");
+        if(done){ state.mini.data.successInputs = Math.min(done, state.mini.data.totalInputs); renderMandoline(); }
+      }
+
+      /* 실측용 — 자리와 크기를 콘솔이 아니라 DOM 에 박아 스크린샷에서도 읽힙니다.
+         도마 그림이 정말 깔렸는지는 배경 URL 로 확인합니다. CSS 임시 나무결
+         그라디언트로 되돌아갔으면 url(...) 이 아니라 gradient 가 잡힙니다. */
+      const board = document.querySelector(game === "e1" ? ".cut-board" : ".fp-board");
+      const rect = board.getBoundingClientRect();
+      const style = getComputedStyle(board);
+      document.body.dataset.measure = JSON.stringify({
+        game,
+        board:`${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`,
+        image:style.backgroundImage.replace(/^url\(".*\/(.*)"\)$/, "$1"),
+        size:style.backgroundSize,
+        origin:style.backgroundOrigin,
+        borderColor:style.borderTopColor,
+        boxShadow:style.boxShadow
+      });
+      document.body.dataset.ready = "true";
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+  </script>
+</body>
+</html>

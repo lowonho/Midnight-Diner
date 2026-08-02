@@ -76,6 +76,51 @@ const FILES = [
       "10_food_kimchi_batter_bowl_water_kimchi","11_food_kimchi_batter_bowl_flour_kimchi",
       "12_food_kimchi_batter_bowl_all_unmixed"]
     .map(name=>({ file:`E8/${name}.png`, size:[800,688], css:".bt-bowl 400x400 안에서 400x344" })),
+  /* ---- E8 떡 · 우동면 불려두기 -------------------------------------
+     [볼 11장] 빈 볼 1장 + (떡 5 · 우동 5). 물이 0/25/50/75/100 만큼 찬 모습이고
+     **볼·재료·물이 한 장에 다 그려져 있습니다.** 그래서 예전처럼 볼 그림 위에
+     재료 조각과 물 높이를 CSS 로 얹지 않고, 이 장들을 겹쳐 두고 갈아 끼웁니다
+     (engine-e8-order-place.js 의 SOAK_WATER_STEPS · css 의 .soak-bowl-asset).
+
+     자리는 .soaking-bowl 530x395 에 object-fit:contain 입니다. 그림 비율 1.340 이
+     상자(1.342)와 같아 상자를 꽉 채웁니다 → 2배율 1060x790.
+
+     ⚠️ **열한 장을 한 크기로 묶는 것이 중요합니다.** 납품본이 1197~1198 x 893~909 로
+        장마다 캔버스가 조금씩 다릅니다(비율 차 최대 1.8%). 그림이 캔버스를 꽉 채우고
+        있어(투명 여백 0) 여백을 덧댈 수가 없으므로, E4 떡볶이 냄비처럼 **여기서
+        한 크기로 뽑아** 맞춥니다. 안 그러면 물을 부을 때마다 볼이 들썩입니다.
+        checkAspect 한계(2%) 안이라 찌그러짐은 눈에 안 보입니다.
+
+     [q85] 11장이라 용량이 그대로 곱해집니다. 그릇·물처럼 부드러운 면이 대부분이라
+     85 에서도 눈에 띄는 손실이 없습니다 (E4 냄비 24장의 q82 와 같은 판단입니다). */
+  ...["food_soak_bowl_empty",
+      ...["tteok","udon"].flatMap(kind=>["00","25","50","75","100"].map(step=>`food_soak_${kind}_water_${step}`))]
+    .map(name=>({ file:`E8/Soaking/${name}.png`, size:[1060,790], quality:85, css:".soaking-bowl 530x395" })),
+  /* [왼쪽 재료 카드 2장] 담기 전의 마른 떡·우동면 한 그릇입니다.
+     .soak-art-asset 이 max-height 120 으로 잡아 주는 자리의 2배입니다 —
+     둘 다 가로로 넓지만(1.174 · 1.153) 카드 폭(약 210)보다 좁아 **세로가 먼저 막힙니다.**
+     ⚠️ 떡 그림은 E4 떡볶이 끓이기의 '불린 떡' 카드(.heat-ing-asset max-height 90)에도
+        쓰입니다. 그쪽이 더 작으니 이 크기 하나로 둘 다 덮습니다. */
+  { file:"E8/Soaking/food_soak_tteok_ingredient_bowl.png", size:[282,240], css:".soak-art-asset 140.9x120 (E4 카드와 공용)" },
+  { file:"E8/Soaking/food_soak_udon_ingredient_bowl.png",  size:[277,240], css:".soak-art-asset 138.4x120" },
+  /* [물병] **한 장이 두 자리에 쓰입니다** — 판 위에서 기울이는 물병(.soak-pitcher 210x240)과
+     왼쪽 '물' 재료 카드의 작은 그림(.soak-art-asset)입니다. 큰 쪽 기준으로 한 번만 뽑습니다.
+     원본이 0.915 로 상자(0.875)보다 넓어 **가로 210 이 먼저 막혀** 210x229.4 로 그려집니다. */
+  { file:"E8/Soaking/prop_soak_water_pitcher.png",         size:[420,459], css:".soak-pitcher 210x229.4 (재료 카드와 공용)" },
+  /* [기울인 물병 2장] 물을 부을 때 갈아 끼우는 자세입니다 — 01 이 25도, 02 가 45도.
+     ⚠️ **CSS 로 돌리지 않고 그림을 바꿉니다.** 세워 둔 그림을 rotate 로 돌리면
+        병 안의 물 면까지 같이 기울어 물이 한쪽 벽에 붙어 보입니다.
+        (기울여 그린 이 두 장은 물 면이 수평으로 다시 그려져 있습니다)
+     둘 다 비율이 0.935 로 같아 한 크기로 묶습니다 — 세워 둔 장(0.915)보다 약간
+     넓적한데, 기울면 가로가 늘고 세로가 주는 것이 맞으므로 그대로 둡니다.
+     .soak-pitcher 210x240 안에서 가로가 먼저 막혀 210x224.6 → 2배율 420x449. */
+  { file:"E8/Soaking/prop_soak_water_pitcher_tilt_01.png", size:[420,449], css:".soak-pitcher 210x224.6 (25도)" },
+  { file:"E8/Soaking/prop_soak_water_pitcher_tilt_02.png", size:[420,449], css:".soak-pitcher 210x224.6 (45도 · 붓는 자세)" },
+  /* [물방울] 오른쪽 '목표' 칸의 큰 물방울과 '진행도' 게이지 옆의 작은 물방울, 두 자리입니다.
+     큰 쪽(.soak-drop-asset 80x116)의 2배로 한 번만 뽑습니다.
+     ⚠️ 무손실입니다. 테두리가 또렷한 픽셀 그림이라 q90 링잉이 윤곽선에 바로 드러납니다
+        (E2 채 9종과 같은 판단입니다). */
+  { file:"E8/Soaking/food_soak_water_ingredient.png",      size:[161,232], lossless:true, css:".soak-drop-asset 80.5x116 (진행도 작은 방울과 공용)" },
   /* E9 김치전 반죽 젓기. 반죽 10장은 볼까지 통째로 그려진 **한 벌의 연속 그림**이라
      E8 처럼 `--bowl`(400x400) 자리에 통째로 깔립니다. 원본 비율이 0.992(세로가 김)이라
      정사각 칸에서는 세로가 먼저 막혀 397x400 으로 그려집니다 → 2배율 794x800.
@@ -120,6 +165,15 @@ const FILES = [
      1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.
      (가로세로비 1580/1176 = 1.3435 는 824.2/613.2 = 1.3441 과 0.04% 차이입니다) */
   { file:"ui_play_tray_wood.png",                size:[1580,1176], css:"플레이 칸 824.2x613.2 (원본 배율 유지)" },
+  /* 나무 도마 — 쟁반과 같은 자리에 깔리는 또 하나의 바닥입니다. **세 게임이 함께 씁니다** —
+     E1 썰기(.cut-board) · E2 채썰기(.fp-board:has(.md-scene)) · E2 새우튀김 준비(.fp-board:has(.fp-coat-row)).
+     원래 E2/shrimp/ 안에 있었는데 새우 전용이 아니게 되어 공용 폴더인 여기로 올렸습니다.
+     쟁반과 달리 그림에 액자가 없는 통 도마입니다.
+     ⚠️ 납품본(1241x748)이 칸의 1.5 / 1.22 배라 2배율에 못 미칩니다. 늘리면 없던 화소를
+        지어내는 셈이라 원본 배율 그대로 둡니다 (ui_play_tray_wood · E3 화구와 같은 판단입니다).
+     ⚠️ 비율 1.659 가 칸(1.344)과 다릅니다. CSS 에서 100% 100% 로 늘려 채우는 것이
+        의도입니다 — 나무결이라 늘려도 티가 안 납니다. */
+  { file:"fix_tempura_prep_board.png",           size:null,        css:".cut-board / .fp-board 824.2x613.2 (원본 배율 유지)" },
   /* E3 김치 볶기 (낮 준비) · 볶음우동 (밤 조리). 두 게임이 같은 컨트롤러라 한 폴더에 있습니다.
      왼쪽 재료 카드 그림은 가로 210 까지 쓸 수 있는데 전부 그보다 좁아 **세로가 먼저 막습니다.**
        김치 볶기  .kf-ing-asset  max-height 104   (그림칸 158.6 이라 여유 있음)
@@ -179,6 +233,14 @@ const FILES = [
   ...["01","02","03"].map(no=>(
     { file:`E4/fix_gas_burner_integrated_redraw_fire_${no}.png`, size:null, css:"끓이기 가스버너 (원본 배율 유지)" }
   )),
+  /* E4 화구 손잡이 한 장. 위 화구 3장에 **이미 그려져 있는** 손잡이 자리에 그대로
+     겹쳐 놓고, 불 세기에 따라 돌립니다 (css/minigame-parts.css 의 .mg-burner-knob).
+     화면에서 106 남짓이라 원본 174 로도 1.6배뿐이지만, 화구 3장과 같은 배율이어야
+     겹쳤을 때 결이 어긋나지 않으므로 여기도 원본 그대로 둡니다.
+     ⚠️ 무손실입니다. 200px 도 안 되는 그림인 데다 **돌아가면서 다시 표본화**되어
+        테두리 링잉이 그대로 드러납니다 — 그러면 아래 그림 쪽 손잡이와의 경계가
+        눈에 띕니다. 원본이 64KB 라 무손실로 떠도 부담이 없습니다. */
+  { file:"E4/fix_gas_burner_off.png", size:null, lossless:true, css:".mg-burner-knob 106x105 (원본 배율 유지)" },
   /* E4 냄비 — 메뉴 2종 x 끓는 세기 3단계 x 4장 = 24장.
      4장이 한 바퀴 도는 스프라이트이고, 세기(약·적정·강)는 온도 구간이 고릅니다.
 
@@ -267,7 +329,117 @@ const FILES = [
   ...[442,442,442,442,436,382,287,206].map((h,i)=>({
     file:`E2/food_carrot_whole_0${i+1}.png`,  size:[588,h], css:".md-ingredient 294.0 폭 고정" })),
   ...[425,425,425,416,394,358,305,250].map((h,i)=>({
-    file:`E2/food_potato_whole_0${i+1}.png`,  size:[560,h], css:".md-ingredient 273.7 폭 고정" }))
+    file:`E2/food_potato_whole_0${i+1}.png`,  size:[560,h], css:".md-ingredient 273.7 폭 고정" })),
+  /* ---- E2 새우튀김 준비 -------------------------------------------
+     밀가루 → 계란물 → 빵가루 세 그릇을 삼각형으로 놓고 그 위에서 새우를 굴립니다.
+
+     [도마] 이 표에 없습니다 — E1 썰기 · E2 채썰기와 같은 그림을 쓰게 되어
+     공용 폴더의 `fix_tempura_prep_board.png` 한 장으로 합쳤습니다 (위 나무 쟁반 옆).
+
+     [그릇 3장] .fp-vessel 336x268 자리에 object-fit:contain 입니다.
+     셋 다 가로로 넓어(1.10 · 1.25 · 1.25) **세로 268 이 먼저 막히고**
+     가로만 295.3 / 333.9 / 335.6 으로 서로 다릅니다. */
+  /* [화살표] 그릇 사이의 진행 방향 표시입니다.
+     ⚠️ 원래 E2/shrimp/ 안에 있었는데 E7 소스 제조 납품본과 **바이트까지 같아서**
+        공용 폴더인 위쪽(ui_play_tray_wood 옆)으로 올렸습니다. 한 장을 네 자리가
+        돌려 씁니다 — E2 는 그대로(→)와 135도 돌린 ↙, E7 은 →·←·↓ 세 방향입니다.
+        그래서 다른 방향 그림을 따로 받지 않아도 됩니다.
+        E7 화살표 자리(52x36.2)도 E2 와 같은 크기라 WebP 는 이 한 장뿐입니다. */
+  { file:"ui_arrow_right_01.png",                   size:[105, 73], css:".fp-coat-arrow-asset / .sc-arrow 52x36.2" },
+  { file:"E2/shrimp/food_tempura_flour_bowl.png",   size:[591,536], css:".fp-vessel 295.3x268" },
+  /* ⚠️ 계란물만 **일부러 눌러 뽑습니다**(stretch). 납품 그림이 1.246 으로 셋 중
+        가장 납작해서, 옆에 놓인 밀가루 그릇(1.102)과 원근이 달라 보였습니다.
+        가로를 6.7% 깎아 1.163 으로 당겼습니다 — 그릇이라 눌러도 티가 안 납니다.
+        여기서 미리 눌러 두면 CSS 는 object-fit:contain 그대로 쓸 수 있습니다
+        (css 의 `.fp-vessel.egg .fp-vessel-asset` 이 잡는 자리가 300x258 입니다). */
+  { file:"E2/shrimp/food_egg_wash_bowl.png",        size:[600,516], stretch:true, css:".fp-vessel.egg 300x258 (눌러 담음)" },
+  // 빵가루는 마지막 그릇이라 혼자 큽니다 (.fp-vessel.breadcrumbs 370x295 자리)
+  { file:"E2/shrimp/food_wet_breadcrumbs_bowl.png", size:[739,590], css:".fp-vessel.breadcrumbs 369.4x295" },
+  /* [새우 10장] 생새우 → 밀가루/계란물/빵가루 각 3단계. 한 자리에서 갈아 끼우는
+     **한 벌의 연속 그림**이라 열 장을 한 크기로 묶습니다.
+     ⚠️ 납품본은 캔버스가 674x624 ~ 1672x941 로 제각각이었고 새우가 놓인 자리도
+        장마다 최대 5px 어긋나 있었습니다. 그대로 두면 옷이 바뀔 때마다 새우가
+        튑니다. PNG 마스터 쪽에서 투명 여백만 덧대고 잘라 **열 장 모두
+        680x639 · 새우 위치 동일**로 맞춰 뒀습니다 — 잘라낸 화소가 없으니
+        무손실입니다 (E3 화구 · E4 냄비와 같은 방식입니다).
+        새 납품본을 받으면 캔버스와 새우 위치가 같은지 먼저 확인하고,
+        다르면 같은 방식으로 맞춘 뒤 이 스크립트를 돌리세요.
+     .fp-shrimp.has-asset 186x175 자리에서 가로가 먼저 막혀 186x174.8 → 2배율 372. */
+  ...["raw","flour_light","flour_medium","flour_full","egg_light","egg_medium","egg_full",
+      "breadcrumb_light","breadcrumb_medium","breadcrumb_full"]
+    .map(name=>({ file:`E2/shrimp/food_shrimp_${name}.png`, size:[372,350], css:".fp-shrimp 186x174.8" })),
+  /* [재료 카드 4장] 넷 다 거의 정사각이라 **세로가 먼저 막힙니다** → 2배율 136.
+     ⚠️ 이 화면의 .fp-ing-asset 은 공용 86 이 아니라 **68** 입니다. 재료가 4줄이라
+        카드가 140 뿐인데, 여백 없이 꽉 찬 납품 그림에 86(그림칸 높이와 같은 값)을
+        주면 그림이 카드 테두리에 그대로 닿습니다. 자리를 다시 키우려면 여기 크기도
+        같이 고치세요 (css/day-prep-minigames.css 의 `:has(.fp-coat-row)` 규칙).
+     ⚠️ 생새우 카드는 판 위 그림(food_shrimp_raw)이 아니라 카드용으로 따로 온
+        _panel 장입니다. 같은 새우지만 색과 대비가 카드 쪽에 맞춰져 있습니다. */
+  { file:"E2/shrimp/food_shrimp_raw_panel.png",      size:[147,136], css:".fp-ing-asset 73.4x68" },
+  { file:"E2/shrimp/food_tempura_flour_panel.png",   size:[143,136], css:".fp-ing-asset 71.5x68" },
+  { file:"E2/shrimp/food_egg_wash_panel.png",        size:[139,136], css:".fp-ing-asset 69.6x68" },
+  { file:"E2/shrimp/food_wet_breadcrumbs_panel.png", size:[137,136], css:".fp-ing-asset 68.4x68" },
+  /* ---- E7 소스 제조 (떡볶이 양념장 · 볶음우동 소스) --------------
+     [소스볼 8장] 레시피마다 4장이고 **넣은 재료 개수**가 곧 장 번호입니다
+     (0 빈 볼 → 3 완성). 자리는 .sc-bowl 320x272 에 object-fit:contain 인데
+     그림이 1.072 로 상자(1.176)보다 좁아 **세로 272 가 먼저 막힙니다**
+     → 291.6x272 로 그려지고 2배율이 583x544 입니다.
+
+     ⚠️ **여덟 장을 한 크기로 묶는 것이 중요합니다.** 마스터가 떡볶이 983x915 ·
+        볶음우동 982x916 으로 미세하게 다른데(비율 차 0.2%), 여기서 한 크기로
+        뽑지 않으면 재료를 넣어 장을 갈아 끼울 때 볼이 1px 씩 들썩입니다.
+        checkAspect 한계(2%)의 1/8 이라 찌그러짐은 눈에 안 보입니다.
+        (E8 반죽 볼 9장 · E9 반죽 10장과 같은 판단입니다) */
+  ...[
+    ["tteokbokki", ["01_food_tteokbokki_sauce_bowl_empty","02_food_tteokbokki_sauce_bowl_gochujang",
+                    "03_food_tteokbokki_sauce_bowl_gochujang_oligosaccharide","04_food_tteokbokki_sauce_bowl_final"]],
+    ["yakisoba",   ["01_food_yakisoba_sauce_bowl_empty","02_food_yakisoba_sauce_bowl_soy",
+                    "03_food_yakisoba_sauce_bowl_soy_oyster","04_food_yakisoba_sauce_bowl_complete"]]
+  ].flatMap(([dish,names])=>names.map(name=>(
+    { file:`E7/${name}.png`, size:[583,544], css:`.sc-bowl 320x272 안에서 291.6x272 (${dish})` }
+  ))),
+  /* [소스통 6장] **한 장이 두 자리에 쓰입니다** — 조리대 위 소스통과 왼쪽 재료
+     카드의 작은 그림(.sc-bottle.mini --bw 64)입니다. 큰 쪽 기준으로 한 번만 뽑습니다.
+
+     자리는 .sc-bottle 상자(--bw x 1.72--bw)에 object-fit:contain 인데,
+     **레시피 재료 순서가 곧 자리**라 통마다 상자가 다릅니다.
+       1번째 재료 → at-left   104 x 178.9
+       2번째 재료 → at-right  104 x 178.9
+       3번째 재료 → at-bottom  88 x 151.4   (조리대 아래라 한 단계 작습니다)
+     상자 비율은 0.581 이라, 그보다 넓은 통(고추장 0.674 · 굴소스 0.644)은
+     **가로가 먼저 막혀** 상자보다 낮게 그려지고, 나머지 홀쭉한 통은
+     **세로가 먼저 막혀** 상자보다 좁게 그려집니다. 아래 크기는 그 결과의 2배입니다.
+
+     ⚠️ 간장은 두 레시피에 다 나오지만 **납품 그림이 서로 다릅니다**
+        (떡볶이 512x1061 · 볶음우동 483x1100). 게다가 자리도 아래/왼쪽으로 갈려
+        크기가 다르므로 한 장으로 합칠 수 없습니다. 두 장 다 뽑습니다. */
+  { file:"E7/food_tteokbokki_sauce_play_gochujang.png",       size:[208,308], css:"떡볶이 고추장 at-left 104x154.2" },
+  { file:"E7/food_tteokbokki_sauce_play_oligosaccharide.png", size:[130,358], css:"떡볶이 올리고당 at-right 64.8x178.9" },
+  { file:"E7/food_tteokbokki_sauce_play_soy_sauce.png",       size:[146,303], css:"떡볶이 간장 at-bottom 73.1x151.4" },
+  { file:"E7/food_yakisoba_soy_sauce_play_labeled.png",       size:[157,358], css:"볶음우동 간장 at-left 78.6x178.9" },
+  { file:"E7/food_yakisoba_oyster_sauce_play_labeled.png",    size:[208,323], css:"볶음우동 굴소스 at-right 104x161.6" },
+  { file:"E7/food_yakisoba_chili_oil_play_labeled.png",       size:[154,303], css:"볶음우동 고추기름 at-bottom 77.0x151.4" },
+  /* [뚜껑 연 소스통 6장] 병을 눌러 들어 올리는 동안(.sc-pourer.pouring)만 바뀝니다.
+
+     ⚠️ **위 닫힌 병과 같은 상자에 contain 으로 넣으면 안 됩니다.** 짝마다 캔버스가
+        달라서 뚜껑을 여는 순간 병 몸통이 커졌다 작아졌다 합니다 —
+        뚜껑을 뺀 만큼 짧아진 것(올리고당 1082→1059)이 있는가 하면, 고추기름은
+        **젖힌 뚜껑이 위로 삐져나와 오히려 큽니다**(1146→1207).
+        그래서 상자에 맞추는 대신 **닫힌 병과 같은 배율(k)** 로 뽑습니다.
+          k = 닫힌 병의 화면 크기 / 닫힌 병의 마스터 크기
+          뚜껑 연 병 화면 크기 = 뚜껑 연 마스터 x k
+        화면에서 겹쳐 놓는 일은 engine-e7-measure.js 의 sauceOpenBottleStyle 이
+        같은 계산을 상자 대비 % 로 다시 해서 맡습니다. 한쪽만 고치면 어긋납니다.
+     ⚠️ 고추기름만 상자(88x151.4)보다 세로가 큽니다(159.4). 젖힌 뚜껑이 상자 위로
+        나오는 것이 맞고, .sc-bottle 이 overflow 를 자르지 않아 그대로 보입니다. */
+  { file:"E7/food_tteokbokki_gochujang_play_open.png",       size:[206,289], css:"떡볶이 고추장 뚜껑 열림 103.1x144.6" },
+  { file:"E7/food_tteokbokki_oligosaccharide_play_open.png", size:[130,351], css:"떡볶이 올리고당 뚜껑 열림 64.8x175.1" },
+  { file:"E7/food_tteokbokki_soy_sauce_play_open.png",       size:[145,289], css:"떡볶이 간장 뚜껑 열림 72.6x144.5" },
+  { file:"E7/food_yakisoba_soy_sauce_play_open.png",         size:[156,348], css:"볶음우동 간장 뚜껑 열림 78.2x174.3" },
+  { file:"E7/food_yakisoba_oyster_sauce_play_open.png",      size:[204,305], css:"볶음우동 굴소스 뚜껑 열림 102.0x152.6" },
+  { file:"E7/food_yakisoba_chili_oil_play_open.png",         size:[173,319], css:"볶음우동 고추기름 뚜껑 열림 86.6x159.4" }
+  /* [화살표] E7 도 위 공용 ui_arrow_right_01 한 장을 씁니다 — 납품본이
+     E2 새우 것과 바이트까지 같아 여기서 따로 뽑지 않습니다. */
 ];
 
 const QUALITY = 90;

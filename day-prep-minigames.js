@@ -30,6 +30,7 @@ const DAY_PREP_MINI_CONFIG = {
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 
+// cycles 한 번 = ← → 두 번 (썰기 횟수 = cycles * 2)
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
   sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:12},
   sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:10}
@@ -159,14 +160,50 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   whiskMedium:"assets/minigame/E9/14_prop_whisk_batter_medium.webp",// 젓는 중
   // 오른쪽 '참고 모양'(고르게 섞인 반죽)은 마지막 장과 같은 그림입니다.
   batterDone:"assets/minigame/E9/11_food_kimchi_batter_mix_stage5_complete.webp",
-  // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
-  sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",
-  sauceBottleChili:"assets/prep/sauce/bottle-chili.png",
-  sauceBottleGochujang:"assets/prep/sauce/bottle-gochujang.png",
-  sauceBottleOligosaccharide:"assets/prep/sauce/bottle-oligosaccharide.png",
-  sauceBowl:"assets/prep/sauce/bowl.png",
-  // 흰색 실루엣 마스크 3장만 준비하면 재료 색은 E7 설정값으로 입힙니다.
+  // 소스 제조 (engine-e7). assets/minigame/E7/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //
+  //   소스볼 4장 x 2레시피 — **넣은 재료 개수**가 곧 장 번호입니다 (0 빈 볼 → 3 완성).
+  //   ⚠️ 파일 이름은 레시피 순서대로 재료가 쌓인 모습이지만, 실제로는 어떤 순서로
+  //      부어도 개수만 보고 고릅니다. 넣을 때마다 색이 짙어지는 연출이 목적이라
+  //      순서까지 맞춘 조합 그림(E8 반죽 9장 꼴)은 받지 않았습니다.
+  //      순서별 그림을 쓰려면 조합마다 한 장씩(2^3) 더 받아야 합니다.
+  sauceBowlTteokbokki0:"assets/minigame/E7/01_food_tteokbokki_sauce_bowl_empty.webp",
+  sauceBowlTteokbokki1:"assets/minigame/E7/02_food_tteokbokki_sauce_bowl_gochujang.webp",
+  sauceBowlTteokbokki2:"assets/minigame/E7/03_food_tteokbokki_sauce_bowl_gochujang_oligosaccharide.webp",
+  sauceBowlTteokbokki3:"assets/minigame/E7/04_food_tteokbokki_sauce_bowl_final.webp",
+  sauceBowlYakisoba0:"assets/minigame/E7/01_food_yakisoba_sauce_bowl_empty.webp",
+  sauceBowlYakisoba1:"assets/minigame/E7/02_food_yakisoba_sauce_bowl_soy.webp",
+  sauceBowlYakisoba2:"assets/minigame/E7/03_food_yakisoba_sauce_bowl_soy_oyster.webp",
+  sauceBowlYakisoba3:"assets/minigame/E7/04_food_yakisoba_sauce_bowl_complete.webp",
+  //   소스통 3장 x 2레시피 — 조리대 위 소스통과 왼쪽 재료 카드가 **같은 장**을 씁니다.
+  //   ⚠️ 간장은 두 레시피에 다 나오지만 납품 그림이 서로 달라 키를 나눕니다.
+  //      그래서 키가 재료 id 하나가 아니라 `레시피 + 재료` 입니다
+  //      (engine-e7-measure.js 의 SAUCE_ASSET_KEY).
+  sauceBottleTteokbokkiGochujang:"assets/minigame/E7/food_tteokbokki_sauce_play_gochujang.webp",
+  sauceBottleTteokbokkiOligosaccharide:"assets/minigame/E7/food_tteokbokki_sauce_play_oligosaccharide.webp",
+  sauceBottleTteokbokkiSoy:"assets/minigame/E7/food_tteokbokki_sauce_play_soy_sauce.webp",
+  sauceBottleYakisobaSoy:"assets/minigame/E7/food_yakisoba_soy_sauce_play_labeled.webp",
+  sauceBottleYakisobaOyster:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_labeled.webp",
+  sauceBottleYakisobaChili:"assets/minigame/E7/food_yakisoba_chili_oil_play_labeled.webp",
+  //   뚜껑 연 소스통 3장 x 2레시피 — 병을 눌러 들어 올리는 동안만 이 그림으로 바뀝니다.
+  //   키는 위 닫힌 병 키에 Open 을 붙인 이름입니다 (engine-e7-measure.js 의 sauceBottleOpenAssetKey).
+  //   ⚠️ 닫힌 병과 **캔버스가 다릅니다** — 뚜껑을 뺀 만큼 짧은 것도 있고, 고추기름은
+  //      젖힌 뚜껑이 위로 삐져나와 오히려 큽니다. 그래서 같은 상자에 contain 으로
+  //      넣으면 안 되고, 닫힌 병과 같은 배율로 겹쳐야 합니다. 계산은 두 곳에
+  //      나뉘어 있습니다 — 크기는 tools/build-minigame-art-webp.js,
+  //      화면에 앉히는 자리는 engine-e7-measure.js 의 sauceOpenBottleStyle.
+  sauceBottleTteokbokkiGochujangOpen:"assets/minigame/E7/food_tteokbokki_gochujang_play_open.webp",
+  sauceBottleTteokbokkiOligosaccharideOpen:"assets/minigame/E7/food_tteokbokki_oligosaccharide_play_open.webp",
+  sauceBottleTteokbokkiSoyOpen:"assets/minigame/E7/food_tteokbokki_soy_sauce_play_open.webp",
+  sauceBottleYakisobaSoyOpen:"assets/minigame/E7/food_yakisoba_soy_sauce_play_open.webp",
+  sauceBottleYakisobaOysterOpen:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_open.webp",
+  sauceBottleYakisobaChiliOpen:"assets/minigame/E7/food_yakisoba_chili_oil_play_open.webp",
+  //   소스통 → 볼 화살표. **아래 E2 새우와 같은 파일**입니다 (납품본이 바이트까지
+  //   같아 공용 폴더 한 장으로 합쳤습니다). E7 은 이 한 장을 CSS 에서 돌려 →·←·↓ 로 씁니다.
+  sauceArrow:"assets/minigame/ui_arrow_right_01.webp",
+  // 부어지는 줄기는 아직 CSS 도형입니다. 흰색 실루엣 마스크 3장을 아래 경로에
+  // 넣으면 재료 색은 E7 설정값(SAUCE_RECIPES 의 color)으로 입혀집니다.
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
@@ -215,6 +252,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 불꽃이 그림에 함께 그려져 있어 E4 의 CSS 불꽃 도형을 대신합니다.
   ...Object.fromEntries(["01","02","03"].map((no,index)=>
     [`burnerPot${index+1}`,`assets/minigame/E4/fix_gas_burner_integrated_redraw_fire_${no}.webp`])),
+  // 그 화구의 손잡이 한 장. 위 3장에 **이미 그려져 있는** 손잡이 자리에 그대로 겹쳐
+  // 놓고 불 세기에 따라 돌립니다(그림 쪽 손잡이는 늘 꺼진 자리에 멈춰 있습니다).
+  // 자리·크기는 css/minigame-parts.css 의 .mg-burner-knob 이 갖고 있습니다.
+  burnerPotKnob:"assets/minigame/E4/fix_gas_burner_off.webp",
   /* 끓는 냄비 (engine-e4) — 메뉴 2종 x 끓는 세기 3단계 x 4장.
      4장이 한 바퀴 도는 스프라이트이고, 세기는 온도 구간이 고릅니다.
        weak   온도 낮음   medium 적정 온도   strong 과열
@@ -237,8 +278,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      ⚠️ 재료 카드용 그림(mandolineCard*)과 키를 일부러 나눠 두었습니다 —
         같은 키를 쓰면 카드에도 깎이는 그림이 들어갑니다.
 
-     도마는 그림에 액자가 그려져 있어 <img> 가 아니라 칸 배경으로 깝니다 —
-     css/day-prep-minigames.css 의 "나무 도마" 구역 (E7 소스 제조와 공용) */
+     도마는 <img> 가 아니라 칸 배경으로 깝니다 —
+     css/day-prep-minigames.css 의 "나무 도마" 구역
+     (assets/minigame/fix_tempura_prep_board · E1 썰기 · 새우튀김 준비와 공용) */
   mandolinePlate:"assets/minigame/E2/prop_mandoline_empty.webp",
   mandolineColander:"assets/minigame/E2/prop_bamboo_colander_empty.webp",
   mandolineArrow:"assets/minigame/E2/ui_arrow_horizontal_both.webp",
@@ -260,17 +302,36 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   friesShakeBag70:"assets/prep/day4/fries/shake-bag-70.png",
   friesShakeBag100:"assets/prep/day4/fries/shake-bag-100.png",
   friesPotatoStrips:"assets/prep/day4/fries/potato-strips.png",
-  // 새우튀김 준비. 그릇 3개와 새우의 옷 입은 상태 4장입니다.
-  shrimpVesselFlour:"assets/prep/day3/shrimp/vessel-flour.png",
-  shrimpVesselEgg:"assets/prep/day3/shrimp/vessel-egg.png",
-  shrimpVesselBreadcrumbs:"assets/prep/day3/shrimp/vessel-breadcrumbs.png",
-  shrimpStateRaw:"assets/prep/day3/shrimp/shrimp-raw.png",
-  shrimpStateFlour:"assets/prep/day3/shrimp/shrimp-flour.png",
-  shrimpStateEgg:"assets/prep/day3/shrimp/shrimp-egg.png",
-  shrimpStateBreadcrumbs:"assets/prep/day3/shrimp/shrimp-breadcrumbs.png",
-  shrimpIngFlour:"assets/prep/day3/shrimp/ing-flour.png",
-  shrimpIngEgg:"assets/prep/day3/shrimp/ing-egg.png",
-  shrimpIngCrumbs:"assets/prep/day3/shrimp/ing-breadcrumbs.png",
+  /* 새우튀김 준비 — assets/minigame/E2/shrimp/ 의 납품 에셋입니다.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+     한 재료가 자리마다 다른 장을 씁니다 — 왼쪽 카드는 Ing(어두운 나무 그릇),
+     가운데 판은 Vessel(위에서 내려다본 큰 그릇)입니다.
+     도마(assets/minigame/fix_tempura_prep_board)는 CSS 배경이라 여기 없습니다
+     (ui_play_tray_wood 와 같습니다). E1 썰기·E2 채썰기와 같은 장을 씁니다. */
+  /* 그릇 사이 진행 화살표. 한 장을 두 자리에 씁니다(둘째는 CSS 에서 135도 회전).
+     ⚠️ E7 소스 제조와 **같은 파일**이라 공용 폴더(assets/minigame/)에 있습니다.
+        위 sauceArrow 와 같은 장이니 어느 한쪽만 갈아 끼울 수 없습니다. */
+  shrimpArrow:"assets/minigame/ui_arrow_right_01.webp",
+  shrimpVesselFlour:"assets/minigame/E2/shrimp/food_tempura_flour_bowl.webp",
+  shrimpVesselEgg:"assets/minigame/E2/shrimp/food_egg_wash_bowl.webp",
+  shrimpVesselBreadcrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_bowl.webp",
+  /* 새우 10장. 생새우 한 장에 옷 3종 x 묻은 정도 3단계입니다.
+     어느 장을 언제 쓰는지는 engine-e2-alternate-input.js 의 SHRIMP_STATE_KEYS 참고. */
+  shrimpStateRaw:"assets/minigame/E2/shrimp/food_shrimp_raw.webp",
+  shrimpStateFlour1:"assets/minigame/E2/shrimp/food_shrimp_flour_light.webp",
+  shrimpStateFlour2:"assets/minigame/E2/shrimp/food_shrimp_flour_medium.webp",
+  shrimpStateFlour3:"assets/minigame/E2/shrimp/food_shrimp_flour_full.webp",
+  shrimpStateEgg1:"assets/minigame/E2/shrimp/food_shrimp_egg_light.webp",
+  shrimpStateEgg2:"assets/minigame/E2/shrimp/food_shrimp_egg_medium.webp",
+  shrimpStateEgg3:"assets/minigame/E2/shrimp/food_shrimp_egg_full.webp",
+  shrimpStateCrumbs1:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_light.webp",
+  shrimpStateCrumbs2:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_medium.webp",
+  shrimpStateCrumbs3:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_full.webp",
+  // 왼쪽 재료 카드 4장
+  shrimpIngRaw:"assets/minigame/E2/shrimp/food_shrimp_raw_panel.webp",
+  shrimpIngFlour:"assets/minigame/E2/shrimp/food_tempura_flour_panel.webp",
+  shrimpIngEgg:"assets/minigame/E2/shrimp/food_egg_wash_panel.webp",
+  shrimpIngCrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_panel.webp",
   // 단발 액션 (engine-e11 · 플레이팅 / 냄비에 넣기 / 육수 넣기).
   // 재료 그림은 카드·그릇·참고 모양에 같은 파일이 쓰입니다.
   // 그릇은 빈 그릇(osPlate/osPot)과 완성 참고용(osPlateDone/osPotDone) 두 장입니다.
@@ -293,11 +354,29 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
   cookSkewerFood:"assets/prep/two-side/skewer.png",
-  // E8 불리기. 볼·물통은 공용이고 떡/우동 한 장을 반복 배치합니다.
-  soakBowl:"assets/prep/soak/bowl.png",
-  soakWater:"assets/prep/soak/water-pitcher.png",
-  soakTteok:"assets/prep/soak/tteok.png",
-  soakUdon:"assets/prep/soak/udon.png"
+  /* E8 떡 · 우동면 불려두기.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+
+     ⚠️ 볼 그림은 **물이 찬 정도까지 한 장에 그려져 있습니다**(SOAK_WATER_STEPS).
+        예전에는 빈 볼 한 장 위에 재료 조각과 물 높이를 CSS 로 얹었는데,
+        지금은 아래 11장을 겹쳐 두고 갈아 끼웁니다 (engine-e8-order-place.js).
+     ⚠️ 물병(soakWater)과 물방울(soakDrop)은 **한 장이 두 자리에 쓰입니다** —
+        물병은 판 위 + 왼쪽 물 카드, 물방울은 오른쪽 목표 + 진행도 게이지입니다. */
+  soakBowl:"assets/minigame/E8/Soaking/food_soak_bowl_empty.webp",
+  soakWater:"assets/minigame/E8/Soaking/prop_soak_water_pitcher.webp",
+  /* 붓는 자세 2장(25도 · 45도). 세워 둔 장을 CSS 로 돌리는 것이 아니라 갈아 끼웁니다 —
+     돌리면 병 안의 물 면까지 같이 기울어 물이 한쪽 벽에 붙어 보입니다. */
+  soakWaterTilt1:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_01.webp",
+  soakWaterTilt2:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_02.webp",
+  soakDrop:"assets/minigame/E8/Soaking/food_soak_water_ingredient.webp",
+  // 왼쪽 재료 카드 (담기 전의 마른 떡·우동면). 떡은 E4 '불린 떡' 카드와 공용입니다.
+  soakTteok:"assets/minigame/E8/Soaking/food_soak_tteok_ingredient_bowl.webp",
+  soakUdon:"assets/minigame/E8/Soaking/food_soak_udon_ingredient_bowl.webp",
+  // 물이 찬 정도 5단계 x 2종. 키 뒷자리(00~100)가 곧 진행도 % 입니다.
+  ...Object.fromEntries(["tteok","udon"].flatMap(kind=>["00","25","50","75","100"].map(step=>[
+    `soak${kind==="tteok"?"Tteok":"Udon"}Water${step}`,
+    `assets/minigame/E8/Soaking/food_soak_${kind}_water_${step}.webp`
+  ])))
 });
 const dayPrepAssets={};
 
@@ -338,13 +417,24 @@ const MINIGAME_BURNER_FRAMES=3;
 // 화구 종류 → 에셋 키 앞머리. 종류 이름은 클래스(.mg-burner-○)에도 그대로 쓰입니다.
 const MINIGAME_BURNER_PREFIX=Object.freeze({gas:"burnerGas",griddle:"burnerGriddle",pot:"burnerPot"});
 
+/* 돌아가는 손잡이를 얹을 화구 종류 → 그 손잡이 그림 키.
+   여기 없는 종류(가스·철판)는 손잡이 레이어를 아예 만들지 않습니다.
+   불 세기에 따라 손잡이를 돌리는 화면은 지금 E4(pot) 하나뿐입니다 —
+   돌리는 각은 화면이 --mg-knob-turn 으로 줍니다(engine-e4-gauge-hold.js). */
+const MINIGAME_BURNER_KNOB=Object.freeze({pot:"burnerPotKnob"});
+
 function minigameBurnerMarkup(kind){
   const prefix=MINIGAME_BURNER_PREFIX[kind]||MINIGAME_BURNER_PREFIX.gas;
   const keys=Array.from({length:MINIGAME_BURNER_FRAMES},(_,index)=>`${prefix}${index+1}`);
   // 한 장이라도 빠지면 그 순번에서 불이 깜빡 꺼져 보입니다. 전부 있을 때만 씁니다.
   if(!keys.every(hasDayPrepAsset))return `<i class="mg-burner mg-burner-${kind} mg-burner-fallback" aria-hidden="true"></i>`;
   const frames=keys.map(key=>`<img class="mg-burner-frame" src="${dayPrepAssets[key].src}" alt="" draggable="false" />`).join("");
-  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}</div>`;
+  const knobKey=MINIGAME_BURNER_KNOB[kind];
+  const knob=knobKey&&hasDayPrepAsset(knobKey)
+    ?`<img class="mg-burner-knob" src="${dayPrepAssets[knobKey].src}" alt="" draggable="false" />`:"";
+  // ⚠️ 손잡이는 반드시 불꽃 3장 **뒤에** 붙습니다. 앞이나 사이에 끼우면
+  //    css 의 .mg-burner-frame:nth-child(1~3) 가 한 칸씩 밀려 불이 어긋납니다.
+  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}${knob}</div>`;
 }
 
 function timingAssetKey(ingredient,successes,assetPrefix=""){

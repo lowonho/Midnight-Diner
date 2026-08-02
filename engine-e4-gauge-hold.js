@@ -72,6 +72,11 @@ const HEAT_CONFIG=Object.freeze({
   })
 });
 
+/* 화구 손잡이가 강불(화력 1)에서 시계방향으로 도는 각도입니다.
+   손잡이 그림·자리·크기는 css/minigame-parts.css 의 .mg-burner-knob 이 갖고 있고,
+   여기서는 "얼마나 도는지"만 정합니다. 0도가 화구 그림에 그려진 꺼진 자리입니다. */
+const HEAT_KNOB_MAX_TURN=120;
+
 const HEAT_FEEL_CONFIG=Object.freeze({
   exitGrace:0.3,
   warningDelay:0.65,
@@ -259,6 +264,9 @@ function updateHeatVisual(data,config){
   // fire-* 는 화구 그림 3장이 넘어가는 속도(불 세기)를, heat-* 는 냄비의 김·거품을 정합니다.
   scene.classList.remove("heat-low","heat-ideal","heat-high","fire-low","fire-ideal","fire-high");
   scene.classList.add(`heat-${zone}`,`fire-${fire}`);
+  // 화구 손잡이는 세 단계가 아니라 화력을 그대로 따라 시계방향으로 돕니다
+  // (약불 0도 → 강불 120도). 아래 .mg-burner-knob 이 이 값을 받아 돌아갑니다.
+  scene.style.setProperty("--mg-knob-turn",`${(data.power*HEAT_KNOB_MAX_TURN).toFixed(1)}deg`);
   const label=scene.querySelector("#heatStateLabel");
   if(label)label.textContent=zone==="low"?"온도 낮음":zone==="high"?"과열 주의":"적정 온도";
   const needle=dom.miniContent.querySelector("#heatNeedle");if(needle)needle.style.left=`${data.value*100}%`;
