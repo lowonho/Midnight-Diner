@@ -98,17 +98,24 @@ function heatFallbackMarkup(visual){
   </span>`;
 }
 
+/* 가운데 : 화구 위의 냄비.
+   화구(가스버너)와 냄비는 분리된 두 겹입니다 — E3 김치 볶기 · E5 김치전과 같은
+   방식이고 그림만 다릅니다(day-prep-minigames.js 의 minigameBurnerMarkup).
+   불꽃이 화구 그림 3장에 함께 그려져 있어 예전 CSS 불꽃 도형은 없앴습니다.
+   자리는 css/minigames.css 의 --heat-pot-w · --heat-pot-drop 두 값이 정합니다. */
 function heatSceneMarkup(config){
   const hasAsset=hasDayPrepAsset(config.potAsset);
-  return `<div class="heat-cook-scene heat-low fire-low" id="heatCookScene" style="--flame-level:.45">
-    <div class="heat-pot-stack">
-      <i class="heat-steam steam-one"></i><i class="heat-steam steam-two"></i><i class="heat-steam steam-three"></i>
-      <div class="heat-pot ${config.visual} ${hasAsset?"has-asset":""}">
-        ${dayPrepAssetMarkup(config.potAsset,"heat-pot-asset",config.title)}
-        <span class="heat-pot-fallback">${heatFallbackMarkup(config.visual)}<i class="heat-pot-handle left"></i><i class="heat-pot-handle right"></i></span>
-        <span class="heat-boil-bubbles"><i></i><i></i><i></i><i></i><i></i></span>
+  return `<div class="heat-cook-scene heat-low fire-low" id="heatCookScene">
+    <div class="heat-cooktop">
+      ${minigameBurnerMarkup("pot")}
+      <div class="heat-pot-stack">
+        <i class="heat-steam steam-one"></i><i class="heat-steam steam-two"></i><i class="heat-steam steam-three"></i>
+        <div class="heat-pot ${config.visual} ${hasAsset?"has-asset":""}">
+          ${dayPrepAssetMarkup(config.potAsset,"heat-pot-asset",config.title)}
+          <span class="heat-pot-fallback">${heatFallbackMarkup(config.visual)}<i class="heat-pot-handle left"></i><i class="heat-pot-handle right"></i></span>
+          <span class="heat-boil-bubbles"><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
       </div>
-      <div class="heat-burner"><span class="heat-flames"><i></i><i></i><i></i><i></i><i></i></span></div>
     </div>
     <strong class="heat-state-label" id="heatStateLabel">온도 낮음</strong>
     <span class="e4-result" id="e4Result" aria-live="polite"></span>
@@ -209,9 +216,9 @@ function updateHeatVisual(data,config){
   const scene=dom.miniContent.querySelector("#heatCookScene");if(!scene)return;
   const zone=heatZoneState(data.value,config);
   const fire=data.power<config.targetStart?"low":data.power>config.targetEnd?"high":"ideal";
+  // fire-* 는 화구 그림 3장이 넘어가는 속도(불 세기)를, heat-* 는 냄비의 김·거품을 정합니다.
   scene.classList.remove("heat-low","heat-ideal","heat-high","fire-low","fire-ideal","fire-high");
   scene.classList.add(`heat-${zone}`,`fire-${fire}`);
-  scene.style.setProperty("--flame-level",(.42+data.power*1.1).toFixed(2));
   const label=scene.querySelector("#heatStateLabel");
   if(label)label.textContent=zone==="low"?"온도 낮음":zone==="high"?"과열 주의":"적정 온도";
   const needle=dom.miniContent.querySelector("#heatNeedle");if(needle)needle.style.left=`${data.value*100}%`;
