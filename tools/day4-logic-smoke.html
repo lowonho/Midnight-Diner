@@ -82,7 +82,7 @@ try{
   assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
   assert(cutTimingGrade(.5,.4,.2)==="perfect"&&cutTimingGrade(.41,.4,.2)==="good"&&cutTimingGrade(.2,.4,.2)==="miss","E1 good/perfect/miss grading");
   assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.completeDelayMs===620,"E1 feel timing config");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="8,6,5","E1 tteokbokki cut counts");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="4,4,4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki supplied sprite counts and fish-cake horizontal finish");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",requiredHits:2,hitZoneWidth:.2,speed:.7,zoneStarts:[.4,.4],title:"E1 smoke",description:"smoke"});
   state.mini.data.marker=.5;timingCutAction();

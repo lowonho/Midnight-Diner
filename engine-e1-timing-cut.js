@@ -76,6 +76,7 @@ const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:
 const CUT_POSITION_PERCENTAGES=Object.freeze({
   radish:Object.freeze([79.7,61.4,41.7,22.1]),
   fishCake:Object.freeze([74.3,51.3,26.7]),
+  cabbage:Object.freeze([83.2,65.1,42.6,22.7]),
   chicken:Object.freeze([85.3,70.5,55.1,38.5,20.8]),
   greenOnion:Object.freeze([80.2,62.6,43.2,22.7]),
   kimchi:Object.freeze([80.8,64.4,48.1,31.7,15.5]),
@@ -391,6 +392,7 @@ function setupTteokbokkiCut(taskId){
     requiredHits:item.requiredPieces,
     hitZoneWidth:.14,
     speed:.8,
+    horizontalLastCut:!!item.horizontalLastCut,
     zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
     title:`떡볶이 · ${item.displayName} 썰기`,
     description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
