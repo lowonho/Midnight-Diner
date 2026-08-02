@@ -748,8 +748,13 @@
      --heat-pot-drop   냄비 바닥이 화구 바닥에서 뜨는 높이 = 불에 얹히는 자리.
                        175 는 불꽃 링(화구 위에서 39~73%)의 위쪽을 냄비가 덮고
                        아래 끝만 냄비 밑으로 비쳐 보이는 자리입니다.
-                       키우면 냄비가 불 위로 떠 보이고, 줄이면 불이 다 가려집니다. */
-.heat-scene { --heat-pot-scale:1.5; --heat-pot-drop:calc(175 * var(--upx)); }
+                       키우면 냄비가 불 위로 떠 보이고, 줄이면 불이 다 가려집니다.
+     --heat-pot-h      냄비 몸통 세로(원래 125). 바닥은 불에 닿는 자리에 고정이라
+                       이 값을 키우면 **위로 자랍니다** — 국물 면·손잡이·거품이
+                       냄비 위쪽에 붙어 있어 함께 올라갑니다.
+                       ⚠️ 너무 키우면 국물 면과 김이 플레이 칸 위로 잘립니다.
+                          138 + 아래 김 자리 52 가 위 여유 17 을 남기는 값입니다. */
+.heat-scene { --heat-pot-scale:1.5; --heat-pot-drop:calc(190 * var(--upx)); --heat-pot-h:calc(138 * var(--upx)); }
 /* 냄비 몸통 자리 + 그 위로 김이 오를 자리를 함께 갖는 상자입니다.
    ⚠️ 가로를 냄비 몸통(320)에 맞춥니다. 화구 폭(824.2)으로 늘리면 김 세 줄기의
       자리(29% · 49% · 68%)가 냄비 밖 허공으로 흩어집니다. */
@@ -759,10 +764,10 @@
   left:50%;
   bottom:var(--heat-pot-drop);
   width:calc(320 * var(--upx));
-  /* 냄비 몸통 125 + 그 위로 김이 오르는 자리 58.
-     ⚠️ 원래 255 였습니다. 남는 72 는 예전 CSS 화구(.heat-burner)가 쓰던 자리라
-        그대로 두면 김이 냄비에서 그만큼 떨어져 허공에서 피어오릅니다. */
-  height:calc(183 * var(--upx));
+  /* 냄비 몸통 + 그 위로 김이 오르는 자리 52.
+     ⚠️ 원래 255(=125+130) 였습니다. 남는 72 는 예전 CSS 화구(.heat-burner)가
+        쓰던 자리라 그대로 두면 김이 냄비에서 그만큼 떨어져 허공에서 피어오릅니다. */
+  height:calc(var(--heat-pot-h) + 52 * var(--upx));
   transform:translateX(-50%) scale(var(--heat-pot-scale));
   transform-origin:50% 100%;                      /* 바닥 가운데 고정 — 커져도 불에 닿는 면은 그대로 */
 }
@@ -773,7 +778,7 @@
   top:auto;
   bottom:0;                                       /* 스택 바닥 = 냄비 바닥 = 불에 닿는 면 */
   width:calc(320 * var(--upx));
-  height:calc(125 * var(--upx));
+  height:var(--heat-pot-h);
   border:calc(7 * var(--upx)) solid #55514c;
   border-top:0;
   border-radius:calc(12 * var(--upx)) calc(12 * var(--upx)) calc(82 * var(--upx)) calc(82 * var(--upx));
@@ -841,7 +846,11 @@
 .heat-cook-scene.heat-high .heat-steam { animation-duration:1.05s; }
 .heat-cook-scene.heat-high .heat-pot { animation:heat-pot-overheat .28s ease-in-out infinite alternate; }
 .heat-cook-scene.heat-high .heat-pot.tteokbokki::after { content:""; position:absolute; z-index:6; left:62%; top:calc(-37 * var(--upx)); width:calc(12 * var(--upx)); height:calc(12 * var(--upx)); border-radius:50%; background:#c74428; animation:heat-sauce-pop .72s ease-out infinite; }
-.heat-state-label { min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); }
+/* 온도 라벨. 자리를 차지한 채로 조금 더 내려 앉힙니다 —
+   `top` 은 배치를 바꾸지 않으므로 위의 화구·냄비는 그대로 있고 이 칩만 내려갑니다.
+   플레이 칸(523.2) 아래로 2 남짓 걸치는데, 그 아래는 3열과 띠 사이의 빈 12 라
+   화력 게이지와는 20 넘게 떨어져 있습니다. */
+.heat-state-label { position:relative; top:calc(18 * var(--upx)); min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); }
 .heat-cook-scene.heat-ideal .heat-state-label { border-color:#809e4e; color:#ddeb9e; box-shadow:0 0 calc(13 * var(--upx)) rgba(139,184,83,.25); }
 .heat-cook-scene.heat-high .heat-state-label { border-color:#b7553d; color:#ffc0a0; }
 .e4-result { position:absolute; z-index:10; left:50%; top:45%; opacity:0; color:#f3d5a0; font-size:calc(29 * var(--upx)); font-weight:1000; letter-spacing:calc(2 * var(--upx)); text-shadow:0 calc(3 * var(--upx)) 0 #5a2e13,0 0 calc(18 * var(--upx)) rgba(255,202,92,.65); transform:translate(-50%,calc(8 * var(--upx))) scale(.82); pointer-events:none; }
