@@ -379,21 +379,25 @@
   clip-path: polygon(8% 0,100% 0,100% 72%,58% 100%,0 84%);
 }
 .cut-screen .knife-effect.has-prep-asset {
-  top:calc(-105 * var(--upx));
-  width:calc(190 * var(--upx));
-  height:calc(360 * var(--upx));
-  margin-left:calc(-28 * var(--upx));
-  --knife-turn:180deg;
+  top:calc(-72 * var(--upx));
+  width:calc(220 * var(--upx));
+  height:calc(410 * var(--upx));
+  margin-left:0;
+  --knife-turn:0deg;
+  transform-origin:50% 50%;
+}
+.cut-screen .knife-effect.has-prep-asset .knife-asset {
+  transform:scaleX(1.48);
   transform-origin:50% 50%;
 }
 /* 두부 마지막 한 번은 가로 썰기라 칼도 눕습니다 (기존 규칙을 도마 안에서 다시 잡습니다) */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect {
   left: 50%;
   top: 50%;
-  width: calc(190 * var(--upx));
-  height: calc(360 * var(--upx));
+  width: calc(220 * var(--upx));
+  height: calc(410 * var(--upx));
   margin-left: 0;
-  transform: translate(-50%,-50%) rotate(90deg);
+  transform: translate(-50%,-50%) rotate(-90deg);
   transform-origin: 50% 50%;
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
@@ -590,8 +594,10 @@
    가운데 재료 그림이 버튼 높이만큼 위로 밀리지 않습니다. */
 .cut-board .cut-footer {
   position: absolute;
+  z-index: 6;
   left: 50%;
-  bottom: calc(16 * var(--upx));
+  top: calc(18 * var(--upx));
+  bottom: auto;
   width: auto;
   transform: translateX(-50%);
 }
@@ -606,9 +612,9 @@
   100% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1); filter:none; }
 }
 @keyframes cut-knife-chop-side {
-  0%   { transform: translate(calc(-50% - 22 * var(--upx)),-50%) rotate(90deg); }
-  45%  { transform: translate(calc(-50% + 10 * var(--upx)),-50%) rotate(90deg); }
-  100% { transform: translate(-50%,-50%) rotate(90deg); }
+  0%   { transform: translate(calc(-50% - 22 * var(--upx)),-50%) rotate(-90deg); }
+  45%  { transform: translate(calc(-50% + 10 * var(--upx)),-50%) rotate(-90deg); }
+  100% { transform: translate(-50%,-50%) rotate(-90deg); }
 }
 @keyframes cut-knife-miss {
   0% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.04); }
