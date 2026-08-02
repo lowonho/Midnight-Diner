@@ -176,6 +176,20 @@ try{
   assert(playedSfx.join(",")==="cut_meat1","E1 chicken first tap plays meat sound 1");
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
   assert(playedSfx.join(",")==="cut_meat1,cut_meat2","E1 chicken second tap plays meat sound 2");
+
+  dayPrepAssets.tofu0={src:"assets/minigame/E1/tofu-0.png"};
+  dayPrepAssets.tofu1={src:"assets/minigame/E1/tofu-1.png"};
+  state.mini={type:"chop",engine:"chop",context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
+  MINI_ENGINES.chop.setup(state.mini,{set(){},difficulty:1});
+  const cookTofuMini=state.mini;
+  assert(cookTofuMini.engine==="timing"&&cookTofuMini.data.mode==="timing"&&cookTofuMini.data.ingredient==="tofu"&&cookTofuMini.data.total===6&&cookTofuMini.data.phase==="countdown"&&cookTofuMini.data.countdownStep===3&&dom.miniContent.querySelector(".cut-path-mode")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===6,"Open-hours tofu routes into the E1 countdown and moving-knife controller");
+  MINI_ENGINES.timing.update(cookTofuMini,3.1);
+  const cookTofuKnifeStart=cookTofuMini.data.knifeX;
+  MINI_ENGINES.timing.update(cookTofuMini,.1);
+  assert(cookTofuMini.data.knifeX<cookTofuKnifeStart&&!MINI_ENGINES.timing.timerRuns(cookTofuMini)&&timingCutAverageScore({cutScores:[100,85,45]})===77,"Open-hours tofu advances the E1 knife and uses E1 score aggregation without a legacy timer");
+  cookTofuMini.data.knifeX=suppliedCutPosition("tofu",0,6);
+  timingCutAction();
+  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.phase==="impact"&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses the E1 blade position judgment and advances its supplied asset");
   if(new URLSearchParams(location.search).get("scope")==="e1")throw new Error("E1_PATH_TEST_COMPLETE");
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===2,"E12 mandoline stroke counts are doubled without doubling the final shred pile");
@@ -393,8 +407,8 @@ try{
   const tofuMenu=menuDataById("tofu");
   assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
-  MINI_ENGINES.chop.setup(state.mini,{set(){}});
-  assert(state.mini.data.tofuStyle&&state.mini.data.total===6&&dom.miniContent.querySelector(".cut-screen .cut-board")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("[data-tofu-cut]").length===6,"Open-hours tofu chop uses the shared large-board six-cut controller");
+  MINI_ENGINES.chop.setup(state.mini,{set(){},difficulty:1});
+  assert(state.mini.engine==="timing"&&state.mini.data.mode==="timing"&&state.mini.data.ingredient==="tofu"&&state.mini.data.total===6&&state.mini.data.phase==="countdown"&&dom.miniContent.querySelector(".cut-path-mode"),"Open-hours tofu chop uses the shared E1 moving-knife controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 

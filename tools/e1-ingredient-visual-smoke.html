@@ -45,6 +45,7 @@
     const stage=Math.max(0,Math.min(config.total,Number(params.get("stage"))||0));
     const work=document.getElementById("work");
     const guide=document.getElementById("guide");
+    if(params.get("mode")==="night")work.classList.remove("cut-path-mode");
     const verticalCount=config.horizontalLastCut?config.total-1:config.total;
     const targetX=config.positions[Math.min(stage,verticalCount-1)];
     const assetStage=Math.min(config.assetMax,Math.round(stage/config.total*config.assetMax));

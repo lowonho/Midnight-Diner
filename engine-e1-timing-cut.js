@@ -107,6 +107,13 @@ function playCutIngredientSfx(data,tapStep=0){
   audio.play?.(name,{owner:state.mini});
 }
 
+function timingCutAverageScore(data){
+  const scores=data.cutScores||[];
+  return scores.length
+    ?Math.round(scores.reduce((sum,score)=>sum+score,0)/scores.length)
+    :100;
+}
+
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
 }
@@ -255,7 +262,7 @@ function startCuttingMinigame(options){
   const firstBeatDistance=verticalCount>1
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
-  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -442,7 +449,7 @@ function advanceTimingKnife(m,dt){
 
 // Space / ACTION 버튼 / 화면 안 썰기 버튼이 모두 여기로 들어옵니다.
 function timingCutAction(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
+  const m=state.mini;if(!m||m.complete)return;
   if(m.data.mode!=="timing")return;
   const data=m.data;
   if(data.inputLocked||data.phase==="complete")return;
@@ -492,6 +499,7 @@ function completeTimingCut(m,grade="good",missMessage=""){
     data.mistakes=(data.mistakes||0)+1;
     audio.bad();
   }else playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
+  data.cutScores?.push(grade==="perfect"?100:grade==="good"?85:45);
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
   work?.classList.remove("tough-first-hit");
@@ -623,8 +631,24 @@ function moveNightChopTarget(m){
 }
 
 registerMiniEngine("chop",{
-  setup(m,{set}){
+  setup(m,{set,difficulty=1}){
     const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
+    if(isTofu){
+      set("두부 썰기","움직이는 칼날의 왼쪽 끝이 점선에 닿을 때 Space를 눌러 두부를 6번 썰어주세요.",10);
+      startCuttingMinigame({
+        taskId:"cookTofuBlock",
+        ingredient:"tofu",
+        ingredientLabel:"두부",
+        ingredientCount:1,
+        requiredHits:6,
+        hitTolerance:DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance,
+        travelSpeed:DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed*difficulty,
+        title:"두부 썰기",
+        description:"칼날의 왼쪽 끝이 점선에 닿을 때 Space를 눌러주세요. 총 6번 썹니다.",
+        onComplete:()=>finishMini(timingCutAverageScore(m.data))
+      });
+      return;
+    }
     set(
       isTofu?"두부 썰기":"정밀 손질",
       isTofu
