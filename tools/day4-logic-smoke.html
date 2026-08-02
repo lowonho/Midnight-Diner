@@ -121,6 +121,7 @@ try{
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
   assert(playedSfx.join(",")==="cut_meat1,cut_meat2","E1 chicken second tap plays meat sound 2");
 
+  assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===2,"E12 mandoline stroke counts are doubled without doubling the final shred pile");
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
   assert(SHRIMP_COAT_STEPS.map(item=>item.presses).join(",")==="10,8,12"&&PREP_TASKS.coatShrimp,"Shrimp coating counts and merged task");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
@@ -138,7 +139,7 @@ try{
   assert(alternateCompletionGrade(smooth)==="perfect"&&alternateCompletionGrade(paused)==="good"&&smooth.expectedIndex===0,"E2 completion grade from smooth and paused input");
   state.day=6;state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupMandoline("sliceFriesPotato");mandolineInput("left",false);
   assert(MINI_ENGINES.mandoline&&DAY_PREP_SETUPS.mandoline&&DAY_PREP_SETUPS.potatoMandoline,"E12 owns mandoline engine and setup registration");
-  assert(state.mini.data.successInputs===1&&state.mini.data.expected==="right"&&dom.miniContent.querySelector("#mandolineIngredient.move-left"),"E2 mandoline input and visual state");
+  assert(state.mini.data.totalInputs===20&&state.mini.data.successInputs===1&&state.mini.data.expected==="right"&&dom.miniContent.querySelector("#mandolineIngredient.move-left"),"E12 mandoline doubled input count and visual state");
   assert(mandolineDragProjection(83.9,54.5)>99&&Math.abs(mandolineDragProjection(-54.5,83.9))<1,"E2 mandoline projects pointer motion onto the illustrated diagonal rail");
   const dragIngredient=dom.miniContent.querySelector("#mandolineIngredient"),dragPlate=dom.miniContent.querySelector(".md-plate");
   dragPlate.getBoundingClientRect=()=>({left:0,top:0,width:500,height:400,right:500,bottom:400});dom.miniContent.setPointerCapture=()=>{};dom.miniContent.releasePointerCapture=()=>{};dom.miniContent.hasPointerCapture=()=>true;

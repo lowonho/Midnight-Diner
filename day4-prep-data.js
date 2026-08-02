@@ -45,6 +45,6 @@ const SAUCE_RECIPES=Object.freeze({
 
 const DAY4_PREP_CONFIG=Object.freeze({
   soak:{taskId:"soakTteok",required:["tteok","water"]},
-  potatoMandoline:{taskId:"sliceFriesPotato",ingredient:"potato",label:"감자",directions:["left","right"],totalInputs:10},
+  potatoMandoline:{taskId:"sliceFriesPotato",ingredient:"potato",label:"감자",directions:["left","right"],totalInputs:20},
   potatoStarch:{taskId:"shakeFriesStarch",requiredPresses:14,stages:[0,35,70,100]}
 });

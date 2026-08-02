@@ -29,8 +29,8 @@ const DAY_PREP_MINI_CONFIG = {
 };
 
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
-  sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:6},
-  sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:5}
+  sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:12},
+  sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:10}
 });
 const BREADCRUMB_KEY_PAIRS=Object.freeze([["a","d"],["q","e"],["f","j"],["z","c"],["j","l"]]);
 
