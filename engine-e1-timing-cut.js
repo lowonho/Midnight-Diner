@@ -286,9 +286,10 @@ function renderTimingCut(){
       <div class="prep-work-object cut-path-mode ${data.ingredient}-shape cut-visual-stage-${visualStage} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--knife-x:${data.knifeX}%;--knife-y:${data.knifeY}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
         ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
         ${Array.from({length:data.total},(_,index)=>{
-          const done=index<data.successes?"done":"",active=index===data.successes?"active":"";
-          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done} ${active}" data-cut-index="${index}"></i>`;
-          return `<i class="cut-line ${done} ${active}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
+          if(index<data.successes)return "";
+          const active=index===data.successes?"active":"";
+          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${active}" data-cut-index="${index}"></i>`;
+          return `<i class="cut-line ${active}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
@@ -497,12 +498,11 @@ function completeTimingCut(m,grade="good",missMessage=""){
   board?.classList.remove("cut-embedded");board?.classList.add(grade==="miss"?"cut-miss":grade==="perfect"?"cut-perfect":"cut-good");
   work?.classList.add(grade==="miss"?"slice-miss":"slice-hit",grade==="miss"?"slice-missed":grade==="perfect"?"slice-perfect":"slice-good");
   if(judgement){judgement.textContent=grade==="miss"?"MISS":grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
+  const completedLine=dom.miniContent.querySelector(`.cut-line[data-cut-index="${cutIndex}"]`);
+  completedLine?.remove();
   const nextAssetKey=timingAssetKey(data.ingredient,cutAssetStage(data,data.successes),data.assetPrefix);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
-  const completedLine=dom.miniContent.querySelector(`.cut-line[data-cut-index="${cutIndex}"]`);
-  completedLine?.classList.add("done","fresh-cut");
-  if(grade==="miss")completedLine?.classList.add("missed");
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   // 방금 썬 조각을 오른쪽 더미에 바로 얹습니다. (다시 그릴 때 정식으로 다시 깔립니다)
   updateCutCountCard(data.successes,data.total);
@@ -569,8 +569,8 @@ function renderNightChop(m){
     <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",cutIngredientLabel(data))}
       ${Array.from({length:data.total},(_,index)=>{
-        const done=index<data.cuts?"done":"";
-        return `<i class="cut-line ${done}" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
+        if(index<data.cuts)return "";
+        return `<i class="cut-line" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
       }).join("")}
       <i class="cut-guide"></i>
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
@@ -589,7 +589,7 @@ function showNightChopImpact(m,cutIndex,grade){
   const work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
   const board=dom.miniContent.querySelector(".cut-board");
   const judgement=dom.miniContent.querySelector("#cutJudgement");
-  work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.classList.add("done","fresh-cut");
+  work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.remove();
   const nextAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;

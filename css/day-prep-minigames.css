@@ -576,23 +576,10 @@
 
 /* 잘린 조각을 옆에 쌓지 않고 큰 재료 본체 안에서 절단면이 벌어지도록 표현합니다. */
 .cut-screen .cut-line.done {
-  width:calc(8 * var(--upx));
-  border-left:0;
-  border-radius:calc(4 * var(--upx));
-  background:linear-gradient(90deg,rgba(65,31,13,.72),rgba(255,243,202,.48),rgba(65,31,13,.72));
-  box-shadow:calc(-3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(0,0,0,.28),calc(3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(255,255,255,.22);
-  opacity:1;
-  transform:translateX(-50%);
+  display:none;
 }
 .cut-screen .tofu-horizontal-line.done {
-  left:calc(-5 * var(--upx)) !important;
-  right:calc(-5 * var(--upx));
-  width:auto;
-  height:calc(8 * var(--upx));
-  border:0;
-  background:linear-gradient(rgba(65,31,13,.72),rgba(255,243,202,.5),rgba(65,31,13,.72));
-  box-shadow:0 calc(-3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.25),0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(255,255,255,.2);
-  transform:translateY(-50%);
+  display:none;
 }
 .cut-screen .cut-line.fresh-cut { animation:cut-seam-open .28s cubic-bezier(.2,.8,.2,1); }
 .cut-screen .cut-path-mode .cut-line.missed {
