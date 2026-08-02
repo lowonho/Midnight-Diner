@@ -47,7 +47,7 @@ const HEAT_CONFIG=Object.freeze({
   oden:Object.freeze({
     title:"어묵탕 끓이기",
     description:"불을 조절해 맑은 어묵탕을 적정 온도에서 5초 동안 끓여주세요.",
-    visual:"oden",potAsset:"heatOdenPot",ingredients:HEAT_INGREDIENTS.oden,
+    visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
     targetStart:.43,targetEnd:.63,targetHold:5,
     initialValue:.24,initialPower:.31,heatFloor:.07,heatRange:.92,
     response:1.25,powerChangeRate:.52,tapStep:.055
@@ -55,7 +55,7 @@ const HEAT_CONFIG=Object.freeze({
   tteokbokki:Object.freeze({
     title:"떡볶이 끓이기",
     description:"불을 조절해 걸쭉한 떡볶이를 적정 온도에서 5초 동안 끓여주세요.",
-    visual:"tteokbokki",potAsset:"heatTteokbokkiPot",ingredients:HEAT_INGREDIENTS.tteokbokki,
+    visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
     targetStart:.48,targetEnd:.68,targetHold:5,
     initialValue:.26,initialPower:.34,heatFloor:.08,heatRange:.94,
     response:.82,powerChangeRate:.48,tapStep:.05
@@ -65,7 +65,7 @@ const HEAT_CONFIG=Object.freeze({
   default:Object.freeze({
     title:"화력 조절",
     description:"불을 조절해 적정 온도를 5초 동안 유지하세요.",
-    visual:"oden",potAsset:"heatOdenPot",ingredients:HEAT_INGREDIENTS.oden,
+    visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
     targetStart:.43,targetEnd:.63,targetHold:5,
     initialValue:.24,initialPower:.31,heatFloor:.07,heatRange:.92,
     response:1.1,powerChangeRate:.5,tapStep:.05
@@ -98,24 +98,64 @@ function heatFallbackMarkup(visual){
   </span>`;
 }
 
+/* ---- 끓는 냄비 스프라이트 ------------------------------------
+   메뉴 2종 x 끓는 세기 3단계 x 4장입니다. 파일 목록은
+   day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 에 있고 키 규칙은 아래와 같습니다.
+     boil{Oden|Tteokbokki}{Weak|Medium|Strong}{1~4}
+
+   세기는 **온도 구간**(heatZoneState)이 고릅니다 — 화면의 '온도 낮음 / 적정 온도 /
+   과열 주의' 와 늘 같은 것을 보여주려는 것입니다. 불(화력)은 온도를 밀어 올리는
+   입력일 뿐이고 판정도 온도로 하므로, 그림이 라벨과 어긋나지 않는 쪽을 택했습니다.
+   (화력에 맞추고 싶으면 css/minigames.css 의 heat- 를 fire- 로 바꾸면 됩니다) */
+const HEAT_BOIL_LEVELS=Object.freeze({low:"Weak",ideal:"Medium",high:"Strong"});
+const HEAT_BOIL_FRAMES=4;
+
+function heatBoilAssetKey(visual,zone,frame){
+  const dish=visual==="tteokbokki"?"Tteokbokki":"Oden";
+  return `boil${dish}${HEAT_BOIL_LEVELS[zone]}${frame}`;
+}
+
+// 4장 한 벌. 어느 벌을 보여줄지는 CSS 가 온도 구간 클래스로 고릅니다.
+function heatBoilSetMarkup(config,zone){
+  const frames=Array.from({length:HEAT_BOIL_FRAMES},(_,index)=>
+    dayPrepAssetMarkup(heatBoilAssetKey(config.visual,zone,index+1),"heat-boil-frame",index?"":config.title)).join("");
+  return `<div class="heat-boil-set ${zone}">${frames}</div>`;
+}
+
+function hasHeatBoilArt(config){
+  return ["low","ideal","high"].every(zone=>
+    Array.from({length:HEAT_BOIL_FRAMES},(_,index)=>heatBoilAssetKey(config.visual,zone,index+1)).every(hasDayPrepAsset));
+}
+
 /* 가운데 : 화구 위의 냄비.
    화구(가스버너)와 냄비는 분리된 두 겹입니다 — E3 김치 볶기 · E5 김치전과 같은
    방식이고 그림만 다릅니다(day-prep-minigames.js 의 minigameBurnerMarkup).
    불꽃이 화구 그림 3장에 함께 그려져 있어 예전 CSS 불꽃 도형은 없앴습니다.
-   자리는 css/minigames.css 의 --heat-pot-w · --heat-pot-drop 두 값이 정합니다. */
-function heatSceneMarkup(config){
-  const hasAsset=hasDayPrepAsset(config.potAsset);
-  return `<div class="heat-cook-scene heat-low fire-low" id="heatCookScene">
-    <div class="heat-cooktop">
-      ${minigameBurnerMarkup("pot")}
-      <div class="heat-pot-stack">
+
+   냄비는 두 갈래입니다.
+     그림이 있으면  .heat-pot-art  (끓는 스프라이트 3벌 x 4장)
+     없으면        .heat-pot-stack (예전 CSS 도형 — 그대로 남겨 둡니다)
+   자리는 css/minigames.css 의 --heat-art-w · --heat-art-drop (그림) ·
+   --heat-pot-scale · --heat-pot-drop (도형) 이 정합니다. */
+function heatPotMarkup(config){
+  if(!hasHeatBoilArt(config))return `<div class="heat-pot-stack">
         <i class="heat-steam steam-one"></i><i class="heat-steam steam-two"></i><i class="heat-steam steam-three"></i>
-        <div class="heat-pot ${config.visual} ${hasAsset?"has-asset":""}">
-          ${dayPrepAssetMarkup(config.potAsset,"heat-pot-asset",config.title)}
+        <div class="heat-pot ${config.visual}">
           <span class="heat-pot-fallback">${heatFallbackMarkup(config.visual)}<i class="heat-pot-handle left"></i><i class="heat-pot-handle right"></i></span>
           <span class="heat-boil-bubbles"><i></i><i></i><i></i><i></i><i></i></span>
         </div>
-      </div>
+      </div>`;
+  return `<div class="heat-pot-art ${config.visual}">
+        ${["low","ideal","high"].map(zone=>heatBoilSetMarkup(config,zone)).join("")}
+        <i class="heat-steam steam-one"></i><i class="heat-steam steam-two"></i><i class="heat-steam steam-three"></i>
+      </div>`;
+}
+
+function heatSceneMarkup(config){
+  return `<div class="heat-cook-scene heat-low fire-low" id="heatCookScene">
+    <div class="heat-cooktop">
+      ${minigameBurnerMarkup("pot")}
+      ${heatPotMarkup(config)}
     </div>
     <strong class="heat-state-label" id="heatStateLabel">온도 낮음</strong>
     <span class="e4-result" id="e4Result" aria-live="polite"></span>

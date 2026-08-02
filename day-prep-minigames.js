@@ -188,9 +188,15 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 불꽃이 그림에 함께 그려져 있어 E4 의 CSS 불꽃 도형을 대신합니다.
   ...Object.fromEntries(["01","02","03"].map((no,index)=>
     [`burnerPot${index+1}`,`assets/minigame/E4/fix_gas_burner_integrated_redraw_fire_${no}.webp`])),
-  // 화력 유지 (engine-e4). 증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
-  heatOdenPot:"assets/prep/heat/oden-pot.png",
-  heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
+  /* 끓는 냄비 (engine-e4) — 메뉴 2종 x 끓는 세기 3단계 x 4장.
+     4장이 한 바퀴 도는 스프라이트이고, 세기는 온도 구간이 고릅니다.
+       weak   온도 낮음   medium 적정 온도   strong 과열
+     키 이름은 boil{Oden|Tteokbokki}{Weak|Medium|Strong}1~4 입니다 —
+     engine-e4-gauge-hold.js 의 heatBoilAssetKey 가 같은 규칙으로 만들어 씁니다. */
+  ...Object.fromEntries([["Oden","eomuk_tang"],["Tteokbokki","tteokbokki"]].flatMap(([dishKey,dishFile])=>
+    [["Weak","weak"],["Medium","medium"],["Strong","strong"]].flatMap(([levelKey,levelFile])=>
+      ["01","02","03","04"].map((no,index)=>
+        [`boil${dishKey}${levelKey}${index+1}`,`assets/minigame/E4/food_${dishFile}_boil_${levelFile}_${no}.webp`])))),
   /* 채칼 (engine-e2). PNG 가 마스터이고 여기서 쓰는 WebP 는
      tools/build-minigame-art-webp.js 산출물입니다.
 

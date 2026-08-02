@@ -704,7 +704,7 @@
       화구 상자 밖으로 60 남짓 더 올라가는데, 상자 기준으로 가운데를 맞추면
       그 몫이 전부 위로 몰려 천장에 붙고 김이 잘립니다.
       아래를 기준으로 두면 남는 자리가 전부 위쪽 여유가 됩니다. */
-.heat-play { display: grid; align-items: end; justify-items: center; padding-bottom: calc(16 * var(--upx)); min-width: 0; min-height: 0; }
+.heat-play { display: grid; align-items: end; justify-items: center; padding-bottom: calc(2 * var(--upx)); min-width: 0; min-height: 0; }
 
 /* ── 오른쪽 위 : 진행도 (적정 온도를 유지한 시간) ───────────────
    공용 타이머 카드(#miniTimer)와 자리가 겹쳐 그쪽은 숨겨 두었습니다.
@@ -733,13 +733,86 @@
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:calc(10 * var(--upx));
+  gap:calc(6 * var(--upx));
   width:100%;
 }
-/* 화구 + 그 위의 냄비. 상자 높이는 화구 그림 비율이 정합니다(824.2 → 381.6).
-   E5 의 .ts-cooktop 과 같은 역할이고, 화구 자체 규칙은 css/minigame-parts.css 입니다. */
-.heat-cooktop { position:relative; width:100%; aspect-ratio:1432 / 663; }
-/* 냄비 자리 두 값. 여기만 고치면 냄비가 통째로 움직입니다.
+/* 화구 + 그 위의 냄비. 상자 높이는 화구 그림 비율이 정합니다.
+   E5 의 .ts-cooktop 과 같은 역할이고, 화구 자체 규칙은 css/minigame-parts.css 입니다.
+   ⚠️ 가로를 94% 로 줄여 놓았습니다(824.2 → 774.7 · 세로 381.6 → 358.6).
+      플레이 칸은 아래를 기준으로 쌓이므로, 화구가 낮아진 만큼 **화구와 냄비가
+      통째로 23 내려갑니다.** 100% 로 되돌리면 냄비 위쪽이 패널 천장에 닿습니다. */
+.heat-cooktop { position:relative; width:94%; aspect-ratio:1432 / 663; }
+/* ── 끓는 냄비 그림 (기본) ───────────────────────────────────
+   메뉴 2종 x 끓는 세기 3단계 x 4장짜리 스프라이트입니다. 4장이 한 바퀴 돌고,
+   어느 벌을 쓸지는 **온도 구간**(.heat-low/.heat-ideal/.heat-high)이 고릅니다.
+   화구와 같은 방식이라 재생은 전부 CSS 가 합니다 — 자바스크립트 타이머 없음.
+   (마크업은 engine-e4-gauge-hold.js 의 heatPotMarkup)
+
+     가로 · 비율       메뉴마다 다릅니다(아래 .heat-pot-art.oden / .tteokbokki).
+                      같은 폭이면 떡볶이 냄비가 더 작아 보여서 그쪽을 더 키웠습니다.
+                      ⚠️ 냄비는 화구 상자 위로 한참 솟습니다(약 100).
+                         키우면 그만큼 더 솟아 패널 천장에 붙습니다.
+                      ⚠️ 가로를 바꾸면 tools/build-minigame-art-webp.js 의
+                         E4 냄비 크기(그 2배)도 같이 고쳐야 흐려지지 않습니다.
+     --heat-art-drop  냄비 바닥이 화구 바닥에서 뜨는 높이 = 불에 얹히는 자리.
+     --heat-boil-dur  4장이 한 바퀴 도는 시간. 세기마다 아래에서 다르게 줍니다.
+                      한 장이 .09~.12s 라 화구 불꽃(.09s)과 비슷한 속도입니다 —
+                      이보다 느리면 끓는다기보다 국물이 출렁이는 것처럼 보입니다.
+   세로는 그림 비율이 정합니다 — 메뉴마다 원본 비율이 달라 따로 적습니다. */
+.heat-cooktop { --heat-art-drop:calc(168 * var(--upx)); }
+.heat-pot-art {
+  --heat-boil-dur:.36s;
+  position:absolute;
+  z-index:1;
+  left:50%;
+  bottom:var(--heat-art-drop);
+  transform:translateX(-50%);
+}
+/* 가로와 비율. 비율은 뽑아 놓은 그림 크기 그대로입니다 (tools/build-minigame-art-webp.js) */
+.heat-pot-art.oden       { width:calc(472 * var(--upx)); aspect-ratio:944 / 553; }
+.heat-pot-art.tteokbokki { width:calc(505 * var(--upx)); aspect-ratio:1010 / 568; }
+/* 세 벌 중 지금 온도 구간의 한 벌만 켭니다.
+   ⚠️ display:none 인 벌은 브라우저가 디코딩조차 하지 않습니다. 12장을 미리
+      넣어 두어도 실제로 메모리에 펴지는 것은 보이는 4장뿐입니다. */
+.heat-boil-set { position:absolute; inset:0; display:none; }
+.heat-cook-scene.heat-low   .heat-boil-set.low,
+.heat-cook-scene.heat-ideal .heat-boil-set.ideal,
+.heat-cook-scene.heat-high  .heat-boil-set.high { display:block; }
+/* 4장이 1 → 2 → 3 → 4 로 넘어갑니다. 지연은 반드시 바퀴의 1/4 씩으로 계산하세요
+   — 초 단위로 박으면 세기를 바꿨을 때 어긋나 냄비가 깜빡입니다(화구와 같은 이유). */
+.heat-boil-frame {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  animation:heat-boil-flip var(--heat-boil-dur) steps(1,end) infinite;
+}
+.heat-boil-frame:nth-child(1) { animation-delay:0s; }
+.heat-boil-frame:nth-child(2) { animation-delay:calc(var(--heat-boil-dur) * -3 / 4); }
+.heat-boil-frame:nth-child(3) { animation-delay:calc(var(--heat-boil-dur) * -2 / 4); }
+.heat-boil-frame:nth-child(4) { animation-delay:calc(var(--heat-boil-dur) / -4); }
+@keyframes heat-boil-flip { 0%,25% { opacity:1; } 25.01%,100% { opacity:0; } }
+/* 끓는 속도도 세기를 따라갑니다 — 약불은 느긋하게, 과열은 빠르게 */
+.heat-cook-scene.heat-low  .heat-pot-art { --heat-boil-dur:.48s; }
+.heat-cook-scene.heat-high .heat-pot-art { --heat-boil-dur:.28s; }
+/* 과열 · 완료 연출은 CSS 도형 냄비와 같은 것을 씁니다 (둘 다 translateX(-50%) 기준) */
+.heat-cook-scene.heat-high .heat-pot-art { animation:heat-pot-overheat .28s ease-in-out infinite alternate; }
+.heat-cook-scene.e4-complete .heat-pot-art { animation:heat-pot-complete .5s cubic-bezier(.2,.9,.2,1); }
+/* 김은 냄비 그림 위쪽에 겹쳐 올립니다 (그림에는 김이 없습니다) */
+.heat-pot-art .heat-steam { top:calc(-18 * var(--upx)); }
+/* ⚠️ 움직임 최소화에서는 duration 을 .01ms 로 줄이면 **안 됩니다.**
+   4장이 전부 opacity:0 으로 끝나 냄비가 통째로 사라집니다(화구와 같은 함정).
+   애니메이션을 끄고 첫 장만 켜 둡니다. */
+@media (prefers-reduced-motion:reduce) {
+  .heat-boil-frame { animation:none; opacity:0; }
+  .heat-boil-frame:nth-child(1) { opacity:1; }
+  .heat-cook-scene.heat-high .heat-pot-art { animation:none; }
+}
+
+/* ── 끓는 냄비 (그림이 없을 때 쓰는 CSS 도형) ───────────────────
+   아래 규칙들은 스프라이트가 빠졌을 때만 화면에 나옵니다.
+   냄비 자리 세 값. 여기만 고치면 냄비가 통째로 움직입니다.
      --heat-pot-scale  냄비(+김·거품) 전체 배율. 불꽃 링이 화구 가로의 40% 남짓이라
                        그보다 넉넉히 덮도록 키웠습니다 — 몸통 320 x 1.47 ≈ 470.
                        ⚠️ 냄비 안쪽(테두리·손잡이·국물·거품)은 전부 320 기준으로
@@ -787,9 +860,10 @@
   transform:translateX(-50%);
   transform-origin:50% 90%;
 }
-.heat-pot.has-asset { border-color:transparent; background:none; box-shadow:none; }
-.heat-pot.has-asset .heat-pot-fallback { display:none; }
-.heat-pot-asset { position:absolute; z-index:2; inset:calc(-35 * var(--upx)) calc(-18 * var(--upx)) calc(-5 * var(--upx)); width:calc(356 * var(--upx)); height:calc(165 * var(--upx)); object-fit:contain; }
+/* ⚠️ 여기 있던 `.heat-pot.has-asset` · `.heat-pot-asset` 은 뺐습니다.
+   완성 냄비를 **한 장**으로 덮던 옛 방식인데, 지금은 끓는 스프라이트(위
+   .heat-pot-art)가 그 자리를 대신합니다. 도형과 그림을 잇는 길이 두 갈래면
+   어느 쪽이 보이는지 헷갈려서 한 갈래로 줄였습니다. */
 .heat-pot-surface {
   position:absolute;
   z-index:2;
@@ -850,7 +924,7 @@
    `top` 은 배치를 바꾸지 않으므로 위의 화구·냄비는 그대로 있고 이 칩만 내려갑니다.
    플레이 칸(523.2) 아래로 2 남짓 걸치는데, 그 아래는 3열과 띠 사이의 빈 12 라
    화력 게이지와는 20 넘게 떨어져 있습니다. */
-.heat-state-label { position:relative; top:calc(18 * var(--upx)); min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); }
+.heat-state-label { position:relative; top:calc(4 * var(--upx)); min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); }
 .heat-cook-scene.heat-ideal .heat-state-label { border-color:#809e4e; color:#ddeb9e; box-shadow:0 0 calc(13 * var(--upx)) rgba(139,184,83,.25); }
 .heat-cook-scene.heat-high .heat-state-label { border-color:#b7553d; color:#ffc0a0; }
 .e4-result { position:absolute; z-index:10; left:50%; top:45%; opacity:0; color:#f3d5a0; font-size:calc(29 * var(--upx)); font-weight:1000; letter-spacing:calc(2 * var(--upx)); text-shadow:0 calc(3 * var(--upx)) 0 #5a2e13,0 0 calc(18 * var(--upx)) rgba(255,202,92,.65); transform:translate(-50%,calc(8 * var(--upx))) scale(.82); pointer-events:none; }
