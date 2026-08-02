@@ -299,15 +299,19 @@
 .cut-board .prep-work-object.radish-shape { width:min(90%,calc(540 * var(--upx))); height:calc(150 * var(--upx)); }
 .cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
 .cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.cabbage-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.chicken-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.kimchi-shape.has-prep-asset .cut-line,
+.cut-board .prep-work-object.tofu-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.greenOnion-shape.has-prep-asset .cut-line {
   display: none;
 }
-.cut-board .prep-work-object.kimchi-shape,
-.cut-board .prep-work-object.chicken-shape,
-.cut-board .prep-work-object.cabbage-shape { width:min(78%,calc(460 * var(--upx))); height:calc(196 * var(--upx)); }
-.cut-board .prep-work-object.fishCake-shape { width:min(68%,calc(360 * var(--upx))); height:calc(255 * var(--upx)); }
-.cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(236 * var(--upx)); }
+.cut-board .prep-work-object.cabbage-shape { width:min(70%,calc(301 * var(--upx))); height:calc(210 * var(--upx)); }
+.cut-board .prep-work-object.chicken-shape { width:min(86%,calc(500 * var(--upx))); height:calc(178 * var(--upx)); }
+.cut-board .prep-work-object.kimchi-shape { width:min(86%,calc(500 * var(--upx))); height:calc(216 * var(--upx)); }
+.cut-board .prep-work-object.fishCake-shape { width:min(60%,calc(288 * var(--upx))); height:calc(204 * var(--upx)); }
+.cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(220 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
    올라가므로 테두리·바닥만 끄고 안쪽 배치(px)는 그대로 둡니다. */
 .cut-board .rapid-cut-stage { border: 0; background: none; box-shadow: none; overflow: visible; }
@@ -375,14 +379,43 @@
   /* 칼끝이 아래를 향한 식칼 모양 */
   clip-path: polygon(8% 0,100% 0,100% 72%,58% 100%,0 84%);
 }
-.cut-screen .knife-effect.has-prep-asset { top:calc(-116 * var(--upx)); width:calc(150 * var(--upx)); height:calc(230 * var(--upx)); }
+.cut-screen .knife-effect.has-prep-asset {
+  top:calc(-72 * var(--upx));
+  width:calc(220 * var(--upx));
+  height:calc(410 * var(--upx));
+  /* 칼 몸통 중심이 아니라 오른쪽 절삭날이 점선 위에 오도록 반 칼폭만 왼쪽으로 당깁니다. */
+  margin-left:calc(-10 * var(--upx));
+  --knife-turn:0deg;
+  transform-origin:50% 50%;
+}
+.cut-screen .knife-effect.has-prep-asset .knife-asset {
+  transform:scaleX(1.48);
+  transform-origin:50% 50%;
+}
+/* 두부·김치·양배추·닭은 칼 크기와 절단선 정렬은 유지하고 세로 위치만 내립니다. */
+.cut-screen .tofu-shape .knife-effect.has-prep-asset,
+.cut-screen .kimchi-shape .knife-effect.has-prep-asset,
+.cut-screen .cabbage-shape .knife-effect.has-prep-asset,
+.cut-screen .chicken-shape .knife-effect.has-prep-asset {
+  top:calc(-42 * var(--upx));
+}
+/* 양배추는 둥근 중심부를 지나도록 위 보정값에서 20px 더 내립니다. */
+.cut-screen .cabbage-shape .knife-effect.has-prep-asset {
+  top:calc(-22 * var(--upx));
+}
+/* 칼 크기는 무·대파와 같은 공용 규격을 유지하고, 어묵에서만 중심을 아래로 내립니다. */
+.cut-screen .fishCake-shape:not(.horizontal-cut) .knife-effect.has-prep-asset {
+  top:calc(-42 * var(--upx));
+}
 /* 두부 마지막 한 번은 가로 썰기라 칼도 눕습니다 (기존 규칙을 도마 안에서 다시 잡습니다) */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect {
-  left: calc(-22 * var(--upx));
-  top: 50%;
-  width: calc(404 * var(--upx));
-  height: calc(20 * var(--upx));
-  transform: translateY(-50%);
+  left: 50%;
+  top: calc(50% - 24 * var(--upx));
+  width: calc(220 * var(--upx));
+  height: calc(410 * var(--upx));
+  margin-left: 0;
+  transform: translate(-50%,-50%) rotate(-90deg);
+  transform-origin: 50% 50%;
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect::before { display: none; }
@@ -395,7 +428,8 @@
 /* 닭고기 2연타 : 첫 번째 입력 뒤 칼이 박힌 채 멈춥니다 (가로 위치 유지) */
 .cut-screen .prep-work-object.tough-first-hit .knife-effect {
   opacity: .9;
-  transform: translateX(-50%) translateY(calc(9 * var(--upx))) rotate(var(--knife-turn, 16deg));
+  transform: translateX(-50%) rotate(var(--knife-turn, 16deg)) scale(.98);
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.48));
 }
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
@@ -577,8 +611,10 @@
    가운데 재료 그림이 버튼 높이만큼 위로 밀리지 않습니다. */
 .cut-board .cut-footer {
   position: absolute;
+  z-index: 6;
   left: 50%;
-  bottom: calc(16 * var(--upx));
+  top: calc(18 * var(--upx));
+  bottom: auto;
   width: auto;
   transform: translateX(-50%);
 }
@@ -587,19 +623,20 @@
 .cut-footer .rapid-hold-meter { width: calc(220 * var(--upx)); }
 
 @keyframes cut-knife-chop {
-  0%   { transform: translateX(-50%) translateY(calc(-26 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  45%  { transform: translateX(-50%) translateY(calc(14 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  100% { transform: translateX(-50%) translateY(0) rotate(var(--knife-turn,16deg)); }
+  0%   { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.08); filter:drop-shadow(0 calc(13 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.5)); }
+  46%  { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(.965); filter:drop-shadow(0 calc(1 * var(--upx)) calc(1 * var(--upx)) rgba(0,0,0,.42)); }
+  72%  { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.015); filter:drop-shadow(0 calc(4 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.4)); }
+  100% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1); filter:none; }
 }
 @keyframes cut-knife-chop-side {
-  0%   { transform: translateY(-50%) translateX(calc(-22 * var(--upx))); }
-  45%  { transform: translateY(-50%) translateX(calc(10 * var(--upx))); }
-  100% { transform: translateY(-50%) translateX(0); }
+  0%   { transform: translate(calc(-50% - 22 * var(--upx)),-50%) rotate(-90deg); }
+  45%  { transform: translate(calc(-50% + 10 * var(--upx)),-50%) rotate(-90deg); }
+  100% { transform: translate(-50%,-50%) rotate(-90deg); }
 }
 @keyframes cut-knife-miss {
-  0% { transform: translateX(-50%) translateY(calc(-18 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  55% { transform: translateX(calc(-50% + 13 * var(--upx))) translateY(calc(5 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)); }
-  100% { transform: translateX(-50%) translateY(0) rotate(var(--knife-turn,16deg)); }
+  0% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.04); }
+  55% { transform:translateX(calc(-50% + 13 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)) scale(.98); }
+  100% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1); }
 }
 @keyframes cut-spark-flash {
   0%   { opacity: 0; transform: translate(-50%,-50%) scale(.5); }

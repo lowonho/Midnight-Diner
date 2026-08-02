@@ -33,7 +33,7 @@
     const guide=document.getElementById("guide");
     document.getElementById("asset").src=`../assets/prep/cutting/green-onion/green-onion-${stage}.png`;
     document.getElementById("label").textContent=`대파 썰기 에셋 · ${stage} / 4`;
-    const cutPositions=[79.3,58.0,39.9,20.9];
+    const cutPositions=[80.2,62.6,43.2,22.7];
     work.style.setProperty("--cut-x",`${cutPositions[Math.min(stage,3)]}%`);
     if(stage===4)guide.hidden=true;
     document.body.dataset.ready="true";

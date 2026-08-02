@@ -73,6 +73,22 @@ function cutRecoveryDelay(data,grade){
    도형이 꺼지고 <img> 가 대신 보입니다. */
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
+const CUT_POSITION_PERCENTAGES=Object.freeze({
+  radish:Object.freeze([79.7,61.4,41.7,22.1]),
+  fishCake:Object.freeze([74.3,51.3,26.7]),
+  cabbage:Object.freeze([83.2,65.1,42.6,22.7]),
+  chicken:Object.freeze([85.3,70.5,55.1,38.5,20.8]),
+  greenOnion:Object.freeze([80.2,62.6,43.2,22.7]),
+  kimchi:Object.freeze([80.8,64.4,48.1,31.7,15.5]),
+  tofu:Object.freeze([85.2,71.3,57.5,43.6,29.7,15.5])
+});
+
+function suppliedCutPosition(ingredient,index,total){
+  const positions=CUT_POSITION_PERCENTAGES[ingredient];
+  return positions
+    ?positions[index]??positions.at(-1)
+    :(index+1)/(total+1)*100;
+}
 
 function cutIngredientSfx(ingredient){
   if(ingredient==="radish")return "knife_daikon";
@@ -256,16 +272,8 @@ function renderTimingCut(){
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
   // 제공된 단계 에셋의 실제 틈과 칼 안내선이 겹치도록 재료별 좌표를 사용합니다.
-  // 무·어묵·대파 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
-  const suppliedCutPositions={
-    radish:[79.7,61.4,41.7,22.1],
-    fishCake:[74.3,51.3,26.7],
-    greenOnion:[79.3,58.0,39.9,20.9]
-  };
-  const ingredientCutPositions=suppliedCutPositions[data.ingredient];
-  const cutPosition=index=>ingredientCutPositions
-    ?ingredientCutPositions[index]??ingredientCutPositions.at(-1)
-    :(index+1)/(verticalCount+1)*100;
+  // 무·어묵·닭·대파·김치·두부 모두 오른쪽부터 왼쪽으로 절단이 진행됩니다.
+  const cutPosition=index=>suppliedCutPosition(data.ingredient,index,verticalCount);
   // 다음에 썰 자리(%). 칼과 점선 안내가 여기에 섭니다. 가로 썰기 차례면
   // 칼 위치를 CSS 가 따로 잡으므로 값은 그대로 두어도 됩니다.
   const cutX=cutPosition(Math.min(data.successes,verticalCount-1));
@@ -380,6 +388,7 @@ function setupTteokbokkiCut(taskId){
     requiredHits:item.requiredPieces,
     hitZoneWidth:.14,
     speed:.8,
+    horizontalLastCut:!!item.horizontalLastCut,
     zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
     title:`떡볶이 · ${item.displayName} 썰기`,
     description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
@@ -390,37 +399,31 @@ function setupTteokbokkiCut(taskId){
 /* ============================================================
    2. chop — 밤 조리 칼질
 
-   · 두부 썰기 : 위 timing 과 같은 초록 구간 방식. 세로 5 + 가로 1 = 6회.
-     ♻️ 지금은 호출되는 곳이 없습니다. 조건이 mode==="cook" && dishId==="tofu"
-        인데 두부김치의 조리 단계가 plateKimchi 라서 만족되지 않습니다.
-        3단계에서 game-data.js 의 cook 배열에 단계를 추가해 되살립니다.
+   · 두부 썰기 : 위 timing 과 같은 초록 구간 방식. 오른쪽부터 세로 6회.
    · 정밀 손질 : 노란 중심(50%)에 가까울수록 고득점. 초록 구간 방식이 아닙니다.
      스토리 PR-02 튜토리얼에서만 불립니다. (story.js)
    ============================================================ */
 
 function chopCutX(data){
-  const verticalCount=data.tofuStyle?data.total-1:data.total;
-  return (Math.min(data.cuts,verticalCount-1)+1)/(verticalCount+1)*100;
+  return suppliedCutPosition(data.ingredient,Math.min(data.cuts,data.total-1),data.total);
 }
 
 function renderNightChop(m){
   const data=m.data;
-  const horizontalReady=data.tofuStyle&&data.cuts>=data.total-1;
   const objectId=data.tofuStyle?"tofuCookObject":"storyChopObject";
   const objectAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
   // 단계 문구는 board 안(도마 아래 줄)에서 쓰므로 board 보다 먼저 만듭니다.
   const label=data.tofuStyle
-    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:data.cuts===data.total-1?`다음은 가로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`
+    ?data.cuts<data.total?`세로 썰기 · ${data.cuts} / ${data.total}`:`완료 · ${data.cuts} / ${data.total}`
     :`${data.cuts} / ${data.total}`;
   const board=`
-    <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
+    <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",cutIngredientLabel(data))}
       ${Array.from({length:data.total},(_,index)=>{
         const done=index<data.cuts?"done":"";
-        if(data.tofuStyle&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}" data-cut-index="${index}" data-tofu-cut="${index}"></i>`;
-        return `<i class="cut-line ${done}" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${(index+1)/((data.tofuStyle?data.total-1:data.total)+1)*100}%"></i>`;
+        return `<i class="cut-line ${done}" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
       }).join("")}
-      <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
+      <i class="cut-guide"></i>
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
       <i class="cut-spark"></i>
     </div>
@@ -438,6 +441,9 @@ function showNightChopImpact(m,cutIndex,grade){
   const board=dom.miniContent.querySelector(".cut-board");
   const judgement=dom.miniContent.querySelector("#cutJudgement");
   work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.classList.add("done","fresh-cut");
+  const nextAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
+  const objectImage=work?.querySelector(".prep-object-asset");
+  if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
   work?.classList.remove("slice-hit","slice-good","slice-perfect");
   board?.classList.remove("cut-good","cut-perfect");
   if(work){void work.offsetWidth;work.classList.add("slice-hit",grade==="perfect"?"slice-perfect":"slice-good");}
@@ -453,10 +459,7 @@ function showNightChopImpact(m,cutIndex,grade){
 
 function moveNightChopTarget(m){
   const data=m.data,work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
-  const horizontalReady=data.tofuStyle&&data.cuts>=data.total-1;
   work?.style.setProperty("--cut-x",`${chopCutX(data)}%`);
-  work?.classList.toggle("horizontal-cut",horizontalReady);
-  work?.querySelector(".cut-guide")?.classList.toggle("horizontal",horizontalReady);
   const zoneStart=data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1];
   const success=dom.miniContent.querySelector(".cut-timing .prep-success-zone");
   const perfect=dom.miniContent.querySelector(".cut-timing .prep-perfect-zone");
@@ -466,7 +469,7 @@ function moveNightChopTarget(m){
   const marker=dom.miniContent.querySelector("#dayPrepMarker");if(marker)marker.style.left="0%";
   const label=dom.miniContent.querySelector("#nightCutStep");
   if(label)label.textContent=data.tofuStyle
-    ?data.cuts<data.total-1?`세로 썰기 · ${data.cuts} / ${data.total}`:`다음은 가로 썰기 · ${data.cuts} / ${data.total}`
+    ?`세로 썰기 · ${data.cuts} / ${data.total}`
     :`${data.cuts} / ${data.total}`;
 }
 
@@ -476,7 +479,7 @@ registerMiniEngine("chop",{
     set(
       isTofu?"두부 썰기":"정밀 손질",
       isTofu
-        ?"무와 김치를 썰 때처럼 포인터가 초록 구간에 들어왔을 때 누르세요. 세로 5번, 마지막에 가로 1번 썹니다."
+        ?"무와 김치를 썰 때처럼 포인터가 초록 구간에 들어왔을 때 누르세요. 오른쪽부터 세로로 6번 썹니다."
         :"움직이는 칼 표시가 노란 중심에 들어왔을 때 SPACE 또는 썰기 버튼을 누르세요.",
       10
     );
