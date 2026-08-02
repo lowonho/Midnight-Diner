@@ -18,13 +18,15 @@
 
 // 날짜별 준비 미니게임 모듈. 메뉴 Task ID별 진행 상태를 서로 분리합니다.
 const DAY_PREP_MINI_CONFIG = {
-  cutRadish:{title:"어묵탕 · 무 썰기",total:4,zoneWidth:.12,zoneStarts:[.14,.55,.29,.67],speed:.78},
-  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,zoneWidth:.14,zoneStarts:[.2,.58,.32,.68],speed:.8,horizontalLastCut:true},
-  cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:5,zoneWidth:.16,zoneStarts:[.51,.18,.62,.34,.7],speed:.74},
-  cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:5,zoneWidth:.16,zoneStarts:[.22,.58,.39,.68,.14],speed:.78},
-  cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:5,zoneWidth:.14,zoneStarts:[.18,.55,.31,.68,.42],speed:.8,requiresDoubleTap:true},
-  cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:4,zoneWidth:.14,zoneStarts:[.56,.2,.65,.36],speed:.82},
-  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22],speed:.78},
+  // E1은 칼날이 실제 절단선을 지나는 속도로 박자를 만듭니다.
+  // travelSpeed는 재료 그림 너비 대비 초당 이동 퍼센트입니다.
+  cutRadish:{title:"어묵탕 · 무 썰기",total:7,hitTolerance:2.8,travelSpeed:22},
+  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,hitTolerance:2.8,travelSpeed:14,horizontalLastCut:true},
+  cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:2.8,travelSpeed:17},
+  cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:2.8,travelSpeed:17},
+  cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:10,hitTolerance:3,travelSpeed:15,requiresDoubleTap:true},
+  cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:7,hitTolerance:2.8,travelSpeed:19},
+  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:3,travelSpeed:10.5},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 

@@ -155,8 +155,8 @@
    보여주므로 공용 진행 카드(#miniTimer)는 이 게임에서만 숨깁니다.
 
    [바뀐 것 / 안 바뀐 것]
-   배치와 연출만 바뀌었습니다. 판정은 그대로입니다.
-     · 타이밍 방식(초록 구간) · 연타 방식 · 어묵 대각선 · 닭 2연타 전부 유지
+   배치와 연출에 더해 낮 준비 칼질 판정이 실제 칼날 위치 기준으로 바뀌었습니다.
+     · 실제 칼 이동 판정 · 연타 방식 · 어묵 마지막 가로 썰기 · 닭 2연타 전부 유지
      · 위쪽 .prep-work-object / .cut-line / .knife-effect 규칙을 그대로 쓰고,
        도마 안에서만 자리와 크기를 덮어씁니다.
    그림은 전부 임시 CSS 도형입니다. 에셋 파일을 넣으면 .has-prep-asset 이
@@ -307,6 +307,17 @@
 .cut-board .prep-work-object.greenOnion-shape.has-prep-asset .cut-line {
   display: none;
 }
+.cut-board .prep-work-object.cut-path-mode.has-prep-asset .cut-line {
+  display: block;
+  opacity: .3;
+  border-color: rgba(255,244,206,.68);
+  filter: drop-shadow(0 0 calc(2 * var(--upx)) rgba(63,29,8,.9));
+}
+.cut-board .prep-work-object.cut-path-mode.has-prep-asset .cut-line.active {
+  opacity: 1;
+  border-color: #fff3bd;
+  filter: drop-shadow(0 0 calc(5 * var(--upx)) rgba(255,184,65,.95));
+}
 .cut-board .prep-work-object.cabbage-shape { width:min(70%,calc(301 * var(--upx))); height:calc(210 * var(--upx)); }
 .cut-board .prep-work-object.chicken-shape { width:min(86%,calc(500 * var(--upx))); height:calc(178 * var(--upx)); }
 .cut-board .prep-work-object.kimchi-shape { width:min(86%,calc(500 * var(--upx))); height:calc(216 * var(--upx)); }
@@ -343,10 +354,11 @@
 
 /* 칼 : 레퍼런스처럼 항상 다음 절단선 위에 서 있다가 썰 때 내려찍습니다 */
 .cut-screen .knife-effect {
-  left: var(--cut-x, 50%);
+  left: var(--knife-x, var(--cut-x, 50%));
   opacity: .96;
   transform: translateX(-50%) rotate(var(--knife-turn, 16deg));
 }
+.cut-screen .cut-path-mode .cut-guide { display:none; }
 .cut-screen .cut-slash-forward { --knife-turn: 30deg; }
 .cut-screen .cut-slash-back { --knife-turn: -30deg; }
 /* 임시 칼 : 손잡이(::before) + 칼날(::after). 에셋을 넣으면 둘 다 사라집니다. */
@@ -416,6 +428,9 @@
   margin-left: 0;
   transform: translate(-50%,-50%) rotate(-90deg);
   transform-origin: 50% 50%;
+}
+.cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect {
+  top:calc(var(--knife-y, 50%) - 24 * var(--upx));
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect::before { display: none; }
@@ -497,6 +512,10 @@
   transform:translateY(-50%);
 }
 .cut-screen .cut-line.fresh-cut { animation:cut-seam-open .28s cubic-bezier(.2,.8,.2,1); }
+.cut-screen .cut-path-mode .cut-line.missed {
+  background:linear-gradient(90deg,rgba(94,25,15,.82),rgba(241,126,93,.62),rgba(94,25,15,.82));
+  box-shadow:0 0 calc(7 * var(--upx)) rgba(196,58,37,.72);
+}
 
 /* 썰어 놓은 조각 더미 (도마 오른쪽) */
 .cut-piece {
