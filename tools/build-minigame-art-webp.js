@@ -120,6 +120,15 @@ const FILES = [
      1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.
      (가로세로비 1580/1176 = 1.3435 는 824.2/613.2 = 1.3441 과 0.04% 차이입니다) */
   { file:"ui_play_tray_wood.png",                size:[1580,1176], css:"플레이 칸 824.2x613.2 (원본 배율 유지)" },
+  /* 나무 도마 — 쟁반과 같은 자리에 깔리는 또 하나의 바닥입니다. **세 게임이 함께 씁니다** —
+     E1 썰기(.cut-board) · E2 채썰기(.fp-board:has(.md-scene)) · E2 새우튀김 준비(.fp-board:has(.fp-coat-row)).
+     원래 E2/shrimp/ 안에 있었는데 새우 전용이 아니게 되어 공용 폴더인 여기로 올렸습니다.
+     쟁반과 달리 그림에 액자가 없는 통 도마입니다.
+     ⚠️ 납품본(1241x748)이 칸의 1.5 / 1.22 배라 2배율에 못 미칩니다. 늘리면 없던 화소를
+        지어내는 셈이라 원본 배율 그대로 둡니다 (ui_play_tray_wood · E3 화구와 같은 판단입니다).
+     ⚠️ 비율 1.659 가 칸(1.344)과 다릅니다. CSS 에서 100% 100% 로 늘려 채우는 것이
+        의도입니다 — 나무결이라 늘려도 티가 안 납니다. */
+  { file:"fix_tempura_prep_board.png",           size:null,        css:".cut-board / .fp-board 824.2x613.2 (원본 배율 유지)" },
   /* E3 김치 볶기 (낮 준비) · 볶음우동 (밤 조리). 두 게임이 같은 컨트롤러라 한 폴더에 있습니다.
      왼쪽 재료 카드 그림은 가로 210 까지 쓸 수 있는데 전부 그보다 좁아 **세로가 먼저 막습니다.**
        김치 볶기  .kf-ing-asset  max-height 104   (그림칸 158.6 이라 여유 있음)
@@ -179,6 +188,14 @@ const FILES = [
   ...["01","02","03"].map(no=>(
     { file:`E4/fix_gas_burner_integrated_redraw_fire_${no}.png`, size:null, css:"끓이기 가스버너 (원본 배율 유지)" }
   )),
+  /* E4 화구 손잡이 한 장. 위 화구 3장에 **이미 그려져 있는** 손잡이 자리에 그대로
+     겹쳐 놓고, 불 세기에 따라 돌립니다 (css/minigame-parts.css 의 .mg-burner-knob).
+     화면에서 106 남짓이라 원본 174 로도 1.6배뿐이지만, 화구 3장과 같은 배율이어야
+     겹쳤을 때 결이 어긋나지 않으므로 여기도 원본 그대로 둡니다.
+     ⚠️ 무손실입니다. 200px 도 안 되는 그림인 데다 **돌아가면서 다시 표본화**되어
+        테두리 링잉이 그대로 드러납니다 — 그러면 아래 그림 쪽 손잡이와의 경계가
+        눈에 띕니다. 원본이 64KB 라 무손실로 떠도 부담이 없습니다. */
+  { file:"E4/fix_gas_burner_off.png", size:null, lossless:true, css:".mg-burner-knob 106x105 (원본 배율 유지)" },
   /* E4 냄비 — 메뉴 2종 x 끓는 세기 3단계 x 4장 = 24장.
      4장이 한 바퀴 도는 스프라이트이고, 세기(약·적정·강)는 온도 구간이 고릅니다.
 
@@ -267,7 +284,47 @@ const FILES = [
   ...[442,442,442,442,436,382,287,206].map((h,i)=>({
     file:`E2/food_carrot_whole_0${i+1}.png`,  size:[588,h], css:".md-ingredient 294.0 폭 고정" })),
   ...[425,425,425,416,394,358,305,250].map((h,i)=>({
-    file:`E2/food_potato_whole_0${i+1}.png`,  size:[560,h], css:".md-ingredient 273.7 폭 고정" }))
+    file:`E2/food_potato_whole_0${i+1}.png`,  size:[560,h], css:".md-ingredient 273.7 폭 고정" })),
+  /* ---- E2 새우튀김 준비 -------------------------------------------
+     밀가루 → 계란물 → 빵가루 세 그릇을 삼각형으로 놓고 그 위에서 새우를 굴립니다.
+
+     [도마] 이 표에 없습니다 — E1 썰기 · E2 채썰기와 같은 그림을 쓰게 되어
+     공용 폴더의 `fix_tempura_prep_board.png` 한 장으로 합쳤습니다 (위 나무 쟁반 옆).
+
+     [그릇 3장] .fp-vessel 336x268 자리에 object-fit:contain 입니다.
+     셋 다 가로로 넓어(1.10 · 1.25 · 1.25) **세로 268 이 먼저 막히고**
+     가로만 295.3 / 333.9 / 335.6 으로 서로 다릅니다. */
+  /* [화살표] 그릇 사이의 진행 방향 표시입니다. **한 장을 두 자리에 씁니다** —
+     밀가루 → 계란물 은 그대로, 계란물 → 빵가루 는 CSS 에서 135도 돌려 ↙ 로 씁니다.
+     그래서 아래 방향 그림을 따로 받지 않아도 됩니다. */
+  { file:"E2/shrimp/ui_arrow_right_01.png",         size:[105, 73], css:".fp-coat-arrow-asset 52x36.2" },
+  { file:"E2/shrimp/food_tempura_flour_bowl.png",   size:[591,536], css:".fp-vessel 295.3x268" },
+  { file:"E2/shrimp/food_egg_wash_bowl.png",        size:[668,536], css:".fp-vessel 333.9x268" },
+  { file:"E2/shrimp/food_wet_breadcrumbs_bowl.png", size:[671,536], css:".fp-vessel 335.6x268" },
+  /* [새우 10장] 생새우 → 밀가루/계란물/빵가루 각 3단계. 한 자리에서 갈아 끼우는
+     **한 벌의 연속 그림**이라 열 장을 한 크기로 묶습니다.
+     ⚠️ 납품본은 캔버스가 674x624 ~ 1672x941 로 제각각이었고 새우가 놓인 자리도
+        장마다 최대 5px 어긋나 있었습니다. 그대로 두면 옷이 바뀔 때마다 새우가
+        튑니다. PNG 마스터 쪽에서 투명 여백만 덧대고 잘라 **열 장 모두
+        680x639 · 새우 위치 동일**로 맞춰 뒀습니다 — 잘라낸 화소가 없으니
+        무손실입니다 (E3 화구 · E4 냄비와 같은 방식입니다).
+        새 납품본을 받으면 캔버스와 새우 위치가 같은지 먼저 확인하고,
+        다르면 같은 방식으로 맞춘 뒤 이 스크립트를 돌리세요.
+     .fp-shrimp.has-asset 186x175 자리에서 가로가 먼저 막혀 186x174.8 → 2배율 372. */
+  ...["raw","flour_light","flour_medium","flour_full","egg_light","egg_medium","egg_full",
+      "breadcrumb_light","breadcrumb_medium","breadcrumb_full"]
+    .map(name=>({ file:`E2/shrimp/food_shrimp_${name}.png`, size:[372,350], css:".fp-shrimp 186x174.8" })),
+  /* [재료 카드 4장] 넷 다 거의 정사각이라 **세로가 먼저 막힙니다** → 2배율 136.
+     ⚠️ 이 화면의 .fp-ing-asset 은 공용 86 이 아니라 **68** 입니다. 재료가 4줄이라
+        카드가 140 뿐인데, 여백 없이 꽉 찬 납품 그림에 86(그림칸 높이와 같은 값)을
+        주면 그림이 카드 테두리에 그대로 닿습니다. 자리를 다시 키우려면 여기 크기도
+        같이 고치세요 (css/day-prep-minigames.css 의 `:has(.fp-coat-row)` 규칙).
+     ⚠️ 생새우 카드는 판 위 그림(food_shrimp_raw)이 아니라 카드용으로 따로 온
+        _panel 장입니다. 같은 새우지만 색과 대비가 카드 쪽에 맞춰져 있습니다. */
+  { file:"E2/shrimp/food_shrimp_raw_panel.png",      size:[147,136], css:".fp-ing-asset 73.4x68" },
+  { file:"E2/shrimp/food_tempura_flour_panel.png",   size:[143,136], css:".fp-ing-asset 71.5x68" },
+  { file:"E2/shrimp/food_egg_wash_panel.png",        size:[139,136], css:".fp-ing-asset 69.6x68" },
+  { file:"E2/shrimp/food_wet_breadcrumbs_panel.png", size:[137,136], css:".fp-ing-asset 68.4x68" }
 ];
 
 const QUALITY = 90;

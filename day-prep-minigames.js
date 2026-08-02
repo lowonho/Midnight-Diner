@@ -197,6 +197,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 불꽃이 그림에 함께 그려져 있어 E4 의 CSS 불꽃 도형을 대신합니다.
   ...Object.fromEntries(["01","02","03"].map((no,index)=>
     [`burnerPot${index+1}`,`assets/minigame/E4/fix_gas_burner_integrated_redraw_fire_${no}.webp`])),
+  // 그 화구의 손잡이 한 장. 위 3장에 **이미 그려져 있는** 손잡이 자리에 그대로 겹쳐
+  // 놓고 불 세기에 따라 돌립니다(그림 쪽 손잡이는 늘 꺼진 자리에 멈춰 있습니다).
+  // 자리·크기는 css/minigame-parts.css 의 .mg-burner-knob 이 갖고 있습니다.
+  burnerPotKnob:"assets/minigame/E4/fix_gas_burner_off.webp",
   /* 끓는 냄비 (engine-e4) — 메뉴 2종 x 끓는 세기 3단계 x 4장.
      4장이 한 바퀴 도는 스프라이트이고, 세기는 온도 구간이 고릅니다.
        weak   온도 낮음   medium 적정 온도   strong 과열
@@ -219,8 +223,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      ⚠️ 재료 카드용 그림(mandolineCard*)과 키를 일부러 나눠 두었습니다 —
         같은 키를 쓰면 카드에도 깎이는 그림이 들어갑니다.
 
-     도마는 그림에 액자가 그려져 있어 <img> 가 아니라 칸 배경으로 깝니다 —
-     css/day-prep-minigames.css 의 "나무 도마" 구역 (E7 소스 제조와 공용) */
+     도마는 <img> 가 아니라 칸 배경으로 깝니다 —
+     css/day-prep-minigames.css 의 "나무 도마" 구역
+     (assets/minigame/fix_tempura_prep_board · E1 썰기 · 새우튀김 준비와 공용) */
   mandolinePlate:"assets/minigame/E2/prop_mandoline_empty.webp",
   mandolineColander:"assets/minigame/E2/prop_bamboo_colander_empty.webp",
   mandolineArrow:"assets/minigame/E2/ui_arrow_horizontal_both.webp",
@@ -242,17 +247,34 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   friesShakeBag70:"assets/prep/day4/fries/shake-bag-70.png",
   friesShakeBag100:"assets/prep/day4/fries/shake-bag-100.png",
   friesPotatoStrips:"assets/prep/day4/fries/potato-strips.png",
-  // 새우튀김 준비. 그릇 3개와 새우의 옷 입은 상태 4장입니다.
-  shrimpVesselFlour:"assets/prep/day3/shrimp/vessel-flour.png",
-  shrimpVesselEgg:"assets/prep/day3/shrimp/vessel-egg.png",
-  shrimpVesselBreadcrumbs:"assets/prep/day3/shrimp/vessel-breadcrumbs.png",
-  shrimpStateRaw:"assets/prep/day3/shrimp/shrimp-raw.png",
-  shrimpStateFlour:"assets/prep/day3/shrimp/shrimp-flour.png",
-  shrimpStateEgg:"assets/prep/day3/shrimp/shrimp-egg.png",
-  shrimpStateBreadcrumbs:"assets/prep/day3/shrimp/shrimp-breadcrumbs.png",
-  shrimpIngFlour:"assets/prep/day3/shrimp/ing-flour.png",
-  shrimpIngEgg:"assets/prep/day3/shrimp/ing-egg.png",
-  shrimpIngCrumbs:"assets/prep/day3/shrimp/ing-breadcrumbs.png",
+  /* 새우튀김 준비 — assets/minigame/E2/shrimp/ 의 납품 에셋입니다.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+     한 재료가 자리마다 다른 장을 씁니다 — 왼쪽 카드는 Ing(어두운 나무 그릇),
+     가운데 판은 Vessel(위에서 내려다본 큰 그릇)입니다.
+     도마(assets/minigame/fix_tempura_prep_board)는 CSS 배경이라 여기 없습니다
+     (ui_play_tray_wood 와 같습니다). E1 썰기·E2 채썰기와 같은 장을 씁니다. */
+  // 그릇 사이 진행 화살표. 한 장을 두 자리에 씁니다(둘째는 CSS 에서 135도 회전).
+  shrimpArrow:"assets/minigame/E2/shrimp/ui_arrow_right_01.webp",
+  shrimpVesselFlour:"assets/minigame/E2/shrimp/food_tempura_flour_bowl.webp",
+  shrimpVesselEgg:"assets/minigame/E2/shrimp/food_egg_wash_bowl.webp",
+  shrimpVesselBreadcrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_bowl.webp",
+  /* 새우 10장. 생새우 한 장에 옷 3종 x 묻은 정도 3단계입니다.
+     어느 장을 언제 쓰는지는 engine-e2-alternate-input.js 의 SHRIMP_STATE_KEYS 참고. */
+  shrimpStateRaw:"assets/minigame/E2/shrimp/food_shrimp_raw.webp",
+  shrimpStateFlour1:"assets/minigame/E2/shrimp/food_shrimp_flour_light.webp",
+  shrimpStateFlour2:"assets/minigame/E2/shrimp/food_shrimp_flour_medium.webp",
+  shrimpStateFlour3:"assets/minigame/E2/shrimp/food_shrimp_flour_full.webp",
+  shrimpStateEgg1:"assets/minigame/E2/shrimp/food_shrimp_egg_light.webp",
+  shrimpStateEgg2:"assets/minigame/E2/shrimp/food_shrimp_egg_medium.webp",
+  shrimpStateEgg3:"assets/minigame/E2/shrimp/food_shrimp_egg_full.webp",
+  shrimpStateCrumbs1:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_light.webp",
+  shrimpStateCrumbs2:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_medium.webp",
+  shrimpStateCrumbs3:"assets/minigame/E2/shrimp/food_shrimp_breadcrumb_full.webp",
+  // 왼쪽 재료 카드 4장
+  shrimpIngRaw:"assets/minigame/E2/shrimp/food_shrimp_raw_panel.webp",
+  shrimpIngFlour:"assets/minigame/E2/shrimp/food_tempura_flour_panel.webp",
+  shrimpIngEgg:"assets/minigame/E2/shrimp/food_egg_wash_panel.webp",
+  shrimpIngCrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_panel.webp",
   // 단발 액션 (engine-e11 · 플레이팅 / 냄비에 넣기 / 육수 넣기).
   // 재료 그림은 카드·그릇·참고 모양에 같은 파일이 쓰입니다.
   // 그릇은 빈 그릇(osPlate/osPot)과 완성 참고용(osPlateDone/osPotDone) 두 장입니다.
@@ -320,13 +342,24 @@ const MINIGAME_BURNER_FRAMES=3;
 // 화구 종류 → 에셋 키 앞머리. 종류 이름은 클래스(.mg-burner-○)에도 그대로 쓰입니다.
 const MINIGAME_BURNER_PREFIX=Object.freeze({gas:"burnerGas",griddle:"burnerGriddle",pot:"burnerPot"});
 
+/* 돌아가는 손잡이를 얹을 화구 종류 → 그 손잡이 그림 키.
+   여기 없는 종류(가스·철판)는 손잡이 레이어를 아예 만들지 않습니다.
+   불 세기에 따라 손잡이를 돌리는 화면은 지금 E4(pot) 하나뿐입니다 —
+   돌리는 각은 화면이 --mg-knob-turn 으로 줍니다(engine-e4-gauge-hold.js). */
+const MINIGAME_BURNER_KNOB=Object.freeze({pot:"burnerPotKnob"});
+
 function minigameBurnerMarkup(kind){
   const prefix=MINIGAME_BURNER_PREFIX[kind]||MINIGAME_BURNER_PREFIX.gas;
   const keys=Array.from({length:MINIGAME_BURNER_FRAMES},(_,index)=>`${prefix}${index+1}`);
   // 한 장이라도 빠지면 그 순번에서 불이 깜빡 꺼져 보입니다. 전부 있을 때만 씁니다.
   if(!keys.every(hasDayPrepAsset))return `<i class="mg-burner mg-burner-${kind} mg-burner-fallback" aria-hidden="true"></i>`;
   const frames=keys.map(key=>`<img class="mg-burner-frame" src="${dayPrepAssets[key].src}" alt="" draggable="false" />`).join("");
-  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}</div>`;
+  const knobKey=MINIGAME_BURNER_KNOB[kind];
+  const knob=knobKey&&hasDayPrepAsset(knobKey)
+    ?`<img class="mg-burner-knob" src="${dayPrepAssets[knobKey].src}" alt="" draggable="false" />`:"";
+  // ⚠️ 손잡이는 반드시 불꽃 3장 **뒤에** 붙습니다. 앞이나 사이에 끼우면
+  //    css 의 .mg-burner-frame:nth-child(1~3) 가 한 칸씩 밀려 불이 어긋납니다.
+  return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}${knob}</div>`;
 }
 
 function timingAssetKey(ingredient,successes,assetPrefix=""){

@@ -10,8 +10,9 @@
                         → engine-e9-whisk.js 의 setupWhiskBatter 호출
    · skewer             닭꼬치 꽂기 — 꼬치마다 닭·파를 최소 한 번씩 쓰고
                         나머지 순서는 자유롭게 5칸을 채웁니다. 총 3꼬치.
-   · tteokSoak /        떡·우동면 불리기 — 재료 → 물 순서로 클릭.
-     udonSoak           두 게임이 renderTteokSoak과 공통 순서 판정을 함께 씁니다.
+   · tteokSoak /        떡·우동면 불리기 — 재료를 볼에 담은 뒤 옆의 물병을
+     udonSoak           기울여 물을 채웁니다. 두 게임이 renderTteokSoak과
+                        공통 순서 판정을 함께 씁니다.
    ============================================================ */
 
 registerDayPrepSetup("batter",()=>setupKimchiBatter());
@@ -19,8 +20,20 @@ registerDayPrepSetup("skewer",()=>setupChickenSkewer());
 registerDayPrepSetup("tteokSoak",()=>setupTteokSoak());
 registerDayPrepSetup("udonSoak",()=>setupUdonSoak());
 
-// 셋 다 포인터 클릭·드래그로 조작하므로 키 처리가 없습니다.
-registerDayPrepEngine("orderPlace",{});
+/* 반죽·꼬치는 포인터 클릭·드래그로만 조작합니다.
+   불리기의 물 붓기만 키보드로도 되도록 아래 세 키를 받습니다
+   (누르고 있으면 계속 부어지므로 keyup 까지 짝으로 봅니다). */
+const SOAK_POUR_KEYS=Object.freeze([" ","enter","arrowdown"]);
+registerDayPrepEngine("orderPlace",{
+  key(m,k,e){
+    if(!isSoakMini(m)||!SOAK_POUR_KEYS.includes(k))return false;
+    if(!e?.repeat)startSoakPour();
+    return true;                         // true 를 돌려주면 Space 기본 동작(miniAction)이 안 걸립니다
+  },
+  keyup(m,k){
+    if(isSoakMini(m)&&SOAK_POUR_KEYS.includes(k))stopSoakPour();
+  }
+});
 
 /* ---- E8 공통 포인터 배치 -----------------------------------
    짧게 누르면 자동 배치, 누른 채 움직이면 재료 그림이 포인터를 따라갑니다.
@@ -474,56 +487,259 @@ function rejectSkewerPiece(skewerIndex,message,target){
   setTimeout(()=>rack.classList.remove("reject"),340);
 }
 
-/* ---- 떡 · 우동면 불리기 ------------------------------------ */
+/* ---- 떡 · 우동면 불리기 ------------------------------------
+   화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
+     왼쪽   재료 카드 2장 — 떡(우동면) · 물. 다른 준비 미니게임과 같은 틀입니다.
+     가운데 볼 + 그 **옆에 놓인 물병**
+     오른쪽 진행도(물이 찬 정도 %) · 목표
+
+   [두 단계짜리 게임입니다]
+     1) 재료를 볼까지 끌어다(또는 눌러) 담습니다  — E8 공통 순서 판정
+     2) 물병을 기울일 때마다 물이 한 모금씩 들어가고, 오른쪽 진행도가
+        100% 가 되면 재료가 잠겨 완료됩니다                — 아래 물 붓기
+   1단계를 건너뛰고 물부터 부으려 하면 볼이 흔들리며 막힙니다.
+
+   ⚠️ 예전에는 좌우에 재료 카드 두 장(.tteok-source · .water-source)을 두고
+      물도 "한 번 놓으면 끝" 이었습니다. 좌우 패널을 다른 게임과 같은 3열로
+      맞추면서 물만 물병 조작으로 바뀌었습니다. 순서 데이터(ORDER_PLACE_CONFIG)는
+      그대로라, 물이 다 차는 순간 placeOrderedItem 으로 순서 상태도 함께 채웁니다.
+
+   모양·크기는 css/day-prep-minigames.css 의 "떡/우동 불리기" 구역에 모여 있습니다.
+   3열 격자와 패널 껍데기는 css/minigame-parts.css 공용 규격입니다.
+   ------------------------------------------------------------ */
+
+const SOAK_CONFIG_IDS=Object.freeze(["tteokSoak","udonSoak"]);
+// 물병을 한 번 기울일 때 차오르는 양(%). 5번이면 가득 찹니다.
+const SOAK_POUR_STEP=20;
+// 한 모금에 걸리는 시간. 물병을 누르고 있으면 이 간격으로 이어서 부어집니다.
+const SOAK_POUR_MS=520;
+// 물이 다 찬 뒤 불리는 모습을 보여주는 시간
+const SOAK_SETTLE_MS=1500;
+
+function isSoakMini(m=state.mini){
+  return isDayPrepMini(m)&&m.data?.mode==="orderPlace"&&SOAK_CONFIG_IDS.includes(m.data.orderConfigId);
+}
+
+// 불리기 게임 하나를 시작합니다. 떡과 우동면은 재료 이름·그림만 다릅니다.
+function startSoakGame(configId,config){
+  setDayPrepData({
+    ...createOrderPlacementState(configId),...config,
+    added:{[config.ingredientKey]:false,water:false},
+    water:0,                 // 부은 물 0~100 (= 오른쪽 진행도)
+    finishing:false,mistakes:0,completionGrade:""
+  });
+  renderTteokSoak();
+}
 
 function setupTteokSoak(){
   if(Number(state.day)<4||!state.mini)return;
-  setDayPrepData({...createOrderPlacementState("tteokSoak"),taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡",added:{tteok:false,water:false},finishing:false,mistakes:0,lastAdded:null,completionGrade:""});
   dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
-  dom.miniDescription.textContent="떡을 볼에 넣은 뒤 물을 부어 잠시 불려주세요. 재료를 클릭하거나 볼로 끌어도 됩니다.";
-  renderTteokSoak();
+  dom.miniDescription.textContent="떡을 볼에 담고, 옆의 물병을 기울여 진행도가 꽉 찰 때까지 물을 부어주세요!";
+  startSoakGame("tteokSoak",{taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡"});
 }
 
 function setupUdonSoak(){
   if(Number(state.day)<3||!state.mini)return;
-  setDayPrepData({...createOrderPlacementState("udonSoak"),taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면",added:{udon:false,water:false},finishing:false,mistakes:0,lastAdded:null,completionGrade:""});
   dom.miniTitle.textContent="볶음우동 · 우동면 불려두기";
-  dom.miniDescription.textContent="우동면을 볼에 넣은 뒤 물을 부어 잠시 불려주세요. 재료를 클릭하거나 볼로 끌어도 됩니다.";
-  renderTteokSoak();
+  dom.miniDescription.textContent="우동면을 볼에 담고, 옆의 물병을 기울여 진행도가 꽉 찰 때까지 물을 부어주세요!";
+  startSoakGame("udonSoak",{taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면"});
+}
+
+// 재료 카드·물병이 함께 쓰는 그림 자리. 에셋이 있으면 <img>, 없으면 CSS 도형입니다.
+function soakArtMarkup(assetKey,kind,alt){
+  return `<span class="soak-ing-art ${kind} ${hasDayPrepAsset(assetKey)?"has-asset":""}"><i></i>${dayPrepAssetMarkup(assetKey,"soak-art-asset",alt)}</span>`;
 }
 
 function renderTteokSoak(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId))return;
-  const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,count=Object.values(data.added).filter(Boolean).length,isUdon=key==="udon";
+  const m=state.mini;if(!isSoakMini(m))return;
+  stopSoakPour();                       // 화면을 새로 그리면 지금 잡고 있는 물병이 사라집니다
+  const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,isUdon=key==="udon";
   const ingredientAsset=isUdon?"soakUdon":"soakTteok";
-  const sourceArt=(asset,kind,alt)=>`<span class="soak-source-art ${kind} ${hasDayPrepAsset(asset)?"has-asset":""}"><i></i>${dayPrepAssetMarkup(asset,"soak-source-asset",alt)}</span>`;
-  const bowlPieces=data.added[key]?Array.from({length:isUdon?5:7},()=>hasDayPrepAsset(ingredientAsset)?dayPrepAssetMarkup(ingredientAsset,"soak-piece-asset",label):"<b></b>").join(""):"빈 볼";
-  dom.miniTimer.textContent=`${count} / 2`;
+  const placed=data.added[key],full=data.water>=100;
+  const bowlPieces=placed
+    ? Array.from({length:isUdon?5:7},()=>hasDayPrepAsset(ingredientAsset)?dayPrepAssetMarkup(ingredientAsset,"soak-piece-asset",label):"<b></b>").join("")
+    : "";
+  dom.miniTimer.textContent=`${data.water}%`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
+  setMiniTipHint(placed?"누르기 : 물병 기울이기":"드래그 : 볼에 담기");
   dom.miniContent.innerHTML=`
-    <div class="tteok-soak-scene ${data.finishing?"settling":""}">
-      <button type="button" class="tteok-source ${isUdon?"udon-source":""} ${data.added[key]?"added":""} ${data.lastAdded===key?"just-added":""}" data-soak-item="${key}" ${data.added[key]||data.finishing?"disabled":""}>${sourceArt(ingredientAsset,key,label)}<strong>${label}</strong></button>
-      <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${hasDayPrepAsset("soakBowl")?"has-asset":""} ${data.added.water?"has-water":""} ${data.added[key]?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">${dayPrepAssetMarkup("soakBowl","soak-bowl-asset","불리기 볼")}<i class="water-fill"></i><span>${bowlPieces}</span>${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}</div>
-      <button type="button" class="water-source ${data.added.water?"added":""} ${data.lastAdded==="water"?"just-added":""}" data-soak-item="water" ${data.added.water||data.finishing?"disabled":""}>${sourceArt("soakWater","water","물통")}<strong>물통</strong></button>
-      ${data.finishing?`<strong class="order-result soak-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
-    </div>
-    <div class="cut-count">${label} ${data.added[key]?"✓":"○"} · 물 ${data.added.water?"✓":"○"}</div>`;
-  bindOrderPlacementPointers({
-    sources:dom.miniContent.querySelectorAll("[data-soak-item]"),
-    targetSelector:'[data-order-target="soak"]',
-    itemFromSource:source=>source.dataset.soakItem,
-    ghostSelector:".soak-source-art",
-    onPlace:(item,target)=>addTteokSoakItem(item,target),
-    onMiss:()=>{dom.miniFeedback.textContent="재료를 가운데 볼 안에 놓아주세요.";pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="soak"]'));}
-  });
+    <div class="soak-scene ${data.finishing?"settling":""}">
+      <aside class="soak-col">
+        <div class="soak-panel soak-ing-panel">
+          <h3 class="soak-col-title starred">재료</h3>
+          <div class="soak-ing-list">
+            <button type="button" class="soak-ing-card ${key} ${placed?"added":"next"}" data-soak-item="${key}" ${placed||data.finishing?"disabled":""}>
+              ${soakArtMarkup(ingredientAsset,key,label)}
+              <span class="soak-ing-name">${label}<b>×1</b></span>
+            </button>
+            <button type="button" class="soak-ing-card water ${full?"added":placed?"next":""}" data-soak-item="water" ${full||data.finishing?"disabled":""}>
+              ${soakArtMarkup("soakWater","water","물")}
+              <span class="soak-ing-name">물<b class="soak-ing-amount">${data.water}%</b></span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="soak-board">
+        <div class="soak-stage ${placed&&!data.water?"ready":""}" style="--soak-fill:${data.water}">
+          <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${hasDayPrepAsset("soakBowl")?"has-asset":""} ${placed?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">
+            ${dayPrepAssetMarkup("soakBowl","soak-bowl-asset","불리기 볼")}<i class="water-fill"></i><span class="soak-bowl-food">${bowlPieces}</span>${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}
+          </div>
+          <button type="button" class="soak-pitcher ${hasDayPrepAsset("soakWater")?"has-asset":""}" data-soak-pour ${!placed||full||data.finishing?"disabled":""} aria-label="물병을 기울여 물 붓기">
+            ${dayPrepAssetMarkup("soakWater","soak-pitcher-asset","물병")}<i class="soak-pitcher-shape"></i><i class="soak-pour-stream" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="soak-board-note">${
+          data.finishing?`<b>${label}을 불리는 중...</b>`
+          :!placed?`먼저 <b>${label}</b>을 볼에 담아주세요`
+          :`물병을 눌러 <b>물을 부어주세요</b>`}</p>
+        ${data.finishing?`<strong class="order-result soak-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
+      </div>
+
+      <aside class="soak-col">
+        <div class="soak-panel soak-count">
+          <h3 class="soak-col-title">진행도</h3>
+          <strong>${data.water}%</strong>
+          <div class="soak-gauge"><i class="soak-drop tiny" aria-hidden="true"></i><span class="soak-gauge-track"><b style="width:${data.water}%"></b></span></div>
+        </div>
+        <div class="soak-panel soak-guide">
+          <h3 class="soak-col-title">목표</h3>
+          <div class="soak-guide-figure"><i class="soak-drop" aria-hidden="true"></i></div>
+          <p class="soak-guide-note">${label}이 잠길 정도로<br />물을 채워주세요!</p>
+        </div>
+      </aside>
+    </div>`;
+  bindSoakEvents();
 }
 
+function bindSoakEvents(){
+  const scene=dom.miniContent.querySelector(".soak-scene");if(!scene)return;
+  // 재료 카드는 다른 E8 게임과 같은 방식으로 볼까지 끌거나 눌러서 담습니다.
+  // 물 카드도 같은 창구를 타지만, 실제로 물을 넣는 것은 물병뿐이라 안내만 띄웁니다.
+  bindOrderPlacementPointers({
+    sources:scene.querySelectorAll("[data-soak-item]"),
+    targetSelector:'[data-order-target="soak"]',
+    itemFromSource:source=>source.dataset.soakItem,
+    ghostSelector:".soak-ing-art",
+    onPlace:(item,target)=>addTteokSoakItem(item,target),
+    onMiss:item=>{
+      if(item==="water")return rejectSoakWaterCard();
+      dom.miniFeedback.textContent="재료를 가운데 볼 안에 놓아주세요.";
+      pulseOrderTarget(scene.querySelector('[data-order-target="soak"]'));
+    }
+  });
+
+  const pitcher=scene.querySelector("[data-soak-pour]");if(!pitcher)return;
+  pitcher.addEventListener("pointerdown",event=>{
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    event.preventDefault();
+    pitcher.setPointerCapture?.(event.pointerId);
+    startSoakPour();
+  });
+  ["pointerup","pointercancel","lostpointercapture"].forEach(type=>pitcher.addEventListener(type,()=>stopSoakPour()));
+  pitcher.addEventListener("dragstart",event=>event.preventDefault());
+}
+
+// 재료를 볼에 담습니다. 물 카드를 눌렀을 때는 물병 쪽으로 안내만 합니다.
 function addTteokSoakItem(item,target){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
-  const data=m.data,result=placeOrderedItem(data,item);
-  if(!result.accepted){data.mistakes++;dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();pulseOrderTarget(target);return;}
-  data.added[item]=true;data.lastAdded=item;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 붓는 중입니다.";
-  if(Object.values(m.data.added).every(Boolean)){
-    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 들어갔습니다. 잠시 불리는 중...`;
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},1500);
-  }else renderTteokSoak();
+  const m=state.mini;if(!isSoakMini(m)||m.complete||m.data.finishing)return;
+  const data=m.data;
+  if(item==="water")return rejectSoakWaterCard();
+  if(item!==data.ingredientKey||data.added[item])return;
+  const result=placeOrderedItem(data,item);
+  if(!result.accepted){data.mistakes++;audio.bad();pulseOrderTarget(target);return;}
+  data.added[item]=true;audio.click();
+  dom.miniFeedback.textContent=`${data.ingredientLabel}을 볼에 담았습니다. 이제 물병을 기울여 물을 부어주세요!`;
+  renderTteokSoak();
+}
+
+// 물 카드는 "여기가 아니라 물병" 이라는 것만 알려 줍니다. 상태는 그대로입니다.
+function rejectSoakWaterCard(){
+  const m=state.mini;if(!isSoakMini(m))return;
+  dom.miniFeedback.textContent=m.data.added[m.data.ingredientKey]
+    ? "물은 볼 옆의 물병을 기울여 부어주세요."
+    : `먼저 ${m.data.ingredientLabel}을 볼에 담아주세요.`;
+  audio.bad();
+  pulseOrderTarget(dom.miniContent.querySelector(m.data.added[m.data.ingredientKey]?".soak-pitcher":'[data-order-target="soak"]'));
+}
+
+/* ---- 물 붓기 ------------------------------------------------
+   물병을 누르고 있는 동안 SOAK_POUR_MS 간격으로 한 모금씩 들어갑니다.
+   짧게 누르면 한 모금입니다 — "기울일 때마다 한 번" 이 기본 단위입니다.
+
+   ⚠️ 한 모금마다 화면을 통째로 다시 그리지 않습니다. innerHTML 을 새로 넣으면
+      물병이 새 요소로 갈려서 기울인 자세와 포인터 캡처가 매번 끊깁니다.
+      대신 updateSoakWater 가 바뀐 숫자·높이만 건드립니다. (E7 소스 볼과 같은 이유) */
+
+let soakPourTimer=null;    // 누르고 있는 동안 이어 붓는 타이머
+let soakTiltTimer=null;    // 기울인 자세를 되돌리는 타이머
+
+function soakStage(){return dom.miniContent?.querySelector(".soak-stage")||null;}
+
+function stopSoakPour(){
+  if(soakPourTimer){clearInterval(soakPourTimer);soakPourTimer=null;}
+}
+
+// 기울인 자세는 한 모금 시간만큼 남깁니다. 짧게 눌렀을 때 기울이는 동작이
+// 한 프레임 만에 사라지지 않게 하려는 것입니다(손을 떼도 그 모금은 끝까지 부어집니다).
+function tiltSoakPitcher(){
+  const stage=soakStage();if(!stage)return;
+  stage.classList.add("pouring");
+  if(soakTiltTimer)clearTimeout(soakTiltTimer);
+  soakTiltTimer=setTimeout(()=>{soakTiltTimer=null;soakStage()?.classList.remove("pouring");},SOAK_POUR_MS);
+}
+
+function startSoakPour(){
+  const m=state.mini;if(!isSoakMini(m)||m.complete||m.data.finishing)return;
+  if(!m.data.added[m.data.ingredientKey]){
+    dom.miniFeedback.textContent=`먼저 ${m.data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();
+    pulseOrderTarget(dom.miniContent.querySelector('[data-order-target="soak"]'));
+    return;
+  }
+  if(m.data.water>=100||soakPourTimer)return;
+  pourSoakWaterOnce();
+  // ⚠️ 첫 모금에서 이미 다 찼으면 이어 붓기를 걸지 않습니다.
+  //    (걸어 두면 renderTteokSoak 이 지운 타이머를 여기서 되살려 버립니다)
+  if(m.data.water<100&&!m.data.finishing)soakPourTimer=setInterval(pourSoakWaterOnce,SOAK_POUR_MS);
+}
+
+function pourSoakWaterOnce(){
+  const m=state.mini;
+  // 미니게임이 닫혔거나 다 찼으면 이어 붓기를 멈춥니다(누른 채로 ESC 를 눌러도 안전).
+  if(!isSoakMini(m)||m.complete||m.data.finishing||m.data.water>=100||!m.data.added[m.data.ingredientKey])return stopSoakPour();
+  const data=m.data;
+  data.water=Math.min(100,data.water+SOAK_POUR_STEP);
+  audio.click();tiltSoakPitcher();updateSoakWater(data);
+  if(data.water>=100)finishSoakWater(m);
+  else dom.miniFeedback.textContent=`물을 붓는 중 · ${data.water}%`;
+}
+
+// 물이 찬 정도만 부분 갱신합니다 (볼 수위 · 진행도 숫자와 막대 · 물 카드).
+function updateSoakWater(data){
+  const scene=dom.miniContent?.querySelector(".soak-scene");if(!scene)return;
+  const full=data.water>=100;
+  const stage=scene.querySelector(".soak-stage");
+  if(stage){
+    stage.style.setProperty("--soak-fill",data.water);
+    stage.classList.remove("ready");   // 한 모금이라도 부었으면 '눌러 달라'는 까딱임을 뗍니다
+  }
+  const value=scene.querySelector(".soak-count strong");if(value)value.textContent=`${data.water}%`;
+  const bar=scene.querySelector(".soak-gauge-track b");if(bar)bar.style.width=`${data.water}%`;
+  const amount=scene.querySelector(".soak-ing-amount");if(amount)amount.textContent=`${data.water}%`;
+  const waterCard=scene.querySelector('[data-soak-item="water"]');
+  if(waterCard){waterCard.classList.toggle("added",full);waterCard.classList.toggle("next",!full);waterCard.disabled=full;}
+  if(full)scene.querySelector(".soak-pitcher")?.setAttribute("disabled","");
+  dom.miniTimer.textContent=`${data.water}%`;
+}
+
+// 물이 가득 찼습니다. 공통 순서 데이터에도 물 투입을 남기고 불리기 연출로 넘어갑니다.
+function finishSoakWater(m){
+  const data=m.data;
+  stopSoakPour();
+  if(data.added.water)return;
+  placeOrderedItem(data,"water");
+  data.added.water=true;
+  data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";
+  renderTteokSoak();
+  dom.miniFeedback.textContent=`${data.ingredientLabel}이 물에 잠겼습니다. 잠시 불리는 중...`;
+  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},SOAK_SETTLE_MS);
 }
