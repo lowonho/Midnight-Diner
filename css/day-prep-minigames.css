@@ -382,6 +382,7 @@
   top:calc(-105 * var(--upx));
   width:calc(190 * var(--upx));
   height:calc(360 * var(--upx));
+  margin-left:calc(-28 * var(--upx));
   --knife-turn:180deg;
   transform-origin:50% 50%;
 }
@@ -391,6 +392,7 @@
   top: 50%;
   width: calc(190 * var(--upx));
   height: calc(360 * var(--upx));
+  margin-left: 0;
   transform: translate(-50%,-50%) rotate(90deg);
   transform-origin: 50% 50%;
 }
@@ -405,7 +407,8 @@
 /* 닭고기 2연타 : 첫 번째 입력 뒤 칼이 박힌 채 멈춥니다 (가로 위치 유지) */
 .cut-screen .prep-work-object.tough-first-hit .knife-effect {
   opacity: .9;
-  transform: translateX(-50%) translateY(calc(9 * var(--upx))) rotate(var(--knife-turn, 16deg));
+  transform: translateX(-50%) rotate(var(--knife-turn, 16deg)) scale(.98);
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.48));
 }
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
@@ -597,9 +600,10 @@
 .cut-footer .rapid-hold-meter { width: calc(220 * var(--upx)); }
 
 @keyframes cut-knife-chop {
-  0%   { transform: translateX(-50%) translateY(calc(-26 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  45%  { transform: translateX(-50%) translateY(calc(14 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  100% { transform: translateX(-50%) translateY(0) rotate(var(--knife-turn,16deg)); }
+  0%   { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.08); filter:drop-shadow(0 calc(13 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.5)); }
+  46%  { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(.965); filter:drop-shadow(0 calc(1 * var(--upx)) calc(1 * var(--upx)) rgba(0,0,0,.42)); }
+  72%  { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.015); filter:drop-shadow(0 calc(4 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.4)); }
+  100% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1); filter:none; }
 }
 @keyframes cut-knife-chop-side {
   0%   { transform: translate(calc(-50% - 22 * var(--upx)),-50%) rotate(90deg); }
@@ -607,9 +611,9 @@
   100% { transform: translate(-50%,-50%) rotate(90deg); }
 }
 @keyframes cut-knife-miss {
-  0% { transform: translateX(-50%) translateY(calc(-18 * var(--upx))) rotate(var(--knife-turn,16deg)); }
-  55% { transform: translateX(calc(-50% + 13 * var(--upx))) translateY(calc(5 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)); }
-  100% { transform: translateX(-50%) translateY(0) rotate(var(--knife-turn,16deg)); }
+  0% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.04); }
+  55% { transform:translateX(calc(-50% + 13 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)) scale(.98); }
+  100% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1); }
 }
 @keyframes cut-spark-flash {
   0%   { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
