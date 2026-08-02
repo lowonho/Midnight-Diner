@@ -3066,12 +3066,6 @@
 @keyframes sc-sauce-mix { 0%,100% { transform:scale(1);filter:brightness(1); } 35% { transform:scaleX(1.06) scaleY(.94);filter:brightness(1.18); } 70% { transform:scaleX(.96) scaleY(1.04); } }
 @keyframes sc-result-in { to { opacity:1;transform:translate(-50%,-50%) scale(1); } }
 
-/* 준비 진행 표시줄 (day-prep-minigames.js 의 day4PrepFlowMarkup 이 씁니다) */
-.shrimp-coat-order { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; color:#a9906f; }
-.shrimp-coat-order span { padding:5px 8px; border:1px solid #735037; border-radius:7px; background:#24160f; font-weight:800; }
-.shrimp-coat-order span.current { border-color:#ffe08d; color:#ffe09a; }
-.shrimp-coat-order span.done { border-color:#789a51; color:#bcd88b; }
-
 /* ── 튀김 준비 (engine-e2 · 감자튀김 준비 · 새우튀김 준비) ─────
    왼쪽 재료 · 가운데 플레이 · 오른쪽 진행도/조작 3단 구성입니다.
    두 게임이 이 틀을 함께 쓰고, 가운데 그림만 서로 다릅니다.
@@ -3414,8 +3408,6 @@
 }
 
 /* E8 · 떡/우동 불리기 */
-.day4-prep-flow { width:100%; padding:7px 9px; border:1px solid #735037; border-radius:9px; background:#1d120d; }
-.day4-prep-flow b { color:#8e7355; }
 .mini-content:has(.tteok-soak-scene) { width:100%; }
 .tteok-soak-scene { position:relative; width:min(calc(940 * var(--upx)),100%); min-height:calc(330 * var(--upx)); padding:calc(24 * var(--upx)); display:grid; grid-template-columns:calc(210 * var(--upx)) minmax(0,1fr) calc(210 * var(--upx)); align-items:center; gap:calc(28 * var(--upx)); border:calc(5 * var(--upx)) solid #65432d; border-radius:calc(18 * var(--upx)); background:linear-gradient(#231711 0 65%,#4f311f 66%); box-shadow:inset 0 0 calc(24 * var(--upx)) rgba(0,0,0,.28); }
 .tteok-source,.water-source { min-height:calc(150 * var(--upx)); border:2px solid #785033; border-radius:calc(13 * var(--upx)); background:#d2ae73; color:#352116; cursor:grab; font-size:calc(18 * var(--upx)); font-weight:900; touch-action:none; }
@@ -3649,8 +3641,6 @@
   .sc-count strong { font-size: calc(42 * var(--upx)); }
   .sc-bowl { width: calc(230 * var(--upx)); height: calc(196 * var(--upx)); }
   .sc-pourer .sc-bottle { --bw: calc(78 * var(--upx)); }
-  .shrimp-coat-order { gap:3px; font-size:10px; }
-  .shrimp-coat-order span { padding:4px; }
   /* 좌우 칸이 250 → 170 으로 줄어 플레이 칸은 오히려 넓어지지만 세로가
      그대로입니다. 덩어리는 --md-rig-w 하나만 줄이면 채칼·채반·더미·화살표가
      모두 따라 줄어듭니다 (전부 이 값에서 계산되는 자리입니다). */

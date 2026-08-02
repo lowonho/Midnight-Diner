@@ -258,9 +258,7 @@ function startCuttingMinigame(options){
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
     // 두부처럼 마지막 한 번을 가로로 써는 재료
-    horizontalLastCut:!!options.horizontalLastCut,
-    // Day4 떡볶이 진행 표시줄에서 몇 번째 칸인지 (해당 없으면 null)
-    tteokbokkiFlowIndex:Number.isFinite(options.tteokbokkiFlowIndex)?options.tteokbokkiFlowIndex:null});
+    horizontalLastCut:!!options.horizontalLastCut});
   dom.miniTitle.textContent=options.title;
   dom.miniDescription.textContent=options.description;
   renderTimingCut();
@@ -299,9 +297,7 @@ function renderTimingCut(){
   // 두꺼운 바는 하단 공용 띠에 모읍니다 — 타이밍 바가 띠로 내려가고
   // 썰기 버튼이 그 자리(도마 아래)로 올라옵니다.
   const footer=cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker);
-  dom.miniContent.innerHTML=`
-    ${data.tteokbokkiFlowIndex!=null?day4PrepFlowMarkup("tteokbokki",data.tteokbokkiFlowIndex):""}
-    ${cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer})}`;
+  dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer});
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",timingCutAction);
 }
 
@@ -396,7 +392,6 @@ function setupTteokbokkiCut(taskId){
     zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
     title:`떡볶이 · ${item.displayName} 썰기`,
     description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
-    tteokbokkiFlowIndex:item.flowIndex,
     onComplete:()=>finishDayPrepTask(taskId,`떡볶이용 ${item.displayName} 손질 완료`)
   });
 }
