@@ -40,6 +40,7 @@ const ART_DIR = path.join(__dirname, "..", "assets", "minigame");
               납품본이 이미 2배율에 못 미쳐 줄일 것도 늘릴 것도 없을 때 씁니다.
    [css]      그 크기의 근거가 되는 화면 자리 (1920 프레임 기준 px). 주석용입니다.
    [lossless] 무손실로 뽑을 것 — 면적이 작아 q90 아티팩트가 바로 눈에 띄는 것만
+   [quality]  기본 q90 대신 다른 품질을 쓸 것 — 장수가 많아 용량이 곱해지는 묶음용
    [out]      출력 이름을 따로 줄 것. 기본은 file 의 확장자만 .webp 로 바꾼 이름입니다.
               **한 마스터에서 여러 크기를 뽑을 때만** 씁니다 (E3 화살표 칩 참고).
    [stretch]  가로세로비가 원본과 달라도 경고하지 말 것 — 늘려 쓰는 것이 의도인
@@ -168,6 +169,45 @@ const FILES = [
     { file:`E3/fix_gas_burner_low_fire_${no}.png`, size:null, css:"가스버너 (원본 배율 유지)" },
     { file:`E3/fix_griddle_burner_fire_${no}.png`, size:null, css:"철판 화구 (원본 배율 유지)" }
   ]),
+  /* E4 끓이기용 가스버너 3장 (냄비 화구). 위 두 화구와 같은 바닥 레이어이고
+     쓰는 곳만 다릅니다 — E4 어묵탕 · 떡볶이 끓이기.
+     ⚠️ 여기도 캔버스를 먼저 맞춰 뒀습니다. 납품본이 1431x663 / 1432x663 / 1432x663 으로
+        01 장만 1px 좁았고 내용도 그만큼 왼쪽에 붙어 있어, 그대로 두면 초당 11번
+        화구가 좌우로 1px 씩 떨렸습니다. 01 장 왼쪽에 투명 1px 을 덧대
+        세 장 모두 1432x663 · 내용 x3~1428 로 통일했습니다(잘라낸 화소 없음).
+     원본 배율 유지 이유는 위 E3 화구와 같습니다(플레이 칸 824.2 의 1.74배). */
+  ...["01","02","03"].map(no=>(
+    { file:`E4/fix_gas_burner_integrated_redraw_fire_${no}.png`, size:null, css:"끓이기 가스버너 (원본 배율 유지)" }
+  )),
+  /* E4 냄비 — 메뉴 2종 x 끓는 세기 3단계 x 4장 = 24장.
+     4장이 한 바퀴 도는 스프라이트이고, 세기(약·적정·강)는 온도 구간이 고릅니다.
+
+     [크기] 화면 냄비 폭의 2배율입니다. 메뉴마다 냄비 크기와 원본 비율이 달라 따로입니다.
+       어묵탕   화면 472 → 944 x 553  (원본 2405x1408)
+       떡볶이   화면 505 → 1010 x 568 (원본 2536x1426)
+     떡볶이가 큰 것은 같은 폭일 때 냄비가 더 작아 보여서입니다(원본이 가로로 넓음).
+     ⚠️ 마스터가 4000px 에 가까운 큰 그림이라 여기서 크게 줄어듭니다. 화면 자리를
+        바꾸면 이 크기도 같이 고쳐야 합니다(css/minigames.css 의 --heat-art-w).
+
+     ⚠️ [12장을 한 크기로 묶는 것이 중요합니다]
+     떡볶이 마스터는 2535~2537 x 1426~1427 로 장마다 캔버스가 미세하게 다릅니다.
+     그림이 캔버스를 꽉 채우고 있어(투명 여백 0) 여백을 덧댈 수가 없으므로,
+     E3 화구처럼 PNG 를 손보는 대신 **여기서 한 크기로 뽑아** 맞춥니다.
+     비율 차가 0.1% 라 찌그러짐은 눈에 안 보이고, 이래야 4장이 넘어갈 때
+     냄비가 1px 씩 들썩이지 않습니다.
+
+     [q82] 다른 그림(q90)보다 낮춥니다. 24장이라 용량이 그대로 곱해지는데,
+     국물처럼 부드러운 면이 대부분이라 82 에서도 눈에 띄는 손실이 없습니다. */
+  ...[
+    {dish:"eomuk_tang", size:[944,553],  css:"어묵탕 냄비 472x276.5"},
+    {dish:"tteokbokki", size:[1010,568], css:"떡볶이 냄비 505x284"}
+  ].flatMap(({dish,size,css})=>
+    ["weak","medium","strong"].flatMap(level=>
+      ["01","02","03","04"].map(no=>(
+        { file:`E4/food_${dish}_boil_${level}_${no}.png`, size, quality:82, css }
+      ))
+    )
+  ),
   /* E3 조리기구 2종. 화구와 달리 **4배율 마스터**라 절반으로 줄여 2배율을 만듭니다.
        팬    화면 640 x 278 — 손잡이까지 포함한 크기입니다. 몸통(타원)은 그중 79.7%
              뿐이고 나머지 오른쪽이 손잡이라, 자리를 잡을 때는 몸통 중심(그림 왼쪽에서
@@ -276,13 +316,13 @@ async function convert(){
     const [w,h] = entry.size || [meta.width, meta.height];
     await resized(src, w, h)
       .webp(entry.lossless ? {lossless:true, effort:EFFORT}
-                           : {quality:QUALITY, effort:EFFORT, alphaQuality:100})
+                           : {quality:entry.quality||QUALITY, effort:EFFORT, alphaQuality:100})
       .toFile(out);
     const a = fs.statSync(src).size, b = fs.statSync(out).size;
     pngTotal += a; webpTotal += b;
     console.log(outFile(entry).padEnd(44), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
       `${kb(a)}KB`.padStart(8), `${kb(b)}KB`.padStart(8),
-      `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(entry.lossless?"무손실":`q${QUALITY}`));
+      `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(entry.lossless?"무손실":`q${entry.quality||QUALITY}`));
   }
   console.log("-".repeat(96));
   console.log("합계".padEnd(36), "".padStart(11), "".padStart(11),

@@ -184,9 +184,19 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
     [`burnerGas${index+1}`,`assets/minigame/E3/fix_gas_burner_low_fire_${no}.webp`],
     [`burnerGriddle${index+1}`,`assets/minigame/E3/fix_griddle_burner_fire_${no}.webp`]
   ])),
-  // 화력 유지 (engine-e4). 불꽃·증기·거품은 CSS이며 완성 냄비 그림만 메뉴별 한 장입니다.
-  heatOdenPot:"assets/prep/heat/oden-pot.png",
-  heatTteokbokkiPot:"assets/prep/heat/tteokbokki-pot.png",
+  // 냄비 화구 (E4 끓이기). 위 두 화구와 같은 방식의 3장짜리 바닥 레이어입니다.
+  // 불꽃이 그림에 함께 그려져 있어 E4 의 CSS 불꽃 도형을 대신합니다.
+  ...Object.fromEntries(["01","02","03"].map((no,index)=>
+    [`burnerPot${index+1}`,`assets/minigame/E4/fix_gas_burner_integrated_redraw_fire_${no}.webp`])),
+  /* 끓는 냄비 (engine-e4) — 메뉴 2종 x 끓는 세기 3단계 x 4장.
+     4장이 한 바퀴 도는 스프라이트이고, 세기는 온도 구간이 고릅니다.
+       weak   온도 낮음   medium 적정 온도   strong 과열
+     키 이름은 boil{Oden|Tteokbokki}{Weak|Medium|Strong}1~4 입니다 —
+     engine-e4-gauge-hold.js 의 heatBoilAssetKey 가 같은 규칙으로 만들어 씁니다. */
+  ...Object.fromEntries([["Oden","eomuk_tang"],["Tteokbokki","tteokbokki"]].flatMap(([dishKey,dishFile])=>
+    [["Weak","weak"],["Medium","medium"],["Strong","strong"]].flatMap(([levelKey,levelFile])=>
+      ["01","02","03","04"].map((no,index)=>
+        [`boil${dishKey}${levelKey}${index+1}`,`assets/minigame/E4/food_${dishFile}_boil_${levelFile}_${no}.webp`])))),
   /* 채칼 (engine-e2). PNG 가 마스터이고 여기서 쓰는 WebP 는
      tools/build-minigame-art-webp.js 산출물입니다.
 
@@ -287,7 +297,10 @@ function dayPrepAssetMarkup(key,className,alt=""){
    불이 함께 그려져 있어서 조리기구를 옮기면 불도 따라다녔습니다. 이제 화구는
    플레이 칸 바닥에 깔리고, 조리기구가 그 위에 얹힙니다.
 
-   세 화면이 함께 씁니다 — E3 김치 볶기 · E3 볶음우동 · E5 김치전 굽기.
+   네 화면이 함께 씁니다.
+     gas      E3 김치 볶기 · E3 볶음우동(철판은 griddle) · E5 김치전 굽기
+     griddle  E3 볶음우동
+     pot      E4 어묵탕 · 떡볶이 끓이기
    (E5 닭꼬치는 가스불이 아니라 숯불 화로라 여기 해당 없습니다)
 
    그림 3장을 겹쳐 두고 CSS 가 번갈아 켜서 불이 흔들리는 것처럼 보입니다.
@@ -295,8 +308,11 @@ function dayPrepAssetMarkup(key,className,alt=""){
    타이머가 없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다. */
 const MINIGAME_BURNER_FRAMES=3;
 
+// 화구 종류 → 에셋 키 앞머리. 종류 이름은 클래스(.mg-burner-○)에도 그대로 쓰입니다.
+const MINIGAME_BURNER_PREFIX=Object.freeze({gas:"burnerGas",griddle:"burnerGriddle",pot:"burnerPot"});
+
 function minigameBurnerMarkup(kind){
-  const prefix=kind==="gas"?"burnerGas":"burnerGriddle";
+  const prefix=MINIGAME_BURNER_PREFIX[kind]||MINIGAME_BURNER_PREFIX.gas;
   const keys=Array.from({length:MINIGAME_BURNER_FRAMES},(_,index)=>`${prefix}${index+1}`);
   // 한 장이라도 빠지면 그 순번에서 불이 깜빡 꺼져 보입니다. 전부 있을 때만 씁니다.
   if(!keys.every(hasDayPrepAsset))return `<i class="mg-burner mg-burner-${kind} mg-burner-fallback" aria-hidden="true"></i>`;
@@ -313,13 +329,6 @@ function timingAssetKey(ingredient,successes,assetPrefix=""){
 
 function isDayPrepMini(mini=state.mini){
   return mini?.context?.mode==="dayPrep";
-}
-
-// Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
-// 칸 번호는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
-function day4PrepFlowMarkup(menuId,currentIndex){
-  const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","튀김가루 묻히기"];
-  return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
 }
 
 /* ---- 엔진 등록 창구 ----------------------------------------
