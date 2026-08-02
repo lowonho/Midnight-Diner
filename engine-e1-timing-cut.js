@@ -9,13 +9,13 @@
    [현재 사용하는 조작]
    모든 날짜의 준비 칼질은 같은 타이밍 판정을 사용합니다.
 
-     timing    왕복하는 포인터가 초록 구간에 있을 때 Space.
-               낮 준비의 모든 칼질. 닭고기만 초록 구간에서 빠르게 2연타.
+     timing    칼날이 미리 보이는 절단선에 닿을 때 Space.
+               낮 준비의 모든 칼질. 닭고기만 절단선에서 빠르게 2연타.
      chop      밤 조리용. 두부는 timing 과 같은 초록 구간 방식이고,
                "정밀 손질"은 노란 중심에 가까울수록 점수가 높은 방식입니다.
 
    [합쳐진 것 / 안 합쳐진 것]
-   · 판정 규칙(초록 구간 안인지, 포인터 왕복)은 아래 도우미로 합쳤습니다.
+   · 낮 준비 판정은 칼의 실제 이동 좌표와 다음 절단선 사이 거리로 계산합니다.
      여기 숫자를 바꾸면 7개 게임에 동시에 반영됩니다.
    · 화면 마크업은 게임별로 그대로 두었습니다. 재료 그림·절단선·칼 연출이
      서로 다르고, 이쪽은 에셋 작업 영역이라 함부로 통일하지 않았습니다.
@@ -27,11 +27,11 @@ registerDayPrepSetup("tteokbokkiCut",taskId=>setupTteokbokkiCut(taskId));
 const CUT_FEEL_CONFIG=Object.freeze({
   perfectZoneRatio:.38,
   doubleTapWindow:.35,
-  missLockMs:150,
-  goodRecoveryMs:205,
-  perfectRecoveryMs:235,
-  recoveryRampMs:65,
-  completeDelayMs:620
+  pathLeadInFallback:12,
+  pathRecoveryMs:115,
+  completeDelayMs:620,
+  startCountdownSeconds:3,
+  startSignalMs:450
 });
 
 /* ---- 공통 판정 규칙 ----------------------------------------
@@ -55,12 +55,6 @@ function cutTimingGrade(marker,zoneStart,zoneWidth){
   return Math.abs(marker-center)<=perfectHalf?"perfect":"good";
 }
 
-function cutRecoveryDelay(data,grade){
-  const progress=data.total>1?(data.successes-1)/(data.total-1):1;
-  const base=grade==="perfect"?CUT_FEEL_CONFIG.perfectRecoveryMs:CUT_FEEL_CONFIG.goodRecoveryMs;
-  return Math.max(130,Math.round(base-progress*CUT_FEEL_CONFIG.recoveryRampMs));
-}
-
 /* ---- 공통 화면 틀 (컨셉 이미지 3열 구성) --------------------
    [재료 카드] [도마] [완성 개수 · 완성 예시]
    멸치(E10)·단발 액션(E11)이 쓰는 것과 같은 틀입니다.
@@ -74,14 +68,23 @@ function cutRecoveryDelay(data,grade){
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
 const CUT_POSITION_PERCENTAGES=Object.freeze({
-  radish:Object.freeze([79.7,61.4,41.7,22.1]),
+  radish:Object.freeze([78.3,70.6,62.6,54.6,46.9,38.6,30.2]),
   fishCake:Object.freeze([74.3,51.3,26.7]),
-  cabbage:Object.freeze([83.2,65.1,42.6,22.7]),
-  chicken:Object.freeze([85.3,70.5,55.1,38.5,20.8]),
-  greenOnion:Object.freeze([80.2,62.6,43.2,22.7]),
-  kimchi:Object.freeze([80.8,64.4,48.1,31.7,15.5]),
+  cabbage:Object.freeze([71.4,67.3,63.1,59.2,55.5,51.7,47.8,43.8,40,35.8,32.2,28.4]),
+  chicken:Object.freeze([77,71.8,66.3,60.3,53.9,47.9,42.4,37,31.4,26,21.7]),
+  greenOnion:Object.freeze([76.6,68.6,59.9,52.1,42.6,34,26]),
+  kimchi:Object.freeze([73.8,68,62.2,56.5,51,45.3,39.6,33.7,28.5]),
   tofu:Object.freeze([85.2,71.3,57.5,43.6,29.7,15.5])
 });
+
+// 새 절단 횟수가 기존 진행 스프라이트보다 많아도 그림이 중간에 끊기지 않게
+// 완료 비율을 현재 보유한 마지막 스프라이트 단계에 비례시킵니다.
+const CUT_ASSET_STAGE_MAX=Object.freeze({radish:7,fishCake:4,cabbage:12,chicken:11,greenOnion:7,kimchi:9,tofu:6});
+
+function cutAssetStage(data,completed=data.successes||0){
+  const max=data.assetStageMax??CUT_ASSET_STAGE_MAX[data.ingredient]??data.total;
+  return Math.min(max,Math.round(completed/Math.max(1,data.total)*max));
+}
 
 function suppliedCutPosition(ingredient,index,total){
   const positions=CUT_POSITION_PERCENTAGES[ingredient];
@@ -102,6 +105,13 @@ function playCutIngredientSfx(data,tapStep=0){
     ?tapStep===1?"cut_meat1":"cut_meat2"
     :cutIngredientSfx(data.ingredient);
   audio.play?.(name,{owner:state.mini});
+}
+
+function timingCutAverageScore(data){
+  const scores=data.cutScores||[];
+  return scores.length
+    ?Math.round(scores.reduce((sum,score)=>sum+score,0)/scores.length)
+    :100;
 }
 
 function cutIngredientLabel(data){
@@ -126,8 +136,8 @@ function cutPiecesMarkup(ingredient,count,newestIndex=-1){
 
 // 완성 예시 : 마지막 손질 단계 그림이 있으면 그걸, 없으면 그릇에 담긴 조각들.
 function cutDoneSampleMarkup(data,total){
-  const key=timingAssetKey(data.ingredient,total,data.assetPrefix);
-  if(hasDayPrepAsset(key))return `<i class="cut-sample has-prep-asset">${dayPrepAssetMarkup(key,"cut-sample-asset","")}</i>`;
+  const key=timingAssetKey(data.ingredient,data.assetStageMax??CUT_ASSET_STAGE_MAX[data.ingredient]??total,data.assetPrefix);
+  if(hasDayPrepAsset(key))return `<i class="cut-sample ${data.ingredient}-shape has-prep-asset">${dayPrepAssetMarkup(key,"cut-sample-asset","")}</i>`;
   return `<div class="cut-done-bowl">${cutPiecesMarkup(data.ingredient,5)}</div>`;
 }
 
@@ -176,10 +186,10 @@ function updateCutCountCard(done,total){
 
 // 도마 아래 타이밍 바. 삼각 표시가 바 위아래로 튀어나와야 해서
 // 바(넘침 잘라냄) 와 표시를 형제로 두고 바깥 상자에 얹습니다.
-function cutTimingBarMarkup(zoneLeft,zoneWidth,marker){
+function cutTimingBarMarkup(zoneLeft,zoneWidth,marker,extraClass=""){
   const perfectWidth=zoneWidth*CUT_FEEL_CONFIG.perfectZoneRatio;
   const perfectLeft=zoneLeft+(zoneWidth-perfectWidth)/2;
-  return `<div class="cut-timing">
+  return `<div class="cut-timing${extraClass?` ${extraClass}`:""}">
       <div class="prep-timing-bar"><i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${zoneWidth*100}%"></i><i class="prep-perfect-zone" style="left:${perfectLeft*100}%;width:${perfectWidth*100}%"></i></div>
       <i id="dayPrepMarker" class="prep-timing-marker" style="left:${marker*100}%"></i>
     </div>`;
@@ -192,21 +202,21 @@ function cutTimingBarMarkup(zoneLeft,zoneWidth,marker){
 registerDayPrepEngine("timing",{
   update(m,dt){
     const data=m.data;
+    if(data.phase==="countdown"){
+      advanceTimingCutCountdown(m,dt);
+      return;
+    }
     if(data.inputLocked||data.phase==="complete")return;
     // 닭고기 2연타: 첫 입력 뒤 0.35초 안에 두 번째가 없으면 현재 조각부터 재시도
     if(data.requiresDoubleTap&&data.tapStep===1){
       data.tapWindow-=dt;
       if(data.tapWindow<=0){
         data.tapStep=0;data.tapWindow=0;data.pendingGrade=null;
-        dom.miniContent.querySelector("#prepWorkObject")?.classList.remove("tough-first-hit");
-        dom.miniContent.querySelector(".cut-board")?.classList.remove("cut-embedded");
-        dom.miniContent.querySelector("#toughCutHint")?.classList.remove("first-done");
-        const action=dom.miniContent.querySelector("#dayPrepAction");if(action)action.textContent="Space · 빠르게 2번";
-        dom.miniFeedback.textContent="두 번째 입력이 늦었어요. 초록 구간에서 다시 두 번!";audio.bad();
+        completeTimingCut(m,"miss","두 번째 입력이 늦었어요");
       }
       return;
     }
-    advanceBounceMarker(m,dt,{dirKey:"direction",selector:"#dayPrepMarker"});
+    advanceTimingKnife(m,dt);
   },
   action(){timingCutAction();},
   key(m,k,e){
@@ -226,9 +236,8 @@ function setupTimingCut(taskId){
     taskId,
     ingredient,
     requiredHits:config.total,
-    hitZoneWidth:config.zoneWidth,
-    speed:config.speed,
-    zoneStarts:config.zoneStarts,
+    hitTolerance:config.hitTolerance,
+    travelSpeed:config.travelSpeed,
     requiresDoubleTap:!!config.requiresDoubleTap,
     horizontalLastCut:!!config.horizontalLastCut,
     title:config.title,
@@ -236,29 +245,30 @@ function setupTimingCut(taskId){
       ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
       :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:config.requiresDoubleTap
-      ?"포인터가 초록 구간에 들어왔을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
+      ?"칼날이 절단선에 닿을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
       :config.horizontalLastCut
-      ?`포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
-      :taskId==="cutRadish"
-      ?"포인터가 초록 구간에 들어왔을 때 Space를 누르세요. 총 4번 썹니다."
-      :taskId==="cutFishCake"
-      ?"포인터가 초록 구간에 들어왔을 때 Space를 눌러 어묵을 4번 써세요."
-      :`포인터가 초록 구간에 들어왔을 때 Space를 누르세요. ${PREP_TASKS[taskId].label} 작업입니다.`
+      ?`칼날이 절단선에 닿을 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
+      :`미리 보이는 절단선에 칼날이 닿을 때 Space를 누르세요. 총 ${config.total}번 썹니다.`
   });
 }
 
 // 재료·횟수·속도만 바꿔 어떤 칼질이든 만들 수 있습니다.
 function startCuttingMinigame(options){
-  const width={wide:.24,normal:.18,narrow:.14}[options.hitZoneWidth]??options.hitZoneWidth??.18;
-  const speed={slow:.55,normal:.7,fast:.9}[options.speed]??options.speed??.7;
-  const defaults=[.18,.56,.32,.66,.42];
-  const zoneStarts=options.zoneStarts?.length?[...options.zoneStarts]:Array.from({length:options.requiredHits},(_,index)=>defaults[index%defaults.length]);
-  setDayPrepData({mode:"timing",phase:"ready",marker:0,direction:1,successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,zoneWidth:width,speed,zoneStarts,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:false,
+  const hitTolerance=options.hitTolerance??2.8;
+  const travelSpeed=options.travelSpeed??16;
+  const verticalCount=options.horizontalLastCut?options.requiredHits-1:options.requiredHits;
+  const firstCutX=suppliedCutPosition(options.ingredient,0,verticalCount);
+  // 첫 박자도 이후 박자와 같은 길이가 되도록 첫째-둘째 절단선 간격 앞에서 출발합니다.
+  const firstBeatDistance=verticalCount>1
+    ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
+    :CUT_FEEL_CONFIG.pathLeadInFallback;
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
     // 두부처럼 마지막 한 번을 가로로 써는 재료
-    horizontalLastCut:!!options.horizontalLastCut});
+    horizontalLastCut:!!options.horizontalLastCut,
+    assetStageMax:options.assetStageMax??CUT_ASSET_STAGE_MAX[options.ingredient]??options.requiredHits});
   dom.miniTitle.textContent=options.title;
   dom.miniDescription.textContent=options.description;
   renderTimingCut();
@@ -266,8 +276,8 @@ function startCuttingMinigame(options){
 
 function renderTimingCut(){
   const m=state.mini,data=m.data,isRadish=data.ingredient==="radish";
-  const zoneLeft=data.zoneStarts[data.successes];
-  const objectAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
+  const countdownActive=data.phase==="countdown";
+  const objectAssetKey=timingAssetKey(data.ingredient,cutAssetStage(data),data.assetPrefix);
   // 두부는 마지막 한 번이 가로 썰기라 세로선 간격 계산에서 빼야 합니다.
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
   const horizontalReady=data.horizontalLastCut&&data.successes>=verticalCount;
@@ -280,52 +290,189 @@ function renderTimingCut(){
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   const visualStage=Math.min(3,Math.floor(data.successes/Math.max(1,data.total)*4));
   const board=`
-      <div class="prep-work-object ${data.ingredient}-shape cut-visual-stage-${visualStage} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
+      <div class="prep-work-object cut-path-mode ${data.ingredient}-shape cut-visual-stage-${visualStage} ${data.horizontalLastCut?"tofu-cook-object":""} ${horizontalReady?"horizontal-cut":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="prepWorkObject" style="--cut-x:${cutX}%;--knife-x:${data.knifeX}%;--knife-y:${data.knifeY}%;--cut-progress:${data.successes/data.total}" aria-label="${data.ingredient}">
         ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",isRadish?"손질 단계별 무":"손질 단계별 재료")}
         ${Array.from({length:data.total},(_,index)=>{
-          const done=index<data.successes?"done":"";
-          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${done}" data-cut-index="${index}"></i>`;
-          return `<i class="cut-line ${done}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
+          if(index<data.successes)return "";
+          const active=index===data.successes?"active":"";
+          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${active}" data-cut-index="${index}"></i>`;
+          return `<i class="cut-line ${active}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
         <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
         <i class="cut-spark"></i>
       </div>
       <div class="cut-footer">${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
-        <button class="mini-action cut-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
-      <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
-  // 두꺼운 바는 하단 공용 띠에 모읍니다 — 타이밍 바가 띠로 내려가고
-  // 썰기 버튼이 그 자리(도마 아래)로 올라옵니다.
-  const footer=cutTimingBarMarkup(zoneLeft,data.zoneWidth,data.marker);
+        <button class="mini-action cut-action" id="dayPrepAction" type="button" ${countdownActive?"disabled":""}>Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
+      <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>
+      ${countdownActive?`<div class="cut-start-countdown" id="cutStartCountdown" aria-live="assertive"><strong>${data.countdownStep}</strong></div>`:""}`;
+  // 하단 바는 유지하되, 초록 구간과 포인터를 실제 절단선·칼날의 X축에 맞춥니다.
+  const footer=cutTimingBarMarkup(0,0,0,"cut-path-timing");
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer});
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",timingCutAction);
+  syncTimingKnife(data);
+}
+
+function advanceTimingCutCountdown(m,dt){
+  const data=m.data;
+  if(data.phase!=="countdown")return false;
+  data.countdownRemaining=Math.max(0,data.countdownRemaining-dt);
+  const nextStep=Math.ceil(data.countdownRemaining);
+  const overlay=dom.miniContent.querySelector("#cutStartCountdown");
+  const label=overlay?.querySelector("strong");
+  if(nextStep>0){
+    if(nextStep!==data.countdownStep){
+      data.countdownStep=nextStep;
+      if(label){label.textContent=String(nextStep);label.classList.remove("tick");void label.offsetWidth;label.classList.add("tick");}
+    }
+    return true;
+  }
+  data.countdownStep=0;
+  data.countdownRemaining=0;
+  data.phase="ready";
+  data.inputLocked=false;
+  const action=dom.miniContent.querySelector("#dayPrepAction");
+  if(action)action.disabled=false;
+  if(label)label.textContent="시작!";
+  overlay?.classList.add("go");
+  setTimeout(()=>{
+    if(state.mini===m&&!m.complete)dom.miniContent.querySelector("#cutStartCountdown")?.remove();
+  },CUT_FEEL_CONFIG.startSignalMs);
+  return true;
+}
+
+function timingCutVerticalCount(data){
+  return data.horizontalLastCut?data.total-1:data.total;
+}
+
+function isHorizontalTimingCut(data){
+  return data.horizontalLastCut&&data.successes>=timingCutVerticalCount(data);
+}
+
+function timingCutTarget(data){
+  if(isHorizontalTimingCut(data))return {axis:"y",value:50,current:data.knifeY,direction:1};
+  return {
+    axis:"x",
+    value:suppliedCutPosition(data.ingredient,data.successes,timingCutVerticalCount(data)),
+    current:data.knifeX,
+    direction:-1
+  };
+}
+
+function syncTimingKnife(data){
+  const work=dom.miniContent.querySelector("#prepWorkObject");
+  work?.style.setProperty("--knife-x",`${data.knifeX}%`);
+  work?.style.setProperty("--knife-y",`${data.knifeY}%`);
+  syncCutPathTimingBar(data);
+}
+
+// Project the ingredient-local knife coordinates into the actual bottom bar.
+// This keeps the blade, cut line, hit zone, and marker on one screen-space X axis
+// even though every ingredient is rendered at a different width.
+function syncCutPathTimingBar(data){
+  const work=dom.miniContent.querySelector("#prepWorkObject");
+  const timing=dom.miniContent.querySelector(".cut-path-timing");
+  const success=timing?.querySelector(".prep-success-zone");
+  const perfect=timing?.querySelector(".prep-perfect-zone");
+  const marker=timing?.querySelector("#dayPrepMarker");
+  if(!work||!timing||!success||!perfect||!marker)return;
+
+  const target=timingCutTarget(data);
+  const tolerance=data.hitTolerance;
+  const perfectTolerance=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio;
+  let project;
+  if(target.axis==="x"){
+    const workRect=work.getBoundingClientRect();
+    const timingRect=timing.getBoundingClientRect();
+    if(!workRect.width||!timingRect.width)return;
+    project=value=>(workRect.left+workRect.width*(value/100)-timingRect.left)/timingRect.width*100;
+  }else{
+    // The final horizontal tofu cut retains the familiar left-to-right bar readout.
+    project=value=>value;
+  }
+
+  const clamp=value=>Math.max(0,Math.min(100,value));
+  const successLeft=clamp(project(target.value-tolerance));
+  const successRight=clamp(project(target.value+tolerance));
+  const perfectLeft=clamp(project(target.value-perfectTolerance));
+  const perfectRight=clamp(project(target.value+perfectTolerance));
+  success.style.left=`${successLeft}%`;
+  success.style.width=`${Math.max(0,successRight-successLeft)}%`;
+  perfect.style.left=`${perfectLeft}%`;
+  perfect.style.width=`${Math.max(0,perfectRight-perfectLeft)}%`;
+  marker.style.left=`${clamp(project(target.current))}%`;
+}
+
+function cutPathGrade(data){
+  const target=timingCutTarget(data);
+  const distance=Math.abs(target.current-target.value);
+  if(distance>data.hitTolerance)return "miss";
+  return distance<=data.hitTolerance*CUT_FEEL_CONFIG.perfectZoneRatio?"perfect":"good";
+}
+
+function timingKnifeIsEarly(data){
+  const target=timingCutTarget(data);
+  return target.direction<0
+    ?target.current>target.value+data.hitTolerance
+    :target.current<target.value-data.hitTolerance;
+}
+
+function snapTimingKnifeToTarget(data){
+  const target=timingCutTarget(data);
+  if(target.axis==="x")data.knifeX=target.value;
+  else data.knifeY=target.value;
+}
+
+// The knife is the playhead: it advances once from the previous cut to the next.
+function advanceTimingKnife(m,dt){
+  const data=m.data,target=timingCutTarget(data);
+  const step=data.travelSpeed*dt;
+  if(target.axis==="x"){
+    data.knifeX-=step;
+    if(data.knifeX<target.value-data.hitTolerance){
+      data.knifeX=target.value-data.hitTolerance;
+      syncTimingKnife(data);
+      completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
+      return;
+    }
+  }else{
+    data.knifeY+=step;
+    if(data.knifeY>target.value+data.hitTolerance){
+      data.knifeY=target.value+data.hitTolerance;
+      syncTimingKnife(data);
+      completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
+      return;
+    }
+  }
+  syncTimingKnife(data);
 }
 
 // Space / ACTION 버튼 / 화면 안 썰기 버튼이 모두 여기로 들어옵니다.
 function timingCutAction(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
+  const m=state.mini;if(!m||m.complete)return;
   if(m.data.mode!=="timing")return;
-  const data=m.data,zoneStart=data.zoneStarts[data.successes];
+  const data=m.data;
   if(data.inputLocked||data.phase==="complete")return;
   if(data.requiresDoubleTap&&data.tapStep===1){
     const grade=data.pendingGrade||"good";
     data.tapStep=0;data.tapWindow=0;data.pendingGrade=null;
     completeTimingCut(m,grade);return;
   }
-  const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
+  const grade=cutPathGrade(data);
   if(grade==="miss"){
-    data.mistakes=(data.mistakes||0)+1;
-    data.inputLocked=true;
-    const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
-    board?.classList.add("cut-miss");work?.classList.add("slice-miss");
-    if(judgement){judgement.textContent="MISS";judgement.className="cut-judgement show miss";}
-    dom.miniFeedback.textContent="절단선을 놓쳤습니다. 현재 단계에서 다시 시도하세요.";
-    audio.bad();
-    setTimeout(()=>{
-      if(state.mini!==m||m.complete)return;
-      data.inputLocked=false;board?.classList.remove("cut-miss");work?.classList.remove("slice-miss");
-      if(judgement){judgement.textContent="";judgement.className="cut-judgement";}
-    },CUT_FEEL_CONFIG.missLockMs);
+    if(timingKnifeIsEarly(data)){
+      const earlyJudgement=dom.miniContent.querySelector("#cutJudgement");
+      if(earlyJudgement){earlyJudgement.textContent="EARLY";earlyJudgement.className="cut-judgement show miss";}
+      dom.miniFeedback.textContent="아직 칼날이 절단선에 닿지 않았어요.";
+      audio.bad();
+      setTimeout(()=>{
+        if(state.mini!==m||m.complete)return;
+        const current=dom.miniContent.querySelector("#cutJudgement");
+        if(current?.textContent==="EARLY"){current.textContent="";current.className="cut-judgement";}
+      },180);
+      return;
+    }
+    completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
     return;
   }
   if(data.requiresDoubleTap){
@@ -342,24 +489,33 @@ function timingCutAction(){
   completeTimingCut(m,grade);
 }
 
-function completeTimingCut(m,grade="good"){
+function completeTimingCut(m,grade="good",missMessage=""){
   const data=m.data;
-  playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
   data.inputLocked=true;data.phase="impact";
+  const cutIndex=data.successes;
+  snapTimingKnifeToTarget(data);
+  syncTimingKnife(data);
+  if(grade==="miss"){
+    data.mistakes=(data.mistakes||0)+1;
+    audio.bad();
+  }else playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
+  data.cutScores?.push(grade==="perfect"?100:grade==="good"?85:45);
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
   work?.classList.remove("tough-first-hit");
-  board?.classList.remove("cut-embedded");board?.classList.add(grade==="perfect"?"cut-perfect":"cut-good");
-  work?.classList.add("slice-hit",grade==="perfect"?"slice-perfect":"slice-good");
-  if(judgement){judgement.textContent=grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
-  const nextAssetKey=timingAssetKey(data.ingredient,data.successes,data.assetPrefix);
+  board?.classList.remove("cut-embedded");board?.classList.add(grade==="miss"?"cut-miss":grade==="perfect"?"cut-perfect":"cut-good");
+  work?.classList.add(grade==="miss"?"slice-miss":"slice-hit",grade==="miss"?"slice-missed":grade==="perfect"?"slice-perfect":"slice-good");
+  if(judgement){judgement.textContent=grade==="miss"?"MISS":grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
+  const completedLine=dom.miniContent.querySelector(`.cut-line[data-cut-index="${cutIndex}"]`);
+  completedLine?.remove();
+  const nextAssetKey=timingAssetKey(data.ingredient,cutAssetStage(data,data.successes),data.assetPrefix);
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
-  dom.miniContent.querySelector(`.cut-line[data-cut-index="${data.successes-1}"]`)?.classList.add("done","fresh-cut");
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;
   // 방금 썬 조각을 오른쪽 더미에 바로 얹습니다. (다시 그릴 때 정식으로 다시 깔립니다)
   updateCutCountCard(data.successes,data.total);
   dom.miniFeedback.textContent=data.requiresDoubleTap?"질긴 고기 절단 성공!":grade==="perfect"?"완벽한 타이밍!":"절단 성공";
+  if(grade==="miss")dom.miniFeedback.textContent=missMessage||"엇박! 다음 절단선으로 넘어갑니다.";
   if(data.successes>=data.total){
     data.phase="complete";board?.classList.add("cut-complete");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
@@ -371,8 +527,9 @@ function completeTimingCut(m,grade="good"){
   }
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
+    if(isHorizontalTimingCut(data))data.knifeY=12;
     data.inputLocked=false;data.phase="ready";renderTimingCut();
-  },cutRecoveryDelay(data,grade));
+  },CUT_FEEL_CONFIG.pathRecoveryMs);
 }
 
 // 떡볶이 재료 칼질. 양배추 · 대파 · 어묵이 각각 별도의 준비 작업입니다.
@@ -386,12 +543,12 @@ function setupTteokbokkiCut(taskId){
     ingredientLabel:item.displayName,
     assetPrefix:item.assetPrefix,
     requiredHits:item.requiredPieces,
-    hitZoneWidth:.14,
-    speed:.8,
+    hitTolerance:item.hitTolerance,
+    travelSpeed:item.travelSpeed,
+    assetStageMax:item.progressSprites.length-1,
     horizontalLastCut:!!item.horizontalLastCut,
-    zoneStarts:Array.from({length:item.requiredPieces},(_,hitIndex)=>[.2,.58,.32,.68,.43,.14,.52,.27][hitIndex%8]),
     title:`떡볶이 · ${item.displayName} 썰기`,
-    description:`포인터가 초록 구간에 들어왔을 때 Space를 눌러 ${item.displayName}를 써세요.`,
+    description:`칼날이 다음 절단선에 닿을 때 Space를 눌러 ${item.displayName}를 써세요.`,
     onComplete:()=>finishDayPrepTask(taskId,`떡볶이용 ${item.displayName} 손질 완료`)
   });
 }
@@ -420,8 +577,8 @@ function renderNightChop(m){
     <div class="prep-work-object ${data.ingredient}-shape ${data.tofuStyle?"tofu-cook-object":""} ${hasDayPrepAsset(objectAssetKey)?"has-prep-asset":""}" id="${objectId}" style="--cut-x:${chopCutX(data)}%" aria-label="${cutIngredientLabel(data)}">
       ${dayPrepAssetMarkup(objectAssetKey,"prep-object-asset",cutIngredientLabel(data))}
       ${Array.from({length:data.total},(_,index)=>{
-        const done=index<data.cuts?"done":"";
-        return `<i class="cut-line ${done}" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
+        if(index<data.cuts)return "";
+        return `<i class="cut-line" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
       }).join("")}
       <i class="cut-guide"></i>
       <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
@@ -440,7 +597,7 @@ function showNightChopImpact(m,cutIndex,grade){
   const work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
   const board=dom.miniContent.querySelector(".cut-board");
   const judgement=dom.miniContent.querySelector("#cutJudgement");
-  work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.classList.add("done","fresh-cut");
+  work?.querySelector(`[data-cut-index="${cutIndex}"]`)?.remove();
   const nextAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
@@ -474,8 +631,24 @@ function moveNightChopTarget(m){
 }
 
 registerMiniEngine("chop",{
-  setup(m,{set}){
+  setup(m,{set,difficulty=1}){
     const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
+    if(isTofu){
+      set("두부 썰기","움직이는 칼날의 왼쪽 끝이 점선에 닿을 때 Space를 눌러 두부를 6번 썰어주세요.",10);
+      startCuttingMinigame({
+        taskId:"cookTofuBlock",
+        ingredient:"tofu",
+        ingredientLabel:"두부",
+        ingredientCount:1,
+        requiredHits:6,
+        hitTolerance:DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance,
+        travelSpeed:DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed*difficulty,
+        title:"두부 썰기",
+        description:"칼날의 왼쪽 끝이 점선에 닿을 때 Space를 눌러주세요. 총 6번 썹니다.",
+        onComplete:()=>finishMini(timingCutAverageScore(m.data))
+      });
+      return;
+    }
     set(
       isTofu?"두부 썰기":"정밀 손질",
       isTofu

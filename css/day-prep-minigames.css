@@ -155,8 +155,8 @@
    보여주므로 공용 진행 카드(#miniTimer)는 이 게임에서만 숨깁니다.
 
    [바뀐 것 / 안 바뀐 것]
-   배치와 연출만 바뀌었습니다. 판정은 그대로입니다.
-     · 타이밍 방식(초록 구간) · 연타 방식 · 어묵 대각선 · 닭 2연타 전부 유지
+   배치와 연출에 더해 낮 준비 칼질 판정이 실제 칼날 위치 기준으로 바뀌었습니다.
+     · 실제 칼 이동 판정 · 연타 방식 · 어묵 마지막 가로 썰기 · 닭 2연타 전부 유지
      · 위쪽 .prep-work-object / .cut-line / .knife-effect 규칙을 그대로 쓰고,
        도마 안에서만 자리와 크기를 덮어씁니다.
    그림은 전부 임시 CSS 도형입니다. 에셋 파일을 넣으면 .has-prep-asset 이
@@ -287,6 +287,55 @@
     linear-gradient(#8b5423, #6f3f19);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #5b3416, inset 0 0 calc(45 * var(--upx)) rgba(40,18,6,.5), 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
 }
+.cut-start-countdown {
+  position:absolute;
+  inset:0;
+  z-index:30;
+  display:grid;
+  place-items:center;
+  pointer-events:auto;
+  background:radial-gradient(circle,rgba(34,15,5,.18),rgba(34,15,5,.42));
+  backdrop-filter:blur(calc(.8 * var(--upx)));
+}
+.cut-start-countdown strong {
+  min-width:calc(150 * var(--upx));
+  color:#fff2b2;
+  font-size:calc(112 * var(--upx));
+  line-height:1;
+  text-align:center;
+  text-shadow:0 calc(6 * var(--upx)) 0 #6b3219,0 0 calc(24 * var(--upx)) rgba(255,196,76,.9);
+  animation:cut-countdown-pop .42s cubic-bezier(.2,.8,.2,1);
+}
+.cut-start-countdown strong.tick { animation:cut-countdown-tick .42s cubic-bezier(.2,.8,.2,1); }
+.cut-start-countdown.go {
+  pointer-events:none;
+  animation:cut-countdown-go .45s ease forwards;
+}
+.cut-start-countdown.go strong {
+  min-width:calc(260 * var(--upx));
+  color:#ffe167;
+  font-size:calc(76 * var(--upx));
+  animation:cut-countdown-start .45s ease forwards;
+}
+@keyframes cut-countdown-pop {
+  0% { opacity:0; transform:scale(.55); }
+  55% { opacity:1; transform:scale(1.12); }
+  100% { opacity:1; transform:scale(1); }
+}
+@keyframes cut-countdown-tick {
+  0% { opacity:0; transform:scale(.55); }
+  55% { opacity:1; transform:scale(1.12); }
+  100% { opacity:1; transform:scale(1); }
+}
+@keyframes cut-countdown-start {
+  0% { opacity:0; transform:scale(.72); }
+  35% { opacity:1; transform:scale(1.08); }
+  100% { opacity:0; transform:scale(1.28); }
+}
+@keyframes cut-countdown-go {
+  0%,45% { background:radial-gradient(circle,rgba(34,15,5,.12),rgba(34,15,5,.3)); backdrop-filter:blur(calc(.8 * var(--upx))); }
+  100% { background:transparent; backdrop-filter:blur(0); }
+}
 /* 타이밍 바가 없는 빠른 칼질에서는 아래 여백을 도로 줄입니다 */
 .cut-board:not(:has(.cut-timing)) { padding-bottom: calc(22 * var(--upx)); }
 .cut-board .prep-work-object,
@@ -296,8 +345,24 @@
   height: calc(178 * var(--upx));
   transform-origin: 50% 78%;
 }
-.cut-board .prep-work-object.radish-shape { width:min(90%,calc(540 * var(--upx))); height:calc(150 * var(--upx)); }
-.cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape { width:min(96%,calc(780 * var(--upx))); height:calc(150 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.radish-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 46.8%;
+}
+.cut-card-figure .cut-sample.radish-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.greenOnion-shape { width:min(96%,calc(780 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.greenOnion-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 47.4%;
+}
+.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset { overflow:hidden; }
+.cut-ref-card .cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset {
+  width:calc(210 * var(--upx));
+  height:calc(64 * var(--upx));
+}
 .cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.cabbage-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
@@ -307,9 +372,38 @@
 .cut-board .prep-work-object.greenOnion-shape.has-prep-asset .cut-line {
   display: none;
 }
-.cut-board .prep-work-object.cabbage-shape { width:min(70%,calc(301 * var(--upx))); height:calc(210 * var(--upx)); }
-.cut-board .prep-work-object.chicken-shape { width:min(86%,calc(500 * var(--upx))); height:calc(178 * var(--upx)); }
-.cut-board .prep-work-object.kimchi-shape { width:min(86%,calc(500 * var(--upx))); height:calc(216 * var(--upx)); }
+.cut-board .prep-work-object.cut-path-mode.has-prep-asset .cut-line {
+  display: block;
+  opacity: .3;
+  border-color: rgba(255,244,206,.68);
+  filter: drop-shadow(0 0 calc(2 * var(--upx)) rgba(63,29,8,.9));
+}
+.cut-board .prep-work-object.cut-path-mode.has-prep-asset .cut-line.active {
+  opacity: 1;
+  border-color: #fff3bd;
+  filter: drop-shadow(0 0 calc(5 * var(--upx)) rgba(255,184,65,.95));
+}
+.cut-board .prep-work-object.cabbage-shape { width:min(88%,calc(620 * var(--upx))); height:calc(300 * var(--upx)); }
+.cut-board .prep-work-object.cabbage-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 49.7%;
+}
+.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.chicken-shape { width:min(94%,calc(760 * var(--upx))); height:calc(190 * var(--upx)); }
+.cut-board .prep-work-object.chicken-shape > .prep-object-asset,
+.cut-card-figure .cut-sample.chicken-shape > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 50.3%;
+}
+.cut-card-figure .cut-sample.chicken-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.kimchi-shape { width:min(94%,calc(760 * var(--upx))); height:calc(230 * var(--upx)); }
+.cut-board .prep-work-object.kimchi-shape > .prep-object-asset,
+.cut-card-figure .cut-sample.kimchi-shape > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 50.5%;
+}
+.cut-card-figure .cut-sample.kimchi-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.fishCake-shape { width:min(60%,calc(288 * var(--upx))); height:calc(204 * var(--upx)); }
 .cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(220 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
@@ -343,10 +437,11 @@
 
 /* 칼 : 레퍼런스처럼 항상 다음 절단선 위에 서 있다가 썰 때 내려찍습니다 */
 .cut-screen .knife-effect {
-  left: var(--cut-x, 50%);
+  left: var(--knife-x, var(--cut-x, 50%));
   opacity: .96;
   transform: translateX(-50%) rotate(var(--knife-turn, 16deg));
 }
+.cut-screen .cut-path-mode .cut-guide { display:none; }
 .cut-screen .cut-slash-forward { --knife-turn: 30deg; }
 .cut-screen .cut-slash-back { --knife-turn: -30deg; }
 /* 임시 칼 : 손잡이(::before) + 칼날(::after). 에셋을 넣으면 둘 다 사라집니다. */
@@ -384,7 +479,8 @@
   width:calc(220 * var(--upx));
   height:calc(410 * var(--upx));
   /* 칼 몸통 중심이 아니라 오른쪽 절삭날이 점선 위에 오도록 반 칼폭만 왼쪽으로 당깁니다. */
-  margin-left:calc(-10 * var(--upx));
+  /* --knife-x는 칼 중심이 아니라 세로 칼날의 보이는 왼쪽 끝입니다. */
+  margin-left:calc(25 * var(--upx));
   --knife-turn:0deg;
   transform-origin:50% 50%;
 }
@@ -416,6 +512,9 @@
   margin-left: 0;
   transform: translate(-50%,-50%) rotate(-90deg);
   transform-origin: 50% 50%;
+}
+.cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect {
+  top:calc(var(--knife-y, 50%) - 24 * var(--upx));
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect::before { display: none; }
@@ -478,25 +577,16 @@
 
 /* 잘린 조각을 옆에 쌓지 않고 큰 재료 본체 안에서 절단면이 벌어지도록 표현합니다. */
 .cut-screen .cut-line.done {
-  width:calc(8 * var(--upx));
-  border-left:0;
-  border-radius:calc(4 * var(--upx));
-  background:linear-gradient(90deg,rgba(65,31,13,.72),rgba(255,243,202,.48),rgba(65,31,13,.72));
-  box-shadow:calc(-3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(0,0,0,.28),calc(3 * var(--upx)) 0 calc(4 * var(--upx)) rgba(255,255,255,.22);
-  opacity:1;
-  transform:translateX(-50%);
+  display:none;
 }
 .cut-screen .tofu-horizontal-line.done {
-  left:calc(-5 * var(--upx)) !important;
-  right:calc(-5 * var(--upx));
-  width:auto;
-  height:calc(8 * var(--upx));
-  border:0;
-  background:linear-gradient(rgba(65,31,13,.72),rgba(255,243,202,.5),rgba(65,31,13,.72));
-  box-shadow:0 calc(-3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.25),0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(255,255,255,.2);
-  transform:translateY(-50%);
+  display:none;
 }
 .cut-screen .cut-line.fresh-cut { animation:cut-seam-open .28s cubic-bezier(.2,.8,.2,1); }
+.cut-screen .cut-path-mode .cut-line.missed {
+  background:linear-gradient(90deg,rgba(94,25,15,.82),rgba(241,126,93,.62),rgba(94,25,15,.82));
+  box-shadow:0 0 calc(7 * var(--upx)) rgba(196,58,37,.72);
+}
 
 /* 썰어 놓은 조각 더미 (도마 오른쪽) */
 .cut-piece {
@@ -2363,7 +2453,7 @@
 @keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(calc(95 * var(--upx))) rotate(12deg) scale(.65); } }
 @keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(calc(42 * var(--upx))) rotate(38deg); } 100% { opacity:.25; transform:translateX(calc(58 * var(--upx))) translateY(calc(24 * var(--upx))) rotate(52deg); } }
 @keyframes tofu-knife-horizontal { 0% { opacity:0; transform:translateX(calc(-18 * var(--upx))) translateY(-50%); } 50% { opacity:1; transform:translateX(calc(9 * var(--upx))) translateY(-50%); } 100% { opacity:0; transform:translateX(calc(16 * var(--upx))) translateY(-50%); } }
-/* ── 채칼 (engine-e2) — 양배추 · 당근 · 감자 ─────────────────
+/* ── 채칼 (engine-e12) — 양배추 · 당근 · 감자 ────────────────
    가운데 플레이 그림만 여기 있습니다. 바깥 3열 틀은 위 "튀김 준비"의
    .fp-scene 을 그대로 씁니다. (공용 프레임은 건드리지 않습니다)
 
@@ -2577,6 +2667,24 @@
 }
 .md-plate.has-asset .md-blade { display: none; }
 
+/* 재료 중심을 통과하는 실제 채칼 장축(약 33도)입니다. */
+.md-drag-track {
+  position: absolute;
+  z-index: 2;
+  left: 54%;
+  top: 49%;
+  width: 62%;
+  height: calc(5 * var(--upx));
+  border-radius: calc(4 * var(--upx));
+  background: repeating-linear-gradient(90deg,rgba(255,239,182,.78) 0 calc(16 * var(--upx)),transparent calc(16 * var(--upx)) calc(27 * var(--upx)));
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(70,34,12,.7);
+  opacity: .68;
+  transform: translate(-50%,-50%) rotate(33deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.md-scene.mandoline-dragging .md-drag-track { opacity: 1; }
+
 /* 썰리는 재료 — food_*_whole_01~08 을 진행도에 맞춰 갈아 끼웁니다.
 
    ⚠️ **아래를 기준으로 놓습니다** (top 이 아니라 bottom 입니다).
@@ -2620,15 +2728,20 @@
   z-index: 3;
   left: calc(var(--md-ing-cx) - var(--md-ing-w) * var(--md-ing-fit) / 2);
   /* --md-ing-drift : 장이 넘어갈 때마다 조금씩 아래로 미는 값 (01 은 0).
-     engine-e2-alternate-input.js 의 MANDOLINE_FRAME_DRIFT 가 넣어 줍니다. */
+     engine-e2-alternate-input.js 의 공용 채칼 화면 코드가 넣어 줍니다. */
   bottom: calc(100% - var(--md-ing-b) - var(--md-ing-drift,0) * var(--upx));
   width: calc(var(--md-ing-w) * var(--md-ing-fit));
   height: calc(var(--md-ing-h) * var(--md-ing-fit));
-  transform: scale(var(--md-shorten,1));
+  transform: translate(var(--md-drag-x,0px),var(--md-drag-y,0px)) scale(var(--md-shorten,1));
   transform-origin: center;
   transition: transform .09s;
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(20,10,4,.5));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
 }
+.md-ingredient.dragging { cursor: grabbing; transition: none; filter: drop-shadow(0 calc(8 * var(--upx)) calc(10 * var(--upx)) rgba(20,10,4,.62)) brightness(1.05); }
 .md-ingredient.cabbage {
   --md-ing-w: 47.46%; --md-ing-h: 56.73%; --md-ing-cx: 56.67%; --md-ing-b: 49%;
   border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%;
@@ -2648,7 +2761,7 @@
 }
 /* 그림이 있으면 상자 높이는 그림이 정합니다 — 깎일수록 아래 기준으로 낮아집니다 */
 .md-ingredient.has-asset { height: auto; border: 0; background: none; clip-path: none; }
-.md-ingredient-asset { display: block; width: 100%; height: auto; }
+.md-ingredient-asset { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
 /* 누른 방향으로 한 번 밀립니다 */
 .md-ingredient.move-left { animation: md-slide-left .13s ease; }
 .md-ingredient.move-right { animation: md-slide-right .13s ease; }

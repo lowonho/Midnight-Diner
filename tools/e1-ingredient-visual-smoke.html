@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>E1 ingredient visual smoke</title>
+  <title>E1 path-cut visual smoke</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/day-prep-minigames.css">
   <style>
@@ -18,10 +18,11 @@
     <h1 id="label"></h1>
     <div class="cut-screen">
       <div class="cut-board">
-        <div class="prep-work-object has-prep-asset" id="work">
+        <div class="prep-work-object cut-path-mode has-prep-asset" id="work">
           <img class="prep-asset prep-object-asset" id="asset" alt="재료 썰기 단계" draggable="false">
+          <span id="lines"></span>
           <i class="cut-guide" id="guide"></i>
-          <i class="knife-effect has-prep-asset"><img class="knife-asset" src="../assets/prep/effects/knife.png" alt="" draggable="false"></i>
+          <i class="knife-effect has-prep-asset"><img class="knife-asset" src="../assets/minigame/E1/knife.png" alt="" draggable="false"></i>
         </div>
       </div>
     </div>
@@ -31,28 +32,51 @@
     const params=new URLSearchParams(location.search);
     const requestedIngredient=params.get("ingredient");
     const configs={
-      radish:{folder:"radish",file:"radish",label:"무",total:4,positions:[79.7,61.4,41.7,22.1]},
-      fishCake:{folder:"fish-cake",file:"fish-cake",label:"어묵",total:4,positions:[74.3,51.3,26.7]},
-      chicken:{folder:"chicken",file:"chicken",label:"닭",total:5,positions:[85.3,70.5,55.1,38.5,20.8]},
-      greenOnion:{folder:"green-onion",file:"green-onion",label:"대파",total:4,positions:[80.2,62.6,43.2,22.7]},
-      kimchi:{folder:"kimchi",file:"kimchi",label:"김치",total:5,positions:[80.8,64.4,48.1,31.7,15.5]},
-      tofu:{folder:"tofu",file:"tofu",label:"두부",total:6,positions:[85.2,71.3,57.5,43.6,29.7,15.5]}
+      radish:{root:"../assets/minigame/E1/radish-",label:"무",total:7,assetMax:7,positions:[78.3,70.6,62.6,54.6,46.9,38.6,30.2]},
+      fishCake:{root:"../assets/minigame/E1/fish-cake-",label:"어묵",total:4,assetMax:4,positions:[74.3,51.3,26.7],horizontalLastCut:true},
+      cabbage:{root:"../assets/minigame/E1/cabbage-",label:"양배추",total:12,assetMax:12,positions:[71.4,67.3,63.1,59.2,55.5,51.7,47.8,43.8,40,35.8,32.2,28.4]},
+      chicken:{root:"../assets/minigame/E1/chicken-",label:"닭",total:11,assetMax:11,positions:[77,71.8,66.3,60.3,53.9,47.9,42.4,37,31.4,26,21.7]},
+      greenOnion:{root:"../assets/minigame/E1/green-onion-",label:"대파",total:7,assetMax:7,positions:[76.6,68.6,59.9,52.1,42.6,34,26]},
+      kimchi:{root:"../assets/minigame/E1/kimchi-",label:"김치",total:9,assetMax:9,positions:[73.8,68,62.2,56.5,51,45.3,39.6,33.7,28.5]},
+      tofu:{root:"../assets/minigame/E1/tofu-",label:"두부",total:6,assetMax:6,positions:[85.2,71.3,57.5,43.6,29.7,15.5]}
     };
     const ingredient=configs[requestedIngredient]?requestedIngredient:"radish";
     const config=configs[ingredient];
     const stage=Math.max(0,Math.min(config.total,Number(params.get("stage"))||0));
     const work=document.getElementById("work");
     const guide=document.getElementById("guide");
+    if(params.get("mode")==="night")work.classList.remove("cut-path-mode");
+    const verticalCount=config.horizontalLastCut?config.total-1:config.total;
+    const targetX=config.positions[Math.min(stage,verticalCount-1)];
+    const assetStage=Math.min(config.assetMax,Math.round(stage/config.total*config.assetMax));
     work.classList.add(`${ingredient}-shape`);
-    if(ingredient==="fishCake")work.classList.add("tofu-cook-object");
-    document.getElementById("asset").src=`../assets/prep/cutting/${config.folder}/${config.file}-${stage}.png`;
-    document.getElementById("label").textContent=`${config.label} 썰기 에셋 · ${stage} / ${config.total}`;
-    work.style.setProperty("--cut-x",`${config.positions[Math.min(stage,config.positions.length-1)]}%`);
-    if(ingredient==="fishCake"&&stage===3){
+    if(config.horizontalLastCut)work.classList.add("tofu-cook-object");
+    document.getElementById("asset").src=`${config.root}${assetStage}.png`;
+    document.getElementById("label").textContent=`${config.label} 경로 칼질 · ${stage} / ${config.total}`;
+    work.style.setProperty("--cut-x",`${targetX}%`);
+    work.style.setProperty("--knife-x",`${targetX}%`);
+    work.style.setProperty("--knife-y",stage===verticalCount?"50%":"12%");
+    document.getElementById("lines").innerHTML=Array.from({length:config.total},(_,index)=>{
+      const lineState=index<stage?"done":index===stage?"active":"";
+      if(config.horizontalLastCut&&index===config.total-1)return `<i class="cut-line tofu-horizontal-line ${lineState}"></i>`;
+      return `<i class="cut-line ${lineState}" style="left:${config.positions[index]}%"></i>`;
+    }).join("");
+    if(config.horizontalLastCut&&stage===verticalCount){
       work.classList.add("horizontal-cut");
       guide.classList.add("horizontal");
     }
-    if(stage===config.total)guide.hidden=true;
+    if(stage===config.total){
+      guide.hidden=true;
+      work.querySelector(".knife-effect").hidden=true;
+    }
+    const countdown=params.get("countdown");
+    if(countdown){
+      const overlay=document.createElement("div");
+      const isStart=countdown==="start";
+      overlay.className=`cut-start-countdown${isStart?" go":""}`;
+      overlay.innerHTML=`<strong>${isStart?"시작!":countdown}</strong>`;
+      document.querySelector(".cut-board").appendChild(overlay);
+    }
     document.body.dataset.ready="true";
   </script>
 </body>
