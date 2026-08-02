@@ -633,7 +633,92 @@
 @keyframes e6-result-in { to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
 @keyframes space-key-pulse { from{transform:translateY(0);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 0 rgba(255,224,141,0)} to{transform:translateY(-3px);box-shadow:inset 0 -4px rgba(0,0,0,.25),0 0 13px rgba(255,224,141,.55)} }
 
-/* E4 화력 유지 — 냄비 이미지는 메뉴별 한 장, 나머지 연출은 CSS로 공유합니다. */
+/* ── E4 화력 유지 (engine-e4 · 어묵탕 · 떡볶이) ─────────────────
+   냄비 이미지는 메뉴별 한 장, 나머지 연출은 CSS로 공유합니다.
+
+   [3열 구성]  다른 12화면과 같습니다 (격자는 css/minigame-parts.css).
+     [재료 카드 3장]  [불 위의 냄비]  [진행도 카드 · 조작 카드]
+                      아래 공용 띠에 화력 게이지 한 줄
+   원래 이 화면만 3열을 안 쓰고 폭 1360.2 를 통으로 썼습니다. 좌·우 칸이
+   생기면서 가운데가 824.2 로 좁아졌고, 냄비 아래에 있던 유지 바와 진행
+   문구는 우측 진행도 카드로, ± 버튼은 우측 조작 카드로 옮겼습니다.
+   (마크업은 engine-e4-gauge-hold.js 의 heatScreenMarkup)
+
+   그림은 전부 임시 CSS 도형입니다. day-prep-minigames.js 의
+   DAY_PREP_ASSET_PATHS 경로에 파일을 넣으면 .has-asset 이 붙어
+   도형이 꺼지고 <img> 가 대신 보입니다. */
+.heat-scene {
+  /* 재료 카드 한 장의 높이. 그림(B 452x278 = 226 x 139.1)에 맞춰 고정합니다.
+     칸 523.2 에 3장이면 남는 자리가 145.8 씩이라 그냥 채우면 금테가 5% 늘어납니다. */
+  --heat-ing-card-h: calc(139.1 * var(--upx));
+  width: 100%;
+  height: 100%;
+}
+
+/* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ─────────────────────
+   냄비에 이미 들어가 있는 재료입니다. 개수는 낮 준비에서 손질한 수와 같고,
+   그 값은 engine-e4-gauge-hold.js 의 HEAT_INGREDIENTS 가 준비 설정에서 읽어 옵니다. */
+/* 카드 높이를 그림에 맞춰 고정하고, 남는 20.1 은 위아래로 나눠 가집니다.
+   (E5 `.ts-ing-list` 와 같은 방식이고 상한값만 다릅니다) */
+.heat-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--heat-ing-card-h)); align-content: center; gap: var(--mg-ing-list-gap); }
+/* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css */
+.heat-ing-card { display: grid; grid-template-rows: minmax(0,1fr) auto; gap: calc(4 * var(--upx)); }
+.heat-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
+.heat-ing-art .heat-ing-pile { position: relative; display: block; width: 86%; height: 100%; }
+.heat-ing-art.has-asset .heat-ing-pile { display: none; }
+.heat-ing-asset { max-width: 100%; max-height: calc(90 * var(--upx)); object-fit: contain; }
+/* 높이를 못박습니다 — 개수(×N)가 없는 재료는 이름 줄이 3 짧아져 그 카드만
+   그림칸이 3 커집니다(불린 떡 · 양념장). 세 장의 그림 크기를 맞추려는 것입니다. */
+.heat-ing-name { margin: 0; height: calc(26 * var(--upx)); display: flex; align-items: baseline; justify-content: center; gap: calc(6 * var(--upx)); color: #f0dcb4; font-size: calc(17 * var(--upx)); font-weight: 800; }
+.heat-ing-name b { color: var(--gold-bright); font-size: calc(19 * var(--upx)); }
+
+/* 재료 그림 (임시 도형) — 냄비 안에 떠 있는 조각(.heat-radish · .heat-tteok …)을
+   카드 크기로 키운 것입니다. 재료마다 다른 것은 아래 네 변수뿐입니다. */
+.heat-ing-pile b {
+  position: absolute;
+  width: var(--p-w);
+  height: var(--p-h);
+  border-radius: var(--p-r);
+  background: var(--p-bg);
+  box-shadow: inset 0 calc(-4 * var(--upx)) rgba(60,32,12,.18), 0 calc(2 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.35);
+}
+.heat-ing-pile b:nth-child(1) { left: 2%;  top: 14%; transform: rotate(-9deg); }
+.heat-ing-pile b:nth-child(2) { left: 22%; top: 46%; transform: rotate(7deg); }
+.heat-ing-pile b:nth-child(3) { right: 3%; top: 10%; transform: rotate(16deg); }
+.heat-ing-card.ing-radish   { --p-w: 48%; --p-h: 30%; --p-r: 50%; --p-bg: #eee7ce; }
+.heat-ing-card.ing-fishCake { --p-w: 54%; --p-h: 26%; --p-r: calc(7 * var(--upx)); --p-bg: #dda355; }
+.heat-ing-card.ing-anchovy  { --p-w: 58%; --p-h: 20%; --p-r: 60% 35% 35% 60%; --p-bg: linear-gradient(#aab4b5,#7d8a8c); }
+.heat-ing-card.ing-tteok    { --p-w: 46%; --p-h: 22%; --p-r: calc(13 * var(--upx)); --p-bg: linear-gradient(#f3dfbd,#d6bd91); }
+/* 양념장만 조각 더미가 아니라 볼 한 개입니다 — 나머지 두 조각은 끕니다. */
+.heat-ing-card.ing-sauce    { --p-w: 62%; --p-h: 62%; --p-r: 46% 46% 50% 50%; --p-bg: radial-gradient(ellipse at 50% 32%,#c74a2c,#8f261d 74%); }
+.heat-ing-card.ing-sauce .heat-ing-pile b:nth-child(1) { left: 19%; top: 20%; border: calc(4 * var(--upx)) solid #6d4a33; transform: none; }
+.heat-ing-card.ing-sauce .heat-ing-pile b:nth-child(n+2) { display: none; }
+
+/* ── 가운데 : 불 위의 냄비 ──────────────────────────────────── */
+.heat-play { display: grid; place-items: center; min-width: 0; min-height: 0; }
+
+/* ── 오른쪽 위 : 진행도 (적정 온도를 유지한 시간) ───────────────
+   공용 타이머 카드(#miniTimer)와 자리가 겹쳐 그쪽은 숨겨 두었습니다.
+   ⚠️ E5 `.ts-count` 의 52 를 그대로 쓰면 "0.0 / 5.0초" 가 두 줄로 접혀 카드
+      140.6 을 33 넘깁니다(제목이 카드 밖으로 밀리고 아래 띠가 4 로 눌립니다).
+      숫자는 40 으로 줄이고 단위 '초' 는 작게 붙여 한 줄에 넣습니다. */
+.heat-count { text-align: center; }
+.heat-count strong { display: block; color: var(--gold-bright); font-size: calc(40 * var(--upx)); font-weight: 900; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.heat-count strong b { color: #f2a03c; }
+.heat-count strong em { margin-left: calc(3 * var(--upx)); color: #d8bb8b; font-size: calc(19 * var(--upx)); font-style: normal; font-weight: 800; }
+
+/* ── 오른쪽 아래 : 조작 ─────────────────────────────────────
+   키는 안내이면서 실제 버튼입니다(키보드·마우스 둘 다 지원).
+   ⚠️ 두 버튼의 id(#heatDown · #heatUp)는 예전 하단 띠의 ± 버튼 것을 그대로
+      물려받았습니다. engine-e4-gauge-hold.js 의 bindHeatButton 이 이 id 로 찾습니다. */
+.heat-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(12 * var(--upx)); text-align: center; }
+.heat-keys { display: flex; flex-direction: column; align-self: stretch; gap: calc(12 * var(--upx)); }
+.heat-key-row { display: grid; grid-template-columns: calc(58 * var(--upx)) minmax(0,1fr); align-items: center; gap: calc(9 * var(--upx)); width: 100%; }
+.heat-key-text { display: flex; flex-direction: column; align-items: flex-start; gap: calc(2 * var(--upx)); color: var(--gold-bright); }
+.heat-key-text b { font-size: calc(18 * var(--upx)); font-weight: 800; }
+.heat-key-text em { color: #d8bb8b; font-size: calc(14 * var(--upx)); font-style: normal; font-weight: 700; }
+.heat-control-name { margin: 0; color: #d8bb8b; font-size: calc(15 * var(--upx)); font-weight: 700; }
+
 .heat-cook-scene {
   --flame-level:.45;
   position:relative;
@@ -729,31 +814,43 @@
 .e4-result.perfect { color:#ffe083; font-size:calc(33 * var(--upx)); }
 .heat-cook-scene.e4-complete .heat-pot { animation:heat-pot-complete .5s cubic-bezier(.2,.9,.2,1); }
 
+/* ── 하단 공용 띠 : 화력 게이지 한 줄 ────────────────────────
+   폭은 3열 전체(1360.2)를 다 쓰지 않고 가운데로 모읍니다 —
+   꽉 채우면 적정 구간이 화면 양 끝까지 늘어나 바늘 움직임이 커 보입니다. */
+.heat-strip .heat-wrap { width: min(100%, calc(900 * var(--upx))); }
 .heat-wrap {
   width: 100%;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: calc(10 * var(--upx));
+  gap: calc(12 * var(--upx));
 }
-.heat-button {
+/* ± 버튼이 조작 카드로 올라가면서 비게 된 양 끝자리입니다. */
+.heat-wrap-label { color: #c7b08a; font-size: calc(15 * var(--upx)); font-weight: 800; white-space: nowrap; }
+/* 조작 카드의 불 조절 키. 겉모습은 공용 --mg-key-*(css/minigame-parts.css)를 따르고
+   크기·글꼴만 이 화면 것입니다 — E5 `.ts-key` 와 같은 큰 사각 한 글자입니다. */
+.heat-key {
   width: calc(58 * var(--upx));
-  height: calc(58 * var(--upx));
-  border: 2px solid #87542e;
-  border-radius: 50%;
-  background: #2b1910;
-  color: #ffd98b;
-  font-size: calc(25 * var(--upx));
+  height: calc(54 * var(--upx));
+  padding: 0;
+  border: 2px solid var(--mg-key-border);
+  border-radius: var(--mg-key-radius);
+  background: var(--mg-key-bg);
+  color: var(--mg-key-color);
+  font-size: calc(28 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
   cursor: pointer;
+  box-shadow: var(--mg-key-shadow);
   transition:transform .1s ease,filter .1s ease;
 }
-.heat-button.pressed { transform:translateY(calc(3 * var(--upx))) scale(.94); filter:brightness(1.25); }
+/* 누르고 있는 동안 — 키캡이 눌려 들어갑니다(E5 `.ts-key.holding` 과 같습니다) */
+.heat-key.pressed { border-color:#ffe08d; background:linear-gradient(#ffdb9a,#c27b3b); transform:translateY(calc(3 * var(--upx))); box-shadow:none; }
+/* 높이·모서리는 공용 게이지 규격(--mg-gauge-h 34)을 씁니다 — 색만 이 화면 것입니다. */
 .heat-gauge {
   position: relative;
-  height: calc(38 * var(--upx));
   overflow: hidden;
   border: 2px solid #7a4a29;
-  border-radius: calc(9 * var(--upx));
   background: linear-gradient(90deg,#55799a,#d9b65e,#b84d41);
 }
 .heat-target {
@@ -776,7 +873,9 @@
   transform: translateX(-50%);
   transition:left .06s linear;
 }
-.heat-hold { width:100%; height:calc(13 * var(--upx)); overflow:hidden; border:2px solid #6e4930; border-radius:calc(7 * var(--upx)); background:#1b100b; }
+/* 진행도 카드 안 유지 시간 띠. 카드 140.6 안에 들어가도록 얇습니다
+   (E5 `.ts-time` 9 · E6 `.fry-time-bar` 10 과 같은 자리입니다). */
+.heat-hold { width:100%; height:calc(11 * var(--upx)); overflow:hidden; border:2px solid #6e4930; border-radius:calc(6 * var(--upx)); background:#1b100b; }
 .heat-hold > i { display:block; width:0; height:100%; background:linear-gradient(90deg,#799b50,#d9e887); transition:width .08s linear; }
 
 @keyframes heat-bubble-rise { 0% { opacity:0; transform:translateY(calc(17 * var(--upx))) scale(.5); } 35% { opacity:.8; } 100% { opacity:0; transform:translateY(calc(-30 * var(--upx))) scale(1.12); } }
