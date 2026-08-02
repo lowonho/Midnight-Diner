@@ -509,8 +509,15 @@ function rejectSkewerPiece(skewerIndex,message,target){
    ------------------------------------------------------------ */
 
 const SOAK_CONFIG_IDS=Object.freeze(["tteokSoak","udonSoak"]);
-// 물병을 한 번 기울일 때 차오르는 양(%). 5번이면 가득 찹니다.
-const SOAK_POUR_STEP=20;
+/* 물이 찬 정도를 그린 볼 그림의 눈금(%). 이 순서가 곧 겹쳐 놓는 순서입니다.
+   에셋 키는 soakTteokWater00 ~ soakUdonWater100 (day-prep-minigames.js).
+   ⚠️ 볼·재료·물이 **한 장에 다 그려져** 있어서, 물이 차오르는 모습은
+      CSS 수위(.water-fill)가 아니라 이 장들을 갈아 끼워 만듭니다. */
+const SOAK_WATER_STEPS=Object.freeze(["00","25","50","75","100"]);
+/* 물병을 한 번 기울일 때 차오르는 양(%). 4번이면 가득 찹니다.
+   ⚠️ 눈금(25)과 같은 값이어야 합니다. 한 모금 = 그림 한 장이라야 부을 때마다
+      볼이 눈에 띄게 바뀝니다. 예전 값 20 은 다섯 모금이라 그림과 어긋났습니다. */
+const SOAK_POUR_STEP=25;
 // 한 모금에 걸리는 시간. 물병을 누르고 있으면 이 간격으로 이어서 부어집니다.
 const SOAK_POUR_MS=520;
 // 물이 다 찬 뒤 불리는 모습을 보여주는 시간
@@ -550,15 +557,66 @@ function soakArtMarkup(assetKey,kind,alt){
   return `<span class="soak-ing-art ${kind} ${hasDayPrepAsset(assetKey)?"has-asset":""}"><i></i>${dayPrepAssetMarkup(assetKey,"soak-art-asset",alt)}</span>`;
 }
 
+/* 물병 3자세 — 세워 둠 · 25도 · 45도. 같은 자리에 겹쳐 두고 부을 때 갈아 끼웁니다.
+   ⚠️ **CSS 로 돌리지 않습니다.** 세워 둔 그림을 rotate 로 돌리면 병 안의 물 면까지
+      같이 기울어 물이 한쪽 벽에 붙어 보입니다. 기울여 그린 두 장은 물 면이
+      수평으로 다시 그려져 있습니다.
+   ⚠️ 갈아 끼우는 순서와 시각은 전부 CSS 가 잡습니다(.soak-stage.pouring 의
+      transition-delay). 자바스크립트 타이머가 없으니 중간에 미니게임이 닫혀도
+      뒷정리할 것이 없습니다 — 화구(.mg-burner)와 같은 방식입니다. */
+function soakPitcherFramesMarkup(){
+  const upright=dayPrepAssetMarkup("soakWater","soak-pitcher-asset","물병");
+  if(!hasDayPrepAsset("soakWaterTilt1")||!hasDayPrepAsset("soakWaterTilt2"))return upright;
+  return upright
+    +dayPrepAssetMarkup("soakWaterTilt1","soak-pitcher-asset tilt1")
+    +dayPrepAssetMarkup("soakWaterTilt2","soak-pitcher-asset tilt2");
+}
+
+// 기울인 그림이 다 있는지. 없으면 예전처럼 CSS 로 돌려 씁니다(자리 값이 다릅니다).
+function hasSoakTiltArt(){
+  return hasDayPrepAsset("soakWaterTilt1")&&hasDayPrepAsset("soakWaterTilt2");
+}
+
+// 오른쪽 목표·진행도 칸의 물방울. 큰 것과 작은 것이 같은 그림입니다.
+function soakDropMarkup(size=""){
+  return hasDayPrepAsset("soakDrop")
+    ? dayPrepAssetMarkup("soakDrop",`soak-drop-asset ${size}`)
+    : `<i class="soak-drop ${size}" aria-hidden="true"></i>`;
+}
+
+// 지금 몇 번째 물 그림인지. 재료를 담기 전이면 -1(빈 볼만) 입니다.
+// 눈금(25)이 아닌 값이 들어와도 가장 가까운 장으로 붙습니다.
+function soakWaterFrame(data){
+  if(!data.added[data.ingredientKey])return -1;
+  return Math.max(0,Math.min(SOAK_WATER_STEPS.length-1,Math.round(data.water/25)));
+}
+
+/* 볼 그림 한 벌. 빈 볼을 맨 아래 깔고 그 위에 물 5장을 순서대로 겹칩니다.
+   지금 단계까지가 `on`(불투명)이고, 맨 위 한 장만 `fresh` 로 부드럽게 나타납니다.
+   ⚠️ 위 장이 아래 장을 완전히 덮으므로, 갈아 끼울 때 아래를 지우지 않습니다.
+      한 장만 두고 src 를 바꾸거나 서로 흐려지게 하면 겹치는 순간 두 장 다
+      반투명이 되어 볼 너머로 판 바닥이 비칩니다. */
+function soakBowlFramesMarkup(data,isUdon,label){
+  const prefix=isUdon?"soakUdonWater":"soakTteokWater";
+  const keys=[["soakBowl","빈 볼"],...SOAK_WATER_STEPS.map(step=>[`${prefix}${step}`,`${label} · 물 ${Number(step)}%`])];
+  if(!keys.every(([key])=>hasDayPrepAsset(key)))return "";
+  const frame=soakWaterFrame(data);
+  return keys.map(([key,alt],index)=>{
+    const on=index<=frame+1;            // 0 번은 빈 볼이라 항상 켭니다
+    return dayPrepAssetMarkup(key,`soak-bowl-asset${on?" on":""}${index&&index===frame+1?" fresh":""}`,alt);
+  }).join("");
+}
+
 function renderTteokSoak(){
   const m=state.mini;if(!isSoakMini(m))return;
   stopSoakPour();                       // 화면을 새로 그리면 지금 잡고 있는 물병이 사라집니다
   const data=m.data,key=data.ingredientKey,label=data.ingredientLabel,isUdon=key==="udon";
   const ingredientAsset=isUdon?"soakUdon":"soakTteok";
   const placed=data.added[key],full=data.water>=100;
-  const bowlPieces=placed
-    ? Array.from({length:isUdon?5:7},()=>hasDayPrepAsset(ingredientAsset)?dayPrepAssetMarkup(ingredientAsset,"soak-piece-asset",label):"<b></b>").join("")
-    : "";
+  // 볼 그림 한 벌이 다 있으면 그것만 씁니다. 한 장이라도 없으면 예전처럼
+  // CSS 볼에 재료 조각(<b>)과 물 높이(.water-fill)를 얹습니다.
+  const bowlFrames=soakBowlFramesMarkup(data,isUdon,label);
+  const bowlPieces=!bowlFrames&&placed?"<b></b>".repeat(isUdon?5:7):"";
   dom.miniTimer.textContent=`${data.water}%`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
   setMiniTipHint(placed?"누르기 : 물병 기울이기":"드래그 : 볼에 담기");
   dom.miniContent.innerHTML=`
@@ -581,11 +639,11 @@ function renderTteokSoak(){
 
       <div class="soak-board">
         <div class="soak-stage ${placed&&!data.water?"ready":""}" style="--soak-fill:${data.water}">
-          <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${hasDayPrepAsset("soakBowl")?"has-asset":""} ${placed?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">
-            ${dayPrepAssetMarkup("soakBowl","soak-bowl-asset","불리기 볼")}<i class="water-fill"></i><span class="soak-bowl-food">${bowlPieces}</span>${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}
+          <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${bowlFrames?"has-asset":""} ${placed?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">
+            ${bowlFrames||`<i class="water-fill"></i><span class="soak-bowl-food">${bowlPieces}</span>`}${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}
           </div>
-          <button type="button" class="soak-pitcher ${hasDayPrepAsset("soakWater")?"has-asset":""}" data-soak-pour ${!placed||full||data.finishing?"disabled":""} aria-label="물병을 기울여 물 붓기">
-            ${dayPrepAssetMarkup("soakWater","soak-pitcher-asset","물병")}<i class="soak-pitcher-shape"></i><i class="soak-pour-stream" aria-hidden="true"></i>
+          <button type="button" class="soak-pitcher ${hasDayPrepAsset("soakWater")?"has-asset":""} ${hasSoakTiltArt()?"has-tilt":""}" data-soak-pour ${!placed||full||data.finishing?"disabled":""} aria-label="물병을 기울여 물 붓기">
+            ${soakPitcherFramesMarkup()}<i class="soak-pitcher-shape"></i><i class="soak-pour-stream" aria-hidden="true"></i>
           </button>
         </div>
         <p class="soak-board-note">${
@@ -599,11 +657,11 @@ function renderTteokSoak(){
         <div class="soak-panel soak-count">
           <h3 class="soak-col-title">진행도</h3>
           <strong>${data.water}%</strong>
-          <div class="soak-gauge"><i class="soak-drop tiny" aria-hidden="true"></i><span class="soak-gauge-track"><b style="width:${data.water}%"></b></span></div>
+          <div class="soak-gauge">${soakDropMarkup("tiny")}<span class="soak-gauge-track"><b style="width:${data.water}%"></b></span></div>
         </div>
         <div class="soak-panel soak-guide">
           <h3 class="soak-col-title">목표</h3>
-          <div class="soak-guide-figure"><i class="soak-drop" aria-hidden="true"></i></div>
+          <div class="soak-guide-figure">${soakDropMarkup()}</div>
           <p class="soak-guide-note">${label}이 잠길 정도로<br />물을 채워주세요!</p>
         </div>
       </aside>
@@ -719,15 +777,24 @@ function updateSoakWater(data){
   const full=data.water>=100;
   const stage=scene.querySelector(".soak-stage");
   if(stage){
-    stage.style.setProperty("--soak-fill",data.water);
+    stage.style.setProperty("--soak-fill",data.water);   // 에셋이 없을 때의 CSS 수위
     stage.classList.remove("ready");   // 한 모금이라도 부었으면 '눌러 달라'는 까딱임을 뗍니다
   }
+  // 볼 그림을 한 장 더 켭니다. 맨 위 한 장만 fresh 로 스며들듯 나타납니다.
+  const frame=soakWaterFrame(data);
+  scene.querySelectorAll(".soak-bowl-asset").forEach((art,index)=>{
+    art.classList.toggle("on",index<=frame+1);
+    art.classList.toggle("fresh",!!index&&index===frame+1);
+  });
   const value=scene.querySelector(".soak-count strong");if(value)value.textContent=`${data.water}%`;
   const bar=scene.querySelector(".soak-gauge-track b");if(bar)bar.style.width=`${data.water}%`;
   const amount=scene.querySelector(".soak-ing-amount");if(amount)amount.textContent=`${data.water}%`;
   const waterCard=scene.querySelector('[data-soak-item="water"]');
   if(waterCard){waterCard.classList.toggle("added",full);waterCard.classList.toggle("next",!full);waterCard.disabled=full;}
-  if(full)scene.querySelector(".soak-pitcher")?.setAttribute("disabled","");
+  /* ⚠️ 다 찼다고 여기서 물병을 잠그지 않습니다. 마지막 한 모금은 아직 부어지는
+     중이라, 잠그면 :disabled 의 반투명이 **붓는 도중에** 켜집니다.
+     잠그는 것은 아래 finishSoakWater 가 연출을 마치고 다시 그릴 때입니다
+     (그 사이에 또 눌러도 startSoakPour 가 water>=100 에서 막습니다). */
   dom.miniTimer.textContent=`${data.water}%`;
 }
 
@@ -739,7 +806,14 @@ function finishSoakWater(m){
   placeOrderedItem(data,"water");
   data.added.water=true;
   data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";
-  renderTteokSoak();
   dom.miniFeedback.textContent=`${data.ingredientLabel}이 물에 잠겼습니다. 잠시 불리는 중...`;
-  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},SOAK_SETTLE_MS);
+  /* ⚠️ 화면을 여기서 바로 다시 그리면 **마지막 한 모금이 통째로 안 보입니다.**
+     방금 붙인 기울인 자세와 물줄기가 새 DOM 으로 갈려 그 자리에서 사라집니다
+     (예전에 "마지막 클릭에서 병이 안 기울어" 보이던 것이 이것입니다).
+     그 모금이 끝나기를 기다렸다가 불리는 연출로 넘어갑니다. */
+  setTimeout(()=>{
+    if(state.mini!==m||m.complete)return;
+    renderTteokSoak();      // 여기서 물병이 세워지고 잠깁니다
+    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},SOAK_SETTLE_MS);
+  },SOAK_POUR_MS);
 }

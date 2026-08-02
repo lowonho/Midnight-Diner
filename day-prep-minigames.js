@@ -168,6 +168,19 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   sauceBottleYakisobaSoy:"assets/minigame/E7/food_yakisoba_soy_sauce_play_labeled.webp",
   sauceBottleYakisobaOyster:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_labeled.webp",
   sauceBottleYakisobaChili:"assets/minigame/E7/food_yakisoba_chili_oil_play_labeled.webp",
+  //   뚜껑 연 소스통 3장 x 2레시피 — 병을 눌러 들어 올리는 동안만 이 그림으로 바뀝니다.
+  //   키는 위 닫힌 병 키에 Open 을 붙인 이름입니다 (engine-e7-measure.js 의 sauceBottleOpenAssetKey).
+  //   ⚠️ 닫힌 병과 **캔버스가 다릅니다** — 뚜껑을 뺀 만큼 짧은 것도 있고, 고추기름은
+  //      젖힌 뚜껑이 위로 삐져나와 오히려 큽니다. 그래서 같은 상자에 contain 으로
+  //      넣으면 안 되고, 닫힌 병과 같은 배율로 겹쳐야 합니다. 계산은 두 곳에
+  //      나뉘어 있습니다 — 크기는 tools/build-minigame-art-webp.js,
+  //      화면에 앉히는 자리는 engine-e7-measure.js 의 sauceOpenBottleStyle.
+  sauceBottleTteokbokkiGochujangOpen:"assets/minigame/E7/food_tteokbokki_gochujang_play_open.webp",
+  sauceBottleTteokbokkiOligosaccharideOpen:"assets/minigame/E7/food_tteokbokki_oligosaccharide_play_open.webp",
+  sauceBottleTteokbokkiSoyOpen:"assets/minigame/E7/food_tteokbokki_soy_sauce_play_open.webp",
+  sauceBottleYakisobaSoyOpen:"assets/minigame/E7/food_yakisoba_soy_sauce_play_open.webp",
+  sauceBottleYakisobaOysterOpen:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_open.webp",
+  sauceBottleYakisobaChiliOpen:"assets/minigame/E7/food_yakisoba_chili_oil_play_open.webp",
   //   소스통 → 볼 화살표. **아래 E2 새우와 같은 파일**입니다 (납품본이 바이트까지
   //   같아 공용 폴더 한 장으로 합쳤습니다). E7 은 이 한 장을 CSS 에서 돌려 →·←·↓ 로 씁니다.
   sauceArrow:"assets/minigame/ui_arrow_right_01.webp",
@@ -323,11 +336,29 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
   cookPancakeFood:"assets/prep/two-side/pancake.png",
   cookSkewerFood:"assets/prep/two-side/skewer.png",
-  // E8 불리기. 볼·물통은 공용이고 떡/우동 한 장을 반복 배치합니다.
-  soakBowl:"assets/prep/soak/bowl.png",
-  soakWater:"assets/prep/soak/water-pitcher.png",
-  soakTteok:"assets/prep/soak/tteok.png",
-  soakUdon:"assets/prep/soak/udon.png"
+  /* E8 떡 · 우동면 불려두기.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+
+     ⚠️ 볼 그림은 **물이 찬 정도까지 한 장에 그려져 있습니다**(SOAK_WATER_STEPS).
+        예전에는 빈 볼 한 장 위에 재료 조각과 물 높이를 CSS 로 얹었는데,
+        지금은 아래 11장을 겹쳐 두고 갈아 끼웁니다 (engine-e8-order-place.js).
+     ⚠️ 물병(soakWater)과 물방울(soakDrop)은 **한 장이 두 자리에 쓰입니다** —
+        물병은 판 위 + 왼쪽 물 카드, 물방울은 오른쪽 목표 + 진행도 게이지입니다. */
+  soakBowl:"assets/minigame/E8/Soaking/food_soak_bowl_empty.webp",
+  soakWater:"assets/minigame/E8/Soaking/prop_soak_water_pitcher.webp",
+  /* 붓는 자세 2장(25도 · 45도). 세워 둔 장을 CSS 로 돌리는 것이 아니라 갈아 끼웁니다 —
+     돌리면 병 안의 물 면까지 같이 기울어 물이 한쪽 벽에 붙어 보입니다. */
+  soakWaterTilt1:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_01.webp",
+  soakWaterTilt2:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_02.webp",
+  soakDrop:"assets/minigame/E8/Soaking/food_soak_water_ingredient.webp",
+  // 왼쪽 재료 카드 (담기 전의 마른 떡·우동면). 떡은 E4 '불린 떡' 카드와 공용입니다.
+  soakTteok:"assets/minigame/E8/Soaking/food_soak_tteok_ingredient_bowl.webp",
+  soakUdon:"assets/minigame/E8/Soaking/food_soak_udon_ingredient_bowl.webp",
+  // 물이 찬 정도 5단계 x 2종. 키 뒷자리(00~100)가 곧 진행도 % 입니다.
+  ...Object.fromEntries(["tteok","udon"].flatMap(kind=>["00","25","50","75","100"].map(step=>[
+    `soak${kind==="tteok"?"Tteok":"Udon"}Water${step}`,
+    `assets/minigame/E8/Soaking/food_soak_${kind}_water_${step}.webp`
+  ])))
 });
 const dayPrepAssets={};
 

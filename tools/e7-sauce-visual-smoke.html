@@ -77,20 +77,31 @@
       state.mini = { context:{ mode:"dayPrep" }, engine:"sauceMeasure", complete:false, data:null };
       setupSauceRecipe(recipeId);
       const data = state.mini.data;
-      // 앞에서부터 poured 개를 이미 부어 둔 상태로 만듭니다
+      /* 앞에서부터 poured 개를 이미 부어 둔 상태로 만듭니다.
+         넣는 순서가 레시피 순서로 고정이라, 앞에서부터 채우는 것이 곧 실제 진행 상태입니다. */
       data.sauces.forEach((item, index) => { if(index < poured) item.amount = item.target; });
       data.shownStage = poured;
       data.cursor = cursor;
       if(poured === data.sauces.length){ data.finishing = true; data.pourLocked = true; data.completionGrade = "perfect"; }
       renderYakisobaSauce();
       if(params.get("pour") === "1"){
+        /* 붓기가 예약하는 뒷일(680ms 에 .pouring 떼기 · 다시 그리기)을 나중에 취소할 수
+           있도록 먼저 id 를 받아 둡니다. 붓기 **전에** 걸어야 합니다 — 예약은 부르는
+           순간 이미 끝나므로 나중에 setTimeout 을 갈아 끼워 봐야 늦습니다. */
+        const timers = [], realSetTimeout = window.setTimeout;
+        window.setTimeout = (fn, ms) => { const id = realSetTimeout(fn, ms); timers.push(id); return id; };
+        window.__freezeTimers = () => { timers.forEach(clearTimeout); window.setTimeout = realSetTimeout; };
         addYakisobaSauce(data.sauces[cursor].id);
         /* 붓는 중간에 세워 놓고 잽니다 (병이 볼 위로 날아가 기울어 있는 순간).
            ⚠️ 헤드리스 가상 시간에서는 타이머만 흐르고 **CSS 애니메이션은 안 굴러갑니다.**
               그대로 두면 늘 0% 장면만 찍힙니다. animation-play-state 로 멈춰 봐야
               0% 에서 멈출 뿐입니다 — Animation 객체를 직접 잡아 시각을 박아 넣습니다. */
-        return new Promise(done => setTimeout(() => {
+        return new Promise(done => realSetTimeout(() => {
           document.getAnimations().forEach(a => { a.pause(); try { a.currentTime = 300; } catch(e){} });
+          /* 붓기가 끝나는 680ms 에 .pouring 이 떨어지고 화면을 다시 그립니다. 가상 시간이라
+             그 타이머들도 스크린샷 전에 전부 흘러가 버리므로, 멈춘 장면을 남기려면 위에서
+             모아 둔 예약을 여기서 취소해야 합니다. 잴 것은 이미 다 그려져 있습니다. */
+          window.__freezeTimers();
           done();
         }, 300)).then(measure);
       }
@@ -120,13 +131,33 @@
       };
       document.body.dataset.measure = JSON.stringify({
         board:box(board),
+        // 넣는 순서 고정 — 차례가 아닌 것을 부으면 거절되고 여기 이유가 남습니다
+        turn:sauceTurnIndex(state.mini.data), feedback:dom.miniFeedback.textContent,
+        badges:[...document.querySelectorAll(".sc-step-badge")].map(b => b.textContent),
+        orders:[...document.querySelectorAll(".sc-goal")].map(g =>
+          `${g.querySelector(".sc-goal-order").textContent} ${g.querySelector(".sc-goal-now").textContent}`),
         bowl:{ box:box(bowl), drawn:drawn(bowlImg), src:bowlImg ? bowlImg.src.split("/").pop() : null, at:inset(bowl) },
         bottles:[...document.querySelectorAll(".sc-pourer")].map(p => ({
           slot:[...p.classList].find(c => c.startsWith("at-")),
           box:box(p.querySelector(".sc-bottle")),
-          drawn:drawn(p.querySelector(".sc-bottle-asset")),
-          src:(p.querySelector(".sc-bottle-asset") || {}).src?.split("/").pop() || null,
-          at:inset(p)
+          drawn:drawn(p.querySelector(".sc-bottle-asset:not(.is-open)")),
+          src:(p.querySelector(".sc-bottle-asset:not(.is-open)") || {}).src?.split("/").pop() || null,
+          at:inset(p),
+          /* 뚜껑 연 그림이 닫힌 그림과 **같은 배율**로 서 있는지.
+             k = 마스터 픽셀당 화면 픽셀. 두 값이 어긋나면 뚜껑이 열리는 순간
+             병 몸통이 커졌다 작아졌다 합니다. bottomGap 은 아래끝이 맞는지(0 이 정답).
+             ⚠️ 병이 기울어 있을 때 재면 getBoundingClientRect 가 회전 바깥상자를
+                돌려주므로 의미가 없습니다 — 붓기 전(?pour 없이)에만 봐야 합니다. */
+          openArt:(() => {
+            const closed = p.querySelector(".sc-bottle-asset:not(.is-open)");
+            const open = p.querySelector(".sc-bottle-asset.is-open");
+            if(!closed?.naturalWidth || !open?.naturalWidth) return null;
+            const cr = rect(closed), or = rect(open), ratio = closed.naturalWidth / closed.naturalHeight;
+            const cW = Math.min(cr.width, cr.height * ratio), cH = Math.min(cr.height, cr.width / ratio);
+            return { closedK:+(cW / closed.naturalWidth).toFixed(4),
+                     openK:+(or.width / open.naturalWidth).toFixed(4),
+                     bottomGap:+(or.bottom - (cr.top + (cr.height + cH) / 2)).toFixed(1) };
+          })()
         })),
         arrows:[...document.querySelectorAll(".sc-arrow")].map(a => ({ box:box(a), asset:a.classList.contains("has-asset"), at:inset(a) })),
         goals:[...document.querySelectorAll(".sc-goal")].map(g => ({
@@ -143,6 +174,10 @@
         fallback:{ sauce:!!document.querySelector(".sc-bowl:not(.has-asset)"),
                    bottleShape:!!document.querySelector(".sc-bottle:not(.has-asset)"),
                    arrowShape:!!document.querySelector(".sc-arrow:not(.has-asset)") },
+        /* 뚜껑 연 그림은 **조리대 병에만** 깔립니다. 왼쪽 재료 카드는 들 일이 없어
+           빼 두었는데(sauceBottleMarkup 의 withOpen), 여기가 0 이 아니면 새어 나온 것입니다. */
+        openImgs:{ board:document.querySelectorAll(".sc-pourer .sc-bottle-asset.is-open").length,
+                   card:document.querySelectorAll(".sc-goal .sc-bottle-asset.is-open").length },
         /* 붓는 중(?pour=1)에만 채워집니다.
            ⚠️ 헤드리스 가상 시간에서는 **CSS 애니메이션이 안 굴러갑니다**(타이머만 흐릅니다).
               그래서 중간 장면을 재는 대신, playSaucePour 가 계산해 심어 둔 값을 그대로 읽습니다.
@@ -155,10 +190,14 @@
           const visual = p.querySelector(".sc-pour-visual"), style = getComputedStyle(visual);
           const num = name => parseFloat(style.getPropertyValue(name));
           const bowlR = rect(bowl), streamR = rect(p.querySelector(".sc-pour-stream"));
-          // 소스면 — playSaucePour 가 쓰는 자와 같습니다 (볼 위에서 14% 되는 높이)
-          const surfaceX = bowlR.left + bowlR.width * .5, surfaceY = bowlR.top + bowlR.height * .14;
+          // 소스면 — playSaucePour 가 쓰는 자와 같아야 합니다 (볼 위에서 30% 되는 높이).
+          // ⚠️ engine-e7-measure.js 의 값을 바꾸면 여기도 같이 바꾸세요. 안 그러면 0 이 안 나옵니다.
+          const surfaceX = bowlR.left + bowlR.width * .5, surfaceY = bowlR.top + bowlR.height * .30;
           return {
             shownStage:state.mini.data.shownStage, bowlSrc:bowlImg.src.split("/").pop(),
+            openSrc:(p.querySelector(".sc-bottle-asset.is-open") || {}).src?.split("/").pop() || null,
+            openShown:{ closed:+getComputedStyle(p.querySelector(".sc-bottle-asset:not(.is-open)")).opacity,
+                        open:+getComputedStyle(p.querySelector(".sc-bottle-asset.is-open")).opacity },
             tilt:style.getPropertyValue("--pour-tilt").trim(),
             finite:["--fly-x","--fly-y","--stream-left","--stream-top","--stream-height"].every(n => Number.isFinite(num(n))),
             // 그려진 그대로 잽니다 (fly · tilt 가 다 먹은 뒤의 자리)
@@ -167,7 +206,13 @@
             streamHeight:+streamR.height.toFixed(1),
             streamVisible:+getComputedStyle(p.querySelector(".sc-pour-stream")).opacity > .05,
             // 기울어진 병이 볼 밖으로 나가지 않는지
-            bottleOverBowl:+((bowlR.right - rect(p.querySelector(".sc-bottle")).left) / bowlR.width * 100).toFixed(0) + "%"
+            bottleOverBowl:+((bowlR.right - rect(p.querySelector(".sc-bottle")).left) / bowlR.width * 100).toFixed(0) + "%",
+            /* 날아가 기울어진 병이 **조리대 홈선(46~573) 안에 있는지.**
+               ⚠️ 회전한 요소라 getBoundingClientRect 가 **회전 바깥상자**를 돌려줍니다 —
+                  90도 가까이 누운 병은 네 귀퉁이가 다 투명한 여백이라 실제 그림보다
+                  20~30 크게 잡힙니다. 여기서 홈선을 조금 넘어도 눈으로는 안 넘습니다.
+                  들어오면 확실히 안전, 넘으면 스크린샷으로 확인 — 그 정도 자입니다. */
+            bottleAt:inset(p.querySelector(".sc-bottle"))
           };
         })()
       });
