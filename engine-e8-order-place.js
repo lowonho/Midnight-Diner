@@ -500,7 +500,6 @@ function renderTteokSoak(){
   const bowlPieces=data.added[key]?Array.from({length:isUdon?5:7},()=>hasDayPrepAsset(ingredientAsset)?dayPrepAssetMarkup(ingredientAsset,"soak-piece-asset",label):"<b></b>").join(""):"빈 볼";
   dom.miniTimer.textContent=`${count} / 2`;
   dom.miniContent.innerHTML=`
-    ${data.menuId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",0):""}
     <div class="tteok-soak-scene ${data.finishing?"settling":""}">
       <button type="button" class="tteok-source ${isUdon?"udon-source":""} ${data.added[key]?"added":""} ${data.lastAdded===key?"just-added":""}" data-soak-item="${key}" ${data.added[key]||data.finishing?"disabled":""}>${sourceArt(ingredientAsset,key,label)}<strong>${label}</strong></button>
       <div class="soaking-bowl ${isUdon?"udon-bowl":""} ${hasDayPrepAsset("soakBowl")?"has-asset":""} ${data.added.water?"has-water":""} ${data.added[key]?"has-ingredient":""} ${data.finishing?"settling":""}" data-order-target="soak" aria-label="${label}을 불리는 볼">${dayPrepAssetMarkup("soakBowl","soak-bowl-asset","불리기 볼")}<i class="water-fill"></i><span>${bowlPieces}</span>${data.finishing?'<i class="soak-bubbles"><b></b><b></b><b></b><b></b></i>':""}</div>

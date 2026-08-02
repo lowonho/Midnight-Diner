@@ -315,13 +315,6 @@ function isDayPrepMini(mini=state.mini){
   return mini?.context?.mode==="dayPrep";
 }
 
-// Day4 준비 진행 표시줄. 떡볶이 칼질이 재료별 3개로 나뉘어 칸도 3개입니다.
-// 칸 번호는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE flowIndex 와 맞춰야 합니다.
-function day4PrepFlowMarkup(menuId,currentIndex){
-  const steps=menuId==="tteokbokki"?["떡 불리기","양배추","대파","어묵","양념장"]:["감자 채칼","튀김가루 묻히기"];
-  return `<div class="shrimp-coat-order day4-prep-flow">${steps.map((label,index)=>`<span class="${index<currentIndex?"done":index===currentIndex?"current":""}">${index<currentIndex?"✓ ":""}${label}</span>`).join("<b>→</b>")}</div>`;
-}
-
 /* ---- 엔진 등록 창구 ----------------------------------------
    engine-e*.js 파일들이 로드되면서 아래 두 함수를 호출해
    자기 자리를 채웁니다. 이 파일은 무엇이 등록되는지 알 필요가 없습니다. */

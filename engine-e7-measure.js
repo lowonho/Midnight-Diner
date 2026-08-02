@@ -137,7 +137,6 @@ function renderYakisobaSauce(){
   dom.miniTimer.textContent=`${exact} / ${total}`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
 
   dom.miniContent.innerHTML=`
-    ${data.recipeId==="tteokbokki"?day4PrepFlowMarkup("tteokbokki",4):""}
     <div class="sauce-lab">
       <aside class="sc-col">
         <div class="sc-panel sc-ing-panel">
