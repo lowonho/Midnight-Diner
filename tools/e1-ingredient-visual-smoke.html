@@ -68,6 +68,14 @@
       guide.hidden=true;
       work.querySelector(".knife-effect").hidden=true;
     }
+    const countdown=params.get("countdown");
+    if(countdown){
+      const overlay=document.createElement("div");
+      const isStart=countdown==="start";
+      overlay.className=`cut-start-countdown${isStart?" go":""}`;
+      overlay.innerHTML=`<strong>${isStart?"시작!":countdown}</strong>`;
+      document.querySelector(".cut-board").appendChild(overlay);
+    }
     document.body.dataset.ready="true";
   </script>
 </body>

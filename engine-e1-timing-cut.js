@@ -29,7 +29,9 @@ const CUT_FEEL_CONFIG=Object.freeze({
   doubleTapWindow:.35,
   pathLeadInFallback:12,
   pathRecoveryMs:115,
-  completeDelayMs:620
+  completeDelayMs:620,
+  startCountdownSeconds:3,
+  startSignalMs:450
 });
 
 /* ---- 공통 판정 규칙 ----------------------------------------
@@ -193,6 +195,10 @@ function cutTimingBarMarkup(zoneLeft,zoneWidth,marker,extraClass=""){
 registerDayPrepEngine("timing",{
   update(m,dt){
     const data=m.data;
+    if(data.phase==="countdown"){
+      advanceTimingCutCountdown(m,dt);
+      return;
+    }
     if(data.inputLocked||data.phase==="complete")return;
     // 닭고기 2연타: 첫 입력 뒤 0.35초 안에 두 번째가 없으면 현재 조각부터 재시도
     if(data.requiresDoubleTap&&data.tapStep===1){
@@ -249,7 +255,7 @@ function startCuttingMinigame(options){
   const firstBeatDistance=verticalCount>1
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
-  setDayPrepData({mode:"timing",phase:"ready",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:false,mistakes:0,
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -263,6 +269,7 @@ function startCuttingMinigame(options){
 
 function renderTimingCut(){
   const m=state.mini,data=m.data,isRadish=data.ingredient==="radish";
+  const countdownActive=data.phase==="countdown";
   const objectAssetKey=timingAssetKey(data.ingredient,cutAssetStage(data),data.assetPrefix);
   // 두부는 마지막 한 번이 가로 썰기라 세로선 간격 계산에서 빼야 합니다.
   const verticalCount=data.horizontalLastCut?data.total-1:data.total;
@@ -288,13 +295,42 @@ function renderTimingCut(){
         <i class="cut-spark"></i>
       </div>
       <div class="cut-footer">${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
-        <button class="mini-action cut-action" id="dayPrepAction" type="button">Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
-      <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;
+        <button class="mini-action cut-action" id="dayPrepAction" type="button" ${countdownActive?"disabled":""}>Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
+      <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>
+      ${countdownActive?`<div class="cut-start-countdown" id="cutStartCountdown" aria-live="assertive"><strong>${data.countdownStep}</strong></div>`:""}`;
   // 하단 바는 유지하되, 초록 구간과 포인터를 실제 절단선·칼날의 X축에 맞춥니다.
   const footer=cutTimingBarMarkup(0,0,0,"cut-path-timing");
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer});
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",timingCutAction);
   syncTimingKnife(data);
+}
+
+function advanceTimingCutCountdown(m,dt){
+  const data=m.data;
+  if(data.phase!=="countdown")return false;
+  data.countdownRemaining=Math.max(0,data.countdownRemaining-dt);
+  const nextStep=Math.ceil(data.countdownRemaining);
+  const overlay=dom.miniContent.querySelector("#cutStartCountdown");
+  const label=overlay?.querySelector("strong");
+  if(nextStep>0){
+    if(nextStep!==data.countdownStep){
+      data.countdownStep=nextStep;
+      if(label){label.textContent=String(nextStep);label.classList.remove("tick");void label.offsetWidth;label.classList.add("tick");}
+    }
+    return true;
+  }
+  data.countdownStep=0;
+  data.countdownRemaining=0;
+  data.phase="ready";
+  data.inputLocked=false;
+  const action=dom.miniContent.querySelector("#dayPrepAction");
+  if(action)action.disabled=false;
+  if(label)label.textContent="시작!";
+  overlay?.classList.add("go");
+  setTimeout(()=>{
+    if(state.mini===m&&!m.complete)dom.miniContent.querySelector("#cutStartCountdown")?.remove();
+  },CUT_FEEL_CONFIG.startSignalMs);
+  return true;
 }
 
 function timingCutVerticalCount(data){

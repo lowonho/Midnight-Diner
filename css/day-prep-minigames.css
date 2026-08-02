@@ -287,6 +287,55 @@
     linear-gradient(#8b5423, #6f3f19);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #5b3416, inset 0 0 calc(45 * var(--upx)) rgba(40,18,6,.5), 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45);
 }
+.cut-start-countdown {
+  position:absolute;
+  inset:0;
+  z-index:30;
+  display:grid;
+  place-items:center;
+  pointer-events:auto;
+  background:radial-gradient(circle,rgba(34,15,5,.18),rgba(34,15,5,.42));
+  backdrop-filter:blur(calc(.8 * var(--upx)));
+}
+.cut-start-countdown strong {
+  min-width:calc(150 * var(--upx));
+  color:#fff2b2;
+  font-size:calc(112 * var(--upx));
+  line-height:1;
+  text-align:center;
+  text-shadow:0 calc(6 * var(--upx)) 0 #6b3219,0 0 calc(24 * var(--upx)) rgba(255,196,76,.9);
+  animation:cut-countdown-pop .42s cubic-bezier(.2,.8,.2,1);
+}
+.cut-start-countdown strong.tick { animation:cut-countdown-tick .42s cubic-bezier(.2,.8,.2,1); }
+.cut-start-countdown.go {
+  pointer-events:none;
+  animation:cut-countdown-go .45s ease forwards;
+}
+.cut-start-countdown.go strong {
+  min-width:calc(260 * var(--upx));
+  color:#ffe167;
+  font-size:calc(76 * var(--upx));
+  animation:cut-countdown-start .45s ease forwards;
+}
+@keyframes cut-countdown-pop {
+  0% { opacity:0; transform:scale(.55); }
+  55% { opacity:1; transform:scale(1.12); }
+  100% { opacity:1; transform:scale(1); }
+}
+@keyframes cut-countdown-tick {
+  0% { opacity:0; transform:scale(.55); }
+  55% { opacity:1; transform:scale(1.12); }
+  100% { opacity:1; transform:scale(1); }
+}
+@keyframes cut-countdown-start {
+  0% { opacity:0; transform:scale(.72); }
+  35% { opacity:1; transform:scale(1.08); }
+  100% { opacity:0; transform:scale(1.28); }
+}
+@keyframes cut-countdown-go {
+  0%,45% { background:radial-gradient(circle,rgba(34,15,5,.12),rgba(34,15,5,.3)); backdrop-filter:blur(calc(.8 * var(--upx))); }
+  100% { background:transparent; backdrop-filter:blur(0); }
+}
 /* 타이밍 바가 없는 빠른 칼질에서는 아래 여백을 도로 줄입니다 */
 .cut-board:not(:has(.cut-timing)) { padding-bottom: calc(22 * var(--upx)); }
 .cut-board .prep-work-object,
