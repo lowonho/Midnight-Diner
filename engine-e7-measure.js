@@ -23,9 +23,15 @@
      ← →        소스통 고르기   (오른쪽 조작 카드의 키 버튼도 같은 동작)
      ↓ / Space  고른 소스통 붓기 (조리대의 소스통을 직접 눌러도 됩니다)
 
-   소스통과 볼은 전부 임시 CSS 도형입니다. assets/prep/sauce/ 에 그림을
-   넣으면 .has-asset 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
-   자리 배치는 3개 기준입니다(SAUCE_SLOTS). 재료가 늘면 여기만 늘리세요.
+   [그림] assets/minigame/E7 의 납품 에셋입니다 (경로는 day-prep-minigames.js 의
+   DAY_PREP_ASSET_PATHS). 소스통·소스볼·화살표 모두 그림이 있고, 아직 임시 CSS
+   도형인 것은 부어지는 줄기 하나뿐입니다. 그림이 빠지면 .has-asset 이 안 붙어
+   예전 도형으로 되돌아갑니다.
+     소스통  레시피마다 3장. **조리대와 왼쪽 재료 카드가 같은 장**을 씁니다.
+     소스볼  레시피마다 4장. 넣은 재료 **개수**가 곧 장 번호입니다(0 빈 볼 → 3 완성).
+     화살표  한 장을 세 자리가 CSS 회전으로 돌려 씁니다(→ · ← · ↓).
+   자리 배치는 3개 기준입니다(SAUCE_SLOTS). 재료가 늘면 여기와 소스볼 장수를
+   같이 늘려야 합니다.
    ============================================================ */
 
 registerDayPrepSetup("yakisobaSauce",()=>setupYakisobaSauce());
@@ -41,11 +47,30 @@ registerDayPrepEngine("sauceMeasure",{
   }
 });
 
-// 재료 id → 에셋 키 (day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 와 같은 이름)
+/* 레시피 + 재료 id → 소스통 에셋 키 (day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 와 같은 이름).
+   ⚠️ 재료 id 하나로는 부족합니다 — **간장은 두 레시피에 다 나오는데 납품 그림이
+      서로 다릅니다.** 자리(왼쪽/아래)도 갈려서 크기까지 다르므로 합칠 수 없습니다. */
 const SAUCE_ASSET_KEY=Object.freeze({
-  soy:"sauceBottleSoy",oyster:"sauceBottleOyster",chili:"sauceBottleChili",
-  gochujang:"sauceBottleGochujang",oligosaccharide:"sauceBottleOligosaccharide"
+  tteokbokki:Object.freeze({
+    gochujang:"sauceBottleTteokbokkiGochujang",
+    oligosaccharide:"sauceBottleTteokbokkiOligosaccharide",
+    soy:"sauceBottleTteokbokkiSoy"
+  }),
+  yakisoba:Object.freeze({
+    soy:"sauceBottleYakisobaSoy",
+    oyster:"sauceBottleYakisobaOyster",
+    chili:"sauceBottleYakisobaChili"
+  })
 });
+/* 소스볼 4장. **넣은 재료 개수**가 곧 장 번호입니다 (0 빈 볼 → 3 완성).
+   순서를 가리지 않는 것은 의도입니다 — 어떤 순서로 부어도 개수만큼 색이 짙어집니다.
+   순서까지 맞추려면 조합마다 한 장씩(E8 반죽 꼴) 더 받아야 합니다. */
+function sauceBowlAssetKey(recipeId,poured){
+  return `sauceBowl${recipeId==="tteokbokki"?"Tteokbokki":"Yakisoba"}${Math.min(poured,3)}`;
+}
+function sauceBottleAssetKey(recipeId,id){
+  return SAUCE_ASSET_KEY[recipeId]?.[id]||"";
+}
 // 임시 도형 모양. 여기 없는 재료는 기본 간장병 모양(tall)으로 그립니다.
 const SAUCE_BOTTLE_SHAPE=Object.freeze({chili:"cruet",oligosaccharide:"cruet"});
 const SAUCE_FLOW_ASSET=Object.freeze({thin:"sauceFlowThin",syrup:"sauceFlowSyrup",thick:"sauceFlowThick"});
@@ -61,7 +86,9 @@ function setupYakisobaSauce(){
 function setupSauceRecipe(recipeId){
   const recipe=SAUCE_RECIPES[recipeId];if(!state.mini||!recipe)return;
   setDayPrepData({
-    mode:"sauceMeasure",recipeId,recipe,finishing:false,pourLocked:false,shownFill:0,completionGrade:"",pendingCursor:null,
+    // shownStage = 지금 화면에 깔린 소스볼 그림 번호(= 넣은 재료 개수).
+    // 실제 개수보다 늦게 따라옵니다 — 줄기가 볼에 닿는 순간에 갈아 끼웁니다(playSaucePour).
+    mode:"sauceMeasure",recipeId,recipe,finishing:false,pourLocked:false,shownFill:0,shownStage:0,completionGrade:"",pendingCursor:null,
     cursor:0,                    // 지금 고른 소스통 (레시피 재료 순서)
     sauces:recipe.ingredients.map(item=>({...item,amount:0}))
   });
@@ -89,17 +116,24 @@ function sauceStreamMarkup(item){
 }
 
 // 소스통 하나. 에셋이 있으면 <img>, 없으면 CSS 도형(뚜껑·몸통·라벨)으로 그립니다.
-function sauceBottleMarkup(item,extraClass=""){
-  const key=SAUCE_ASSET_KEY[item.id]||"";
+function sauceBottleMarkup(recipeId,item,extraClass=""){
+  const key=sauceBottleAssetKey(recipeId,item.id);
   return `<span class="sc-bottle ${item.id} ${SAUCE_BOTTLE_SHAPE[item.id]||"tall"} ${hasDayPrepAsset(key)?"has-asset":""} ${extraClass}">
       <i class="sc-cap"></i><i class="sc-body"></i><i class="sc-tag">${item.label}</i>${dayPrepAssetMarkup(key,"sc-bottle-asset",item.label)}
     </span>`;
 }
 
+/* 소스통 → 볼 화살표. 에셋이 있으면 <img>, 없으면 CSS 도형(clip-path)입니다.
+   한 장을 세 자리가 돌려 씁니다 — 오른쪽 통은 180도, 아래 통은 -90도 회전(CSS). */
+function sauceArrowMarkup(slot,dim){
+  const has=hasDayPrepAsset("sauceArrow");
+  return `<i class="sc-arrow ${slot} ${has?"has-asset":""} ${dim?"off":""}" aria-hidden="true">${dayPrepAssetMarkup("sauceArrow","sc-arrow-asset")}</i>`;
+}
+
 // 왼쪽 재료 목표 카드. 고른 소스통은 테두리가 밝아집니다.
 // 좌 칸 통일 뒤로는 .sc-ing-panel 안에 들어가는 '안쪽 카드'라 바깥 카드
 // 껍데기(.sc-panel)를 쓰지 않습니다. 겉모습은 css/minigame-parts.css 가 줍니다.
-function sauceGoalMarkup(item,selected){
+function sauceGoalMarkup(recipeId,item,selected){
   const status=sauceStatus(item);
   // [그림 | 이름 · 레시피 분량 · 투입 여부] 가로 2열입니다.
   // ⚠️ 세로 2줄(E8 반죽 꼴)로 바꿨다가 되돌렸습니다. 세 줄을 세로로 쌓으면
@@ -107,7 +141,7 @@ function sauceGoalMarkup(item,selected){
   //    붙어 좌 칸이 480 뿐이라 카드 세 장이 각 153 밖에 못 씁니다. 48 이 넘쳤습니다.
   //    가로로 두면 그림(110)과 글자(114)가 나란히 서서 최소 134 면 되고 둘 다 들어갑니다.
   return `<div class="sc-goal ${status} ${selected?"selected":""}">
-      <span class="sc-goal-art">${sauceBottleMarkup(item,"mini")}</span>
+      <span class="sc-goal-art">${sauceBottleMarkup(recipeId,item,"mini")}</span>
       <span class="sc-goal-info">
         <b class="sc-goal-name">${item.label}</b>
         <span class="sc-goal-target">레시피 분량 <b>${item.target}g</b></span>
@@ -134,6 +168,8 @@ function renderYakisobaSauce(){
   const locked=data.finishing;
   // 볼에 차오르는 높이. 목표를 넘겨도 100% 이상은 올라가지 않습니다.
   const fill=Math.round(data.sauces.reduce((sum,item)=>sum+Math.min(item.amount/item.target,1),0)/total*74);
+  // 에셋을 쓸 때는 볼 그림 자체가 소스를 그리므로 위 fill(임시 도형 높이)은 안 쓰입니다.
+  const bowlKey=sauceBowlAssetKey(data.recipeId,data.shownStage);
   dom.miniTimer.textContent=`${exact} / ${total}`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
 
   dom.miniContent.innerHTML=`
@@ -141,20 +177,20 @@ function renderYakisobaSauce(){
       <aside class="sc-col">
         <div class="sc-panel sc-ing-panel">
           <h3 class="sc-col-title starred">재료 목표</h3>
-          <div class="sc-ing-list">${data.sauces.map((item,index)=>sauceGoalMarkup(item,index===data.cursor)).join("")}</div>
+          <div class="sc-ing-list">${data.sauces.map((item,index)=>sauceGoalMarkup(data.recipeId,item,index===data.cursor)).join("")}</div>
         </div>
       </aside>
 
       <div class="sc-board ${exact===total?"done mixing":""}" style="--sauce-main:${data.recipe.bowlColor||"#a24a1f"};--sauce-dark:${data.recipe.bowlDark||"#3d1a0e"}">
-        <div class="sc-bowl ${hasDayPrepAsset("sauceBowl")?"has-asset":""}" style="--sauce-fill:${data.shownFill}%" aria-label="소스볼">
-          ${dayPrepAssetMarkup("sauceBowl","sc-bowl-asset","소스볼")}<i class="sc-sauce"></i>
+        <div class="sc-bowl ${hasDayPrepAsset(bowlKey)?"has-asset":""}" style="--sauce-fill:${data.shownFill}%" aria-label="소스볼">
+          ${dayPrepAssetMarkup(bowlKey,"sc-bowl-asset","소스볼")}<i class="sc-sauce"></i>
         </div>
         ${data.sauces.map((item,index)=>{
           const slot=SAUCE_SLOTS[index]||"at-bottom",status=sauceStatus(item);
           const selected=index===data.cursor;
-          return `<i class="sc-arrow ${slot} ${selected&&status==="under"?"":"off"}" aria-hidden="true"></i>
+          return `${sauceArrowMarkup(slot,!(selected&&status==="under"))}
             <button type="button" class="sc-pourer ${slot} ${status} ${selected?"selected":""}" data-sauce-id="${item.id}" ${locked||status==="exact"?"disabled":""} aria-label="${item.label} 한 번에 넣기">
-              <span class="sc-pour-visual">${sauceBottleMarkup(item)}${sauceStreamMarkup(item)}</span>
+              <span class="sc-pour-visual">${sauceBottleMarkup(data.recipeId,item)}${sauceStreamMarkup(item)}</span>
               <span class="sc-step-badge">한 번 넣기</span>
             </button>`;
         }).join("")}
@@ -190,8 +226,34 @@ function renderYakisobaSauce(){
   }));
 }
 
+/* 병 그림이 **실제로 그려진** 상자. object-fit:contain 이라 상자보다 납작한 통
+   (고추장 · 굴소스)은 위아래에, 홀쭉한 통은 좌우에 빈 자리가 생깁니다.
+   그 빈 자리까지 병으로 치면 마개 반지름이 부풀어 줄기가 소스면 위에 뜹니다.
+   가운데는 상자와 같으므로 크기만 다시 잽니다. */
+function sauceBottleArtRect(bottle){
+  const rect=bottle.getBoundingClientRect();
+  const image=bottle.querySelector(".sc-bottle-asset");
+  const ratio=image&&image.naturalWidth&&image.naturalHeight?image.naturalWidth/image.naturalHeight:0;
+  if(!ratio)return rect;   // 에셋이 없으면 임시 도형이 상자를 꽉 채웁니다
+  const width=Math.min(rect.width,rect.height*ratio);
+  const height=Math.min(rect.height,rect.width/ratio);
+  return {left:rect.left+(rect.width-width)/2,top:rect.top+(rect.height-height)/2,width,height};
+}
+
+/* 줄기가 소스면에 닿는 순간 소스볼 그림을 다음 장으로 갈아 끼웁니다.
+   부을 때 곧바로 바꾸면 병이 아직 날아가는 중인데 볼이 먼저 차 있습니다. */
+function advanceSauceBowlStage(m,bowl){
+  if(state.mini!==m)return;
+  const data=m.data,poured=data.sauces.filter(item=>item.amount===item.target).length;
+  if(poured===data.shownStage)return;
+  data.shownStage=poured;
+  const key=sauceBowlAssetKey(data.recipeId,poured);
+  const image=bowl.querySelector(".sc-bowl-asset");
+  if(image&&hasDayPrepAsset(key))image.src=dayPrepAssets[key].src;
+}
+
 // 소스통이 볼 쪽으로 기울었다가 돌아옵니다. 다시 그린 뒤에 붙여야 살아남습니다.
-function playSaucePour(id){
+function playSaucePour(m,id){
   const pourer=dom.miniContent.querySelector(`.sc-pourer[data-sauce-id="${id}"]`);
   if(pourer){
     const visual=pourer.querySelector(".sc-pour-visual");
@@ -200,7 +262,7 @@ function playSaucePour(id){
     const bowl=dom.miniContent.querySelector(".sc-bowl");
     if(visual&&bottle&&stream&&bowl){
       const visualRect=visual.getBoundingClientRect();
-      const bottleRect=bottle.getBoundingClientRect();
+      const bottleRect=sauceBottleArtRect(bottle);
       const bowlRect=bowl.getBoundingClientRect();
       const fromRight=pourer.classList.contains("at-right");
       const fromBottom=pourer.classList.contains("at-bottom");
@@ -232,6 +294,7 @@ function playSaucePour(id){
   if(bowl){
     setTimeout(()=>{
       if(!bowl.isConnected)return;
+      advanceSauceBowlStage(m,bowl);
       bowl.classList.remove("splash");void bowl.offsetWidth;bowl.classList.add("splash");
       setTimeout(()=>bowl.classList.remove("splash"),300);
     },230);
@@ -284,7 +347,7 @@ function addYakisobaSauce(id){
   sauce.amount=sauce.target;m.data.pourLocked=true;m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
   audio.click();dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
   renderYakisobaSauce();
-  playSaucePour(id);
+  playSaucePour(m,id);
   setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
 }
 

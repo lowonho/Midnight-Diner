@@ -294,13 +294,22 @@ const FILES = [
      [그릇 3장] .fp-vessel 336x268 자리에 object-fit:contain 입니다.
      셋 다 가로로 넓어(1.10 · 1.25 · 1.25) **세로 268 이 먼저 막히고**
      가로만 295.3 / 333.9 / 335.6 으로 서로 다릅니다. */
-  /* [화살표] 그릇 사이의 진행 방향 표시입니다. **한 장을 두 자리에 씁니다** —
-     밀가루 → 계란물 은 그대로, 계란물 → 빵가루 는 CSS 에서 135도 돌려 ↙ 로 씁니다.
-     그래서 아래 방향 그림을 따로 받지 않아도 됩니다. */
-  { file:"E2/shrimp/ui_arrow_right_01.png",         size:[105, 73], css:".fp-coat-arrow-asset 52x36.2" },
+  /* [화살표] 그릇 사이의 진행 방향 표시입니다.
+     ⚠️ 원래 E2/shrimp/ 안에 있었는데 E7 소스 제조 납품본과 **바이트까지 같아서**
+        공용 폴더인 위쪽(ui_play_tray_wood 옆)으로 올렸습니다. 한 장을 네 자리가
+        돌려 씁니다 — E2 는 그대로(→)와 135도 돌린 ↙, E7 은 →·←·↓ 세 방향입니다.
+        그래서 다른 방향 그림을 따로 받지 않아도 됩니다.
+        E7 화살표 자리(52x36.2)도 E2 와 같은 크기라 WebP 는 이 한 장뿐입니다. */
+  { file:"ui_arrow_right_01.png",                   size:[105, 73], css:".fp-coat-arrow-asset / .sc-arrow 52x36.2" },
   { file:"E2/shrimp/food_tempura_flour_bowl.png",   size:[591,536], css:".fp-vessel 295.3x268" },
-  { file:"E2/shrimp/food_egg_wash_bowl.png",        size:[668,536], css:".fp-vessel 333.9x268" },
-  { file:"E2/shrimp/food_wet_breadcrumbs_bowl.png", size:[671,536], css:".fp-vessel 335.6x268" },
+  /* ⚠️ 계란물만 **일부러 눌러 뽑습니다**(stretch). 납품 그림이 1.246 으로 셋 중
+        가장 납작해서, 옆에 놓인 밀가루 그릇(1.102)과 원근이 달라 보였습니다.
+        가로를 6.7% 깎아 1.163 으로 당겼습니다 — 그릇이라 눌러도 티가 안 납니다.
+        여기서 미리 눌러 두면 CSS 는 object-fit:contain 그대로 쓸 수 있습니다
+        (css 의 `.fp-vessel.egg .fp-vessel-asset` 이 잡는 자리가 300x258 입니다). */
+  { file:"E2/shrimp/food_egg_wash_bowl.png",        size:[600,516], stretch:true, css:".fp-vessel.egg 300x258 (눌러 담음)" },
+  // 빵가루는 마지막 그릇이라 혼자 큽니다 (.fp-vessel.breadcrumbs 370x295 자리)
+  { file:"E2/shrimp/food_wet_breadcrumbs_bowl.png", size:[739,590], css:".fp-vessel.breadcrumbs 369.4x295" },
   /* [새우 10장] 생새우 → 밀가루/계란물/빵가루 각 3단계. 한 자리에서 갈아 끼우는
      **한 벌의 연속 그림**이라 열 장을 한 크기로 묶습니다.
      ⚠️ 납품본은 캔버스가 674x624 ~ 1672x941 로 제각각이었고 새우가 놓인 자리도
@@ -324,7 +333,49 @@ const FILES = [
   { file:"E2/shrimp/food_shrimp_raw_panel.png",      size:[147,136], css:".fp-ing-asset 73.4x68" },
   { file:"E2/shrimp/food_tempura_flour_panel.png",   size:[143,136], css:".fp-ing-asset 71.5x68" },
   { file:"E2/shrimp/food_egg_wash_panel.png",        size:[139,136], css:".fp-ing-asset 69.6x68" },
-  { file:"E2/shrimp/food_wet_breadcrumbs_panel.png", size:[137,136], css:".fp-ing-asset 68.4x68" }
+  { file:"E2/shrimp/food_wet_breadcrumbs_panel.png", size:[137,136], css:".fp-ing-asset 68.4x68" },
+  /* ---- E7 소스 제조 (떡볶이 양념장 · 볶음우동 소스) --------------
+     [소스볼 8장] 레시피마다 4장이고 **넣은 재료 개수**가 곧 장 번호입니다
+     (0 빈 볼 → 3 완성). 자리는 .sc-bowl 320x272 에 object-fit:contain 인데
+     그림이 1.072 로 상자(1.176)보다 좁아 **세로 272 가 먼저 막힙니다**
+     → 291.6x272 로 그려지고 2배율이 583x544 입니다.
+
+     ⚠️ **여덟 장을 한 크기로 묶는 것이 중요합니다.** 마스터가 떡볶이 983x915 ·
+        볶음우동 982x916 으로 미세하게 다른데(비율 차 0.2%), 여기서 한 크기로
+        뽑지 않으면 재료를 넣어 장을 갈아 끼울 때 볼이 1px 씩 들썩입니다.
+        checkAspect 한계(2%)의 1/8 이라 찌그러짐은 눈에 안 보입니다.
+        (E8 반죽 볼 9장 · E9 반죽 10장과 같은 판단입니다) */
+  ...[
+    ["tteokbokki", ["01_food_tteokbokki_sauce_bowl_empty","02_food_tteokbokki_sauce_bowl_gochujang",
+                    "03_food_tteokbokki_sauce_bowl_gochujang_oligosaccharide","04_food_tteokbokki_sauce_bowl_final"]],
+    ["yakisoba",   ["01_food_yakisoba_sauce_bowl_empty","02_food_yakisoba_sauce_bowl_soy",
+                    "03_food_yakisoba_sauce_bowl_soy_oyster","04_food_yakisoba_sauce_bowl_complete"]]
+  ].flatMap(([dish,names])=>names.map(name=>(
+    { file:`E7/${name}.png`, size:[583,544], css:`.sc-bowl 320x272 안에서 291.6x272 (${dish})` }
+  ))),
+  /* [소스통 6장] **한 장이 두 자리에 쓰입니다** — 조리대 위 소스통과 왼쪽 재료
+     카드의 작은 그림(.sc-bottle.mini --bw 64)입니다. 큰 쪽 기준으로 한 번만 뽑습니다.
+
+     자리는 .sc-bottle 상자(--bw x 1.72--bw)에 object-fit:contain 인데,
+     **레시피 재료 순서가 곧 자리**라 통마다 상자가 다릅니다.
+       1번째 재료 → at-left   104 x 178.9
+       2번째 재료 → at-right  104 x 178.9
+       3번째 재료 → at-bottom  88 x 151.4   (조리대 아래라 한 단계 작습니다)
+     상자 비율은 0.581 이라, 그보다 넓은 통(고추장 0.674 · 굴소스 0.644)은
+     **가로가 먼저 막혀** 상자보다 낮게 그려지고, 나머지 홀쭉한 통은
+     **세로가 먼저 막혀** 상자보다 좁게 그려집니다. 아래 크기는 그 결과의 2배입니다.
+
+     ⚠️ 간장은 두 레시피에 다 나오지만 **납품 그림이 서로 다릅니다**
+        (떡볶이 512x1061 · 볶음우동 483x1100). 게다가 자리도 아래/왼쪽으로 갈려
+        크기가 다르므로 한 장으로 합칠 수 없습니다. 두 장 다 뽑습니다. */
+  { file:"E7/food_tteokbokki_sauce_play_gochujang.png",       size:[208,308], css:"떡볶이 고추장 at-left 104x154.2" },
+  { file:"E7/food_tteokbokki_sauce_play_oligosaccharide.png", size:[130,358], css:"떡볶이 올리고당 at-right 64.8x178.9" },
+  { file:"E7/food_tteokbokki_sauce_play_soy_sauce.png",       size:[146,303], css:"떡볶이 간장 at-bottom 73.1x151.4" },
+  { file:"E7/food_yakisoba_soy_sauce_play_labeled.png",       size:[157,358], css:"볶음우동 간장 at-left 78.6x178.9" },
+  { file:"E7/food_yakisoba_oyster_sauce_play_labeled.png",    size:[208,323], css:"볶음우동 굴소스 at-right 104x161.6" },
+  { file:"E7/food_yakisoba_chili_oil_play_labeled.png",       size:[154,303], css:"볶음우동 고추기름 at-bottom 77.0x151.4" }
+  /* [화살표] E7 도 위 공용 ui_arrow_right_01 한 장을 씁니다 — 납품본이
+     E2 새우 것과 바이트까지 같아 여기서 따로 뽑지 않습니다. */
 ];
 
 const QUALITY = 90;

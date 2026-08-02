@@ -28,9 +28,10 @@ const DAY_PREP_MINI_CONFIG = {
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 
+// cycles 한 번 = ← → 두 번 (썰기 횟수 = cycles * 2)
 const DAY3_MANDOLINE_CONFIG=Object.freeze({
-  sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:6},
-  sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:5}
+  sliceYakisobaCabbage:{ingredient:"cabbage",label:"양배추",cycles:12},
+  sliceYakisobaCarrot:{ingredient:"carrot",label:"당근",cycles:10}
 });
 const BREADCRUMB_KEY_PAIRS=Object.freeze([["a","d"],["q","e"],["f","j"],["z","c"],["j","l"]]);
 
@@ -141,14 +142,37 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   whiskMedium:"assets/minigame/E9/14_prop_whisk_batter_medium.webp",// 젓는 중
   // 오른쪽 '참고 모양'(고르게 섞인 반죽)은 마지막 장과 같은 그림입니다.
   batterDone:"assets/minigame/E9/11_food_kimchi_batter_mix_stage5_complete.webp",
-  // 소스 제조 (engine-e7). 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
-  sauceBottleSoy:"assets/prep/sauce/bottle-soy.png",
-  sauceBottleOyster:"assets/prep/sauce/bottle-oyster.png",
-  sauceBottleChili:"assets/prep/sauce/bottle-chili.png",
-  sauceBottleGochujang:"assets/prep/sauce/bottle-gochujang.png",
-  sauceBottleOligosaccharide:"assets/prep/sauce/bottle-oligosaccharide.png",
-  sauceBowl:"assets/prep/sauce/bowl.png",
-  // 흰색 실루엣 마스크 3장만 준비하면 재료 색은 E7 설정값으로 입힙니다.
+  // 소스 제조 (engine-e7). assets/minigame/E7/ 의 납품 에셋입니다.
+  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+  //
+  //   소스볼 4장 x 2레시피 — **넣은 재료 개수**가 곧 장 번호입니다 (0 빈 볼 → 3 완성).
+  //   ⚠️ 파일 이름은 레시피 순서대로 재료가 쌓인 모습이지만, 실제로는 어떤 순서로
+  //      부어도 개수만 보고 고릅니다. 넣을 때마다 색이 짙어지는 연출이 목적이라
+  //      순서까지 맞춘 조합 그림(E8 반죽 9장 꼴)은 받지 않았습니다.
+  //      순서별 그림을 쓰려면 조합마다 한 장씩(2^3) 더 받아야 합니다.
+  sauceBowlTteokbokki0:"assets/minigame/E7/01_food_tteokbokki_sauce_bowl_empty.webp",
+  sauceBowlTteokbokki1:"assets/minigame/E7/02_food_tteokbokki_sauce_bowl_gochujang.webp",
+  sauceBowlTteokbokki2:"assets/minigame/E7/03_food_tteokbokki_sauce_bowl_gochujang_oligosaccharide.webp",
+  sauceBowlTteokbokki3:"assets/minigame/E7/04_food_tteokbokki_sauce_bowl_final.webp",
+  sauceBowlYakisoba0:"assets/minigame/E7/01_food_yakisoba_sauce_bowl_empty.webp",
+  sauceBowlYakisoba1:"assets/minigame/E7/02_food_yakisoba_sauce_bowl_soy.webp",
+  sauceBowlYakisoba2:"assets/minigame/E7/03_food_yakisoba_sauce_bowl_soy_oyster.webp",
+  sauceBowlYakisoba3:"assets/minigame/E7/04_food_yakisoba_sauce_bowl_complete.webp",
+  //   소스통 3장 x 2레시피 — 조리대 위 소스통과 왼쪽 재료 카드가 **같은 장**을 씁니다.
+  //   ⚠️ 간장은 두 레시피에 다 나오지만 납품 그림이 서로 달라 키를 나눕니다.
+  //      그래서 키가 재료 id 하나가 아니라 `레시피 + 재료` 입니다
+  //      (engine-e7-measure.js 의 SAUCE_ASSET_KEY).
+  sauceBottleTteokbokkiGochujang:"assets/minigame/E7/food_tteokbokki_sauce_play_gochujang.webp",
+  sauceBottleTteokbokkiOligosaccharide:"assets/minigame/E7/food_tteokbokki_sauce_play_oligosaccharide.webp",
+  sauceBottleTteokbokkiSoy:"assets/minigame/E7/food_tteokbokki_sauce_play_soy_sauce.webp",
+  sauceBottleYakisobaSoy:"assets/minigame/E7/food_yakisoba_soy_sauce_play_labeled.webp",
+  sauceBottleYakisobaOyster:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_labeled.webp",
+  sauceBottleYakisobaChili:"assets/minigame/E7/food_yakisoba_chili_oil_play_labeled.webp",
+  //   소스통 → 볼 화살표. **아래 E2 새우와 같은 파일**입니다 (납품본이 바이트까지
+  //   같아 공용 폴더 한 장으로 합쳤습니다). E7 은 이 한 장을 CSS 에서 돌려 →·←·↓ 로 씁니다.
+  sauceArrow:"assets/minigame/ui_arrow_right_01.webp",
+  // 부어지는 줄기는 아직 CSS 도형입니다. 흰색 실루엣 마스크 3장을 아래 경로에
+  // 넣으면 재료 색은 E7 설정값(SAUCE_RECIPES 의 color)으로 입혀집니다.
   sauceFlowThin:"assets/prep/sauce/flow-thin.png",
   sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
   sauceFlowThick:"assets/prep/sauce/flow-thick.png",
@@ -253,8 +277,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      가운데 판은 Vessel(위에서 내려다본 큰 그릇)입니다.
      도마(assets/minigame/fix_tempura_prep_board)는 CSS 배경이라 여기 없습니다
      (ui_play_tray_wood 와 같습니다). E1 썰기·E2 채썰기와 같은 장을 씁니다. */
-  // 그릇 사이 진행 화살표. 한 장을 두 자리에 씁니다(둘째는 CSS 에서 135도 회전).
-  shrimpArrow:"assets/minigame/E2/shrimp/ui_arrow_right_01.webp",
+  /* 그릇 사이 진행 화살표. 한 장을 두 자리에 씁니다(둘째는 CSS 에서 135도 회전).
+     ⚠️ E7 소스 제조와 **같은 파일**이라 공용 폴더(assets/minigame/)에 있습니다.
+        위 sauceArrow 와 같은 장이니 어느 한쪽만 갈아 끼울 수 없습니다. */
+  shrimpArrow:"assets/minigame/ui_arrow_right_01.webp",
   shrimpVesselFlour:"assets/minigame/E2/shrimp/food_tempura_flour_bowl.webp",
   shrimpVesselEgg:"assets/minigame/E2/shrimp/food_egg_wash_bowl.webp",
   shrimpVesselBreadcrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_bowl.webp",
