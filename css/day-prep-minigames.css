@@ -3266,12 +3266,37 @@
 .fp-wave.left { transform: scaleX(-1); }
 
 /* ── 새우튀김 준비 : 그릇 세 개 ──────────────────────────────
-   지나온 그릇은 흐려지고, 지금 그릇만 밝게 켜집니다. */
-.fp-coat-row { display: flex; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); }
+   지나온 그릇은 흐려지고, 지금 그릇만 밝게 켜집니다.
+
+   원래 세 그릇이 가로 한 줄이라 조리대(824.2 x 573.2 안쪽)의 가로만
+   꽉 차고 세로는 절반 넘게 비었습니다. 삼각형으로 세웠습니다.
+
+        [밀가루] →  [계란물]
+              [빵가루] ↙
+
+   마크업은 그대로입니다 — 그릇 div 셋과 그 사이 화살표 i 둘이
+   차례로 오고, 여기서 격자 칸만 지정합니다.
+   (밀가루/계란물/빵가루 클래스는 SHRIMP_COAT_STEPS 의 id 입니다) */
+.fp-coat-row {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto;
+  place-content: center;
+  place-items: center;
+  column-gap: calc(16 * var(--upx));
+  row-gap: calc(10 * var(--upx));
+}
 .fp-coat-station { position: relative; display: grid; place-items: center; opacity: .42; transition: opacity .15s; }
 .fp-coat-station.done { opacity: .72; }
 .fp-coat-station.current { opacity: 1; }
-.fp-coat-arrow { flex: none; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+.fp-coat-station.flour { grid-area: 1 / 1; }
+.fp-coat-station.egg { grid-area: 1 / 3; }
+/* 빵가루는 아래 가운데 — 위 두 그릇 사이에 걸칩니다 */
+.fp-coat-station.breadcrumbs { grid-area: 2 / 2; }
+.fp-coat-arrow { color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+/* 첫 화살표는 밀가루 → 계란물(오른쪽), 둘째는 계란물 → 빵가루(왼쪽 아래) */
+.fp-coat-row > i:nth-of-type(1) { grid-area: 1 / 2; }
+.fp-coat-row > i:nth-of-type(2) { grid-area: 2 / 3; transform: rotate(135deg); }
 .fp-vessel {
   position: relative;
   display: grid;
