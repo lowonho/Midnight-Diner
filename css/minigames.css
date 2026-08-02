@@ -826,7 +826,7 @@
   gap: calc(12 * var(--upx));
 }
 /* ± 버튼이 조작 카드로 올라가면서 비게 된 양 끝자리입니다. */
-.heat-wrap-label { color: #c7b08a; font-size: calc(15 * var(--upx)); font-weight: 800; white-space: nowrap; }
+.heat-wrap-label { color: #d8bb8b; font-size: calc(20 * var(--upx)); font-weight: 800; white-space: nowrap; }
 /* 조작 카드의 불 조절 키. 겉모습은 공용 --mg-key-*(css/minigame-parts.css)를 따르고
    크기·글꼴만 이 화면 것입니다 — E5 `.ts-key` 와 같은 큰 사각 한 글자입니다. */
 .heat-key {
@@ -846,11 +846,16 @@
 }
 /* 누르고 있는 동안 — 키캡이 눌려 들어갑니다(E5 `.ts-key.holding` 과 같습니다) */
 .heat-key.pressed { border-color:#ffe08d; background:linear-gradient(#ffdb9a,#c27b3b); transform:translateY(calc(3 * var(--upx))); box-shadow:none; }
-/* 높이·모서리는 공용 게이지 규격(--mg-gauge-h 34)을 씁니다 — 색만 이 화면 것입니다. */
+/* 이 화면만 공용 게이지 높이(--mg-gauge-h 34)보다 두껍습니다.
+   띠에 든 것이 이 바 하나뿐이고, 플레이 내내 바늘을 보고 있는 화면이라
+   띠 78 을 넘지 않는 선까지 키웠습니다(52 + 위아래 여유 13씩).
+   ⚠️ 더 키우면 띠가 78 을 넘어 위 3열이 그만큼 짧아집니다. */
 .heat-gauge {
   position: relative;
+  height: calc(52 * var(--upx));
   overflow: hidden;
   border: 2px solid #7a4a29;
+  border-radius: var(--mg-gauge-r);
   background: linear-gradient(90deg,#55799a,#d9b65e,#b84d41);
 }
 .heat-target {

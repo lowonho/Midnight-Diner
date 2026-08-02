@@ -132,9 +132,11 @@ function heatIngredientMarkup(item){
    ⚠️ id 는 예전 하단 띠의 ± 버튼에서 그대로 물려받았습니다.
       bindHeatButton 이 이 두 id 로 찾으므로 바꾸지 마세요. */
 function heatControlMarkup(){
+  // 메인 키는 A · D 입니다. 화살표(← →)와 ± 도 그대로 받지만 보조로만 적습니다.
+  // 받는 키 목록은 아래 key/keyup 이 갖고 있습니다 — 함께 고쳐야 합니다.
   const keys=[
-    {id:"heatDown",glyph:"−",name:"불 줄이기",hint:"← 또는 A"},
-    {id:"heatUp",glyph:"＋",name:"불 키우기",hint:"→ 또는 D"}
+    {id:"heatDown",glyph:"A",name:"불 줄이기",hint:"또는 ← · −"},
+    {id:"heatUp",glyph:"D",name:"불 키우기",hint:"또는 → · ＋"}
   ];
   return `<div class="heat-keys">${keys.map(key=>`<span class="heat-key-row">
       <button class="heat-key" id="${key.id}" type="button" aria-label="${key.name}">${key.glyph}</button>
