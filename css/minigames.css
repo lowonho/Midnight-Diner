@@ -824,7 +824,11 @@
 
 /* 왼쪽 재료 카드 : 볶기 전에 이미 철판에 올라가 있으므로 보여주기만 합니다 */
 .yk-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
-.yk-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: var(--mg-ing-list-gap); }
+/* ⚠️ `1fr` 이 아니라 `minmax(0,1fr)` 입니다. `1fr` 은 `minmax(auto,1fr)` 이라
+   내용이 크면 행이 따라 커집니다. 재료 그림이 칸보다 조금만 커도 카드 3장이
+   같이 부풀어 패널을 뚫고 아래 화살표 칩 줄까지 내려옵니다(실제로 그랬습니다).
+   0 으로 막아 두면 카드 높이는 언제나 패널이 정합니다. */
+.yk-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,1fr); gap: var(--mg-ing-list-gap); }
 /* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css */
 .yk-ing-card {
   display: grid;
@@ -834,7 +838,25 @@
 .yk-ing-art { position: relative; display: grid; place-items: center; }
 .yk-ing-art i { position: relative; display: block; width: calc(86 * var(--upx)); height: calc(86 * var(--upx)); }
 .yk-ing-art.has-asset i { display: none; }
-.yk-ing-asset { max-width: 100%; max-height: calc(94 * var(--upx)); object-fit: contain; }
+/* 재료 그림은 **흐름에서 빼서** 그림칸(.yk-ing-art) 위에 덮습니다.
+   ⚠️ 원래 `max-height: calc(94 * var(--upx))` 였는데, 카드가 그림에 줄 수 있는
+      칸은 86 뿐이라 8 이 넘쳤습니다. 넘친 만큼 카드가 139.1 → 147 로 부풀고
+      3장이 쌓여 패널을 뚫고 아래 화살표 칩 줄과 12 겹쳤습니다.
+   숫자를 86 으로 고치는 것도, `max-height:100%` 로 두는 것도 답이 아닙니다.
+     · 숫자    이름 글꼴이나 카드 높이가 바뀌면 또 어긋납니다
+     · 100%    좌 칸은 flex(col → panel → list)로 높이가 내려오는데 중간에
+               min-height:0 이 없어 그림칸 높이가 확정되지 않습니다. % 가 풀려
+               그림이 원본 크기로 튀고 카드가 241 까지 커집니다 (실제로 그랬습니다)
+   absolute 로 띄우면 그림이 카드 높이 계산에 아예 참여하지 않으므로
+   무슨 그림이 들어와도 카드를 밀어낼 수 없습니다. 자리는 .yk-ing-art 가 정하고
+   그 안에서 object-fit:contain 이 비율을 지킵니다. (.yk-ing-art 는 position:relative) */
+.yk-ing-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .yk-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 우동 사리 / 소스병 / 손질 야채 */
@@ -890,10 +912,38 @@
 .e3-result.show { animation: e3-result-pop .6s ease-out forwards; }
 .e3-result.perfect { color: #ffe083; font-size: calc(32 * var(--upx)); }
 .e3-result.good { color: #f3d5a0; }
+/* 불(화구)은 이제 이 파일에 도형으로 없습니다. assets/minigame/E3/ 의 납품
+   에셋을 쓰는 공용 바닥 레이어로 빠졌습니다 — css/minigame-parts.css 의 .mg-burner.
+   여기서는 그 화구 **위 어디에 철판을 얹을지**만 정합니다.
+
+   철판이 앉는 높이. 화구 그림(327.4 높이)에서 불꽃은 두 줄입니다.
+     앞줄  바닥에서 121~197   ← 이것만 보입니다
+     뒷줄  바닥에서 221~294
+   뒷줄까지 보이려면 철판을 294 위로 올려야 하는데, 그러면 화구 박스(높이 327)와
+   겹치는 구간이 33 밖에 안 남아 철판이 허공에 뜬 것처럼 보입니다.
+   **앞줄만 보이게 두고 철판을 화구 위에 확실히 얹는 쪽**을 골랐습니다 —
+   실제 철판 구이대도 앞턱에서 불이 보입니다.
+
+   ⚠️ 값을 앞줄 꼭대기(197)보다 **낮게** 두는 것이 핵심입니다. 197 위로 올리면
+      불꽃이 통째로 철판 아래 드러나서, 철판이 불 위에 떠 있는 것처럼 보입니다.
+      실측한 앞줄은 바닥에서 **121 ~ 176** 이고, 그중
+        파란 밑동  121 ~ 132
+        붉은 윗불  126 ~ 176 (높이 49)
+      138 에 두면 파란 밑동은 다 보이고 **붉은 불은 24% 만** 비칩니다.
+      (160 일 때 붉은 불 69%, 145 일 때 38% 였습니다) */
+.yk-board { --yk-griddle-drop: calc(138 * var(--upx)); }
 .yk-griddle {
-  position: relative;
-  width: min(100%,calc(880 * var(--upx)));
-  height: min(100%,calc(460 * var(--upx)));
+  /* ⚠️ 가운데 정렬에 transform 을 쓰지 않습니다 — 위 .frying-pan 과 같은 이유입니다 */
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: var(--yk-griddle-drop);
+  /* 철판 그림 비율(1520x643 = 2.3649) 그대로입니다. 여기를 바꾸면 그림이
+     object-fit:contain 으로 줄어들면서 판 좌우에 빈 자리가 생깁니다. */
+  width: calc(760 * var(--upx));
+  height: calc(321 * var(--upx));
+  margin-inline: auto;
   border-radius: calc(16 * var(--upx));
   background: linear-gradient(#6d675e,#403b35 22%,#26231f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b857b, 0 calc(10 * var(--upx)) calc(22 * var(--upx)) rgba(0,0,0,.5);
@@ -913,29 +963,17 @@
   box-shadow: inset 0 0 calc(34 * var(--upx)) rgba(0,0,0,.65);
 }
 .yk-griddle.has-asset { background: none; box-shadow: none; }
-.yk-griddle.has-asset::before,
-.yk-griddle.has-asset .yk-fire { display: none; }
+.yk-griddle.has-asset::before { display: none; }
 .yk-griddle-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-/* 앞턱 아래에서 새어 나오는 불 */
-.yk-fire {
-  position: absolute;
-  left: calc(34 * var(--upx));
-  right: calc(34 * var(--upx));
-  bottom: calc(16 * var(--upx));
-  height: calc(26 * var(--upx));
-  border-radius: calc(13 * var(--upx));
-  background: linear-gradient(90deg,rgba(255,138,40,0) 0,#ff9a34 16%,#ffd583 50%,#ff9a34 84%,rgba(255,138,40,0) 100%);
-  filter: blur(calc(3 * var(--upx)));
-  animation: yk-fire-flicker 1.1s ease-in-out infinite;
-}
-/* 볶이는 면 (임시 도형) */
+/* 볶이는 면 (CSS 그대로). 자리만 새 철판 그림의 조리면에 맞췄습니다 —
+   아래 여백이 27% 일 때는 면이 판 위쪽으로 쏠리고 아래 1/3 이 비었습니다. */
 .yk-food {
   position: absolute;
   z-index: 1;
   left: 13%;
   right: 13%;
   top: 17%;
-  bottom: 27%;
+  bottom: 19%;
   transform-origin: center;
   transition: filter .22s ease;
 }
@@ -1056,9 +1094,22 @@
   line-height: 1;
   text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
 }
+/* '다음 순서' 화살표 그림. 납품 원본이 256 이라 그 절반인 128 이 상한입니다.
+   더 키우면 없던 화소를 지어내는 셈이라 흐려집니다 (칸은 226 x 약 289 로 넉넉합니다). */
+.yk-next-arrow-asset {
+  width: calc(128 * var(--upx));
+  height: calc(128 * var(--upx));
+  object-fit: contain;
+  /* 칩 안 화살표와 같은 두 겹 빛인데, 그림이 2.7배 커서 번지는 거리도 같이 키웁니다.
+     (여기만 작게 두면 큰 화살표가 오히려 밋밋해 보입니다) */
+  filter:
+    drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,206,120,.6))
+    drop-shadow(0 0 calc(34 * var(--upx)) rgba(255,166,60,.38));
+}
 
-/* 아래 화살표 8칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
-   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다 */
+/* 아래 화살표 12칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
+   칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다.
+   ⚠️ 다만 칩 나무틀 그림은 폭이 고정이라 따라오지 않습니다 — 아래 .yk-chip 주석 참고 */
 .yk-seq {
   grid-column: 1 / -1;
   display: grid;
@@ -1070,33 +1121,64 @@
   border-radius: calc(10 * var(--upx));
   background: linear-gradient(#1d120b,#120b07);
 }
+/* 칩 나무틀은 다른 UI 틀과 같은 "크기별 통짜 그림"입니다 (9-slice 아님).
+   ⚠️ 칸 수가 폭을 정하기 때문에 김치 볶기와 파일이 다릅니다.
+        볶음우동  12칸 → (1340.2 − 8x11) / 12 = 104.35 x 78 → _209x156
+        김치 볶기 10칸 → (1340.2 − 8x9)  / 10 = 126.8 x 78  → _254x156  (css/day-prep-minigames.css)
+      STIR_TOTAL 을 바꾸면 폭이 어긋납니다.
+      그때는 tools/build-minigame-art-webp.js 의 크기표부터 고치세요.
+   테두리는 `transparent` 로 남깁니다 — '지금 차례'가 이 자리에 금테를 그립니다. */
 .yk-chip {
   display: grid;
   place-items: center;
   height: var(--yk-chip);
-  border: 2px solid #6b452a;
+  border: 2px solid transparent;
   border-radius: calc(8 * var(--upx));
-  background: linear-gradient(#2a1a11,#170e08);
-  color: #e0a44a;
+  background-color: #2a1a11;
+  background-image: url("../assets/minigame/E3/ui_arrow_chip_209x156.webp");
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  color: #e0a44a;                  /* 그림이 못 뜰 때 남는 글자 화살표(←↑→↓) 색 */
   font-size: calc(40 * var(--upx));
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(12 * var(--upx)) rgba(224,164,74,.45);
-  transition: background .12s ease, color .12s ease, transform .12s ease;
+  transition: filter .12s ease, transform .12s ease;
+}
+/* 칩 안 화살표 그림. 나무틀 안쪽에 여백을 남기고 앉습니다.
+   빛의 사연(왜 box-shadow 가 아니라 drop-shadow 인지, 왜 두 겹인지)은
+   css/day-prep-minigames.css 의 .kf-chip-asset 주석에 적어 두었습니다. 값은 같습니다. */
+.yk-chip-asset {
+  width: calc(48 * var(--upx));
+  height: calc(48 * var(--upx));
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 calc(6 * var(--upx)) rgba(255,196,104,.55))
+    drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,166,60,.32));
 }
 .yk-chip.current {
   border-color: #ffd98a;
-  background: linear-gradient(#4a2f16,#2a1a0d);
   color: #ffdc95;
   box-shadow: 0 0 0 calc(3 * var(--upx)) #e8a33f, 0 0 calc(18 * var(--upx)) rgba(255,205,110,.55);
   transform: translateY(calc(-3 * var(--upx)));
+  filter: brightness(1.1);
 }
+/* 지금 차례 칸은 화살표도 한 단 더 달아오릅니다 */
+.yk-chip.current .yk-chip-asset {
+  filter:
+    drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,216,144,.78))
+    drop-shadow(0 0 calc(20 * var(--upx)) rgba(255,170,60,.45));
+}
+/* 다 볶은 칸. 그림이 깔려 있어 배경색 대신 밝기를 죽여 지나간 티를 냅니다.
+   화살표 빛도 같이 끕니다 — 남겨 두면 지나간 칸이 아직 차례처럼 보입니다. */
 .yk-chip.done {
-  border-color: #3f3125;
-  background: linear-gradient(#241c14,#16110c);
   color: #6d5a41;
   text-shadow: none;
+  filter: brightness(.5) saturate(.6);
 }
+.yk-chip.done .yk-chip-asset { filter: none; }
 .yk-chip.queued { opacity: .44; }
 .yk-chip.upcoming { opacity: .76; }
 .yk-chip.wrong { animation: yk-chip-wrong .26s ease; }
@@ -1134,7 +1216,6 @@
 @keyframes yk-spatula-wrong-right { 35% { transform:rotate(9deg); } 70% { transform:rotate(24deg); } }
 @keyframes yk-food-complete { 45% { transform: scale(1.035); filter: saturate(1.3) brightness(1.04); } }
 @keyframes e3-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
-@keyframes yk-fire-flicker { 50% { opacity: .72; transform: scaleY(.8); } }
 @keyframes yk-steam-rise {
   0% { opacity: 0; transform: translateY(calc(14 * var(--upx))) translateX(0); }
   45% { opacity: .75; }
@@ -1151,7 +1232,9 @@
   .yk-ing-art i { width: calc(60 * var(--upx)); height: calc(60 * var(--upx)); }
   .yk-count strong { font-size: calc(42 * var(--upx)); }
   .yk-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
+  .yk-next-arrow-asset { width: calc(76 * var(--upx)); height: calc(76 * var(--upx)); }
   .yk-chip { font-size: calc(26 * var(--upx)); }
+  .yk-chip-asset { width: calc(32 * var(--upx)); height: calc(32 * var(--upx)); }
 }
 
 @media (prefers-reduced-motion:reduce) {
@@ -1278,7 +1361,12 @@
 .ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
 .ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
 .ts-ing-art.has-asset i { display: none; }
-.ts-ing-asset { max-width: 100%; max-height: calc(150 * var(--upx)); object-fit: contain; }
+/* ⚠️ 원래 max-height 가 150 이었습니다. 그림칸이 210 x 225 라 정사각 그림이
+   150 에서 먼저 막혀 카드(226 x 280) 안에서 작아 보였습니다. 210 으로 올려
+   **가로가 먼저 막게** 했습니다 (E10 재료 카드와 같은 방식).
+   그림칸 세로 225 보다 작으므로 카드를 밀어낼 일은 없습니다.
+   바로 아래 `.ts-ing-art i` 의 150 은 에셋이 없을 때 쓰는 임시 도형이라 그대로 둡니다. */
+.ts-ing-asset { max-width: 100%; max-height: calc(210 * var(--upx)); object-fit: contain; }
 .ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
@@ -1372,18 +1460,18 @@
 
 /* ── 가운데 : 조리 도구 + 게이지 한 줄 ─────────────────────── */
 .ts-main { display: grid; grid-template-rows: minmax(0,1fr) auto; gap: calc(12 * var(--upx)); min-width: 0; }
+/* ⚠️ 볶음우동(.yk-board)과 같이 **테두리 없는 맨 칸**입니다. 원래 나무 액자
+   (테두리 5 + 안여백 12 + 배경 + 안쪽 그림자)가 있었는데 화구가 그 안에 갇혀
+   보여서 뺐습니다. 액자를 되살리면 화구·팬의 절대배치 기준(패딩 박스)이
+   824.2 x 455.2 → 814.2 x 445.2 로 줄어 --ts-pan-drop 도 다시 잡아야 합니다. */
 .ts-board {
   position: relative;
   display: grid;
   place-items: center;
+  min-width: 0;
   min-height: 0;
-  padding: calc(12 * var(--upx));
-  border: calc(5 * var(--upx)) solid #4a4038;
-  border-radius: calc(14 * var(--upx));
-  background:
-    radial-gradient(ellipse at 50% 78%,rgba(255,150,60,.14),rgba(0,0,0,0) 62%),
-    linear-gradient(#2a2320,#161211);
-  box-shadow: inset 0 0 calc(40 * var(--upx)) rgba(0,0,0,.6);
+  /* 팬 손잡이가 칸 오른쪽으로 15 나갑니다 — E3 김치 볶기(.kf-board)와 같이 잘라 냅니다. */
+  overflow: hidden;
 }
 .e5-result {
   position:absolute;
@@ -1425,8 +1513,9 @@
   border-left: calc(22 * var(--upx)) solid rgba(240,224,196,.8);
   transform: rotate(28deg);
 }
-/* 가운데에서는 조리 도구를 크게 씁니다 (기본 크기는 위 .two-side-pan) */
-.ts-board .two-side-pan { width: calc(430 * var(--upx)); height: calc(215 * var(--upx)); margin-bottom: calc(40 * var(--upx)); }
+/* 가운데에서는 조리 도구를 크게 씁니다 (기본 크기는 위 .two-side-pan).
+   팬은 E3 김치 볶기와 같습니다. 세로는 그림 비율(2.3022)에서 뽑습니다. */
+.ts-board .two-side-pan { width: var(--ts-pan-w); height: calc(var(--ts-pan-w) / 2.3022); margin-bottom: calc(40 * var(--upx)); }
 .ts-board .two-side-pan::after { top: calc(198 * var(--upx)); }
 .ts-board .two-side-pan.skewer-cook { width: calc(470 * var(--upx)); height: calc(250 * var(--upx)); margin-bottom: 0; }
 .ts-board .skewer-cook .cook-food { inset: calc(20 * var(--upx)) calc(-12 * var(--upx)) calc(14 * var(--upx)) calc(10 * var(--upx)); }
@@ -1436,40 +1525,62 @@
 .ts-board .grill-skewer em { width: calc(48 * var(--upx)); height: calc(34 * var(--upx)); }
 .ts-board .grill-skewer em { width: calc(38 * var(--upx)); }
 .ts-board .charcoal-bed { height: calc(96 * var(--upx)); }
-/* 반동 뒤집기 단계도 같은 자리에 같은 크기로 놓입니다 */
-.ts-board .flip-rebound-scene { height: 100%; }
-.ts-board .flip-rebound-scene .two-side-pan { margin: 0; }
-/* 김치전 : 팬을 올려 놓는 화구 (임시 도형) */
-.ts-cooktop { position: relative; display: grid; place-items: center; padding-bottom: calc(30 * var(--upx)); }
+/* 반동 뒤집기 단계도 같은 자리에 같은 크기로 놓입니다.
+   ⚠️ 여기 있던 `.ts-board .flip-rebound-scene .two-side-pan { margin: 0 }` 은 뺐습니다.
+      선택자가 3단이라 아래 화구 규칙의 `margin-inline: auto`(2단)를 이겨서
+      팬이 가운데로 안 갑니다. 세로 여백은 그 규칙이 margin-block:0 으로 지웁니다. */
+/* 김치전 : 팬을 올려 놓는 화구.
+   E3 김치 볶기와 **같은 가스버너 그림**을 씁니다 (css/minigame-parts.css 의 .mg-burner).
+   ⚠️ E5 만 다른 점 : 아래 Space 버튼 줄 때문에 조리 연출 칸이 455 로 낮습니다.
+      E3 처럼 가로를 꽉 채우면 화구 세로가 458 이 되어 칸을 넘칩니다. 그래서 여기서만
+      **세로를 칸에 맞추고 가로가 따라오게** 뒤집었습니다 (445 x 791 — 사실상 꽉 찹니다).
+      아래 정렬은 E3 와 똑같습니다. */
+/* ⚠️ `height: auto` 를 꼭 같이 줘야 합니다. .flip-rebound-scene 에는 위쪽(176줄)에
+   `height: calc(190 * var(--upx))` 가 박혀 있는데, 높이가 명시되면 absolute 상자는
+   bottom:0 을 무시합니다. 그러면 칸이 190 으로 쪼그라들어 팬이 위로 잘립니다. */
+.ts-cooktop,
+.flip-rebound-scene { position: absolute; inset: 0; height: auto; }
+/* ⚠️ 여기 있던 "굽기 단계만 세로 기준으로 뒤집기" 규칙은 뺐습니다.
+   예전 가스버너(비율 1.78)는 가로를 채우면 세로가 458 이라 굽기 칸(455)을 넘쳐서
+   세로 기준으로 돌려야 했습니다. 지금 화구(2.29)는 납작해서 가로를 채워도
+   세로가 359.6 뿐이라 두 단계 모두 기본(가로 기준)으로 들어갑니다.
+   되살리면 오히려 화구 가로가 1043 이 되어 칸을 넘칩니다. */
+/* 팬 자리는 E3 김치 볶기(--kf-pan-drop · --kf-pan-w)와 같은 뜻이고 값도 같습니다. */
+/* 드롭은 E3 김치 볶기와 같은 142 입니다 — 화구 중앙 헤드(바닥에서 142~260)가
+   딱 가려지는 높이입니다. 자세한 근거는 css/day-prep-minigames.css 의 .kf-board 주석 참고.
+   ⚠️ 폭만 E3(820)보다 작은 710 입니다. E5 굽기 칸은 아래 Space 버튼 줄 때문에
+      455.2 로 48 낮아서, 820 을 쓰면 팬 윗변이 498 로 칸을 43 넘어 잘립니다.
+      710 이면 450.4 로 들어갑니다 (여유 4.8). */
+.ts-board {
+  --ts-pan-drop: calc(142 * var(--upx));
+  --ts-pan-w: calc(710 * var(--upx));
+  /* 왼쪽으로 살짝 당기는 보정 — 뜻과 이유는 .kf-board 의 --kf-pan-nudge 주석과 같습니다.
+     팬이 E3 보다 작은 만큼(710/820) 값도 그만큼 줄였습니다. */
+  --ts-pan-nudge: calc(12 * var(--upx));
+}
+/* 후라이팬은 E3 김치 볶기와 **같은 그림**이라 자리 잡는 방법도 같습니다.
+   그림에 손잡이가 함께 들어 있어 몸통 중심이 왼쪽에서 39.9% 지점입니다.
+   `left:50%` 에서 그만큼 되당겨야 몸통 한가운데가 화구 불꽃 링 중심에 옵니다.
+   ⚠️ 가운데 정렬에 transform 을 쓰지 않습니다. 반동 뒤집기 단계에서
+      engine-e5-two-side-cook.js 가 #reboundPan 의 transform 을 직접 씁니다. */
 .ts-cooktop .two-side-pan,
-.flip-rebound-scene .two-side-pan { z-index: 2; }
-.ts-grate {
+.flip-rebound-scene .two-side-pan {
   position: absolute;
-  z-index: 0;
+  z-index: 2;
   left: 50%;
-  top: 50%;
-  width: calc(470 * var(--upx));
-  height: calc(250 * var(--upx));
-  border: calc(4 * var(--upx)) solid #4d4842;
-  border-radius: calc(12 * var(--upx));
-  background: repeating-linear-gradient(90deg,transparent 0 calc(30 * var(--upx)),#3d3934 calc(31 * var(--upx)) calc(36 * var(--upx)),transparent calc(37 * var(--upx)) calc(52 * var(--upx)));
-  transform: translate(-50%,-50%);
+  right: auto;
+  bottom: var(--ts-pan-drop);
+  margin: 0;                       /* .two-side-pan 기본 margin-bottom 30 을 지웁니다 */
+  margin-left: calc(var(--ts-pan-w) * -0.399 - var(--ts-pan-nudge));
 }
-.ts-burner {
-  position: absolute;
-  z-index: 1;
-  left: 50%;
-  top: 62%;
-  width: calc(150 * var(--upx));
-  height: calc(46 * var(--upx));
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 40%,#cfe9ff 0 22%,#5aa8e8 38%,rgba(40,120,200,.35) 68%,rgba(0,0,0,0) 100%);
-  filter: blur(calc(2 * var(--upx)));
-  transform: translate(-50%,-50%);
-  animation: ts-burner-flicker 1.2s ease-in-out infinite alternate;
-}
-.flip-rebound-scene .ts-grate { top: 58%; }
-.flip-rebound-scene .ts-burner { top: 70%; }
+/* 팬 그림 (E3 와 공용). 없으면 아래 CSS 임시 팬이 그대로 보입니다. */
+.two-side-pan.has-prep-asset { border-color: transparent; background: transparent; box-shadow: none; }
+.two-side-pan.has-prep-asset::after { display: none; }   /* 임시 팬의 막대 손잡이 */
+.two-side-pan-asset { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 굽는 김치전(CSS 그대로). 자리는 % 로 잡습니다 — 팬 그림의 오른쪽 20% 가
+   손잡이라, 고정 여백으로 두면 김치전이 손잡이 위로 흘러넘칩니다.
+   ⚠️ 팬 안쪽 면에 여백이 남도록 일부러 작게 잡았습니다 (E3 .frying-kimchi 와 같은 값). */
+.pancake-cook .cook-food { inset: 14% 27% 16% 7%; }
 
 /* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
 .ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }
@@ -1520,11 +1631,10 @@
 .ts-gauge-slot .rebound-gauge { height: calc(32 * var(--upx)); border: calc(3 * var(--upx)) solid #7d5330; }
 .ts-gauge-slot .skewer-flip-sequence { max-width: calc(520 * var(--upx)); }
 
-@keyframes ts-burner-flicker { from { opacity: .72; transform: translate(-50%,-50%) scaleX(.96); } to { opacity: 1; transform: translate(-50%,-50%) scaleX(1.04); } }
 @keyframes e5-result-in { to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 
 @media (prefers-reduced-motion:reduce) {
-  .cook-bubbles b,.charcoal-bed > i,.charcoal-flame,.ts-burner,.two-side-pan.flip-ready { animation:none; }
+  .cook-bubbles b,.charcoal-bed > i,.charcoal-flame,.two-side-pan.flip-ready { animation:none; }
   .e5-result.show { animation:none; opacity:1; transform:translate(-50%,-50%) scale(1); }
 }
 
@@ -1536,8 +1646,8 @@
   .ts-key-text b { font-size: calc(15 * var(--upx)); }
   .ts-key-text em { font-size: calc(12 * var(--upx)); }
   .ts-ing-name { font-size: calc(16 * var(--upx)); }
-  .ts-board .two-side-pan { width: calc(300 * var(--upx)); height: calc(150 * var(--upx)); }
   .ts-board .two-side-pan::after { top: calc(138 * var(--upx)); }
   .ts-board .two-side-pan.skewer-cook { width: calc(330 * var(--upx)); height: calc(176 * var(--upx)); }
-  .ts-grate { width: calc(330 * var(--upx)); height: calc(180 * var(--upx)); }
+  /* 팬 크기는 --ts-pan-w 하나로 정합니다 (세로는 그림 비율에서 자동) */
+  .ts-board { --ts-pan-drop: calc(150 * var(--upx)); --ts-pan-w: calc(380 * var(--upx)); }
 }

@@ -221,6 +221,13 @@ function twoSideKeysMarkup(view, expected = "") {
     ${view.controlName ? `<p class="ts-control-name">${view.controlName}</p>` : ""}`;
 }
 
+/* 후라이팬 그림은 E3 김치 볶기와 **같은 파일**입니다 (DAY_PREP_ASSET_PATHS 의 fryingPan).
+   손잡이까지 들어 있어서 자리 잡는 규칙도 같습니다 — css/minigames.css 의 .two-side-pan 참고. */
+function pancakePanShell(inner, extraClass = "", id = "") {
+  const asset = dayPrepAssetMarkup("fryingPan", "two-side-pan-asset", "후라이팬");
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}>${asset}${inner}</div>`;
+}
+
 function pancakeCookFoodMarkup(){
   const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.pancake.foodAsset,"pancake-food-asset","굽는 김치전");
   return `<i class="cook-food ${asset?"has-asset":""}">${asset}<span class="cook-bubbles" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span></i>`;
@@ -229,9 +236,10 @@ function pancakeCookFoodMarkup(){
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
 function twoSideStageMarkup(data, extraClass = "") {
   if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
+  // 화구(가스버너)와 팬은 분리된 두 겹입니다 — day-prep-minigames.js 의 minigameBurnerMarkup 참고
   return `<div class="ts-cooktop">
-      <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
-      <div class="two-side-pan pancake-cook ${extraClass} side-${data.side}">${pancakeCookFoodMarkup()}<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i></div>
+      ${minigameBurnerMarkup("gas")}
+      ${pancakePanShell(`${pancakeCookFoodMarkup()}<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>`,`${extraClass} side-${data.side}`)}
     </div>`;
 }
 
@@ -295,8 +303,8 @@ function renderTwoSideCook() {
   } else if (data.phase === "flip") {
     dom.miniDescription.textContent = "앞 버튼(↑)을 꾹 눌렀다가 반동으로 뒤 버튼(↓)을 눌러 뒤집으세요!";
     board = `<div class="flip-rebound-scene">
-        <i class="ts-grate" aria-hidden="true"></i><i class="ts-burner" aria-hidden="true"></i>
-        <div class="two-side-pan pancake-cook flip-ready cook-ready" id="reboundPan">${pancakeCookFoodMarkup()}</div>
+        ${minigameBurnerMarkup("gas")}
+        ${pancakePanShell(pancakeCookFoodMarkup(),"flip-ready cook-ready","reboundPan")}
         <div class="rebound-arrow" id="reboundArrow">↑</div>
       </div>`;
     gauge = `<div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>

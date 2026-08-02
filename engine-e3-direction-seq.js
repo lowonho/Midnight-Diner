@@ -40,6 +40,22 @@ function sequenceMatches(sequence,index,input){
 
 const FRY_DIRECTION_ARROWS=Object.freeze({left:"←",up:"↑",right:"→",down:"↓"});
 
+/* ---- 방향 화살표 그림 --------------------------------------
+   assets/minigame/E3/ui_arrow_*.webp 를 아래 화살표 칩과 오른쪽 '다음 순서'
+   칸 두 자리에 씁니다. 김치 볶기와 볶음우동이 같은 파일을 나눠 씁니다.
+   파일이 없으면 예전처럼 글자 화살표(← ↑ → ↓)가 그대로 나옵니다.
+   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고) */
+function directionArrowAssetKey(direction){
+  return direction?`arrow${direction[0].toUpperCase()}${direction.slice(1)}`:"";
+}
+// className 은 자리마다 크기가 달라서 받습니다 (칩 안 46 / '다음 순서' 128).
+function directionArrowMarkup(direction,className){
+  const glyph=FRY_DIRECTION_ARROWS[direction];
+  if(!glyph)return "✓";                    // 다 볶아서 다음 순서가 없을 때
+  const key=directionArrowAssetKey(direction);
+  return hasDayPrepAsset(key)?dayPrepAssetMarkup(key,className,glyph):glyph;
+}
+
 const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   kimchi:Object.freeze({
     total:10,
@@ -221,15 +237,12 @@ function renderKimchiFry(){
       </aside>
 
       <div class="kf-board cook-stage-${directionVisualStage(data.successes,data.total)}" id="fryWorkArea">
-        <div class="kf-stove ${hasDayPrepAsset("fryStove")?"has-asset":""}">
-          ${dayPrepAssetMarkup("fryStove","kf-stove-asset","가스레인지")}
-          <i class="kf-flame"></i>
-          <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
-            ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
-            <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
-            <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
-            <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
-          </div>
+        ${minigameBurnerMarkup("gas")}
+        <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
+          ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
+          <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
+          <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
+          <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -241,12 +254,12 @@ function renderKimchiFry(){
         </div>
         <div class="kf-panel kf-next">
           <h3 class="kf-col-title">다음 순서</h3>
-          <div class="kf-next-arrow" id="fryNextArrow">${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]||"✓"}</div>
+          <div class="kf-next-arrow" id="fryNextArrow">${directionArrowMarkup(data.sequence[data.successes],"kf-next-arrow-asset")}</div>
         </div>
       </aside>
 
       <div class="kf-seq" aria-label="볶기 방향 순서">
-        ${data.sequence.map((direction,index)=>`<span class="kf-chip ${directionSequenceClasses(index,data.successes)}" data-sequence-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
+        ${data.sequence.map((direction,index)=>`<span class="kf-chip ${directionSequenceClasses(index,data.successes)}" data-sequence-index="${index}">${directionArrowMarkup(direction,"kf-chip-asset")}</span>`).join("")}
       </div>
     </div>`;
   bindDirectionSlide({
@@ -280,7 +293,7 @@ function kimchiFryInput(direction,repeat=false){
       const count=dom.miniContent.querySelector("#fryCount");
       if(count)count.textContent=`${data.successes} / ${data.total}`;
       const nextArrow=dom.miniContent.querySelector("#fryNextArrow");
-      if(nextArrow)nextArrow.textContent=FRY_DIRECTION_ARROWS[data.sequence[data.successes]]||"✓";
+      if(nextArrow)nextArrow.innerHTML=directionArrowMarkup(data.sequence[data.successes],"kf-next-arrow-asset");
       const work=dom.miniContent.querySelector("#fryWorkArea");
       if(work){
         const actionClass=`stir-${direction}`,stage=`cook-stage-${directionVisualStage(data.successes,data.total)}`;
@@ -370,6 +383,7 @@ function renderStirScene(){
       </aside>
 
       <div class="yk-board cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}" id="stirWorkArea">
+        ${minigameBurnerMarkup("griddle")}
         <div class="yk-griddle ${hasDayPrepAsset("stirGriddle")?"has-asset":""}" id="stirPlate">
           ${dayPrepAssetMarkup("stirGriddle","yk-griddle-asset","철판")}
           <i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>
@@ -384,7 +398,6 @@ function renderStirScene(){
           </div>
           <i class="yk-spatula spatula-left ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","왼쪽 철판 뒤집개")}</i>
           <i class="yk-spatula spatula-right ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","오른쪽 철판 뒤집개")}</i>
-          <i class="yk-fire"></i>
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -396,12 +409,12 @@ function renderStirScene(){
         </div>
         <div class="yk-panel yk-next">
           <h3 class="yk-col-title">다음 순서</h3>
-          <div class="yk-next-arrow" id="stirNextArrow">${FRY_DIRECTION_ARROWS[data.arrows[data.index]]||"✓"}</div>
+          <div class="yk-next-arrow" id="stirNextArrow">${directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset")}</div>
         </div>
       </aside>
 
       <div class="yk-seq" aria-label="볶기 방향 순서">
-        ${data.arrows.map((direction,index)=>`<span class="yk-chip ${directionSequenceClasses(index,data.index)}" data-stir-index="${index}">${FRY_DIRECTION_ARROWS[direction]}</span>`).join("")}
+        ${data.arrows.map((direction,index)=>`<span class="yk-chip ${directionSequenceClasses(index,data.index)}" data-stir-index="${index}">${directionArrowMarkup(direction,"yk-chip-asset")}</span>`).join("")}
       </div>
     </div>`;
   bindDirectionSlide({
@@ -435,7 +448,7 @@ function stirInput(direction,repeat=false){
       const count=dom.miniContent.querySelector("#stirCount");
       if(count)count.textContent=`${data.index} / ${STIR_TOTAL}`;
       const nextArrow=dom.miniContent.querySelector("#stirNextArrow");
-      if(nextArrow)nextArrow.textContent=FRY_DIRECTION_ARROWS[data.arrows[data.index]]||"✓";
+      if(nextArrow)nextArrow.innerHTML=directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset");
       const work=dom.miniContent.querySelector("#stirWorkArea");
       if(work){
         const actionClass=`scrape-${direction}`,stage=`cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}`;
