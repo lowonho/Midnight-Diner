@@ -66,18 +66,18 @@ function cutTimingGrade(marker,zoneStart,zoneWidth){
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
 const CUT_POSITION_PERCENTAGES=Object.freeze({
-  radish:Object.freeze([78.6,70.5,62.6,54.5,46.7,38.3,30.5]),
+  radish:Object.freeze([78.3,70.6,62.6,54.6,46.9,38.6,30.2]),
   fishCake:Object.freeze([74.3,51.3,26.7]),
-  cabbage:Object.freeze([71.5,67.5,63.4,59.5,55.7,52,48,44.1,40,36.1,32.1]),
-  chicken:Object.freeze([77.1,71.4,65.8,60.3,54.2,48.1,42.2,36.8,31.5,25.9]),
+  cabbage:Object.freeze([71.4,67.3,63.1,59.2,55.5,51.7,47.8,43.8,40,35.8,32.2,28.4]),
+  chicken:Object.freeze([77,71.8,66.3,60.3,53.9,47.9,42.4,37,31.4,26,21.7]),
   greenOnion:Object.freeze([76.6,68.6,59.9,52.1,42.6,34,26]),
-  kimchi:Object.freeze([74.1,68.2,62.4,56.8,51.2,45.3,39.7,33.9,28.7]),
+  kimchi:Object.freeze([73.8,68,62.2,56.5,51,45.3,39.6,33.7,28.5]),
   tofu:Object.freeze([85.2,71.3,57.5,43.6,29.7,15.5])
 });
 
 // 새 절단 횟수가 기존 진행 스프라이트보다 많아도 그림이 중간에 끊기지 않게
 // 완료 비율을 현재 보유한 마지막 스프라이트 단계에 비례시킵니다.
-const CUT_ASSET_STAGE_MAX=Object.freeze({radish:4,fishCake:4,cabbage:4,chicken:5,greenOnion:4,kimchi:5,tofu:6});
+const CUT_ASSET_STAGE_MAX=Object.freeze({radish:7,fishCake:4,cabbage:12,chicken:11,greenOnion:7,kimchi:9,tofu:6});
 
 function cutAssetStage(data,completed=data.successes||0){
   const max=data.assetStageMax??CUT_ASSET_STAGE_MAX[data.ingredient]??data.total;
@@ -128,7 +128,7 @@ function cutPiecesMarkup(ingredient,count,newestIndex=-1){
 // 완성 예시 : 마지막 손질 단계 그림이 있으면 그걸, 없으면 그릇에 담긴 조각들.
 function cutDoneSampleMarkup(data,total){
   const key=timingAssetKey(data.ingredient,data.assetStageMax??CUT_ASSET_STAGE_MAX[data.ingredient]??total,data.assetPrefix);
-  if(hasDayPrepAsset(key))return `<i class="cut-sample has-prep-asset">${dayPrepAssetMarkup(key,"cut-sample-asset","")}</i>`;
+  if(hasDayPrepAsset(key))return `<i class="cut-sample ${data.ingredient}-shape has-prep-asset">${dayPrepAssetMarkup(key,"cut-sample-asset","")}</i>`;
   return `<div class="cut-done-bowl">${cutPiecesMarkup(data.ingredient,5)}</div>`;
 }
 

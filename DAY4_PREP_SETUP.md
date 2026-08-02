@@ -22,16 +22,16 @@ Day 4 필수 작업은 다음 순서로 잠깁니다.
 - `assets/prep/day4/tteokbokki/soak-tteok.png`
 - `assets/prep/day4/tteokbokki/soak-water.png`
 - `assets/prep/day4/tteokbokki/soak-complete.png`
-- `assets/prep/day4/tteokbokki/cabbage-0.png` ~ `cabbage-8.png`
-- `assets/prep/day4/tteokbokki/green-onion-0.png` ~ `green-onion-7.png`
-- `assets/prep/day4/tteokbokki/fish-cake-0.png` ~ `fish-cake-6.png`
+- `assets/minigame/E1/cabbage-0.png` ~ `cabbage-12.png`
+- `assets/minigame/E1/green-onion-0.png` ~ `green-onion-7.png`
+- `assets/minigame/E1/fish-cake-0.png` ~ `fish-cake-4.png`
 - `assets/prep/day4/fries/potato-0.png` ~ `potato-10.png`
 - `assets/prep/day4/fries/starch-0.png`
 - `assets/prep/day4/fries/starch-35.png`
 - `assets/prep/day4/fries/starch-70.png`
 - `assets/prep/day4/fries/starch-100.png`
 
-권장 PNG 배경은 투명, 작업물 기준 크기는 512×256 또는 512×512입니다. 칼 이미지는 기존 `assets/prep/effects/knife.png`를 재사용합니다.
+권장 PNG 배경은 투명, 작업물 기준 크기는 512×256 또는 512×512입니다. E1 칼질 재료와 칼 이미지는 모두 `assets/minigame/E1/`에서 관리합니다.
 
 ## QA 테스트
 

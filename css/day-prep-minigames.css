@@ -296,8 +296,24 @@
   height: calc(178 * var(--upx));
   transform-origin: 50% 78%;
 }
-.cut-board .prep-work-object.radish-shape { width:min(90%,calc(540 * var(--upx))); height:calc(150 * var(--upx)); }
-.cut-board .prep-work-object.greenOnion-shape { width:min(90%,calc(540 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape { width:min(96%,calc(780 * var(--upx))); height:calc(150 * var(--upx)); }
+.cut-board .prep-work-object.radish-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.radish-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 46.8%;
+}
+.cut-card-figure .cut-sample.radish-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.greenOnion-shape { width:min(96%,calc(780 * var(--upx))); height:calc(138 * var(--upx)); }
+.cut-board .prep-work-object.greenOnion-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 47.4%;
+}
+.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset { overflow:hidden; }
+.cut-ref-card .cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset {
+  width:calc(210 * var(--upx));
+  height:calc(64 * var(--upx));
+}
 .cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.cabbage-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
@@ -318,9 +334,27 @@
   border-color: #fff3bd;
   filter: drop-shadow(0 0 calc(5 * var(--upx)) rgba(255,184,65,.95));
 }
-.cut-board .prep-work-object.cabbage-shape { width:min(70%,calc(301 * var(--upx))); height:calc(210 * var(--upx)); }
-.cut-board .prep-work-object.chicken-shape { width:min(86%,calc(500 * var(--upx))); height:calc(178 * var(--upx)); }
-.cut-board .prep-work-object.kimchi-shape { width:min(86%,calc(500 * var(--upx))); height:calc(216 * var(--upx)); }
+.cut-board .prep-work-object.cabbage-shape { width:min(88%,calc(620 * var(--upx))); height:calc(300 * var(--upx)); }
+.cut-board .prep-work-object.cabbage-shape.has-prep-asset > .prep-object-asset,
+.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 49.7%;
+}
+.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.chicken-shape { width:min(94%,calc(760 * var(--upx))); height:calc(190 * var(--upx)); }
+.cut-board .prep-work-object.chicken-shape > .prep-object-asset,
+.cut-card-figure .cut-sample.chicken-shape > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 50.3%;
+}
+.cut-card-figure .cut-sample.chicken-shape.has-prep-asset { overflow:hidden; }
+.cut-board .prep-work-object.kimchi-shape { width:min(94%,calc(760 * var(--upx))); height:calc(230 * var(--upx)); }
+.cut-board .prep-work-object.kimchi-shape > .prep-object-asset,
+.cut-card-figure .cut-sample.kimchi-shape > .cut-sample-asset {
+  object-fit:cover;
+  object-position:center 50.5%;
+}
+.cut-card-figure .cut-sample.kimchi-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.fishCake-shape { width:min(60%,calc(288 * var(--upx))); height:calc(204 * var(--upx)); }
 .cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(220 * var(--upx)); }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
