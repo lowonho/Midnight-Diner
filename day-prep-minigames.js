@@ -352,6 +352,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //  "냄비에 넣기"·"육수 넣기" 를 없애면서 함께 뺐습니다)
   osTofuSlices:"assets/prep/one-shot/tofu-slices.png",
   osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
+  // 접시에 한 조각씩 얹히는 그림(자유 플레이팅). 카드 그림과 따로입니다 —
+  // 카드는 더미, 이쪽은 낱개라 파일도 나뉩니다.
+  osTofuPiece:"assets/prep/one-shot/tofu-piece.png",
+  osKimchiPiece:"assets/prep/one-shot/kimchi-piece.png",
   osPlate:"assets/prep/one-shot/plate.png",
   osPlateDone:"assets/prep/one-shot/plate-done.png",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
