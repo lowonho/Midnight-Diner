@@ -65,7 +65,7 @@
     /* 자유 플레이팅은 "놓은 자리에 그대로 얹히는가" 가 전부라, 화면을 베껴
        그리지 않고 **진짜 포인터 입력**으로 끌어다 놓고 결과를 잽니다.
 
-       ?place=N     끌어다 놓을 조각 수 (기본 11 = 완성)
+       ?place=N     끌어다 놓을 조각 수 (기본 12 = 완성)
        ?outside=1   접시 칸 왼쪽 위 귀퉁이(칸 안이지만 접시 타원 밖)에 놓아 봅니다 —
                     가장자리 안쪽으로 당겨 붙어야 합니다.
                     (칸 자체를 벗어나면 아예 안 놓이고 재료가 카드로 돌아갑니다)
@@ -73,9 +73,9 @@
        ?edge=1      접시 가장자리 여덟 곳(상하좌우 + 대각선)에 몰아 놓아 봅니다 —
                     조각이 접시 밖으로 삐져나오는지 보려는 것입니다 */
     const params = new URLSearchParams(location.search);
-    const placeCount = Math.max(0, Math.min(11, Number(params.get("place") ?? 11)));
+    const placeCount = Math.max(0, Math.min(12, Number(params.get("place") ?? 12)));
 
-    /* 끌어다 놓을 자리 11곳. 접시 칸(.os-drop) 기준 0~100 좌표이고,
+    /* 끌어다 놓을 자리 12곳. 접시 칸(.os-drop) 기준 0~100 좌표이고,
        일부러 정해진 자리가 아닌 제멋대로인 곳으로 골랐습니다. */
     const DROPS = [
       { id:"tofu", x:30, y:28 }, { id:"friedKimchi", x:52, y:36 },
@@ -83,7 +83,7 @@
       { id:"tofu", x:33, y:73 }, { id:"friedKimchi", x:44, y:58 },
       { id:"tofu", x:70, y:26 }, { id:"friedKimchi", x:57, y:70 },
       { id:"tofu", x:80, y:56 }, { id:"friedKimchi", x:38, y:42 },
-      { id:"tofu", x:64, y:76 }
+      { id:"tofu", x:64, y:76 }, { id:"friedKimchi", x:72, y:38 }
     ];
 
     loadDayPrepAssets().then(() => {
@@ -154,19 +154,30 @@
          want  : 끌어다 놓은 자리
          got   : 실제로 그려진 조각의 한가운데 (접시 칸 기준 %)
          off   : 둘의 차이 — 0 에 가까워야 "놓은 자리에 얹혔다" 는 뜻입니다
-         inside: 조각이 접시(타원) 안에 다 들어와 있는지 */
+         reach : 조각 귀퉁이가 접시 테두리까지의 몇 배까지 뻗었는지.
+                 1.0 이면 딱 테두리, 1.0 을 넘으면 그만큼 접시 밖입니다.
+         over  : 조각이 접시 밖으로 나간 정도 (조각 크기 대비 %). 어림값입니다 —
+                 조각을 접시 한가운데에서 뻗은 방향으로 눕혀 놓고 잽니다.
+                 "약간 걸치는" 정도를 보는 값이라 0 이 아니어도 됩니다 —
+                 25% 안팎까지가 담음새로 보이고, 50% 를 넘으면 떨어진 것처럼 보입니다.
+         center: 조각 한가운데는 늘 접시 위여야 합니다(true 가 아니면 규격 위반) */
       const placed = pieces.map((el, index) => {
         const r = rect(el);
         const cx = (r.left + r.width / 2 - dropRect.left) / dropRect.width * 100;
         const cy = (r.top + r.height / 2 - dropRect.top) / dropRect.height * 100;
         const want = wanted[index] || null;
-        // 조각 네 귀퉁이가 전부 접시 타원(반지름 50) 안인지
-        const corners = [[r.left,r.top],[r.right,r.top],[r.left,r.bottom],[r.right,r.bottom]];
-        const inside = corners.every(([x,y]) => {
-          const nx = ((x - dropRect.left) / dropRect.width - .5) / .5;
-          const ny = ((y - dropRect.top) / dropRect.height - .5) / .5;
-          return Math.hypot(nx, ny) <= 1.02;
-        });
+        // 접시 타원(반지름 50) 기준으로 정규화 — 1.0 이 테두리입니다
+        const norm = (x, y) => Math.hypot(((x - dropRect.left) / dropRect.width - .5) / .5,
+                                          ((y - dropRect.top) / dropRect.height - .5) / .5);
+        const reach = Math.max(...[[r.left,r.top],[r.right,r.top],[r.left,r.bottom],[r.right,r.bottom]]
+          .map(([x,y]) => norm(x, y)));
+        /* 조각이 "접시 한가운데에서 뻗은 방향" 으로 얼마나 두꺼운지.
+           네 귀퉁이를 그냥 재면 접시 위쪽·왼쪽에 놓인 조각에서 음수가 나옵니다
+           (귀퉁이가 바깥이 아니라 안쪽을 향합니다). 방향을 잡아 투영합니다. */
+        const ux = Math.abs((r.left + r.width / 2 - dropRect.left) / dropRect.width - .5);
+        const uy = Math.abs((r.top + r.height / 2 - dropRect.top) / dropRect.height - .5);
+        const len = Math.hypot(ux, uy) || 1;
+        const half = (r.width / dropRect.width / 2 * (ux / len) + r.height / dropRect.height / 2 * (uy / len)) / .5;
         return {
           id:data.placements[index]?.id,
           want:want ? `${want.x},${want.y}` : null,
@@ -174,7 +185,9 @@
           off:want ? +Math.hypot(cx - want.x, cy - want.y).toFixed(2) : null,
           size:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
           rot:data.placements[index]?.rot,
-          inside
+          reach:+reach.toFixed(3),
+          over:half > 0 ? +Math.max(0, (norm(r.left + r.width / 2, r.top + r.height / 2) + half - 1) / (2 * half) * 100).toFixed(1) : null,
+          center:norm(r.left + r.width / 2, r.top + r.height / 2) <= 1
         };
       });
 
@@ -197,6 +210,13 @@
         // 접시 · 참고 모양도 같은 기준으로 재 둡니다 (표의 근거)
         design:{
           plate:`${(dropRect.width / scale).toFixed(1)}x${(dropRect.height / scale).toFixed(1)}`,
+          /* 접시 그림이 상자를 꽉 채우는지. 상자와 어긋나면 "접시 위" 판정이
+             눈에 보이는 접시와 어긋납니다(FREE_PLATE_RADIUS 가 헛돕니다). */
+          plateArt:(() => { const a = document.querySelector(".os-drop .os-vessel-asset");
+            if(!a || !a.naturalWidth) return null;
+            const r = rect(a), ratio = a.naturalWidth / a.naturalHeight;
+            const w = Math.min(r.width, r.height * ratio), h = Math.min(r.height, r.width / ratio);
+            return `${(w / scale).toFixed(1)}x${(h / scale).toFixed(1)}`; })(),
           guide:(() => { const g = document.querySelector(".os-guide-figure .os-vessel");
             const r = g && rect(g); return r ? `${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}` : null; })(),
           piece:(() => { const p = document.querySelector(".os-food.free .os-art-asset");
@@ -206,7 +226,9 @@
         // 접시에 그려진 조각들 — 여기가 이 하네스의 본론입니다
         placed,
         worstOff:Math.max(0, ...placed.map(p => p.off ?? 0)),
-        allInside:placed.every(p => p.inside),
+        // 가장 많이 삐져나온 조각이 얼마나 걸쳤는지 / 한가운데는 전부 접시 위인지
+        worstOver:Math.max(0, ...placed.map(p => p.over ?? 0)),
+        allCentersOnPlate:placed.every(p => p.center),
         finishing:!!data.finishing,
         complete:!!document.querySelector(".os-board.variant-free.complete"),
         hintGone:!document.querySelector(".os-drag-hint"),

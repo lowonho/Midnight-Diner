@@ -1313,7 +1313,7 @@
    같은 크기여야 합니다). 여기 값은 그 전에 잠깐 쓰이는 기본값입니다. */
 /* 끌고 다닐 때는 안 돌립니다 — 놓이는 각도(engine-e11 의 pieceTilt)와 다르면
    놓는 순간 조각이 홱 돌아앉는 것처럼 보입니다. 살짝 키우기만 합니다. */
-.os-drag-ghost.piece { width: calc(115 * var(--upx)); transform: translate(-50%,-50%) scale(1.06); }
+.os-drag-ghost.piece { width: calc(138 * var(--upx)); transform: translate(-50%,-50%) scale(1.06); }
 .os-drag-ghost.returning { transition: left .22s ease,top .22s ease,opacity .22s ease,transform .22s ease; opacity: .25; transform: translate(-50%,-50%) scale(.72); }
 
 /* 그릇 : 접시(플레이팅) / 냄비(어묵탕) */

@@ -422,7 +422,9 @@ try{
   state.mini={complete:false,data:{}};
   MINI_ENGINES.plateKimchi.setup(state.mini,{set(){},difficulty:1});
   const freePlate=oneShotData();
-  assert(freePlate.free&&freePlate.variant==="free"&&oneShotTotal(freePlate)===11&&oneShotLeft(freePlate,"tofu")===6&&oneShotLeft(freePlate,"friedKimchi")===5,`E11 free plating stocks 6 tofu + 5 kimchi: total=${oneShotTotal(freePlate)}`);
+  assert(freePlate.free&&freePlate.variant==="free"&&oneShotTotal(freePlate)===12&&oneShotLeft(freePlate,"tofu")===6&&oneShotLeft(freePlate,"friedKimchi")===6,`E11 free plating stocks 6 tofu + 6 kimchi: total=${oneShotTotal(freePlate)}`);
+  // 두부는 각도를 못박고(pieceTilt), 조각 한가운데가 갈 수 있는 자리는 접시 안쪽입니다
+  assert(ONE_SHOT_PIECES.tofu.pieceTilt===0&&ONE_SHOT_PIECES.friedKimchi.pieceTilt===undefined&&FREE_PLATE_RADIUS.x<50&&FREE_PLATE_RADIUS.y<50,"E11 tofu keeps one fixed angle and piece centers stay on the plate");
   const freeDrop=dom.miniContent.querySelector(".os-drop");
   freeDrop.getBoundingClientRect=()=>({left:0,top:0,width:400,height:300});
   placeOneShotItem("tofu",{drop:freeDrop,clientX:120,clientY:90});
@@ -432,8 +434,9 @@ try{
   placeOneShotItem("tofu",{drop:freeDrop,clientX:900,clientY:150});
   const clamped=freePlate.placements[1];
   assert(Math.round(clamped.x)===50+FREE_PLATE_RADIUS.x&&Math.round(clamped.y)===50,`E11 free plating pulls an off-plate drop back inside the rim: x=${clamped.x}, y=${clamped.y}`);
-  for(let i=0;i<9;i++)placeOneShotItem(nextOneShotItemId(oneShotData()));
-  assert(oneShotData().placements.length===11&&oneShotData().finishing&&dom.miniContent.querySelectorAll(".os-drop .os-food.free").length===11&&dom.miniContent.querySelector(".os-board.variant-free.complete"),`E11 free plating finishes at eleven pieces: placed=${oneShotData().placements.length}`);
+  for(let i=0;i<10;i++)placeOneShotItem(nextOneShotItemId(oneShotData()));
+  assert(oneShotData().placements.length===12&&oneShotData().finishing&&dom.miniContent.querySelectorAll(".os-drop .os-food.free").length===12&&dom.miniContent.querySelector(".os-board.variant-free.complete"),`E11 free plating finishes at twelve pieces: placed=${oneShotData().placements.length}`);
+  assert(oneShotData().placements.filter(spot=>spot.id==="tofu").every(spot=>spot.rot===0),"E11 every tofu piece lands at the same angle");
   assert(nextOneShotItemId(oneShotData())===null&&dom.miniContent.querySelectorAll(".os-ing-card[disabled]").length===2,"E11 free plating empties both ingredient cards when the plate is full");
   const odenMenu=menuDataById("oden");
   assert(odenMenu.requiredPrepTasks.join(",")==="cutRadish,cutFishCake,cleanAnchovy"&&!PREP_TASKS.addOdenBroth,"Oden prep ends at the three cutting/cleaning tasks");
