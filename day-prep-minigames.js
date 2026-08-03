@@ -345,15 +345,24 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   shrimpIngFlour:"assets/minigame/E2/shrimp/food_tempura_flour_panel.webp",
   shrimpIngEgg:"assets/minigame/E2/shrimp/food_egg_wash_panel.webp",
   shrimpIngCrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_panel.webp",
-  // 단발 액션 (engine-e11 · 두부김치 플레이팅).
-  // 재료 그림은 카드·그릇·참고 모양에 같은 파일이 쓰입니다.
-  // 그릇은 빈 접시(osPlate)와 완성 참고용(osPlateDone) 두 장입니다.
-  // (어묵탕 냄비 그림 osRadish/osFishCake/osAnchovy/osBroth/osPot/osPotDone 은
-  //  "냄비에 넣기"·"육수 넣기" 를 없애면서 함께 뺐습니다)
-  osTofuSlices:"assets/prep/one-shot/tofu-slices.png",
-  osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
-  osPlate:"assets/prep/one-shot/plate.png",
-  osPlateDone:"assets/prep/one-shot/plate-done.png",
+  /* 단발 액션 (engine-e11 · 두부김치 자유 플레이팅). 여섯 장이 자리마다 나뉩니다.
+       osTofuSlices · osFriedKimchi   왼쪽 재료 카드 (더미로 그린 그림)
+       osTofuPiece · osKimchiPiece    접시에 한 조각씩 얹히는 낱개 그림
+       osPlate                        가운데 빈 접시
+       osPlateDone                    오른쪽 '참고 모양' — 다 담은 모습 한 장
+     카드와 낱개가 다른 파일인 것이 중요합니다. 카드는 더미, 접시 위는 낱개입니다.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+     ⚠️ 빈 접시 마스터는 1254 정사각 캔버스에 접시(1025x720)만 그려져 있습니다.
+        빌드에서 그 여백을 잘라내(crop) 참고 모양 그림과 같은 크기로 맞췄습니다 —
+        안 자르면 contain 이 여백까지 맞추느라 접시가 작게 그려집니다.
+     (어묵탕 냄비 그림 osRadish/osFishCake/osAnchovy/osBroth/osPot/osPotDone 은
+      "냄비에 넣기"·"육수 넣기" 를 없애면서 함께 뺐습니다) */
+  osTofuSlices:"assets/minigame/E11/food_tofu_kimchi_ingredient_tofu.webp",
+  osFriedKimchi:"assets/minigame/E11/food_tofu_kimchi_ingredient_kimchi.webp",
+  osTofuPiece:"assets/minigame/E11/food_tofu_kimchi_tofu_piece.webp",
+  osKimchiPiece:"assets/minigame/E11/food_tofu_kimchi_kimchi_piece.webp",
+  osPlate:"assets/minigame/E11/food_tofu_kimchi_plate_empty.webp",
+  osPlateDone:"assets/minigame/E11/food_tofu_kimchi_reference_complete.webp",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // 김치전 반죽 그릇 — assets/minigame/E5/ 의 납품 에셋입니다.

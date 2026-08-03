@@ -44,7 +44,15 @@ const ART_DIR = path.join(__dirname, "..", "assets", "minigame");
    [out]      출력 이름을 따로 줄 것. 기본은 file 의 확장자만 .webp 로 바꾼 이름입니다.
               **한 마스터에서 여러 크기를 뽑을 때만** 씁니다 (E3 화살표 칩 참고).
    [stretch]  가로세로비가 원본과 달라도 경고하지 말 것 — 늘려 쓰는 것이 의도인
-              UI 틀 그림 전용입니다. 음식 그림에는 절대 붙이지 마세요. */
+              UI 틀 그림 전용입니다. 음식 그림에는 절대 붙이지 마세요.
+   [crop]     줄이기 **전에** 잘라낼 자리 [왼쪽, 위, 가로, 세로].
+              납품본 캔버스에 그림이 안 쓰는 투명 여백이 넓게 남아 있을 때 씁니다 —
+              그대로 두면 object-fit:contain 이 그 여백까지 상자에 맞추느라
+              그림이 그만큼 작게 그려집니다.
+              ⚠️ 숫자를 직접 적습니다. sharp 의 trim() 을 쓰면 임계값에 따라
+                 결과가 흔들려 convert 와 verify 가 다른 그림을 비교하게 됩니다.
+                 새 납품본을 받으면 알파 경계를 다시 재서 이 숫자를 고치세요.
+              ⚠️ 가로세로비 검사(checkAspect)도 자른 뒤 크기로 합니다. */
 const FILES = [
   { file:"ui_drag_hand_pointer_normal.png", size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
   { file:"ui_drag_hand_pointer_click.png",  size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
@@ -472,9 +480,35 @@ const FILES = [
   { file:"E7/food_tteokbokki_soy_sauce_play_open.png",       size:[145,289], css:"떡볶이 간장 뚜껑 열림 72.6x144.5" },
   { file:"E7/food_yakisoba_soy_sauce_play_open.png",         size:[156,348], css:"볶음우동 간장 뚜껑 열림 78.2x174.3" },
   { file:"E7/food_yakisoba_oyster_sauce_play_open.png",      size:[204,305], css:"볶음우동 굴소스 뚜껑 열림 102.0x152.6" },
-  { file:"E7/food_yakisoba_chili_oil_play_open.png",         size:[173,319], css:"볶음우동 고추기름 뚜껑 열림 86.6x159.4" }
+  { file:"E7/food_yakisoba_chili_oil_play_open.png",         size:[173,319], css:"볶음우동 고추기름 뚜껑 열림 86.6x159.4" },
   /* [화살표] E7 도 위 공용 ui_arrow_right_01 한 장을 씁니다 — 납품본이
      E2 새우 것과 바이트까지 같아 여기서 따로 뽑지 않습니다. */
+  /* ---- E11 두부김치 자유 플레이팅 ---------------------------------
+     [빈 접시] **여백을 잘라내고 씁니다.** 납품본은 1254 정사각 캔버스인데
+     접시는 그 안 1025x720 (왼쪽 118 · 위 265) 뿐이고 나머지는 투명입니다.
+     그대로 두면 .os-drop 안에서 contain 이 여백까지 맞추느라 접시가 72% 크기로
+     그려지고, 접시 위 좌표(engine-e11 의 FREE_PLATE_RADIUS)도 그만큼 어긋납니다.
+     잘라낸 1025x720 은 참고 모양 그림과 같은 크기라 두 장이 딱 겹칩니다.
+     ⚠️ **원본 배율 그대로입니다(size:null).** .os-drop 540 폭의 2배율은 1080 인데
+        잘라낸 마스터가 1025(1.9배)입니다. 늘리면 없던 화소를 지어내는 셈이라
+        그대로 둡니다 (ui_play_tray_wood · E3 화구와 같은 판단입니다). */
+  { file:"E11/food_tofu_kimchi_plate_empty.png", size:null, crop:[118,265,1025,720],
+    css:".os-drop 540x379.4 (여백 잘라내고 원본 배율 유지)" },
+  /* [참고 모양] 다 담은 모습 한 장. 오른쪽 칸(210 폭)에만 쓰여서 크게 줄입니다.
+     빈 접시와 같은 1025x720 이라 비율(1.424)이 그대로입니다. */
+  { file:"E11/food_tofu_kimchi_reference_complete.png", size:[420,295], css:".os-guide-figure .os-vessel 210x147.5" },
+  /* [접시에 얹히는 낱개 2장] 자유 플레이팅에서 한 조각씩 놓이는 그림입니다.
+     .os-food.free 의 --w (접시 가로 대비 %) x 접시 540 이 곧 화면 크기입니다.
+       두부   21% → 113.4 폭, 그림 비율 1.194 라 세로 95.0
+       김치   22% → 118.8 폭, 그림 비율 1.358 라 세로  87.5 */
+  { file:"E11/food_tofu_kimchi_tofu_piece.png",   size:[227,190], css:".os-food.free 113.4x95.0 (두부 한 조각)" },
+  { file:"E11/food_tofu_kimchi_kimchi_piece.png", size:[238,175], css:".os-food.free 118.8x87.5 (김치 한 조각)" },
+  /* [왼쪽 재료 카드 2장] 낱개가 아니라 더미로 그린 그림입니다.
+     .os-ing-art .os-art 가 카드 폭 210 을 그대로 쓰고 세로는 그림 비율대로입니다.
+       두부   1069/677 = 1.579 → 210x133.0
+       김치    882/706 = 1.249 → 210x168.1 */
+  { file:"E11/food_tofu_kimchi_ingredient_tofu.png",   size:[420,266], css:".os-ing-art .os-art 210x133.0" },
+  { file:"E11/food_tofu_kimchi_ingredient_kimchi.png", size:[420,336], css:".os-ing-art .os-art 210x168.1" }
 ];
 
 const QUALITY = 90;
@@ -484,8 +518,15 @@ function kb(bytes){ return Math.round(bytes/1024); }
 
 // 축소 파이프라인. 검증(verify)도 같은 함수를 써야 "인코딩 손실"만 측정됩니다.
 // 여기가 갈라지면 축소 오차까지 손실로 잡혀서 수치가 의미 없어집니다.
-function resized(src, w, h){
-  return sharp(src).resize(w, h, { kernel: "lanczos3", fit: "fill" });
+function resized(src, w, h, crop){
+  const image = sharp(src);
+  if(crop) image.extract({ left:crop[0], top:crop[1], width:crop[2], height:crop[3] });
+  return image.resize(w, h, { kernel: "lanczos3", fit: "fill" });
+}
+
+// 자른 뒤 크기. 크기 계산과 비율 검사가 전부 이 값을 기준으로 돌아갑니다.
+function sourceSize(entry, meta){
+  return entry.crop ? { width:entry.crop[2], height:entry.crop[3] } : meta;
 }
 
 // 산출물 경로. out 을 준 항목만 이름이 따로 가고, 나머지는 마스터와 같은 이름입니다.
@@ -498,9 +539,10 @@ function outFile(entry){
 // (stretch 항목은 늘려 쓰는 것이 의도라 건너뜁니다 — 위 [stretch] 설명 참고)
 function checkAspect(entry, meta){
   if(entry.stretch||!entry.size)return;      // 원본 크기 그대로면 비율이 어긋날 수가 없습니다
-  const src = meta.width / meta.height, out = entry.size[0] / entry.size[1];
+  const from = sourceSize(entry, meta);
+  const src = from.width / from.height, out = entry.size[0] / entry.size[1];
   if(Math.abs(src - out) / src > 0.02){
-    console.warn(`  ! ${entry.file} : 원본 ${meta.width}x${meta.height} 와 목표 ` +
+    console.warn(`  ! ${entry.file} : 원본 ${from.width}x${from.height} 와 목표 ` +
       `${entry.size[0]}x${entry.size[1]} 의 가로세로비가 다릅니다 (찌그러집니다)`);
   }
 }
@@ -520,8 +562,9 @@ async function convert(){
     const out = path.join(ART_DIR, outFile(entry));
     const meta = await sharp(src).metadata();
     checkAspect(entry, meta);
-    const [w,h] = entry.size || [meta.width, meta.height];
-    await resized(src, w, h)
+    const from = sourceSize(entry, meta);
+    const [w,h] = entry.size || [from.width, from.height];
+    await resized(src, w, h, entry.crop)
       .webp(entry.lossless ? {lossless:true, effort:EFFORT}
                            : {quality:entry.quality||QUALITY, effort:EFFORT, alphaQuality:100})
       .toFile(out);
@@ -547,9 +590,10 @@ async function verify(){
     const out = path.join(ART_DIR, outFile(entry));
     if(!fs.existsSync(out))continue;
     const meta = await sharp(src).metadata();
-    const [w,h] = entry.size || [meta.width, meta.height];
+    const from = sourceSize(entry, meta);
+    const [w,h] = entry.size || [from.width, from.height];
     const [a,b] = await Promise.all([
-      resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
+      resized(src,w,h,entry.crop).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
     if(a.data.length!==b.data.length){ console.log(outFile(entry),"크기 불일치!"); continue; }

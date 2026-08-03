@@ -8,8 +8,8 @@
    · batterIngredients  김치전 반죽 — 밀가루 → 물 → 김치 순서로 클릭.
                         3개를 다 넣으면 곧바로 거품기(E9)로 넘어갑니다.
                         → engine-e9-whisk.js 의 setupWhiskBatter 호출
-   · skewer             닭꼬치 꽂기 — 꼬치마다 닭·파를 최소 한 번씩 쓰고
-                        나머지 순서는 자유롭게 5칸을 채웁니다. 총 3꼬치.
+   · skewer             닭꼬치 꽂기 — 꼬치마다 5칸의 정답 배치가 무작위로
+                        정해지고, 칸 테두리 색에 맞는 재료를 꽂습니다. 총 3꼬치.
    · tteokSoak /        떡·우동면 불리기 — 재료를 볼에 담은 뒤 옆의 물병을
      udonSoak           기울여 물을 채웁니다. 두 게임이 renderTteokSoak과
                         공통 순서 판정을 함께 씁니다.
@@ -268,11 +268,17 @@ function addBatterIngredient(ingredientId,button,target){
 
 /* ---- 닭꼬치 꽂기 -------------------------------------------
    화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
-     왼쪽   닭고기·파 재료 카드 — 수량 제한 없이 자유롭게 선택
+     왼쪽   닭고기·파 재료 카드 — 아래 ×숫자는 남은 꼬치에서 더 써야 할 개수
      가운데 현재 조립 중인 큰 꼬치 하나 — 아래에서 위로 5칸
-     오른쪽 완성 개수 + 닭·파 최소 한 개씩 조건
+     오른쪽 완성 개수 + 이번 꼬치의 참고 모양
    재료 카드를 클릭하면 자동으로 꽂히고, 꼬치 끝으로 직접 끌어도 됩니다.
-   한 꼬치 안의 순서는 자유지만 닭과 파가 최소 한 개씩 있어야 완성됩니다.
+
+   [정답 배치]  꼬치 하나가 시작될 때 5칸의 정답이 무작위로 정해집니다.
+   빈 칸은 그 칸에 들어갈 재료 색(살구빛 = 닭고기 / 연두 = 파)의 점선으로
+   미리 그려지고, 색이 다른 재료를 꽂으면 꼬치가 흔들리며 막힙니다.
+   ⚠️ 뽑을 때 한 꼬치 안의 최소 개수(SKEWER_MIN_PIECES · 닭고기 2 · 파 1)를
+      지킵니다. 화면 안내에는 이 규칙을 적지 않습니다 — 플레이어가 지켜야 할
+      규칙이 아니라 배치를 뽑는 쪽의 조건입니다.
 
    모양·크기는 css/day-prep-minigames.css 의 "닭꼬치 꽂기" 구역에 모여 있습니다.
    공용 프레임(css/minigame-frame.css, ui-mini-frame.js)은 건드리지 않고,
@@ -284,6 +290,10 @@ const SKEWER_EXAMPLE_ORDER=["chicken","greenOnion","chicken","greenOnion","chick
 const SKEWER_TOTAL=SKEWER_BATCH_SIZE;                                          // 만들 꼬치 수
 const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
 const SKEWER_INGREDIENTS=Object.freeze(Object.keys(SKEWER_LABEL));
+/* 꼬치 하나에 반드시 들어가야 하는 최소 개수. 정답 배치를 뽑을 때만 쓰이고
+   화면 어디에도 적지 않습니다 (플레이어는 칸 색만 보면 됩니다).
+   ⚠️ 합이 SKEWER_SLOT_COUNT(5)를 넘으면 안 됩니다 — 지금은 3이라 2칸이 자유입니다. */
+const SKEWER_MIN_PIECES=Object.freeze({chicken:2,greenOnion:1});
 // assets/minigame/E8/ 의 그림을 씁니다. 파일이 없으면 CSS 도형으로 되돌아갑니다.
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 //   piece  꼬치에 꽂히는 조각 한 개      group  좌측 재료 카드에 놓는 묶음 그림
@@ -293,7 +303,9 @@ const SKEWER_GROUP_ASSET_KEY={chicken:"skewerChickenGroup",greenOnion:"skewerGre
 // E8의 공통 순서 데이터. 새 게임은 순서와 트랙 수만 추가하고 같은 판정을 씁니다.
 const ORDER_PLACE_CONFIG=Object.freeze({
   batter:Object.freeze({order:Object.freeze(BATTER_INGREDIENTS.map(item=>item.id)),tracks:1}),
-  skewer:Object.freeze({order:Object.freeze([...SKEWER_EXAMPLE_ORDER]),tracks:SKEWER_TOTAL,freeOrder:true,required:Object.freeze([...SKEWER_INGREDIENTS])}),
+  // 꼬치는 정해진 순서가 아니라 꼬치마다 뽑은 정답 배치(data.patterns)를 씁니다.
+  // 여기 order 는 칸 수(5)를 넘겨 주는 용도로만 남아 있습니다.
+  skewer:Object.freeze({order:Object.freeze([...SKEWER_EXAMPLE_ORDER]),tracks:SKEWER_TOTAL}),
   tteokSoak:Object.freeze({order:Object.freeze(["tteok","water"]),tracks:1}),
   udonSoak:Object.freeze({order:Object.freeze(["udon","water"]),tracks:1})
 });
@@ -317,31 +329,62 @@ function placeOrderedItem(data,item,trackIndex=0){
   return {accepted:true,expected:null,complete:track.length>=data.order.length};
 }
 
-function allowedSkewerIngredients(stack){
-  if(!stack||stack.length>=SKEWER_SLOT_COUNT)return [];
-  if(stack.length===SKEWER_SLOT_COUNT-1){
-    const missing=SKEWER_INGREDIENTS.find(ingredient=>!stack.includes(ingredient));
-    if(missing)return [missing];
+/* 꼬치 한 개의 정답 배치 5칸을 뽑습니다.
+   빈 칸 번호를 섞어 두고 SKEWER_MIN_PIECES 만큼 **먼저 박은 뒤** 남는 칸을
+   무작위로 채웁니다. 지금 값(닭 2 · 파 1)이면 3칸이 정해지고 2칸이 자유입니다.
+
+   ⚠️ 다 뽑아 놓고 모자란 재료를 나중에 끼워 넣는 방식은 쓰지 않습니다.
+      한쪽을 채우려고 뺏어 온 칸이 반대쪽 최소 개수를 깨서 서로 뺏고 뺏기게 됩니다.
+   ⚠️ 전역 shuffle() 을 안 쓰고 여기서 섞습니다 — 검사 하네스가 그 자리를
+      "그대로 돌려주는" 가짜로 바꿔 놓아, 쓰면 배치가 늘 같은 자리에 박힙니다. */
+function createSkewerPattern(){
+  const slots=Array.from({length:SKEWER_SLOT_COUNT},(_,index)=>index);
+  for(let index=slots.length-1;index>0;index--){
+    const pick=Math.floor(Math.random()*(index+1));
+    [slots[index],slots[pick]]=[slots[pick],slots[index]];
   }
-  return [...SKEWER_INGREDIENTS];
+  const pattern=[];
+  SKEWER_INGREDIENTS.forEach(ingredient=>{
+    for(let count=0;count<SKEWER_MIN_PIECES[ingredient];count++)pattern[slots.pop()]=ingredient;
+  });
+  slots.forEach(slot=>{pattern[slot]=SKEWER_INGREDIENTS[Math.random()<.5?0:1];});
+  return pattern;
 }
 
-function placeFreeSkewerItem(data,item,trackIndex=0){
-  const stack=data.placements[trackIndex];
-  if(!stack)return {accepted:false,reason:"missingTrack",allowed:[],complete:false};
-  const allowed=allowedSkewerIngredients(stack);
-  if(!allowed.includes(item))return {accepted:false,reason:stack.length>=SKEWER_SLOT_COUNT?"full":"requiredVariety",allowed,complete:false};
+// 지금 꽂을 수 있는 재료. 정답 배치가 정한 한 가지뿐이고, 다 찼으면 빈 배열입니다.
+function allowedSkewerIngredients(stack,pattern){
+  if(!stack||!pattern||stack.length>=SKEWER_SLOT_COUNT)return [];
+  return [pattern[stack.length]];
+}
+
+// 아래에서 위로 한 칸씩, 그 칸의 정답과 같은 재료만 받습니다.
+function placeSkewerPatternItem(data,item,trackIndex=0){
+  const stack=data.placements[trackIndex],pattern=data.patterns?.[trackIndex];
+  if(!stack||!pattern)return {accepted:false,reason:"missingTrack",allowed:[],complete:false};
+  const allowed=allowedSkewerIngredients(stack,pattern);
+  if(!allowed.includes(item))return {accepted:false,reason:stack.length>=SKEWER_SLOT_COUNT?"full":"wrongSlot",allowed,complete:false};
   stack.push(item);
-  const complete=stack.length===SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient));
-  return {accepted:true,reason:"",allowed:allowedSkewerIngredients(stack),complete};
+  return {accepted:true,reason:"",allowed:allowedSkewerIngredients(stack,pattern),complete:stack.length>=SKEWER_SLOT_COUNT};
+}
+
+/* 왼쪽 재료 카드의 ×숫자 — 남은 꼬치에서 이 재료를 더 꽂아야 하는 개수입니다.
+   (컨셉 이미지의 "닭고기 ×9 / 파 ×6" 자리) 이미 꽂은 칸은 빼고 셉니다. */
+function remainingSkewerCount(data,ingredient){
+  return data.patterns.reduce((sum,pattern,track)=>{
+    const placed=data.placements[track]?.length||0;
+    return sum+pattern.filter((slot,index)=>slot===ingredient&&index>=placed).length;
+  },0);
 }
 
 function setupChickenSkewer(){
   // holdIndex : 방금 5개를 다 꽂은 꼬치 번호. 다음 꼬치로 넘기기 전에
   //             완성된 모습을 잠깐 그대로 보여주는 동안만 값이 들어 있습니다.
-  setDayPrepData({...createOrderPlacementState("skewer"),total:SKEWER_TOTAL,mistakes:0,lastPlaced:null,holdIndex:null,finishing:false,completionGrade:""});
+  // patterns : 꼬치별 정답 배치. 게임을 시작할 때 3개를 한 번에 뽑아 둡니다
+  //            (왼쪽 카드의 ×숫자가 남은 꼬치까지 합쳐 세야 하기 때문입니다).
+  setDayPrepData({...createOrderPlacementState("skewer"),patterns:Array.from({length:SKEWER_TOTAL},createSkewerPattern),
+    total:SKEWER_TOTAL,mistakes:0,lastPlaced:null,holdIndex:null,finishing:false,completionGrade:""});
   dom.miniTitle.textContent="닭꼬치 꽂기";
-  dom.miniDescription.textContent="닭과 파를 최소 한 번씩 사용해 원하는 순서로 꼬치 3개를 만들어주세요!";
+  dom.miniDescription.textContent="칸 테두리 색에 맞춰 닭고기와 파를 꽂아주세요!";
   renderChickenSkewer();
 }
 
@@ -363,20 +406,34 @@ function skewerIngredientArtMarkup(ingredient){
   return `<span class="sk-ing-art has-group">${skewerPieceMarkup(ingredient,"sample")}${dayPrepAssetMarkup(groupKey,"sk-ing-group-asset",SKEWER_LABEL[ingredient])}</span>`;
 }
 
-// 꼬치 하나. 아래에서 위로 채우므로 화면에는 슬롯을 뒤집어 그립니다.
-function skewerRackMarkup(stack,index,{active=false,lastPlaced=null}={}){
-  const done=stack.length>=SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient));
-  const allowed=allowedSkewerIngredients(stack);
+/* 꼬치 하나. 아래에서 위로 채우므로 화면에는 슬롯을 뒤집어 그립니다.
+   빈 칸은 **전부** 정답 배치의 재료 색 점선(hint-*)으로 그립니다. 그 색이
+   곧 무엇을 꽂아야 하는지이고, 다음에 채울 한 칸만 .next 로 밝아집니다. */
+function skewerRackMarkup(stack,index,{active=false,lastPlaced=null,pattern=[]}={}){
+  const done=stack.length>=SKEWER_SLOT_COUNT;
   const slots=Array.from({length:SKEWER_SLOT_COUNT},(_,slot)=>{
     if(slot<stack.length){
       const fresh=lastPlaced?.track===index&&lastPlaced.slot===slot;
       return `<span class="sk-slot filled">${skewerPieceMarkup(stack[slot],fresh?"fresh":"")}</span>`;
     }
-    const forced=slot===stack.length&&allowed.length===1?`hint-${allowed[0]}`:"free";
-    return `<span class="sk-slot empty ${forced} ${slot===stack.length?"next":""}"></span>`;
+    const want=pattern[slot];
+    return `<span class="sk-slot empty ${want?`hint-${want}`:"free"} ${slot===stack.length?"next":""}" aria-label="${want?SKEWER_LABEL[want]:"빈"} 자리"></span>`;
   }).reverse().join("");
   return `<div class="sk-rack ${active?"active":""} ${done?"done":""}" data-skewer="${index}" aria-label="${index+1}번 꼬치 · ${stack.length} / ${SKEWER_SLOT_COUNT}">
       ${skewerRodMarkup()}<div class="sk-slots">${slots}</div>
+    </div>`;
+}
+
+/* 오른쪽 '참고 모양' — 이번 꼬치의 정답 배치를 작은 꼬치 한 개로 보여줍니다.
+   가운데 꼬치와 위아래가 같아 보이도록 여기서도 배열을 뒤집어 쌓습니다. */
+/* ⚠️ 바깥 칸(.sk-guide-figure)과 꼬치(.sk-guide-skewer)를 나눠 두는 이유 :
+      꼬챙이는 감싼 상자에 위아래로 딱 붙는 absolute 라, 남는 자리를 다 받는
+      상자에 그대로 넣으면 카드 높이만큼 늘어나 실오라기처럼 보입니다.
+      늘어나는 것은 바깥 칸이 맡고, 꼬챙이는 조각 묶음만 한 안쪽 상자를 씁니다. */
+function skewerGuideMarkup(pattern){
+  const pieces=[...pattern].reverse().map(ingredient=>skewerPieceMarkup(ingredient,"mini")).join("");
+  return `<div class="sk-guide-figure">
+      <div class="sk-guide-skewer" aria-label="이번 꼬치의 참고 모양">${skewerRodMarkup()}<div class="sk-guide-pieces">${pieces}</div></div>
     </div>`;
 }
 
@@ -390,29 +447,30 @@ function renderChickenSkewer(){
   // 완성된 꼬치를 보여주는 동안(holding)에는 그 꼬치를 계속 그리고 재료를 잠급니다.
   const holding=Number.isInteger(data.holdIndex);
   const activeIndex=holding?data.holdIndex:Math.min(done,data.total-1),activeStack=data.placements[activeIndex]||[];
-  const allowed=holding?[]:allowedSkewerIngredients(activeStack);
+  const activePattern=data.patterns[activeIndex]||[];
+  const allowed=holding?[]:allowedSkewerIngredients(activeStack,activePattern);
   dom.miniTimer.textContent=`${done} / ${data.total}`;   // 공용 타이머 자리는 이 게임에서 숨깁니다
   dom.miniContent.innerHTML=`
     <div class="skewer-prep-scene">
       <aside class="sk-col">
         <div class="sk-panel sk-ing-panel">
           <h3 class="sk-col-title starred">재료</h3>
-          <div class="sk-ing-list">${SKEWER_INGREDIENTS.map(ingredient=>{
-            const forced=allowed.length===1&&allowed[0]===ingredient;
-            const blocked=allowed.length>0&&!allowed.includes(ingredient);
-            return `<button type="button" class="sk-ing-card ${ingredient} ${forced?"required":""} ${blocked?"blocked":""}" data-ingredient="${ingredient}" ${data.finishing||holding||blocked?"disabled":""}>
+          <!-- 어느 쪽도 잠그지 않습니다. 색이 다른 재료를 꽂아 보는 것까지가
+               이 게임이고, 틀리면 꼬치가 흔들리며 mistakes 로 남습니다. -->
+          <div class="sk-ing-list">${SKEWER_INGREDIENTS.map(ingredient=>
+            `<button type="button" class="sk-ing-card ${ingredient}" data-ingredient="${ingredient}" ${data.finishing||holding?"disabled":""}>
               ${skewerIngredientArtMarkup(ingredient)}
-              <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>${forced?"필수":blocked?"조건 완료":"자유"}</b></span>
-            </button>`;
-          }).join("")}</div>
+              <span class="sk-ing-name">${SKEWER_LABEL[ingredient]}<b>×${remainingSkewerCount(data,ingredient)}</b></span>
+            </button>`).join("")}</div>
         </div>
       </aside>
 
       <div class="sk-board sk-single-board ${data.finishing?"complete":""} ${holding?"holding":""}">
         <div class="sk-finished-strip">${Array.from({length:data.total},(_,index)=>`<span class="${index<done?"done":index===activeIndex?"active":""}">${index<done?"✓":index+1}</span>`).join("")}</div>
         <p class="sk-active-title">${data.finishing?"꼬치 조립 완료":holding?`${activeIndex+1}번 꼬치 완성!`:`${activeIndex+1}번 꼬치 · ${activeStack.length} / ${SKEWER_SLOT_COUNT}`}</p>
-        <div class="sk-active-rack" data-order-target="skewer" data-skewer="${activeIndex}">${skewerRackMarkup(activeStack,activeIndex,{active:true,lastPlaced:data.lastPlaced})}</div>
-        <p class="sk-free-rule">${allowed.length===1?`마지막은 <b>${SKEWER_LABEL[allowed[0]]}</b>를 꽂아주세요`:`닭·파를 섞되<br /><b>순서는 자유!</b>`}</p>
+        <div class="sk-active-rack" data-order-target="skewer" data-skewer="${activeIndex}">${skewerRackMarkup(activeStack,activeIndex,{active:true,lastPlaced:data.lastPlaced,pattern:activePattern})}</div>
+        <!-- 무엇을 꽂을지는 알려 주지 않습니다. 칸 색을 읽는 것이 이 게임입니다. -->
+        <p class="sk-free-rule">빛나는 칸의<br /><b>테두리 색</b>에 맞춰<br />꽂아주세요!</p>
         ${data.finishing?`<strong class="order-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
       </div>
 
@@ -422,8 +480,8 @@ function renderChickenSkewer(){
           <strong>${done} / ${data.total}</strong>
         </div>
         <div class="sk-panel sk-guide">
-          <h3 class="sk-col-title">조립 조건</h3>
-          <div class="sk-free-guide">${skewerPieceMarkup("chicken","mini")}${skewerPieceMarkup("greenOnion","mini")}<p>닭과 파<br /><b>최소 1개씩</b><br />나머지는 자유</p></div>
+          <h3 class="sk-col-title">참고 모양</h3>
+          ${skewerGuideMarkup(activePattern)}
         </div>
       </aside>
     </div>`;
@@ -442,8 +500,9 @@ function bindChickenSkewerEvents(){
   });
 }
 
+// 정답과 다른 조각은 애초에 쌓이지 않으므로, 5칸이 찼으면 곧 정답대로 꽂힌 꼬치입니다.
 function skewerDoneCount(data){
-  return data.placements.filter(stack=>stack.length>=SKEWER_SLOT_COUNT&&SKEWER_INGREDIENTS.every(ingredient=>stack.includes(ingredient))).length;
+  return data.placements.filter(stack=>stack.length>=SKEWER_SLOT_COUNT).length;
 }
 
 // 현재 큰 꼬치에 재료 한 조각을 넣습니다.
@@ -452,11 +511,11 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
   const data=m.data,stack=data.placements[skewerIndex];
   if(!stack||!SKEWER_LABEL[ingredient])return;
   const activeIndex=skewerDoneCount(data);if(skewerIndex!==activeIndex)return;
-  const result=placeFreeSkewerItem(data,ingredient,skewerIndex);
+  const result=placeSkewerPatternItem(data,ingredient,skewerIndex);
   if(!result.accepted){
     data.mistakes++;
     const required=result.allowed[0];
-    return rejectSkewerPiece(skewerIndex,required?`이 꼬치에는 ${SKEWER_LABEL[required]}도 최소 한 개 필요합니다.`:"이 꼬치는 이미 다 찼습니다.",target);
+    return rejectSkewerPiece(skewerIndex,required?`이 칸은 ${SKEWER_LABEL[required]} 자리입니다.`:"이 꼬치는 이미 다 찼습니다.",target);
   }
 
   data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.click();

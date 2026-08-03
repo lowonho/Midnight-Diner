@@ -427,15 +427,17 @@ function setupPotatoStarchShake(){
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
   setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
-  dom.miniStation.textContent="봉투를 잡고 좌우로 흔들어 튀김가루를 골고루 묻혀주세요!";
-  dom.miniDescription.textContent=`봉투를 잡고 좌우로 크게 흔드세요. ${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 번갈아 눌러도 됩니다.`;
+  dom.miniStation.textContent="봉투를 잡고 흔들어 튀김가루를 골고루 묻혀주세요!";
+  dom.miniDescription.textContent=`봉투를 잡고 좌우·대각선으로 크게 흔드세요. ${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 번갈아 눌러도 됩니다.`;
   renderPotatoStarchShake();
 }
 
-// pointerDriven = 봉투를 직접 끌어서 들어온 입력. 봉투는 이미 손에 붙어
-// 움직이는 중이라 키를 눌렀을 때의 흔들림 연출을 얹지 않습니다
-// (css/day-prep-minigames.css 의 `.fp-bag.dragging` 이 그 애니메이션을 끕니다).
-function potatoStarchInput(key,repeat=false,pointerDriven=false){
+/* pointerDriven = 봉투를 직접 끌어서 들어온 입력. 봉투는 이미 손에 붙어
+   움직이는 중이라 키를 눌렀을 때의 흔들림 연출을 얹지 않습니다
+   (css/day-prep-minigames.css 의 `.fp-bag.dragging` 이 그 애니메이션을 끕니다).
+   tilt = 흔든 대각선의 기울기. 끌어서 흔들 때만 넘어오고(손이 지나간 방향),
+   키로 흔들 때는 null 이라 아래 표에서 다음 각도를 꺼내 씁니다. */
+function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch")return false;
   const data=m.data;
   const result=acceptAlternateInput(data,key,repeat);
@@ -447,6 +449,7 @@ function potatoStarchInput(key,repeat=false,pointerDriven=false){
   if(completed){data.transitioning=true;data.inputLocked=true;data.phase="complete";}
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 닫힙니다)
   renderPotatoStarchShake();
+  setFriesShakeTilt(data,tilt);
   playFryPrepShake("#friesBagScene",key,data.keys);
   dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
   if(completed){
@@ -484,6 +487,29 @@ function friesShakeFxMarkup(){
   const frames=Array.from({length:3},(_,index)=>dayPrepAssetMarkup(`friesShakeFx${index+1}`,`fp-shake-fx-frame f${index+1}`,""));
   if(!frames[0])return "";
   return `<div class="fp-shake-fx" aria-hidden="true">${frames.join("")}</div>`;
+}
+
+/* 흔드는 대각선 축의 기울기 (세로 이동 / 가로 이동). 0 이면 정확히 좌우,
+   음수면 왼쪽 위 ↔ 오른쪽 아래(↖↘), 양수면 왼쪽 아래 ↔ 오른쪽 위(↙↗) 입니다.
+   키로 흔들 때는 한 번마다 다음 값으로 넘어가 축이 조금씩 기울어집니다 —
+   늘 같은 각도로만 흔들면 자로 잰 것처럼 보입니다.
+   ⚠️ Math.random 을 쓰지 않습니다. 같은 화면을 다시 그릴 때마다 각도가
+      바뀌면 흔들다 만 봉투가 제자리에서 튑니다.
+   ⚠️ **장수가 홀수(5)인 것이 중요합니다.** 흔드는 쪽은 왼쪽·오른쪽으로 번갈아
+      바뀌는데, 표까지 짝수 주기로 부호가 번갈면 둘이 맞물려 봉투가 **매번
+      위로만** 솟습니다. 홀수라 짝이 한 칸씩 밀리면서 위로 갔다 아래로 갔다 합니다. */
+const FRIES_SHAKE_TILTS=Object.freeze([-.46,.34,.5,-.22,-.38]);
+
+/* 기울기를 화면에 넘깁니다. 두 자리에 쓰입니다.
+     --fp-tilt      봉투가 움직이는 대각선 (키로 흔들 때의 애니메이션)
+     --fp-fx-turn   그 대각선에 맞춰 물결 이펙트를 돌리는 각도
+   기울기(비율)를 각도로 바꾸는 계산은 여기서 합니다 — CSS 의 atan() 은
+   크롬 111 이상에서만 되므로 자바스크립트 쪽이 안전합니다. */
+function setFriesShakeTilt(data,tilt=null){
+  const scene=dom.miniContent.querySelector("#friesBagScene");if(!scene)return;
+  const slope=tilt===null?FRIES_SHAKE_TILTS[data.presses%FRIES_SHAKE_TILTS.length]:tilt;
+  scene.style.setProperty("--fp-tilt",slope.toFixed(3));
+  scene.style.setProperty("--fp-fx-turn",`${(Math.atan(slope)*180/Math.PI).toFixed(1)}deg`);
 }
 
 function friesWaveMarkup(side){
@@ -531,7 +557,7 @@ function renderPotatoStarchShake(){
     keys:data.keys,
     expectedIndex:data.expectedIndex,
     keyLink:"→",
-    controlName:"봉투를 잡고<br />좌우로 크게 흔들기",
+    controlName:"봉투를 잡고<br />크게 흔들기",
     controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 번갈아<br />눌러도 됩니다`,
     phase:data.phase
   },key=>potatoStarchInput(key,false));
@@ -541,27 +567,46 @@ function renderPotatoStarchShake(){
 
 /* ---- 봉투 직접 흔들기 (포인터) -----------------------------
    채칼(engine-e12-grab-shake.js 의 bindMandolineDrag)과 같은 결의 조작입니다.
-   다만 축이 대각선이 아니라 **가로 한 축**뿐이고, 한 왕복이 아니라
-   한쪽 끝에 닿을 때마다 한 번으로 셉니다 — 봉투는 좌우로 번갈아 흔드는
-   물건이라 그 편이 키 두 개를 번갈아 누르는 것과 정확히 같은 셈이 됩니다.
-   (그래서 판정은 그대로 potatoStarchInput 에 넘깁니다)
+   다만 채칼은 정해진 대각선 축 위로만 움직이는 반면, **봉투는 손이 가는 대로
+   따라옵니다** — 가로세로 둘 다 따라가므로 ↖↘ 든 ↙↗ 든 원하는 대각선으로
+   흔들 수 있습니다. 손에 든 봉지에 정해진 축이 있을 리 없으니까요.
+
+   한 왕복이 아니라 한쪽 끝에 닿을 때마다 한 번으로 셉니다 — 봉투는 좌우로
+   번갈아 흔드는 물건이라 그 편이 키 두 개를 번갈아 누르는 것과 정확히 같은
+   셈이 됩니다. (그래서 판정은 그대로 potatoStarchInput 에 넘깁니다)
+   ⚠️ **세는 기준은 가로로 간 거리뿐입니다.** 대각선으로 흔들면 그만큼 덜
+      가로지르므로 조금 더 크게 흔들어야 한 번이 됩니다 — 위아래로만 흔드는
+      것은 '흔들기'가 아니니 그건 세지 않는 것이 맞습니다.
 
    ⚠️ 흔들 때마다 가운데 그림을 다시 그리므로, 사라지는 봉투가 아니라 계속
       남아 있는 mini-content 에 포인터를 캡처해야 한 번 잡은 채 계속 흔들 수
       있습니다. 다시 그린 뒤 잡은 자세를 되돌려 주는 것이 아래 pose 함수입니다. */
 const FRIES_BAG_DRAG_CONFIG=Object.freeze({
-  travelRatio:.16,       // 한 번으로 치는 거리 (봉투 폭 대비)
-  visualLimitRatio:.13   // 손을 따라 봉투가 밀려나는 한계
+  travelRatio:.16,        // 한 번으로 치는 가로 거리 (봉투 폭 대비)
+  visualLimitRatio:.13,   // 손을 따라 봉투가 밀려나는 한계 (가로는 폭, 세로는 높이 대비)
+  /* 이펙트가 따라 도는 각도의 한계 (0.5 = 약 27도). 아래 friesBagDragTilt 참고.
+     ⚠️ 더 키우면 돌아간 이펙트(760x228)가 도마(788.2 x 573.2) 밖으로 나갑니다 —
+        .fp-board 는 넘치는 것을 자르지 않아서 액자 위에 그려집니다. */
+  tiltLimit:.5
 });
 
-function friesBagDragDistance(width,ratio){
-  return Math.max(1,(width||0)*ratio);
+function friesBagDragDistance(size,ratio){
+  return Math.max(1,(size||0)*ratio);
+}
+
+/* 끄는 동안 흔들림 이펙트가 뜰 대각선 축. 손이 실제로 지나간 방향을 그대로
+   씁니다 — 키로 흔들 때의 --fp-tilt 와 같은 자리에 들어갑니다.
+   가로로 거의 안 움직였을 때(세로로만 끌 때)는 0 으로 두어 축이 곤두서지 않게 합니다. */
+function friesBagDragTilt(dx,dy){
+  if(Math.abs(dx)<1)return 0;
+  return clamp(dy/dx,-FRIES_BAG_DRAG_CONFIG.tiltLimit,FRIES_BAG_DRAG_CONFIG.tiltLimit);
 }
 
 function updateFriesBagDragPose(data){
   const drag=data?.drag,bag=dom.miniContent.querySelector("#friesBag");
   if(!bag||!drag||drag.kind!=="friesBag")return;
   bag.style.setProperty("--fp-drag-x",`${drag.position.toFixed(2)}px`);
+  bag.style.setProperty("--fp-drag-y",`${drag.positionY.toFixed(2)}px`);
   bag.classList.add("dragging");
 }
 
@@ -571,6 +616,7 @@ function clearFriesBagDrag(m,pointerId=null){
   const bag=dom.miniContent.querySelector("#friesBag");
   bag?.classList.remove("dragging");
   bag?.style.removeProperty("--fp-drag-x");
+  bag?.style.removeProperty("--fp-drag-y");
 }
 
 function bindFriesBagDrag(){
@@ -583,9 +629,11 @@ function bindFriesBagDrag(){
     if(event.pointerType==="mouse"&&event.button!==0)return;
     event.preventDefault();
     const rect=bag.getBoundingClientRect();
-    m.data.drag={kind:"friesBag",pointerId:event.pointerId,startX:event.clientX,position:0,
+    m.data.drag={kind:"friesBag",pointerId:event.pointerId,
+      startX:event.clientX,startY:event.clientY,position:0,positionY:0,
       step:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.travelRatio),
-      limit:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.visualLimitRatio)};
+      limit:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.visualLimitRatio),
+      limitY:friesBagDragDistance(rect.height,FRIES_BAG_DRAG_CONFIG.visualLimitRatio)};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
     updateFriesBagDragPose(m.data);
   });
@@ -594,14 +642,16 @@ function bindFriesBagDrag(){
     if(!playable(m)||!drag||drag.kind!=="friesBag"||drag.pointerId!==event.pointerId)return;
     event.preventDefault();
     if(m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
-    const moved=event.clientX-drag.startX;
+    const moved=event.clientX-drag.startX,movedY=event.clientY-drag.startY;
     drag.position=clamp(moved,-drag.limit,drag.limit);
+    drag.positionY=clamp(movedY,-drag.limitY,drag.limitY);
     updateFriesBagDragPose(m.data);
     // 지금 차례인 쪽 — 키 두 개의 차례가 그대로 왼쪽 / 오른쪽입니다
     // (연타할 때 봉투가 기우는 방향과 같습니다 — playFryPrepShake 참고)
     const toLeft=m.data.expectedIndex===0;
     if(toLeft?moved<=-drag.step:moved>=drag.step){
-      potatoStarchInput(m.data.keys[m.data.expectedIndex],false,true);
+      // 이펙트는 손이 지나간 대각선을 따라 뜹니다 (키로 흔들 때는 정해진 표를 씁니다)
+      potatoStarchInput(m.data.keys[m.data.expectedIndex],false,true,friesBagDragTilt(moved,movedY));
       if(m.data.transitioning||m.data.phase==="complete")clearFriesBagDrag(m,event.pointerId);
     }
   });
