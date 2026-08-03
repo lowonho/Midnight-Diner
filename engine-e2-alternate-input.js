@@ -4,7 +4,7 @@
    E2 번갈아 입력 — 게임 2개
 
      감자 전분 털기                무작위 알파벳 두 개를 번갈아
-     새우 튀김옷                   마우스로 잡고 좌우로 굴리기
+     새우 튀김옷                   무작위 알파벳 두 개를 번갈아
 
    두 입력을 교대로 눌러 횟수를 채웁니다. 같은 입력을 두 번 하거나
    차례가 아닌 입력은 무시되고, 실패로 되돌아가지는 않습니다.
@@ -21,7 +21,7 @@
 
    [새우 튀김옷]
    밀가루 → 계란물 → 빵가루를 하나의 준비 작업에서 연속 진행합니다.
-   한 화면에는 한 재료만 놓고, 단계마다 새우 다섯 마리를 직접 굴립니다.
+   각 단계가 바뀔 때 무작위 알파벳 쌍을 새로 뽑습니다.
    ============================================================ */
 
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
@@ -31,7 +31,12 @@ const E2_FEEL_CONFIG=Object.freeze({
   pauseThresholdMs:1200,
   wrongLockMs:120,
   stageTransitionMs:450,
-  completeDelayMs:600
+  completeDelayMs:600,
+  /* 새우 튀김옷 : 그림이 '다 묻은 모습'에 닿은 뒤에도 몇 번 더 굴려야 끝나는지.
+     눈으로는 다 됐는데 손은 조금 더 가는, 마무리 손질 구간입니다.
+     횟수 자체(밀 10 · 계 8 · 빵 12)는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 이고,
+     그중 마지막 몇 번을 이 구간으로 떼어 놓는 값입니다. */
+  shrimpFinishRolls:2
 });
 
 /* ---- 공통 판정 규칙 ----------------------------------------
@@ -159,9 +164,14 @@ function setupMandoline(taskId,stageGrades=[]){
   renderMandoline();
 }
 
-// E12 왕복 횟수를 두 배로 늘렸으므로 한 번에 떨어지는 가닥은 둘로 줄입니다.
-// 최종 더미 양은 이전과 같게 유지되어 재료 양이 갑자기 두 배로 보이지 않습니다.
-const MANDOLINE_SHREDS_PER_CUT=2;
+// 한 번 왕복할 때마다 채반에 늘어나는 채 가닥 수. 한 가닥씩만 늘리면
+// 다 썰어도 채반이 휑해서, 컨셉 이미지처럼 수북해지도록 여러 가닥씩 놓습니다.
+// 한 번 썰 때 우수수 떨어지는 맛이 나도록 열두 가닥입니다
+// (E12 로 바뀌며 왕복 횟수가 두 배가 되었으니 양배추 24번 × 12 = 288 가닥).
+// 더미가 퍼지는 넓이는 여기가 아니라 css/day-prep-minigames.css 의
+// .md-pile 상자 크기가 정합니다 — 자리 계산의 반지름이 18개마다 되풀이라
+// 가닥을 늘려도 밖으로 번지지 않고 그 상자 안이 촘촘해지기만 합니다.
+const MANDOLINE_SHREDS_PER_CUT=12;
 // 채 그림 종류 수 (food_*_shredded_piece_01~03). 가닥마다 셋 중 하나를 씁니다.
 const MANDOLINE_SHRED_SHAPES=3;
 
@@ -267,9 +277,14 @@ function rejectAlternateInput(m,message,targetSelector){
   return false;
 }
 
+// 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
+const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
+
 function playAlternateSuccess(completing=false){
   if(completing)return;
-  if(state.mini?.data?.mode==="mandoline")audio.play?.("mandoline_slide",{owner:state.mini});
+  const m=state.mini;
+  if(m?.data?.mode==="mandoline")audio.play?.("mandoline_slide",{owner:m});
+  else if(m?.data?.mode==="shrimpCoat")audio.play?.(SHRIMP_COAT_SFX[m.data.sequence[m.data.step].id],{owner:m,gain:.8});
   else audio.click();
 }
 
@@ -353,14 +368,12 @@ function fryPrepIngredientMarkup(item){
 }
 
 // view = { ingredients, stage(가운데 마크업), done, total, percent,
-//          keys, expectedIndex, keyLink, controlMarkup, controlName, controlDesc }
+//          keys, expectedIndex, keyLink, controlName, controlDesc }
 // keys 는 문자열("a") 또는 {value,glyph} 입니다. 문자열이면 대문자로 보여 줍니다.
 // controlName / controlDesc 는 비워 두면 그 줄이 아예 나오지 않습니다.
 // onKey 는 화면 안 키 버튼을 눌렀을 때 호출할 입력 함수입니다(entry.value 를 넘김).
 function renderFryPrepScreen(view,onKey){
-  const keys=(view.keys||[]).map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
-  const controlMarkup=view.controlMarkup!==undefined?view.controlMarkup:
-    `<div class="fp-keys">${keys.map((entry,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${entry.value}">${entry.glyph}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>`;
+  const keys=view.keys.map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
   dom.miniContent.innerHTML=`
     <div class="fp-scene ${view.phase?`phase-${view.phase}`:""}">
       <div class="fp-col">
@@ -378,13 +391,13 @@ function renderFryPrepScreen(view,onKey){
         </div>
         <div class="fp-panel fp-control">
           <h3 class="fp-col-title">조작</h3>
-          ${controlMarkup}
+          <div class="fp-keys">${keys.map((entry,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${entry.value}">${entry.glyph}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>
           ${view.controlName?`<p class="fp-control-name">${view.controlName}</p>`:""}
           ${view.controlDesc?`<p class="fp-control-desc">${view.controlDesc}</p>`:""}
         </div>
       </div>
     </div>`;
-  if(onKey)dom.miniContent.querySelectorAll("[data-fry-prep-key]").forEach(button=>button.addEventListener("click",()=>onKey(button.dataset.fryPrepKey)));
+  dom.miniContent.querySelectorAll("[data-fry-prep-key]").forEach(button=>button.addEventListener("click",()=>onKey(button.dataset.fryPrepKey)));
 }
 
 // 눌린 키 쪽으로 한 번 흔들립니다. 다시 그린 직후에 붙여야 애니메이션이 살아납니다.
@@ -399,9 +412,12 @@ function playFryPrepShake(selector,key,keys){
 /* ============================================================
    2. 감자튀김 준비 — 봉투를 흔들어 튀김가루 묻히기
 
-   감자채가 담긴 봉투에 튀김가루를 넣고 랜덤키 두 개를 번갈아 연타해
-   가루를 골고루 묻힙니다. 누를 때마다 봉투가 그 방향으로 흔들리고
-   가루가 조금씩 더 붙습니다. 실패나 되돌아감은 없습니다.
+   감자채가 담긴 봉투에 튀김가루를 넣고 좌우로 번갈아 흔들어 가루를
+   골고루 묻힙니다. 흔드는 방법이 두 가지고 **둘 다 같은 한 번**입니다.
+     · 랜덤키 두 개를 번갈아 연타
+     · 봉투를 직접 잡고 좌우로 크게 왕복 (채칼과 같은 조작)
+   흔들 때마다 봉투 그림이 다음 장으로 넘어가고 좌우에 물결이 뜹니다.
+   실패나 되돌아감은 없습니다.
    ============================================================ */
 
 registerDayPrepEngine("potatoStarch",{
@@ -416,12 +432,17 @@ function setupPotatoStarchShake(){
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
   setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
-  dom.miniStation.textContent="봉투를 흔들어 튀김가루를 골고루 묻혀주세요!";
-  dom.miniDescription.textContent=`${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 빠르게 눌러 봉투를 흔들어주세요!`;
+  dom.miniStation.textContent="봉투를 잡고 흔들어 튀김가루를 골고루 묻혀주세요!";
+  dom.miniDescription.textContent=`봉투를 잡고 좌우·대각선으로 크게 흔드세요. ${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 번갈아 눌러도 됩니다.`;
   renderPotatoStarchShake();
 }
 
-function potatoStarchInput(key,repeat=false){
+/* pointerDriven = 봉투를 직접 끌어서 들어온 입력. 봉투는 이미 손에 붙어
+   움직이는 중이라 키를 눌렀을 때의 흔들림 연출을 얹지 않습니다
+   (css/day-prep-minigames.css 의 `.fp-bag.dragging` 이 그 애니메이션을 끕니다).
+   tilt = 흔든 대각선의 기울기. 끌어서 흔들 때만 넘어오고(손이 지나간 방향),
+   키로 흔들 때는 null 이라 아래 표에서 다음 각도를 꺼내 씁니다. */
+function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch")return false;
   const data=m.data;
   const result=acceptAlternateInput(data,key,repeat);
@@ -433,6 +454,7 @@ function potatoStarchInput(key,repeat=false){
   if(completed){data.transitioning=true;data.inputLocked=true;data.phase="complete";}
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 닫힙니다)
   renderPotatoStarchShake();
+  setFriesShakeTilt(data,tilt);
   playFryPrepShake("#friesBagScene",key,data.keys);
   dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
   if(completed){
@@ -446,21 +468,76 @@ function potatoStarchInput(key,repeat=false){
   return true;
 }
 
+/* 봉투 그림 장수 (food_fries_coating_bag_01~09). 01 이 가루가 아직 바닥에
+   깔린 처음이고 09 가 다 묻은 모습입니다.
+
+   흔드는 횟수(14)와 장수(9)가 딱 맞아떨어지지 않습니다 — 채칼(MANDOLINE_WHOLE_FRAMES)
+   과 같은 방식으로 0% 가 01, 100% 가 09 가 되도록 고르게 나누므로 대략 1.75 번에
+   한 장씩 넘어갑니다. 횟수는 day4-prep-data.js 의 requiredPresses 이고, 그 값을
+   9 로 맞추면 한 번에 정확히 한 장씩 넘어가지만 그건 플레이 방식이 바뀌는 일이라
+   여기서는 안 했습니다. */
+const FRIES_BAG_FRAMES=9;
+
+function friesBagFrameIndex(presses,total){
+  const last=FRIES_BAG_FRAMES-1;
+  return Math.max(0,Math.min(last,Math.round(presses/Math.max(1,total)*last)));
+}
+
+/* 흔들 때 봉투 좌우에 뜨는 물결. **한 장에 좌우가 다 그려져 있고 가운데가
+   비어 있어서** 봉투 뒤에 한 장만 깔면 양쪽이 동시에 뜹니다.
+   세 장을 겹쳐 두고 CSS 가 차례로 켭니다 (화구 3장과 같은 방식이라
+   자바스크립트 타이머가 없습니다 — 미니게임이 닫혀도 뒷정리할 것이 없습니다).
+   그림이 없으면 예전의 CSS 활 도형(.fp-wave)으로 돌아갑니다. */
+function friesShakeFxMarkup(){
+  const frames=Array.from({length:3},(_,index)=>dayPrepAssetMarkup(`friesShakeFx${index+1}`,`fp-shake-fx-frame f${index+1}`,""));
+  if(!frames[0])return "";
+  return `<div class="fp-shake-fx" aria-hidden="true">${frames.join("")}</div>`;
+}
+
+/* 흔드는 대각선 축의 기울기 (세로 이동 / 가로 이동). 0 이면 정확히 좌우,
+   음수면 왼쪽 위 ↔ 오른쪽 아래(↖↘), 양수면 왼쪽 아래 ↔ 오른쪽 위(↙↗) 입니다.
+   키로 흔들 때는 한 번마다 다음 값으로 넘어가 축이 조금씩 기울어집니다 —
+   늘 같은 각도로만 흔들면 자로 잰 것처럼 보입니다.
+   ⚠️ Math.random 을 쓰지 않습니다. 같은 화면을 다시 그릴 때마다 각도가
+      바뀌면 흔들다 만 봉투가 제자리에서 튑니다.
+   ⚠️ **장수가 홀수(5)인 것이 중요합니다.** 흔드는 쪽은 왼쪽·오른쪽으로 번갈아
+      바뀌는데, 표까지 짝수 주기로 부호가 번갈면 둘이 맞물려 봉투가 **매번
+      위로만** 솟습니다. 홀수라 짝이 한 칸씩 밀리면서 위로 갔다 아래로 갔다 합니다. */
+const FRIES_SHAKE_TILTS=Object.freeze([-.46,.34,.5,-.22,-.38]);
+
+/* 기울기를 화면에 넘깁니다. 두 자리에 쓰입니다.
+     --fp-tilt      봉투가 움직이는 대각선 (키로 흔들 때의 애니메이션)
+     --fp-fx-turn   그 대각선에 맞춰 물결 이펙트를 돌리는 각도
+   기울기(비율)를 각도로 바꾸는 계산은 여기서 합니다 — CSS 의 atan() 은
+   크롬 111 이상에서만 되므로 자바스크립트 쪽이 안전합니다. */
+function setFriesShakeTilt(data,tilt=null){
+  const scene=dom.miniContent.querySelector("#friesBagScene");if(!scene)return;
+  const slope=tilt===null?FRIES_SHAKE_TILTS[data.presses%FRIES_SHAKE_TILTS.length]:tilt;
+  scene.style.setProperty("--fp-tilt",slope.toFixed(3));
+  scene.style.setProperty("--fp-fx-turn",`${(Math.atan(slope)*180/Math.PI).toFixed(1)}deg`);
+}
+
+function friesWaveMarkup(side){
+  return `<i class="fp-wave ${side}" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>`;
+}
+
 // 봉투 안 감자채는 매번 같은 자리에 있어야 하므로 index 로 자리를 계산합니다.
 // (Math.random 을 쓰면 키를 누를 때마다 감자가 순간이동합니다)
-function friesBagMarkup(percent,stage){
+// stage 는 임시 도형용 단계(0·35·70·100), frame 은 납품 그림의 장 번호(1~9)입니다.
+function friesBagMarkup(percent,stage,frame){
   const sticks=Array.from({length:24},(_,index)=>`<i style="--fp-x:${8+(index%6)*13}%;--fp-y:${10+Math.floor(index/6)*20}%;--fp-turn:${-52+(index*37)%104}deg"></i>`).join("");
   const flourCount=Math.round(percent/100*26);
   const flour=Array.from({length:flourCount},(_,index)=>`<b style="--fp-x:${7+(index*37)%86}%;--fp-y:${9+(index*53)%78}%;--fp-size:${4+index%3}"></b>`).join("");
-  const asset=dayPrepAssetMarkup(`friesShakeBag${stage}`,"fp-bag-asset",`튀김가루 묻히기 ${stage}%`);
+  const asset=dayPrepAssetMarkup(`friesShakeBag${frame}`,"fp-bag-asset",`튀김가루 묻히기 ${percent}%`);
+  const fx=friesShakeFxMarkup();
   return `<div class="fp-bag-scene" id="friesBagScene">
-    <i class="fp-wave left" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>
-    <div class="fp-bag stage-${stage} ${asset?"has-asset":""}">
+    ${fx||friesWaveMarkup("left")}
+    <div class="fp-bag stage-${stage} ${asset?"has-asset":""}" id="friesBag">
       ${asset}
       <i class="fp-bag-zip" aria-hidden="true"></i>
       <div class="fp-bag-fill" aria-hidden="true">${sticks}${flour}</div>
     </div>
-    <i class="fp-wave right" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>
+    ${fx?"":friesWaveMarkup("right")}
   </div>`;
 }
 
@@ -472,189 +549,341 @@ function renderPotatoStarchShake(){
   // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
   dom.miniTimer.textContent=`${data.presses} / ${data.total}`;
   renderFryPrepScreen({
-    ingredients:[{id:"potatoStrips",label:"감자채",count:1,asset:"friesPotatoStrips"}],
-    stage:friesBagMarkup(percent,stage),
+    // 봉투 안에 함께 든 두 가지입니다. 어느 한쪽 차례가 있는 것이 아니라
+    // 처음부터 같이 들어 있으므로 금색 강조는 켜지 않습니다 (감자 채칼과 같습니다).
+    ingredients:[
+      {id:"potatoStrips",label:"감자채",count:1,asset:"friesPotatoStrips"},
+      {id:"fryingPowder",label:"튀김가루",count:1,asset:"friesFryingPowder"}
+    ],
+    stage:friesBagMarkup(percent,stage,friesBagFrameIndex(data.presses,data.total)+1),
     done:data.presses>=data.total?1:0,
     total:1,
     percent,
     keys:data.keys,
     expectedIndex:data.expectedIndex,
     keyLink:"→",
-    controlName:"랜덤키 연타",
-    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게<br />눌러 흔들기`,
+    controlName:"봉투를 잡고<br />크게 흔들기",
+    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 번갈아<br />눌러도 됩니다`,
     phase:data.phase
   },key=>potatoStarchInput(key,false));
+  bindFriesBagDrag();
+  updateFriesBagDragPose(data);
 }
 
-/* ============================================================
-   3. 새우튀김 준비 — 밀가루 → 계란물 → 빵가루, 단계마다 다섯 마리
+/* ---- 봉투 직접 흔들기 (포인터) -----------------------------
+   채칼(engine-e12-grab-shake.js 의 bindMandolineDrag)과 같은 결의 조작입니다.
+   다만 채칼은 정해진 대각선 축 위로만 움직이는 반면, **봉투는 손이 가는 대로
+   따라옵니다** — 가로세로 둘 다 따라가므로 ↖↘ 든 ↙↗ 든 원하는 대각선으로
+   흔들 수 있습니다. 손에 든 봉지에 정해진 축이 있을 리 없으니까요.
 
-   한 화면에는 현재 단계의 그릇 하나만 놓입니다. 새우를 잡아 그릇 안에서
-   좌우로 여러 번 굴리면 한 마리가 완성되고, 다섯 마리를 마치면 다음
-   재료 화면으로 넘어갑니다.
-   ============================================================ */
+   한 왕복이 아니라 한쪽 끝에 닿을 때마다 한 번으로 셉니다 — 봉투는 좌우로
+   번갈아 흔드는 물건이라 그 편이 키 두 개를 번갈아 누르는 것과 정확히 같은
+   셈이 됩니다. (그래서 판정은 그대로 potatoStarchInput 에 넘깁니다)
+   ⚠️ **세는 기준은 가로로 간 거리뿐입니다.** 대각선으로 흔들면 그만큼 덜
+      가로지르므로 조금 더 크게 흔들어야 한 번이 됩니다 — 위아래로만 흔드는
+      것은 '흔들기'가 아니니 그건 세지 않는 것이 맞습니다.
 
-registerDayPrepEngine("shrimpCoat",{
-  key(){return false;}
+   ⚠️ 흔들 때마다 가운데 그림을 다시 그리므로, 사라지는 봉투가 아니라 계속
+      남아 있는 mini-content 에 포인터를 캡처해야 한 번 잡은 채 계속 흔들 수
+      있습니다. 다시 그린 뒤 잡은 자세를 되돌려 주는 것이 아래 pose 함수입니다. */
+const FRIES_BAG_DRAG_CONFIG=Object.freeze({
+  travelRatio:.16,        // 한 번으로 치는 가로 거리 (봉투 폭 대비)
+  visualLimitRatio:.13,   // 손을 따라 봉투가 밀려나는 한계 (가로는 폭, 세로는 높이 대비)
+  /* 이펙트가 따라 도는 각도의 한계 (0.5 = 약 27도). 아래 friesBagDragTilt 참고.
+     ⚠️ 더 키우면 돌아간 이펙트(760x228)가 도마(788.2 x 573.2) 밖으로 나갑니다 —
+        .fp-board 는 넘치는 것을 자르지 않아서 액자 위에 그려집니다. */
+  tiltLimit:.5
 });
 
-const SHRIMP_ROLL_CONFIG=Object.freeze({requiredTravelRatio:2.2,visualLimitRatio:.32});
-// 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
-const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
-
-function setupShrimpCoat(taskId){
-  const item=SHRIMP_COAT_STEPS[0];
-  if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
-  setDayPrepData({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,successes:0,total:item.shrimpCount,
-    rollProgress:0,rollX:0,rollTurn:0,drag:null,stageGrades:[],inputLocked:false,transitioning:false,phase:"ready"});
-  dom.miniTitle.textContent="새우튀김 준비";
-  dom.miniStation.textContent="새우를 직접 굴려 밀가루, 계란물, 빵가루를 차례로 묻혀주세요!";
-  dom.miniDescription.textContent=`새우를 잡고 ${item.label} 안에서 좌우로 여러 번 굴려주세요. 한 단계에 5마리씩 준비합니다!`;
-  renderShrimpCoat();
+function friesBagDragDistance(size,ratio){
+  return Math.max(1,(size||0)*ratio);
 }
 
-function updateShrimpRollPose(data){
-  const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),meter=dom.miniContent.querySelector("#shrimpRollMeter");
-  if(shrimp){
-    shrimp.style.setProperty("--shrimp-roll-x",`${data.drag?.position||0}px`);
-    shrimp.style.setProperty("--shrimp-roll-turn",`${data.rollTurn||0}deg`);
-    shrimp.classList.toggle("dragging",Boolean(data.drag));
-    const stage=data.rollProgress>=1?3:data.rollProgress>=.7?2:data.rollProgress>=.35?1:0;
-    shrimp.classList.remove("stage-0","stage-1","stage-2","stage-3");shrimp.classList.add(`stage-${stage}`);
-  }
-  if(meter)meter.style.width=`${Math.round((data.rollProgress||0)*100)}%`;
+/* 끄는 동안 흔들림 이펙트가 뜰 대각선 축. 손이 실제로 지나간 방향을 그대로
+   씁니다 — 키로 흔들 때의 --fp-tilt 와 같은 자리에 들어갑니다.
+   가로로 거의 안 움직였을 때(세로로만 끌 때)는 0 으로 두어 축이 곤두서지 않게 합니다. */
+function friesBagDragTilt(dx,dy){
+  if(Math.abs(dx)<1)return 0;
+  return clamp(dy/dx,-FRIES_BAG_DRAG_CONFIG.tiltLimit,FRIES_BAG_DRAG_CONFIG.tiltLimit);
 }
 
-function clearShrimpCoatDrag(m,pointerId=null){
-  const drag=m?.data?.drag;if(!drag||drag.kind!=="shrimpRoll"||(pointerId!==null&&drag.pointerId!==pointerId))return;
-  m.data.rollX=drag.limit?drag.position/drag.limit:0;m.data.drag=null;
-  dom.miniContent.querySelector("#shrimpRollShrimp")?.classList.remove("dragging");
-  dom.miniContent.querySelector("#shrimpCoatScene")?.classList.remove("rolling");
+function updateFriesBagDragPose(data){
+  const drag=data?.drag,bag=dom.miniContent.querySelector("#friesBag");
+  if(!bag||!drag||drag.kind!=="friesBag")return;
+  bag.style.setProperty("--fp-drag-x",`${drag.position.toFixed(2)}px`);
+  bag.style.setProperty("--fp-drag-y",`${drag.positionY.toFixed(2)}px`);
+  bag.classList.add("dragging");
 }
 
-function finishShrimpCoatPiece(m,pointerId){
-  const data=m.data,stageComplete=data.successes+1>=data.total;
-  clearShrimpCoatDrag(m,pointerId);
-  data.successes++;data.rollProgress=stageComplete?1:0;data.rollX=0;data.rollTurn=0;data.justCompleted=data.successes-1;
-  if(stageComplete){
-    const finalStage=data.step>=data.sequence.length-1;
-    data.stageGrades.push("perfect");data.completionGrade="perfect";
-    data.transitioning=true;data.inputLocked=true;data.phase=finalStage?"complete":"transition";
-  }
-  renderShrimpCoat();
-  if(!stageComplete){audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 굴려주세요.`;return;}
-  const completed=data.sequence[data.step],finalStage=data.step>=data.sequence.length-1;
-  dom.miniContent.querySelector(".fp-scene")?.classList.add(finalStage?"e2-complete":"stage-complete");
-  showAlternateGrade("perfect");audio.success();
-  if(finalStage){
-    dom.miniFeedback.textContent="새우 5마리 튀김옷 3단계 준비 완료!";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
-    return;
-  }
-  dom.miniFeedback.textContent=`${completed.label} 5마리 완료 · 다음 코팅 재료로 넘어갑니다.`;
-  setTimeout(()=>{
-    if(state.mini!==m||m.complete)return;
-    data.step++;data.successes=0;data.total=data.sequence[data.step].shrimpCount;data.rollProgress=0;data.rollX=0;data.rollTurn=0;data.transitioning=false;data.inputLocked=false;data.phase="ready";data.justCompleted=-1;
-    const next=data.sequence[data.step];
-    dom.miniDescription.textContent=`새우를 잡고 ${next.label} 안에서 좌우로 여러 번 굴려주세요. ${data.step+1}단계도 5마리입니다!`;
-    dom.miniFeedback.textContent=`${data.step+1}단계 · ${next.label}를 골고루 묻혀주세요.`;
-    renderShrimpCoat();
-  },E2_FEEL_CONFIG.stageTransitionMs);
+function clearFriesBagDrag(m,pointerId=null){
+  const drag=m?.data?.drag;if(!drag||drag.kind!=="friesBag"||(pointerId!==null&&drag.pointerId!==pointerId))return;
+  m.data.drag=null;
+  const bag=dom.miniContent.querySelector("#friesBag");
+  bag?.classList.remove("dragging");
+  bag?.style.removeProperty("--fp-drag-x");
+  bag?.style.removeProperty("--fp-drag-y");
 }
 
-function bindShrimpCoatDrag(){
-  const surface=dom.miniContent;if(surface.__shrimpCoatDragBound)return;
-  surface.__shrimpCoatDragBound=true;
+function bindFriesBagDrag(){
+  const surface=dom.miniContent;if(surface.__friesBagDragBound)return;
+  surface.__friesBagDragBound=true;
+  const playable=m=>isDayPrepMini(m)&&!m.complete&&m.data.mode==="potatoStarch";
   surface.addEventListener("pointerdown",event=>{
-    const shrimp=event.target?.closest?.("#shrimpRollShrimp"),m=state.mini;
-    if(!shrimp||!surface.contains(shrimp)||!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
+    const bag=event.target?.closest?.("#friesBag"),m=state.mini;
+    if(!bag||!surface.contains(bag)||!playable(m)||m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
     event.preventDefault();
-    const rect=shrimp.closest(".fp-roll-surface")?.getBoundingClientRect()||shrimp.getBoundingClientRect();
-    const limit=Math.max(32,rect.width*SHRIMP_ROLL_CONFIG.visualLimitRatio);
-    m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,position:(m.data.rollX||0)*limit,limit,required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio),sinceSound:0};
+    const rect=bag.getBoundingClientRect();
+    m.data.drag={kind:"friesBag",pointerId:event.pointerId,
+      startX:event.clientX,startY:event.clientY,position:0,positionY:0,
+      step:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.travelRatio),
+      limit:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.visualLimitRatio),
+      limitY:friesBagDragDistance(rect.height,FRIES_BAG_DRAG_CONFIG.visualLimitRatio)};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
-    dom.miniContent.querySelector("#shrimpCoatScene")?.classList.add("rolling");updateShrimpRollPose(m.data);
+    updateFriesBagDragPose(m.data);
   });
   surface.addEventListener("pointermove",event=>{
     const m=state.mini,drag=m?.data?.drag;
-    if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||!drag||drag.kind!=="shrimpRoll"||drag.pointerId!==event.pointerId)return;
-    event.preventDefault();if(m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
-    const previous=drag.position,next=clamp(previous+event.clientX-drag.lastX,-drag.limit,drag.limit);
-    drag.lastX=event.clientX;drag.position=next;
-    const travelled=Math.abs(next-previous);
-    m.data.rollProgress=Math.min(1,m.data.rollProgress+travelled/drag.required);
-    m.data.rollTurn=(m.data.rollTurn+(next-previous)*.55)%360;
-    updateShrimpRollPose(m.data);
-    // 굴리는 거리만큼 쌓아 두었다가 한 번 왕복(limit)할 때마다 코팅 소리를 한 번씩 냅니다.
-    // 완료 때만 소리가 나면 "묻히는 중"이라는 느낌이 안 나서, 움직이는 동안 계속 들리게 합니다.
-    drag.sinceSound=(drag.sinceSound||0)+travelled;
-    while(drag.sinceSound>=drag.limit){
-      drag.sinceSound-=drag.limit;
-      audio.play?.(SHRIMP_COAT_SFX[m.data.sequence[m.data.step].id],{owner:m,gain:.8});
-    }
-    if(m.data.rollProgress>=1){
-      try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
-      finishShrimpCoatPiece(m,event.pointerId);
+    if(!playable(m)||!drag||drag.kind!=="friesBag"||drag.pointerId!==event.pointerId)return;
+    event.preventDefault();
+    if(m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
+    const moved=event.clientX-drag.startX,movedY=event.clientY-drag.startY;
+    drag.position=clamp(moved,-drag.limit,drag.limit);
+    drag.positionY=clamp(movedY,-drag.limitY,drag.limitY);
+    updateFriesBagDragPose(m.data);
+    // 지금 차례인 쪽 — 키 두 개의 차례가 그대로 왼쪽 / 오른쪽입니다
+    // (연타할 때 봉투가 기우는 방향과 같습니다 — playFryPrepShake 참고)
+    const toLeft=m.data.expectedIndex===0;
+    if(toLeft?moved<=-drag.step:moved>=drag.step){
+      // 이펙트는 손이 지나간 대각선을 따라 뜹니다 (키로 흔들 때는 정해진 표를 씁니다)
+      potatoStarchInput(m.data.keys[m.data.expectedIndex],false,true,friesBagDragTilt(moved,movedY));
+      if(m.data.transitioning||m.data.phase==="complete")clearFriesBagDrag(m,event.pointerId);
     }
   });
   const finish=event=>{
     const m=state.mini,drag=m?.data?.drag;
-    if(!drag||drag.kind!=="shrimpRoll"||drag.pointerId!==event.pointerId)return;
-    clearShrimpCoatDrag(m,event.pointerId);updateShrimpRollPose(m.data);
+    if(!drag||drag.kind!=="friesBag"||drag.pointerId!==event.pointerId)return;
+    clearFriesBagDrag(m,event.pointerId);
     try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
   };
-  surface.addEventListener("pointerup",finish);surface.addEventListener("pointercancel",finish);surface.addEventListener("lostpointercapture",finish);
-  surface.addEventListener("dragstart",event=>{if(event.target?.closest?.("#shrimpRollShrimp"))event.preventDefault();});
+  surface.addEventListener("pointerup",finish);
+  surface.addEventListener("pointercancel",finish);
+  surface.addEventListener("lostpointercapture",finish);
+  surface.addEventListener("dragstart",event=>{if(event.target?.closest?.("#friesBag"))event.preventDefault();});
 }
 
-// 새우 한 마리. coating 은 지금 입고 있는 옷, stage 는 0~3 (묻은 정도) 입니다.
-function shrimpPieceMarkup(coating,stage,extraClass="",attributes=""){
-  const assetKey={raw:"shrimpStateRaw",flour:"shrimpStateFlour",egg:"shrimpStateEgg",breadcrumbs:"shrimpStateBreadcrumbs"}[coating]||"shrimpStateRaw";
+/* ============================================================
+   3. 새우튀김 준비 — 밀가루 10회 → 계란물 8회 → 빵가루 12회
+
+   화면에는 세 그릇이 삼각형으로 놓이고, 지금 차례인 그릇만 밝게 켜집니다.
+   랜덤키 두 개를 번갈아 연타하면 새우가 그 안에서 굴러 옷이 입혀집니다.
+   누를 때마다 새우가 제 장축을 축으로 넘어가 굴러가는 것처럼 보입니다(data.rolled).
+
+   [단계 사이 — 옮기기]
+   한 단계를 다 묻히면 새우가 그 그릇에 남고, **끌어다 다음 그릇에 놓아야**
+   다음 단계가 시작됩니다(data.phase === "carry"). 그동안 연타는 잠기고
+   조작 카드와 TIP 줄이 드래그 안내로 바뀝니다.
+   세 단계를 마치면 완료입니다 (마지막 그릇 뒤에는 옮기기가 없습니다).
+   ============================================================ */
+
+registerDayPrepEngine("shrimpCoat",{
+  key(m,k,e){
+    if(/^[a-z]$/.test(k)){shrimpCoatInput(k,e.repeat);return true;}
+    return false;
+  }
+});
+
+function setupShrimpCoat(taskId){
+  const item=SHRIMP_COAT_STEPS[0];
+  if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
+  const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
+  setDayPrepData(createAlternateFeelState({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,keys:[...pair],expectedIndex:0,successes:0,total:item.presses}));
+  dom.miniTitle.textContent="새우튀김 준비";
+  dom.miniStation.textContent="튀김가루, 계란물, 빵가루를 순서대로 묻혀주세요!";
+  dom.miniDescription.textContent=`${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 빠르게 눌러 ${item.label}${koObjectParticle(item.label)} 묻혀주세요!`;
+  renderShrimpCoat();
+}
+
+function shrimpCoatInput(key,repeat=false){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return false;
+  const data=m.data;
+  const result=acceptAlternateInput(data,key,repeat);
+  if(result.ignored)return false;
+  if(!result.accepted)return rejectAlternateInput(m,`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#shrimpCoatStation");
+  data.successes++;
+  data.rolled=!data.rolled;   // 한 번 누를 때마다 새우가 장축을 축으로 반대로 넘어갑니다
+  const stageComplete=data.successes>=data.total;
+  const finalStage=stageComplete&&data.step>=data.sequence.length-1;
+  playAlternateSuccess(stageComplete);
+  if(stageComplete){data.transitioning=true;data.inputLocked=true;data.phase=finalStage?"complete":"transition";}
+  // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (다 입은 새우가 보이고 닫힙니다)
+  renderShrimpCoat();
+  playFryPrepShake("#shrimpCoatStation",key,data.keys);
+  dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
+  // 마무리 구간 — 그림은 다 묻었는데 몇 번 더 굴려야 하는 구간을 알려 줍니다
+  const rollsLeft=shrimpFinishRollsLeft(data);
+  if(!stageComplete&&rollsLeft>0)dom.miniFeedback.textContent=`옷이 다 묻었어요! ${rollsLeft}번 더 굴려 마무리하세요.`;
+  if(stageComplete){
+    const completed=data.sequence[data.step],stageGrade=alternateCompletionGrade(data);data.stageGrades.push(stageGrade);
+    const finalGrade=data.stageGrades.every(grade=>grade==="perfect")?"perfect":"good";
+    data.completionGrade=finalGrade;
+    if(finalStage){
+      dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
+      showAlternateGrade(finalGrade);
+      dom.miniFeedback.textContent=`새우 튀김옷 ${finalGrade==="perfect"?"완벽하게 ":""}준비 완료!`;
+      setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
+      return true;
+    }
+    dom.miniContent.querySelector(".fp-scene")?.classList.add("stage-complete");
+    showAlternateGrade(stageGrade);
+    const next=data.sequence[data.step+1];
+    dom.miniFeedback.textContent=`${completed.label} ${stageGrade==="perfect"?"PERFECT":"GOOD"} · 새우를 ${next.label} 그릇으로 옮겨주세요.`;audio.success();
+    // 자동으로 넘어가지 않습니다. 등급 연출이 끝나면 '옮기기' 차례로 넘깁니다.
+    setTimeout(()=>{
+      if(state.mini!==m||m.complete)return;
+      data.phase="carry";           // 연타는 계속 잠긴 채(inputLocked) 드래그만 받습니다
+      dom.miniDescription.textContent=`새우를 ${next.label} 그릇으로 끌어다 놓으세요!`;
+      renderShrimpCoat();
+    },E2_FEEL_CONFIG.stageTransitionMs);
+  }
+  return true;
+}
+
+/* 옮기기가 끝났을 때 — 다음 그릇에서 새 연타가 시작됩니다.
+   원래 stageTransitionMs 뒤에 자동으로 하던 일을 그대로 옮겨 왔고,
+   부르는 사람만 타이머에서 '놓았다'로 바뀌었습니다. */
+function advanceShrimpCoatStep(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat")return;
+  const data=m.data;if(data.phase!=="carry"||data.step>=data.sequence.length-1)return;
+  data.step++;data.successes=0;data.total=data.sequence[data.step].presses;data.expectedIndex=0;
+  data.transitioning=false;data.inputLocked=false;data.phase="ready";data.rolled=false;resetAlternateGrade(data);
+  data.keys=[...BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)]];
+  dom.miniDescription.textContent=`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게 눌러 ${data.sequence[data.step].label}${koObjectParticle(data.sequence[data.step].label)} 묻혀주세요!`;
+  dom.miniFeedback.textContent=`새 키 ${data.keys.map(item=>item.toUpperCase()).join(" · ")}를 번갈아 누르세요.`;
+  audio.success();
+  renderShrimpCoat();
+}
+
+/* 다 묻은 새우를 집어 다음 그릇에 놓는 포인터 처리.
+   ⚠️ E8 의 공용 배치기(engine-e8-order-place.js 의 bindOrderPlacementPointers)를
+      그대로 씁니다. 포인터 캡처·유령·놓을 자리 표시가 이미 다 들어 있어서
+      여기서 다시 만들 이유가 없습니다. index.html 에서 E2 가 E8 보다 먼저
+      로드되지만, 부르는 시점이 실행 중이라 순서는 상관없습니다.
+   dragOnly 라 클릭 한 번으로는 안 넘어갑니다 — 옮기는 손맛이 이 단계의 전부입니다. */
+function bindShrimpCarryDrag(){
+  const source=dom.miniContent.querySelector(".fp-shrimp.carry");if(!source)return;
+  bindOrderPlacementPointers({
+    sources:[source],
+    targetSelector:"[data-shrimp-drop]",
+    itemFromSource:()=>"shrimp",
+    ghostSelector:".fp-shrimp-asset",
+    dragOnly:true,
+    onPlace:()=>advanceShrimpCoatStep(),
+    onMiss:()=>{dom.miniFeedback.textContent="빛나는 그릇 위에 새우를 놓아주세요.";}
+  });
+}
+
+/* 새우 그림 고르기 — [옷][묻은 정도 0~3] 입니다.
+   납품 에셋이 옷마다 3단계(조금·반쯤·다 묻음)라 진행도가 그림으로 보입니다.
+   stage 0 은 "이 그릇에 이제 막 들어온" 모습이라 **직전 그릇의 완성 그림**을 씁니다.
+   그래야 그릇을 옮길 때 새우가 갑자기 벗겨지지 않고 이어집니다.
+   (파일 경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고) */
+const SHRIMP_STATE_KEYS=Object.freeze({
+  flour:      ["shrimpStateRaw",    "shrimpStateFlour1", "shrimpStateFlour2", "shrimpStateFlour3"],
+  egg:        ["shrimpStateFlour3", "shrimpStateEgg1",   "shrimpStateEgg2",   "shrimpStateEgg3"],
+  breadcrumbs:["shrimpStateEgg3",   "shrimpStateCrumbs1","shrimpStateCrumbs2","shrimpStateCrumbs3"]
+});
+
+/* 새우 한 마리.
+     coating   지금 입고 있는 옷
+     stage     0~3 (묻은 정도)
+     rolled    옆으로 넘어간 상태인지. 연타할 때마다 뒤집힙니다.
+               뒤집는 축은 새우가 누운 방향입니다 — css 의 .fp-shrimp.rolled 참고
+     carry     끌어다 옮길 수 있는 새우인지 (단계 사이) */
+function shrimpPieceMarkup(coating,stage,rolled=false,carry=false){
+  const assetKey=SHRIMP_STATE_KEYS[coating]?.[stage]||"shrimpStateRaw";
   const asset=dayPrepAssetMarkup(assetKey,"fp-shrimp-asset","새우");
-  const crumbs=coating==="breadcrumbs"?Array.from({length:12},(_,index)=>`<b style="--fp-x:${12+(index*29)%74}%;--fp-y:${16+(index*41)%62}%;--fp-turn:${index*23}deg"></b>`).join(""):"";
-  return `<div class="fp-shrimp coating-${coating} stage-${stage} ${asset?"has-asset":""} ${extraClass}" ${attributes}>${asset}<i class="fp-shrimp-eye"></i>${crumbs}</div>`;
+  const crumbs=coating==="breadcrumbs"?Array.from({length:Math.ceil(stage/3*12)},(_,index)=>`<b style="--fp-x:${12+(index*29)%74}%;--fp-y:${16+(index*41)%62}%;--fp-turn:${index*23}deg"></b>`).join(""):"";
+  const flags=`${asset?"has-asset":""} ${rolled?"rolled":""} ${carry?"carry":""}`;
+  return `<div class="fp-shrimp coating-${coating} stage-${stage} ${flags}">${asset}<i class="fp-shrimp-eye"></i>${crumbs}</div>`;
+}
+
+/* 지금 새우가 얼마나 묻었는지 (0~3).
+   ⚠️ 기준이 전체 횟수가 아니라 **마무리 몫을 뺀 횟수**입니다. 그래서 다 묻은
+      모습(3)에 먼저 닿고, 남은 shrimpFinishRolls 번은 이미 다 묻은 새우를
+      굴리는 마무리 구간이 됩니다. */
+function shrimpCoatStage(data){
+  const need=Math.max(1,data.total-E2_FEEL_CONFIG.shrimpFinishRolls);
+  if(data.successes>=need)return 3;
+  const ratio=data.successes/need;
+  return ratio>=.7?2:ratio>=.35?1:0;
+}
+
+// 마무리 구간에서 몇 번 더 굴려야 하는지. 아직 다 안 묻었으면 0.
+function shrimpFinishRollsLeft(data){
+  if(shrimpCoatStage(data)<3)return 0;
+  return Math.max(0,data.total-data.successes);
 }
 
 function shrimpCoatStageMarkup(data){
-  const current=data.sequence[data.step],stage=data.rollProgress>=.7?2:data.rollProgress>=.35?1:0;
-  const vesselAsset=dayPrepAssetMarkup(`shrimpVessel${current.id[0].toUpperCase()}${current.id.slice(1)}`,"fp-vessel-asset",current.label);
-  // 큰 새우는 목표 코팅 클래스로 그린 뒤 stage-0 색을 직전 단계 색으로 둡니다.
-  // 그래야 다시 그리지 않는 드래그 중에도 stage 클래스만 바꿔 옷이 입혀집니다.
-  const coating=current.id;
-  const stages=data.sequence.map((item,index)=>`<span class="${index<data.step||(index===data.step&&data.successes>=data.total)?"done":index===data.step?"current":"pending"}"><i>${index+1}</i>${item.label}</span>`).join("");
-  const batch=Array.from({length:data.total},(_,index)=>`<i class="${index<data.successes?"done":index===data.successes?"current":"pending"} ${index===data.justCompleted?"fresh":""}">${index<data.successes?"✓":index+1}</i>`).join("");
-  return `<div class="fp-shrimp-roll-scene ${current.id}" id="shrimpCoatScene">
-    <div class="fp-roll-stage-track">${stages}</div>
-    <div class="fp-roll-title"><small>${data.step+1}단계 / ${data.sequence.length}단계</small><strong>${current.label} 묻히기</strong></div>
-    <div class="fp-roll-vessel ${current.id} ${vesselAsset?"has-asset":""}">${vesselAsset}
-      <div class="fp-roll-surface">
-        ${shrimpPieceMarkup(coating,stage,"fp-roll-shrimp",'id="shrimpRollShrimp" role="button" aria-label="새우를 잡고 좌우로 굴리기"')}
-      </div>
-    </div>
-    <div class="fp-roll-batch" aria-label="현재 단계 새우 진행도">${batch}</div>
-    <div class="fp-roll-meter"><i id="shrimpRollMeter" style="width:${Math.round(data.rollProgress*100)}%"></i></div>
-    <p class="fp-roll-hint">${data.successes>=data.total?`${current.label} 새우 5마리 완료!`:"새우를 잡은 채 좌우로 여러 번 굴려주세요"}</p>
-  </div>`;
+  const stage=shrimpCoatStage(data);
+  const carrying=data.phase==="carry";
+  return `<div class="fp-coat-row ${carrying?"carrying":""}">${data.sequence.map((item,index)=>{
+    const status=index<data.step?"done":index===data.step?"current":"pending";
+    // 옮기는 중에는 바로 다음 그릇이 놓을 자리입니다
+    const drop=carrying&&index===data.step+1;
+    const vesselAsset=dayPrepAssetMarkup(`shrimpVessel${item.id[0].toUpperCase()}${item.id.slice(1)}`,"fp-vessel-asset",item.label);
+    /* 새우는 **화면에 딱 한 마리**입니다. 지금 있는 그릇에만 그립니다.
+       지나온 그릇에도 남겨 두면 끌어다 옮긴 뒤에도 제자리에 그대로 있어서
+       새우가 늘어나는 것처럼 보입니다.
+       옮기는 중이면 지금 그릇의 새우를 다 묻은 모습(3)으로 집어 갈 수 있게 띄웁니다. */
+    const shrimp=index===data.step?shrimpPieceMarkup(item.id,carrying?3:stage,data.rolled,carrying):"";
+    // 옮기는 중에는 반짝이를 끕니다 — 눈이 가야 할 곳은 놓을 그릇 쪽입니다
+    const sparks=status==="current"&&!carrying?`<div class="fp-sparks">${Array.from({length:10},(_,i)=>`<b style="--fp-turn:${i*36}deg;--fp-i:${i}"></b>`).join("")}</div>`:"";
+    return `<div class="fp-coat-station ${item.id} ${status} ${drop?"next-bowl":""}" ${status==="current"?'id="shrimpCoatStation"':""} ${drop?"data-shrimp-drop":""} aria-label="${index+1}. ${item.label}">
+      <div class="fp-vessel ${item.id} ${vesselAsset?"has-asset":""}">${vesselAsset}${shrimp}</div>
+      ${sparks}
+    </div>`;
+  /* 그릇 사이 화살표. 그림 한 장을 두 자리에 쓰고, 둘째는 CSS 가 135도 돌려
+     ↙ 로 만듭니다. 그림이 없으면 예전처럼 글자 화살표로 그립니다. */
+  }).join(shrimpCoatArrowMarkup())}</div>`;
+}
+
+function shrimpCoatArrowMarkup(){
+  const asset=dayPrepAssetMarkup("shrimpArrow","fp-coat-arrow-asset","");
+  return `<i class="fp-coat-arrow ${asset?"has-asset":""}" aria-hidden="true">${asset||"→"}</i>`;
 }
 
 function renderShrimpCoat(){
   const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="shrimpCoat")return;
   const data=m.data,current=data.sequence[data.step],percent=Math.round(data.successes/data.total*100);
-  dom.miniTimer.textContent=`${data.step+1}단계 · ${data.successes} / ${data.total}`;
+  const overallPercent=Math.round((data.step+data.successes/data.total)/data.sequence.length*100);
+  dom.miniTimer.textContent=`${percent}%`;   // 화면에서는 숨겨 둔 공용 카드입니다
+  /* 조작 카드는 지금 무엇을 해야 하는지 그대로 보여 줍니다.
+     연타 차례에는 키 두 개, 옮기기 차례에는 키를 지우고 드래그 안내로 바꿉니다. */
+  const carrying=data.phase==="carry";
+  const nextItem=data.sequence[data.step+1];
+  const control=carrying
+    ?{keys:[],controlName:"드래그",controlDesc:`다 묻은 새우를<br />${nextItem.label} 그릇으로<br />끌어다 놓으세요!`}
+    :{keys:data.keys,controlName:"랜덤키 연타",
+      controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 랜덤하게<br />빠르게 눌러 새우를<br />굴려주세요!`};
   renderFryPrepScreen({
+    // 지금 단계의 재료 한 줄만 밝게 켭니다.
     ingredients:[
-      {id:data.step===0?"shrimpRaw":data.step===1?"shrimpFlour":"shrimpEgg",label:data.step?"코팅 새우":"생새우",count:data.total-data.successes,asset:data.step===0?"shrimpStateRaw":data.step===1?"shrimpStateFlour":"shrimpStateEgg"},
-      {id:current.id,label:current.label,count:1,asset:current.id==="flour"?"shrimpIngFlour":current.id==="egg"?"shrimpIngEgg":"shrimpIngCrumbs"}
+      {id:"shrimpRaw",label:"생새우",count:1,asset:"shrimpIngRaw"},
+      {id:"flour",label:"튀김가루",count:1,asset:"shrimpIngFlour",active:current.id==="flour"},
+      {id:"egg",label:"계란물",count:1,asset:"shrimpIngEgg",active:current.id==="egg"},
+      {id:"breadcrumbs",label:"빵가루",count:1,asset:"shrimpIngCrumbs",active:current.id==="breadcrumbs"}
     ],
     stage:shrimpCoatStageMarkup(data),
-    done:data.successes,
-    total:data.total,
-    percent,
-    controlMarkup:'<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>',
-    controlName:"새우를 잡고<br />좌우로 굴리기",
-    controlDesc:"그릇 안을 여러 번<br />왕복하면 한 마리 완성!",
+    done:data.step,
+    total:data.sequence.length,
+    percent:overallPercent,
+    expectedIndex:data.expectedIndex,
+    keyLink:"·",
+    ...control,
     phase:data.phase
-  });
-  bindShrimpCoatDrag();updateShrimpRollPose(data);
+  },key=>shrimpCoatInput(key));
+  // 화면을 다시 그릴 때마다 요소가 새것이라 드래그도 매번 다시 걸어야 합니다
+  if(carrying)bindShrimpCarryDrag();
 }

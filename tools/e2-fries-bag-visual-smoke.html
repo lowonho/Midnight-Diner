@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E2 감자튀김 준비(봉투 흔들기) visual smoke</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다. DAY_PREP_ASSET_PATHS 의 경로가
+       index.html(루트) 기준이라, 이게 없으면 tools/assets/... 를 찾다 전부 실패해
+       임시 CSS 도형만 보입니다. 아래 경로도 전부 루트 기준으로 적습니다. -->
+  <base href="../">
+  <!-- 실제 게임과 같은 순서 · 같은 파일입니다 (index.html 참고) -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    /* 오버레이는 평소 숨어 있습니다 — 스모크에서는 항상 켭니다 */
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- .active 가 없으면 .app-screen 이 display:none 이라 화면이 통째로 0x0 이 됩니다 -->
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- 게임 파일을 그대로 불러다 씁니다. 화면을 베껴 적으면 진짜 화면과 어긋납니다. -->
+  <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
+  <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
+  <script src="ui-mini-frame.js"></script>
+  <script>
+    "use strict";
+    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E2 가 실제로 만지는
+       것만 흉내 냅니다 — 전역 state / dom 두 개입니다. */
+    const state = { day:4, mini:null, prepProgress:{} };
+    const audio = new Proxy({}, { get:() => () => {} });
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+    // 봉투 드래그가 쓰는 game.js 의 공용 도우미입니다
+    const clamp = (value,min,max) => Math.max(min,Math.min(max,value));
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e2-alternate-input.js"></script>
+  <script>
+    "use strict";
+    /* ?presses=0..14  몇 번 흔들었는지 (그림 9장 중 어느 장인지가 여기서 정해집니다)
+       ?shake=left|right  흔드는 순간의 연출을 켠 채로 찍기
+       ?fx=1..3           이펙트 한 장을 켜 둔 채로 찍기 (0.1초짜리라 그냥은 못 찍습니다)
+       ?drag=-70..70      봉투를 잡고 그만큼 가로로 끌어 놓은 상태 (px)
+       ?dragy=-58..58     같이 세로로 끌어 놓은 정도 (대각선으로 흔드는 중)
+       ?tilt=-.7..7       흔든 대각선의 기울기 (이펙트가 같이 기웁니다) */
+    const params = new URLSearchParams(location.search);
+    const total = DAY4_PREP_CONFIG.potatoStarch.requiredPresses;
+    const presses = Math.max(0, Math.min(total, Number(params.get("presses")) || 0));
+    const dragPx = Number(params.get("drag")) || 0;
+    const dragPy = Number(params.get("dragy")) || 0;
+
+    loadDayPrepAssets().then(() => {
+      state.mini = {
+        // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (day-prep-minigames.js)
+        context:{ mode:"dayPrep" }, engine:"potatoStarch", complete:false,
+        data:createAlternateFeelState({ mode:"potatoStarch", taskId:DAY4_PREP_CONFIG.potatoStarch.taskId,
+               keys:["f","j"], expectedIndex:presses % 2, presses, total,
+               drag:(dragPx || dragPy)
+                 ? { kind:"friesBag", pointerId:1, startX:0, startY:0, position:dragPx, positionY:dragPy,
+                     step:90, limit:73, limitY:58 }
+                 : null })
+      };
+      dom.miniTitle.textContent = "감자튀김 준비";
+      dom.miniStation.textContent = "봉투를 잡고 흔들어 튀김가루를 골고루 묻혀주세요!";
+      dom.miniDescription.textContent = "봉투를 잡고 좌우·대각선으로 크게 흔드세요. F / J를 번갈아 눌러도 됩니다.";
+      renderPotatoStarchShake();
+      // 기울기는 게임과 같은 함수로 넣습니다 (여기서 style 을 베껴 적으면 어긋납니다)
+      setFriesShakeTilt(state.mini.data, params.has("tilt") ? Number(params.get("tilt")) : null);
+      const side = params.get("shake");
+      if (side === "left" || side === "right") document.getElementById("friesBagScene").classList.add(`shake-${side}`);
+      const held = Number(params.get("fx"));
+      if (held >= 1 && held <= 3) document.querySelector(`.fp-shake-fx-frame.f${held}`).style.opacity = "1";
+
+      /* 실측용 — 자리와 크기를 콘솔이 아니라 DOM 에 박아 스크린샷에서도 읽힙니다 */
+      const box = el => { const r = el.getBoundingClientRect(); return `${r.width.toFixed(1)}x${r.height.toFixed(1)}`; };
+      const board = document.querySelector(".fp-board");
+      const scene = document.getElementById("friesBagScene");
+      const bag = document.getElementById("friesBag");
+      const fx = document.querySelector(".fp-shake-fx");
+      const bagAsset = document.querySelector(".fp-bag-asset");
+      document.body.dataset.measure = JSON.stringify({
+        board:box(board), scene:box(scene), bag:box(bag),
+        frame:bagAsset ? bagAsset.getAttribute("src").split("/").pop() : null,
+        bagAsset:bagAsset ? box(bagAsset) : null,
+        fx:fx ? box(fx) : null,
+        fxTurn:scene.style.getPropertyValue("--fp-fx-turn") || null,
+        tilt:scene.style.getPropertyValue("--fp-tilt") || null,
+        bagTransform:getComputedStyle(bag).transform,
+        /* 도마가 깔렸는지 — 배경 그림 파일 이름이 보이면 적용된 것입니다 */
+        boardArt:(getComputedStyle(board).backgroundImage.match(/[^/"]+\.webp/) || ["(없음)"])[0],
+        fxFrames:[...document.querySelectorAll(".fp-shake-fx-frame")].map(box),
+        // 봉투·이펙트가 조리대 밖으로 나가는지
+        overflow:{ bag:bag.getBoundingClientRect().width > board.clientWidth,
+                   fx:fx ? fx.getBoundingClientRect().width > board.clientWidth : null,
+                   sceneY:scene.getBoundingClientRect().height > board.clientHeight },
+        assets:{ bag:!!bagAsset, fx:document.querySelectorAll(".fp-shake-fx-frame").length,
+                 ing:document.querySelectorAll(".fp-ing-asset").length },
+        ing:(() => {
+          const panel = document.querySelector(".fp-ing-panel");
+          const list = document.querySelector(".fp-ing-list");
+          const style = getComputedStyle(panel);
+          const innerBottom = panel.getBoundingClientRect().bottom - parseFloat(style.paddingBottom) - parseFloat(style.borderBottomWidth);
+          return {
+            panel:box(panel), card:[...document.querySelectorAll(".fp-ing-card")].map(box),
+            asset:[...document.querySelectorAll(".fp-ing-asset")].map(box),
+            spill:+(list.getBoundingClientRect().bottom - innerBottom).toFixed(1)
+          };
+        })()
+      });
+      document.body.dataset.ready = "true";
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+  </script>
+</body>
+</html>

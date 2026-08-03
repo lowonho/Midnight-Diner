@@ -111,7 +111,7 @@ function resetDay(first=false) {
   state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
-  state.served=0;state.satisfactionTotal=0;state.fiveStar=0;state.cleanliness=100;state.dirtyDishes=0;state.trash=0;
+  state.served=0;state.satisfactionTotal=0;state.fiveStar=0;
   state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.discardedCount=0;state.discardLoss=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
   state.mini=null;resetPlayerPosition();state.joyX=0;state.joyY=0;   // 시작 좌표는 player.js PLAYER_START
   dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");

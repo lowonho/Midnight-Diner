@@ -270,7 +270,6 @@ function blockPlayerAtStations(player){
 
 
 /* 지금 뚜껑이 열려 있는가.
-   - 쓰레기 정리 미니게임 중에는 계속 열어 둡니다.
    - 음식을 폐기하면(night.js 가 state.discardedCount 를 올립니다)
      TRASH_OPEN_MS 동안 열렸다 닫힙니다.
    폐기 시점을 night.js 에서 알려 주는 대신 카운터 변화를 여기서 읽습니다.
@@ -331,7 +330,7 @@ function nearestStation(preferredId=null){
      낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
      프롤로그 조리 사장이 지정한 현재 조리 단계 집기만
      밤 · 들고 감  쓰레기통에 폐기할 때만
-     밤          설거지·쓰레기 정리는 쌓였을 때, 나머지는 현재 조리 단계 집기만
+     밤          현재 조리 단계 집기만
      미니게임 중   그 집기만 (프롬프트는 숨지만 사용 중이므로 계속 강조)
 
    [주의] 판정 규칙 자체는 game.js 가 주인입니다. 그쪽 조건이 바뀌면
@@ -347,8 +346,6 @@ function stationUsable(s,near){
     const dish=dishById(state.carrying.dishId);
     return !!dish&&state.inventory[dish.id]?.count>0;
   }
-  if(s.id==="dishwasher")return state.dirtyDishes>0;
-  if(s.id==="trash")     return state.trash>0;
   return s.id===currentRequirement();
 }
 
@@ -479,7 +476,7 @@ function drawStation(s){
     const cx=s.x+s.w/2,cy=s.y+s.h*.34,r=Math.min(s.w*.30,s.h*.20);
     ctx.fillStyle="#242726";ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle="#9ca29e";ctx.lineWidth=5;ctx.stroke();
-    ctx.fillStyle=state.dirtyDishes?"#d39147":"#86a164";ctx.fillRect(s.x+s.w-22,s.y+16,10,7);
+    ctx.fillStyle="#86a164";ctx.fillRect(s.x+s.w-22,s.y+16,10,7);   // 전원 표시등
     ctx.strokeStyle="#565a57";ctx.lineWidth=2;                // 아래쪽 조작 패널 선
     ctx.strokeRect(s.x+14,s.y+s.h*.60,s.w-28,s.h*.30);
   } else if(s.id==="trash"){

@@ -24,7 +24,7 @@ const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
-  "cleanlinessText","cleanlinessBar","cleaningText","stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
+  "stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
   "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
@@ -92,9 +92,6 @@ const state = {
   served:0,
   satisfactionTotal:0,
   fiveStar:0,
-  cleanliness:100,
-  dirtyDishes:0,
-  trash:0,
   departures:[],
   mini:null,
   particles:[],
@@ -421,8 +418,6 @@ function interact() {
   }
   if(!station){ showToast(UI_TEXT.toast.stationTooFar,true); return; }
   state.player.facing=station.facing;
-  if(station.id==="dishwasher") { if(state.dirtyDishes<=0){showToast(UI_TEXT.toast.noDishes);return;} startMini("dishwasher",station.id,{utility:true}); return; }
-  if(station.id==="trash") { if(state.trash<=0){showToast(UI_TEXT.toast.noTrash);return;} startMini("trash",station.id,{utility:true}); return; }
   if(station.id!==required){ showToast(UI_TEXT.toast.wrongStep(required?stationById(required).label:UI_TEXT.toast.orderSelect),true); return; }
   startCookMini(station.id);
 }
@@ -479,15 +474,9 @@ function completeMiniContext(m,score) {
     updateUI(true);
     return;
   }
-  if(m.context.utility){
-    if(m.type==="dishwasher"){state.dirtyDishes=0;state.cleanliness=clamp(state.cleanliness+12,0,100);showToast(UI_TEXT.toast.dishesClean);}
-    else{state.trash=0;state.cleanliness=clamp(state.cleanliness+8,0,100);showToast(UI_TEXT.toast.trashCleared);}
-    updateUI(true);saveGame();return;
-  }
   if(m.context.mode==="prep"){
     const run=state.prepRun; if(!run)return;run.scores.push(score);run.stepIndex++;
     const dish=dishById(run.dishId);
-    state.trash=Math.min(6,state.trash+(m.stationId==="board"?1:0));
     if(run.stepIndex>=dish.prep.length){
       const q=Math.round(run.scores.reduce((a,b)=>a+b,0)/run.scores.length);const inv=state.inventory[dish.id];
       const newCount=inv.count+3;inv.quality=Math.round((inv.quality*inv.count+q*3)/newCount);inv.count=newCount;state.prepRun=null;
@@ -495,7 +484,7 @@ function completeMiniContext(m,score) {
     }else showToast(UI_TEXT.toast.prepNext(STATIONS[dish.prep[run.stepIndex]].label));
   }else if(m.context.mode==="cook"){
     const order=state.orders.find(o=>o.id===m.context.orderId);if(!order)return;order.cookScores.push(score);order.cookStep++;
-    const dish=dishById(order.dishId);state.trash=Math.min(6,state.trash+(m.stationId==="fryer"?1:0));
+    const dish=dishById(order.dishId);
     if(order.cookStep>=dish.cook.length){
       state.inventory[dish.id].count--;state.carrying={orderId:order.id,dishId:dish.id,cookScore:Math.round(order.cookScores.reduce((a,b)=>a+b,0)/order.cookScores.length)};
       showToast(UI_TEXT.toast.cookDone(dish.name));spawnPopup(state.player.x,state.player.y-75,UI_TEXT.popup.cookDone);
@@ -523,7 +512,6 @@ function update(dt) {
     }
     state.orders.forEach(order=>order.entered=clamp(order.entered+dt*2.1,0,1));
     state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(processOrderRespawn);
-    if(state.trash>=4)state.cleanliness=clamp(state.cleanliness-dt*.45,0,100);
     const noActiveOrders=state.orders.length===0&&!state.carrying&&state.respawns.length===0;
     if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){
       if(tryEndNight("complete"))return;
@@ -570,7 +558,6 @@ function updateUI(force=false) {
   dom.dayText.textContent=state.day;dom.timeLabel.textContent=isPrep?UI_TEXT.timeLabelPrep:UI_TEXT.timeLabelOther;dom.timeText.textContent=isPrep?UI_TEXT.timeNoLimit:isOpen?formatTime(state.phaseTime):UI_TEXT.blank;dom.moneyText.textContent=UI_TEXT.money(state.money);dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isPrep?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=[3,4].includes(Number(state.day))&&prepComplete()?UI_TEXT.phaseButtonReady(state.day):UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
-  dom.cleanlinessText.textContent=Math.round(state.cleanliness);dom.cleanlinessBar.style.setProperty(UI_VAR.cleanliness,`${state.cleanliness}%`);dom.cleaningText.textContent=UI_TEXT.cleaning(state.dirtyDishes,state.trash);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
@@ -615,9 +602,7 @@ function updatePrompt(){
       const required=currentRequirement();
       const station=nearestStation(required);
       if(station){
-      if(station.id==="dishwasher"&&state.dirtyDishes>0)text=UI_TEXT.prompt.dishwasher;
-      else if(station.id==="trash"&&state.trash>0)text=UI_TEXT.prompt.trash;
-      else if(station.id===required)text=UI_TEXT.prompt.station(station.label);
+      if(station.id===required)text=UI_TEXT.prompt.station(station.label);
       if(text){x=station.ix;y=station.id==="griddle"?station.iy-58:station.y+station.h+60;}
       }
     }

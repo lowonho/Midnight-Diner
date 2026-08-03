@@ -79,9 +79,9 @@ function anchovySampleMarkup(cleaned,turn,size,variant="01"){
   return `<div class="anchovy anchovy-preview v${variant} ${cleaned?"cleaned":""}" style="--turn:${turn}deg;--size:${size};--flip:1" aria-hidden="true">${body}${head}</div>`;
 }
 
-// 왼쪽 재료 카드 그림. 이 게임은 "머리를 떼기 전"이라 통멸치 묶음을 씁니다.
-// (손질을 마친 뒤 냄비에 넣는 화면은 E11 이고, 거기서는 osAnchovy = 손질한
-//  멸치 묶음이 대신 나옵니다. 두 그림이 섞이지 않도록 여기서 갈라 놓습니다.)
+// 왼쪽 재료 카드 그림. 이 게임은 "머리를 떼기 전"이라 통멸치 묶음
+// (anchovyWholeGroup)을 씁니다. 손질을 마친 묶음 그림은 anchovyGroup 으로
+// 따로 있으니 두 그림을 섞지 마세요.
 // 그림이 없으면 예전처럼 견본 멸치 한 마리를 그립니다.
 function anchovyIngredientArtMarkup(){
   if(!hasDayPrepAsset("anchovyWholeGroup"))return anchovySampleMarkup(false,-32,.72);
@@ -231,7 +231,7 @@ function finishAnchovyTug(m,grip){
   dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
   dom.miniContent.querySelector("#anchovyCount").innerHTML=`<b>${m.data.cleaned}</b> / ${m.data.total}`;
   dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.play?.("anchovy_finish",{owner:m});
-  if(m.data.cleaned===m.data.total){m.data.finishing=true;showOdenIngredientDrop("cleanAnchovy","anchovy","멸치 손질 완료");}
+  if(m.data.cleaned===m.data.total){m.data.finishing=true;finishDayPrepTask("cleanAnchovy","멸치 손질 완료");}
 }
 
 function updateAnchovyTimer(m,dt){

@@ -242,9 +242,7 @@ function setupTimingCut(taskId){
     requiresDoubleTap:!!config.requiresDoubleTap,
     horizontalLastCut:!!config.horizontalLastCut,
     title:config.title,
-    onComplete:taskId==="cutRadish"||taskId==="cutFishCake"
-      ?()=>showOdenIngredientDrop(taskId,taskId==="cutFishCake"?"fishCake":"radish",taskId==="cutFishCake"?"어묵 썰기 완료":"무 썰기 완료")
-      :()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
+    onComplete:()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:config.requiresDoubleTap
       ?"칼날이 절단선에 닿을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
       :config.horizontalLastCut
