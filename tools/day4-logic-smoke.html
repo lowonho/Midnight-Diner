@@ -289,19 +289,34 @@ try{
   finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.side=1;skewerCookMini.data.marker=.76;twoSideCookAction();
   assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
 
-  const shrimpFryConfig=FRY_CONFIG.shrimp;
-  assert((shrimpFryConfig.goodEnd-shrimpFryConfig.goodStart).toFixed(3)==="0.180"&&(shrimpFryConfig.perfectEnd-shrimpFryConfig.perfectStart).toFixed(3)==="0.070"&&fryTimingGrade(.76,shrimpFryConfig)==="perfect"&&fryTimingGrade(.68,shrimpFryConfig)==="good","E6 GOOD surrounds narrow PERFECT");
+  assert(fryStageAt(1)==="under"&&fryStageAt(FRY_COOK.underUntil)==="cooked"&&fryStageAt(FRY_COOK.cookedUntil)==="burnt"&&FRY_COOK.cookedUntil-FRY_COOK.underUntil>=4,"E6 three doneness stages with a wide enough window to lift");
+  finishedScore=null;
   const fryMini={engine:"fry",context:{mode:"cook",dishId:"shrimpTempura"},complete:false,data:{}};state.mini=fryMini;
   MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
-  assert(dom.miniContent.querySelector(".fry-scene.fry-raw")&&parseFloat(dom.miniContent.querySelector(".fry-temp-zone").style.width)===18&&parseFloat(dom.miniContent.querySelector(".fry-temp-perfect").style.width)===7&&FRY_CONFIG.shrimp.itemCount===5&&dom.miniContent.querySelectorAll(".fryer-basket .frying-shrimp").length===5,"E6 progressive visual, shared timing widths, and five-shrimp batch");
-  fryMini.data.marker=.95;MINI_ENGINES.fry.update(fryMini,1);MINI_ENGINES.fry.update(fryMini,1);
-  assert(fryMini.data.marker===1,"E6 doneness moves one way and never reverses to raw");
-  fryMini.data.marker=.76;updateFryVisual(fryMini.data);fryerAction(fryMini);
-  assert(fryMini.data.phase==="draining"&&fryMini.data.liftGrade==="perfect"&&fryMini.data.liftScore===100,"E6 perfect lift enters draining");
-  fryerAction(fryMini);
-  assert(fryMini.data.oilTaps===1&&dom.miniContent.querySelector(".fry-scene.oil-tap-one"),"E6 first Space shakes basket immediately");
-  fryerAction(fryMini);
-  assert(fryMini.data.phase==="finishing"&&dom.miniContent.querySelector(".fry-scene.oil-tap-two")&&dom.miniContent.querySelector("#e6Result.perfect.show"),"E6 second Space shakes immediately and completes PERFECT");
+  // 하단 공용 띠(.mg-strip)를 쓰지 않는 화면입니다 — 띠가 다시 생기면 3열 세로가 613.2 에서 잘립니다
+  assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen: five raw items, oil pot, rack, and no bottom strip");
+  dropFryPiece();dropFryPiece();dropFryPiece();
+  assert(fryMini.data.pot.length===FRY_COOK.potLimit&&fryMini.data.raw===2&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===3,"E6 oil pot holds three at a time");
+  for(let frame=0;frame<120;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
+  assert(fryMini.data.pot.every(piece=>piece.stage==="under"),"E6 pieces start undercooked");
+  for(let frame=0;frame<180;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
+  assert(fryMini.data.pot.every(piece=>piece.stage==="cooked"),"E6 pieces turn cooked while they sit in the oil");
+  liftFryPiece(fryMini.data.pot[0].id);
+  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&fryMini.data.pot.length===2&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 lifting a cooked piece moves it to the rack");
+  // 남겨 두면 탑니다. 탄 것도 망에 올라가야 진행이 막히지 않습니다.
+  for(let frame=0;frame<360;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
+  assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&liftFryPiece(fryMini.data.pot[0].id)&&fryMini.data.done[1].stage==="burnt","E6 pieces burn if left in the oil and can still be lifted");
+  assert(fryScore({done:[{stage:"cooked"}]})===100&&fryScore({done:[{stage:"cooked"},{stage:"burnt"}]})===70&&fryCompletionGrade({done:[{stage:"cooked"},{stage:"burnt"}]})==="good","E6 score averages the doneness of what reached the rack");
+  // 5개를 전부 잘 익은 상태로 올리면 PERFECT
+  const perfectFry={engine:"fry",context:{mode:"cook",dishId:"fries"},complete:false,data:{}};state.mini=perfectFry;
+  MINI_ENGINES.fry.setup(perfectFry,{set:(title,description,time)=>{perfectFry.time=time;},dish:dishById("fries")});
+  assert(perfectFry.data.fryerStyle==="fries"&&FRY_DISHES.fries.count===5&&perfectFry.data.raw===5,"E6 fries share the same engine and batch size");
+  while(perfectFry.data.done.length<5){
+    while(perfectFry.data.raw&&perfectFry.data.pot.length<FRY_COOK.potLimit)dropFryPiece();
+    for(let frame=0;frame<240;frame++)MINI_ENGINES.fry.update(perfectFry,1/60);
+    [...perfectFry.data.pot].forEach(piece=>liftFryPiece(piece.id));
+  }
+  assert(perfectFry.data.finishing&&perfectFry.data.completionGrade==="perfect"&&fryScore(perfectFry.data)===100&&dom.miniContent.querySelector("#e6Result.perfect.show"),"E6 five well-cooked pieces complete PERFECT");
 
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.flow).join(",")==="thick,syrup,thin"&&DAY_PREP_ASSET_PATHS.sauceFlowThin&&DAY_PREP_ASSET_PATHS.sauceFlowSyrup&&DAY_PREP_ASSET_PATHS.sauceFlowThick,"E7 data-driven viscosity and three reusable stream assets");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupSauceRecipe("tteokbokki");

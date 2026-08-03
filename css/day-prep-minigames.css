@@ -3512,7 +3512,7 @@
   cursor: pointer;
   box-shadow: var(--mg-key-shadow);
 }
-/* 지금 눌러야 할 키 · 눌린 키 — E6 `.fry-key.active` 와 같은 결로 맞췄습니다
+/* 지금 눌러야 할 키 · 눌린 키 — 공용 키캡(--mg-key-*)과 같은 결로 맞췄습니다
    (원래 있던 안쪽 흰 선은 새 키캡 겉모습과 맞지 않아 뺐습니다) */
 .fp-key.expected { border-color: #ffe08d; background: linear-gradient(#ffdb9a,#c27b3b); box-shadow: var(--mg-key-shadow), 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
 .fp-key:active { transform: translateY(calc(3 * var(--upx))); box-shadow: none; }
