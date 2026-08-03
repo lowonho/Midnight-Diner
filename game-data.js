@@ -10,6 +10,24 @@ const GAME_PHASES=Object.freeze({
 
 const SKEWER_BATCH_SIZE=3;
 
+// E1 썰기 판정의 절단선 기준 좌우 허용 폭(%).
+// 재료 그림의 실제 가로 폭과 절단선 간격이 달라 같은 숫자를 쓰면 화면상
+// 히팅 박스 크기가 크게 달라집니다. 좁게 보이는 어묵·두부는 더 넓게,
+// 절단선이 촘촘한 양배추·닭·김치는 다음 박자와 붙지 않는 선에서 키웁니다.
+const CUT_HIT_TOLERANCE=Object.freeze({
+  radish:3.4,
+  fishCake:6.8,
+  cabbage:3.1,
+  chicken:3.5,
+  greenOnion:3.5,
+  kimchi:3.3,
+  tofu:4.2
+});
+
+// 어묵의 마지막 가로 썰기는 타이밍 바 좌표를 그대로 쓰므로 세로 썰기와
+// 같은 6.8을 적용하면 화면상 박스가 지나치게 커집니다. 축별로 따로 둡니다.
+const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:4.8});
+
 const PREP_TASKS=Object.freeze({
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish",miniGame:"cut",prepOrder:1,isImplemented:true},
   cutFishCake:{id:"cutFishCake",menuId:"oden",label:"어묵 썰기",objectLabel:"어묵 바구니",objectKind:"fishCake",miniGame:"cut",prepOrder:2,isImplemented:true},

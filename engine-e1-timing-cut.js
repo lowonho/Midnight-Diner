@@ -237,6 +237,7 @@ function setupTimingCut(taskId){
     ingredient,
     requiredHits:config.total,
     hitTolerance:config.hitTolerance,
+    horizontalHitTolerance:config.horizontalHitTolerance,
     travelSpeed:config.travelSpeed,
     requiresDoubleTap:!!config.requiresDoubleTap,
     horizontalLastCut:!!config.horizontalLastCut,
@@ -262,7 +263,7 @@ function startCuttingMinigame(options){
   const firstBeatDistance=verticalCount>1
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
-  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,horizontalHitTolerance:options.horizontalHitTolerance??hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -295,7 +296,9 @@ function renderTimingCut(){
         ${Array.from({length:data.total},(_,index)=>{
           if(index<data.successes)return "";
           const active=index===data.successes?"active":"";
-          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${active}" data-cut-index="${index}"></i>`;
+          if(data.horizontalLastCut&&index===data.total-1)return horizontalReady
+            ?`<i class="cut-line tofu-horizontal-line fishcake-final-line active" data-cut-index="${index}"></i>`
+            :"";
           return `<i class="cut-line ${active}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
@@ -359,6 +362,10 @@ function timingCutTarget(data){
   };
 }
 
+function timingCutTolerance(data,target=timingCutTarget(data)){
+  return target.axis==="y"?data.horizontalHitTolerance:data.hitTolerance;
+}
+
 function syncTimingKnife(data){
   const work=dom.miniContent.querySelector("#prepWorkObject");
   work?.style.setProperty("--knife-x",`${data.knifeX}%`);
@@ -378,7 +385,7 @@ function syncCutPathTimingBar(data){
   if(!work||!timing||!success||!perfect||!marker)return;
 
   const target=timingCutTarget(data);
-  const tolerance=data.hitTolerance;
+  const tolerance=timingCutTolerance(data,target);
   const perfectTolerance=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio;
   let project;
   if(target.axis==="x"){
@@ -406,15 +413,17 @@ function syncCutPathTimingBar(data){
 function cutPathGrade(data){
   const target=timingCutTarget(data);
   const distance=Math.abs(target.current-target.value);
-  if(distance>data.hitTolerance)return "miss";
-  return distance<=data.hitTolerance*CUT_FEEL_CONFIG.perfectZoneRatio?"perfect":"good";
+  const tolerance=timingCutTolerance(data,target);
+  if(distance>tolerance)return "miss";
+  return distance<=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio?"perfect":"good";
 }
 
 function timingKnifeIsEarly(data){
   const target=timingCutTarget(data);
+  const tolerance=timingCutTolerance(data,target);
   return target.direction<0
-    ?target.current>target.value+data.hitTolerance
-    :target.current<target.value-data.hitTolerance;
+    ?target.current>target.value+tolerance
+    :target.current<target.value-tolerance;
 }
 
 function snapTimingKnifeToTarget(data){
@@ -426,19 +435,20 @@ function snapTimingKnifeToTarget(data){
 // The knife is the playhead: it advances once from the previous cut to the next.
 function advanceTimingKnife(m,dt){
   const data=m.data,target=timingCutTarget(data);
+  const tolerance=timingCutTolerance(data,target);
   const step=data.travelSpeed*dt;
   if(target.axis==="x"){
     data.knifeX-=step;
-    if(data.knifeX<target.value-data.hitTolerance){
-      data.knifeX=target.value-data.hitTolerance;
+    if(data.knifeX<target.value-tolerance){
+      data.knifeX=target.value-tolerance;
       syncTimingKnife(data);
       completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
       return;
     }
   }else{
     data.knifeY+=step;
-    if(data.knifeY>target.value+data.hitTolerance){
-      data.knifeY=target.value+data.hitTolerance;
+    if(data.knifeY>target.value+tolerance){
+      data.knifeY=target.value+tolerance;
       syncTimingKnife(data);
       completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
       return;
@@ -544,6 +554,7 @@ function setupTteokbokkiCut(taskId){
     assetPrefix:item.assetPrefix,
     requiredHits:item.requiredPieces,
     hitTolerance:item.hitTolerance,
+    horizontalHitTolerance:item.horizontalHitTolerance,
     travelSpeed:item.travelSpeed,
     assetStageMax:item.progressSprites.length-1,
     horizontalLastCut:!!item.horizontalLastCut,

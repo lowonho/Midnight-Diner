@@ -58,7 +58,9 @@
     work.style.setProperty("--knife-y",stage===verticalCount?"50%":"12%");
     document.getElementById("lines").innerHTML=Array.from({length:config.total},(_,index)=>{
       const lineState=index<stage?"done":index===stage?"active":"";
-      if(config.horizontalLastCut&&index===config.total-1)return `<i class="cut-line tofu-horizontal-line ${lineState}"></i>`;
+      if(config.horizontalLastCut&&index===config.total-1)return stage>=verticalCount
+        ?`<i class="cut-line tofu-horizontal-line fishcake-final-line active"></i>`
+        :"";
       return `<i class="cut-line ${lineState}" style="left:${config.positions[index]}%"></i>`;
     }).join("");
     if(config.horizontalLastCut&&stage===verticalCount){

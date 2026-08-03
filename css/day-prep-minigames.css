@@ -383,6 +383,28 @@
   border-color: #fff3bd;
   filter: drop-shadow(0 0 calc(5 * var(--upx)) rgba(255,184,65,.95));
 }
+/* 어묵의 마지막 가로 절단선. 세로선과 달리 국물색 에셋 중앙을 지나 희미한
+   공용 opacity(.3)로는 거의 보이지 않으므로, 같은 점선 톤을 위 레이어에 냅니다. */
+.cut-board .prep-work-object.cut-path-mode.fishCake-shape .fishcake-final-line {
+  z-index:3;
+  display:block;
+  left:calc(-5 * var(--upx)) !important;
+  right:calc(-5 * var(--upx));
+  top:50%;
+  bottom:auto;
+  width:auto;
+  height:calc(4 * var(--upx));
+  opacity:.88;
+  border-top:0;
+  background:repeating-linear-gradient(90deg,#6d321f 0 calc(8 * var(--upx)),transparent calc(8 * var(--upx)) calc(14 * var(--upx)));
+  filter:drop-shadow(0 calc(1 * var(--upx)) 0 rgba(255,239,181,.85));
+  transform:translateY(-50%);
+}
+.cut-board .prep-work-object.cut-path-mode.fishCake-shape .fishcake-final-line.active {
+  opacity:1;
+  background:repeating-linear-gradient(90deg,#fff3bd 0 calc(8 * var(--upx)),transparent calc(8 * var(--upx)) calc(14 * var(--upx)));
+  filter:drop-shadow(0 0 calc(4 * var(--upx)) rgba(75,35,14,.95));
+}
 .cut-board .prep-work-object.cabbage-shape { width:min(88%,calc(620 * var(--upx))); height:calc(300 * var(--upx)); }
 .cut-board .prep-work-object.cabbage-shape.has-prep-asset > .prep-object-asset,
 .cut-card-figure .cut-sample.cabbage-shape.has-prep-asset > .cut-sample-asset {
