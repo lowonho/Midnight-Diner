@@ -203,7 +203,7 @@ try{
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===2,"E12 mandoline stroke counts are doubled without doubling the final shred pile");
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
-  assert(SHRIMP_COAT_STEPS.map(item=>item.presses).join(",")==="10,8,12"&&PREP_TASKS.coatShrimp,"Shrimp coating counts and merged task");
+  assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="5,5,5"&&PREP_TASKS.coatShrimp,"Shrimp coating uses five shrimp in each of three stages");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
@@ -232,8 +232,14 @@ try{
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
   assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat shared tracking config and dish variants");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
-  for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
-  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
+  function rollShrimp(pointerId){
+    const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
+    rollSurface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
+    shrimp.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:200,clientY:120,bubbles:true}));
+    [340,60,340,60].forEach(clientX=>dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX,clientY:120,bubbles:true})));
+  }
+  for(let index=0;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++)rollShrimp(60+index);
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1,"E2 shrimp rolls five pieces in one vessel before the first stage transition");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
