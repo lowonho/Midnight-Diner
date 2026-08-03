@@ -4,7 +4,7 @@
    E4 움직이는 온도 구간 추적 — 어묵탕 · 떡볶이 공통 엔진
 
    스페이스바를 누르는 동안 온도 커서가 올라가고, 떼면 내려옵니다. 플레이어는
-   위아래로 계속 왕복하는 적정 온도 박스를 따라가며 5초를 채웁니다.
+   방향과 속도를 불규칙하게 바꾸는 적정 온도 박스를 따라가며 5초를 채웁니다.
    냄비 그림만 메뉴별 설정으로 바꾸고, 추적 물리·유지 판정·완료는 한
    컨트롤러가 담당합니다.
 
@@ -47,7 +47,7 @@ const HEAT_CONFIG=Object.freeze({
     title:"어묵탕 끓이기",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:5,targetSpeed:.18,
+    targetSize:.22,targetHold:7,targetSpeed:.18,
     initialValue:.26,initialTarget:.54,initialTargetDirection:1,
     riseSpeed:.58,fallSpeed:.46,riseResponse:7.2,fallResponse:5.2
   }),
@@ -55,7 +55,7 @@ const HEAT_CONFIG=Object.freeze({
     title:"떡볶이 끓이기",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
-    targetSize:.19,targetHold:5,targetSpeed:.22,
+    targetSize:.19,targetHold:7,targetSpeed:.22,
     initialValue:.28,initialTarget:.6,initialTargetDirection:-1,
     riseSpeed:.56,fallSpeed:.48,riseResponse:6.8,fallResponse:4.9
   }),
@@ -65,7 +65,7 @@ const HEAT_CONFIG=Object.freeze({
     title:"화력 조절",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:5,targetSpeed:.18,
+    targetSize:.22,targetHold:7,targetSpeed:.18,
     initialValue:.26,initialTarget:.54,initialTargetDirection:1,
     riseSpeed:.58,fallSpeed:.46,riseResponse:7,fallResponse:5
   })
@@ -74,7 +74,12 @@ const HEAT_CONFIG=Object.freeze({
 const HEAT_FEEL_CONFIG=Object.freeze({
   exitGrace:0.3,
   warningDelay:0.65,
-  progressDecayRate:.6
+  progressDecayRate:.6,
+  targetRetargetMin:.24,
+  targetRetargetRange:.62,
+  targetSpeedMin:.58,
+  targetSpeedRange:1.02,
+  targetSteerResponse:6.2
 });
 
 function heatConfigId(m){return HEAT_CONFIG[m.context?.dishId]?m.context.dishId:"default";}
@@ -92,6 +97,32 @@ function heatZoneState(value,data,config){
 }
 
 function heatCompletionGrade(data){return data.warnings===0?"perfect":"good";}
+
+// 적정 온도 박스는 끝까지 갔다가 반전하는 왕복 대신, 이동 중에도 목적지와
+// 속도를 다시 뽑습니다. random 인자를 열어 둔 것은 테스트에서 같은 움직임을
+// 재현할 수 있게 하기 위해서입니다.
+function retargetHeatZone(data,config,random=Math.random){
+  const half=config.targetSize/2,range=1-config.targetSize;
+  let goal=half+random()*range;
+  // 지금 자리와 너무 가까우면 화면상 멈춘 것처럼 보이므로 최소 이동 폭을 줍니다.
+  if(Math.abs(goal-data.target)<range*.12){
+    const direction=random()<.5?-1:1;
+    goal=clamp(data.target+direction*range*(.16+random()*.18),half,1-half);
+  }
+  data.targetGoal=goal;
+  data.targetSpeedScale=HEAT_FEEL_CONFIG.targetSpeedMin+random()*HEAT_FEEL_CONFIG.targetSpeedRange;
+  data.targetRetargetIn=HEAT_FEEL_CONFIG.targetRetargetMin+random()*HEAT_FEEL_CONFIG.targetRetargetRange;
+}
+
+function updateHeatTarget(data,config,dt,random=Math.random){
+  data.targetRetargetIn-=dt;
+  if(data.targetRetargetIn<=0||Math.abs(data.targetGoal-data.target)<.018)retargetHeatZone(data,config,random);
+  const maxSpeed=config.targetSpeed*data.targetSpeedScale;
+  const desiredVelocity=clamp((data.targetGoal-data.target)*2.7,-maxSpeed,maxSpeed);
+  data.targetVelocity+=(desiredVelocity-data.targetVelocity)*Math.min(1,HEAT_FEEL_CONFIG.targetSteerResponse*dt);
+  const half=config.targetSize/2;
+  data.target=clamp(data.target+data.targetVelocity*dt,half,1-half);
+}
 
 function heatFallbackMarkup(visual){
   if(visual==="tteokbokki")return `<span class="heat-pot-surface tteokbokki">
@@ -219,7 +250,6 @@ function heatScreenMarkup(config){
           ${heatControlMarkup()}
         </div>
       </aside>
-      <div class="mg-strip heat-strip"><p><b>SPACE 누르면 상승</b><span>·</span><b>떼면 하강</b><span>—</span>움직이는 초록 박스를 따라가세요</p></div>
     </div>`;
 }
 
@@ -263,9 +293,11 @@ registerMiniEngine("heat",{
     m.data={
       configId,value:config.initialValue,velocity:0,target:config.initialTarget,
       targetVelocity:config.targetSpeed*config.initialTargetDirection,inZone:0,total:0,
+      targetGoal:config.initialTarget,targetSpeedScale:1,targetRetargetIn:0,
       outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
       holding:false,phase:"ready"
     };
+    retargetHeatZone(m.data,config);
     // 냄비의 끓는 루프만 비교 청음할 수 있도록 가스불 효과음은 잠시 제외합니다.
     if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
     else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.55);
@@ -287,10 +319,7 @@ registerMiniEngine("heat",{
     data.value=clamp(data.value+data.velocity*dt,0,1);
     if((data.value===0&&data.velocity<0)||(data.value===1&&data.velocity>0))data.velocity=0;
 
-    const halfTarget=config.targetSize/2;
-    data.target+=data.targetVelocity*dt;
-    if(data.target>=1-halfTarget){data.target=1-halfTarget;data.targetVelocity=-Math.abs(data.targetVelocity);}
-    if(data.target<=halfTarget){data.target=halfTarget;data.targetVelocity=Math.abs(data.targetVelocity);}
+    updateHeatTarget(data,config,dt);
 
     const zone=heatZoneState(data.value,data,config);
     if(zone==="ideal"){

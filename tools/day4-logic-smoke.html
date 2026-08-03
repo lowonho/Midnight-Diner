@@ -230,7 +230,12 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat shared tracking config and dish variants");
+  assert(HEAT_CONFIG.oden.targetHold===7&&HEAT_CONFIG.tteokbokki.targetHold===7&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a seven-second hold and dish-specific tracking variants");
+  const randomHeat={target:.5,targetGoal:.5,targetVelocity:0,targetRetargetIn:0,targetSpeedScale:1};
+  const heatRandomValues=[0,.2,.3,1,.8,.7],heatRandom=()=>heatRandomValues.shift();
+  retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);const firstHeatGoal=randomHeat.targetGoal,firstHeatSpeed=randomHeat.targetSpeedScale;
+  randomHeat.targetRetargetIn=0;updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.1,heatRandom);
+  assert(firstHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetSpeedScale!==firstHeatSpeed&&randomHeat.target>.5,"E4 target rerolls destination, speed, and direction instead of bouncing in a fixed cycle");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
   function rollShrimp(pointerId){
     const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
@@ -275,11 +280,11 @@ try{
   const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
   MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
   const raisedHeatValue=heatMini.data.value;MINI_ENGINES.heat.update(heatMini,.4);
-  assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, and target keeps moving");
+  assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
   heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
-  heatMini.data.target=.5;heatMini.data.targetVelocity=0;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  heatMini.data.target=.5;heatMini.data.targetVelocity=0;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   playedSfx.length=0;

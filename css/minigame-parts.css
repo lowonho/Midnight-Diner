@@ -390,11 +390,11 @@
 .sc-ing-panel,
 .bt-ing-panel,
 .sk-ing-panel,
+.heat-ing-panel,
 .anchovy-ing-panel,
 .os-ing-panel      { --mg-panel-art: var(--mg-art-a1-613); }
 .cut-ing-panel,
 .ts-ing-panel,
-.heat-ing-panel,
 .fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-523); }
 .kf-ing-panel,
 .yk-ing-panel      { --mg-panel-art: var(--mg-art-a1-503); }
@@ -404,11 +404,11 @@
 .sc-control,
 .bt-guide,
 .sk-guide,
+.heat-control,
 .os-guide          { --mg-panel-art: var(--mg-art-a2-460); }
 .anchovy-ref-card  { --mg-panel-art: var(--mg-art-a2-403); }
 .cut-ref-card,
 .ts-control,
-.heat-control,
 .fry-control-card  { --mg-panel-art: var(--mg-art-a2-370); }
 .kf-next,
 .yk-next           { --mg-panel-art: var(--mg-art-a2-350); }
@@ -549,12 +549,11 @@
 .sk-ing-card   { --mg-card-art: var(--mg-art-b-268); }
 .kf-ing-card   { --mg-card-art: var(--mg-art-b-213); }
 .sc-goal,
-.bt-ing-card   { --mg-card-art: var(--mg-art-b-175); }
-/* E4 는 카드 3장인데 칸이 523.2 라 남는 자리가 145.8 씩입니다. 139 짜리 그림을
-   늘려 쓰지 않고 카드 높이를 그림에 맞춰 고정하고 목록을 세로 가운데로 모읍니다
-   (남는 20.1 은 위아래로 나뉩니다) — .heat-ing-list 는 css/minigames.css. */
-.yk-ing-card,
-.heat-ing-card { --mg-card-art: var(--mg-art-b-139); }
+.bt-ing-card,
+.heat-ing-card { --mg-card-art: var(--mg-art-b-175); }
+/* E4 는 하단 띠를 없앤 613.2 칸에 175 카드 세 장을 넣습니다.
+   카드 높이와 목록 정렬은 css/minigames.css 의 .heat-ing-list 가 정합니다. */
+.yk-ing-card { --mg-card-art: var(--mg-art-b-139); }
 
 /* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
    원래 200(E1) · 150(E6) · 190(E10) 으로 셋이 달랐던 에셋 자리가 하나가 됩니다. */
