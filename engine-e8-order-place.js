@@ -233,7 +233,8 @@ function addBatterIngredient(ingredientId,button,target){
   const expected=m.data.ingredients[m.data.step],result=placeOrderedItem(m.data,ingredientId);
   if(!result.accepted){m.data.mistakes++;dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();pulseOrderTarget(target);return;}
   m.data.lastPlaced=ingredientId;
-  button.classList.add("pouring");button.disabled=true;audio.click();
+  button.classList.add("pouring");button.disabled=true;
+  if(ingredientId==="water")audio.play?.("pour_water",{owner:m});else audio.click();
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   const filled=m.data.step>=m.data.ingredients.length;
   setTimeout(()=>{
@@ -446,7 +447,7 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
     return rejectSkewerPiece(skewerIndex,required?`이 꼬치에는 ${SKEWER_LABEL[required]}도 최소 한 개 필요합니다.`:"이 꼬치는 이미 다 찼습니다.",target);
   }
 
-  data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.click();
+  data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.play?.("skewer_pierce",{owner:m});
   const done=skewerDoneCount(data);
   dom.miniFeedback.textContent=result.complete
     ? `꼬치 ${done} / ${data.total} 완성!`
@@ -521,7 +522,9 @@ function addTteokSoakItem(item,target){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="orderPlace"||!["tteokSoak","udonSoak"].includes(m.data.orderConfigId)||m.data.finishing||!Object.prototype.hasOwnProperty.call(m.data.added,item)||m.data.added[item])return;
   const data=m.data,result=placeOrderedItem(data,item);
   if(!result.accepted){data.mistakes++;dom.miniFeedback.textContent=`먼저 ${data.ingredientLabel}을 볼에 담아주세요.`;audio.bad();pulseOrderTarget(target);return;}
-  data.added[item]=true;data.lastAdded=item;audio.click();dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 붓는 중입니다.";
+  data.added[item]=true;data.lastAdded=item;
+  if(item==="water")audio.play?.("pour_water",{owner:m});else audio.click();
+  dom.miniFeedback.textContent=item===data.ingredientKey?`${data.ingredientLabel}을 볼에 담았습니다.`:"볼에 물을 붓는 중입니다.";
   if(Object.values(m.data.added).every(Boolean)){
     data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderTteokSoak();dom.miniFeedback.textContent=`${data.ingredientLabel}과 물이 들어갔습니다. 잠시 불리는 중...`;
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},1500);

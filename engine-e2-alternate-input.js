@@ -499,6 +499,8 @@ registerDayPrepEngine("shrimpCoat",{
 });
 
 const SHRIMP_ROLL_CONFIG=Object.freeze({requiredTravelRatio:2.2,visualLimitRatio:.32});
+// 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
+const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
 
 function setupShrimpCoat(taskId){
   const item=SHRIMP_COAT_STEPS[0];
@@ -540,7 +542,7 @@ function finishShrimpCoatPiece(m,pointerId){
     data.transitioning=true;data.inputLocked=true;data.phase=finalStage?"complete":"transition";
   }
   renderShrimpCoat();
-  if(!stageComplete){audio.click();dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 굴려주세요.`;return;}
+  if(!stageComplete){audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 굴려주세요.`;return;}
   const completed=data.sequence[data.step],finalStage=data.step>=data.sequence.length-1;
   dom.miniContent.querySelector(".fp-scene")?.classList.add(finalStage?"e2-complete":"stage-complete");
   showAlternateGrade("perfect");audio.success();
@@ -570,7 +572,7 @@ function bindShrimpCoatDrag(){
     event.preventDefault();
     const rect=shrimp.closest(".fp-roll-surface")?.getBoundingClientRect()||shrimp.getBoundingClientRect();
     const limit=Math.max(32,rect.width*SHRIMP_ROLL_CONFIG.visualLimitRatio);
-    m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,position:(m.data.rollX||0)*limit,limit,required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio)};
+    m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,position:(m.data.rollX||0)*limit,limit,required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio),sinceSound:0};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
     dom.miniContent.querySelector("#shrimpCoatScene")?.classList.add("rolling");updateShrimpRollPose(m.data);
   });
@@ -584,6 +586,13 @@ function bindShrimpCoatDrag(){
     m.data.rollProgress=Math.min(1,m.data.rollProgress+travelled/drag.required);
     m.data.rollTurn=(m.data.rollTurn+(next-previous)*.55)%360;
     updateShrimpRollPose(m.data);
+    // 굴리는 거리만큼 쌓아 두었다가 한 번 왕복(limit)할 때마다 코팅 소리를 한 번씩 냅니다.
+    // 완료 때만 소리가 나면 "묻히는 중"이라는 느낌이 안 나서, 움직이는 동안 계속 들리게 합니다.
+    drag.sinceSound=(drag.sinceSound||0)+travelled;
+    while(drag.sinceSound>=drag.limit){
+      drag.sinceSound-=drag.limit;
+      audio.play?.(SHRIMP_COAT_SFX[m.data.sequence[m.data.step].id],{owner:m,gain:.8});
+    }
     if(m.data.rollProgress>=1){
       try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
       finishShrimpCoatPiece(m,event.pointerId);

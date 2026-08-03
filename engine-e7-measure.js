@@ -282,7 +282,7 @@ function addYakisobaSauce(id){
   m.data.cursor=index;   // 조리대에서 직접 누른 소스통이 곧 지금 고른 소스통입니다
   if(sauce.amount===sauce.target){dom.miniFeedback.textContent=`${sauce.label}은(는) 이미 넣었습니다. 다른 재료를 골라주세요.`;return;}
   sauce.amount=sauce.target;m.data.pourLocked=true;m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
-  audio.click();dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
+  audio.play?.(`pour_${sauce.flow||"thin"}`,{owner:m});dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
   renderYakisobaSauce();
   playSaucePour(id);
   setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
