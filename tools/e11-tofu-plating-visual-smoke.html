@@ -69,7 +69,9 @@
        ?outside=1   접시 칸 왼쪽 위 귀퉁이(칸 안이지만 접시 타원 밖)에 놓아 봅니다 —
                     가장자리 안쪽으로 당겨 붙어야 합니다.
                     (칸 자체를 벗어나면 아예 안 놓이고 재료가 카드로 돌아갑니다)
-       ?click=1     끌지 않고 카드 → 접시 클릭으로 놓아 봅니다 */
+       ?click=1     끌지 않고 카드 → 접시 클릭으로 놓아 봅니다
+       ?edge=1      접시 가장자리 여덟 곳(상하좌우 + 대각선)에 몰아 놓아 봅니다 —
+                    조각이 접시 밖으로 삐져나오는지 보려는 것입니다 */
     const params = new URLSearchParams(location.search);
     const placeCount = Math.max(0, Math.min(11, Number(params.get("place") ?? 11)));
 
@@ -89,7 +91,12 @@
       // 실제 진입로와 같은 함수를 씁니다 — 화면을 베껴 적으면 진짜 화면과 어긋납니다
       MINI_ENGINES.plateKimchi.setup(state.mini, { set(){}, difficulty:1 });
 
-      const wanted = DROPS.slice(0, placeCount);
+      /* 가장자리 몰아 놓기 — 칸 안이지만 접시 타원 밖인 자리라 전부 가장자리로
+         당겨 붙습니다. 두부·김치를 번갈아 놓아 둘 다 확인합니다.
+         (칸을 벗어난 좌표를 쓰면 아예 안 놓이므로 0~100 안에서 고릅니다) */
+      const EDGES = [[50,1],[99,50],[50,99],[1,50],[8,8],[92,8],[92,92],[8,92]]
+        .map(([x,y],i) => ({ id:i % 2 ? "friedKimchi" : "tofu", x, y }));
+      const wanted = params.get("edge") === "1" ? EDGES : DROPS.slice(0, placeCount);
       try {
         wanted.forEach(spot => params.get("click") === "1" ? clickPiece(spot) : dragPiece(spot));
         if(params.get("outside") === "1") dragPiece({ id:"tofu", x:3, y:4 });
@@ -131,6 +138,15 @@
     function measure(wanted){
       const rect = el => el.getBoundingClientRect();
       const drop = document.querySelector(".os-drop"), dropRect = rect(drop);
+      /* 화면 배율(--upx). 이 게임의 크기는 전부 calc(N * var(--upx)) 이라,
+         잰 px 을 이 값으로 나누면 CSS 가 적어 둔 1920 프레임 기준 N 이 나옵니다.
+         ⚠️ getPropertyValue("--upx") 로는 못 읽습니다 — 값이 calc(...) 문자열
+            그대로 돌아옵니다. 100upx 짜리 자를 하나 붙여 실측합니다. */
+      const ruler = document.createElement("i");
+      ruler.style.cssText = "position:absolute;width:calc(100 * var(--upx))";
+      drop.appendChild(ruler);
+      const scale = ruler.getBoundingClientRect().width / 100 || 1;
+      ruler.remove();
       const data = state.mini.data;
       const pieces = [...document.querySelectorAll(".os-drop .os-food.free")];
 
@@ -168,9 +184,24 @@
         done:oneShotDoneCount(data),
         left:{ tofu:oneShotLeft(data,"tofu"), friedKimchi:oneShotLeft(data,"friedKimchi") },
         // 왼쪽 카드에 남은 개수가 그대로 적혀야 하고, 0 이면 꺼져야 합니다
-        cards:[...document.querySelectorAll(".os-ing-card")].map(c => ({
-          item:c.dataset.osItem, count:c.querySelector(".os-ing-name b").textContent, disabled:c.disabled
-        })),
+        /* 왼쪽 카드. art 는 그림이 실제로 차지한 크기를 1920 프레임 기준 px 로
+           되돌린 값입니다 — tools/build-minigame-art-webp.js 의 E11 목표 크기가
+           이 값의 2배여야 합니다(어긋나면 흐려지거나 용량만 먹습니다). */
+        cards:[...document.querySelectorAll(".os-ing-card")].map(c => {
+          const art = c.querySelector(".os-art-asset"), r = art && rect(art);
+          return {
+            item:c.dataset.osItem, count:c.querySelector(".os-ing-name b").textContent, disabled:c.disabled,
+            art:r ? `${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}` : null
+          };
+        }),
+        // 접시 · 참고 모양도 같은 기준으로 재 둡니다 (표의 근거)
+        design:{
+          plate:`${(dropRect.width / scale).toFixed(1)}x${(dropRect.height / scale).toFixed(1)}`,
+          guide:(() => { const g = document.querySelector(".os-guide-figure .os-vessel");
+            const r = g && rect(g); return r ? `${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}` : null; })(),
+          piece:(() => { const p = document.querySelector(".os-food.free .os-art-asset");
+            const r = p && rect(p); return r ? `${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}` : null; })()
+        },
         counter:document.querySelector(".os-count strong")?.textContent.trim(),
         // 접시에 그려진 조각들 — 여기가 이 하네스의 본론입니다
         placed,

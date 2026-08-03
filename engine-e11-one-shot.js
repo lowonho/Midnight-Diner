@@ -46,12 +46,22 @@
    자유 플레이팅(free)은 slot 대신 아래 셋을 씁니다.
      pieceArt    한 조각짜리 CSS 임시 도형 이름
      pieceAsset  한 조각짜리 그림 파일 키 (없으면 도형으로 그립니다)
-     pieceWidth  접시 가로폭 대비 조각 크기(%) */
+     pieceWidth  접시 가로폭 대비 조각 크기(%)
+     pieceTilt   눕히는 각도를 하나로 못박습니다. 안 적으면 놓을 때마다
+                 FREE_PLATE_TILTS 를 돌려 써서 각도가 조금씩 달라집니다. */
 const ONE_SHOT_PIECES=Object.freeze({
+  /* pieceWidth 는 '참고 모양' 그림에서 두부 한 조각이 접시 가로의 21% 인 것을
+     그대로 옮긴 값입니다. 김치는 낱개 그림이 한 조각이 아니라 서너 가닥 뭉치라
+     한 단계 큽니다. 둘을 키우면 11조각이 접시를 넘칩니다.
+
+     ⚠️ 두부는 pieceTilt:0 으로 각도를 고정합니다. 납품 그림이 비스듬히 내려다본
+        입체 덩이라, 돌리면 그림 안의 원근(윗면이 보이는 방향)과 어긋나 조각마다
+        다른 방향에서 본 두부처럼 보입니다. 김치는 뭉쳐 놓은 가닥이라 돌려도
+        그런 어긋남이 없어 그대로 둡니다. */
   tofu:{label:"썬 두부",art:"tofuSlices",asset:"osTofuSlices",slot:"plate-left",
-        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:17},
+        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:21,pieceTilt:0},
   friedKimchi:{label:"볶은 김치",art:"friedKimchi",asset:"osFriedKimchi",slot:"plate-right",
-        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:18}
+        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:22}
 });
 
 // 그릇. asset 은 빈 그릇, doneAsset 은 오른쪽 '참고 모양'에 쓰는 완성 그림입니다.
@@ -85,8 +95,9 @@ const FREE_PLATE_TILTS=Object.freeze([-14,9,-5,17,-11,4,13,-8,6,-17,11]);
    오른쪽 '참고 모양' 칸에 그리는 예시 담음새입니다.
    두부는 접시 가장자리를 따라, 김치는 가운데로 모읍니다. */
 const FREE_PLATE_SAMPLE=Object.freeze([
-  {id:"tofu",x:24,y:30,rot:-16},{id:"tofu",x:16,y:50,rot:-6},{id:"tofu",x:25,y:71,rot:12},
-  {id:"tofu",x:76,y:30,rot:15},{id:"tofu",x:84,y:51,rot:5},{id:"tofu",x:75,y:71,rot:-12},
+  // 두부 여섯 자리의 rot 이 전부 0 인 것은 pieceTilt:0 과 맞춘 것입니다
+  {id:"tofu",x:24,y:30,rot:0},{id:"tofu",x:16,y:50,rot:0},{id:"tofu",x:25,y:71,rot:0},
+  {id:"tofu",x:76,y:30,rot:0},{id:"tofu",x:84,y:51,rot:0},{id:"tofu",x:75,y:71,rot:0},
   {id:"friedKimchi",x:44,y:35,rot:-10},{id:"friedKimchi",x:58,y:38,rot:8},
   {id:"friedKimchi",x:50,y:52,rot:-4},{id:"friedKimchi",x:41,y:66,rot:14},
   {id:"friedKimchi",x:60,y:65,rot:-9}
@@ -287,6 +298,13 @@ function moveOneShotPointer(event){
     drag.ghost.innerHTML=data?.free
       ?oneShotPieceArtMarkup(oneShotPiece(data,drag.id))
       :(drag.card.querySelector(".os-ing-art")?.innerHTML||"");
+    // 끌고 다니는 크기를 접시에 놓였을 때와 같게 맞춥니다 — 놓는 순간 조각이
+    // 커지거나 작아지지 않아야 "여기 놓는다" 가 눈으로 맞아떨어집니다.
+    if(data?.free){
+      const plateWidth=dom.miniContent.querySelector(".os-drop")?.getBoundingClientRect().width;
+      const piece=oneShotPiece(data,drag.id);
+      if(plateWidth&&piece)drag.ghost.style.width=`${plateWidth*piece.pieceWidth/100}px`;
+    }
     document.body.appendChild(drag.ghost);
   }
   if(!drag.dragging)return;
@@ -365,11 +383,15 @@ function freePlateFallbackSpot(data,id){
 }
 
 function freePlateSpotFor(data,id,spot){
-  const tilt=FREE_PLATE_TILTS[data.placements.length%FREE_PLATE_TILTS.length];
+  // 각도를 못박은 재료(두부)는 어디에 놓든, 어느 길로 놓든 그 각도 하나뿐입니다
+  const fixed=oneShotPiece(data,id)?.pieceTilt;
+  const tilt=Number.isFinite(fixed)
+    ?fixed
+    :FREE_PLATE_TILTS[data.placements.length%FREE_PLATE_TILTS.length];
   const point=spot?.drop?freePlatePoint(spot):null;
   if(point)return {id,x:point.x,y:point.y,rot:tilt};
   const seat=freePlateFallbackSpot(data,id);
-  return {id,x:seat.x,y:seat.y,rot:seat.rot};
+  return {id,x:seat.x,y:seat.y,rot:Number.isFinite(fixed)?fixed:seat.rot};
 }
 
 // 재료 집기. 다시 그리지 않고 선택 표시만 바꿉니다.

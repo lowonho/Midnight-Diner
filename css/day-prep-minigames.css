@@ -1177,9 +1177,15 @@
 
    왼쪽 재료 카드 · 가운데 그릇 · 오른쪽 완성 개수/참고 모양 3단 구성으로,
    닭꼬치·김치전 반죽과 칸 크기(250 / 1fr / 250)를 맞췄습니다.
-   그림은 전부 임시 CSS 도형이고, 파일을 넣으면 .has-asset 이 붙어
-   도형이 꺼지고 <img> 가 대신 보입니다.
-   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 의 os~ 항목 참고)
+
+   [그림]  assets/minigame/E11 납품본이 여섯 자리에 들어와 있습니다.
+     재료 카드 2 · 접시에 얹히는 낱개 2 · 빈 접시 1 · 참고 모양(다 담은 모습) 1.
+     가운데 판 바닥은 공용 나무 도마(fix_tempura_prep_board)를 씁니다 — 아래쪽
+     "나무 도마" 구역에서 .os-board 도 함께 잡습니다.
+     아래 CSS 임시 도형은 지우지 않고 남겨 둡니다 — 파일을 못 읽었을 때
+     .has-asset 이 안 붙어 이 도형이 대신 보입니다(다른 게임과 같은 방식).
+     (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 의 os~ 항목,
+      크기 근거는 tools/build-minigame-art-webp.js 의 E11 구역 참고)
 
    [공용 프레임과의 관계]  닭꼬치·반죽과 같습니다.
    css/minigame-frame.css 와 ui-mini-frame.js 는 건드리지 않고,
@@ -1193,7 +1199,13 @@
 
 /* 격자는 css/minigame-parts.css 공용 규격입니다. */
 .one-shot-scene {
-  --os-vessel: calc(470 * var(--upx));   /* 가운데 그릇 가로 지름 */
+  /* 가운데 그릇 가로 지름. 접시 그림(1025x720)의 1.9배율이 마스터 크기라
+     여기서 더 키우면 없던 화소를 지어내는 셈입니다 — 늘리려면 마스터부터 다시. */
+  --os-vessel: calc(540 * var(--upx));
+  /* 접시 그림의 가로세로비. .os-drop · 참고 모양이 함께 씁니다.
+     ⚠️ 이 값이 그림과 어긋나면 contain 이 상자 안에 여백을 남기고,
+        그만큼 "접시 안" 판정(engine-e11 의 FREE_PLATE_RADIUS)이 접시 밖으로 샙니다. */
+  --os-plate-ratio: 1025 / 720;
   width: 100%;
   height: 100%;
   user-select: none;
@@ -1226,7 +1238,9 @@
 .os-ing-card.placed { opacity: .42; cursor: default; }
 .os-ing-card.placed .os-ing-name::after { content: "✓"; color: #a8c46a; }
 .os-ing-art { display: grid; place-items: center; min-height: calc(96 * var(--upx)); }
-.os-ing-art .os-art { width: min(100%,calc(158 * var(--upx))); }
+/* 카드 폭(왼쪽 칸 250 안쪽)까지 씁니다. 임시 CSS 도형 때는 158 이었는데,
+   납품 그림은 여백 없이 꽉 찬 한 덩이라 그 크기면 카드가 휑했습니다. */
+.os-ing-art .os-art { width: min(100%,calc(210 * var(--upx))); }
 .os-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
 .os-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 
@@ -1241,8 +1255,10 @@
   background: linear-gradient(#4d2e1a,#33200f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
 }
-/* 재료를 받는 자리. 끌어 오거나(집은 뒤) 눌러도 놓입니다 */
-.os-drop { position: relative; width: min(var(--os-vessel),100%); aspect-ratio: 1 / .76; max-height: 100%; cursor: pointer; }
+/* 재료를 받는 자리. 끌어 오거나(집은 뒤) 눌러도 놓입니다.
+   ⚠️ 상자 비율을 접시 그림에 맞춰 둡니다. 그래야 그림이 상자를 꽉 채우고,
+      "접시 위 어디" 를 상자 기준 %로 재는 자유 플레이팅 좌표가 그대로 맞습니다. */
+.os-drop { position: relative; width: min(var(--os-vessel),100%); aspect-ratio: var(--os-plate-ratio); max-height: 100%; cursor: pointer; }
 .os-drop.armed,
 .os-drop.drop-hover { filter: brightness(1.08); }
 .os-drop.drop-hover::before {
@@ -1293,8 +1309,11 @@
 .os-drag-ghost .os-ing-art { width: 100%; min-height: 0; }
 .os-drag-ghost .os-art { width: 100%; }
 /* 자유 플레이팅은 카드 더미가 아니라 한 조각을 끌고 다녀서 더 작습니다.
-   접시(--os-vessel 470)에 놓였을 때 크기와 같게 맞춥니다. */
-.os-drag-ghost.piece { width: calc(84 * var(--upx)); }
+   실제 크기는 engine-e11 이 접시 실측 폭 x pieceWidth 로 넣습니다(놓였을 때와
+   같은 크기여야 합니다). 여기 값은 그 전에 잠깐 쓰이는 기본값입니다. */
+/* 끌고 다닐 때는 안 돌립니다 — 놓이는 각도(engine-e11 의 pieceTilt)와 다르면
+   놓는 순간 조각이 홱 돌아앉는 것처럼 보입니다. 살짝 키우기만 합니다. */
+.os-drag-ghost.piece { width: calc(115 * var(--upx)); transform: translate(-50%,-50%) scale(1.06); }
 .os-drag-ghost.returning { transition: left .22s ease,top .22s ease,opacity .22s ease,transform .22s ease; opacity: .25; transform: translate(-50%,-50%) scale(.72); }
 
 /* 그릇 : 접시(플레이팅) / 냄비(어묵탕) */
@@ -1444,7 +1463,8 @@
 .os-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
 .os-guide { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .os-guide-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
-.os-guide-figure .os-vessel { width: calc(196 * var(--upx)); height: auto; aspect-ratio: 1 / .76; }
+/* 다 담은 모습 한 장(osPlateDone)이 들어오는 자리라 빈 접시와 같은 비율입니다 */
+.os-guide-figure .os-vessel { width: calc(210 * var(--upx)); height: auto; aspect-ratio: var(--os-plate-ratio); }
 
 /* ── 단발 액션 재료 그림 (임시 CSS 도형) ──────────────────────
    .os-art 는 부모가 정한 가로폭을 그대로 쓰고, 세로는 aspect-ratio 로
@@ -1455,6 +1475,14 @@
 .os-art.has-asset b { display: none; }
 .os-art.has-asset::before,
 .os-art.has-asset::after { display: none; }
+/* 그림이 들어오면 상자 비율도 그림 비율로 바꿉니다.
+   아래 임시 도형의 aspect-ratio 를 그대로 두면 contain 이 상자 안에 여백을
+   남기고, 접시 위 조각은 그만큼 작게 그려집니다(= 놓은 자리와 어긋나 보입니다).
+   숫자는 납품본 크기 그대로입니다 — 마스터가 바뀌면 여기도 같이 고치세요. */
+.os-art.tofuSlices.has-asset  { aspect-ratio: 1069 / 677; }
+.os-art.friedKimchi.has-asset { aspect-ratio: 882 / 706; }
+.os-art.tofuPiece.has-asset   { aspect-ratio: 825 / 691; }
+.os-art.kimchiPiece.has-asset { aspect-ratio: 535 / 394; }
 
 /* 썬 두부 : 도톰한 조각 5개를 부채꼴로 눕힙니다 */
 .os-art.tofuSlices { aspect-ratio: 1.45; }
@@ -4545,12 +4573,13 @@
 /* ============================================================
    나무 도마 — 플레이 칸 바닥 (assets/minigame/fix_tempura_prep_board)
    ------------------------------------------------------------
-   **다섯 칸이 한 장을 함께 씁니다.**
+   **여섯 칸이 한 장을 함께 씁니다.**
      E1 썰기        .cut-board                 (타이밍 방식 · 빠른 칼질 공용)
      E2 채썰기      .fp-board:has(.md-scene)
      E2 감자튀김    .fp-board:has(.fp-bag-scene)
      E2 새우튀김    .fp-board:has(.fp-coat-row)
      E8 불려두기    .soak-board
+     E11 플레이팅  .os-board
    위 나무 쟁반과 같은 자리·같은 방식이고 그림만 다릅니다.
 
    [불려두기가 쟁반이 아니라 여기인 이유] 물병을 볼 위로 **높이 들어 올려야**
@@ -4579,7 +4608,8 @@
 .fp-board:has(.md-scene),
 .fp-board:has(.fp-bag-scene),
 .fp-board:has(.fp-coat-row),
-.soak-board {
+.soak-board,
+.os-board {
   /* 테두리는 지우지 않고 색만 없앱니다 — 지우면 안쪽 상자가 12 커집니다 */
   border-color: transparent;
   border-radius: calc(20 * var(--upx));
