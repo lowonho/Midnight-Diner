@@ -16,7 +16,6 @@
   .objective-body { font-size: 7px; }
   .inventory-row { min-height: 18px; font-size: 7px; }
   .gold-button { padding: 5px; font-size: 8px; }
-  .cleanliness-box { display: none; }
   .relationship-box { display: none; }
   .choice-grid { grid-template-columns: 1fr 1fr; }
   .arrow-grid { width: 100%; grid-template-columns: repeat(4,1fr); }

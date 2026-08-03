@@ -346,21 +346,24 @@ function discardCarriedDish(){
   state.carrying=null;
   state.discardedCount=(state.discardedCount||0)+1;
   state.discardLoss=(state.discardLoss||0)+wasteLossForDish(dish);
-  state.trash=Math.min(6,state.trash+1);
-  state.dirtyDishes=Math.min(6,state.dirtyDishes+1);
-  state.cleanliness=clamp(state.cleanliness-1,0,100);
   spawnPopup(STATIONS.trash.ix,STATIONS.trash.iy-55,"폐기");
   showToast(`${dish.name} 완성품을 폐기했습니다. 남은 준비 재료로 다시 조리하세요.`);
   audio.bad();updateUI(true);saveGame();
   return true;
 }
 
+/* 만족도 = 준비 품질 + 조리 점수. 청결도 항목(0.05)이 있었지만 청결도
+   시스템을 걷어내면서 남은 두 항목에 나눠 얹어 만점 100 을 유지합니다.
+   여기와 updateNightObjective 의 예상 만족도가 늘 같은 식이어야 합니다. */
+function satisfactionScore(inv,cookScore){
+  return Math.round(clamp(inv.quality*.58+cookScore*.42,0,100));
+}
+
 function serveOrder(order) {
   const dish=dishById(order.dishId),inv=state.inventory[dish.id];
-  const satisfaction=Math.round(clamp(inv.quality*.55+state.carrying.cookScore*.40+state.cleanliness*.05,0,100));
+  const satisfaction=satisfactionScore(inv,state.carrying.cookScore);
   const stars=clamp(Math.ceil(satisfaction/20),1,5),earned=Math.round(dish.price*(.75+satisfaction/200)/100)*100;
   state.money+=earned;state.dailyRevenue+=earned;state.served++;state.satisfactionTotal+=satisfaction;if(stars===5)state.fiveStar++;
-  state.dirtyDishes=Math.min(6,state.dirtyDishes+1);state.cleanliness=clamp(state.cleanliness-2.5-state.trash*.4,0,100);
   const storyResult=applyStoryCookingResult(order,satisfaction);
   const resumedStory=finishSuspendedStoryCook(order,satisfaction);
   const tier=storyCookingTier(satisfaction);
@@ -385,7 +388,7 @@ function updateNightObjective(){
   const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
   if(state.carrying){
     const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId),inv=state.inventory[d.id];
-    const expected=Math.round(clamp(inv.quality*.55+state.carrying.cookScore*.40+state.cleanliness*.05,0,100));
+    const expected=satisfactionScore(inv,state.carrying.cookScore);
     const retry=inv.count>0
       ?"마음에 들지 않으면 쓰레기통에서 폐기하고 다시 조리할 수 있습니다."
       :"재조리할 준비 재료가 없어 이 음식은 폐기할 수 없습니다.";

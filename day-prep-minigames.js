@@ -96,7 +96,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //              css/day-prep-minigames.css 의 .anchovy.v01~v04 변수가 갖고 있습니다.
   //   innards    머리를 뜯을 때 딸려 나오는 멸치 똥
   //   wholeGroup 손질 **전** 통멸치 묶음 → E10(머리 떼기)의 재료 카드
-  //   group      손질 **후** 멸치 묶음   → E11(어묵탕에 넣기)의 재료 카드·냄비(osAnchovy)
+  //   group      손질 **후** 멸치 묶음   → E10 완료 연출
   //              두 그림이 섞이면 "머리를 떼기 전인데 이미 손질된 멸치" 가 보입니다.
   ...Object.fromEntries(["01","02","03","04"].flatMap(no=>[
     [`anchovyBody${no}`,`assets/minigame/E10/food_anchovy_whole_${no}_body.webp`],
@@ -295,13 +295,26 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   ]))),
   knife:"assets/minigame/E1/knife.png",
   ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
-  // 감자튀김 준비(봉투 흔들기). 봉투 그림 한 장에 감자채와 튀김가루가 함께 있고,
-  // 숫자는 가루가 묻은 정도(%)입니다. 파일이 없으면 CSS 임시 봉투를 씁니다.
-  friesShakeBag0:"assets/prep/day4/fries/shake-bag-0.png",
-  friesShakeBag35:"assets/prep/day4/fries/shake-bag-35.png",
-  friesShakeBag70:"assets/prep/day4/fries/shake-bag-70.png",
-  friesShakeBag100:"assets/prep/day4/fries/shake-bag-100.png",
-  friesPotatoStrips:"assets/prep/day4/fries/potato-strips.png",
+  /* 감자튀김 준비(봉투 흔들기) — assets/minigame/E2/fries/ 의 납품 에셋입니다.
+     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
+
+     [봉투 9장] 그림 한 장에 봉투·감자채·튀김가루가 함께 있습니다. 1 이 가루가
+     아직 바닥에 깔린 처음이고 9 가 골고루 다 묻은 모습이라, 흔든 횟수에 맞춰
+     갈아 끼우면 진행도가 그림으로 보입니다. 어느 장을 언제 쓰는지는
+     engine-e2-alternate-input.js 의 friesBagFrameIndex 가 정합니다.
+     ⚠️ 흔드는 횟수(day4-prep-data.js 의 requiredPresses)와 장수는 일부러
+        안 맞춰 놓았습니다 — 14번 흔드는 동안 9장을 고르게 나눠 씁니다.
+     [이펙트 3장] 흔들 때 봉투 좌우에 뜨는 물결입니다. **한 장에 좌우가 다 들어
+     있고 가운데는 비어 있어서** 봉투 뒤에 한 장만 깔면 양쪽이 동시에 뜹니다.
+     한 번 흔들 때 1 → 2 → 3 이 차례로 켜집니다 (css 의 .fp-shake-fx).
+     파일이 없으면 예전처럼 CSS 임시 봉투와 활 도형을 씁니다. */
+  ...Object.fromEntries(Array.from({length:9},(_,index)=>[
+    `friesShakeBag${index+1}`,`assets/minigame/E2/fries/food_fries_coating_bag_0${index+1}.webp`])),
+  ...Object.fromEntries(Array.from({length:3},(_,index)=>[
+    `friesShakeFx${index+1}`,`assets/minigame/E2/fries/fx_bag_shake_0${index+1}.webp`])),
+  // 왼쪽 재료 카드 2장 (봉투 안에 든 것 그대로 — 감자채 · 튀김가루)
+  friesPotatoStrips:"assets/minigame/E2/fries/food_potato_matchsticks_panel.webp",
+  friesFryingPowder:"assets/minigame/E2/fries/food_frying_powder_panel.webp",
   /* 새우튀김 준비 — assets/minigame/E2/shrimp/ 의 납품 에셋입니다.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
      한 재료가 자리마다 다른 장을 씁니다 — 왼쪽 카드는 Ing(어두운 나무 그릇),
@@ -332,19 +345,15 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   shrimpIngFlour:"assets/minigame/E2/shrimp/food_tempura_flour_panel.webp",
   shrimpIngEgg:"assets/minigame/E2/shrimp/food_egg_wash_panel.webp",
   shrimpIngCrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_panel.webp",
-  // 단발 액션 (engine-e11 · 플레이팅 / 냄비에 넣기 / 육수 넣기).
+  // 단발 액션 (engine-e11 · 두부김치 플레이팅).
   // 재료 그림은 카드·그릇·참고 모양에 같은 파일이 쓰입니다.
-  // 그릇은 빈 그릇(osPlate/osPot)과 완성 참고용(osPlateDone/osPotDone) 두 장입니다.
+  // 그릇은 빈 접시(osPlate)와 완성 참고용(osPlateDone) 두 장입니다.
+  // (어묵탕 냄비 그림 osRadish/osFishCake/osAnchovy/osBroth/osPot/osPotDone 은
+  //  "냄비에 넣기"·"육수 넣기" 를 없애면서 함께 뺐습니다)
   osTofuSlices:"assets/prep/one-shot/tofu-slices.png",
   osFriedKimchi:"assets/prep/one-shot/fried-kimchi.png",
-  osRadish:"assets/prep/one-shot/radish.png",
-  osFishCake:"assets/prep/one-shot/fish-cake.png",
-  osAnchovy:"assets/minigame/E10/food_anchovy_cleaned_group.webp",   // 손질한 멸치 묶음 (E10 과 공용)
-  osBroth:"assets/prep/one-shot/broth.png",
   osPlate:"assets/prep/one-shot/plate.png",
   osPlateDone:"assets/prep/one-shot/plate-done.png",
-  osPot:"assets/prep/one-shot/pot.png",
-  osPotDone:"assets/prep/one-shot/pot-done.png",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // 김치전 반죽 그릇 — assets/minigame/E5/ 의 납품 에셋입니다.
@@ -504,7 +513,7 @@ function startDayPrepMini(task){
   dom.miniContent.innerHTML="";
   // TIP 조작 칩은 매번 비웁니다. 필요한 게임만 setup 에서 다시 넣습니다.
   // ⚠️ 이 함수는 startMini 를 거치지 않는 별도 진입로라, 거기와 따로 비워야 합니다.
-  //    안 비우면 앞 게임 칩(예: "드래그 : 육수 붓기")이 다음 준비 게임에 남습니다.
+  //    안 비우면 앞 게임 칩(예: "드래그 : 담기")이 다음 준비 게임에 남습니다.
   setMiniTipHint("");
   dom.miniClose.hidden=false;
   dom.miniOverlay.classList.add("open");

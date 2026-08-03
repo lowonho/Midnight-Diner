@@ -114,7 +114,6 @@ const MINI_SUBTITLE = Object.freeze({
   cut:              "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
   tteokbokkiCut:    "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
   anchovy:          "멸치 머리를 잡고 좌우로 흔들어 떼어주세요!",
-  odenBroth:        "육수통을 냄비로 끌어다 부어주세요!",
   kimchiFry:        "화살표를 순서대로 눌러 김치를 볶아주세요!",
   batter:           "재료를 순서대로 볼에 넣고 저어주세요!",
   skewer:           "닭과 파를 번갈아 순서대로 꽂아주세요!",
@@ -129,12 +128,8 @@ const MINI_SUBTITLE = Object.freeze({
   stir:             "화살표를 순서대로 눌러 볶아주세요!",
   fry:              "황금빛 구간에서 건진 뒤 기름을 털어주세요!",
   chop:             "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
-  plateKimchi:      "볶은 김치를 접시에 옮겨 담아주세요!",
+  plateKimchi:      "볶은 김치를 접시에 옮겨 담아주세요!"
   // twoSideCook 은 engine-e5 가 요리별로 직접 채웁니다
-
-  // ---- 밤 잡일 ----
-  dishwasher:       "쌓인 그릇을 눌러 설거지해주세요!",
-  trash:            "쓰레기를 눌러 정리해주세요!"
 });
 
 /* 부제를 채웁니다. 표에 없으면 빈 문자열이라 줄이 사라집니다. */

@@ -9,7 +9,7 @@
    서로 다른 작업인데, 원래는 buildMenuCards 한 함수 안에 섞여 있었습니다.
 
    [값을 받는 문구는 함수입니다]
-   `설거지 3 · 쓰레기 2` 처럼 숫자가 끼는 문구는 함수로 두었습니다.
+   `Day 3 준비 완료 · 영업 시작` 처럼 값이 끼는 문구는 함수로 두었습니다.
    game.js 는 숫자만 넘기고 문장은 여기서 만듭니다.
 
    [로드 순서]
@@ -54,8 +54,6 @@ const UI_TEXT = Object.freeze({
   // Day 3·4 처럼 준비가 다 끝났을 때만 쓰는 긴 문구
   phaseButtonReady: day => `Day ${day} 준비 완료 · 영업 시작`,
 
-  cleaning: (dishes,trash) => `설거지 ${dishes} · 쓰레기 ${trash}`,
-
   /* ── 설정 / 일시정지 ──────────────────────────────── */
   pauseFromTitle: "소리 설정을 변경할 수 있습니다.",
   pauseFromGame: "게임이 일시정지되었습니다.",
@@ -76,12 +74,8 @@ const UI_TEXT = Object.freeze({
   toast: Object.freeze({
     prepTooFar: "앞 테이블의 준비 재료 가까이 이동하세요.",
     stationTooFar: "사용할 집기 가까이 이동하세요.",
-    noDishes: "씻을 그릇이 없습니다.",
-    noTrash: "버릴 쓰레기가 없습니다.",
     wrongStep: label => `지금은 ${label} 단계입니다.`,
     orderSelect: "주문 선택",
-    dishesClean: "식기가 깨끗해졌습니다.",
-    trashCleared: "쓰레기를 정리했습니다.",
     prepDone: name => `${name} 3인분 준비 완료!`,
     prepNext: label => `다음 단계: ${label}`,
     cookDone: name => `${name} 완성! 주문한 손님에게 가져다주세요.`,
@@ -96,8 +90,6 @@ const UI_TEXT = Object.freeze({
     discard: name => `E · ${name} 폐기`,
     serve: seat => `E · ${seat}번 손님에게 서빙`,
     prepObject: label => `E · ${label}`,
-    dishwasher: "E · 설거지하기",
-    trash: "E · 쓰레기 정리",
     station: label => `E · ${label} 사용`
   }),
 

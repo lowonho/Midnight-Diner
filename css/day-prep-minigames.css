@@ -3313,10 +3313,12 @@
 .fp-ing-art i { position: relative; display: block; height: 100%; max-height: calc(112 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
 .fp-ing-art.has-asset i { display: none; }
 .fp-ing-asset { max-width: 100%; max-height: calc(86 * var(--upx)); object-fit: contain; }
-/* 채칼만 재료가 2줄(양배추·당근)이라 그림칸이 215.6 으로 넉넉합니다.
-   공용 86 을 그대로 쓰면 칸의 40% 만 쓰고 그림이 우표만 하게 보입니다.
+/* 채칼(양배추·당근)과 감자튀김 준비(감자채·튀김가루)는 재료가 2줄이라
+   그림칸이 215.6 으로 넉넉합니다. 공용 86 을 그대로 쓰면 칸의 40% 만 쓰고
+   그림이 우표만 하게 보입니다.
    재료가 4줄인 새우튀김 준비(같은 .fp-scene)는 86 그대로 둡니다. */
-.fp-scene:has(.md-scene) .fp-ing-asset { max-height: calc(190 * var(--upx)); }
+.fp-scene:has(.md-scene) .fp-ing-asset,
+.fp-scene:has(.fp-bag-scene) .fp-ing-asset { max-height: calc(190 * var(--upx)); }
 /* 새우튀김 준비는 반대로 **줄입니다.** 재료가 4줄이라 카드가 140 뿐인데
    공용 86 은 그림칸(86)을 세로로 딱 채우는 값이라, 납품 그림처럼 여백 없이
    꽉 찬 그림을 넣으면 카드 테두리에 그대로 닿아 삐져나온 것처럼 보입니다.
@@ -3441,11 +3443,18 @@
 .fp-scene.e2-complete .fp-board > :not(.e2-result) { animation: fp-stage-complete .45s cubic-bezier(.2,.9,.2,1); }
 
 /* ── 감자튀김 준비 : 봉투 흔들기 ──────────────────────────────
-   봉투는 반투명 비닐이라 안이 비쳐 보입니다. 감자채(<i>)는 index 로 자리를
-   정하고, 튀김가루(<b>)는 진행도만큼 개수가 늘어납니다. */
-.fp-bag-scene { display: flex; align-items: center; justify-content: center; gap: calc(20 * var(--upx)); }
+   납품 그림(food_fries_coating_bag_01~09)이 들어오면 .has-asset 이 붙어
+   봉투 한 장이 통째로 깔립니다. 아래 임시 도형은 그림이 없을 때만 보입니다 —
+   반투명 비닐 안에 감자채(<i>)는 index 로 자리를 정하고, 튀김가루(<b>)는
+   진행도만큼 개수가 늘어납니다.
+
+   봉투는 **잡고 끌 수 있습니다** (engine-e2-alternate-input.js 의 bindFriesBagDrag).
+   끄는 동안에는 손을 따라 좌우로 밀려나고(--fp-drag-x), 연타할 때의 흔들림
+   애니메이션은 꺼집니다 — 둘 다 transform 이라 겹치면 봉투가 튑니다. */
+.fp-bag-scene { position: relative; display: flex; align-items: center; justify-content: center; gap: calc(20 * var(--upx)); }
 .fp-bag {
   position: relative;
+  z-index: 1;
   width: calc(560 * var(--upx));
   height: calc(450 * var(--upx));
   overflow: hidden;   /* 봉투 밖으로 삐져나온 감자채를 잘라 줍니다 */
@@ -3453,7 +3462,14 @@
   border-radius: calc(20 * var(--upx));
   background: linear-gradient(150deg, rgba(255,255,255,.20), rgba(255,255,255,.07) 55%, rgba(255,255,255,.16));
   box-shadow: inset 0 0 calc(30 * var(--upx)) rgba(255,255,255,.14), 0 calc(8 * var(--upx)) calc(18 * var(--upx)) rgba(0,0,0,.45);
+  transform: translateX(var(--fp-drag-x,0px));
+  transition: transform .09s;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
 }
+.fp-bag.dragging { cursor: grabbing; transition: none; }
 /* 지퍼 */
 .fp-bag-zip { position: absolute; left: calc(14 * var(--upx)); right: calc(14 * var(--upx)); top: calc(12 * var(--upx)); height: calc(16 * var(--upx)); border-radius: calc(8 * var(--upx)); background: repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 calc(4 * var(--upx)), rgba(255,255,255,.2) calc(4 * var(--upx)) calc(9 * var(--upx))); }
 .fp-bag-fill { position: absolute; inset: calc(42 * var(--upx)) calc(26 * var(--upx)) calc(26 * var(--upx)); }
@@ -3484,12 +3500,41 @@
 .fp-bag.stage-35 .fp-bag-fill i { filter: brightness(1.06) saturate(.9); }
 .fp-bag.stage-70 .fp-bag-fill i { filter: brightness(1.12) saturate(.75); }
 .fp-bag.stage-100 .fp-bag-fill i { filter: brightness(1.2) saturate(.6); }
-.fp-bag.has-asset { border-color: transparent; background: none; box-shadow: none; }
+.fp-bag.has-asset { border-color: transparent; background: none; box-shadow: none; overflow: visible; }
 .fp-bag.has-asset .fp-bag-zip,
 .fp-bag.has-asset .fp-bag-fill { display: none; }
 .fp-bag-asset { width: 100%; height: 100%; object-fit: contain; }
 
-/* 흔들림 표시 : 봉투 양옆의 활 세 개. 흔들 때만 밝아집니다 */
+/* 흔들림 이펙트 (fx_bag_shake_01~03) — **한 장에 좌우 물결이 다 들어 있고
+   가운데는 비어 있습니다.** 그래서 봉투 뒤에 한 장만 깔면 양쪽이 동시에 뜹니다.
+   세 장을 겹쳐 두고 흔들 때 차례로 켭니다 (자바스크립트 타이머 없이 CSS 만).
+
+   ⚠️ 세 장은 비율이 서로 다릅니다(3.34 / 3.71 / 3.72) — 물결이 퍼지는 정도가
+      장마다 다르기 때문입니다. 그래서 가로만 맞추고 세로는 그림 비율대로 둡니다
+      (height:auto). 한 크기로 묶으면 그 차이가 눌려 사라집니다.
+   가로 760 은 봉투(560)보다 넓어 물결이 봉투 좌우 밖으로 걸칩니다. */
+.fp-shake-fx {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: calc(760 * var(--upx));
+  height: calc(228 * var(--upx));
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+.fp-shake-fx-frame {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+/* 흔들림 표시 : 봉투 양옆의 활 세 개. 흔들 때만 밝아집니다.
+   위 이펙트 그림이 없을 때만 그려집니다 (engine-e2 의 friesShakeFxMarkup). */
 .fp-wave { position: relative; width: calc(52 * var(--upx)); height: calc(150 * var(--upx)); opacity: .3; }
 .fp-wave b {
   position: absolute;
@@ -3756,6 +3801,15 @@
 /* ── 누를 때마다 한 번씩 흔들립니다 (왼쪽 키 / 오른쪽 키) ──── */
 .fp-bag-scene.shake-left .fp-bag { animation: fp-shake-left .16s ease; }
 .fp-bag-scene.shake-right .fp-bag { animation: fp-shake-right .16s ease; }
+/* 봉투를 잡고 끄는 동안에는 손을 따라가는 것이 곧 흔들림입니다.
+   여기에 흔들림 애니메이션까지 걸면 둘 다 transform 이라 봉투가 튑니다.
+   (셋 다 .fp-bag 을 잡으므로 이 규칙이 뒤에 와야 이깁니다) */
+.fp-bag-scene.shake-left .fp-bag.dragging,
+.fp-bag-scene.shake-right .fp-bag.dragging { animation: none; }
+/* 이펙트 세 장을 차례로 켭니다 — 한 번 흔들 때 01 → 02 → 03 (끄는 중에도 뜹니다) */
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame { animation: fp-shake-fx-flash .1s ease-out; }
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame.f2 { animation-delay: .07s; }
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame.f3 { animation-delay: .14s; }
 .fp-bag-scene.shake-left .fp-wave.left,
 .fp-bag-scene.shake-right .fp-wave.right { animation: fp-wave-pop .24s ease; }
 .fp-coat-station.shake-left .fp-shrimp { animation: fp-roll-left .18s ease; }
@@ -3786,9 +3840,18 @@
 /* 커서를 따라오는 새우. E8 기본 상자(92x78)는 새우에 너무 작습니다 */
 .order-drag-ghost.shrimp { width: calc(186 * var(--upx)); height: calc(175 * var(--upx)); }
 
-@keyframes fp-shake-left { 40% { transform: translateX(calc(-18 * var(--upx))) rotate(-3.5deg); } 75% { transform: translateX(calc(7 * var(--upx))) rotate(1.5deg); } }
-@keyframes fp-shake-right { 40% { transform: translateX(calc(18 * var(--upx))) rotate(3.5deg); } 75% { transform: translateX(calc(-7 * var(--upx))) rotate(-1.5deg); } }
+/* 봉투는 **통째로** 좌우로 갑니다. 원래 여기에 rotate 가 함께 들어 있었는데,
+   봉투가 제자리에서 기울기만 해서 아래는 붙박이고 윗동아리만 흔들려 보였습니다.
+   기울기를 빼고 옮기는 거리를 키웠습니다(18 → 30). */
+@keyframes fp-shake-left { 38% { transform: translateX(calc(-30 * var(--upx))); } 74% { transform: translateX(calc(12 * var(--upx))); } }
+@keyframes fp-shake-right { 38% { transform: translateX(calc(30 * var(--upx))); } 74% { transform: translateX(calc(-12 * var(--upx))); } }
 @keyframes fp-wave-pop { 0% { opacity: .3; } 40% { opacity: 1; } 100% { opacity: .3; } }
+/* 이펙트 한 장이 뜨고 지는 동안. 좌우로 조금 벌어지며 사라집니다 */
+@keyframes fp-shake-fx-flash {
+  0% { opacity: 0; transform: translateY(-50%) scaleX(.93); }
+  45% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(1.05); }
+}
 /* 새우가 커진 만큼(140 → 186) 구르는 거리도 같이 넓혔습니다 */
 @keyframes fp-roll-left { 45% { transform: translateX(calc(-19 * var(--upx))) rotate(-14deg); } 80% { transform: translateX(calc(7 * var(--upx))) rotate(5deg); } }
 @keyframes fp-roll-right { 45% { transform: translateX(calc(19 * var(--upx))) rotate(14deg); } 80% { transform: translateX(calc(-7 * var(--upx))) rotate(-5deg); } }
@@ -3804,6 +3867,8 @@
   .fp-coat-row.carrying .fp-shrimp.carry,
   .fp-coat-station.next-bowl .fp-vessel-asset,
   .fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp-asset,
+  .fp-bag-scene:is(.shake-left,.shake-right) .fp-bag,
+  .fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame,
   .fp-scene.input-wrong .fp-board,
   .fp-scene.stage-complete .fp-coat-station.current,
   .fp-scene.stage-complete .md-scene,

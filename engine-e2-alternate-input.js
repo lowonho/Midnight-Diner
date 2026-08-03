@@ -407,9 +407,12 @@ function playFryPrepShake(selector,key,keys){
 /* ============================================================
    2. 감자튀김 준비 — 봉투를 흔들어 튀김가루 묻히기
 
-   감자채가 담긴 봉투에 튀김가루를 넣고 랜덤키 두 개를 번갈아 연타해
-   가루를 골고루 묻힙니다. 누를 때마다 봉투가 그 방향으로 흔들리고
-   가루가 조금씩 더 붙습니다. 실패나 되돌아감은 없습니다.
+   감자채가 담긴 봉투에 튀김가루를 넣고 좌우로 번갈아 흔들어 가루를
+   골고루 묻힙니다. 흔드는 방법이 두 가지고 **둘 다 같은 한 번**입니다.
+     · 랜덤키 두 개를 번갈아 연타
+     · 봉투를 직접 잡고 좌우로 크게 왕복 (채칼과 같은 조작)
+   흔들 때마다 봉투 그림이 다음 장으로 넘어가고 좌우에 물결이 뜹니다.
+   실패나 되돌아감은 없습니다.
    ============================================================ */
 
 registerDayPrepEngine("potatoStarch",{
@@ -424,12 +427,15 @@ function setupPotatoStarchShake(){
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
   setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
-  dom.miniStation.textContent="봉투를 흔들어 튀김가루를 골고루 묻혀주세요!";
-  dom.miniDescription.textContent=`${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 빠르게 눌러 봉투를 흔들어주세요!`;
+  dom.miniStation.textContent="봉투를 잡고 좌우로 흔들어 튀김가루를 골고루 묻혀주세요!";
+  dom.miniDescription.textContent=`봉투를 잡고 좌우로 크게 흔드세요. ${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 번갈아 눌러도 됩니다.`;
   renderPotatoStarchShake();
 }
 
-function potatoStarchInput(key,repeat=false){
+// pointerDriven = 봉투를 직접 끌어서 들어온 입력. 봉투는 이미 손에 붙어
+// 움직이는 중이라 키를 눌렀을 때의 흔들림 연출을 얹지 않습니다
+// (css/day-prep-minigames.css 의 `.fp-bag.dragging` 이 그 애니메이션을 끕니다).
+function potatoStarchInput(key,repeat=false,pointerDriven=false){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="potatoStarch")return false;
   const data=m.data;
   const result=acceptAlternateInput(data,key,repeat);
@@ -454,21 +460,53 @@ function potatoStarchInput(key,repeat=false){
   return true;
 }
 
+/* 봉투 그림 장수 (food_fries_coating_bag_01~09). 01 이 가루가 아직 바닥에
+   깔린 처음이고 09 가 다 묻은 모습입니다.
+
+   흔드는 횟수(14)와 장수(9)가 딱 맞아떨어지지 않습니다 — 채칼(MANDOLINE_WHOLE_FRAMES)
+   과 같은 방식으로 0% 가 01, 100% 가 09 가 되도록 고르게 나누므로 대략 1.75 번에
+   한 장씩 넘어갑니다. 횟수는 day4-prep-data.js 의 requiredPresses 이고, 그 값을
+   9 로 맞추면 한 번에 정확히 한 장씩 넘어가지만 그건 플레이 방식이 바뀌는 일이라
+   여기서는 안 했습니다. */
+const FRIES_BAG_FRAMES=9;
+
+function friesBagFrameIndex(presses,total){
+  const last=FRIES_BAG_FRAMES-1;
+  return Math.max(0,Math.min(last,Math.round(presses/Math.max(1,total)*last)));
+}
+
+/* 흔들 때 봉투 좌우에 뜨는 물결. **한 장에 좌우가 다 그려져 있고 가운데가
+   비어 있어서** 봉투 뒤에 한 장만 깔면 양쪽이 동시에 뜹니다.
+   세 장을 겹쳐 두고 CSS 가 차례로 켭니다 (화구 3장과 같은 방식이라
+   자바스크립트 타이머가 없습니다 — 미니게임이 닫혀도 뒷정리할 것이 없습니다).
+   그림이 없으면 예전의 CSS 활 도형(.fp-wave)으로 돌아갑니다. */
+function friesShakeFxMarkup(){
+  const frames=Array.from({length:3},(_,index)=>dayPrepAssetMarkup(`friesShakeFx${index+1}`,`fp-shake-fx-frame f${index+1}`,""));
+  if(!frames[0])return "";
+  return `<div class="fp-shake-fx" aria-hidden="true">${frames.join("")}</div>`;
+}
+
+function friesWaveMarkup(side){
+  return `<i class="fp-wave ${side}" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>`;
+}
+
 // 봉투 안 감자채는 매번 같은 자리에 있어야 하므로 index 로 자리를 계산합니다.
 // (Math.random 을 쓰면 키를 누를 때마다 감자가 순간이동합니다)
-function friesBagMarkup(percent,stage){
+// stage 는 임시 도형용 단계(0·35·70·100), frame 은 납품 그림의 장 번호(1~9)입니다.
+function friesBagMarkup(percent,stage,frame){
   const sticks=Array.from({length:24},(_,index)=>`<i style="--fp-x:${8+(index%6)*13}%;--fp-y:${10+Math.floor(index/6)*20}%;--fp-turn:${-52+(index*37)%104}deg"></i>`).join("");
   const flourCount=Math.round(percent/100*26);
   const flour=Array.from({length:flourCount},(_,index)=>`<b style="--fp-x:${7+(index*37)%86}%;--fp-y:${9+(index*53)%78}%;--fp-size:${4+index%3}"></b>`).join("");
-  const asset=dayPrepAssetMarkup(`friesShakeBag${stage}`,"fp-bag-asset",`튀김가루 묻히기 ${stage}%`);
+  const asset=dayPrepAssetMarkup(`friesShakeBag${frame}`,"fp-bag-asset",`튀김가루 묻히기 ${percent}%`);
+  const fx=friesShakeFxMarkup();
   return `<div class="fp-bag-scene" id="friesBagScene">
-    <i class="fp-wave left" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>
-    <div class="fp-bag stage-${stage} ${asset?"has-asset":""}">
+    ${fx||friesWaveMarkup("left")}
+    <div class="fp-bag stage-${stage} ${asset?"has-asset":""}" id="friesBag">
       ${asset}
       <i class="fp-bag-zip" aria-hidden="true"></i>
       <div class="fp-bag-fill" aria-hidden="true">${sticks}${flour}</div>
     </div>
-    <i class="fp-wave right" aria-hidden="true"><b style="--fp-i:0"></b><b style="--fp-i:1"></b><b style="--fp-i:2"></b></i>
+    ${fx?"":friesWaveMarkup("right")}
   </div>`;
 }
 
@@ -480,18 +518,103 @@ function renderPotatoStarchShake(){
   // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
   dom.miniTimer.textContent=`${data.presses} / ${data.total}`;
   renderFryPrepScreen({
-    ingredients:[{id:"potatoStrips",label:"감자채",count:1,asset:"friesPotatoStrips"}],
-    stage:friesBagMarkup(percent,stage),
+    // 봉투 안에 함께 든 두 가지입니다. 어느 한쪽 차례가 있는 것이 아니라
+    // 처음부터 같이 들어 있으므로 금색 강조는 켜지 않습니다 (감자 채칼과 같습니다).
+    ingredients:[
+      {id:"potatoStrips",label:"감자채",count:1,asset:"friesPotatoStrips"},
+      {id:"fryingPowder",label:"튀김가루",count:1,asset:"friesFryingPowder"}
+    ],
+    stage:friesBagMarkup(percent,stage,friesBagFrameIndex(data.presses,data.total)+1),
     done:data.presses>=data.total?1:0,
     total:1,
     percent,
     keys:data.keys,
     expectedIndex:data.expectedIndex,
     keyLink:"→",
-    controlName:"랜덤키 연타",
-    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 빠르게<br />눌러 흔들기`,
+    controlName:"봉투를 잡고<br />좌우로 크게 흔들기",
+    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 번갈아<br />눌러도 됩니다`,
     phase:data.phase
   },key=>potatoStarchInput(key,false));
+  bindFriesBagDrag();
+  updateFriesBagDragPose(data);
+}
+
+/* ---- 봉투 직접 흔들기 (포인터) -----------------------------
+   채칼(engine-e12-grab-shake.js 의 bindMandolineDrag)과 같은 결의 조작입니다.
+   다만 축이 대각선이 아니라 **가로 한 축**뿐이고, 한 왕복이 아니라
+   한쪽 끝에 닿을 때마다 한 번으로 셉니다 — 봉투는 좌우로 번갈아 흔드는
+   물건이라 그 편이 키 두 개를 번갈아 누르는 것과 정확히 같은 셈이 됩니다.
+   (그래서 판정은 그대로 potatoStarchInput 에 넘깁니다)
+
+   ⚠️ 흔들 때마다 가운데 그림을 다시 그리므로, 사라지는 봉투가 아니라 계속
+      남아 있는 mini-content 에 포인터를 캡처해야 한 번 잡은 채 계속 흔들 수
+      있습니다. 다시 그린 뒤 잡은 자세를 되돌려 주는 것이 아래 pose 함수입니다. */
+const FRIES_BAG_DRAG_CONFIG=Object.freeze({
+  travelRatio:.16,       // 한 번으로 치는 거리 (봉투 폭 대비)
+  visualLimitRatio:.13   // 손을 따라 봉투가 밀려나는 한계
+});
+
+function friesBagDragDistance(width,ratio){
+  return Math.max(1,(width||0)*ratio);
+}
+
+function updateFriesBagDragPose(data){
+  const drag=data?.drag,bag=dom.miniContent.querySelector("#friesBag");
+  if(!bag||!drag||drag.kind!=="friesBag")return;
+  bag.style.setProperty("--fp-drag-x",`${drag.position.toFixed(2)}px`);
+  bag.classList.add("dragging");
+}
+
+function clearFriesBagDrag(m,pointerId=null){
+  const drag=m?.data?.drag;if(!drag||drag.kind!=="friesBag"||(pointerId!==null&&drag.pointerId!==pointerId))return;
+  m.data.drag=null;
+  const bag=dom.miniContent.querySelector("#friesBag");
+  bag?.classList.remove("dragging");
+  bag?.style.removeProperty("--fp-drag-x");
+}
+
+function bindFriesBagDrag(){
+  const surface=dom.miniContent;if(surface.__friesBagDragBound)return;
+  surface.__friesBagDragBound=true;
+  const playable=m=>isDayPrepMini(m)&&!m.complete&&m.data.mode==="potatoStarch";
+  surface.addEventListener("pointerdown",event=>{
+    const bag=event.target?.closest?.("#friesBag"),m=state.mini;
+    if(!bag||!surface.contains(bag)||!playable(m)||m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    event.preventDefault();
+    const rect=bag.getBoundingClientRect();
+    m.data.drag={kind:"friesBag",pointerId:event.pointerId,startX:event.clientX,position:0,
+      step:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.travelRatio),
+      limit:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.visualLimitRatio)};
+    try{surface.setPointerCapture?.(event.pointerId);}catch{}
+    updateFriesBagDragPose(m.data);
+  });
+  surface.addEventListener("pointermove",event=>{
+    const m=state.mini,drag=m?.data?.drag;
+    if(!playable(m)||!drag||drag.kind!=="friesBag"||drag.pointerId!==event.pointerId)return;
+    event.preventDefault();
+    if(m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
+    const moved=event.clientX-drag.startX;
+    drag.position=clamp(moved,-drag.limit,drag.limit);
+    updateFriesBagDragPose(m.data);
+    // 지금 차례인 쪽 — 키 두 개의 차례가 그대로 왼쪽 / 오른쪽입니다
+    // (연타할 때 봉투가 기우는 방향과 같습니다 — playFryPrepShake 참고)
+    const toLeft=m.data.expectedIndex===0;
+    if(toLeft?moved<=-drag.step:moved>=drag.step){
+      potatoStarchInput(m.data.keys[m.data.expectedIndex],false,true);
+      if(m.data.transitioning||m.data.phase==="complete")clearFriesBagDrag(m,event.pointerId);
+    }
+  });
+  const finish=event=>{
+    const m=state.mini,drag=m?.data?.drag;
+    if(!drag||drag.kind!=="friesBag"||drag.pointerId!==event.pointerId)return;
+    clearFriesBagDrag(m,event.pointerId);
+    try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
+  };
+  surface.addEventListener("pointerup",finish);
+  surface.addEventListener("pointercancel",finish);
+  surface.addEventListener("lostpointercapture",finish);
+  surface.addEventListener("dragstart",event=>{if(event.target?.closest?.("#friesBag"))event.preventDefault();});
 }
 
 /* ============================================================

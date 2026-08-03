@@ -202,10 +202,6 @@ function drawPrepObjects(){
     }else if(item.task.objectKind==="tofu"){
       ctx.fillStyle="#fff6e2";roundRect(ctx,item.x-26,item.y-20,52,26,5,true,false);
       ctx.strokeStyle="#c8b98f";ctx.lineWidth=2;roundRect(ctx,item.x-26,item.y-20,52,26,5,false,true);
-    }else if(item.task.objectKind==="brothPot"){
-      ctx.fillStyle="#a9aeab";roundRect(ctx,item.x-24,item.y-20,48,27,6,true,false);
-      ctx.strokeStyle="#7c817e";ctx.lineWidth=3;roundRect(ctx,item.x-24,item.y-20,48,27,6,false,true);
-      ctx.fillStyle="#b5762f";roundRect(ctx,item.x-19,item.y-9,38,14,3,true,false);
     }else if(item.task.objectKind==="shrimpEgg"){
       ctx.fillStyle="#e4e0d2";ctx.beginPath();ctx.ellipse(item.x,item.y-6,27,15,0,0,Math.PI*2);ctx.fill();
       ctx.fillStyle="#f0c04a";ctx.beginPath();ctx.ellipse(item.x,item.y-9,20,9,0,0,Math.PI*2);ctx.fill();

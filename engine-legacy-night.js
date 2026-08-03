@@ -3,11 +3,6 @@
 /* ============================================================
    표에 없는 밤 미니게임 모음
 
-   [지금도 쓰는 것]
-     dishwasher  설거지  — 식기세척기 집기에서 (game.js interact)
-     trash       쓰레기 분리 — 쓰레기통 집기에서 (game.js interact)
-     둘 다 요리가 아니라 청결도를 올리는 유틸리티라 엔진 표에 없습니다.
-
    [현재 호출되는 곳이 없는 것 — ♻️]
      collect  재료 꺼내기 (순서 기억)
      wash     재료 씻기 (물방울 터뜨리기)
@@ -19,46 +14,11 @@
      1단계는 "옮기기만" 이므로 지우지 않고 그대로 등록해 두었습니다.
      쓸 일이 없다고 판단되면 이 파일에서 해당 블록과 index.html 의
      <script> 줄만 지우면 됩니다. 다른 파일은 건드릴 필요가 없습니다.
+
+   [지운 것] 설거지(dishwasher) · 쓰레기 분리(trash)
+     청결도 시스템을 함께 걷어냈습니다. 식기세척기·쓰레기통 집기는
+     주방 배경으로 남아 있고, 쓰레기통은 완성품 폐기에만 쓰입니다.
    ============================================================ */
-
-/* ---- 설거지 ---------------------------------------------- */
-registerMiniEngine("dishwasher", {
-  setup(m, { set }) {
-    set("설거지", "각 접시를 두 번 눌러 깨끗하게 닦으세요.", 10);
-    m.data = { plates: Array(6).fill(0) };
-    renderPlates();
-  },
-  timeout(m) {
-    finishMini(Math.round(m.data.plates.reduce((a, b) => a + Math.min(b, 2), 0) / 12 * 100));
-  }
-});
-
-function renderPlates() {
-  const m = state.mini; if (!m) return;
-  dom.miniContent.innerHTML = `<div class="plate-grid" id="plateGrid"></div><div class="cut-count">접시를 반짝이게 닦아주세요</div>`;
-  const grid = dom.miniContent.querySelector("#plateGrid");
-  m.data.plates.forEach((v, i) => { const b = document.createElement("button"); b.type = "button"; b.className = "plate-button"; b.textContent = v === 0 ? "기름때" : "한 번 더"; b.addEventListener("click", () => { m.data.plates[i]++; audio.click(); if (m.data.plates[i] >= 2) { b.classList.add("clean"); b.textContent = "반짝"; b.disabled = true; } else b.textContent = "한 번 더"; if (m.data.plates.every(x => x >= 2)) finishMini(100); }); grid.appendChild(b); });
-}
-
-/* ---- 쓰레기 분리 ------------------------------------------ */
-registerMiniEngine("trash", {
-  setup(m, { set }) {
-    set("쓰레기 분리", "표시된 쓰레기를 음식물 또는 일반 쓰레기로 분류하세요.", 9);
-    m.data = { items: shuffle([{ n: "채소 자투리", b: "food" }, { n: "기름 묻은 종이", b: "normal" }, { n: "생선 가시", b: "food" }, { n: "비닐 포장", b: "normal" }]), index: 0, correct: 0 };
-    renderTrash();
-  },
-  timeout(m) {
-    finishMini(Math.round(m.data.correct / m.data.items.length * 100));
-  }
-});
-
-function renderTrash() {
-  const m = state.mini; if (!m) return;
-  const item = m.data.items[m.data.index];
-  if (!item) { finishMini(Math.round(m.data.correct / m.data.items.length * 100)); return; }
-  dom.miniContent.innerHTML = `<div class="sequence-chip">${item.n}</div><div class="sort-area"><button class="sort-button" data-bin="food" type="button">음식물</button><button class="sort-button" data-bin="normal" type="button">일반</button></div>`;
-  dom.miniContent.querySelectorAll(".sort-button").forEach(b => b.addEventListener("click", () => { if (b.dataset.bin === item.b) { m.data.correct++; audio.click(); } else audio.bad(); m.data.index++; renderTrash(); }));
-}
 
 /* ---- ♻️ 재료 꺼내기 (순서 기억) ---------------------------- */
 registerMiniEngine("collect", {
