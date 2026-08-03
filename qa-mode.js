@@ -264,12 +264,6 @@ function qaTogglePhase(){
    그래서 미니게임을 쪼개거나 새로 만들어도 이 파일은 고칠 필요가 없습니다.
    ============================================================ */
 
-// 밤 영업에만 쓰는 잡일 게임. 표에 없어서 여기에만 적습니다.
-const QA_UTILITY_MINIS=Object.freeze([
-  {type:"dishwasher",station:"dishwasher",label:"설거지",prepare(){state.dirtyDishes=6;}},
-  {type:"trash",station:"trash",label:"쓰레기 정리",prepare(){state.trash=6;}}
-]);
-
 function qaPrepTaskList(){
   const livePrepTaskIds=new Set(MENU_DATA.flatMap(menu=>menu.requiredPrepTasks||[]));
   return Object.values(PREP_TASKS)
@@ -283,8 +277,8 @@ function qaCookStepList(){
 }
 
 // 고른 작업 하나만 바로 열 수 있도록 앞 단계(dependsOn)를 완료 처리합니다.
-// 어묵탕 냄비 그림처럼 "앞 재료가 끝났는지"를 보고 그리는 연출이 있어서
-// 단순히 건너뛰는 대신 실제로 완료 표시를 해 둡니다.
+// "앞 재료가 끝났는지"를 보고 그리는 연출이 있어서 단순히 건너뛰는 대신
+// 실제로 완료 표시를 해 둡니다.
 function qaSeedPrepContext(task){
   if(!state.selectedMenus.includes(task.menuId))state.selectedMenus=[...state.selectedMenus,task.menuId];
   const progress={...createDayPrepProgress(),...(state.prepProgress||{})};
@@ -326,20 +320,6 @@ function qaPlayCookMini(dishId,stepIndex=0){
   startMini(step.game,step.station,{mode:"cook",dishId,qa:true});
   dom.miniClose.hidden=false;   // QA 실행분은 언제든 ✕ 로 닫을 수 있게 합니다
   qaRefreshPanel(`밤 조리 · ${dish.displayName} ${stepIndex+1}단계 실행 (${step.game})`);
-  return true;
-}
-
-function qaPlayUtilityMini(type){
-  if(!QA_MODE_ENABLED)return false;
-  const utility=QA_UTILITY_MINIS.find(item=>item.type===type);
-  if(!utility){qaRefreshPanel(`잡일 게임을 찾지 못했습니다: ${type}`);return false;}
-  if(!qaEnsureSession())return false;
-  qaCancelTransientState();
-  state.phase=GAME_PHASES.PREP;state.paused=false;
-  utility.prepare();
-  startMini(utility.type,utility.station,{utility:true,qa:true});
-  dom.miniClose.hidden=false;
-  qaRefreshPanel(`잡일 · ${utility.label} 실행`);
   return true;
 }
 
@@ -737,15 +717,9 @@ function qaMiniListMarkup(){
         `${menu.displayName}${menu.cook.length>1?` ${index+1}단계`:""}`,
         `${step.game} · ${step.station}`,`data-qa-step="${index}"`
       )).join("")}
-    </div>
-    <div class="qa-mini-group">
-      <strong>잡일</strong>
-      ${QA_UTILITY_MINIS.map(utility=>qaMiniButtonMarkup(
-        "data-qa-utility",utility.type,utility.label,utility.type
-      )).join("")}
     </div>`;
   return `<div class="qa-mini-section"><em>낮 준비 (${prepTasks.length}개)</em>${prepMarkup}</div>
-          <div class="qa-mini-section"><em>밤 · 잡일</em>${cookMarkup}</div>`;
+          <div class="qa-mini-section"><em>밤 조리</em>${cookMarkup}</div>`;
 }
 
 function qaFilterMiniList(panel,keyword){
@@ -876,7 +850,6 @@ function qaBuildPanel(){
   panel.querySelector("[data-qa-story-close]").addEventListener("click",()=>qaCloseStoryPreview());
   panel.querySelectorAll("[data-qa-prep]").forEach(button=>button.addEventListener("click",()=>qaPlayPrepMini(button.dataset.qaPrep)));
   panel.querySelectorAll("[data-qa-cook]").forEach(button=>button.addEventListener("click",()=>qaPlayCookMini(button.dataset.qaCook,Number(button.dataset.qaStep||0))));
-  panel.querySelectorAll("[data-qa-utility]").forEach(button=>button.addEventListener("click",()=>qaPlayUtilityMini(button.dataset.qaUtility)));
   panel.querySelector("[data-qa-abort]").addEventListener("click",qaAbortMini);
   panel.querySelector("[data-qa-search]").addEventListener("input",event=>qaFilterMiniList(panel,event.target.value));
   panel.querySelector("[data-qa-collapse]").addEventListener("click",event=>{

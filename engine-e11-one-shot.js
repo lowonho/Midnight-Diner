@@ -1,20 +1,22 @@
 "use strict";
 
 /* ============================================================
-   E11 단발 액션 — 게임 3개 (화면·조작 통일)
+   E11 단발 액션 — 게임 1개
 
      두부김치 플레이팅 (밤 조리)   썬 두부 + 볶은 김치 → 접시
-     냄비에 넣기 (낮 준비)          손질을 마친 재료 → 육수 냄비
-     육수 넣기 (낮 준비)            육수 → 재료가 들어 있는 냄비
 
-   셋 다 "재료를 그릇에 옮기면 끝" 인 단발 액션입니다.
-   실패도 제한시간도 없고 화면 틀·조작이 완전히 같아서
-   startOneShot / renderOneShot 한 벌을 셋이 함께 씁니다.
-   (불리기 두 게임이 renderTteokSoak 하나를 나눠 쓰는 것과 같은 방식입니다.
-    앞으로 단발 액션 게임이 늘어나도 여기에 정의만 추가하면 됩니다.)
+   "재료를 그릇에 옮기면 끝" 인 단발 액션입니다.
+   실패도 제한시간도 없습니다.
+   (불리기 두 게임이 renderTteokSoak 하나를 나눠 쓰는 것과 같은 방식으로,
+    앞으로 단발 액션 게임이 늘어나면 여기에 정의만 추가하면 됩니다.)
 
-   공통 포인터 컨트롤러는 마우스와 터치를 함께 처리하고, 마무리 연출만
-   place(플레이팅) / drop(냄비 투입) / pour(육수 붓기)로 나눕니다.
+   공통 포인터 컨트롤러는 마우스와 터치를 함께 처리하고, 마무리 연출은
+   place(플레이팅) / drop(그릇에 투입) / pour(붓기)로 나뉩니다.
+
+   [♻️ 지금 쓰는 곳이 없는 것] drop · pour 연출
+     어묵탕의 "냄비에 넣기" 3개와 "육수 넣기" 를 없애면서 부르는 곳이
+     사라졌습니다. 다음 단발 액션 게임이 그대로 쓸 수 있게 연출 코드만
+     남기고, 냄비·재료 정의와 그림은 아래에서 함께 지웠습니다.
 
    [화면 구성]  그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체됩니다.
      왼쪽   재료 카드 — 끌어다 놓거나, 눌러 집은 뒤 그릇을 눌러도 됩니다
@@ -34,17 +36,12 @@
    slot 은 그릇 안에서 놓이는 자리 이름입니다. */
 const ONE_SHOT_PIECES=Object.freeze({
   tofu:{label:"썬 두부",art:"tofuSlices",asset:"osTofuSlices",slot:"plate-left"},
-  friedKimchi:{label:"볶은 김치",art:"friedKimchi",asset:"osFriedKimchi",slot:"plate-right"},
-  radish:{label:"썬 무",art:"radish",asset:"osRadish",slot:"pot-a"},
-  fishCake:{label:"썬 어묵",art:"fishCake",asset:"osFishCake",slot:"pot-b"},
-  anchovy:{label:"손질한 멸치",art:"anchovy",asset:"osAnchovy",slot:"pot-c"},
-  broth:{label:"육수",art:"broth",asset:"osBroth",slot:"fill"}
+  friedKimchi:{label:"볶은 김치",art:"friedKimchi",asset:"osFriedKimchi",slot:"plate-right"}
 });
 
 // 그릇. asset 은 빈 그릇, doneAsset 은 오른쪽 '참고 모양'에 쓰는 완성 그림입니다.
 const ONE_SHOT_VESSELS=Object.freeze({
-  plate:{kind:"plate",label:"접시",action:"담기",asset:"osPlate",doneAsset:"osPlateDone"},
-  pot:{kind:"pot",label:"냄비",action:"넣기",asset:"osPot",doneAsset:"osPotDone"}
+  plate:{kind:"plate",label:"접시",action:"담기",asset:"osPlate",doneAsset:"osPlateDone"}
 });
 
 const ONE_SHOT_VARIANTS=Object.freeze({
@@ -54,7 +51,7 @@ const ONE_SHOT_VARIANTS=Object.freeze({
 });
 
 // 도형 하나를 몇 조각(<b>)으로 그리는지. CSS 가 nth-child 로 자리를 잡습니다.
-const ONE_SHOT_ART_PARTS=Object.freeze({tofuSlices:5,friedKimchi:4,radish:3,fishCake:2,anchovy:3,broth:1});
+const ONE_SHOT_ART_PARTS=Object.freeze({tofuSlices:5,friedKimchi:4});
 
 /* ---- 공용 화면 틀 ------------------------------------------ */
 
@@ -329,68 +326,3 @@ registerMiniEngine("plateKimchi",{
   action(m){const data=oneShotData(m);if(data)placeOneShotItem(nextOneShotItemId(data));}
 });
 
-/* ============================================================
-   2. 어묵탕 재료를 냄비에 넣기 (낮 준비)
-
-   무·어묵·멸치 손질이 끝나면 각각 이 화면으로 넘어옵니다.
-   이미 손질을 마친 재료는 냄비 안에 함께 그려집니다.
-
-   [들어오는 길] 시작 함수(registerDayPrepSetup)가 없습니다.
-     · engine-e1-timing-cut.js   무·어묵 썰기 완료 시
-     · engine-e10-target-click.js 멸치 손질 완료 시
-   ============================================================ */
-
-registerDayPrepEngine("potDrop",{
-  action(m){const data=oneShotData(m);if(data)placeOneShotItem(nextOneShotItemId(data));}
-});
-
-function showOdenIngredientDrop(taskId,ingredient,message){
-  // 이번에 넣을 재료를 뺀 나머지 = 이미 냄비에 들어가 있는 재료
-  const preset=["radish","fishCake","anchovy"].filter(item=>item!==ingredient&&(
-    item==="radish"&&state.prepProgress.cutRadish||
-    item==="fishCake"&&state.prepProgress.cutFishCake||
-    item==="anchovy"&&state.prepProgress.cleanAnchovy
-  ));
-  const label=ONE_SHOT_PIECES[ingredient]?.label||"재료";
-  const shortLabel={radish:"무",fishCake:"어묵",anchovy:"멸치"}[ingredient]||label;
-  startOneShot({
-    mode:"potDrop",taskId,
-    variant:"drop",
-    title:"어묵탕 · 냄비에 넣기",
-    description:`손질을 마친 ${shortLabel}를 육수 냄비에 넣어주세요!`,
-    hint:"드래그 : 냄비에 넣기",
-    vessel:ONE_SHOT_VESSELS.pot,
-    items:[ingredient],
-    preset,
-    doneMessage:`${label} 넣기 완료`,
-    onDone:()=>finishDayPrepTask(taskId,message)
-  });
-}
-
-/* ============================================================
-   3. 육수 넣기 (낮 준비 · 어묵탕 마지막 단계)
-
-   무 · 어묵 · 멸치를 모두 넣은 냄비에 육수를 붓습니다.
-   재료를 넣는 연출(위 potDrop)과 같은 냄비 그림을 씁니다.
-   ============================================================ */
-
-registerDayPrepSetup("odenBroth",taskId=>setupOdenBroth(taskId));
-
-registerDayPrepEngine("brothPour",{
-  action(m){const data=oneShotData(m);if(data)placeOneShotItem(nextOneShotItemId(data));}
-});
-
-function setupOdenBroth(taskId){
-  startOneShot({
-    mode:"brothPour",taskId,
-    variant:"pour",
-    title:"어묵탕 · 육수 넣기",
-    description:"재료가 모두 들어갔습니다. 육수를 냄비에 부어주세요!",
-    hint:"드래그 : 육수 붓기",
-    vessel:ONE_SHOT_VESSELS.pot,
-    items:["broth"],
-    preset:["radish","fishCake","anchovy"],
-    doneMessage:"육수가 냄비를 채웁니다.",
-    onDone:()=>finishDayPrepTask(taskId,"어묵탕 육수 넣기 완료")
-  });
-}

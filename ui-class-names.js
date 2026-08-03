@@ -52,9 +52,8 @@ const UI_CLASS = Object.freeze({
 });
 
 /* JS 가 값을 넘기고, 그 값으로 무엇을 그릴지는 CSS 가 정합니다.
-   예) JS 는 "청결도 62" 만 넘기고, 막대로 그릴지 원으로 그릴지는 CSS 가 결정 */
+   예) JS 는 좌표만 넘기고, 그 자리에 어떻게 앉힐지는 CSS 가 결정 */
 const UI_VAR = Object.freeze({
-  cleanliness: "--clean",      // css/hud.css   .clean-track i
   promptX: "--prompt-x",       // css/interaction.css  .station-prompt
   promptY: "--prompt-y",
   knobX: "--knob-x",           // css/interaction.css  .joystick-knob
