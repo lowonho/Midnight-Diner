@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E4 tracking visual smoke</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/minigame-parts.css">
+  <link rel="stylesheet" href="../css/minigames.css">
+  <link rel="stylesheet" href="../css/day-prep-minigames.css">
+  <link rel="stylesheet" href="../css/minigame-frame.css">
+</head>
+<body>
+  <div id="appRoot" class="app-root"><div id="miniFrameMount"></div></div>
+  <script src="../ui-mini-frame.js"></script>
+  <script src="../game-data.js"></script>
+  <script src="../day4-prep-data.js"></script>
+  <script src="../mini-engine.js"></script>
+  <script>
+    "use strict";
+    const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki"],prepProgress:{},mini:null,kimchiPrep:{}};
+    const dom={
+      miniContent:document.getElementById("miniContent"),miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),miniFeedback:document.getElementById("miniFeedback"),
+      miniOverlay:document.getElementById("miniOverlay")
+    };
+    const audio={click(){},success(){},bad(){},play(){},loop(){}};
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+    function shuffle(items){return [...items];}
+    function finishMini(){}
+  </script>
+  <script src="../day.js"></script>
+  <script src="../prep.js"></script>
+  <script src="../day-prep-minigames.js"></script>
+  <script src="../engine-e4-gauge-hold.js"></script>
+  <script>
+    const params=new URLSearchParams(location.search),dishId=params.get("dish")==="tteokbokki"?"tteokbokki":"oden";
+    const mini={engine:"heat",context:{mode:"cook",dishId},complete:false,data:{}};
+    state.mini=mini;
+    MINI_ENGINES.heat.setup(mini,{set(title,description){dom.miniTitle.textContent=title;dom.miniDescription.textContent=description;}});
+    dom.miniStation.textContent="누르면 상승 · 떼면 하강";
+    dom.miniOverlay.classList.add("open");
+    let previous=performance.now();
+    function frame(now){
+      MINI_ENGINES.heat.update(mini,Math.min(.033,(now-previous)/1000));previous=now;
+      if(!mini.complete)requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    document.body.dataset.ready="true";
+  </script>
+</body>
+</html>

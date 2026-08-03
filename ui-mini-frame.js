@@ -125,7 +125,7 @@ const MINI_SUBTITLE = Object.freeze({
   // mandoline · potatoMandoline · potatoStarch · shrimpCoat 는 engine-e2 가 직접 채웁니다
 
   // ---- 밤 조리 ----
-  heat:             "불을 조절해 적정 온도를 유지해주세요!",
+  heat:             "스페이스바를 누르고 떼며 움직이는 적정 온도를 따라가세요!",
   stir:             "화살표를 순서대로 눌러 볶아주세요!",
   fry:              "황금빛 구간에서 건진 뒤 기름을 털어주세요!",
   chop:             "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",

@@ -1,21 +1,20 @@
 "use strict";
 
 /* ============================================================
-   E4 게이지 유지 — 어묵탕 · 떡볶이 공통 엔진
+   E4 움직이는 온도 구간 추적 — 어묵탕 · 떡볶이 공통 엔진
 
-   냄비 그림만 메뉴별 설정으로 바꾸고, 불 조절·온도 물리·유지 판정·완료는
-   한 컨트롤러가 담당합니다. 버너·불꽃·증기·거품은 CSS 도형이라 실제
-   에셋은 완성 냄비 이미지 두 장만 선택적으로 사용합니다.
+   스페이스바를 누르는 동안 온도 커서가 올라가고, 떼면 내려옵니다. 플레이어는
+   위아래로 계속 왕복하는 적정 온도 박스를 따라가며 5초를 채웁니다.
+   냄비 그림만 메뉴별 설정으로 바꾸고, 추적 물리·유지 판정·완료는 한
+   컨트롤러가 담당합니다.
 
    [화면 구성] 다른 12화면과 같은 3열입니다 (E10 멸치 손질과 같은 틀).
      [재료 카드 3장]  [불 위의 냄비]  [진행도 카드 · 조작 카드]
-                      아래 공용 띠에 화력 게이지 한 줄
+                      냄비 오른쪽에 세로 추적 게이지
    원래 E4 만 3열을 쓰지 않고 폭 1360.2 를 통으로 쓰는 예외였습니다.
    좌·우 칸이 생기면서 가운데 냄비 칸이 824.2 로 좁아졌고, 예전에 냄비
    아래에 있던 유지 바·진행 문구는 우측 진행도 카드로 옮겼습니다.
-   화력 게이지는 그대로 하단 띠에 있고, ± 버튼만 우측 조작 카드로
-   올라갔습니다(E5 가 조작 버튼 줄을 조작 카드로 옮긴 것과 같습니다).
-   판정·물리·완료 규칙은 하나도 바뀌지 않았고 놓이는 자리만 달라졌습니다.
+   하단 띠에는 핵심 조작을 다시 한번 짧게 안내합니다.
 
    칸 크기는 css/minigame-parts.css 의 공용 --mg-* 가 정합니다.
    이 화면의 겉모습은 css/minigames.css 의 "E4 화력 유지" 구역입니다.
@@ -46,29 +45,29 @@ const HEAT_INGREDIENTS=Object.freeze({
 const HEAT_CONFIG=Object.freeze({
   oden:Object.freeze({
     title:"어묵탕 끓이기",
-    description:"불을 조절해 맑은 어묵탕을 적정 온도에서 5초 동안 끓여주세요.",
+    description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetStart:.43,targetEnd:.63,targetHold:5,
-    initialValue:.24,initialPower:.31,heatFloor:.07,heatRange:.92,
-    response:1.25,powerChangeRate:.52,tapStep:.055
+    targetSize:.22,targetHold:5,targetSpeed:.18,
+    initialValue:.26,initialTarget:.54,initialTargetDirection:1,
+    riseSpeed:.58,fallSpeed:.46,riseResponse:7.2,fallResponse:5.2
   }),
   tteokbokki:Object.freeze({
     title:"떡볶이 끓이기",
-    description:"불을 조절해 걸쭉한 떡볶이를 적정 온도에서 5초 동안 끓여주세요.",
+    description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
-    targetStart:.48,targetEnd:.68,targetHold:5,
-    initialValue:.26,initialPower:.34,heatFloor:.08,heatRange:.94,
-    response:.82,powerChangeRate:.48,tapStep:.05
+    targetSize:.19,targetHold:5,targetSpeed:.22,
+    initialValue:.28,initialTarget:.6,initialTargetDirection:-1,
+    riseSpeed:.56,fallSpeed:.48,riseResponse:6.8,fallResponse:4.9
   }),
   // 어느 설정에도 없는 요리가 들어왔을 때 쓰는 안전망입니다.
   // 냄비 그림과 마찬가지로 재료 칸도 어묵탕 것을 그대로 씁니다.
   default:Object.freeze({
     title:"화력 조절",
-    description:"불을 조절해 적정 온도를 5초 동안 유지하세요.",
+    description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetStart:.43,targetEnd:.63,targetHold:5,
-    initialValue:.24,initialPower:.31,heatFloor:.07,heatRange:.92,
-    response:1.1,powerChangeRate:.5,tapStep:.05
+    targetSize:.22,targetHold:5,targetSpeed:.18,
+    initialValue:.26,initialTarget:.54,initialTargetDirection:1,
+    riseSpeed:.58,fallSpeed:.46,riseResponse:7,fallResponse:5
   })
 });
 
@@ -80,9 +79,15 @@ const HEAT_FEEL_CONFIG=Object.freeze({
 
 function heatConfigId(m){return HEAT_CONFIG[m.context?.dishId]?m.context.dishId:"default";}
 
-function heatZoneState(value,config){
-  if(value<config.targetStart)return "low";
-  if(value>config.targetEnd)return "high";
+function heatTargetBounds(data,config){
+  const half=config.targetSize/2;
+  return {start:data.target-half,end:data.target+half};
+}
+
+function heatZoneState(value,data,config){
+  const target=heatTargetBounds(data,config);
+  if(value<target.start)return "low";
+  if(value>target.end)return "high";
   return "ideal";
 }
 
@@ -157,6 +162,7 @@ function heatSceneMarkup(config){
       ${minigameBurnerMarkup("pot")}
       ${heatPotMarkup(config)}
     </div>
+    ${heatGaugeMarkup()}
     <strong class="heat-state-label" id="heatStateLabel">온도 낮음</strong>
     <span class="e4-result" id="e4Result" aria-live="polite"></span>
   </div>`;
@@ -175,30 +181,21 @@ function heatIngredientMarkup(item){
     </div>`;
 }
 
-/* 오른쪽 조작 카드. 키는 안내이면서 실제 버튼입니다(키보드·마우스 둘 다).
-   ⚠️ id 는 예전 하단 띠의 ± 버튼에서 그대로 물려받았습니다.
-      bindHeatButton 이 이 두 id 로 찾으므로 바꾸지 마세요. */
+/* 오른쪽 조작 카드. 스페이스바를 누르고 떼는 것만으로 온도를 조절합니다. */
 function heatControlMarkup(){
-  // 메인 키는 A · D 입니다. 화살표(← →)와 ± 도 그대로 받지만 보조로만 적습니다.
-  // 받는 키 목록은 아래 key/keyup 이 갖고 있습니다 — 함께 고쳐야 합니다.
-  const keys=[
-    {id:"heatDown",glyph:"A",name:"불 줄이기",hint:"또는 ← · −"},
-    {id:"heatUp",glyph:"D",name:"불 키우기",hint:"또는 → · ＋"}
-  ];
-  return `<div class="heat-keys">${keys.map(key=>`<span class="heat-key-row">
-      <button class="heat-key" id="${key.id}" type="button" aria-label="${key.name}">${key.glyph}</button>
-      <span class="heat-key-text"><b>${key.name}</b><em>${key.hint}</em></span>
-    </span>`).join("")}</div>
-    <p class="heat-control-name">꾹 누르면 계속 조절됩니다</p>`;
+  return `<div class="heat-keys"><span class="heat-key-row">
+      <kbd class="heat-key heat-lift-key" id="heatLift">SPACE</kbd>
+      <span class="heat-key-text"><b>꾹 눌러 올리기</b><em>스페이스바 하나로 조작</em></span>
+    </span></div>
+    <p class="heat-control-name">손을 떼면 온도가 내려갑니다</p>`;
 }
 
-/* 하단 공용 띠 — 화력 게이지 한 줄.
-   ± 버튼이 조작 카드로 올라가면서 양 끝 자리가 비어 약불/강불 표시가 들어갔습니다. */
-function heatGaugeMarkup(config){
-  return `<div class="heat-wrap">
-      <span class="heat-wrap-label">약불</span>
-      <div class="heat-gauge"><i class="heat-target" style="left:${config.targetStart*100}%;width:${(config.targetEnd-config.targetStart)*100}%"></i><i id="heatNeedle" class="heat-needle"></i></div>
-      <span class="heat-wrap-label">강불</span>
+/* 냄비 옆 세로 추적 게이지. target 과 needle 모두 매 프레임 bottom 값이 바뀝니다. */
+function heatGaugeMarkup(){
+  return `<div class="heat-tracker" aria-label="움직이는 적정 온도 추적 게이지">
+      <span class="heat-wrap-label">높음</span>
+      <div class="heat-gauge"><i id="heatTarget" class="heat-target"></i><i id="heatNeedle" class="heat-needle"></i></div>
+      <span class="heat-wrap-label">낮음</span>
     </div>`;
 }
 
@@ -222,46 +219,28 @@ function heatScreenMarkup(config){
           ${heatControlMarkup()}
         </div>
       </aside>
-      <div class="mg-strip heat-strip">${heatGaugeMarkup(config)}</div>
+      <div class="mg-strip heat-strip"><p><b>SPACE 누르면 상승</b><span>·</span><b>떼면 하강</b><span>—</span>움직이는 초록 박스를 따라가세요</p></div>
     </div>`;
 }
 
-function setHeatControl(m,direction,active){
-  // 조작 카드의 키캡은 마우스로 누를 때뿐 아니라 ← → 로 조절할 때도 같이 눌립니다.
-  // (한 곳에서만 켜고 끄려고 여기 둡니다 — bindHeatButton 은 붙이기만 합니다)
-  dom.miniContent.querySelector(direction<0?"#heatDown":"#heatUp")?.classList.toggle("pressed",active&&!m?.complete);
+function setHeatControl(m,active){
+  dom.miniContent.querySelector("#heatLift")?.classList.toggle("pressed",active&&!m?.complete);
   if(!m||m.complete||m.data.phase==="complete")return false;
-  const key=direction<0?"holdingDown":"holdingUp";
-  if(active&&!m.data[key]){
-    m.data.power=clamp(m.data.power+direction*HEAT_CONFIG[m.data.configId].tapStep,0,1);
-  }
-  m.data[key]=active;
+  m.data.holding=active;
   return true;
-}
-
-function bindHeatButton(m,selector,direction){
-  const button=dom.miniContent.querySelector(selector);if(!button)return;
-  button.addEventListener("pointerdown",event=>{
-    if(m.complete)return;
-    // ⚠️ 불 조절을 먼저 켜고 포인터를 잡습니다. setPointerCapture 는 잡을 수 없는
-    //    포인터에서 예외를 던지는데(E10 과 같은 이유로 try 로 감쌉니다),
-    //    순서가 반대면 그때 조작 자체가 통째로 막힙니다.
-    setHeatControl(m,direction,true);
-    try{button.setPointerCapture?.(event.pointerId);}catch{}
-  });
-  ["pointerup","pointercancel","lostpointercapture"].forEach(type=>button.addEventListener(type,()=>setHeatControl(m,direction,false)));
 }
 
 function updateHeatVisual(data,config){
   const scene=dom.miniContent.querySelector("#heatCookScene");if(!scene)return;
-  const zone=heatZoneState(data.value,config);
-  const fire=data.power<config.targetStart?"low":data.power>config.targetEnd?"high":"ideal";
-  // fire-* 는 화구 그림 3장이 넘어가는 속도(불 세기)를, heat-* 는 냄비의 김·거품을 정합니다.
+  const zone=heatZoneState(data.value,data,config),target=heatTargetBounds(data,config);
+  // 커서가 목표보다 낮은지·안인지·높은지에 맞춰 냄비와 불꽃의 세기도 함께 바뀝니다.
   scene.classList.remove("heat-low","heat-ideal","heat-high","fire-low","fire-ideal","fire-high");
-  scene.classList.add(`heat-${zone}`,`fire-${fire}`);
+  scene.classList.add(`heat-${zone}`,`fire-${zone}`);
   const label=scene.querySelector("#heatStateLabel");
   if(label)label.textContent=zone==="low"?"온도 낮음":zone==="high"?"과열 주의":"적정 온도";
-  const needle=dom.miniContent.querySelector("#heatNeedle");if(needle)needle.style.left=`${data.value*100}%`;
+  const targetBox=dom.miniContent.querySelector("#heatTarget");
+  if(targetBox){targetBox.style.bottom=`${target.start*100}%`;targetBox.style.height=`${config.targetSize*100}%`;}
+  const needle=dom.miniContent.querySelector("#heatNeedle");if(needle)needle.style.bottom=`${data.value*100}%`;
   // 유지 시간은 우측 진행도 카드가 보여 줍니다(숫자 + 그 아래 가는 띠).
   const holdValue=dom.miniContent.querySelector("#heatHoldValue");if(holdValue)holdValue.textContent=data.inZone.toFixed(1);
   const holdFill=dom.miniContent.querySelector("#heatHoldFill");if(holdFill)holdFill.style.width=`${data.inZone/config.targetHold*100}%`;
@@ -270,7 +249,8 @@ function updateHeatVisual(data,config){
 
 function completeHeatHold(m){
   const grade=heatCompletionGrade(m.data),result=dom.miniContent.querySelector("#e4Result");
-  m.data.phase="complete";m.data.holdingDown=false;m.data.holdingUp=false;
+  m.data.phase="complete";m.data.holding=false;
+  dom.miniContent.querySelector("#heatLift")?.classList.remove("pressed");
   dom.miniContent.querySelector("#heatCookScene")?.classList.add("e4-complete");
   if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.className=`e4-result show ${grade}`;}
   finishMini(grade==="perfect"?100:85);
@@ -281,9 +261,10 @@ registerMiniEngine("heat",{
     const configId=heatConfigId(m),config=HEAT_CONFIG[configId];
     set(config.title,config.description,config.targetHold);
     m.data={
-      configId,value:config.initialValue,power:config.initialPower,inZone:0,total:0,
+      configId,value:config.initialValue,velocity:0,target:config.initialTarget,
+      targetVelocity:config.targetSpeed*config.initialTargetDirection,inZone:0,total:0,
       outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
-      holdingDown:false,holdingUp:false,phase:"ready"
+      holding:false,phase:"ready"
     };
     // 냄비의 끓는 루프만 비교 청음할 수 있도록 가스불 효과음은 잠시 제외합니다.
     if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
@@ -291,7 +272,6 @@ registerMiniEngine("heat",{
     // 3열 화면입니다. 칸 크기는 css/minigame-parts.css 의 공용 규격이 정하고,
     // 여기서는 어느 칸에 무엇을 넣을지만 정합니다.
     dom.miniContent.innerHTML=heatScreenMarkup(config);
-    bindHeatButton(m,"#heatDown",-1);bindHeatButton(m,"#heatUp",1);
     updateHeatVisual(m.data,config);
   },
 
@@ -301,11 +281,18 @@ registerMiniEngine("heat",{
     const data=m.data,config=HEAT_CONFIG[data.configId];
     if(data.phase==="complete")return;
     data.total+=dt;
-    const control=(data.holdingUp?1:0)-(data.holdingDown?1:0);
-    data.power=clamp(data.power+control*config.powerChangeRate*dt,0,1);
-    const target=config.heatFloor+data.power*config.heatRange;
-    data.value=clamp(data.value+(target-data.value)*config.response*dt,0,1);
-    const zone=heatZoneState(data.value,config);
+    const desiredVelocity=data.holding?config.riseSpeed:-config.fallSpeed;
+    const response=data.holding?config.riseResponse:config.fallResponse;
+    data.velocity+=(desiredVelocity-data.velocity)*Math.min(1,response*dt);
+    data.value=clamp(data.value+data.velocity*dt,0,1);
+    if((data.value===0&&data.velocity<0)||(data.value===1&&data.velocity>0))data.velocity=0;
+
+    const halfTarget=config.targetSize/2;
+    data.target+=data.targetVelocity*dt;
+    if(data.target>=1-halfTarget){data.target=1-halfTarget;data.targetVelocity=-Math.abs(data.targetVelocity);}
+    if(data.target<=halfTarget){data.target=halfTarget;data.targetVelocity=Math.abs(data.targetVelocity);}
+
+    const zone=heatZoneState(data.value,data,config);
     if(zone==="ideal"){
       data.enteredZone=true;data.outsideTime=0;data.excursionWarned=false;
       data.inZone=Math.min(config.targetHold,data.inZone+dt);
@@ -319,14 +306,12 @@ registerMiniEngine("heat",{
   },
 
   key(m,key,event){
-    if(["arrowleft","a","-","_"].includes(key)){if(!event?.repeat)setHeatControl(m,-1,true);return true;}
-    if(["arrowright","d","+","="].includes(key)){if(!event?.repeat)setHeatControl(m,1,true);return true;}
+    if(key===" "||event?.code==="Space"){if(!event?.repeat)setHeatControl(m,true);return true;}
     return false;
   },
 
-  keyup(m,key){
-    if(["arrowleft","a","-","_"].includes(key)){setHeatControl(m,-1,false);return true;}
-    if(["arrowright","d","+","="].includes(key)){setHeatControl(m,1,false);return true;}
+  keyup(m,key,event){
+    if(key===" "||event?.code==="Space"){setHeatControl(m,false);return true;}
     return false;
   }
 });

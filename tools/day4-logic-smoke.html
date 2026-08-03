@@ -221,7 +221,7 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.potAsset!==HEAT_CONFIG.tteokbokki.potAsset&&HEAT_CONFIG.oden.response!==HEAT_CONFIG.tteokbokki.response,"Heat shared config and dish variants");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat shared tracking config and dish variants");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
   for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
   assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
@@ -256,23 +256,27 @@ try{
   playedSfx.length=0;
   const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
-  const initialHeatPower=heatMini.data.power;
-  MINI_ENGINES.heat.key(heatMini,"arrowright",{repeat:false});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini,"arrowright");
-  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelectorAll(".heat-flames i").length===5&&playedSfx.join(",")==="clear_simmer","E4 oden keeps simmer audio without gas flame audio");
-  heatMini.data.enteredZone=true;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
+  assert(MINI_ENGINES.heat.key(heatMini,"w",{repeat:false,code:"KeyW"})===false&&MINI_ENGINES.heat.key(heatMini,"arrowup",{repeat:false,code:"ArrowUp"})===false&&!heatMini.data.holding,"E4 ignores non-Space lift keys");
+  const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
+  MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
+  const raisedHeatValue=heatMini.data.value;MINI_ENGINES.heat.update(heatMini,.4);
+  assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, and target keeps moving");
+  heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
-  heatMini.data.value=.5;heatMini.data.power=.5;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  heatMini.data.target=.5;heatMini.data.targetVelocity=0;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
-  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki keeps boil audio without gas flame audio");
+  assert(dom.miniContent.querySelector(".heat-pot-art.tteokbokki,.heat-pot.tteokbokki")&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki tracking variant and boil audio");
   finishedScore=null;
-  for(let tap=0;tap<4;tap++){setHeatControl(tteokHeatMini,1,true);setHeatControl(tteokHeatMini,1,false);}
-  for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
-  assert(tteokHeatMini.complete&&finishedScore===100,"E4 tteokbokki is completable with four simple heat taps");
+  for(let frame=0;frame<1200&&!tteokHeatMini.complete;frame++){
+    setHeatControl(tteokHeatMini,tteokHeatMini.data.value<tteokHeatMini.data.target-.015);
+    MINI_ENGINES.heat.update(tteokHeatMini,1/60);
+  }
+  assert(tteokHeatMini.complete&&finishedScore>=85,"E4 tteokbokki moving target is completable with hold/release tracking");
 
   assert(twoSideCookVisualStage(.1)==="raw"&&twoSideCookVisualStage(.55)==="golden"&&twoSideCookVisualStage(.76)==="ready"&&twoSideCookVisualStage(.95)==="over"&&twoSideCookTimingGrade(.76,TWO_SIDE_COOK_CONFIG.pancake)==="perfect"&&twoSideCookTimingGrade(.68,TWO_SIDE_COOK_CONFIG.pancake)==="good"&&twoSideCookTimingGrade(.6,TWO_SIDE_COOK_CONFIG.pancake)==="miss"&&twoSideCookTimingScore(.76,TWO_SIDE_COOK_CONFIG.pancake)===100,"E5 shared visual stages and narrow GOOD/PERFECT timing");
   const pancakeMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeMini;
