@@ -237,8 +237,14 @@ try{
   randomHeat.targetRetargetIn=0;updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.1,heatRandom);
   assert(firstHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetSpeedScale!==firstHeatSpeed&&randomHeat.target>.5,"E4 target rerolls destination, speed, and direction instead of bouncing in a fixed cycle");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
-  for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
-  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
+  function rollShrimp(pointerId){
+    const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
+    rollSurface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
+    shrimp.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:200,clientY:120,bubbles:true}));
+    [340,60,340,60].forEach(clientX=>dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX,clientY:120,bubbles:true})));
+  }
+  for(let index=0;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++)rollShrimp(60+index);
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1,"E2 shrimp rolls five pieces in one vessel before the first stage transition");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
@@ -410,7 +416,7 @@ try{
   state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
   setupAnchovyPrep();
   const anchovyHead=dom.miniContent.querySelector("#anchovyWorkArea .anchovy-head");
-  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-joint").length===7,"E10 renders seven anchovies with asset-free joint tension feedback");
+  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&!dom.miniContent.querySelector("#anchovyWorkArea .anchovy-joint"),"E10 renders seven anchovies without the removed artificial joint overlay");
   anchovyHead.setPointerCapture=()=>{};anchovyHead.releasePointerCapture=()=>{};
   startAnchovyTug(anchovyHead,{pointerId:7,pointerType:"mouse",button:0,clientX:0,clientY:0,preventDefault(){}});
   const secondAnchovyHead=dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head")[1];
