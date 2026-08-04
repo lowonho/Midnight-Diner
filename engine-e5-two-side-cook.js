@@ -137,7 +137,10 @@ registerMiniEngine("twoSideCook", {
 });
 
 function charcoalSkewerMarkup(data) {
-  const coals = Array.from({ length: 9 }, () => "<i></i>").join("");
+  /* 숯덩이 개수. 화로를 정면 탑뷰(바로 위에서 내려다보는 각)로 바꾸면서
+     숯이 화로 **안쪽 전체**를 채우게 되어 9개로는 바닥이 비어 보입니다.
+     넘치는 만큼은 .charcoal-bed 의 overflow:hidden 이 잘라 냅니다. */
+  const coals = Array.from({ length: 40 }, () => "<i></i>").join("");
   const flipped = data?.flippedSkewers || 0;
   const skewers = Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => {
     const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.skewer.foodAsset,"grill-skewer-asset","굽는 닭꼬치");

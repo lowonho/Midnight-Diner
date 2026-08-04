@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E5 닭꼬치 굽기 visual smoke</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다 (tools/e8-skewer-visual-smoke.html 과 같은 이유) -->
+  <base href="../">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
+  <script src="ui-mini-frame.js"></script>
+  <script>
+    "use strict";
+    /* game.js 전체 대신 E5 가 실제로 만지는 전역만 흉내 냅니다 */
+    const state = { day:4, mini:null };
+    const audio = new Proxy({}, { get:() => () => {} });
+    function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+    function finishMini(){}
+    function miniAction(){}
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e5-two-side-cook.js"></script>
+  <script>
+    "use strict";
+    /* 보려는 것 : 숯불 화로가 **정면 탑뷰**(바로 위에서 내려다보는 각)로 보이는가,
+       꼬치 3개가 석쇠 위에 나란히 놓이고 손잡이가 한쪽으로 삐져나오는가.
+
+       ?phase=cook|skewerFlip     단계 (기본 cook)
+       ?marker=0..1               익힘 게이지 위치
+       ?flipped=0..3              뒤집어 놓은 꼬치 개수
+       ?side=0|1                  앞면(0) / 뒷면(1) */
+    const params = new URLSearchParams(location.search);
+    const phase   = params.get("phase") || "cook";
+    const marker  = Math.max(0, Math.min(1, Number(params.get("marker") ?? .76)));
+    const flipped = Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("flipped")) || 0));
+    const side    = params.get("side") === "1" ? 1 : 0;
+
+    loadDayPrepAssets().then(() => {
+      state.mini = {
+        engine:"twoSideCook", complete:false, time:20,
+        data:{ phase, side, marker, dir:1, speed:.23, hits:[], dishStyle:"skewer",
+               flipErrors:0, cookErrors:0, timeLimit:26,
+               flippedSkewers:flipped, flipStep:0, flipWindow:0 }
+      };
+      dom.miniTitle.textContent = "닭꼬치 굽기";
+      dom.miniStation.textContent = TWO_SIDE_VIEW.skewer.subtitle;
+      renderTwoSideCook();
+      measure();
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    function measure(){
+      const rect = el => el && el.getBoundingClientRect();
+      const box = el => { const r = rect(el); return r ? `${r.width.toFixed(1)}x${r.height.toFixed(1)}` : "없음"; };
+      const board = document.querySelector(".ts-board");
+      const grill = document.querySelector(".two-side-pan.skewer-cook");
+      const boardRect = rect(board), grillRect = rect(grill);
+      document.body.dataset.measure = JSON.stringify({
+        board:box(board), grill:box(grill),
+        // 화로가 칸 밖으로 넘치면 안 됩니다 (음수 = 여유)
+        spill:{
+          top:+(boardRect.top - grillRect.top).toFixed(1),
+          bottom:+(grillRect.bottom - boardRect.bottom).toFixed(1),
+          left:+(boardRect.left - grillRect.left).toFixed(1),
+          right:+(grillRect.right - boardRect.right).toFixed(1)
+        },
+        skewers:[...document.querySelectorAll(".grill-skewer")].map(s => {
+          const r = rect(s);
+          return { box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
+                   // 꼬치가 화로 안에 있는지 (음수 = 밖으로 나감)
+                   inLeft:+(r.left - grillRect.left).toFixed(1),
+                   inRight:+(grillRect.right - r.right).toFixed(1),
+                   flipped:s.classList.contains("flipped"),
+                   current:s.classList.contains("current") }
+        })
+      });
+      document.body.dataset.ready = "true";
+    }
+  </script>
+</body>
+</html>
