@@ -1,0 +1,321 @@
+/* ============================================================
+   E6 · 튀기기 (engine-e6-deep-fry.js)
+   원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
+   ============================================================ */
+
+/* ============================================================
+   E6 튀기기 (감자튀김 · 새우튀김) — engine-e6-deep-fry.js
+
+   3열 구성입니다. **하단 공용 띠(.mg-strip)는 쓰지 않습니다** —
+   띠 자리에 막대기도 빈칸도 두지 않고, 3열이 세로 613.2 를 전부 씁니다.
+     [재료 5개]   [탑뷰 기름 냄비]   [진행도 카드 · 완성 망]
+
+   왼쪽 재료를 냄비로 끌어다 넣고, 노릇해지면 다시 끌어다 오른쪽 망에 올립니다.
+   익힘 3단계(설익음 · 잘 익음 · 탐)는 조각의 data-stage 로 구분합니다.
+
+   격자·카드 껍데기·패널 그림은 css/minigame-parts.css 공용 규격입니다.
+   크기는 전부 --upx(1920x1080 에서 딱 1px)라 UI 에셋 제작 기준과 같습니다.
+   에셋이 들어오면 .has-fry-asset 이 붙어 CSS 임시 도형은 자동으로 숨습니다.
+   ============================================================ */
+
+.fry-screen {
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  /* 격자는 css/minigame-parts.css 공용 규격입니다(좌 250 · 우 250 · 간격 18). */
+}
+/* 집을 수 있는 것(재료 · 냄비 안 튀김)은 전부 이 커서를 씁니다.
+   ⚠️ 나중에 **집게 모양 커서 에셋**으로 바꿀 자리입니다 — 이 한 줄만 고치면 됩니다.
+      예) cursor: url("../../assets/minigame/E6/ui_tongs_cursor.png") 16 8, pointer; */
+.fry-screen [data-fry-source] { cursor: pointer; }
+.fry-screen [data-fry-source]:active { cursor: grabbing; }
+
+/* ── 왼쪽 : 아직 안 튀긴 재료 5개 ─────────────────────────────
+   자리는 늘 5칸입니다. 하나씩 튀기러 나가면 위에서부터 줄어들고 칸은 그대로라,
+   남은 재료의 크기가 도중에 커지거나 작아지지 않습니다. */
+.fry-raw-list {
+  flex: 1;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: calc(4 * var(--upx));
+  min-height: 0;
+}
+.fry-raw-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: calc(9 * var(--upx));
+  background: none;
+  transition: transform .12s ease, border-color .12s ease;
+}
+/* 재료 그림은 칸(226 x 약 110) 안에 들어옵니다.
+   ⚠️ 냄비 안 조각(.fry-piece .fry-art-asset)은 폭을 꽉 채우지만, 여기서 그러면
+      그림이 칸 높이의 두 배가 되어 위아래 재료를 덮습니다.
+   ⚠️ `max-height:100%` 로는 안 잡힙니다 — 칸 높이가 격자(1fr)에서 오는 값이라
+      백분율이 none 으로 풀립니다. 위아래를 0 으로 붙인 절대 배치로 묶습니다. */
+.fry-raw-item .fry-art-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.fry-raw-item .fry-art {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: auto;
+  aspect-ratio: 1.05;
+}
+.fry-raw-item:disabled { opacity: .55; cursor: default; }
+.fry-raw-item:hover:not(:disabled) { transform: scale(1.04); }
+.fry-raw-item.selected { border-color: var(--mg-card-active); background: rgba(255,224,141,.09); }
+.fry-raw-item.dragging { opacity: .35; }
+
+/* ── 가운데 : 탑뷰 기름 냄비 ────────────────────────────────── */
+.fry-work-area {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+}
+.e6-result { position:absolute; z-index:12; left:50%; top:45%; padding:calc(8 * var(--upx)) calc(24 * var(--upx)); border:2px solid currentColor; border-radius:calc(9 * var(--upx)); background:rgba(27,17,11,.88); color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
+.e6-result.perfect { color:#ffe29a; }
+.e6-result.show { animation:e6-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
+
+/* 냄비는 정사각형 칸입니다(탑뷰라 원이 들어갑니다).
+   조각 자리(--x · --y)가 이 칸 기준 0~100 이라, 칸이 원과 같은 크기여야
+   engine-e6 의 FRY_POT_RADIUS(28) 가 눈에 보이는 기름 안쪽과 맞습니다. */
+.fry-pot {
+  position: relative;
+  width: min(100%, calc(560 * var(--upx)));
+  aspect-ratio: 1;
+  border: 0;
+  padding: 0;
+  background: none;
+  filter: drop-shadow(0 calc(10 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.45));
+}
+.fry-pot-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 에셋이 없을 때 쓰는 임시 냄비 — 쇠테 + 기름 원 */
+.fry-pot-shape {
+  position: absolute;
+  inset: 0;
+  border: calc(14 * var(--upx)) solid #57514a;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 34%, rgba(255,246,186,.5), transparent 46%),
+    radial-gradient(circle at 50% 50%, #e2a33c 0 58%, #b9761f 78%, #8a5216 100%);
+  box-shadow: inset 0 0 calc(30 * var(--upx)) rgba(74,38,10,.75), inset 0 0 0 calc(5 * var(--upx)) #3a352f;
+}
+.fry-pot.has-fry-asset .fry-pot-shape { display: none; }
+/* 끌어온 것을 받을 수 있을 때 테두리가 밝아집니다 */
+.fry-pot.drop-hover { filter: drop-shadow(0 0 calc(16 * var(--upx)) rgba(255,214,130,.75)); }
+.fry-pot.full.drop-hover { filter: drop-shadow(0 0 calc(16 * var(--upx)) rgba(214,86,52,.75)); }
+
+/* 기름 기포 — 냄비 안쪽에만 뜹니다 */
+.fry-oil-bubbles { position: absolute; inset: 16%; pointer-events: none; }
+.fry-oil-bubbles i {
+  position: absolute;
+  width: calc(13 * var(--upx));
+  height: calc(13 * var(--upx));
+  border: calc(3 * var(--upx)) solid rgba(255,248,190,.72);
+  border-radius: 50%;
+  animation: fry-oil-bubble 1.5s ease-in-out infinite;
+}
+.fry-oil-bubbles i:nth-child(1){left:12%;top:22%;animation-delay:-.1s}
+.fry-oil-bubbles i:nth-child(2){left:31%;top:9%;animation-delay:-.7s}
+.fry-oil-bubbles i:nth-child(3){left:58%;top:16%;animation-delay:-1.1s}
+.fry-oil-bubbles i:nth-child(4){left:79%;top:31%;animation-delay:-.4s}
+.fry-oil-bubbles i:nth-child(5){left:88%;top:58%;animation-delay:-.9s}
+.fry-oil-bubbles i:nth-child(6){left:69%;top:80%;animation-delay:-.25s}
+.fry-oil-bubbles i:nth-child(7){left:44%;top:89%;animation-delay:-1.3s}
+.fry-oil-bubbles i:nth-child(8){left:19%;top:74%;animation-delay:-.55s}
+.fry-oil-bubbles i:nth-child(9){left:8%;top:48%;animation-delay:-1s}
+.fry-oil-bubbles i:nth-child(10){left:49%;top:47%;animation-delay:-.75s}
+
+.fry-pot-food, .fry-rack-food { position: absolute; inset: 0; pointer-events: none; }
+/* 망 위 조각은 프레임 안쪽으로 조금 들여 놓습니다 */
+.fry-rack-food { inset: calc(10 * var(--upx)) calc(14 * var(--upx)); }
+
+/* ── 튀김 한 조각 ─────────────────────────────────────────────
+   냄비 안 · 망 위 · 끌고 다니는 그림이 전부 같은 규격입니다.
+     --x --y  놓인 자리(칸 기준 %)   --w 칸 가로 대비 크기(%)
+     --rot    눕는 각도               --cook 익힘 0~1.6 */
+.fry-piece {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  transform: translate(-50%,-50%) rotate(var(--rot));
+  pointer-events: auto;
+}
+.fry-piece.on-rack { pointer-events: none; }
+.fry-piece.dragging { opacity: .35; }
+.fry-art-asset { display: block; width: 100%; height: auto; }
+
+/* ── 익힘 색 ─────────────────────────────────────────────────
+   익힘 3단계 그림이 아직 없어서, '기름에 들어가기 직전' 그림 한 장 위에
+   노릇한 갈색을 덧입혀 냅니다. 3단계 그림이 들어오면 .tinted 가 안 붙어
+   덧칠도 사라집니다(engine-e6-deep-fry.js 의 fryPieceArt 참고).
+
+   [방법] 같은 그림을 한 장 더 깔고, 그 사본만 갈색으로 만들어 --cook 만큼
+   서서히 겹칩니다. 사본은 알파(모양)가 원본과 같아서 튀김 모양 그대로 물듭니다.
+
+   ⚠️ **원본에 필터만 거는 방법은 안 됩니다.** 새우 빵가루가 거의 흰색이라
+      sepia 를 걸어도 흰색 그대로고(sepia 는 밝기를 지킵니다), brightness 로
+      어둡게 하면 갈색이 아니라 잿빛이 됩니다. 사본 쪽은 **brightness 를 먼저**
+      걸어 회색으로 낮춘 뒤 sepia · saturate 로 갈색을 입히는 순서라 물듭니다.
+   ⚠️ mask + mix-blend-mode 로도 되지만 헤드리스(--disable-gpu)에서 마스크가
+      통째로 사라져 스모크 캡처에 안 잡힙니다. 그래서 사본 방식을 씁니다. */
+.fry-piece.tinted::after,
+.fry-drag-ghost.tinted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--art) center / 100% 100% no-repeat;
+  /* 노릇한 튀김색. 어둡게 → 갈색(sepia) → 진하게(saturate) → 붉게(hue-rotate) 순서입니다.
+     ⚠️ saturate 를 3 아래로 내리면 갈색이 아니라 올리브빛이 됩니다. */
+  filter: brightness(.62) sepia(1) saturate(5) hue-rotate(-8deg);
+  opacity: calc(var(--cook,0) * .95);
+  transition: opacity .18s linear, filter .18s linear;
+  pointer-events: none;
+}
+/* 탄 것은 사본을 더 어둡게 (--cook 1.0 부터가 탄 구간입니다) */
+.fry-piece.tinted[data-stage="burnt"]::after,
+.fry-drag-ghost.tinted[data-stage="burnt"]::after {
+  filter: brightness(.33) sepia(1) saturate(6) hue-rotate(-6deg);
+  opacity: calc(.85 + (var(--cook,0) - 1) * .25);
+}
+/* 그림이 아예 없어 CSS 임시 도형을 쓸 때(감자채 뭉치)는 도형이 이미 주황이라
+   필터만으로도 충분히 노릇해집니다. */
+.fry-piece.shape-tinted .fry-art {
+  filter: saturate(calc(1 + var(--cook,0) * .5)) brightness(calc(1.05 - var(--cook,0) * .42));
+  transition: filter .18s linear;
+}
+
+/* 잘 익음 — 지금 건지라는 표시로 조각 뒤에 금빛 무리가 돕니다 */
+.fry-piece[data-stage="cooked"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,246,206,.7), rgba(255,196,96,.35) 45%, rgba(255,190,90,0) 70%);
+  animation: fry-ready-halo .9s ease-in-out infinite alternate;
+}
+/* 탐 — 검붉은 그을음이 깔립니다 */
+.fry-piece[data-stage="burnt"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(58,32,18,.75), rgba(40,20,10,0) 70%);
+}
+.fry-piece.just-added { animation: fry-piece-in .3s cubic-bezier(.2,.9,.3,1.2); }
+
+/* 에셋이 없을 때 쓰는 임시 도형 ------------------------------- */
+.fry-art { position: relative; display: block; width: 100%; aspect-ratio: 1.05; }
+/* 감자채 뭉치 — 가닥을 엇갈리게 쌓습니다 */
+.fry-art.clump b {
+  position: absolute;
+  left: var(--fx);
+  top: var(--fy);
+  width: 9%;
+  height: 42%;
+  border: 1px solid #ad6b27;
+  border-radius: 22%;
+  background: linear-gradient(90deg,#f6dc8c,#e2a848 72%,#c07a2c);
+  transform: rotate(var(--ft));
+}
+/* 새우튀김 — 몸통 한 덩이 + 꼬리 */
+.fry-art.shrimp b.body {
+  position: absolute;
+  left: 4%;
+  top: 26%;
+  width: 74%;
+  height: 54%;
+  border-radius: 55% 35% 60% 45%;
+  background: linear-gradient(135deg,#fff1c4 0 18%,#efa350 20% 43%,#f7d17a 45% 62%,#d66e37 64%);
+  box-shadow: inset calc(-8 * var(--upx)) calc(-6 * var(--upx)) rgba(128,52,27,.2);
+  transform: rotate(-12deg);
+}
+.fry-art.shrimp b.tail {
+  position: absolute;
+  right: 3%;
+  top: 8%;
+  width: 30%;
+  height: 34%;
+  border-radius: 50% 20% 50% 10%;
+  background: linear-gradient(140deg,#f2823a,#c8471c);
+  transform: rotate(-26deg);
+}
+
+/* 끌고 다니는 그림 — 커서를 따라다니는 동안만 body 에 붙습니다 */
+.fry-drag-ghost {
+  position: fixed;
+  z-index: 60;
+  translate: -50% -50%;
+  pointer-events: none;
+  filter: drop-shadow(0 calc(8 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.5));
+  transition: none;
+}
+.fry-drag-ghost.returning { transition: left .22s ease, top .22s ease; }
+.fry-drag-ghost .fry-art-asset { width: 100%; height: auto; }
+
+/* ── 오른쪽 : 진행도 카드 + 완성 망 ─────────────────────────── */
+/* 진행도 카드는 높이가 정해져 있고(공용 --mg-prog-h), 망 패널이 남는 자리를 다 씁니다. */
+.fry-side { height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr); gap: var(--mg-col-gap); }
+.fry-progress-value {
+  margin: 0;
+  color: var(--gold-bright);
+  text-align: center;
+  font-size: calc(52 * var(--upx));
+  font-weight: 900;
+  line-height: 1.05;
+}
+.fry-progress-value b { color: #f2a03c; }
+
+/* 제목 한 줄 + 남는 자리를 다 쓰는 망. `align-content:stretch` 만으로는
+   제목 줄까지 같이 늘어나 망이 절반만 차지합니다. */
+.fry-rack-panel { grid-template-rows: auto minmax(0,1fr); align-content: stretch; }
+.fry-rack {
+  position: relative;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.fry-rack-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 에셋이 없을 때 쓰는 임시 망 — 쇠테 + 격자 철망 */
+.fry-rack-shape {
+  position: absolute;
+  inset: 0;
+  border: calc(6 * var(--upx)) solid #6d675f;
+  border-radius: calc(12 * var(--upx));
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(16 * var(--upx)), rgba(140,133,122,.55) calc(16 * var(--upx)) calc(19 * var(--upx))),
+    repeating-linear-gradient(0deg, transparent 0 calc(16 * var(--upx)), rgba(140,133,122,.45) calc(16 * var(--upx)) calc(19 * var(--upx))),
+    #1a120c;
+  box-shadow: inset 0 0 calc(18 * var(--upx)) rgba(0,0,0,.6);
+}
+.fry-rack.has-fry-asset .fry-rack-shape { display: none; }
+.fry-rack.drop-hover { box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,214,130,.7); border-radius: calc(12 * var(--upx)); }
+
+@keyframes fry-oil-bubble { 0%{transform:scale(.4);opacity:0} 35%{opacity:.95} 100%{transform:scale(1.35);opacity:0} }
+@keyframes fry-ready-halo { from{opacity:.45;transform:scale(.94)} to{opacity:1;transform:scale(1.06)} }
+@keyframes fry-piece-in { from{transform:translate(-50%,-50%) rotate(var(--rot)) scale(.7);opacity:.2} to{transform:translate(-50%,-50%) rotate(var(--rot)) scale(1);opacity:1} }
+@keyframes e6-result-in { to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+
+@media (prefers-reduced-motion:reduce) {
+  .oil-bubble,.oil-drop,.oil-tap-one .fryer-basket,.oil-tap-two .fryer-basket,.e6-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}

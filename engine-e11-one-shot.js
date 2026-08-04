@@ -18,7 +18,8 @@
      재료 카드를 끌면 **한 조각씩** 딸려 나오고, 접시 안이라면 놓은 그 자리에
      그대로 얹힙니다(정해진 자리가 없습니다). 카드에는 남은 개수가 표시되고
      0 이 되면 꺼집니다. 정해진 개수를 다 얹으면 완성입니다.
-     · 접시 밖으로 놓으면 접시 가장자리 안쪽으로 당겨 붙습니다.
+     · 접시 밖으로 놓으면 접시 가장자리 쪽으로 당겨 붙습니다. 조각 한쪽이
+       테두리에 걸치는 것까지는 그대로 둡니다(FREE_PLATE_RADIUS 설명 참고).
      · 조각 그림·크기는 pieceArt / pieceAsset / pieceWidth 로 정합니다.
 
    [♻️ 지금 쓰는 곳이 없는 것] drop · pour 연출
@@ -50,18 +51,19 @@
      pieceTilt   눕히는 각도를 하나로 못박습니다. 안 적으면 놓을 때마다
                  FREE_PLATE_TILTS 를 돌려 써서 각도가 조금씩 달라집니다. */
 const ONE_SHOT_PIECES=Object.freeze({
-  /* pieceWidth 는 '참고 모양' 그림에서 두부 한 조각이 접시 가로의 21% 인 것을
-     그대로 옮긴 값입니다. 김치는 낱개 그림이 한 조각이 아니라 서너 가닥 뭉치라
-     한 단계 큽니다. 둘을 키우면 11조각이 접시를 넘칩니다.
+  /* pieceWidth 는 접시 가로폭 대비 조각 크기(%)입니다. 김치는 낱개 그림이
+     한 조각이 아니라 서너 가닥 뭉치라 두부보다 한 단계 큽니다.
+     열두 조각이 접시를 넉넉히 덮도록 '참고 모양' 그림의 두부 한 조각(21%)보다
+     크게 잡았습니다 — 서로 겹치는 것은 담음새라 문제가 없습니다.
 
      ⚠️ 두부는 pieceTilt:0 으로 각도를 고정합니다. 납품 그림이 비스듬히 내려다본
         입체 덩이라, 돌리면 그림 안의 원근(윗면이 보이는 방향)과 어긋나 조각마다
         다른 방향에서 본 두부처럼 보입니다. 김치는 뭉쳐 놓은 가닥이라 돌려도
         그런 어긋남이 없어 그대로 둡니다. */
   tofu:{label:"썬 두부",art:"tofuSlices",asset:"osTofuSlices",slot:"plate-left",
-        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:21,pieceTilt:0},
+        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:25,pieceTilt:0},
   friedKimchi:{label:"볶은 김치",art:"friedKimchi",asset:"osFriedKimchi",slot:"plate-right",
-        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:22}
+        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:26}
 });
 
 // 그릇. asset 은 빈 그릇, doneAsset 은 오른쪽 '참고 모양'에 쓰는 완성 그림입니다.
@@ -81,11 +83,17 @@ const ONE_SHOT_ART_PARTS=Object.freeze({tofuSlices:5,friedKimchi:4,tofuPiece:1,k
 
 /* ---- 자유 플레이팅 좌표 규격 --------------------------------
    x · y 는 접시 칸(.os-drop) 왼쪽 위를 0, 오른쪽 아래를 100 으로 본 값입니다.
-   접시는 칸을 꽉 채우는 타원이라 반지름은 50 인데, 조각이 접시 밖으로
-   삐져나오지 않게 아래 반지름 안쪽으로만 놓이게 잡아 둡니다.
-   (대각선 자리가 가장 빠듯해서 36 · 34 로 잡았습니다 — 더 키우면 접시
-    귀퉁이에 놓은 조각이 접시 밖으로 삐져나옵니다) */
-const FREE_PLATE_RADIUS=Object.freeze({x:36,y:34});
+   접시는 칸을 꽉 채우는 타원이라 반지름이 50 이고, 이 값은 **조각 한가운데가
+   갈 수 있는 가장 바깥**입니다.
+
+   조각을 통째로 접시 안에 가두지 않습니다 — 가장자리에 놓으면 한쪽이 접시
+   테두리에 살짝 걸치는 것이 실제 담음새에 가깝습니다. 대신 한가운데는 늘
+   접시 위라, 조각이 접시에서 떨어져 나가 보이지는 않습니다.
+   42 · 40 은 가장 바깥에 놓았을 때 조각의 5분의 1(대각선은 4분의 1 남짓)이
+   테두리에 걸치는 값입니다. 50 에 가까워질수록 반쯤 접시 밖으로 나가
+   떨어진 것처럼 보이고, 35 아래로 내리면 아예 안 걸칩니다.
+   (tools/e11-tofu-plating-visual-smoke.html?edge=1 의 over 값으로 잽니다) */
+const FREE_PLATE_RADIUS=Object.freeze({x:42,y:40});
 
 // 조각이 눕는 각도. 놓은 순서대로 돌려 쓰기만 하고 난수는 쓰지 않습니다
 // (다시 그려도 각도가 바뀌지 않아야 합니다).
@@ -98,9 +106,9 @@ const FREE_PLATE_SAMPLE=Object.freeze([
   // 두부 여섯 자리의 rot 이 전부 0 인 것은 pieceTilt:0 과 맞춘 것입니다
   {id:"tofu",x:24,y:30,rot:0},{id:"tofu",x:16,y:50,rot:0},{id:"tofu",x:25,y:71,rot:0},
   {id:"tofu",x:76,y:30,rot:0},{id:"tofu",x:84,y:51,rot:0},{id:"tofu",x:75,y:71,rot:0},
-  {id:"friedKimchi",x:44,y:35,rot:-10},{id:"friedKimchi",x:58,y:38,rot:8},
-  {id:"friedKimchi",x:50,y:52,rot:-4},{id:"friedKimchi",x:41,y:66,rot:14},
-  {id:"friedKimchi",x:60,y:65,rot:-9}
+  {id:"friedKimchi",x:44,y:33,rot:-10},{id:"friedKimchi",x:58,y:36,rot:8},
+  {id:"friedKimchi",x:42,y:50,rot:-4},{id:"friedKimchi",x:58,y:52,rot:14},
+  {id:"friedKimchi",x:44,y:68,rot:-9},{id:"friedKimchi",x:58,y:70,rot:6}
 ]);
 
 /* ---- 공용 화면 틀 ------------------------------------------ */
@@ -488,15 +496,15 @@ function finishOneShotAfter(m,data,delay){
 /* ============================================================
    1. 두부김치 플레이팅 (밤 조리)
 
-   썬 두부 6조각 + 볶은 김치 5조각을 접시에 옮기면 끝나는 연출용
+   썬 두부 6조각 + 볶은 김치 6조각을 접시에 옮기면 끝나는 연출용
    게임이라 실패가 없습니다. 제한시간도 세지 않습니다(timerRuns:false).
 
    재료 카드를 끌면 조각이 하나씩 딸려 나오고, 접시 안 어디에 놓든
-   그 자리에 그대로 얹힙니다. 11조각을 다 담으면 완성입니다.
+   그 자리에 그대로 얹힙니다. 12조각을 다 담으면 완성입니다.
    (담음새는 플레이어 마음대로라 자리에 따른 점수는 없습니다)
    ============================================================ */
 
-const PLATE_KIMCHI_STOCK=Object.freeze({tofu:6,friedKimchi:5});
+const PLATE_KIMCHI_STOCK=Object.freeze({tofu:6,friedKimchi:6});
 
 registerMiniEngine("plateKimchi",{
   timerRuns(){return false;},

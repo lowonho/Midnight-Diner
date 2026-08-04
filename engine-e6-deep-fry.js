@@ -3,41 +3,60 @@
 /* ============================================================
    E6 튀기기 — 밤 조리 "fry"
 
-   두 단계입니다.
-     1) 익힘 포인터가 초록 GOOD(18%) 안의 금색 PERFECT(7%)에 왔을 때 Space 로 건집니다.
-     2) 바스켓을 올린 뒤 Space 를 빠르게 두 번(탁탁) 눌러 기름을 텁니다.
-        각 Space 입력 순간 바스켓이 좌우로 한 번씩 즉시 움직입니다.
-        두 번째 입력이 0.55초를 넘기면 처음부터 다시.
+   [플레이 방식]
+   3열 화면 전체가 하나의 조리대입니다. 하단 공용 띠(.mg-strip)는 쓰지 않습니다.
+     왼쪽   튀김옷을 입힌 **아직 안 튀긴 재료** 5개
+     가운데 탑뷰 기름 냄비
+     오른쪽 진행도 카드 + 완성 튀김을 올릴 **망(그릇)**
 
-   1)에서 시간이 다 되면 실패가 아니라 6초를 다시 주고 재도전시킵니다.
-   기름 터는 동안(2단계)에는 제한시간이 흐르지 않습니다. → timerRuns 참고
+     1) 왼쪽 재료를 끌어다 기름 냄비에 넣습니다. (한 번에 최대 3개)
+     2) 냄비 안에서 시간이 흐르며 3단계로 익습니다.
+          설익음  under   0 ~ 3.4초
+          잘 익음 cooked  3.4 ~ 7.6초   ← 이때 건져야 합니다
+          탐      burnt   7.6초 ~
+     3) 냄비 안의 튀김을 끌어다 오른쪽 망에 옮기면 그 순간의 익힘 상태로
+        완성됩니다. 5개를 다 옮기면 끝납니다.
 
-   fryerStyle 이 없는 구형 분기는 지금 아무도 호출하지 않지만
-   그대로 두었습니다. (1단계는 옮기기만 하고 지우지 않습니다)
+   제한시간은 없습니다(timerRuns:false). 압박은 "타기 전에 건져라" 쪽에만
+   있습니다. 탄 튀김도 망에 올라가므로 막히는 상황이 생기지 않습니다.
+   점수는 망에 올린 5개의 상태 평균입니다 — 전부 잘 익었으면 PERFECT.
 
-   [화면 구성] 레퍼런스와 같은 3열입니다. 규칙은 css/minigames.css 아래쪽
-   "E6 튀기기" 구역에 몰아두었습니다.
-     [재료 카드]   [튀김기 + 온도 바]   [진행도 카드 · 조작 카드]
-   공용 프레임(ui-mini-frame.js / css/minigame-frame.css)은 건드리지 않습니다.
-   이 화면이 떠 있는 동안에만 .mini-content 의 가운데 열 제한을 풀고,
-   오른쪽 카드와 겹치는 공용 타이머 카드(#miniTimer)를 숨깁니다.
-   남은 시간은 진행도 카드 안의 얇은 바(#fryTimeBar)가 대신 보여줍니다.
+   [감자튀김] 원래는 망에 담아 튀기지만, 구현상 감자채 뭉치 하나를 집게로
+   집어 넣는 연출로 그립니다. 냄비에 들어가는 것은 감자뿐입니다.
 
-   [에셋] 아래 FRY_ASSET_PATHS 경로에 파일을 넣으면 CSS 임시 도형 대신
-   자동으로 그림이 쓰입니다. 없으면 지금처럼 CSS 도형으로 그립니다.
+   [마우스 포인터] 이 화면에서는 나중에 집게 모양 커서 에셋을 씌울 예정입니다.
+   지금은 손가락(pointer) 커서 그대로 둡니다 — 에셋이 들어오면
+   css/minigames.css 의 `.fry-screen` 커서 한 줄만 바꾸면 됩니다.
+
+   [화면 규격] 3열 격자·카드 껍데기는 css/minigame-parts.css 공용 규격이고,
+   이 게임 고유의 모양은 css/minigames.css 의 "E6 튀기기" 구역에 있습니다.
+   하단 띠를 안 쓰므로 3열이 세로 613.2 를 전부 씁니다
+   (좌 패널 A1-613 · 우 아래 패널 A2-460 — 공용 규격 참고).
 
    쓰는 곳: 새우튀김 튀기기 · 감자튀김 튀기기 (game-data.js 의 game:"fry")
    ============================================================ */
 
 /* ---- 선택 에셋 ----------------------------------------------
-   낮 준비(day-prep-minigames.js)의 방식과 같습니다. 파일이 없으면
-   로딩 실패를 무시하고 CSS 도형으로 대체하므로 지금 그대로 돌아갑니다. */
+   낮 준비(day-prep-minigames.js)와 같은 방식입니다. 파일이 없으면 로딩 실패를
+   무시하고 CSS 임시 도형으로 대체하므로, 지금 이대로도 돌아갑니다.
+
+   ⚠️ 익힘 3단계 그림(under/cooked/burnt)이 아직 없어서, 그때는 '기름에 들어가기
+      직전' 그림 한 장(rawAsset)에 CSS 필터를 걸어 노릇 → 탄 색을 냅니다.
+      3단계 그림이 들어오면 필터를 안 걸고 그림 그대로 씁니다(.tinted 참고). */
 const FRY_ASSET_PATHS = Object.freeze({
-  fryerBody: "assets/night/fry/fryer-body.png",          // 튀김기 통
-  friesBasket: "assets/night/fry/fries-basket.png",      // 감자튀김이 담긴 바스켓 한 장
-  shrimpBasket: "assets/night/fry/shrimp-basket.png",    // 새우튀김이 담긴 바스켓 한 장
-  friesIngredient: "assets/night/fry/fries-ingredient.png",   // 재료 카드 그림
-  shrimpIngredient: "assets/night/fry/shrimp-ingredient.png"
+  // 새우 : 빵가루까지 다 입혀 기름에 들어가기 직전 (E2 납품 에셋을 그대로 씁니다)
+  shrimpRaw:    "assets/minigame/E2/shrimp/food_shrimp_breadcrumb_full.webp",
+  shrimpUnder:  "assets/minigame/E6/food_shrimp_fry_undercooked.webp",
+  shrimpCooked: "assets/minigame/E6/food_shrimp_fry_cooked.webp",
+  shrimpBurnt:  "assets/minigame/E6/food_shrimp_fry_burnt.webp",
+  // 감자 : 집게로 집어 넣는 감자채 뭉치 한 덩이
+  friesRaw:     "assets/minigame/E6/food_fries_clump_raw.webp",
+  friesUnder:   "assets/minigame/E6/food_fries_clump_undercooked.webp",
+  friesCooked:  "assets/minigame/E6/food_fries_clump_cooked.webp",
+  friesBurnt:   "assets/minigame/E6/food_fries_clump_burnt.webp",
+  // 집기 : 탑뷰 기름 냄비 · 완성 튀김을 올리는 망
+  pot:          "assets/minigame/E6/fix_fry_oil_pot_topview.webp",
+  rack:         "assets/minigame/E6/fix_fry_drain_rack.webp"
 });
 const fryAssets = {};
 Object.entries(FRY_ASSET_PATHS).forEach(([key, src]) => {
@@ -45,288 +64,514 @@ Object.entries(FRY_ASSET_PATHS).forEach(([key, src]) => {
   image.onload = () => { fryAssets[key] = src; };
   image.src = src;
 });
+function fryAsset(key) { return key && fryAssets[key] || ""; }
+
+/* 익힘 색을 입힐 때 쓰는 --art 값(url(...))을 만듭니다.
+
+   ⚠️ **경로를 반드시 절대 경로로 바꿔야 합니다.** 커스텀 속성 안의 url() 은
+      값을 적은 곳이 아니라 **그 변수를 실제로 쓰는 스타일시트** 기준으로 풀립니다.
+      여기서 쓰는 곳이 css/minigames.css 라, 상대 경로를 그대로 넘기면
+      css/assets/... 를 찾다 실패해 색이 통째로 안 입혀집니다(조용히 실패합니다).
+   ⚠️ 홑따옴표입니다. style="" 안에 들어가는 값이라 겹따옴표는 속성을 끊습니다. */
+function fryArtUrl(src) {
+  return `url('${new URL(src, document.baseURI).href}')`;
+}
 function fryAssetMarkup(key, className, alt = "") {
-  if (!fryAssets[key]) return "";
-  return `<img class="fry-asset ${className}" src="${fryAssets[key]}" alt="${alt}" draggable="false" />`;
+  const src = fryAsset(key);
+  return src ? `<img class="${className}" src="${src}" alt="${alt}" draggable="false" />` : "";
 }
 
-const FRY_CONFIG=Object.freeze({
-  shrimp:Object.freeze({speed:.23,itemCount:5,goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,burnStart:.9,tapWindow:.55}),
-  fries:Object.freeze({speed:.26,itemCount:36,goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,burnStart:.9,tapWindow:.55})
+/* ---- 익힘 시간표 --------------------------------------------
+   냄비에 들어간 뒤 흐른 시간(초)으로만 판정합니다. 건질 수 있는 구간이
+   4.2초라, 3개를 동시에 넣어도 차례로 건질 수 있습니다. */
+const FRY_COOK = Object.freeze({
+  underUntil:  3.4,   // 여기까지 설익음
+  cookedUntil: 7.6,   // 여기까지 잘 익음 → 넘으면 탐
+  potLimit:    3,     // 기름 냄비에 한 번에 들어갈 수 있는 개수
+  finishDelay: 900    // 마지막 한 개를 올린 뒤 결과 연출 시간(ms)
 });
 
-function fryVisualStage(marker){
-  if(marker<.25)return "raw";
-  if(marker<.5)return "setting";
-  if(marker<.7)return "golden";
-  if(marker<.9)return "ready";
-  return "over";
+// 익힘 상태별 점수. 망에 올린 5개의 평균이 이 미니게임의 점수입니다.
+const FRY_STAGE_SCORE = Object.freeze({ under: 62, cooked: 100, burnt: 40 });
+const FRY_STAGE_LABEL = Object.freeze({ under: "설익은", cooked: "잘 익은", burnt: "탄" });
+
+const FRY_DISHES = Object.freeze({
+  shrimp: Object.freeze({
+    key: "shrimp", label: "새우튀김", pieceLabel: "새우튀김", count: 5,
+    potWidth: 34, rackWidth: 46,
+    rawAsset: "shrimpRaw",
+    stateAssets: Object.freeze({ under: "shrimpUnder", cooked: "shrimpCooked", burnt: "shrimpBurnt" })
+  }),
+  fries: Object.freeze({
+    key: "fries", label: "감자튀김", pieceLabel: "감자채 뭉치", count: 5,
+    potWidth: 30, rackWidth: 42,
+    rawAsset: "friesRaw",
+    stateAssets: Object.freeze({ under: "friesUnder", cooked: "friesCooked", burnt: "friesBurnt" })
+  })
+});
+
+/* 냄비 안에서 조각 한가운데가 갈 수 있는 가장 바깥(냄비 칸 한가운데 기준 %).
+   기름 원이 칸의 거의 전부라 반지름이 50 인데, 조각이 쇠테에 걸치지 않게
+   24 로 묶습니다. (E11 의 FREE_PLATE_RADIUS 와 같은 방식)
+     24 + 조각 반지름(34% 짜리 그림의 대각선 절반 ≒ 23) = 47  <  50
+   tools/e6-deep-fry-visual-smoke.html 의 reach 값으로 잽니다 — 1.0 이 냄비 테두리입니다. */
+const FRY_POT_RADIUS = 24;
+
+// 좌표 없이(스페이스·클릭) 넣을 때 쓰는 냄비 안 기본 자리. 컨셉 이미지의 배치입니다.
+const FRY_POT_SEATS = Object.freeze([
+  { x: 37, y: 37 }, { x: 63, y: 50 }, { x: 41, y: 70 }
+]);
+// 조각이 눕는 각도. 난수를 쓰지 않아 다시 그려도 각도가 그대로입니다.
+const FRY_TILTS = Object.freeze([-14, 8, -5, 16, -9, 4, 12, -17]);
+
+/* 오른쪽 망 위 다섯 자리. 위에서부터 차례로 채웁니다.
+   좌우로 엇갈리게 놓습니다 — 한 줄로 세우면 조각이 망 폭(226)에 맞춰
+   작아져서 왼쪽 재료보다 초라해 보입니다. */
+const FRY_RACK_SEATS = Object.freeze([
+  { x: 34, y: 14, rot: -6 }, { x: 66, y: 32, rot: 5 }, { x: 33, y: 50, rot: -3 },
+  { x: 67, y: 68, rot: 7 }, { x: 36, y: 86, rot: -5 }
+]);
+
+/* ---- 판정 --------------------------------------------------- */
+
+function fryStageAt(t) {
+  if (t < FRY_COOK.underUntil) return "under";
+  if (t < FRY_COOK.cookedUntil) return "cooked";
+  return "burnt";
 }
 
-function fryTimingGrade(marker,config){
-  if(marker>=config.perfectStart&&marker<=config.perfectEnd)return "perfect";
-  if(marker>=config.goodStart&&marker<=config.goodEnd)return "good";
-  return "miss";
+// 그림 색을 익힘에 따라 바꾸는 0~1 값. 잘 익은 구간 끝에서 1 이 되고 그 뒤로 더 탑니다.
+function fryCookRatio(t) {
+  return clamp(t / FRY_COOK.cookedUntil, 0, 1.6);
 }
 
-function fryTimingScore(marker,config){
-  const grade=fryTimingGrade(marker,config),distance=Math.abs(marker-config.perfectCenter);
-  if(grade==="perfect")return Math.round(clamp(100-distance/(config.perfectEnd-config.perfectCenter)*4,96,100));
-  if(grade==="good")return Math.round(clamp(92-distance*130,78,92));
-  return 25;
+function fryScore(data) {
+  if (!data.done.length) return 0;
+  const total = data.done.reduce((sum, piece) => sum + (FRY_STAGE_SCORE[piece.stage] || 0), 0);
+  return Math.round(clamp(total / data.done.length, 25, 100));
 }
 
-function fryCompletionGrade(data){return data.liftGrade==="perfect"&&!(data.drainErrors||0)&&!(data.fryErrors||0)?"perfect":"good";}
-
-function updateFryVisual(data){
-  const scene=dom.miniContent.querySelector(".fry-scene");if(!scene)return;
-  const stage=fryVisualStage(data.marker);
-  scene.style.setProperty("--fry-progress",data.marker.toFixed(3));
-  scene.classList.remove("fry-raw","fry-setting","fry-golden","fry-ready","fry-over");
-  scene.classList.add(`fry-${stage}`);
+function fryCompletionGrade(data) {
+  return data.done.length && data.done.every(piece => piece.stage === "cooked") ? "perfect" : "good";
 }
+
+function fryData(m = state.mini) {
+  return m && m.data && m.data.fryerStyle ? m.data : null;
+}
+
+function fryDish(data) { return FRY_DISHES[data.fryerStyle]; }
+
+/* ---- 엔진 등록 ---------------------------------------------- */
 
 registerMiniEngine("fry", {
-  setup(m, { set, dish }) {
-    const fryerStyle = dish?.id === "shrimpTempura" ? "shrimp" : dish?.id === "fries" ? "fries" : null;
-    const config=fryerStyle?FRY_CONFIG[fryerStyle]:null;
-    const itemName = fryerStyle === "shrimp" ? "새우튀김" : fryerStyle === "fries" ? "감자튀김" : "튀김";
-    set(
-      fryerStyle ? `${itemName} 튀기기` : "튀김기 건지기",
-      fryerStyle ? "녹색 구간에서 건진 후 스페이스바를 두 번 눌러 기름을 털어주세요!" : "색이 황금빛 구간에 들어왔을 때 바스켓을 들어 올리세요.",
-      fryerStyle ? 12 : 9
-    );
-    m.data = fryerStyle
-      // totalTime 은 진행도 카드의 남은 시간 바가 쓰는 기준값입니다(set 이 난이도 보정을 끝낸 뒤 값).
-      ? { marker: 0, dir: 1, speed: config.speed, fryerStyle, phase: "frying", liftScore: 0, liftGrade:"miss", oilTaps: 0, oilTapWindow: 0, drainErrors:0, fryErrors:0, totalTime: m.time }
-      : { marker: 0, dir: 1, speed: .34 };
-    if(fryerStyle)audio.loop?.("deep_fry",m,.68);
-    if (fryerStyle) renderFryer();
-    else {
-      dom.miniContent.innerHTML = `<div class="progress-track"><i class="progress-zone" style="left:62%;width:25%"></i><i class="progress-perfect" style="left:70%;width:8%"></i><i id="miniMarker" class="progress-marker"></i></div><div class="cut-count">연한색 → 황금빛 → 탄색</div><button class="mini-action" id="miniAction" type="button">바스켓 들기</button>`;
-      dom.miniContent.querySelector("#miniAction").addEventListener("click", miniAction);
-    }
-  },
+  // 제한시간이 없습니다 — 타는 것 자체가 시간 압박입니다.
+  timerRuns() { return false; },
 
-  // 기름을 터는 동안에는 제한시간이 흐르지 않습니다.
-  timerRuns(m) {
-    return !(m.data.fryerStyle && m.data.phase !== "frying");
+  setup(m, { set, dish }) {
+    // 이 게임을 쓰는 요리는 새우튀김·감자튀김 둘뿐입니다. 그 밖은 새우 규격으로 둡니다.
+    const fryerStyle = dish?.id === "fries" ? "fries" : "shrimp";
+    const config = FRY_DISHES[fryerStyle];
+    set(`${config.label} 튀기기`, "알맞게 익었을 때 집게로 건져주세요!", 30);
+    m.data = {
+      fryerStyle,
+      raw: config.count,   // 왼쪽에 남은, 아직 안 튀긴 재료 수
+      pot: [],             // 기름 냄비 안 {id,t,stage,x,y,rot}
+      done: [],            // 망 위 {id,stage,rot}
+      nextId: 1,
+      selected: null,      // {type:"raw"} | {type:"piece",id}
+      finishing: false,
+      completionGrade: null
+    };
+    clearFryPointer();
+    audio.loop?.("deep_fry", m, .68);
+    renderFry();
   },
 
   update(m, dt) {
-    if (!m.data.fryerStyle) {
-      advanceBounceMarker(m, dt);
-      return;
-    }
-    if (m.data.phase === "frying") {
-      // 음식은 다시 덜 익은 상태로 돌아가지 않으므로 포인터도 한 방향으로만 진행합니다.
-      m.data.marker=Math.min(1,m.data.marker+m.data.speed*dt);
-      const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left=`${m.data.marker*100}%`;
-      updateFryVisual(m.data);
-      // 진행도 카드 안 남은 시간 바. 다시 그리지 않고 폭만 바꿉니다.
-      const timeBar = dom.miniContent.querySelector("#fryTimeBar");
-      if (timeBar) timeBar.style.width = `${fryTimePercent(m)}%`;
-      return;
-    }
-    // 탁 한 번만 누르고 멈춘 경우: 설정된 짧은 시간 안에 두 번째가 없으면 처음부터
-    if (m.data.phase === "draining" && m.data.oilTaps === 1) {
-      m.data.oilTapWindow -= dt;
-      if (m.data.oilTapWindow <= 0) {
-        m.data.oilTaps = 0; m.data.oilTapWindow = 0; m.data.drainErrors=(m.data.drainErrors||0)+1;
-        dom.miniFeedback.textContent = "두 번의 간격이 길었어요. 다시 탁탁 눌러주세요."; audio.bad(); renderFryer();
+    const data = fryData(m);
+    if (!data || data.finishing) return;
+    data.pot.forEach(piece => {
+      piece.t += dt;
+      const stage = fryStageAt(piece.t);
+      const changed = stage !== piece.stage;
+      piece.stage = stage;
+      const element = dom.miniContent.querySelector(`[data-fry-piece="${piece.id}"]`);
+      if (element) {
+        element.style.setProperty("--cook", fryCookRatio(piece.t).toFixed(3));
+        if (changed) element.dataset.stage = stage;
       }
-    }
+      if (!changed) return;
+      if (stage === "cooked") dom.miniFeedback.textContent = "노릇하게 익었어요! 집게로 건져 완성 그릇에 옮겨주세요.";
+      if (stage === "burnt") { dom.miniFeedback.textContent = "타고 있어요! 얼른 건져주세요."; audio.bad?.(); }
+    });
   },
 
+  // Space / ACTION 버튼 : 마우스 없이도 진행할 수 있는 길입니다.
+  //   건질 게 있으면 가장 오래 익은 것부터 건지고, 없으면 재료를 하나 넣습니다.
   action(m) {
-    if (m.data.fryerStyle) { fryerAction(m); return; }
-    finishMini(markerScore(m, .74));
-  },
-
-  // 튀기는 중 Space 를 꾹 누르고 있으면 연타로 처리되지 않게 막습니다.
-  key(m, k, e) {
-    return e?.code === "Space" && e.repeat && !!m.data.fryerStyle;
-  },
-
-  // 온도를 놓쳐도 실패가 아니라 6초를 더 줍니다.
-  timeout(m) {
-    if (m.data.fryerStyle) {
-      m.time = 6; m.data.totalTime = 6; m.data.marker = 0; m.data.dir = 1; m.data.fryErrors=(m.data.fryErrors||0)+1;
-      const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left="0%";updateFryVisual(m.data);
-      dom.miniFeedback.textContent = "적정 온도를 놓쳤어요. 다시 황금빛 구간을 맞춰주세요."; audio.bad(); return;
+    const data = fryData(m);
+    if (!data || m.complete || data.finishing) return;
+    const ready = data.pot.filter(piece => piece.stage !== "under").sort((a, b) => b.t - a.t)[0]
+      || data.pot.slice().sort((a, b) => b.t - a.t)[0];
+    if (ready && (ready.stage !== "under" || !data.raw || data.pot.length >= FRY_COOK.potLimit)) {
+      liftFryPiece(ready.id);
+      return;
     }
-    finishMini(m.score || 35);
+    dropFryPiece();
+  },
+
+  // 꾹 누르고 있을 때 연타로 들어가지 않게 막습니다.
+  key(m, k, e) {
+    return e?.code === "Space" && e.repeat;
   }
 });
 
-// 남은 시간 바의 폭(%). 온도를 놓쳐 시간이 다시 늘어나면 기준값도 같이 바뀝니다.
-function fryTimePercent(m) {
-  const total = m.data.totalTime || m.time || 1;
-  return clamp(m.time / total * 100, 0, 100);
-}
+/* ---- 화면 -------------------------------------------------- */
 
-/* ---- 왼쪽 재료 카드 -----------------------------------------
-   에셋이 없을 때 쓰는 임시 그림입니다. 감자튀김은 흩어진 감자채,
-   새우튀김은 새우 두 마리를 CSS 도형으로 쌓습니다. */
-function fryIngredientArt(fryerStyle, itemName) {
-  const asset = fryAssetMarkup(fryerStyle === "fries" ? "friesIngredient" : "shrimpIngredient", "fry-ing-asset", itemName);
-  if (asset) return `<span class="fry-ing-art has-fry-asset">${asset}</span>`;
-  const pieces = fryerStyle === "fries"
-    ? Array.from({ length: 11 }, (_, i) => `<i class="fry-ing-stick" style="--fx:${6 + (i * 29) % 74}%;--fy:${12 + (i * 41) % 62}%;--ft:${-58 + (i * 37) % 116}deg"></i>`).join("")
-    : Array.from({ length: 2 }, (_, i) => `<i class="frying-shrimp shrimp-${i + 1}"></i>`).join("");
-  return `<span class="fry-ing-art ${fryerStyle}" aria-hidden="true">${pieces}</span>`;
-}
-
-/* ---- 가운데 튀김기 ------------------------------------------
-   바스켓은 phase 에 따라 기름 속(frying) / 위(basket-raised) 로 움직입니다.
-   첫 번째와 두 번째 탁은 각각 oil-tap-one / oil-tap-two 연출을 즉시 재생합니다. */
-function fryerSceneMarkup(data, raised, finishing, itemName) {
-  const isFries = data.fryerStyle === "fries",config=FRY_CONFIG[data.fryerStyle];
-  const bodyAsset = fryAssetMarkup("fryerBody", "fryer-vat-asset", "튀김기");
-  const basketAsset = fryAssetMarkup(isFries ? "friesBasket" : "shrimpBasket", "fryer-basket-asset", `${itemName} 바스켓`);
-  const items = isFries
-    ? Array.from({ length:config.itemCount }, (_, i) => `<i class="frying-fry fry-${i + 1}"></i>`).join("")
-    : Array.from({ length:config.itemCount }, (_, i) => `<i class="frying-shrimp shrimp-${i + 1}"></i>`).join("");
-  const shakeClass=data.oilTaps===1&&data.phase==="draining"?"oil-tap-one":data.phase==="finishing"?"oil-tap-two":"";
-  const dropCount=raised?(data.oilTaps===1?7:data.oilTaps>=2?5:3):0;
-  return `
-    <div class="fry-scene fryer-${data.fryerStyle} ${raised ? "basket-raised" : "frying"} ${shakeClass} fry-${fryVisualStage(data.marker)}" style="--fry-progress:${data.marker}" aria-label="튀김기 안에서 익고 있는 ${itemName}">
-      <i class="fryer-handle left" aria-hidden="true"></i>
-      <i class="fryer-handle right" aria-hidden="true"></i>
-      <div class="fryer-vat ${bodyAsset ? "has-fry-asset" : ""}">
-        ${bodyAsset}
-        <i class="fryer-oil"></i>
-        ${Array.from({ length: 9 }, (_, i) => `<i class="oil-bubble bubble-${i + 1}"></i>`).join("")}
-      </div>
-      <div class="fryer-basket ${basketAsset ? "has-fry-asset" : ""}">
-        <i class="basket-handle" aria-hidden="true"></i>
-        ${basketAsset || `<div class="fried-items ${data.fryerStyle}">${items}</div>`}
-      </div>
-      ${Array.from({ length:dropCount }, (_, i) => `<i class="oil-drop drop-${i + 1}"></i>`).join("")}
-    </div>`;
-}
-
-// 가운데 아래 익힘 바. 초록 GOOD 안쪽에 작은 금색 PERFECT가 놓입니다.
-function fryTempBarMarkup(config) {
-  return `
-    <div class="fry-temp-bar" aria-label="튀김 익힘 정도">
-      <div class="fry-temp-track">
-        <i class="fry-temp-zone" style="left:${config.goodStart*100}%;width:${((config.goodEnd-config.goodStart)*100).toFixed(1)}%"></i>
-        <i class="fry-temp-perfect" style="left:${config.perfectStart*100}%;width:${((config.perfectEnd-config.perfectStart)*100).toFixed(1)}%"></i>
-        <i class="fry-temp-burn" style="left:${config.burnStart*100}%"></i>
-        <i class="fry-temp-ticks"></i>
-      </div>
-      <i id="miniMarker" class="fry-temp-marker"></i>
-    </div>`;
-}
-
-// 기름 터는 단계에서 온도 바 자리에 들어가는 SPACE 두 번 안내.
-function fryTapRowMarkup(taps) {
-  return `
-    <div class="oil-tap-guide" aria-label="스페이스 입력 ${taps}회">
-      <kbd class="${taps >= 1 ? "done" : "active"}">SPACE</kbd><b>탁</b>
-      <kbd class="${taps >= 2 ? "done" : taps === 1 ? "active" : ""}">SPACE</kbd><b>탁</b>
-    </div>`;
-}
-
-/* ---- 오른쪽 조작 카드 ---------------------------------------
-   1) 온도 구간 그림 + "황금빛 구간에서 건지기"
-   2) Space › Space + "기름 털기 n / 2"
-   두 줄 다 눌러서도 진행할 수 있게 버튼입니다(마우스 전용 플레이 대비). */
-function fryControlCardMarkup(data, raised, finishing, itemName, taps, config) {
-  return `
-    <div class="fry-card fry-control-card">
-      <h3 class="fry-card-title">조작</h3>
-      <div class="fry-step ${raised ? "done" : "current"}">
-        <span class="fry-step-no">1</span>
-        <button class="fry-step-body" type="button" data-fry-action aria-label="${itemName} 건지기" ${raised ? "disabled" : ""}>
-          <span class="fry-gauge">
-            <span class="fry-gauge-track">
-              <i class="fry-temp-zone" style="left:${config.goodStart*100}%;width:${((config.goodEnd-config.goodStart)*100).toFixed(1)}%"></i>
-              <i class="fry-temp-perfect" style="left:${config.perfectStart*100}%;width:${((config.perfectEnd-config.perfectStart)*100).toFixed(1)}%"></i>
-              <i class="fry-temp-burn" style="left:${config.burnStart*100}%"></i>
-            </span>
-            <i class="fry-gauge-marker" style="left:${config.perfectCenter*100}%"></i>
-          </span>
-        </button>
-      </div>
-      <p class="fry-step-desc">황금빛 구간에서 건지기</p>
-      <i class="fry-step-split" aria-hidden="true"></i>
-      <div class="fry-step ${raised && !finishing ? "current" : finishing ? "done" : ""}">
-        <span class="fry-step-no">2</span>
-        <button class="fry-step-body" type="button" data-fry-action aria-label="기름 털기" ${raised && !finishing ? "" : "disabled"}>
-          <kbd class="fry-key ${taps >= 1 ? "done" : raised ? "active" : ""}">Space</kbd>
-          <i class="fry-key-link" aria-hidden="true">›</i>
-          <kbd class="fry-key ${taps >= 2 ? "done" : taps === 1 ? "active" : ""}">Space</kbd>
-        </button>
-      </div>
-      <p class="fry-step-desc">기름 털기 ${taps} / 2</p>
-    </div>`;
-}
-
-function renderFryer() {
-  const m = state.mini; if (!m || m.engine !== "fry" || !m.data.fryerStyle) return;
-  const data = m.data, config=FRY_CONFIG[data.fryerStyle], itemName = data.fryerStyle === "fries" ? "감자튀김" : "새우튀김";
-  const raised = data.phase !== "frying", finishing = data.phase === "finishing", taps = Math.min(data.oilTaps, 2);
-  if (raised) { dom.miniDescription.textContent = `스페이스바를 빠르게 두 번 탁탁 눌러 ${itemName}의 기름을 털어내세요.`; dom.miniTimer.textContent = `탁탁 ${taps} / 2`; }
+function renderFry() {
+  const m = state.mini, data = fryData(m);
+  if (!data) return;
+  const dish = fryDish(data);
+  const done = data.done.length;
+  // TIP 줄 오른쪽 조작 안내 칩(공용). 글자만 넘기고 모양은 CSS 가 그립니다.
+  setMiniTipHint("드래그 : 넣기 · 건지기");
   dom.miniContent.innerHTML = `
-    <div class="fry-screen">
+    <div class="fry-screen fryer-${data.fryerStyle}">
       <aside class="fry-col">
         <div class="fry-card fry-ing-panel">
           <h3 class="fry-card-title starred">재료</h3>
-          <div class="fry-ing-list">
-            <div class="fry-ing-card">
-              <div class="fry-ing-figure">${fryIngredientArt(data.fryerStyle, itemName)}</div>
-              <p class="fry-ing-name">${itemName} <b>× 1</b></p>
-            </div>
+          <div class="fry-raw-list">${Array.from({ length: data.raw }, (_, index) => `
+            <button type="button" class="fry-raw-item ${data.selected?.type === "raw" && index === 0 ? "selected" : ""}"
+                    data-fry-source="raw" draggable="false" ${data.finishing ? "disabled" : ""}
+                    aria-label="${dish.pieceLabel} 기름에 넣기">
+              ${fryPieceArt(dish, null).html}
+            </button>`).join("")}
           </div>
         </div>
       </aside>
 
       <div class="fry-work-area">
-        ${fryerSceneMarkup(data, raised, finishing, itemName)}
-        ${finishing?`<strong class="e6-result ${data.completionGrade||"good"} show" id="e6Result">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
+        ${fryPotMarkup(data, dish)}
+        ${data.finishing ? `<strong class="e6-result ${data.completionGrade || "good"} show" id="e6Result">${data.completionGrade === "perfect" ? "PERFECT" : "GOOD"}</strong>` : ""}
       </div>
 
       <aside class="fry-side">
         <div class="fry-card fry-progress-card">
           <h3 class="fry-card-title">진행도</h3>
-          <p class="fry-progress-value"><b>${finishing ? 1 : 0}</b> / 1</p>
-          <div class="fry-time-bar" aria-hidden="true"><i id="fryTimeBar" style="width:${fryTimePercent(m)}%"></i></div>
+          <p class="fry-progress-value"><b>${done}</b> / ${dish.count}</p>
         </div>
-        ${fryControlCardMarkup(data, raised, finishing, itemName, taps, config)}
+        <div class="fry-card fry-rack-panel">
+          <h3 class="fry-card-title starred">완성</h3>
+          ${fryRackMarkup(data, dish)}
+        </div>
       </aside>
-      <!-- 하단 공용 띠 : 온도 바(또는 기름 털기 안내). 원래 가운데 열 안에만 있어
-           824.2 였는데, 3열을 관통해 1360.2 를 씁니다. -->
-      <div class="mg-strip">${data.phase === "frying" ? fryTempBarMarkup(config) : fryTapRowMarkup(taps)}</div>
     </div>`;
-  const marker = dom.miniContent.querySelector("#miniMarker"); if (marker) marker.style.left = `${data.marker * 100}%`;
-  dom.miniContent.querySelectorAll("[data-fry-action]").forEach(button => button.addEventListener("click", miniAction));
+  bindFryEvents();
 }
 
-function fryerAction(m) {
-  const data = m.data, config=FRY_CONFIG[data.fryerStyle], itemName = data.fryerStyle === "fries" ? "감자튀김" : "새우튀김";
-  if (data.phase === "frying") {
-    const timingGrade=fryTimingGrade(data.marker,config);
-    if (timingGrade==="miss") {
-      data.fryErrors=(data.fryErrors||0)+1;
-      const wasLate=data.marker>config.goodEnd;
-      if(wasLate){data.marker=0;const marker=dom.miniContent.querySelector("#miniMarker");if(marker)marker.style.left="0%";updateFryVisual(data);}
-      dom.miniFeedback.textContent=wasLate?"건지는 타이밍을 놓쳤어요. 새 배치를 다시 튀겨주세요.":"조금 더 노릇해질 때까지 기다려주세요.";audio.bad();return;
-    }
-    data.liftGrade=timingGrade;data.liftScore=fryTimingScore(data.marker,config);
-    data.phase = "draining"; data.oilTaps = 0; data.oilTapWindow = 0;
-    audio.stop?.("deep_fry",m);audio.play?.("fry_basket_lift",{owner:m});
-    dom.miniFeedback.textContent = `${itemName}이 잘 익었어요! 이제 스페이스바를 두 번 탁탁!`; renderFryer(); return;
+/* 가운데 탑뷰 기름 냄비. 에셋이 없으면 CSS 도형(테두리 + 기름 원 + 기포)입니다. */
+function fryPotMarkup(data, dish) {
+  const asset = fryAssetMarkup("pot", "fry-pot-asset", "기름 냄비");
+  return `
+    <div class="fry-pot ${asset ? "has-fry-asset" : ""} ${data.pot.length >= FRY_COOK.potLimit ? "full" : ""}"
+         data-fry-drop="pot" role="button" tabindex="0" aria-label="기름 냄비">
+      ${asset || `<i class="fry-pot-shape" aria-hidden="true"></i>`}
+      <span class="fry-oil-bubbles" aria-hidden="true">${"<i></i>".repeat(10)}</span>
+      <span class="fry-pot-food">${data.pot.map((piece, index) => fryPieceMarkup(dish, piece, {
+        width: dish.potWidth, z: index + 2, source: "piece"
+      })).join("")}</span>
+    </div>`;
+}
+
+/* 오른쪽 완성 망. 위에서부터 다섯 자리를 차례로 채웁니다. */
+function fryRackMarkup(data, dish) {
+  const asset = fryAssetMarkup("rack", "fry-rack-asset", "완성 그릇");
+  return `
+    <div class="fry-rack ${asset ? "has-fry-asset" : ""}" data-fry-drop="rack" role="button" tabindex="0" aria-label="완성 그릇">
+      ${asset || `<i class="fry-rack-shape" aria-hidden="true"></i>`}
+      <span class="fry-rack-food">${data.done.map((piece, index) => {
+        const seat = FRY_RACK_SEATS[index] || FRY_RACK_SEATS[FRY_RACK_SEATS.length - 1];
+        return fryPieceMarkup(dish, { ...piece, x: seat.x, y: seat.y, rot: seat.rot }, {
+          width: dish.rackWidth, z: index + 2, done: true, last: index === data.done.length - 1
+        });
+      }).join("")}</span>
+    </div>`;
+}
+
+/* 튀김 한 조각. 냄비 안 · 망 위 · 끌고 다니는 그림이 전부 이 함수 한 벌입니다.
+     --cook  익힘 0~1.6 (노릇해지는 정도)
+     --art   익힘 색을 덧입힐 때 쓰는 그림 경로 (아래 fryPieceArt 설명 참고)
+     data-stage  under | cooked | burnt */
+function fryPieceMarkup(dish, piece, { width, z = 2, source = null, done = false, last = false } = {}) {
+  const stage = piece.stage || "under";
+  const art = fryPieceArt(dish, stage);
+  const drag = source ? `data-fry-source="${source}" data-fry-piece="${piece.id}"` : "";
+  return `<span class="fry-piece ${art.tint} ${done ? "on-rack" : ""} ${last ? "just-added" : ""}"
+      ${drag} data-stage="${stage}"
+      style="--x:${piece.x}%;--y:${piece.y}%;--w:${width}%;--rot:${piece.rot || 0}deg;--cook:${fryCookRatio(piece.t || 0).toFixed(3)};${art.artVar}z-index:${z}">
+      ${art.html}
+    </span>`;
+}
+
+/* 재료 그림 한 덩이와, 그 위에 익힘 색을 어떻게 입힐지.
+     tint ""            익힘 3단계 그림이 있는 경우 — 그림 그대로 씁니다
+          "tinted"      '기름에 들어가기 직전' 그림 한 장 + 색 덧입히기
+          "shape-tinted" 그림이 없어 CSS 임시 도형 + 필터
+
+   ⚠️ **원본에 필터만 거는 방법으로는 튀김이 갈색이 안 됩니다.** 새우 그림의
+      빵가루가 거의 흰색이라 sepia 를 걸어도 흰색 그대로고(sepia 는 밝기를 지킵니다),
+      brightness 로 어둡게 하면 갈색이 아니라 잿빛이 됩니다. 그래서 같은 그림을
+      한 장 더 깔고 그 사본만 갈색으로 만들어 --cook 만큼 겹칩니다 — 규칙은
+      css/minigames.css 의 `.fry-piece.tinted::after` 입니다. */
+function fryPieceArt(dish, stage) {
+  const stateSrc = fryAsset(stage && dish.stateAssets[stage]);
+  const src = stateSrc || fryAsset(dish.rawAsset);
+  if (src) return {
+    tint: stateSrc ? "" : "tinted",
+    artVar: stateSrc ? "" : `--art:${fryArtUrl(src)};`,
+    html: `<img class="fry-art-asset" src="${src}" alt="${dish.pieceLabel}" draggable="false" />`
+  };
+  return {
+    tint: "shape-tinted",
+    artVar: "",
+    html: dish.key === "fries" ? fryClumpShapeMarkup() : fryShrimpShapeMarkup()
+  };
+}
+
+// 감자채 뭉치 임시 도형 — 가닥을 엇갈리게 쌓습니다(컨셉 이미지의 뭉치 모양).
+function fryClumpShapeMarkup() {
+  const sticks = Array.from({ length: 13 }, (_, i) =>
+    `<b style="--fx:${8 + (i * 27) % 70}%;--fy:${14 + (i * 43) % 60}%;--ft:${-62 + (i * 39) % 124}deg"></b>`).join("");
+  return `<span class="fry-art clump" aria-hidden="true">${sticks}</span>`;
+}
+
+// 새우튀김 임시 도형 — 몸통 한 덩이 + 꼬리
+function fryShrimpShapeMarkup() {
+  return `<span class="fry-art shrimp" aria-hidden="true"><b class="body"></b><b class="tail"></b></span>`;
+}
+
+/* ---- 조작 : Pointer Events 드래그 · 클릭 · Space ------------
+   E11(단발 액션)과 같은 방식입니다. 마우스와 터치를 한 벌로 처리합니다. */
+
+let fryPointer = null;
+let suppressFryClick = false;
+
+function clearFryPointer() {
+  fryPointer?.ghost?.remove();
+  fryPointer = null;
+  document.querySelectorAll("[data-fry-drop].drop-hover").forEach(drop => drop.classList.remove("drop-hover"));
+}
+
+function fryDropAt(x, y) {
+  return document.elementFromPoint(x, y)?.closest("[data-fry-drop]") || null;
+}
+
+function moveFryPointer(event) {
+  const drag = fryPointer;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  const dx = event.clientX - drag.startX, dy = event.clientY - drag.startY;
+  if (!drag.dragging && Math.hypot(dx, dy) >= 5) {
+    drag.dragging = true;
+    drag.card.classList.add("dragging");
+    drag.ghost = document.createElement("span");
+    // 익힘 색까지 그대로 들고 나옵니다 — 집어 든 순간 튀김이 다시 하얘지면 안 됩니다
+    drag.ghost.className = `fry-drag-ghost ${drag.card.className.includes("tinted") ? "tinted" : ""}`;
+    drag.ghost.dataset.stage = drag.stage || "under";
+    drag.ghost.style.setProperty("--cook", drag.card.style.getPropertyValue("--cook") || 0);
+    const artUrl = drag.card.style.getPropertyValue("--art");
+    if (artUrl) drag.ghost.style.setProperty("--art", artUrl);
+    drag.ghost.innerHTML = drag.card.querySelector(".fry-art-asset,.fry-art")?.outerHTML || "";
+    // 끌고 다니는 크기를 냄비에 놓였을 때와 같게 맞춥니다 — 놓는 순간 크기가
+    // 달라지면 "여기 놓는다" 가 눈으로 어긋납니다.
+    const potWidth = dom.miniContent.querySelector(".fry-pot")?.getBoundingClientRect().width;
+    const dish = fryDish(fryData() || {});
+    if (potWidth && dish) drag.ghost.style.width = `${potWidth * dish.potWidth / 100}px`;
+    document.body.appendChild(drag.ghost);
   }
-  if (data.phase !== "draining") return;
-  data.oilTaps++;
-  audio.play?.("fry_basket_shake",{owner:m});
-  if (data.oilTaps === 1) { data.oilTapWindow = config.tapWindow; dom.miniFeedback.textContent = "탁! 한 번 더 빠르게!"; renderFryer(); return; }
-  data.phase = "finishing"; data.oilTapWindow = 0; data.completionGrade=fryCompletionGrade(data); dom.miniFeedback.textContent = `탁탁! ${itemName}의 기름이 시원하게 털렸어요.`; renderFryer();
+  if (!drag.dragging) return;
+  event.preventDefault();
+  drag.ghost.style.left = `${event.clientX}px`;
+  drag.ghost.style.top = `${event.clientY}px`;
+  document.querySelectorAll("[data-fry-drop].drop-hover").forEach(drop => drop.classList.remove("drop-hover"));
+  fryDropAt(event.clientX, event.clientY)?.classList.add("drop-hover");
+}
+
+function returnFryGhost(drag) {
+  if (!drag.ghost) return;
+  const rect = drag.card.getBoundingClientRect();
+  drag.ghost.classList.add("returning");
+  drag.ghost.style.left = `${rect.left + rect.width / 2}px`;
+  drag.ghost.style.top = `${rect.top + rect.height / 2}px`;
+  setTimeout(() => drag.ghost?.remove(), 240);
+}
+
+function finishFryPointer(event, cancelled = false) {
+  const drag = fryPointer;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  fryPointer = null;
+  drag.card.classList.remove("dragging");
+  document.querySelectorAll("[data-fry-drop].drop-hover").forEach(drop => drop.classList.remove("drop-hover"));
+  if (!drag.dragging) return;
+  suppressFryClick = true;
+  setTimeout(() => { suppressFryClick = false; }, 0);
+  const drop = cancelled ? null : fryDropAt(event.clientX, event.clientY);
+  const spot = drop ? { drop, clientX: event.clientX, clientY: event.clientY, drag: true } : null;
+  const handled = spot && (drag.source === "raw"
+    ? dropFryPiece(spot)
+    : drop.dataset.fryDrop === "rack" ? liftFryPiece(drag.id, spot) : moveFryPieceInPot(drag.id, spot));
+  if (handled) drag.ghost?.remove();
+  else returnFryGhost(drag);
+}
+
+function bindFryEvents() {
+  const scene = dom.miniContent.querySelector(".fry-screen");
+  if (!scene) return;
+  scene.querySelectorAll("[data-fry-source]").forEach(card => {
+    const source = card.dataset.frySource, id = Number(card.dataset.fryPiece) || null;
+    card.addEventListener("pointerdown", event => {
+      if (fryPointer || card.disabled || event.pointerType === "mouse" && event.button !== 0) return;
+      event.preventDefault();
+      selectFryItem(source, id);
+      fryPointer = { pointerId: event.pointerId, source, id, card, stage: card.dataset.stage,
+                     startX: event.clientX, startY: event.clientY, dragging: false, ghost: null };
+      card.setPointerCapture?.(event.pointerId);
+    });
+    card.addEventListener("pointermove", moveFryPointer);
+    card.addEventListener("pointerup", event => finishFryPointer(event));
+    card.addEventListener("pointercancel", event => finishFryPointer(event, true));
+    card.addEventListener("lostpointercapture", event => finishFryPointer(event, true));
+    card.addEventListener("click", event => {
+      if (suppressFryClick) { event.preventDefault(); return; }
+      selectFryItem(source, id);
+    });
+    card.addEventListener("dragstart", event => event.preventDefault());
+  });
+
+  // 집어 든 것을 클릭/엔터로 놓는 길 (마우스 드래그 없이도 진행할 수 있게)
+  scene.querySelectorAll("[data-fry-drop]").forEach(drop => {
+    drop.addEventListener("click", event => dropFryOnTarget(drop, { drop, clientX: event.clientX, clientY: event.clientY }));
+    drop.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      dropFryOnTarget(drop, null);
+    });
+  });
+}
+
+// 재료·튀김 집기. 다시 그리지 않고 선택 표시만 바꿉니다.
+function selectFryItem(source, id) {
+  const m = state.mini, data = fryData(m);
+  if (!data || m.complete || data.finishing) return;
+  if (source === "raw" && !data.raw) return;
+  if (source === "piece" && !data.pot.some(piece => piece.id === id)) return;
+  data.selected = source === "raw" ? { type: "raw" } : { type: "piece", id };
+  const dish = fryDish(data);
+  dom.miniContent.querySelectorAll("[data-fry-source]").forEach(card => card.classList.toggle("selected",
+    card.dataset.frySource === source && (source === "raw" || Number(card.dataset.fryPiece) === id)));
+  dom.miniFeedback.textContent = source === "raw"
+    ? `${dish.pieceLabel}을(를) 집었습니다. 기름 냄비에 넣어주세요.`
+    : "집게로 집었습니다. 완성 그릇에 옮겨주세요.";
+}
+
+// 클릭으로 놓기 — 어디를 눌렀는지에 따라 넣기/건지기가 갈립니다.
+function dropFryOnTarget(drop, spot) {
+  const data = fryData();
+  if (!data || !data.selected) return;
+  const target = drop.dataset.fryDrop;
+  if (data.selected.type === "raw") {
+    if (target === "pot") dropFryPiece(spot);
+    else dom.miniFeedback.textContent = "먼저 기름 냄비에 넣어 튀겨주세요!";
+    return;
+  }
+  if (target === "rack") liftFryPiece(data.selected.id, spot);
+  else moveFryPieceInPot(data.selected.id, spot);
+}
+
+/* ---- 냄비 안 자리 계산 --------------------------------------
+   마우스를 뗀 자리를 냄비 칸 기준 0~100 좌표로 바꿉니다.
+   기름 원 밖이면 가장 가까운 안쪽으로 당겨 붙입니다. */
+function fryPotPoint(spot) {
+  const rect = spot?.drop?.getBoundingClientRect();
+  if (!rect?.width || !rect?.height) return null;
+  let x = (spot.clientX - rect.left) / rect.width * 100;
+  let y = (spot.clientY - rect.top) / rect.height * 100;
+  const dx = (x - 50) / FRY_POT_RADIUS, dy = (y - 50) / FRY_POT_RADIUS, dist = Math.hypot(dx, dy);
+  if (dist > 1) { x = 50 + dx / dist * FRY_POT_RADIUS; y = 50 + dy / dist * FRY_POT_RADIUS; }
+  return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+}
+
+// 좌표 없이 넣을 때 쓰는 자리. 지금 비어 있는 기본 자리를 순서대로 씁니다.
+function fryFreeSeat(data) {
+  const used = data.pot.map(piece => piece.seat);
+  const free = FRY_POT_SEATS.findIndex((_, index) => !used.includes(index));
+  return free < 0 ? 0 : free;
+}
+
+/* ---- 1) 재료를 기름에 넣기 ---------------------------------- */
+function dropFryPiece(spot = null) {
+  const m = state.mini, data = fryData(m);
+  if (!data || m.complete || data.finishing) return false;
+  const dish = fryDish(data);
+  if (!data.raw) { dom.miniFeedback.textContent = "튀길 재료를 다 넣었어요. 냄비 안 튀김을 건져주세요."; return false; }
+  if (data.pot.length >= FRY_COOK.potLimit) {
+    dom.miniFeedback.textContent = `기름 냄비에는 ${FRY_COOK.potLimit}개까지만 들어갑니다. 먼저 건져주세요!`;
+    audio.bad?.();
+    return false;
+  }
+  const seat = fryFreeSeat(data), point = fryPotPoint(spot) || FRY_POT_SEATS[seat];
+  data.pot.push({
+    id: data.nextId++, t: 0, stage: "under", seat,
+    x: point.x, y: point.y, rot: FRY_TILTS[(data.nextId + data.pot.length) % FRY_TILTS.length]
+  });
+  data.raw--;
+  data.selected = null;
+  // 기름에 넣는 순간의 쇳소리 + 치익. 원래 바스켓을 털 때 쓰던 소리를 그대로 씁니다
+  // (SFX_PRODUCTION_CHECKLIST 의 sfx_fry_basket_shake)
+  audio.play?.("fry_basket_shake", { owner: m });
+  dom.miniFeedback.textContent = `${dish.pieceLabel}을(를) 기름에 넣었습니다. 노릇해지면 건져주세요!`;
+  renderFry();
+  return true;
+}
+
+/* ---- 2) 기름 안에서 자리 옮기기 ------------------------------ */
+function moveFryPieceInPot(id, spot) {
+  const data = fryData();
+  const piece = data?.pot.find(item => item.id === id);
+  if (!piece) return false;
+  const point = fryPotPoint(spot);
+  if (!point) return false;
+  piece.x = point.x; piece.y = point.y;
+  data.selected = null;
+  renderFry();
+  return true;
+}
+
+/* ---- 3) 튀김을 건져 망에 올리기 ------------------------------ */
+function liftFryPiece(id, spot = null) {
+  const m = state.mini, data = fryData(m);
+  if (!data || m.complete || data.finishing) return false;
+  const index = data.pot.findIndex(piece => piece.id === id);
+  if (index < 0) return false;
+  const dish = fryDish(data), piece = data.pot[index];
+  data.pot.splice(index, 1);
+  data.done.push({ id: piece.id, stage: piece.stage, t: piece.t });
+  data.selected = null;
+  audio.play?.("fry_basket_lift", { owner: m });
+  const allDone = data.done.length >= dish.count;
+  if (allDone) {
+    data.finishing = true;
+    data.completionGrade = fryCompletionGrade(data);
+  }
+  dom.miniFeedback.textContent = allDone
+    ? `${dish.label} ${dish.count}개 완성!`
+    : `${FRY_STAGE_LABEL[piece.stage]} ${dish.pieceLabel} 완성 그릇으로!  (${data.done.length} / ${dish.count})`;
+  if (piece.stage !== "cooked") audio.bad?.();
+  renderFry();
+  if (!allDone) return true;
+  audio.stop?.("deep_fry", m);
   setTimeout(() => {
     if (state.mini !== m || m.complete) return;
-    const grade=data.completionGrade||fryCompletionGrade(data),score=grade==="perfect"?100:Math.round(clamp(data.liftScore-(data.drainErrors||0)*5-(data.fryErrors||0)*4,70,95));
-    finishMini(score);
-  }, 380);
+    finishMini(fryScore(data));
+  }, FRY_COOK.finishDelay);
+  return true;
 }

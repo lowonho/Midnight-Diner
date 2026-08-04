@@ -1,0 +1,259 @@
+/* ============================================================
+   E8 · 닭꼬치 꽂기 (engine-e8-order-place.js)
+   원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
+   ============================================================ */
+
+/* ── 닭꼬치 꽂기 (engine-e8) ────────────────────────────────
+   왼쪽 재료 · 가운데 꼬치 3개 · 오른쪽 완성 개수/참고 모양 3단 구성입니다.
+   재료 조각(.sk-piece)과 꼬챙이(.sk-rod)는 전부 임시 CSS 도형입니다.
+   assets/prep/skewer/ 에 그림을 넣으면 .has-asset 이 붙어 도형이 꺼지고
+   <img>(.sk-piece-asset / .sk-rod-asset)가 대신 보입니다.
+
+   [공용 프레임과의 관계]
+   css/minigame-frame.css 는 건드리지 않습니다. 아래 두 줄만 이 게임이
+   떠 있을 때 한정으로 공용 규칙을 덮어씁니다.
+     · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
+     · 공용 타이머 카드는 오른쪽 '완성 개수' 카드와 자리가 겹치므로 숨김
+       (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다) */
+
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
+.skewer-prep-scene {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+
+  /* 칸 한 개와 조각 그림 한 장의 크기. 좁은 화면 보정도 이 네 값만 덮어씁니다.
+     조각(120x105)이 칸(104x66)보다 큰 것은 그림 둘레의 투명 여백까지
+     포함한 값이기 때문입니다. 실제로 그려지는 고기·파는 칸 안에 들어옵니다.
+     칸을 촘촘히(간격 0) 쌓아 조각끼리 딱 붙게 만든 값이라, 셋 중 하나만
+     바꾸면 조각 사이에 다시 틈이 생깁니다.
+     ⚠️ 세로는 나무 쟁반 여백까지 빼고 남는 자리에 5칸 + 뾰족한 끝 + 손잡이가
+        모두 들어가야 합니다. 칸 높이를 키우려면 .sk-rack 아래 여백부터 보세요. */
+  --sk-slot-w:  calc(104 * var(--upx));
+  --sk-slot-h:  calc(66 * var(--upx));
+  --sk-piece-w: calc(120 * var(--upx));
+  --sk-piece-h: calc(105 * var(--upx));
+
+  /* 빈 칸(재료를 아직 안 꽂은 자리)의 점선 테두리 3종.
+     ⚠️ 이 색이 곧 "무엇을 꽂아야 하는가" 입니다. 꼬치마다 뽑은 정답 배치를
+        engine-e8 이 hint-chicken / hint-greenOnion 으로 칸마다 붙입니다.
+        --sk-dash-free 는 배치가 아직 없을 때만 쓰는 대비용입니다.
+     칸 크기(104x66)를 그대로 viewBox 로 쓰므로 점 길이가 칸에 비례해 늘어납니다.
+     ⚠️ border-style:dashed 로 그리지 않는 이유 :
+        점선의 점 길이를 브라우저가 "선 굵기"에서 알아서 정합니다. 굵기가
+        3 * --upx 라 창을 줄이면 1px 밑으로 내려가고, 그러면 점이 붙어서
+        실선처럼 보입니다. 여기 SVG 는 점 길이(11,8)가 칸 기준으로 고정이라
+        어떤 창 크기에서도 컨셉 이미지와 같은 점선이 나옵니다.
+     ⚠️ 사각형을 2 만큼 안쪽으로 넣어 둔 것은 칸을 간격 0 으로 붙여 쌓기
+        때문입니다. 이 여백이 없으면 위아래 점선이 한 줄로 붙어 버립니다. */
+  --sk-dash-free:    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%23fff4d6" fill-opacity=".05" stroke="%23fff4d6" stroke-opacity=".46" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+  --sk-dash-chicken: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%23e0805e" fill-opacity=".12" stroke="%23ee9d7e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+  --sk-dash-onion:   url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 66" preserveAspectRatio="none"><rect x="2" y="2" width="100" height="62" rx="9" fill="%2396c45a" fill-opacity=".14" stroke="%23b2d66e" stroke-opacity=".72" stroke-width="3" stroke-dasharray="11,8" stroke-linecap="round"/></svg>');
+}
+
+/* 좌우 세로 칸 */
+/* 간격은 원래 14 였습니다 → 공용 --mg-col-gap(12). 참고 모양 카드가 458.6 → 460.6 */
+.sk-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
+/* .sk-col-title · .sk-panel → css/minigame-parts.css */
+
+/* 재료 카드
+   좌 칸 통일 뒤로는 .sk-ing-list 가 남은 자리를 카드 2장에 똑같이 나눠 주므로,
+   그림 자리(.sk-ing-art)가 늘어난 만큼 받아 가고 이름 줄은 아래에 붙습니다.
+   조각은 전부 top/left 50% 기준이라 자리가 커져도 가운데를 지킵니다. */
+.sk-ing-card { display: grid; grid-template-rows: minmax(0,1fr) auto; gap: calc(6 * var(--upx)); cursor: grab; touch-action:none; }
+.sk-ing-card:active { cursor: grabbing; }
+.sk-ing-art { position: relative; min-height: calc(92 * var(--upx)); }
+.sk-ing-art .sk-piece { position: absolute; left: 50%; top: 50%; width: calc(52 * var(--upx)); height: calc(36 * var(--upx)); }
+.sk-ing-art .sk-piece:nth-child(1) { transform: translate(-92%,-80%) rotate(-8deg); }
+.sk-ing-art .sk-piece:nth-child(2) { transform: translate(-8%,-72%) rotate(7deg); }
+.sk-ing-art .sk-piece:nth-child(3) { transform: translate(-50%,-4%) rotate(-3deg); }
+.sk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(8 * var(--upx)); color: #f0dcb4; font-size: calc(22 * var(--upx)); font-weight: 800; }
+.sk-ing-name b { color: var(--gold-bright); font-size: calc(24 * var(--upx)); }
+/* 카드는 어느 쪽도 강조하거나 잠그지 않습니다. 무엇을 꽂을지는 꼬치 칸의
+   테두리 색만 알려 줍니다 — 카드까지 깜빡이면 색을 볼 이유가 없어집니다.
+   (예전 .required / .blocked 규칙을 이 이유로 걷어냈습니다) */
+
+/* 가운데 도마 */
+/* 꼬치 칸 수는 engine-e8 의 SKEWER_TOTAL 이 --sk-count 로 넘겨 줍니다.
+   숫자가 바뀌어도 한 줄에 그대로 나란히 놓입니다 (예전에는 3 이 여기 박혀 있었습니다) */
+.sk-board {
+  display: grid;
+  grid-template-columns: repeat(var(--sk-count,4),1fr);
+  gap: calc(8 * var(--upx));
+  padding: calc(16 * var(--upx)) calc(12 * var(--upx));
+  border: calc(6 * var(--upx)) solid #6d4527;
+  border-radius: calc(14 * var(--upx));
+  background: linear-gradient(#4d2e1a,#33200f);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+}
+/* 가운데 꼬치 · 왼쪽 진행 칩 · 오른쪽 규칙 문구 3단 구성입니다.
+   원래는 [칩 / 제목 / 꼬치 / 문구] 네 줄로 세로로 쌓았는데, 나무 쟁반이
+   깔리면서 위아래 자리가 줄어 칩과 문구가 쟁반 테두리에 붙어 보였습니다.
+   둘을 꼬치 양옆(좌우로 205 씩 남는 자리)으로 내보내 세로를 비웠습니다.
+
+   ⚠️ 마크업 순서(칩 → 제목 → 꼬치 → 문구)는 그대로 두고 여기서 자리만
+      지정합니다. engine-e8-order-place.js 를 건드리지 않으려는 것입니다. */
+.sk-single-board {
+  position: relative;
+  grid-template-columns: 1fr calc(300 * var(--upx)) 1fr;
+  grid-template-rows: auto minmax(0,1fr);
+  place-items: center;
+  gap: calc(5 * var(--upx)) calc(10 * var(--upx));
+  overflow: hidden;
+}
+/* 진행 칩(✓ 2 3)은 왼쪽에 세로로 세웁니다 */
+.sk-finished-strip { grid-column:1; grid-row:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:calc(8 * var(--upx)); }
+.sk-finished-strip span { display:grid; place-items:center; width:calc(27 * var(--upx)); height:calc(27 * var(--upx)); border:2px solid #6d4931; border-radius:50%; background:#21140c; color:#9c805c; font-size:calc(13 * var(--upx)); font-weight:900; }
+.sk-finished-strip span.active { border-color:#ffe08d; color:#ffe08d; box-shadow:0 0 calc(10 * var(--upx)) rgba(255,224,141,.35); }
+.sk-finished-strip span.done { border-color:#789b4f; background:#30431f; color:#d9efa5; }
+.sk-active-title,.sk-free-rule { margin:0; color:#d8bb8b; text-align:center; font-size:calc(18 * var(--upx)); font-weight:800; }
+/* 제목만 위에 가로로 걸칩니다. 위 여백 10 은 쟁반 테두리와 띄우는 자리입니다. */
+.sk-active-title { grid-column:1/-1; grid-row:1; padding-top:calc(10 * var(--upx)); color:var(--gold-bright); font-size:calc(22 * var(--upx)); }
+/* 규칙 문구는 오른쪽 칸에서 두어 줄로 접힙니다.
+   word-break:keep-all 이 없으면 "…순서는 자 / 유!" 처럼 낱말 한가운데가 끊깁니다.
+   오른쪽 마진 40 은 문구를 도마(쟁반) 테두리에서 안쪽으로 당기는 자리입니다
+   — 칸 가운데에 그냥 두면 나무 테두리에 너무 가깝게 붙어 보입니다. */
+.sk-free-rule { grid-column:3; grid-row:2; max-width:calc(180 * var(--upx)); margin-right:calc(40 * var(--upx)); line-height:1.5; word-break:keep-all; }
+.sk-free-rule b { color:#ffe08d; }
+/* 드래그해서 놓을 수 있는 자리. 여기 테두리(.order-drop-ready)가 곧 안내선이라
+   폭·높이를 꼬치보다 넉넉히 잡되, 위 '○번 꼬치' 글줄과 붙지 않게 띄웁니다.
+   (원래 430 x 칸 전체였는데 테두리가 글자에 닿아 보였습니다)
+   가로는 칸 전체(300)를 쓰면 꼬치(180)보다 너무 넓어 보여, 꼬치에 좌우
+   10 씩만 붙인 190 으로 잡습니다. 테두리는 outline-offset 5 만큼 더 벌어집니다. */
+.sk-active-rack { grid-column:2; grid-row:2; width:min(100%,calc(190 * var(--upx))); height:calc(100% - 22 * var(--upx)); min-height:0; display:grid; place-items:center; border-radius:calc(16 * var(--upx)); transition:filter .15s,outline .15s; }
+.sk-active-rack .sk-rack { width:calc(180 * var(--upx)); height:100%; min-height:calc(350 * var(--upx)); }
+.sk-single-board.complete .sk-active-rack { filter:brightness(1.15); }
+/* 5개를 다 꽂은 꼬치를 다음 꼬치로 넘어가기 전에 잠깐 보여줄 때 */
+.sk-single-board.holding .sk-active-rack { animation:sk-rack-done .5s cubic-bezier(.2,.85,.25,1); }
+@keyframes sk-rack-done { 40% { filter:brightness(1.28); transform:scale(1.035); } 100% { filter:brightness(1); transform:scale(1); } }
+
+/* 꼬치 하나.
+   아래 여백 78 은 마지막 조각 밑으로 남는 꼬챙이 길이 = 손잡이입니다.
+   위쪽(뾰족한 끝)에는 32 만 남으므로 아래가 확실히 길어 손잡이로 읽힙니다. */
+.sk-rack { position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(78 * var(--upx)); cursor: pointer; }
+.sk-rack.drop-hover { filter: brightness(1.12); }
+.sk-rack.reject { animation: coat-wrong .3s ease; }
+.sk-rack.done .sk-rod { filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,224,141,.55)); }
+/* 꼬챙이 : 위쪽 뾰족한 끝 + 아래 손잡이 */
+.sk-rod { position: absolute; z-index: 0; left: 50%; top: calc(24 * var(--upx)); bottom: 0; width: calc(12 * var(--upx)); border-radius: calc(6 * var(--upx)); background: linear-gradient(90deg,#8d5a2c,#e8bd7d 45%,#a86e35); transform: translateX(-50%); }
+.sk-rod::before { content: ""; position: absolute; left: 50%; top: calc(-24 * var(--upx)); width: 0; height: 0; border-left: calc(6 * var(--upx)) solid transparent; border-right: calc(6 * var(--upx)) solid transparent; border-bottom: calc(26 * var(--upx)) solid #e8bd7d; transform: translateX(-50%); }
+.sk-rod.has-asset { width: auto; background: none; }
+.sk-rod.has-asset::before { display: none; }
+.sk-rod-asset { height: 100%; }
+
+/* 슬롯 : 채워진 칸 / 비어 있는 칸(재료 색으로 힌트)
+   빈 칸 테두리는 위 --sk-dash-* SVG 점선입니다(사연은 그쪽 주석 참고).
+   칸 사이 간격은 0 입니다. 칸이 곧 조각의 간격이라, 간격을 주면 꽂힌 조각
+   사이가 그만큼 뜹니다. 대신 점선 사각형을 SVG 안에서 2 씩 들여 그립니다. */
+.sk-slots { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.sk-slot { display: grid; place-items: center; width: var(--sk-slot-w); height: var(--sk-slot-h); }
+.sk-slot.empty { border: 0; border-radius: calc(10 * var(--upx)); background: var(--sk-dash-free) center / 100% 100% no-repeat; }
+.sk-slot.empty.hint-greenOnion { background-image: var(--sk-dash-onion); }
+.sk-slot.empty.hint-chicken { background-image: var(--sk-dash-chicken); }
+/* 지금 꽂을 한 칸. 예전에는 여기서 노란 점선(--sk-dash-next)으로 갈아 끼웠는데,
+   이제 칸 색이 곧 꽂을 재료라 **색을 덮거나 바꾸면 안 됩니다.**
+   ⚠️ brightness 도 안 됩니다 — 연두(파)를 밝히면 누런빛으로 넘어가서 같은 파
+      칸인데도 위아래가 다른 색으로 보입니다. 색조를 안 건드리는 drop-shadow 로
+      점선 둘레에만 빛무리를 답니다(배경 그림의 알파를 따라갑니다).
+   ⚠️ box-shadow 는 칸이 투명해 네모 그림자가 통째로 떠 보이므로 안 씁니다.
+   ⚠️ 빛무리는 다른 곳(#ffe08d)과 달리 **흰빛**입니다. 금빛으로 두면 연두 점선에
+      노란 기가 덧씌워져 같은 파 칸인데 위아래 색이 달라 보입니다. */
+.sk-slot.next { filter: drop-shadow(0 0 calc(3 * var(--upx)) rgba(255,252,245,.55)); animation: sk-slot-next-glow 1.3s ease-in-out infinite; }
+
+/* 재료 조각 (임시 도형) */
+.sk-piece { position: relative; display: block; width: calc(84 * var(--upx)); height: calc(54 * var(--upx)); border: 2px solid #a85f4b; border-radius: calc(12 * var(--upx)); background: radial-gradient(circle at 32% 26%,#ffd6bd 0 11%,transparent 12%),linear-gradient(#f2ab90,#d17b63); box-shadow: inset 0 calc(-6 * var(--upx)) calc(8 * var(--upx)) rgba(120,55,38,.28),0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.32); }
+.sk-piece.greenOnion { width: calc(76 * var(--upx)); height: calc(42 * var(--upx)); border-color: #5d7c34; border-radius: calc(9 * var(--upx)); background: linear-gradient(#b0cf6f,#7ea046); }
+.sk-piece.greenOnion::after { content: ""; position: absolute; left: calc(9 * var(--upx)); top: 50%; width: calc(17 * var(--upx)); height: calc(17 * var(--upx)); border: 2px solid #7f9a4b; border-radius: 50%; background: #e8e5b6; transform: translateY(-50%); }
+.sk-piece.has-asset { border: 0; background: none; box-shadow: none; }
+.sk-piece.has-asset::after { display: none; }
+.sk-piece-asset { width: 100%; height: 100%; object-fit: contain; }
+.sk-piece.fresh { animation:sk-piece-insert .32s cubic-bezier(.2,.85,.25,1); }
+@keyframes sk-piece-insert { 0% { opacity:.35; transform:translateY(calc(-58 * var(--upx))) scale(1.12); } 72% { transform:translateY(calc(5 * var(--upx))) scale(.98); } 100% { opacity:1; transform:translateY(0) scale(1); } }
+
+/* 오른쪽 : 완성 개수 · 참고 모양 */
+.sk-count { text-align: center; }
+.sk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+/* `flex: 1` 이 없어 내용만큼(175.4)만 잡고 아래가 비었습니다.
+   E2(.fp-control) 처럼 남는 자리를 다 쓰게 맞췄습니다. */
+.sk-guide { flex: 1; display: flex; flex-direction: column; }
+/* 참고 모양 = 이번 꼬치의 정답 배치를 그대로 줄인 작은 꼬치 한 개입니다.
+   바깥 칸이 '참고 모양' 제목 아래 남는 자리를 다 받아 꼬치를 가운데 세웁니다.
+   ⚠️ flex:1 은 반드시 바깥 칸에만 겁니다. 꼬치 상자에 걸면 그 안의 꼬챙이
+      (위아래로 붙는 absolute)가 카드 높이만큼 늘어나 실오라기처럼 보입니다. */
+.sk-guide-figure { flex: 1; display: flex; align-items: center; justify-content: center; }
+/* 꼬챙이는 조각 묶음보다 위아래로 조금만 삐져나오게 둡니다 */
+.sk-guide-skewer { position: relative; display: flex; align-items: center; justify-content: center; padding: calc(22 * var(--upx)) 0 calc(26 * var(--upx)); }
+.sk-guide-skewer .sk-rod { top: calc(20 * var(--upx)); width: calc(9 * var(--upx)); }
+.sk-guide-skewer .sk-rod::before { top: calc(-20 * var(--upx)); border-left-width: calc(4.5 * var(--upx)); border-right-width: calc(4.5 * var(--upx)); border-bottom-width: calc(22 * var(--upx)); }
+.sk-guide-pieces { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--upx)); }
+.sk-piece.mini { width: calc(58 * var(--upx)); height: calc(36 * var(--upx)); border-radius: calc(8 * var(--upx)); }
+.sk-piece.mini.greenOnion { width: calc(52 * var(--upx)); height: calc(28 * var(--upx)); }
+.sk-piece.mini.greenOnion::after { left: calc(6 * var(--upx)); width: calc(11 * var(--upx)); height: calc(11 * var(--upx)); }
+
+/* ── 닭꼬치 에셋 자리 (assets/minigame/E8) ───────────────────
+   그림이 없을 때 쓰는 CSS 도형 크기는 위에 그대로 두고, 여기서는
+   .has-asset 이 붙었을 때의 자리만 덮어씁니다. 그래서 이 블록은
+   위 도형 규칙들보다 **뒤에** 있어야 합니다(같은 특이도라 순서로 갈립니다).
+
+   조각 그림 2장(닭·파)은 512x448 = 8:7 캔버스 한가운데에 그려져 있습니다.
+   두 장 모두 그림이 캔버스 가로의 81% 라, 상자를 8:7 로 주면 닭과 파의
+   크기 관계가 원본 그대로 유지됩니다. 칸보다 상자가 큰 것은 투명 여백까지
+   포함한 값이라 그림 자체는 칸 안에 들어옵니다.
+
+   ⚠️ 음수 마진이 꼭 필요합니다. 그리드의 `place-items:center` 는 아이템이
+      칸보다 **클 때** 가운데가 아니라 시작 모서리에 붙입니다(넘친 쪽을
+      잘라 먹지 않으려는 기본 동작). 그래서 조각이 칸 오른쪽·아래로만
+      8 / 19.5 씩 밀려 꼬챙이가 조각 왼쪽을 뚫고 지나가 보였습니다.
+      넘치는 만큼 마진으로 되돌려 놓으면 마진 상자가 딱 칸 크기가 되어
+      `center` 가 제대로 먹습니다. (transform 으로 옮기면 조각이 꽂힐 때의
+      .sk-piece.fresh 애니메이션과 부딪힙니다) */
+.sk-slot .sk-piece.has-asset {
+  width: var(--sk-piece-w);
+  height: var(--sk-piece-h);
+  margin: calc((var(--sk-slot-h) - var(--sk-piece-h)) / 2) calc((var(--sk-slot-w) - var(--sk-piece-w)) / 2);
+}
+/* 드래그 유령은 92x78 짜리 상자를 물려받습니다(.order-drag-ghost) */
+.order-drag-ghost .sk-piece.has-asset { width: 100%; height: 100%; }
+/* 좌 재료 카드 : 조각 3개를 흩뿌리는 대신 묶음 그림 한 장을 놓습니다.
+   .sample 은 화면에는 안 보이고 드래그 유령의 원본으로만 쓰입니다
+   (engine-e8-order-place.js 의 skewerIngredientArtMarkup 주석 참고). */
+.sk-ing-art.has-group { display: grid; place-items: center; }
+.sk-ing-art.has-group .sk-piece.sample { display: none; }
+.sk-ing-group-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 오른쪽 '참고 모양' 카드에 세로로 쌓이는 조각 5개.
+   상자는 조각 그림과 같은 8:7 이라 그림이 상자를 꽉 채웁니다. 그 상자에
+   그림 둘레의 투명 여백이 들어 있어 그냥 쌓으면 조각끼리 멀어 보이므로,
+   음수 마진으로 그 여백만큼 당겨 붙입니다(가운데 꼬치와 같은 방식). */
+.sk-guide-pieces .sk-piece.has-asset { width: calc(72 * var(--upx)); height: calc(63 * var(--upx)); margin: calc(-12 * var(--upx)) 0; }
+/* 꼬챙이 그림에는 위 뾰족한 끝이 이미 들어 있습니다.
+   CSS 삼각형을 얹으려고 비워 뒀던 위쪽 24 를 되돌려 그림을 온전히 보여줍니다. */
+.sk-rod.has-asset { top: 0; }
+
+/* 꼬치의 "지금 꽂을 칸" 은 테두리 색이 곧 정답이라 색을 못 건드립니다.
+   그래서 위 sk-next-pulse(테두리 색을 #fff2c4 로 물들입니다) 대신
+   빛무리 세기만 오갑니다. */
+@keyframes sk-slot-next-glow { 50% { filter:drop-shadow(0 0 calc(7 * var(--upx)) rgba(255,255,255,.9)); } }
+
+@media (max-width:600px) {
+  .sk-ing-art { height: calc(64 * var(--upx)); }
+  .sk-ing-art .sk-piece { width: calc(38 * var(--upx)); height: calc(26 * var(--upx)); }
+  /* 칸·조각은 큰 화면(104x66 / 120x105)과 같은 비율로 줄입니다.
+     --sk-dash-* 점선이 viewBox 104x66 을 늘려 쓰기 때문에 비율이 어긋나면
+     가로 점과 세로 점의 길이가 따로 놉니다. 조각을 칸 가운데로 되돌리는
+     음수 마진도 이 네 값에서 자동으로 계산됩니다. */
+  .skewer-prep-scene {
+    --sk-slot-w:  calc(80 * var(--upx));
+    --sk-slot-h:  calc(50.8 * var(--upx));
+    --sk-piece-w: calc(92 * var(--upx));
+    --sk-piece-h: calc(80.5 * var(--upx));
+  }
+  .sk-piece { width: calc(62 * var(--upx)); height: calc(40 * var(--upx)); }
+  .sk-piece.greenOnion { width: calc(56 * var(--upx)); height: calc(32 * var(--upx)); }
+  .sk-guide-pieces .sk-piece.has-asset { width: calc(58 * var(--upx)); height: calc(50.8 * var(--upx)); margin: calc(-10 * var(--upx)) 0; }
+  .sk-count strong { font-size: calc(42 * var(--upx)); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .sk-slot.next,.sk-piece.fresh { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
+}

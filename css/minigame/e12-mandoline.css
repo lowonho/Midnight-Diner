@@ -1,0 +1,438 @@
+/* ============================================================
+   E12 · 채칼 (engine-e12-grab-shake.js)
+   원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
+   
+   양배추 · 당근 · 감자. 바깥 3열 틀은 E2 튀김 준비의 .fp-scene 을 그대로 씁니다
+   → css/minigame/e2-fry-prep.css
+   ============================================================ */
+
+/* ── 채칼 (engine-e12) — 양배추 · 당근 · 감자 ────────────────
+   가운데 플레이 그림만 여기 있습니다. 바깥 3열 틀은 위 "튀김 준비"의
+   .fp-scene 을 그대로 씁니다. (공용 프레임은 건드리지 않습니다)
+
+   컨셉 이미지와 같은 한 장면입니다. 조각들이 서로 겹쳐 앉으므로
+   전부 플레이 칸(788.2 x 573.2) 안 **제자리에 하나씩** 놓습니다.
+   자리는 %, 크기는 .md-scene 의 --md-* 다섯 값이 정합니다.
+
+     쌓이는 순서   오른쪽 다리 · 채반 · 왼쪽 다리 · 채 더미 · 채칼 판 · 화살표
+                  ↑ 채반 뒤       ↑ 채반 앞
+
+     (도마는 이 안이 아니라 **칸 배경**입니다 — 아래 "나무 도마" 구역)
+     .md-legs.right   짧은 뒷다리 — 채반 **뒤**로 들어갑니다 (z 0)
+     .md-basket       둥근 채반 (z 1)
+     .md-legs.left    긴 앞다리 A 자 — 채반 **앞**을 가로지릅니다 (z 2)
+     .md-pile         채반 안에 쌓이는 채 (z 3)
+     .md-plate        채칼 판 + 칼날 + 재료 (z 4)
+     .md-hint         아래쪽 큰 양방향 화살표 (z 5)
+
+   ── 채칼 + 채반은 한 덩어리(--md-rig-*) ────────────────────
+   납품에 채칼·채반을 합쳐 놓은 그림(prop_mandoline_basket_empty)이
+   함께 왔습니다. 거기서 두 낱장의 배율과 자리를 픽셀로 역산했습니다
+   (알파 좌우 끝 맞춤, 평균 오차 2.5 / 4.1px).
+
+     합친 덩어리 1061.3 x 868.0 (비율 1.2226) 을 1 로 볼 때
+       채칼  좌 0.00%  상  0.00%  폭 93.32%  높이 89.16%
+       채반  좌 8.57%  상 35.02%  폭 91.43%  높이 64.98%
+
+   그 비율을 아래 --md-rig-w 하나에 걸었습니다. **덩어리 크기를 바꿀 때는
+   --md-rig-w 만 고치세요.** 채칼이나 채반 한쪽만 고치면 합본 모양이 깨집니다.
+
+   ⚠️ 재료(.md-ingredient)는 판 **안**에 있어야 합니다 — 판을 옮기면
+      재료도 따라가야 하고, md-slide-* 가 판 안쪽 좌표를 쓰기 때문입니다.
+      반대로 다리는 판 밖에 둡니다 (CSS 임시 판이 기울 때 같이 기울면 안 됩니다).
+
+   볶음우동 채칼과 감자튀김 채칼은 입력 방향만 다릅니다. 지금 쓰는
+   세 재료가 전부 .axis-x 라 장면은 하나뿐이고, .axis-y 는 화살표만
+   세워 놓습니다. (판·채반·다리는 축과 상관없이 같은 자리입니다)
+
+   ── 재료가 밀리는 방향 ────────────────────────────────────
+   판이 32.1도 기울어 있으므로 재료도 **가로가 아니라 그 대각선으로** 밀립니다.
+   → 는 판을 따라 오른쪽 아래로, ← 는 왼쪽 위로 갑니다.
+   26 만큼 밀 때 가로 22.0(=26·cos32.1) · 세로 13.8(=26·sin32.1) 입니다.
+   아래 --md-slide-x / --md-slide-y 가 그 값이고 md-slide-* 가 씁니다.
+
+   ── 그림이 없을 때 ────────────────────────────────────────
+   도마·채칼·채반·화살표·채 가닥·판 위 재료 모두 그림이 들어왔습니다.
+   그림이 빠지면 .has-asset 이 안 붙어 예전 CSS 임시 도형으로 되돌아갑니다.
+   판 그림에는 다리와 기울기가 함께 그려져 있어서, 그림이 있을 때는
+   CSS 다리·칼날·기울이기를 끕니다.
+   (감자만 아직 판 위 그림이 없어 임시 도형입니다) */
+.md-scene {
+  /* 채칼+채반 한 덩어리. 폭 585 면 덩어리 높이가 478.5 이고,
+     위 6 에서 시작해 채반 아래끝이 484.5 — 그 아래 화살표(61.9) 자리가 남습니다.
+     ⚠️ 585 는 예전 도마 그림(액자가 그려져 있어 아래 테두리가 칸 위쪽 기준
+        556)에 맞춘 값입니다. 지금 도마(fix_tempura_prep_board)는 액자가 없어
+        그 제한이 사라졌지만, 자리를 굳이 흔들지 않으려고 그대로 둡니다. */
+  --md-rig-w: calc(585 * var(--upx));
+  --md-rig-h: calc(var(--md-rig-w) / 1.2226);
+  --md-rig-l: calc(50% - var(--md-rig-w) / 2);
+  --md-rig-t: calc(6 * var(--upx));
+  /* 채칼만 채반보다 살짝 작게. 합본 그대로(1)면 오른쪽 뒷발이 채반 테두리
+     밖으로 조금 나옵니다. 왼쪽 위를 고정한 채 줄이므로 발이 안쪽으로 들어옵니다.
+     ⚠️ 더 줄이면 판이 채반 위에 떠 보입니다. */
+  --md-plate-fit: .955;
+  /* 위 합본 비율에서 그대로 나온 채반 자리·크기. 그림이 없을 때 CSS
+     임시 채반도 같은 상자를 씁니다 (자리가 어긋나지 않게). */
+  --md-basket-l: calc(var(--md-rig-l) + var(--md-rig-w) * .0857);
+  --md-basket-t: calc(var(--md-rig-t) + var(--md-rig-h) * .3502);
+  --md-basket-w: calc(var(--md-rig-w) * .9143);
+  --md-basket-h: calc(var(--md-rig-h) * .6498);
+  /* 판 위 재료 크기. 시안 그대로(1)면 재료가 채칼 난간 밖으로 나갑니다.
+     시안에서 잰 중심은 고정한 채 이 배율만큼 줄여 난간 안에 넣습니다.
+     ⚠️ 더 줄이면 재료가 판 위에서 헐렁해 보이고, 키우면 난간을 넘습니다. */
+  --md-ing-fit: .7;
+  /* 판이 기운 각과, 그 각으로 한 번 밀리는 거리 */
+  --md-slide-x: calc(22 * var(--upx));
+  --md-slide-y: calc(13.8 * var(--upx));
+  /* 그림이 없을 때 쓰는 CSS 임시 판 */
+  --md-deck-w: calc(520 * var(--upx));
+  --md-deck-h: calc(166 * var(--upx));
+  --md-tilt: 17deg;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 채반 : 둥글게 짠 소쿠리 */
+.md-basket {
+  position: absolute;
+  z-index: 1;
+  left: var(--md-basket-l);
+  top: var(--md-basket-t);
+  width: var(--md-basket-w);
+  height: var(--md-basket-h);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, #bd8850 0 3.4deg, #7b4f28 3.4deg 6.8deg);
+  box-shadow: 0 calc(13 * var(--upx)) calc(26 * var(--upx)) rgba(0,0,0,.55), inset 0 0 calc(22 * var(--upx)) rgba(0,0,0,.4);
+}
+/* 안쪽 바닥. 테두리보다 눈에 띄게 어두워야 그릇처럼 파여 보입니다 —
+   같은 밝기로 두면 채반이 아니라 둥근 깔개로 보입니다. */
+.md-basket::before {
+  content: "";
+  position: absolute;
+  inset: calc(38 * var(--upx));
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(0,0,0,.22) 0 2.6deg, transparent 2.6deg 5.6deg),
+    radial-gradient(ellipse at 50% 32%, #5e3d20 0 42%, #2c1a0b 100%);
+  box-shadow: inset 0 calc(16 * var(--upx)) calc(30 * var(--upx)) rgba(0,0,0,.75);
+}
+.md-basket::after {    /* 테두리 안쪽 턱 */
+  content: "";
+  position: absolute;
+  inset: calc(31 * var(--upx));
+  border-radius: 50%;
+  border: calc(5 * var(--upx)) solid rgba(28,15,4,.62);
+  box-shadow: 0 calc(-2 * var(--upx)) 0 rgba(255,208,148,.22);
+}
+/* 채반 그림이 들어오면 CSS 소쿠리(부챗살·턱·그늘)는 전부 끕니다 */
+.md-basket.has-asset { background: none; box-shadow: none; }
+.md-basket.has-asset::before,
+.md-basket.has-asset::after { display: none; }
+.md-basket-asset { width: 100%; height: 100%; object-fit: fill; }
+
+/* 다리 : 판을 받치는 나무 기둥. 왼쪽(높은 쪽)은 바깥으로 벌어진 A 자,
+   오른쪽(낮은 쪽)은 짧습니다. 자리는 판 양 끝 아래에 맞춰 두었습니다. */
+.md-legs { position: absolute; inset: 0; pointer-events: none; }
+.md-legs.right { z-index: 0; }
+.md-legs.left { z-index: 2; }
+.md-legs::before,
+.md-legs::after {
+  content: "";
+  position: absolute;
+  transform-origin: 50% 0;
+  border-radius: calc(6 * var(--upx));
+  background: linear-gradient(90deg,#6b4525,#9c6c3d 42%,#5b391c);
+  box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
+}
+.md-legs.left::before { left: 13.3%; top: 33.2%; width: calc(26 * var(--upx)); height: calc(250 * var(--upx)); transform: rotate(-8deg); }
+.md-legs.left::after { left: 19.3%; top: 35.8%; width: calc(24 * var(--upx)); height: calc(240 * var(--upx)); transform: rotate(9deg); }
+/* 뒷다리는 채반 테두리 **안쪽**에서 끝나야 채반 뒤로 들어간 것처럼 보입니다.
+   79% 를 넘기면 오른쪽 테두리 밖으로 삐져나와 따로 떠 보입니다. */
+.md-legs.right::before { left: 73.4%; top: 57.6%; width: calc(24 * var(--upx)); height: calc(118 * var(--upx)); transform: rotate(6deg); }
+.md-legs.right::after { left: 78%; top: 59.3%; width: calc(22 * var(--upx)); height: calc(106 * var(--upx)); transform: rotate(-5deg); }
+/* 판 그림에 다리가 함께 그려져 있으면 CSS 다리는 끕니다 */
+.md-scene:has(.md-plate.has-asset) .md-legs { display: none; }
+
+/* 채칼 판 : 다리 위에 비스듬히 얹힌 나무 판 + 가운데 갈매기꼴 칼날 */
+.md-plate {
+  position: absolute;
+  z-index: 4;
+  left: 45%;
+  top: 32%;
+  width: var(--md-deck-w);
+  height: var(--md-deck-h);
+  transform: translate(-50%,-50%) rotate(var(--md-tilt));
+  border: calc(13 * var(--upx)) solid #7b5330;
+  border-radius: calc(11 * var(--upx));
+  background: repeating-linear-gradient(90deg, #6a4526 0 calc(3 * var(--upx)), #7d5330 calc(3 * var(--upx)) calc(21 * var(--upx)));
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #563819, inset 0 calc(7 * var(--upx)) calc(22 * var(--upx)) rgba(0,0,0,.42), 0 calc(15 * var(--upx)) calc(24 * var(--upx)) rgba(0,0,0,.5);
+}
+.md-plate::before {    /* 위쪽 긴 변의 도드라진 난간 */
+  content: "";
+  position: absolute;
+  left: calc(-13 * var(--upx));
+  right: calc(-13 * var(--upx));
+  top: calc(-24 * var(--upx));
+  height: calc(15 * var(--upx));
+  border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 0 0;
+  background: linear-gradient(#a9784a,#7a5230);
+}
+.md-plate::after {     /* 아래쪽 긴 변 — 판의 두께가 보이는 면 */
+  content: "";
+  position: absolute;
+  left: calc(-13 * var(--upx));
+  right: calc(-13 * var(--upx));
+  bottom: calc(-37 * var(--upx));
+  height: calc(26 * var(--upx));
+  border-radius: 0 0 calc(9 * var(--upx)) calc(9 * var(--upx));
+  background: linear-gradient(#5f3d21,#3d2611);
+}
+/* 판 그림에는 다리·기울기·두께가 함께 그려져 있으므로 여기서는 눕히지 않고,
+   합본에서 역산한 자리(덩어리의 좌 0% · 상 0% · 폭 93.32% · 높이 89.16%)에 놓습니다. */
+.md-plate.has-asset {
+  left: var(--md-rig-l);
+  top: var(--md-rig-t);
+  width: calc(var(--md-rig-w) * .9332 * var(--md-plate-fit));
+  height: calc(var(--md-rig-h) * .8916 * var(--md-plate-fit));
+  transform: none;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.md-plate.has-asset::before,
+.md-plate.has-asset::after { display: none; }
+.md-plate-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+/* 칼날 : 판의 짧은 쪽을 끝에서 끝까지 가로지르는 갈매기꼴.
+   ⚠️ 폭(판의 긴 쪽 방향)을 키워 정사각에 가까워지면 칼날이 아니라
+      판에 꽂힌 깃발처럼 보입니다. 길쭉하게 유지하세요. */
+.md-blade {
+  position: absolute;
+  z-index: 2;
+  left: 44%;
+  top: 50%;
+  width: calc(88 * var(--upx));
+  height: 100%;
+  transform: translate(-50%,-50%);
+  background: linear-gradient(148deg,#e9eee8,#7d857f 56%,#ced4cd);
+  clip-path: polygon(0 0,42% 0,100% 50%,42% 100%,0 100%,58% 50%);
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5));
+}
+.md-plate.has-asset .md-blade { display: none; }
+
+/* 재료 중심을 통과하는 실제 채칼 장축(약 33도)입니다. */
+.md-drag-track {
+  position: absolute;
+  z-index: 2;
+  left: 54%;
+  top: 49%;
+  width: 62%;
+  height: calc(5 * var(--upx));
+  border-radius: calc(4 * var(--upx));
+  background: repeating-linear-gradient(90deg,rgba(255,239,182,.78) 0 calc(16 * var(--upx)),transparent calc(16 * var(--upx)) calc(27 * var(--upx)));
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(70,34,12,.7);
+  opacity: .68;
+  transform: translate(-50%,-50%) rotate(33deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.md-scene.mandoline-dragging .md-drag-track { opacity: 1; }
+
+/* 썰리는 재료 — food_*_whole_01~08 을 진행도에 맞춰 갈아 끼웁니다.
+
+   ⚠️ **아래를 기준으로 놓습니다** (top 이 아니라 bottom 입니다).
+      마스터 8장은 가로가 고정(양배추 755 · 당근 896)이고 세로만 줄어듭니다.
+      위를 기준으로 잡으면 재료가 제자리에 붙박인 채 아랫동아리만 사라져
+      "밑이 잘려 나간다"로 보입니다. 아래를 기준으로 잡으면 판에 닿은 면은
+      그대로고 위에서부터 낮아져 **덩어리가 통째로 작아지는** 것처럼 보입니다.
+      그래서 top / height 를 안 쓰고 left · bottom · width 만 씁니다.
+
+   크기(--md-ing-w / -h)와 가로 중심(--md-ing-cx)은 시안
+   (composite_tests/test_*_on_mandoline)에서 재료 화소만 골라내 잰 값입니다
+   (빈 채칼 합본과 화소 차분 → 비율 오차 0.1%). 판 상자를 100 으로 볼 때
+     당근    폭 52.50%  높이 50.52%  가로중심 54.15%
+     양배추  폭 47.46%  높이 56.73%  가로중심 56.67%
+   시안 그대로(--md-ing-fit: 1)면 재료가 채칼 난간 밖으로 나갑니다.
+
+   [--md-ing-b = 재료 아래끝이 닿는 높이]
+   ⚠️ **앞(아래쪽) 난간은 넘으면 안 되고, 뒤(위쪽) 난간은 넘어도 됩니다.**
+      앞을 넘으면 재료가 난간 밖으로 흘러내린 것처럼 보이지만, 뒤는 재료가
+      판 안쪽 깊숙이 놓인 것으로 보여 자연스럽습니다.
+   채칼 그림에서 슬랫(줄무늬 면)의 위·아래 경계를 검출해 직선으로 뽑았습니다.
+     뒤 난간 안쪽  y = 0.600x - 199.2   (그림 1080x844 좌표)
+     앞 난간 안쪽  y = 0.647x + 180.7   ← 기울기 31.5도, 판 각도와 같습니다
+   난간이 비스듬해서 **재료 상자의 왼쪽 아래 모서리가 가장 먼저 앞 난간에
+   닿습니다.** 그 모서리에서 앞 난간까지의 한계는 당근·감자 51.0% ·
+   양배추 54.6% 인데, 상자 모서리는 그림상 투명한 자리라 실제로 닿는 것은
+   그보다 안쪽입니다. 49% 는 칼날이 있는 높이(46.8%)보다 조금 아래로,
+   썰리는 재료의 아래끝이 칼날에 맞닿아 보이는 자리입니다.
+   ⚠️ 여기서 더 내리면 앞 난간에 걸립니다 — 아래 --md-ing-drift 로
+      뒷장들이 최대 5.9%(24px) 더 내려간다는 것도 같이 보셔야 합니다.
+
+   ⚠️ **재료 자체는 절대 회전시키지 않습니다.** 그림이 이미 판 각도(-32.1도)에
+      맞춰 잘려 있습니다. CSS 로 한 번 더 돌리면 두 번 기울어집니다.
+      기울기는 "움직이는 방향"에만 씁니다 (md-slide-*).
+
+   --md-shorten 은 그림이 없을 때만 씁니다 (임시 도형을 진행도만큼 줄이기).
+   ⚠️ md-slide-* 키프레임에도 똑같이 들어가야 합니다 — 빠지면 밀리는
+      0.13초 동안 임시 도형이 갑자기 커졌다 돌아옵니다. */
+.md-ingredient {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--md-ing-cx) - var(--md-ing-w) * var(--md-ing-fit) / 2);
+  /* --md-ing-drift : 장이 넘어갈 때마다 조금씩 아래로 미는 값 (01 은 0).
+     engine-e2-alternate-input.js 의 공용 채칼 화면 코드가 넣어 줍니다. */
+  bottom: calc(100% - var(--md-ing-b) - var(--md-ing-drift,0) * var(--upx));
+  width: calc(var(--md-ing-w) * var(--md-ing-fit));
+  height: calc(var(--md-ing-h) * var(--md-ing-fit));
+  transform: translate(var(--md-drag-x,0px),var(--md-drag-y,0px)) scale(var(--md-shorten,1));
+  transform-origin: center;
+  transition: transform .09s;
+  filter: drop-shadow(0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(20,10,4,.5));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+}
+.md-ingredient.dragging { cursor: grabbing; transition: none; filter: drop-shadow(0 calc(8 * var(--upx)) calc(10 * var(--upx)) rgba(20,10,4,.62)) brightness(1.05); }
+.md-ingredient.cabbage {
+  --md-ing-w: 47.46%; --md-ing-h: 56.73%; --md-ing-cx: 56.67%; --md-ing-b: 49%;
+  border: calc(5 * var(--upx)) solid #627f3f; border-radius: 48% 44% 50% 42%;
+  background: radial-gradient(circle at 37% 36%,#e6f2bd 0 12%,transparent 13%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(9 * var(--upx)),#83a856 calc(10 * var(--upx)) calc(16 * var(--upx)));
+}
+.md-ingredient.carrot {
+  --md-ing-w: 52.50%; --md-ing-h: 50.52%; --md-ing-cx: 54.15%; --md-ing-b: 49%;
+  clip-path: polygon(0 36%,7% 18%,52% 2%,100% 50%,52% 98%,7% 82%);
+  background: linear-gradient(#f6a049,#c9611f 62%,#a94a12);
+}
+/* 감자는 시안이 따로 없습니다. 그림 비율(1.317)이 당근(1.329)과 거의 같아
+   당근 자리를 그대로 씁니다. */
+.md-ingredient.potato {
+  --md-ing-w: 52.50%; --md-ing-h: 50.52%; --md-ing-cx: 54.15%; --md-ing-b: 49%;
+  border-radius: 48% 42% 45% 50%;
+  background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554;
+}
+/* 그림이 있으면 상자 높이는 그림이 정합니다 — 깎일수록 아래 기준으로 낮아집니다 */
+.md-ingredient.has-asset { height: auto; border: 0; background: none; clip-path: none; }
+.md-ingredient-asset { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
+/* 누른 방향으로 한 번 밀립니다 */
+.md-ingredient.move-left { animation: md-slide-left .13s ease; }
+.md-ingredient.move-right { animation: md-slide-right .13s ease; }
+.md-ingredient.move-up { animation: md-slide-up .13s ease; }
+.md-ingredient.move-down { animation: md-slide-down .13s ease; }
+
+/* 썰린 채 더미 : 채반 한가운데에 수북이 쌓입니다.
+   가닥 자리(--md-x/--md-y)는 engine-e2-alternate-input.js 가 계산합니다. */
+.md-pile {
+  position: absolute;
+  z-index: 3;
+  /* 채반 상자를 따라갑니다 — 채반을 옮기면 더미도 같이 갑니다.
+     세로는 한가운데(50%)보다 조금 아래(52%)입니다. 비스듬히 본 채반이라
+     바닥의 빈 자리가 타원 한가운데보다 아래쪽에 넓게 있습니다
+     (위쪽은 채칼 판이 덮습니다). */
+  left: calc(var(--md-basket-l) + var(--md-basket-w) / 2);
+  top: calc(var(--md-basket-t) + var(--md-basket-h) * .52);
+  /* 채반 안쪽을 거의 가득 채우는 상자입니다. 가닥은 이 상자의 ±40%(가로) ·
+     ±29%(세로) 타원 안에 놓이므로, 상자를 키우면 더미가 그만큼 넓게 흩어집니다.
+     ⚠️ 여기서 더 키우면 가장자리 가닥이 채반 테두리를 넘습니다 —
+        1920 기준 채반 안쪽 폭이 약 475, 지금 가닥이 닿는 폭이 약 370 입니다. */
+  width: calc(420 * var(--upx));
+  height: calc(170 * var(--upx));
+  transform: translate(-50%,-50%);
+}
+/* 더미가 앉은 자리의 그늘. 이게 없으면 가닥들이 채반 위에 떠 보입니다. */
+.md-pile::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 104%;
+  height: 78%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0,0,0,.5) 0 46%, transparent 78%);
+  transform: translate(-50%,-50%);
+}
+.md-pile i {
+  position: absolute;
+  left: var(--md-x);
+  top: var(--md-y);
+  transform: translate(-50%,-50%) rotate(var(--md-turn));
+}
+/* 방금 떨어진 가닥만 떨어지는 시늉을 합니다. 더미 전체에 걸면 한 번 썰 때마다
+   쌓여 있던 채까지 통째로 다시 나타나 더미가 깜빡입니다. */
+.md-pile i.fresh { animation: md-shred-drop .16s ease; }
+/* 채 그림 3종(p1~p3)을 재료마다 돌려 씁니다.
+   ⚠️ **아홉 장이 한 배율(0.0942)로 뽑혀 있습니다.** 여기서 장마다 길이를
+      맞추려 들면 굵기가 제각각이 되어 채가 아니라 다른 재료처럼 보입니다.
+      크기를 바꾸려면 아홉 값을 같은 비율로 함께 바꾸세요
+      (tools/build-minigame-art-webp.js 의 E2 채 9종도 같이). */
+.md-pile i {
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(30,14,2,.6));
+}
+.md-pile.cabbage i.p1 { width: calc(44.5 * var(--upx)); height: calc(33 * var(--upx));   background-image: url("../../assets/minigame/E2/food_cabbage_shredded_piece_01.webp"); }
+.md-pile.cabbage i.p2 { width: calc(12.5 * var(--upx)); height: calc(47 * var(--upx));   background-image: url("../../assets/minigame/E2/food_cabbage_shredded_piece_02.webp"); }
+.md-pile.cabbage i.p3 { width: calc(9.5 * var(--upx));  height: calc(67.5 * var(--upx)); background-image: url("../../assets/minigame/E2/food_cabbage_shredded_piece_03.webp"); }
+.md-pile.carrot i.p1  { width: calc(9.5 * var(--upx));  height: calc(55.5 * var(--upx)); background-image: url("../../assets/minigame/E2/food_carrot_shredded_piece_01.webp"); }
+.md-pile.carrot i.p2  { width: calc(14 * var(--upx));   height: calc(47 * var(--upx));   background-image: url("../../assets/minigame/E2/food_carrot_shredded_piece_02.webp"); }
+.md-pile.carrot i.p3  { width: calc(12 * var(--upx));   height: calc(69.5 * var(--upx)); background-image: url("../../assets/minigame/E2/food_carrot_shredded_piece_03.webp"); }
+.md-pile.potato i.p1  { width: calc(13.5 * var(--upx)); height: calc(49.5 * var(--upx)); background-image: url("../../assets/minigame/E2/food_potato_shredded_piece_01.webp"); }
+.md-pile.potato i.p2  { width: calc(18.5 * var(--upx)); height: calc(48.5 * var(--upx)); background-image: url("../../assets/minigame/E2/food_potato_shredded_piece_02.webp"); }
+.md-pile.potato i.p3  { width: calc(30 * var(--upx));   height: calc(79 * var(--upx));   background-image: url("../../assets/minigame/E2/food_potato_shredded_piece_03.webp"); }
+
+/* 안내 화살표 : 채반 바로 아래 놓이는 커다란 양방향 화살표.
+   채반 아래끝(496.8)에서 4 띄우면 아래끝이 565.3 — 칸(573.2) 안에 딱 듭니다.
+   ⚠️ 폭을 키우면 세로도 같이 커져(비율 7.752) 칸 밖으로 나갑니다. */
+.md-hint {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: calc(var(--md-basket-t) + var(--md-basket-h) + 4 * var(--upx));
+  width: calc(500 * var(--upx));
+  height: calc(64.5 * var(--upx));
+  transform: translateX(-50%);
+  animation: md-hint-pulse 1.7s ease-in-out infinite;
+  pointer-events: none;
+}
+/* 그림이 없을 때만 쓰는 임시 화살표 */
+.md-hint:not(.has-asset) {
+  background: linear-gradient(#fffaea,#f0c977);
+  clip-path: polygon(0 50%,13% 2%,13% 32%,87% 32%,87% 2%,100% 50%,87% 98%,87% 68%,13% 68%,13% 98%);
+  filter: drop-shadow(0 0 calc(18 * var(--upx)) rgba(255,214,130,.8));
+}
+.md-hint-asset { width: 100%; height: 100%; object-fit: fill; filter: drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,214,130,.5)); }
+.axis-y .md-hint { transform: translateX(-50%) rotate(90deg); }
+
+
+/* 채칼 : 누른 방향으로 한 번 밀렸다 돌아옵니다.
+   ⚠️ **판이 -32.1도 기울어 있어 가로가 아니라 그 대각선으로 밉니다.**
+      → 는 오른쪽 아래로, ← 는 왼쪽 위로 — 재료가 판을 타고 미끄러집니다.
+      가로로만 밀면 재료가 판에서 떠서 허공으로 미끄러집니다.
+   ⚠️ **재료를 회전시키지 않습니다.** 그림이 이미 그 각도로 잘려 있어서
+      여기서 rotate 를 걸면 두 번 기울어집니다. 기울기는 이동 방향뿐입니다.
+   --md-shorten(임시 도형의 남은 길이)은 그대로 다시 적어야 합니다 —
+   빠뜨리면 0.13초 동안 임시 도형이 갑자기 커졌다 돌아옵니다. */
+@keyframes md-slide-left  { 50% { transform:translate(calc(0px - var(--md-slide-x)),calc(0px - var(--md-slide-y))) scale(var(--md-shorten,1)); } }
+@keyframes md-slide-right { 50% { transform:translate(var(--md-slide-x),var(--md-slide-y)) scale(var(--md-shorten,1)); } }
+/* ↑ ↓ 축은 지금 쓰는 재료가 없습니다 (세 재료 모두 ← →) */
+@keyframes md-slide-up    { 50% { transform:translateY(calc(0px - var(--md-slide-x))) scale(var(--md-shorten,1)); } }
+@keyframes md-slide-down  { 50% { transform:translateY(var(--md-slide-x)) scale(var(--md-shorten,1)); } }
+@keyframes md-shred-drop { from { opacity:0; transform:translate(-50%,calc(-50% - 24 * var(--upx))) rotate(var(--md-turn)); } to { opacity:1; transform:translate(-50%,-50%) rotate(var(--md-turn)); } }
+@keyframes md-hint-pulse { 50% { opacity:.45; } }
+
+@media (max-width:600px) {
+  /* 좌우 칸이 250 → 170 으로 줄어 플레이 칸은 오히려 넓어지지만 세로가
+     그대로입니다. 덩어리는 --md-rig-w 하나만 줄이면 채칼·채반·더미·화살표가
+     모두 따라 줄어듭니다 (전부 이 값에서 계산되는 자리입니다). */
+  .md-scene {
+    --md-rig-w: calc(470 * var(--upx));
+    --md-deck-w: calc(430 * var(--upx));
+    --md-deck-h: calc(126 * var(--upx));
+  }
+  /* 판 위 재료는 판 상자의 % 라 --md-rig-w 만 줄이면 같이 줄어듭니다 —
+     여기서 따로 크기를 적으면 오히려 비율이 어긋납니다. */
+  .md-pile { width: calc(372 * var(--upx)); height: calc(154 * var(--upx)); }
+  .md-pile.potato i { width: calc(50 * var(--upx)); height: calc(7 * var(--upx)); }
+  .md-hint { width: calc(392 * var(--upx)); height: calc(50.6 * var(--upx)); }
+}

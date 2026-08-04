@@ -28,7 +28,28 @@ const CUT_FEEL_CONFIG=Object.freeze({
   perfectZoneRatio:.38,
   doubleTapWindow:.35,
   pathLeadInFallback:12,
-  pathRecoveryMs:115,
+  /* 칼이 설 수 있는 가장 오른쪽(재료 그림 폭의 %). 첫 박자를 이후 박자와 같은
+     길이로 만들려면 첫 절단선보다 한 칸 오른쪽에서 출발해야 하는데, 그 자리가
+     그림 밖일 수 있어서 상한을 둡니다.
+     ⚠️ 원래 96 이었습니다. 여백 없는 새 에셋에서는 첫 절단선이 그림의 90% 근처라
+        96 에 걸려 첫 박자만 반 박자로 짧아졌습니다(양배추는 0.16초). 101 이면
+        7종 모두 안 걸립니다. 이 값을 올리면 칼이 재료 오른쪽 끝 밖에 서므로,
+        도마 안에 칼이 다 들어오도록 css 의 --cut-obj-w 도 같이 봐야 합니다. */
+  startXCeiling:101,
+  // 가로 썰기(두부·어묵 마지막 한 번)에서 칼이 내려오기 시작하는 높이(%)
+  horizontalStartY:12,
+  /* 하단 타이밍 바 양 끝 여유(재료 좌표 %). 칼이 실제로 지나는 구간을 바
+     전체로 펼 때, 초록 구간이 바 끝에 딱 붙지 않도록 조금 남깁니다. */
+  barEdgeMargin:1.5,
+  /* 한 번 썬 뒤 칼이 멈춰 있는 시간(ms). 이 시간이 지나면 화면을 다시 그리고
+     다음 박자로 넘어갑니다.
+     ⚠️ 원래 115 였습니다. 칼이 제자리에서 눌리기만 하던 시절엔 그걸로 충분했는데,
+        칼 크기를 7종 공통으로 고정하면서 "날보다 큰 재료는 획이 크게 지나가며
+        덮는" 방식이 됐습니다. 그 획(css 의 cut-knife-chop-asset, 0.28초 ·
+        PERFECT 는 0.32초)이 잘리면 칼이 중간에 순간이동합니다.
+        획 + 여운이 다 나오도록 잡은 값입니다. 더 줄이려면 CSS 쪽 획 길이도
+        같이 줄여야 합니다. */
+  pathRecoveryMs:340,
   completeDelayMs:620,
   startCountdownSeconds:3,
   startSignalMs:450
@@ -67,13 +88,19 @@ function cutTimingGrade(marker,zoneStart,zoneWidth){
    도형이 꺼지고 <img> 가 대신 보입니다. */
 
 const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:"김치",chicken:"닭고기",greenOnion:"대파",tofu:"두부",cabbage:"양배추"});
+/* 절단선 X 좌표(%) — 재료 그림 상자의 왼쪽 끝이 0, 오른쪽 끝이 100 입니다.
+   그림은 늘 상자 폭을 꽉 채우므로 이 값은 곧 "그림 파일 가로의 몇 %" 입니다.
+   ⚠️ 납품 에셋의 여백이 잘리면 같은 칼자국이 다른 % 로 옮겨갑니다.
+      2026-08 무·대파·양배추·닭·김치 5종이 1536x1024 여백 캔버스에서
+      알파 영역만 남기고 잘려서, 아래 값도 새 캔버스 기준으로 다시 쟀습니다.
+      (두부·어묵은 그때 캔버스가 그대로라 값도 그대로입니다) */
 const CUT_POSITION_PERCENTAGES=Object.freeze({
-  radish:Object.freeze([78.3,70.6,62.6,54.6,46.9,38.6,30.2]),
+  radish:Object.freeze([89.8,79,67.8,56.5,45.7,34.1,22.3]),
   fishCake:Object.freeze([74.3,51.3,26.7]),
-  cabbage:Object.freeze([71.4,67.3,63.1,59.2,55.5,51.7,47.8,43.8,40,35.8,32.2,28.4]),
-  chicken:Object.freeze([77,71.8,66.3,60.3,53.9,47.9,42.4,37,31.4,26,21.7]),
-  greenOnion:Object.freeze([76.6,68.6,59.9,52.1,42.6,34,26]),
-  kimchi:Object.freeze([73.8,68,62.2,56.5,51,45.3,39.6,33.7,28.5]),
+  cabbage:Object.freeze([92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5]),
+  chicken:Object.freeze([91.4,83.4,75,65.8,55.9,46.7,38.3,30,21.4,13.1,6.5]),
+  greenOnion:Object.freeze([87.7,76.3,63.8,52.6,39,26.6,15.2]),
+  kimchi:Object.freeze([89.6,79.9,70.3,60.8,51.7,42.2,32.7,22.9,14.3]),
   tofu:Object.freeze([85.2,71.3,57.5,43.6,29.7,15.5])
 });
 
@@ -184,6 +211,21 @@ function updateCutCountCard(done,total){
   if(card)card.innerHTML=`<b>${done}</b> / ${total}`;
 }
 
+/* 칼 · 썰리는 순간의 이펙트 ---------------------------------
+   칼은 세로용·가로용 그림이 따로 옵니다. 가로 썰기(두부 마지막 한 번)일 때
+   세로 그림을 -90도 돌려 쓰던 것을 눕힌 그림으로 바꿉니다 — 돌리면 손잡이
+   나뭇결과 빛 방향이 같이 누워서 어색했습니다.
+   이펙트는 3장이 겹쳐 깔려 있다가 썰릴 때 차례로 켜집니다(자리·크기는 CSS). */
+function cutKnifeMarkup(horizontal=false){
+  const key=horizontal&&hasDayPrepAsset("knifeHorizontal")?"knifeHorizontal":"knife";
+  return `<i class="knife-effect ${hasDayPrepAsset(key)?"has-prep-asset":""}">${dayPrepAssetMarkup(key,"knife-asset","")}</i>`;
+}
+
+function cutImpactFxMarkup(){
+  if(!hasDayPrepAsset("cutImpactFx1"))return "";
+  return `<i class="cut-impact-fx">${[1,2,3].map(no=>dayPrepAssetMarkup(`cutImpactFx${no}`,`cut-impact-frame cut-impact-${no}`,"")).join("")}</i>`;
+}
+
 // 도마 아래 타이밍 바. 삼각 표시가 바 위아래로 튀어나와야 해서
 // 바(넘침 잘라냄) 와 표시를 형제로 두고 바깥 상자에 얹습니다.
 function cutTimingBarMarkup(zoneLeft,zoneWidth,marker,extraClass=""){
@@ -237,7 +279,6 @@ function setupTimingCut(taskId){
     ingredient,
     requiredHits:config.total,
     hitTolerance:config.hitTolerance,
-    horizontalHitTolerance:config.horizontalHitTolerance,
     travelSpeed:config.travelSpeed,
     requiresDoubleTap:!!config.requiresDoubleTap,
     horizontalLastCut:!!config.horizontalLastCut,
@@ -261,7 +302,8 @@ function startCuttingMinigame(options){
   const firstBeatDistance=verticalCount>1
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
-  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,horizontalHitTolerance:options.horizontalHitTolerance??hitTolerance,travelSpeed,knifeX:Math.min(96,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
+  const startKnifeX=Math.min(CUT_FEEL_CONFIG.startXCeiling,firstCutX+firstBeatDistance);
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:startKnifeX,startKnifeX,knifeY:CUT_FEEL_CONFIG.horizontalStartY,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -294,14 +336,13 @@ function renderTimingCut(){
         ${Array.from({length:data.total},(_,index)=>{
           if(index<data.successes)return "";
           const active=index===data.successes?"active":"";
-          if(data.horizontalLastCut&&index===data.total-1)return horizontalReady
-            ?`<i class="cut-line tofu-horizontal-line fishcake-final-line active" data-cut-index="${index}"></i>`
-            :"";
+          if(data.horizontalLastCut&&index===data.total-1)return `<i class="cut-line tofu-horizontal-line ${active}" data-cut-index="${index}"></i>`;
           return `<i class="cut-line ${active}" data-cut-index="${index}" style="left:${cutPosition(index)}%"></i>`;
         }).join("")}
         <i class="cut-guide ${horizontalReady?"horizontal":""}"></i>
-        <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
+        ${cutKnifeMarkup(horizontalReady)}
         <i class="cut-spark"></i>
+        ${cutImpactFxMarkup()}
       </div>
       <div class="cut-footer">${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
         <button class="mini-action cut-action" id="dayPrepAction" type="button" ${countdownActive?"disabled":""}>Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
@@ -360,10 +401,6 @@ function timingCutTarget(data){
   };
 }
 
-function timingCutTolerance(data,target=timingCutTarget(data)){
-  return target.axis==="y"?data.horizontalHitTolerance:data.hitTolerance;
-}
-
 function syncTimingKnife(data){
   const work=dom.miniContent.querySelector("#prepWorkObject");
   work?.style.setProperty("--knife-x",`${data.knifeX}%`);
@@ -371,9 +408,29 @@ function syncTimingKnife(data){
   syncCutPathTimingBar(data);
 }
 
-// Project the ingredient-local knife coordinates into the actual bottom bar.
-// This keeps the blade, cut line, hit zone, and marker on one screen-space X axis
-// even though every ingredient is rendered at a different width.
+/* 하단 바가 보여줄 좌표 구간(재료 좌표 %).
+   칼이 실제로 지나는 곳만 잡습니다 — 세로 썰기는 출발 자리부터 마지막
+   절단선 판정 끝까지, 가로 썰기는 내려오기 시작하는 높이부터 판정 끝까지.
+   이 구간을 바 전체로 펴는 것이 syncCutPathTimingBar 의 project 입니다. */
+function cutBarRange(data){
+  const margin=CUT_FEEL_CONFIG.barEdgeMargin;
+  if(isHorizontalTimingCut(data)){
+    return {min:CUT_FEEL_CONFIG.horizontalStartY-margin,max:50+data.hitTolerance+margin};
+  }
+  const verticalCount=timingCutVerticalCount(data);
+  const lastCut=suppliedCutPosition(data.ingredient,verticalCount-1,verticalCount);
+  return {min:lastCut-data.hitTolerance-margin,max:(data.startKnifeX??CUT_FEEL_CONFIG.startXCeiling)+margin};
+}
+
+/* 재료 좌표를 하단 바 좌표로 폅니다.
+   ⚠️ 원래는 재료 그림의 **화면 좌표**를 그대로 바에 투영했습니다. 그러면 바 위의
+      자리와 도마 위의 자리가 세로로 딱 맞아떨어지긴 하는데, 재료가 도마 가운데
+      절반쯤만 차지하다 보니 바도 그만큼만 쓰였습니다. 포인터가 좁은 구간을
+      천천히 지나 속도감이 없고, 초록 구간도 바늘처럼 얇았습니다.
+      이제 "칼이 지나는 구간(cutBarRange)"을 바 0~100 으로 폅니다. 같은 배율이
+      초록 구간에도 걸리므로 구간 폭도 같이 넓어집니다.
+   판정은 재료 좌표(cutPathGrade)로 그대로 하므로 절단선 위치·타이밍은
+   하나도 바뀌지 않습니다. 바는 보여주기만 합니다. */
 function syncCutPathTimingBar(data){
   const work=dom.miniContent.querySelector("#prepWorkObject");
   const timing=dom.miniContent.querySelector(".cut-path-timing");
@@ -383,18 +440,11 @@ function syncCutPathTimingBar(data){
   if(!work||!timing||!success||!perfect||!marker)return;
 
   const target=timingCutTarget(data);
-  const tolerance=timingCutTolerance(data,target);
+  const tolerance=data.hitTolerance;
   const perfectTolerance=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio;
-  let project;
-  if(target.axis==="x"){
-    const workRect=work.getBoundingClientRect();
-    const timingRect=timing.getBoundingClientRect();
-    if(!workRect.width||!timingRect.width)return;
-    project=value=>(workRect.left+workRect.width*(value/100)-timingRect.left)/timingRect.width*100;
-  }else{
-    // The final horizontal tofu cut retains the familiar left-to-right bar readout.
-    project=value=>value;
-  }
+  const range=cutBarRange(data);
+  const span=Math.max(1,range.max-range.min);
+  const project=value=>(value-range.min)/span*100;
 
   const clamp=value=>Math.max(0,Math.min(100,value));
   const successLeft=clamp(project(target.value-tolerance));
@@ -411,17 +461,15 @@ function syncCutPathTimingBar(data){
 function cutPathGrade(data){
   const target=timingCutTarget(data);
   const distance=Math.abs(target.current-target.value);
-  const tolerance=timingCutTolerance(data,target);
-  if(distance>tolerance)return "miss";
-  return distance<=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio?"perfect":"good";
+  if(distance>data.hitTolerance)return "miss";
+  return distance<=data.hitTolerance*CUT_FEEL_CONFIG.perfectZoneRatio?"perfect":"good";
 }
 
 function timingKnifeIsEarly(data){
   const target=timingCutTarget(data);
-  const tolerance=timingCutTolerance(data,target);
   return target.direction<0
-    ?target.current>target.value+tolerance
-    :target.current<target.value-tolerance;
+    ?target.current>target.value+data.hitTolerance
+    :target.current<target.value-data.hitTolerance;
 }
 
 function snapTimingKnifeToTarget(data){
@@ -433,20 +481,19 @@ function snapTimingKnifeToTarget(data){
 // The knife is the playhead: it advances once from the previous cut to the next.
 function advanceTimingKnife(m,dt){
   const data=m.data,target=timingCutTarget(data);
-  const tolerance=timingCutTolerance(data,target);
   const step=data.travelSpeed*dt;
   if(target.axis==="x"){
     data.knifeX-=step;
-    if(data.knifeX<target.value-tolerance){
-      data.knifeX=target.value-tolerance;
+    if(data.knifeX<target.value-data.hitTolerance){
+      data.knifeX=target.value-data.hitTolerance;
       syncTimingKnife(data);
       completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
       return;
     }
   }else{
     data.knifeY+=step;
-    if(data.knifeY>target.value+tolerance){
-      data.knifeY=target.value+tolerance;
+    if(data.knifeY>target.value+data.hitTolerance){
+      data.knifeY=target.value+data.hitTolerance;
       syncTimingKnife(data);
       completeTimingCut(m,"miss","절단선을 놓쳤어요. 다음 박자로 넘어갑니다.");
       return;
@@ -535,7 +582,7 @@ function completeTimingCut(m,grade="good",missMessage=""){
   }
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
-    if(isHorizontalTimingCut(data))data.knifeY=12;
+    if(isHorizontalTimingCut(data))data.knifeY=CUT_FEEL_CONFIG.horizontalStartY;
     data.inputLocked=false;data.phase="ready";renderTimingCut();
   },CUT_FEEL_CONFIG.pathRecoveryMs);
 }
@@ -552,7 +599,6 @@ function setupTteokbokkiCut(taskId){
     assetPrefix:item.assetPrefix,
     requiredHits:item.requiredPieces,
     hitTolerance:item.hitTolerance,
-    horizontalHitTolerance:item.horizontalHitTolerance,
     travelSpeed:item.travelSpeed,
     assetStageMax:item.progressSprites.length-1,
     horizontalLastCut:!!item.horizontalLastCut,
@@ -590,8 +636,9 @@ function renderNightChop(m){
         return `<i class="cut-line" data-cut-index="${index}" ${data.tofuStyle?`data-tofu-cut="${index}"`:""} style="left:${suppliedCutPosition(data.ingredient,index,data.total)}%"></i>`;
       }).join("")}
       <i class="cut-guide"></i>
-      <i class="knife-effect ${hasDayPrepAsset("knife")?"has-prep-asset":""}">${dayPrepAssetMarkup("knife","knife-asset","")}</i>
+      ${cutKnifeMarkup()}
       <i class="cut-spark"></i>
+      ${cutImpactFxMarkup()}
     </div>
     <div class="cut-footer"><span class="cut-step-note" id="nightCutStep">${label}</span><button class="mini-action cut-action" id="miniAction" type="button">${data.tofuStyle?"두부 썰기":"썰기"}</button></div>
     <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>`;

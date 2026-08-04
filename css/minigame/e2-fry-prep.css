@@ -1,0 +1,659 @@
+/* ============================================================
+   E2 · 튀김 준비 (engine-e2-alternate-input.js)
+   원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
+   
+   감자튀김 준비(봉투 흔들기) · 새우튀김 준비(단계별 그릇).
+   바깥 3열 틀(.fp-scene)은 E12 채칼도 함께 씁니다 — 셀렉터를 지우기 전에
+   css/minigame/e12-mandoline.css 를 확인하세요.
+   ============================================================ */
+
+/* ── 튀김 준비 (engine-e2 · 감자튀김 준비 · 새우튀김 준비) ─────
+   왼쪽 재료 · 가운데 플레이 · 오른쪽 진행도/조작 3단 구성입니다.
+   두 게임이 이 틀을 함께 쓰고, 가운데 그림만 서로 다릅니다.
+     · 감자튀김 : 봉투(.fp-bag-scene) 를 좌우로 흔듭니다
+     · 새우튀김 : 한 단계씩 큰 그릇(.fp-roll-vessel) 안에서 새우를 굴립니다
+   그림은 전부 임시 CSS 도형이고, 파일을 넣으면 .has-asset 이 붙어
+   도형이 꺼지고 <img> 가 대신 보입니다.
+   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+
+   [공용 프레임과의 관계]  닭꼬치·김치 볶기와 같습니다.
+   css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 화면이 떠 있을
+   때 한정으로 공용 규칙을 덮어씁니다.
+     · .mini-content 기본 폭(가운데 922px)을 사이드 칸까지 쓰도록 100% 로
+     · 공용 타이머 카드는 오른쪽 '진행도' 카드와 자리가 겹치므로 숨김
+       (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다)
+
+   칸 크기는 .fp-scene 의 --fp-side(좌우 칸 폭) 하나가 정합니다. */
+/* 격자는 css/minigame-parts.css 공용 규격입니다. */
+.fp-scene {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* 좌우 세로 칸 (김치 볶기 .kf-col 과 같은 톤) */
+/* 간격은 원래 10 이었습니다 → 공용 --mg-col-gap(12). 조작 카드가 462.6 → 460.6 */
+.fp-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
+/* .fp-col-title · .fp-panel → css/minigame-parts.css */
+
+/* ── 왼쪽 : 재료 카드 ──────────────────────────────────────── */
+/* 패널 간격이 원래 없어서 카드가 273.6 이었습니다 → 공용 10 이면 E8꼬치와 같은 268.6 */
+.fp-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
+.fp-ing-list { flex: 1; display: grid; grid-auto-rows: 1fr; gap: var(--mg-ing-list-gap); }
+/* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css.
+   원래 평소 테두리가 `transparent` 라 카드가 안 보이고, 지금 차례인 한 줄만
+   금색으로 켜졌습니다. 13화면을 한 벌로 맞추면서 평소에도 공용 카드가
+   보이게 했습니다. `.active` 금색 + 발광은 그대로라 지금 차례는 여전히 구분됩니다. */
+.fp-ing-card {
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(4 * var(--upx));
+}
+/* 지금 쓰는 재료 한 줄만 켭니다 (새우튀김의 단계 표시)
+   원래 이 화면만 테두리가 #e3a94c 였고 배경도 따로였습니다. 나머지 화면
+   (E7 .sc-goal.selected · E8 .bt-ing-card.next · E11 .os-ing-card.selected)은
+   전부 #ffe08d 라 공용 --mg-card-active 로 모았습니다.
+   배경은 공용 카드 그대로 두고 테두리와 발광만 바꿉니다. */
+.fp-ing-card.active { border-color: var(--mg-card-active); box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); }
+/* 그림은 칸 높이에 맞춰 커지고, 재료가 많으면 자동으로 작아집니다.
+   (감자튀김은 재료 한 줄이라 크게, 새우튀김은 네 줄이라 작게 보입니다) */
+.fp-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
+.fp-ing-art i { position: relative; display: block; height: 100%; max-height: calc(112 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
+.fp-ing-art.has-asset i { display: none; }
+.fp-ing-asset { max-width: 100%; max-height: calc(86 * var(--upx)); object-fit: contain; }
+/* 채칼(양배추·당근)과 감자튀김 준비(감자채·튀김가루)는 재료가 2줄이라
+   그림칸이 215.6 으로 넉넉합니다. 공용 86 을 그대로 쓰면 칸의 40% 만 쓰고
+   그림이 우표만 하게 보입니다.
+   재료가 4줄인 새우튀김 준비(같은 .fp-scene)는 86 그대로 둡니다. */
+.fp-scene:has(.md-scene) .fp-ing-asset,
+.fp-scene:has(.fp-bag-scene) .fp-ing-asset { max-height: calc(190 * var(--upx)); }
+/* 새우튀김 준비는 반대로 **줄입니다.** 재료가 4줄이라 카드가 140 뿐인데
+   공용 86 은 그림칸(86)을 세로로 딱 채우는 값이라, 납품 그림처럼 여백 없이
+   꽉 찬 그림을 넣으면 카드 테두리에 그대로 닿아 삐져나온 것처럼 보입니다.
+   가로도 카드(205.2)를 거의 채우므로 함께 조입니다. */
+.fp-scene:has(.fp-coat-row) .fp-ing-asset { max-width: 74%; max-height: calc(68 * var(--upx)); }
+/* 감자만 그림이 가로로 깁니다(1.317). 세로 190 에 걸리기 전에 **가로 210 이
+   먼저 막혀서** 다른 카드보다 그림이 칸을 꽉 채워 보입니다. 가로를 178 로
+   잡아 양배추·당근과 비슷한 여백이 남게 합니다. */
+.fp-scene:has(.md-scene) .fp-ing-card.potato .fp-ing-asset { max-width: calc(178 * var(--upx)); }
+/* 감자 채썰기는 재료가 **한 줄뿐**입니다. 공용 규칙(.fp-ing-list 의
+   grid-auto-rows:1fr)이 그 한 장을 칸 높이(547.2)만큼 늘려서 카드 틀이
+   길쭉하게 일그러집니다.
+
+   재료가 하나뿐인 다른 화면들과 같은 결로 맞춥니다 — 높이를 공용
+   --mg-ing-card-h(280) 로 묶고 **세로 가운데**에 둡니다.
+   (E5 김치전 굽기 .ts-ing-list · E1 무 썰기 .cut-ing-list 와 같은 방식)
+   ⚠️ 재료가 둘인 양배추·당근 화면은 이 규칙에 안 걸립니다 — 거기서는
+      공용 1fr 이 그대로 살아 카드가 268.6 두 장으로 칸을 채웁니다. */
+.fp-ing-list:has(> .fp-ing-card:only-child) {
+  grid-auto-rows: minmax(0, var(--mg-ing-card-h));
+  align-content: center;
+}
+.fp-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.fp-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
+
+/* 재료 그림 (임시 도형) */
+/* 채칼 재료 : 반 자른 양배추 · 당근 한 개 · 감자 한 개 */
+.fp-ing-card.cabbage .fp-ing-art i { border-radius: 48% 44% 50% 42%; background: radial-gradient(circle at 37% 34%,#eaf5c4 0 13%,transparent 14%),repeating-radial-gradient(circle at 45% 45%,#a8c66f 0 calc(7 * var(--upx)),#83a856 calc(8 * var(--upx)) calc(13 * var(--upx))); box-shadow: inset 0 calc(-7 * var(--upx)) calc(10 * var(--upx)) rgba(60,80,32,.35); }
+.fp-ing-card.carrot .fp-ing-art i { aspect-ratio: 3 / 5; border-radius: 44% 44% 24% 24%; background: linear-gradient(90deg,#c9611f,#f6a049 46%,#bd5418); }
+.fp-ing-card.carrot .fp-ing-art i::after { content: ""; position: absolute; left: 50%; top: calc(-9 * var(--upx)); width: 42%; height: 22%; border-radius: 50% 50% 20% 20%; background: #74a444; transform: translateX(-50%); }
+.fp-ing-card.potato .fp-ing-art i { border-radius: 48% 42% 45% 50%; background: radial-gradient(circle at 30% 30%,#7e5d35 0 calc(3 * var(--upx)),transparent calc(4 * var(--upx))),#c99554; box-shadow: inset 0 calc(-8 * var(--upx)) calc(11 * var(--upx)) rgba(80,52,20,.4); }
+/* 감자채 한 그릇 */
+.fp-ing-card.potatoStrips .fp-ing-art i { border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 46% 46%; background: linear-gradient(#8a5a2c,#5d3a19); box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(48,26,10,.5); }
+.fp-ing-card.potatoStrips .fp-ing-art i::after { content: ""; position: absolute; left: 8%; right: 8%; top: 12%; height: 52%; border-radius: 40%; background: repeating-linear-gradient(72deg,#f0dea6 0 calc(5 * var(--upx)),#d9c07a calc(6 * var(--upx)) calc(9 * var(--upx))); }
+/* 생새우 */
+.fp-ing-card.shrimpRaw .fp-ing-art i,
+.fp-ing-card.shrimpFlour .fp-ing-art i,
+.fp-ing-card.shrimpEgg .fp-ing-art i { border-radius: 50% 50% 46% 46%; background: transparent; }
+.fp-ing-card.shrimpRaw .fp-ing-art i::before,
+.fp-ing-card.shrimpFlour .fp-ing-art i::before,
+.fp-ing-card.shrimpEgg .fp-ing-art i::before { content: ""; position: absolute; left: 18%; top: 18%; width: 56%; height: 54%; border: calc(11 * var(--upx)) solid #c9c3bb; border-left-color: transparent; border-radius: 50%; transform: rotate(14deg); }
+.fp-ing-card.shrimpFlour .fp-ing-art i::before { border-color:#fffaf0; border-left-color:transparent; }
+.fp-ing-card.shrimpEgg .fp-ing-art i::before { border-color:#ffe9ae; border-left-color:transparent; }
+.fp-ing-card.shrimpRaw .fp-ing-art i::after,
+.fp-ing-card.shrimpFlour .fp-ing-art i::after,
+.fp-ing-card.shrimpEgg .fp-ing-art i::after { content: ""; position: absolute; right: 8%; top: 46%; border-block: calc(11 * var(--upx)) solid transparent; border-left: calc(20 * var(--upx)) solid #d98a68; transform: rotate(-8deg); }
+/* 가루·계란물 그릇 */
+.fp-ing-card.flour .fp-ing-art i,
+.fp-ing-card.egg .fp-ing-art i,
+.fp-ing-card.breadcrumbs .fp-ing-art i { border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 46% 46%; background: linear-gradient(#8a5a2c,#5d3a19); box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(48,26,10,.5); }
+.fp-ing-card.flour .fp-ing-art i::after,
+.fp-ing-card.egg .fp-ing-art i::after,
+.fp-ing-card.breadcrumbs .fp-ing-art i::after { content: ""; position: absolute; left: 9%; right: 9%; top: 10%; height: 54%; border-radius: 50% 50% 42% 42%; }
+.fp-ing-card.flour .fp-ing-art i::after { background: radial-gradient(circle at 42% 28%,#fffdf6,#e6ddc6); }
+.fp-ing-card.egg .fp-ing-art i::after { background: radial-gradient(circle at 42% 28%,#ffd977,#e5a831); }
+.fp-ing-card.breadcrumbs .fp-ing-art i::after { background: radial-gradient(circle,#9c6a38 0 calc(2 * var(--upx)),transparent calc(2.5 * var(--upx))) 0 0/calc(9 * var(--upx)) calc(8 * var(--upx)),#deb877; }
+
+/* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
+.fp-count { text-align: center; }
+.fp-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
+.fp-count strong b { color: #f2a03c; }
+.fp-bar { height: calc(12 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(6 * var(--upx)); background: #140c07; }
+.fp-bar i { display: block; height: 100%; background: linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition: width .12s; }
+.fp-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
+/* 키 버튼은 안내이면서 실제 버튼입니다 (키보드·마우스 둘 다 지원) */
+.fp-keys { display: flex; align-items: center; gap: calc(8 * var(--upx)); }
+/* 키가 없는 차례(새우 옮기기)에는 줄 자체를 접습니다 */
+.fp-keys:empty { display: none; }
+/* 겉모습은 공용 --mg-key-* (css/minigame-parts.css) 한 곳이 정합니다.
+   크기·글꼴만 이 화면 것입니다 — 글리프 하나가 들어가는 큰 사각입니다. */
+.fp-key {
+  width: calc(58 * var(--upx));
+  height: calc(54 * var(--upx));
+  padding: 0;
+  border: 2px solid var(--mg-key-border);
+  border-radius: var(--mg-key-radius);
+  background: var(--mg-key-bg);
+  color: var(--mg-key-color);
+  font-size: calc(30 * var(--upx));
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--mg-key-shadow);
+}
+/* 지금 눌러야 할 키 · 눌린 키 — 공용 키캡(--mg-key-*)과 같은 결로 맞췄습니다
+   (원래 있던 안쪽 흰 선은 새 키캡 겉모습과 맞지 않아 뺐습니다) */
+.fp-key.expected { border-color: #ffe08d; background: linear-gradient(#ffdb9a,#c27b3b); box-shadow: var(--mg-key-shadow), 0 0 calc(16 * var(--upx)) rgba(255,205,110,.55); }
+.fp-key:active { transform: translateY(calc(3 * var(--upx))); box-shadow: none; }
+.fp-key.pressed { animation: fp-key-press .14s ease-out; }
+.fp-key.wrong { animation: fp-key-wrong .12s ease-out; border-color: #d6755e; background: linear-gradient(#efb09c,#c56752); }
+.fp-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-weight: 900; }
+.fp-control-name { margin: 0; color: var(--gold-bright); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.fp-control-desc { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; line-height: 1.35; }
+.fp-drag-control { display:flex; align-items:center; justify-content:center; gap:calc(13 * var(--upx)); color:#f2c66e; }
+.fp-drag-control b { font-size:calc(38 * var(--upx)); line-height:1; animation:fp-drag-arrow 1.1s ease-in-out infinite; }
+.fp-drag-mouse { position:relative; display:block; width:calc(38 * var(--upx)); height:calc(55 * var(--upx)); border:calc(3 * var(--upx)) solid #f4d696; border-radius:calc(20 * var(--upx)); background:linear-gradient(#5c3a22,#2f1c10); box-shadow:0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.35); }
+.fp-drag-mouse::before { content:""; position:absolute; left:50%; top:calc(7 * var(--upx)); width:calc(4 * var(--upx)); height:calc(12 * var(--upx)); border-radius:calc(3 * var(--upx)); background:#f2c66e; transform:translateX(-50%); }
+
+/* ── 가운데 : 나무 조리대 ──────────────────────────────────── */
+.fp-board {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: calc(14 * var(--upx)) calc(12 * var(--upx));
+  border: calc(6 * var(--upx)) solid #6d4527;
+  border-radius: calc(14 * var(--upx));
+  background:
+    repeating-linear-gradient(92deg, rgba(255,255,255,.03) 0 calc(3 * var(--upx)), transparent calc(3 * var(--upx)) calc(26 * var(--upx))),
+    linear-gradient(#4d2e1a,#33200f);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+}
+.e2-result {
+  position: absolute;
+  z-index: 8;
+  top: calc(16 * var(--upx));
+  left: 50%;
+  min-width: calc(150 * var(--upx));
+  color: #f7dfaa;
+  text-align: center;
+  font-size: calc(27 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: calc(2 * var(--upx));
+  opacity: 0;
+  transform: translate(-50%,calc(8 * var(--upx))) scale(.82);
+  pointer-events: none;
+  text-shadow: 0 calc(3 * var(--upx)) 0 #4b2916,0 0 calc(12 * var(--upx)) rgba(0,0,0,.8);
+}
+.e2-result.show { animation: e2-result-pop .5s ease-out forwards; }
+.e2-result.perfect { color: #ffe083; font-size: calc(31 * var(--upx)); }
+.e2-result.good { color: #f3d5a0; }
+.fp-scene.input-wrong .fp-board { animation: fp-input-wrong .12s ease-out; }
+.fp-scene.stage-complete .fp-coat-station.current,
+.fp-scene.stage-complete .fp-shrimp-roll-scene,
+.fp-scene.stage-complete .md-scene,
+.fp-scene.e2-complete .fp-board > :not(.e2-result) { animation: fp-stage-complete .45s cubic-bezier(.2,.9,.2,1); }
+
+/* ── 감자튀김 준비 : 봉투 흔들기 ──────────────────────────────
+   납품 그림(food_fries_coating_bag_01~09)이 들어오면 .has-asset 이 붙어
+   봉투 한 장이 통째로 깔립니다. 아래 임시 도형은 그림이 없을 때만 보입니다 —
+   반투명 비닐 안에 감자채(<i>)는 index 로 자리를 정하고, 튀김가루(<b>)는
+   진행도만큼 개수가 늘어납니다.
+
+   봉투는 **잡고 끌 수 있습니다** (engine-e2-alternate-input.js 의 bindFriesBagDrag).
+   끄는 동안에는 손을 따라 가로세로 둘 다 밀려나고(--fp-drag-x / -y), 연타할 때의
+   흔들림 애니메이션은 꺼집니다 — 둘 다 transform 이라 겹치면 봉투가 튑니다.
+   그래서 ↖↘ 든 ↙↗ 든 손이 가는 대각선으로 흔들 수 있습니다. */
+.fp-bag-scene { position: relative; display: flex; align-items: center; justify-content: center; gap: calc(20 * var(--upx)); }
+.fp-bag {
+  position: relative;
+  z-index: 1;
+  width: calc(560 * var(--upx));
+  height: calc(450 * var(--upx));
+  overflow: hidden;   /* 봉투 밖으로 삐져나온 감자채를 잘라 줍니다 */
+  border: calc(3 * var(--upx)) solid rgba(255,252,244,.42);
+  border-radius: calc(20 * var(--upx));
+  background: linear-gradient(150deg, rgba(255,255,255,.20), rgba(255,255,255,.07) 55%, rgba(255,255,255,.16));
+  box-shadow: inset 0 0 calc(30 * var(--upx)) rgba(255,255,255,.14), 0 calc(8 * var(--upx)) calc(18 * var(--upx)) rgba(0,0,0,.45);
+  transform: translate(var(--fp-drag-x,0px),var(--fp-drag-y,0px));
+  transition: transform .09s;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  will-change: transform;
+}
+.fp-bag.dragging { cursor: grabbing; transition: none; }
+/* 지퍼 */
+.fp-bag-zip { position: absolute; left: calc(14 * var(--upx)); right: calc(14 * var(--upx)); top: calc(12 * var(--upx)); height: calc(16 * var(--upx)); border-radius: calc(8 * var(--upx)); background: repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 calc(4 * var(--upx)), rgba(255,255,255,.2) calc(4 * var(--upx)) calc(9 * var(--upx))); }
+.fp-bag-fill { position: absolute; inset: calc(42 * var(--upx)) calc(26 * var(--upx)) calc(26 * var(--upx)); }
+/* 감자채 한 가닥 */
+.fp-bag-fill i {
+  position: absolute;
+  left: var(--fp-x);
+  top: var(--fp-y);
+  width: calc(120 * var(--upx));
+  height: calc(15 * var(--upx));
+  border-radius: calc(7 * var(--upx));
+  background: linear-gradient(#f6e7b8,#dcc07d);
+  box-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(60,35,12,.35);
+  transform: rotate(var(--fp-turn));
+}
+/* 튀김가루 */
+.fp-bag-fill b {
+  position: absolute;
+  left: var(--fp-x);
+  top: var(--fp-y);
+  width: calc(var(--fp-size) * var(--upx));
+  height: calc(var(--fp-size) * var(--upx));
+  border-radius: 50%;
+  background: rgba(255,253,246,.9);
+  box-shadow: 0 0 calc(4 * var(--upx)) rgba(255,255,255,.5);
+}
+/* 가루가 많이 묻을수록 봉투 안이 뽀얘집니다 */
+.fp-bag.stage-35 .fp-bag-fill i { filter: brightness(1.06) saturate(.9); }
+.fp-bag.stage-70 .fp-bag-fill i { filter: brightness(1.12) saturate(.75); }
+.fp-bag.stage-100 .fp-bag-fill i { filter: brightness(1.2) saturate(.6); }
+.fp-bag.has-asset { border-color: transparent; background: none; box-shadow: none; overflow: visible; }
+.fp-bag.has-asset .fp-bag-zip,
+.fp-bag.has-asset .fp-bag-fill { display: none; }
+.fp-bag-asset { width: 100%; height: 100%; object-fit: contain; }
+
+/* 흔들림 이펙트 (fx_bag_shake_01~03) — **한 장에 좌우 물결이 다 들어 있고
+   가운데는 비어 있습니다.** 그래서 봉투 뒤에 한 장만 깔면 양쪽이 동시에 뜹니다.
+   세 장을 겹쳐 두고 흔들 때 차례로 켭니다 (자바스크립트 타이머 없이 CSS 만).
+
+   ⚠️ 세 장은 비율이 서로 다릅니다(3.34 / 3.71 / 3.72) — 물결이 퍼지는 정도가
+      장마다 다르기 때문입니다. 그래서 가로만 맞추고 세로는 그림 비율대로 둡니다
+      (height:auto). 한 크기로 묶으면 그 차이가 눌려 사라집니다.
+   가로 760 은 봉투(560)보다 넓어 물결이 봉투 좌우 밖으로 걸칩니다.
+
+   --fp-fx-turn 은 그때 흔든 대각선의 각도입니다. 물결은 흔든 방향의 양 끝에
+   생기는 것이라, 봉투가 비스듬히 갔으면 물결도 같이 기울어야 합니다.
+   (기울기를 각도로 바꾸는 계산은 engine-e2-alternate-input.js 의
+    setFriesShakeTilt 가 합니다 — CSS atan() 은 크롬 111 이상 전용입니다) */
+.fp-shake-fx {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 50%;
+  width: calc(760 * var(--upx));
+  height: calc(228 * var(--upx));
+  transform: translate(-50%,-50%) rotate(var(--fp-fx-turn,0deg));
+  pointer-events: none;
+}
+.fp-shake-fx-frame {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+/* 흔들림 표시 : 봉투 양옆의 활 세 개. 흔들 때만 밝아집니다.
+   위 이펙트 그림이 없을 때만 그려집니다 (engine-e2 의 friesShakeFxMarkup). */
+.fp-wave { position: relative; width: calc(52 * var(--upx)); height: calc(150 * var(--upx)); opacity: .3; }
+.fp-wave b {
+  position: absolute;
+  top: calc(var(--fp-i) * 14 * var(--upx));
+  bottom: calc(var(--fp-i) * 14 * var(--upx));
+  left: calc(var(--fp-i) * 16 * var(--upx));
+  width: calc(26 * var(--upx));
+  border-right: calc(5 * var(--upx)) solid #f0c069;
+  border-radius: 50%;
+}
+.fp-wave.left { transform: scaleX(-1); }
+
+/* ── 새우튀김 준비 : 단계별 한 그릇 · 마우스 굴리기 ──────────
+   세 재료를 한꺼번에 펼치지 않고 현재 재료 하나만 크게 보여 줍니다. */
+.fp-shrimp-roll-scene { width:100%; height:100%; min-height:0; display:grid; grid-template-rows:auto auto minmax(0,1fr) auto auto auto; align-items:center; justify-items:center; gap:calc(8 * var(--upx)); padding:calc(5 * var(--upx)) calc(12 * var(--upx)); }
+.fp-roll-stage-track { width:min(100%,calc(560 * var(--upx))); display:grid; grid-template-columns:repeat(3,1fr); align-items:center; gap:calc(7 * var(--upx)); }
+.fp-roll-stage-track span { min-width:0; display:flex; align-items:center; justify-content:center; gap:calc(6 * var(--upx)); padding:calc(7 * var(--upx)) calc(5 * var(--upx)); border:2px solid #664429; border-radius:calc(18 * var(--upx)); background:rgba(28,16,8,.62); color:#9f825e; font-size:calc(14 * var(--upx)); font-weight:900; white-space:nowrap; }
+.fp-roll-stage-track span i { display:grid; place-items:center; width:calc(22 * var(--upx)); height:calc(22 * var(--upx)); border-radius:50%; background:#3c2717; color:#b89970; font-style:normal; }
+.fp-roll-stage-track span.current { border-color:#f0bd61; background:#64401f; color:#ffe0a0; box-shadow:0 0 calc(12 * var(--upx)) rgba(240,189,97,.28); }
+.fp-roll-stage-track span.current i { background:#d79535; color:#2a180d; }
+.fp-roll-stage-track span.done { border-color:#799854; color:#cde3a2; }
+.fp-roll-stage-track span.done i { background:#6f9447; color:#fff5d1; }
+.fp-roll-title { display:flex; align-items:baseline; justify-content:center; gap:calc(11 * var(--upx)); color:#e7c58c; }
+.fp-roll-title small { font-size:calc(14 * var(--upx)); font-weight:800; }
+.fp-roll-title strong { color:#ffe0a0; font-size:calc(23 * var(--upx)); }
+.fp-roll-vessel { position:relative; width:min(100%,calc(570 * var(--upx))); height:calc(285 * var(--upx)); overflow:hidden; border:calc(8 * var(--upx)) solid #9b7750; border-top-width:calc(5 * var(--upx)); border-radius:calc(24 * var(--upx)) calc(24 * var(--upx)) 45% 45%; background:#e8dfc5; box-shadow:inset 0 calc(-18 * var(--upx)) calc(28 * var(--upx)) rgba(91,58,29,.3),0 calc(8 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.46),0 0 calc(22 * var(--upx)) rgba(255,204,106,.2); }
+.fp-roll-vessel.flour { border-color:#7e5b39; background:radial-gradient(ellipse at 48% 38%,#fffdf6 0 34%,#e6ddc6 76%); }
+.fp-roll-vessel.egg { border-color:#96703d; background:radial-gradient(ellipse at 43% 36%,#ffe48c 0 26%,#dfa22c 76%); }
+.fp-roll-vessel.breadcrumbs { border-color:#79502f; background:radial-gradient(circle,#956335 0 calc(2 * var(--upx)),transparent calc(2.6 * var(--upx))) 0 0/calc(12 * var(--upx)) calc(11 * var(--upx)),#d8ae6d; }
+.fp-roll-vessel > .fp-vessel-asset { z-index:0; }
+.fp-roll-surface { position:absolute; z-index:1; inset:calc(14 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); overflow:hidden; border-radius:calc(18 * var(--upx)) calc(18 * var(--upx)) 44% 44%; touch-action:none; }
+.fp-roll-shrimp { position:absolute; left:50%; top:50%; width:calc(150 * var(--upx)); height:calc(84 * var(--upx)); cursor:grab; touch-action:none; transform:translate(calc(-50% + var(--shrimp-roll-x,0px)),-50%) rotate(var(--shrimp-roll-turn,0deg)) scale(1.28); transform-origin:center; filter:drop-shadow(0 calc(6 * var(--upx)) calc(6 * var(--upx)) rgba(48,25,10,.55)); will-change:transform; }
+.fp-roll-shrimp.dragging { cursor:grabbing; filter:drop-shadow(0 calc(9 * var(--upx)) calc(8 * var(--upx)) rgba(48,25,10,.62)) brightness(1.04); }
+/* 진행 중 큰 새우는 에셋 한 장 대신 단계 색이 바뀌는 CSS 도형을 씁니다. */
+.fp-roll-shrimp.has-asset .fp-shrimp-asset { display:none; }
+.fp-roll-shrimp.has-asset::before,.fp-roll-shrimp.has-asset::after,.fp-roll-shrimp.has-asset .fp-shrimp-eye { display:block; }
+.fp-roll-shrimp.coating-flour.stage-0::before { border-color:#c9c3bb; border-left-color:transparent; }
+.fp-roll-shrimp.coating-egg.stage-0::before { border-color:#fffaf0; border-left-color:transparent; }
+.fp-roll-shrimp.coating-breadcrumbs.stage-0::before { border-color:#ffe9ae; border-left-color:transparent; }
+.fp-roll-shrimp.stage-0 b { opacity:0; }
+.fp-roll-shrimp.stage-1 b:nth-of-type(n+5),.fp-roll-shrimp.stage-2 b:nth-of-type(n+9) { opacity:0; }
+.fp-roll-batch { display:flex; align-items:center; justify-content:center; gap:calc(10 * var(--upx)); }
+.fp-roll-batch > i { display:grid; place-items:center; width:calc(34 * var(--upx)); height:calc(34 * var(--upx)); border:2px solid #6f4b2f; border-radius:50%; background:#29180e; color:#ad8a62; font-size:calc(15 * var(--upx)); font-style:normal; font-weight:900; transition:transform .15s,background .15s; }
+.fp-roll-batch > i.current { border-color:#e5b45f; color:#ffe1a0; box-shadow:0 0 calc(10 * var(--upx)) rgba(229,180,95,.38); }
+.fp-roll-batch > i.done { border-color:#7f9e57; background:#668844; color:#fff4ce; }
+.fp-roll-batch > i.fresh { animation:fp-batch-pop .35s ease-out; }
+.fp-roll-meter { width:min(78%,calc(440 * var(--upx))); height:calc(13 * var(--upx)); overflow:hidden; border:2px solid #69472c; border-radius:calc(8 * var(--upx)); background:#180d08; box-shadow:inset 0 calc(2 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.5); }
+.fp-roll-meter i { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#d58a35,#f4d36d,#83a957); transition:width .05s linear; }
+.fp-roll-hint { margin:0; color:#e0be87; font-size:calc(15 * var(--upx)); font-weight:800; }
+
+/* 이전 세 그릇 마크업의 스타일은 저장 데이터 호환용으로 남겨 둡니다. */
+.fp-coat-row { display: flex; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); }
+.fp-coat-station { position: relative; display: grid; place-items: center; opacity: .42; transition: opacity .15s; }
+.fp-coat-station.done { opacity: .72; }
+.fp-coat-station.current { opacity: 1; }
+.fp-coat-station.flour { grid-area: 1 / 1 / 2 / 3; }
+.fp-coat-station.egg { grid-area: 1 / 3 / 2 / 5; }
+/* 빵가루는 아래 가운데 — 위 두 그릇 사이에 걸칩니다 */
+.fp-coat-station.breadcrumbs { grid-area: 2 / 2 / 3 / 4; }
+/* z-index 는 그릇 위로 올리려는 것입니다 — 그릇을 붙여 놓으면서 화살표 끝이
+   옆 그릇 상자에 몇 px 물리는데, 그냥 두면 뒤에 오는 그릇이 덮어 가립니다. */
+.fp-coat-arrow { position: relative; z-index: 3; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+/* 그림 화살표가 들어오면 글자 화살표 자리(글꼴 높이)를 없애야 상자가 그림에 맞습니다 */
+.fp-coat-arrow.has-asset { font-size: 0; line-height: 0; }
+.fp-coat-arrow-asset { display: block; width: calc(52 * var(--upx)); height: auto; filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(40,22,8,.55)); }
+/* 첫 화살표는 밀가루 → 계란물(오른쪽), 둘째는 계란물 → 빵가루(왼쪽 아래).
+   첫째는 2·3열에 걸치면 그 자리가 곧 위 두 그릇의 한가운데입니다.
+   둘째는 격자에 자리가 없어 계란물 아래 칸에 넣고, 거기서 두 그릇을 잇는
+   대각선 한가운데로 끌어올립니다 — 칸에 그냥 두면 오른쪽 끝에 혼자 떨어져
+   어느 그릇에서 어느 그릇으로 가라는 건지 안 읽힙니다.
+   올리는 양 = 두 그릇 중심 사이 거리의 절반 = (위칸/2 + 간격 + 아래칸/2) / 2.
+   ⚠️ 두 줄 높이가 서로 다르므로(268 · 295) 한 칸의 절반으로 계산하면 안 됩니다.
+   ⚠️ 둘 다 계란물 쪽으로 조금 밀어 둡니다. 정확한 중점에 두면 밀가루 그릇이
+      계란물 그릇보다 좁아서(295 vs 300) 화살표가 왼쪽으로 치우쳐 보이고,
+      아래 화살표도 빵가루 그릇이 커진 만큼 그쪽에 붙어 보입니다.
+      아래 화살표는 두 그릇을 잇는 대각선 방향(0.52, -0.85)으로 밉니다. */
+.fp-coat-row > i:nth-of-type(1) { grid-area: 1 / 2 / 2 / 4; transform: translateX(calc(6 * var(--upx))); }
+.fp-coat-row > i:nth-of-type(2) {
+  grid-area: 2 / 3;
+  transform: translateY(calc((var(--fp-bowl-h) / 2 + var(--fp-bowl-row-gap) + var(--fp-bowl-h2) / 2) / -2))
+             translate(calc(7 * var(--upx)),calc(-11 * var(--upx)))
+             rotate(135deg);
+}
+/* 그릇 자리. 납품 그림 셋 다 가로로 넓어(1.10 · 1.25 · 1.25) **세로 268 이 먼저
+   막히고** 가로는 295.3 / 333.9 / 335.6 으로 그려집니다. 상자 가로 336 은 가장
+   넓은 빵가루 그릇에 맞춘 값이라 어느 그릇도 잘리지 않습니다. */
+.fp-vessel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--fp-bowl-w);
+  height: var(--fp-bowl-h);
+  border: calc(7 * var(--upx)) solid #9c805d;
+  border-top-width: calc(4 * var(--upx));
+  border-radius: calc(14 * var(--upx)) calc(14 * var(--upx)) 46% 46%;
+  background: #e8dfc5;
+  box-shadow: inset 0 calc(-10 * var(--upx)) calc(16 * var(--upx)) rgba(120,90,50,.28), 0 calc(6 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.4);
+}
+/* 튀김가루는 네모난 트레이, 나머지는 둥근 볼입니다 */
+.fp-vessel.flour { border-color: #7c5533; border-radius: calc(10 * var(--upx)); }
+.fp-vessel.egg { background: radial-gradient(circle at 42% 34%,#ffd977,#e0a52d); }
+.fp-vessel.breadcrumbs { background: radial-gradient(circle,#9c6a38 0 calc(2 * var(--upx)),transparent calc(2.5 * var(--upx))) 0 0/calc(11 * var(--upx)) calc(10 * var(--upx)),#deb877; }
+.fp-vessel.has-asset { border: 0; background: none; box-shadow: none; }
+.fp-vessel-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+/* 빵가루 그릇만 큰 상자를 씁니다. 자기 칸(336)보다 넓어 좌우로 삐져나오지만
+   아랫줄 1·4열이 비어 있어 겹칠 것이 없습니다. */
+.fp-vessel.breadcrumbs { width: var(--fp-bowl-w2); height: var(--fp-bowl-h2); }
+/* 계란물 그릇은 셋 중 가장 납작해서(1.246) 옆의 밀가루 그릇(1.102)과 원근이
+   달라 보였습니다. 가로를 더 많이 깎아 원 쪽으로 당깁니다 — 300x258(1.163).
+   ⚠️ 그림 자체를 눌러 담은 것이라 살짝 찌그러집니다. 의도한 것이고,
+      WebP 도 같은 비율로 미리 눌러 뽑습니다(tools 표의 stretch 항목).
+      그래서 여기서는 object-fit:contain 이 그대로 딱 맞습니다. */
+.fp-vessel.egg .fp-vessel-asset { inset: calc(5 * var(--upx)) calc(18 * var(--upx)); }
+/* ── 그릇 안에서 새우가 앉는 높이 ──────────────────────────
+   그릇은 위에서 비스듬히 내려다본 그림이라, 음식이 담긴 면이 그릇 상자의
+   한가운데가 아니라 **조금 위쪽**에 있습니다. 새우를 상자 한가운데(기본)에
+   두면 음식보다 아래로 처져서 그릇 앞 테두리에 걸터앉은 것처럼 보입니다.
+   그래서 세 그릇 모두 조금씩 올립니다.
+   ⚠️ transform 이 아니라 top / left 로 옮깁니다. .fp-shrimp 의 transform 은
+      구르는 애니메이션이 쓰고 있어서, 여기서 겹쳐 쓰면 굴릴 때마다 제자리로
+      튕겨 내려갑니다. (.fp-shrimp 는 이미 position:relative 입니다)
+   ⚠️ margin 으로 하면 안 됩니다. 그릇이 place-items:center 라 **여백 상자**를
+      가운데 맞추므로 적은 값의 **절반만** 밀립니다 — 실측으로 확인했습니다
+      (margin-bottom 12 → 실제 6). top 은 적은 만큼 그대로 갑니다.
+   계란물과 빵가루는 더 올립니다 — 둘 다 담긴 면이 그릇 상자 위쪽에 치우쳐
+   있어서 공통값만으로는 새우가 앞 테두리 쪽으로 처져 보입니다.
+     계란물  그릇을 줄이면서 계란물 면이 같이 올라갔습니다
+             (상자 기준 아래끝 220.4 · 새우 아래끝은 원래 221.5 라 밖으로 걸침).
+             오른쪽으로도 조금 미는데, 그릇 그림이 왼쪽으로 살짝 치우쳐 있습니다.
+     빵가루  그릇만 커졌는데(295) 새우는 그대로라 상자 한가운데가 면보다 아래입니다
+             (면 5.6~255.5 의 한가운데는 130.5, 새우 중심은 147.5) */
+.fp-vessel .fp-shrimp { top: calc(-12 * var(--upx)); }
+.fp-vessel.egg .fp-shrimp { top: calc(-14 * var(--upx)); left: calc(7 * var(--upx)); }
+.fp-vessel.breadcrumbs .fp-shrimp { top: calc(-11 * var(--upx)); }
+
+/* 지금 그릇을 감싸는 빛 고리 */
+.fp-coat-station.current .fp-vessel { box-shadow: inset 0 calc(-10 * var(--upx)) calc(16 * var(--upx)) rgba(120,90,50,.28), 0 0 calc(26 * var(--upx)) rgba(255,205,110,.55); }
+/* ⚠️ 그림이 들어오면 상자 그림자를 **전부** 끕니다.
+   그릇은 둥근데 box-shadow 는 250x230 네모를 따라가서, 켜 두면 그릇 둘레에
+   네모난 후광이 서고 inset 쪽은 그림 밖 빈자리에 갈색 띠로 비칩니다.
+   대신 그림 실루엣을 따라가는 drop-shadow 로 바꿉니다 — 평소에는 그릇이
+   판에서 한 겹 떠 보이는 그림자, 지금 차례에는 금빛 후광입니다. */
+.fp-vessel.has-asset,
+.fp-coat-station.current .fp-vessel.has-asset { box-shadow: none; }
+.fp-vessel-asset { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)); }
+/* 후광은 두 겹입니다 — 좁고 진한 테두리 빛 + 넓게 퍼지는 빛.
+   한 겹으로는 나무 도마 위에서 거의 안 보입니다. */
+.fp-coat-station.current .fp-vessel-asset { filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(7 * var(--upx)) rgba(255,214,130,.95)) drop-shadow(0 0 calc(22 * var(--upx)) rgba(255,190,90,.65)); }
+/* ⚠️ 고리를 **납작하게 눌러** 씁니다. 그릇이 336x268 이라 원형 고리로 둘레를
+   돌리려면 반지름이 172 는 되어야 하는데, 그러면 위아래로 조리대 밖까지
+   삐져나갑니다(조리대 안쪽 세로 573.2 에 그릇 두 줄이 562 라 여유가 5.6뿐).
+   가로 172 · 세로 132 짜리 타원이면 세 그릇 모두 그림 바로 바깥을 돕니다. */
+.fp-sparks { position: absolute; inset: calc(-10 * var(--upx)); pointer-events: none; transform: scaleY(.767); --fp-spark-r: calc(var(--fp-bowl-w) / 2 + 4 * var(--upx)); }
+.fp-coat-station.breadcrumbs .fp-sparks { --fp-spark-r: calc(var(--fp-bowl-w2) / 2 + 2 * var(--upx)); }
+.fp-sparks b {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(9 * var(--upx));
+  height: calc(9 * var(--upx));
+  border-radius: 50%;
+  background: #ffdd98;
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(255,214,130,.9);
+  /* 반지름은 그릇 상자의 반보다 커야 그릇 위가 아니라 둘레에 뜹니다.
+     그래서 그릇 폭에서 끌어옵니다 — 빵가루 그릇만 커서 고리도 같이 커집니다.
+     세로는 위 .fp-sparks 의 scaleY 가 눌러 줍니다.
+     (아래 fp-spark 키프레임도 같은 변수를 씁니다) */
+  transform: rotate(var(--fp-turn)) translateY(calc(0px - var(--fp-spark-r)));
+  animation: fp-spark 1.6s ease-in-out infinite;
+  animation-delay: calc(var(--fp-i) * -.16s);
+}
+
+/* 새우 (임시 도형)
+   그릇 색과 옷 색이 비슷해서 묻히는 중에도 새우가 보이도록
+   테두리 그림자를 깔아 그릇에서 한 겹 띄웁니다. */
+.fp-shrimp {
+  position: relative;
+  z-index: 2;
+  width: calc(150 * var(--upx));
+  height: calc(84 * var(--upx));
+  filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(48,25,10,.55));
+  transition: filter .15s;
+}
+.fp-shrimp::before { content: ""; position: absolute; left: calc(18 * var(--upx)); top: calc(9 * var(--upx)); width: calc(84 * var(--upx)); height: calc(52 * var(--upx)); border: calc(14 * var(--upx)) solid #cfc8bf; border-left-color: transparent; border-radius: 50%; transform: rotate(12deg); }
+.fp-shrimp::after { content: ""; position: absolute; right: calc(8 * var(--upx)); top: calc(34 * var(--upx)); border-block: calc(16 * var(--upx)) solid transparent; border-left: calc(28 * var(--upx)) solid #d98a68; transform: rotate(-8deg); }
+.fp-shrimp-eye { position: absolute; z-index: 3; left: calc(17 * var(--upx)); top: calc(8 * var(--upx)); width: calc(13 * var(--upx)); height: calc(13 * var(--upx)); border-radius: 50%; background: #352019; }
+.fp-shrimp.coating-flour::before { border-color: #fffaf0; border-left-color: transparent; }
+.fp-shrimp.coating-egg::before { border-color: #ffe9ae; border-left-color: transparent; }
+.fp-shrimp.coating-breadcrumbs::before { border-color: #f2d9a4; border-left-color: transparent; }
+/* 아직 하나도 안 묻은 새우는 생새우 색 그대로입니다 */
+.fp-shrimp.stage-0::before { border-color: #c9c3bb; border-left-color: transparent; }
+.fp-shrimp.stage-1 { filter: brightness(1.05); }
+.fp-shrimp.stage-2 { filter: brightness(1.1) saturate(.9); }
+.fp-shrimp.stage-3 { filter: brightness(1.16) saturate(.8); }
+/* 빵가루 알갱이 */
+.fp-shrimp b { position: absolute; z-index: 4; left: var(--fp-x); top: var(--fp-y); width: calc(10 * var(--upx)); height: calc(7 * var(--upx)); border-radius: 50%; background: #e3bd71; transform: rotate(var(--fp-turn)); }
+.fp-shrimp.has-asset::before,
+.fp-shrimp.has-asset::after,
+.fp-shrimp.has-asset .fp-shrimp-eye,
+/* 빵가루 알갱이도 끕니다 — 납품 그림에 이미 알갱이가 그려져 있습니다 */
+.fp-shrimp.has-asset b { display: none; }
+.fp-shrimp-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 납품 그림은 새우가 꼬리를 세운 모습이라 거의 정사각(680x639)입니다.
+   임시 도형 자리(150x84)에 넣으면 세로가 먼저 막혀 89x84 로 쪼그라들어서,
+   그림이 있을 때만 자리를 새우 비율에 맞춥니다. 186 은 가장 얕은 그릇
+   (빵가루 · 안쪽 약 278x198)에 새우가 안 걸리는 크기입니다. */
+.fp-shrimp.has-asset { width: calc(186 * var(--upx)); height: calc(175 * var(--upx)); }
+/* ── 굴러가는 느낌 : 누를 때마다 새우가 옆으로 넘어갑니다 ────
+   뒤집는 축이 **새우가 누운 방향(장축)** 입니다. 좌우(세로축)로 뒤집으면
+   머리와 꼬리가 자리를 바꿔서 "굴렀다"가 아니라 "돌아섰다"로 보입니다.
+   장축으로 뒤집으면 배와 등만 바뀌므로 제자리에서 데구루루 구릅니다.
+
+   [-39.3도]  납품 그림 10장의 알파 마스크 주축을 재서 나온 값입니다
+   (raw −39.3 · flour_full −39.4 · breadcrumb_full −39.3 으로 거의 같습니다).
+   그림을 다시 받아 새우가 누운 각도가 바뀌면 이 값도 다시 재야 합니다.
+
+   [축을 세우는 법]  어떤 각도 θ 의 선을 기준으로 뒤집는 것은
+   "θ 만큼 되돌려 눕히고 → 위아래로 뒤집고 → 다시 θ 만큼 세우기" 입니다.
+   CSS 는 오른쪽부터 적용되므로 rotate(θ) scaleY(-1) rotate(−θ) 순서입니다.
+
+   ⚠️ transform-origin 을 상자 한가운데(기본값)로 두면 안 됩니다. 새우 무게중심이
+      상자 중심에서 벗어나 있어(그림 기준 54.7% · 61.3%) 뒤집을 때마다 새우가
+      42 만큼 대각선으로 튑니다. 무게중심을 축으로 삼아야 제자리에서 구릅니다.
+
+   scaleY 가 1 → −1 로 지나가면 중간에 0 을 통과합니다. 그게 곧 반 바퀴라
+   따로 회전을 넣지 않아도 넘어가는 것처럼 보입니다. 누를 때마다 화면을
+   다시 그리므로 요소가 매번 새것이고, 그래서 애니메이션도 매번 처음부터 돕니다.
+
+   뒤집기는 **그림(img)** 에, 구르는 이동·회전은 **바깥 상자(.fp-shrimp)** 에
+   겁니다. 한 요소에 둘 다 걸면 transform 이 서로를 덮어씁니다.
+
+   [넘어갔을 때 16 만큼 끌어올리는 이유]
+   새우가 활처럼 굽어 있어서 장축으로 뒤집으면 머리와 꼬리가 축 반대편으로
+   넘어갑니다. 그래서 뒤집힌 쪽이 원래보다 아래로 더 내려가는데(납품 10장
+   실측 최대 115.9 화소 = 화면 31.7), 그대로 두면 머리가 그릇 아래 테두리를
+   뚫고 나옵니다.
+   ⚠️ 그 31.7 을 전부 올리면 이번엔 **제자리에서 구르는 느낌이 사라집니다** —
+      새우가 눈에 띄게 위로 솟았다가 돌아옵니다. 절반만 올려, 아래로는 안
+      비어져 나오면서(가장 얕은 빵가루 그릇 기준으로 확인) 구르는 자리는
+      거의 그대로인 선을 잡았습니다. 위로는 조금 더 나가지만 그릇 안쪽입니다.
+   ⚠️ translateY 는 base·rolled·키프레임 **네 곳 모두**에 적어야 합니다.
+      transform 은 함수 목록이 같아야 부드럽게 이어집니다. */
+.fp-shrimp-asset { transform-origin: 54.7% 61.3%; transform: translateY(0) rotate(-39.3deg) scaleY(1) rotate(39.3deg); }
+.fp-shrimp.rolled .fp-shrimp-asset { transform: translateY(calc(-16 * var(--upx))) rotate(-39.3deg) scaleY(-1) rotate(39.3deg); }
+@keyframes fp-shrimp-roll-over { from { transform: translateY(0) rotate(-39.3deg) scaleY(1) rotate(39.3deg); } }
+@keyframes fp-shrimp-roll-back { from { transform: translateY(calc(-16 * var(--upx))) rotate(-39.3deg) scaleY(-1) rotate(39.3deg); } }
+.fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp.rolled .fp-shrimp-asset { animation: fp-shrimp-roll-over .18s ease; }
+.fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp:not(.rolled) .fp-shrimp-asset { animation: fp-shrimp-roll-back .18s ease; }
+/* 단계별 그림이 따로 있으므로 임시 도형용 밝기 보정은 끕니다.
+   (그대로 두면 filter 가 통째로 덮여 그림자까지 사라집니다) */
+.fp-shrimp.has-asset.stage-1,
+.fp-shrimp.has-asset.stage-2,
+.fp-shrimp.has-asset.stage-3 { filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(48,25,10,.55)); }
+
+/* ── 누를 때마다 한 번씩 흔들립니다 (왼쪽 키 / 오른쪽 키) ──── */
+.fp-bag-scene.shake-left .fp-bag { animation: fp-shake-left .16s ease; }
+.fp-bag-scene.shake-right .fp-bag { animation: fp-shake-right .16s ease; }
+/* 봉투를 잡고 끄는 동안에는 손을 따라가는 것이 곧 흔들림입니다.
+   여기에 흔들림 애니메이션까지 걸면 둘 다 transform 이라 봉투가 튑니다.
+   (셋 다 .fp-bag 을 잡으므로 이 규칙이 뒤에 와야 이깁니다) */
+.fp-bag-scene.shake-left .fp-bag.dragging,
+.fp-bag-scene.shake-right .fp-bag.dragging { animation: none; }
+/* 이펙트 세 장을 차례로 켭니다 — 한 번 흔들 때 01 → 02 → 03 (끄는 중에도 뜹니다) */
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame { animation: fp-shake-fx-flash .1s ease-out; }
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame.f2 { animation-delay: .07s; }
+.fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame.f3 { animation-delay: .14s; }
+.fp-bag-scene.shake-left .fp-wave.left,
+.fp-bag-scene.shake-right .fp-wave.right { animation: fp-wave-pop .24s ease; }
+.fp-coat-station.shake-left .fp-shrimp { animation: fp-roll-left .18s ease; }
+.fp-coat-station.shake-right .fp-shrimp { animation: fp-roll-right .18s ease; }
+
+/* ── 옮기기 : 다 묻은 새우를 집어 다음 그릇에 놓습니다 ────────
+   포인터 처리는 E8 공용 배치기(engine-e8-order-place.js)를 그대로 씁니다.
+   그래서 끄는 동안 붙는 클래스도 E8 것과 같습니다 —
+   원본은 .order-source-dragging, 놓을 자리는 .order-drop-ready,
+   커서를 따라다니는 복제본은 .order-drag-ghost 입니다. */
+.fp-shrimp.carry { cursor: grab; touch-action: none; }
+.fp-shrimp.carry:active { cursor: grabbing; }
+/* 집어 갈 수 있다는 표시 — 다 묻은 새우가 그릇 위에서 살짝 떠 있습니다 */
+.fp-coat-row.carrying .fp-shrimp.carry { animation: fp-carry-bob 1.1s ease-in-out infinite; }
+@keyframes fp-carry-bob { 50% { transform: translateY(calc(-9 * var(--upx))); } }
+/* 놓을 그릇. 지금 차례 그릇과 같은 밝기로 켜고 금빛 테를 천천히 깜빡입니다
+   (E8 꼬치의 .sk-next-pulse 와 같은 결입니다) */
+.fp-coat-station.next-bowl { opacity: 1; }
+.fp-coat-station.next-bowl .fp-vessel-asset { animation: fp-next-bowl-pulse 1.1s ease-in-out infinite; }
+@keyframes fp-next-bowl-pulse {
+  0%,100% { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)); }
+  50% { filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(20 * var(--upx)) rgba(255,205,110,.8)); }
+}
+/* 그릇 그림이 둥그니까 네모난 outline 대신 그림을 밝히는 것으로 바꿉니다
+   (.order-drop-ready 기본값은 노란 네모 테두리입니다) */
+.fp-coat-station.order-drop-ready { outline: 0; }
+.fp-coat-station.order-drop-ready .fp-vessel-asset { animation: none; filter: drop-shadow(0 calc(6 * var(--upx)) calc(9 * var(--upx)) rgba(0,0,0,.45)) drop-shadow(0 0 calc(24 * var(--upx)) rgba(255,224,141,1)); }
+/* 커서를 따라오는 새우. E8 기본 상자(92x78)는 새우에 너무 작습니다 */
+.order-drag-ghost.shrimp { width: calc(186 * var(--upx)); height: calc(175 * var(--upx)); }
+
+/* 봉투는 **통째로** 대각선으로 갑니다. 원래 여기에 rotate 가 함께 들어 있었는데,
+   봉투가 제자리에서 기울기만 해서 아래는 붙박이고 윗동아리만 흔들려 보였습니다.
+   기울기를 빼고 옮기는 거리를 키웠습니다(18 → 30).
+
+   --fp-tilt 는 "가로로 간 만큼에 견준 세로 이동"입니다. 0 이면 정확히 좌우고,
+   음수면 ↖↘, 양수면 ↙↗ 로 흔듭니다. 한 번 흔들 때마다 값이 바뀌므로
+   축이 조금씩 기울어 손으로 흔드는 것처럼 보입니다
+   (engine-e2-alternate-input.js 의 FRIES_SHAKE_TILTS · 끌어서 흔들 때는
+    손이 실제로 지나간 방향이 그대로 들어옵니다). */
+@keyframes fp-shake-left {
+  38% { transform: translate(calc(-30 * var(--upx)),calc(-30 * var(--upx) * var(--fp-tilt,0))); }
+  74% { transform: translate(calc(12 * var(--upx)),calc(12 * var(--upx) * var(--fp-tilt,0))); }
+}
+@keyframes fp-shake-right {
+  38% { transform: translate(calc(30 * var(--upx)),calc(30 * var(--upx) * var(--fp-tilt,0))); }
+  74% { transform: translate(calc(-12 * var(--upx)),calc(-12 * var(--upx) * var(--fp-tilt,0))); }
+}
+@keyframes fp-wave-pop { 0% { opacity: .3; } 40% { opacity: 1; } 100% { opacity: .3; } }
+/* 이펙트 한 장이 뜨고 지는 동안. 좌우로 조금 벌어지며 사라집니다 */
+@keyframes fp-shake-fx-flash {
+  0% { opacity: 0; transform: translateY(-50%) scaleX(.93); }
+  45% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(1.05); }
+}
+/* 새우가 커진 만큼(140 → 186) 구르는 거리도 같이 넓혔습니다 */
+@keyframes fp-roll-left { 45% { transform: translateX(calc(-19 * var(--upx))) rotate(-14deg); } 80% { transform: translateX(calc(7 * var(--upx))) rotate(5deg); } }
+@keyframes fp-roll-right { 45% { transform: translateX(calc(19 * var(--upx))) rotate(14deg); } 80% { transform: translateX(calc(-7 * var(--upx))) rotate(-5deg); } }
+@keyframes fp-spark { 0%,100% { opacity: .25; transform: rotate(var(--fp-turn)) translateY(calc(6 * var(--upx) - var(--fp-spark-r))) scale(.7); } 50% { opacity: 1; transform: rotate(var(--fp-turn)) translateY(calc(-6 * var(--upx) - var(--fp-spark-r))) scale(1); } }
+@keyframes fp-key-press { 50% { transform: translateY(calc(3 * var(--upx))) scale(.94); filter: brightness(1.18); } }
+@keyframes fp-key-wrong { 0%,100% { transform: translateX(0); } 40% { transform: translateX(calc(-4 * var(--upx))); } 75% { transform: translateX(calc(4 * var(--upx))); } }
+@keyframes e2-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
+@keyframes fp-input-wrong { 0%,100% { transform:translateX(0); } 40% { transform:translateX(calc(-5 * var(--upx))); } 75% { transform:translateX(calc(4 * var(--upx))); } }
+@keyframes fp-stage-complete { 0% { transform:scale(1); filter:brightness(1); } 48% { transform:translateY(calc(-8 * var(--upx))) scale(1.06); filter:brightness(1.22); } 100% { transform:scale(1); filter:brightness(1); } }
+@keyframes fp-drag-arrow { 0%,100% { transform:translateX(calc(-5 * var(--upx))); } 50% { transform:translateX(calc(5 * var(--upx))); } }
+@keyframes fp-batch-pop { 45% { transform:scale(1.28); filter:brightness(1.25); } }
+
+
+@media (max-width:600px) {
+  .fp-count strong { font-size: calc(42 * var(--upx)); }
+  .fp-key { width: calc(44 * var(--upx)); height: calc(42 * var(--upx)); font-size: calc(24 * var(--upx)); }
+  .fp-control-desc { font-size: calc(13 * var(--upx)); }
+  .fp-ing-name { font-size: calc(16 * var(--upx)); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .fp-key.pressed,.fp-key.wrong,.e2-result.show,
+  .fp-coat-row.carrying .fp-shrimp.carry,
+  .fp-coat-station.next-bowl .fp-vessel-asset,
+  .fp-coat-station:is(.shake-left,.shake-right) .fp-shrimp-asset,
+  .fp-bag-scene:is(.shake-left,.shake-right) .fp-bag,
+  .fp-bag-scene:is(.shake-left,.shake-right) .fp-shake-fx-frame,
+  .fp-scene.input-wrong .fp-board,
+  .fp-scene.stage-complete .fp-coat-station.current,
+  .fp-scene.stage-complete .fp-shrimp-roll-scene,
+  .fp-drag-control b,.fp-roll-batch > i.fresh,
+  .fp-scene.stage-complete .md-scene,
+  .fp-scene.e2-complete .fp-board > :not(.e2-result) { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}

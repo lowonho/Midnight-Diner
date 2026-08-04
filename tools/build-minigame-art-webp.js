@@ -499,10 +499,11 @@ const FILES = [
   { file:"E11/food_tofu_kimchi_reference_complete.png", size:[420,295], css:".os-guide-figure .os-vessel 210x147.5" },
   /* [접시에 얹히는 낱개 2장] 자유 플레이팅에서 한 조각씩 놓이는 그림입니다.
      .os-food.free 의 --w (접시 가로 대비 %) x 접시 540 이 곧 화면 크기입니다.
-       두부   21% → 113.4 폭, 그림 비율 1.194 라 세로 95.0
-       김치   22% → 118.8 폭, 그림 비율 1.358 라 세로  87.5 */
-  { file:"E11/food_tofu_kimchi_tofu_piece.png",   size:[227,190], css:".os-food.free 113.4x95.0 (두부 한 조각)" },
-  { file:"E11/food_tofu_kimchi_kimchi_piece.png", size:[238,175], css:".os-food.free 118.8x87.5 (김치 한 조각)" },
+     크기는 engine-e11 의 pieceWidth 하나로 정해지니 거기를 고치면 여기도 같이.
+       두부   25% → 135.0 폭, 그림 비율 1.194 라 세로 113.1
+       김치   26% → 140.4 폭, 그림 비율 1.358 라 세로 103.4 */
+  { file:"E11/food_tofu_kimchi_tofu_piece.png",   size:[270,226], css:".os-food.free 135.0x113.1 (두부 한 조각)" },
+  { file:"E11/food_tofu_kimchi_kimchi_piece.png", size:[281,207], css:".os-food.free 140.4x103.4 (김치 한 조각)" },
   /* [왼쪽 재료 카드 2장] 낱개가 아니라 더미로 그린 그림입니다.
      .os-ing-art .os-art 가 카드 폭 210 을 그대로 쓰고 세로는 그림 비율대로입니다.
        두부   1069/677 = 1.579 → 210x133.0

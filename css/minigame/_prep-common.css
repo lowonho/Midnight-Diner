@@ -1,0 +1,64 @@
+/* ============================================================
+   낮 준비 미니게임 공용 조각
+   원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
+   
+   여기 있는 것은 **두 개 이상의 미니게임이 함께 쓰는 것만** 입니다.
+   한 게임만 쓰는 것을 여기 적으면 다시 겹칩니다 — 그 게임 파일로 보내세요.
+     · .order-drag-ghost  E8(반죽·꼬치·불리기) · E2(새우) · E11 이 함께 쓰는 드래그 그림
+     · .prep-complete-flash  다 끝났을 때의 반짝임 (day-prep-minigames.js · E2)
+     · coat-wrong / sk-next-pulse  두 게임 이상이 쓰는 @keyframes
+   @keyframes 는 이름이 곧 전역이라 어느 파일에 있든 순서와 상관없습니다.
+   ============================================================ */
+
+.order-drag-ghost {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: calc(92 * var(--upx));
+  height: calc(78 * var(--upx));
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-50%,-50%) rotate(-5deg) scale(1.08);
+  filter: drop-shadow(0 calc(9 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.5));
+}
+.order-drag-ghost > * { max-width: 100%; max-height: 100%; }
+.order-drag-ghost.flour .bt-ing-art i { border-radius:calc(7 * var(--upx)) calc(7 * var(--upx)) 46% 46%; background:linear-gradient(#c58c43,#89591f); box-shadow:inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(70,40,15,.45); }
+.order-drag-ghost.flour .bt-ing-art i::after { content:""; position:absolute; left:3%; right:3%; top:6%; height:48%; border-radius:50% 50% 40% 40%; background:radial-gradient(circle at 42% 26%,#fffdf6,#e4d9c0); }
+.order-drag-ghost.water .bt-ing-art i { width:calc(56 * var(--upx)); border-radius:calc(9 * var(--upx)) calc(9 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); background:linear-gradient(180deg,rgba(255,255,255,.9) 0 16%,#b6e2f4 17%,#5fb2d8); }
+.order-drag-ghost.kimchi .bt-ing-art i { border-radius:calc(12 * var(--upx)) calc(30 * var(--upx)) calc(14 * var(--upx)) calc(26 * var(--upx)); background:repeating-linear-gradient(110deg,#b9472f 0 calc(14 * var(--upx)),#d66135 calc(15 * var(--upx)) calc(26 * var(--upx)),#83964d calc(27 * var(--upx)) calc(31 * var(--upx))); }
+.order-source-dragging { opacity: .45; cursor: grabbing !important; }
+.order-drop-ready { outline: calc(4 * var(--upx)) solid #ffe08d; outline-offset: calc(5 * var(--upx)); filter: brightness(1.12); }
+.order-place-reject { animation: order-place-reject .34s ease; }
+.order-result {
+  position: absolute;
+  z-index: 15;
+  left: 50%;
+  top: 50%;
+  color: #fff0ae;
+  font-size: calc(52 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: .08em;
+  text-shadow: 0 calc(4 * var(--upx)) 0 #5b2d15,0 0 calc(18 * var(--upx)) rgba(255,214,112,.75);
+  pointer-events: none;
+}
+.order-result.good { color: #cfe7a4; }
+.order-result.show { animation: order-result-pop .72s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes order-place-reject { 25% { transform:translateX(calc(-8 * var(--upx))); } 60% { transform:translateX(calc(7 * var(--upx))); } 85% { transform:translateX(calc(-3 * var(--upx))); } }
+@keyframes order-result-pop { 0% { opacity:0; transform:translate(-50%,-40%) scale(.75); } 40%,80% { opacity:1; transform:translate(-50%,-50%) scale(1.05); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+
+
+.prep-complete-flash { filter: brightness(1.12); }
+
+@keyframes prep-pot-drop { from { opacity:0; transform:translateY(calc(-55 * var(--upx))) rotate(15deg); } to { opacity:1; transform:translateY(0); } }
+@keyframes prep-ingredient-drop { 0% { opacity:1; transform:translateY(0) rotate(-5deg); } 70%,100% { opacity:0; transform:translateY(calc(95 * var(--upx))) rotate(12deg) scale(.65); } }
+
+@keyframes coat-wrong { 25% { transform:translateX(-8px); } 55% { transform:translateX(7px); } 80% { transform:translateX(-4px); } }
+/* 닭꼬치·반죽 : 다음에 놓을(넣을) 칸이 천천히 깜빡입니다 */
+@keyframes sk-next-pulse { 50% { border-color:#fff2c4; box-shadow:0 0 calc(20 * var(--upx)) rgba(255,224,141,.5); } }
+
+@media (prefers-reduced-motion:reduce) {
+  .order-place-reject,.order-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
+}

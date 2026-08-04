@@ -70,7 +70,8 @@
      두 가지로 묶었습니다.
        기본        140.6  — 12화면
        글자 시간   198.1  — 남은 시간이 **글자 줄**로 붙는 카드 (E10 하나뿐)
-     E5 · E6 도 남은 시간이 있지만 9~10 짜리 얇은 바라 기본 140.6 에 들어갑니다.
+     E5 도 남은 시간이 있지만 9 짜리 얇은 바라 기본 140.6 에 들어갑니다.
+     (E6 은 제한시간이 없어져서 진행도 숫자만 씁니다)
      자세한 사연은 아래 .anchovy-count-card 규칙의 주석에 있습니다. */
   --mg-prog-h:      calc(140.6 * var(--upx));
   --mg-prog-time-h: calc(198.1 * var(--upx));
@@ -100,11 +101,12 @@
        E2 · E5  밝은 사각 (테두리 #8a5c32 · 안쪽 흰 선 · 아래 그림자 #4a2e1a)
        E7       어두운 사각 (배경 #3a2415 · 금색 글자)
        E6       키캡 (테두리 #7a6a4d · 아래 그림자 #6a5a41)  ← 이걸로 맞췄습니다
+     (E6 은 그 뒤 드래그 방식으로 바뀌어 키캡이 없어졌습니다. 겉모습만 남았습니다)
 
      ⚠️ **크기와 글꼴은 일부러 안 묶었습니다.** 화면마다 키에 들어가는 것이
-        달라서입니다 — E2 · E5 는 글리프 하나(◀ ↑), E6 는 'Space' 라는 낱말,
-        E7 은 작은 글리프 3개가 한 줄에 들어갑니다. 같은 폭으로 묶으면
-        글리프가 넓은 알약 안에서 작아 보입니다. 겉모습만 한 벌로 씁니다. */
+        달라서입니다 — E2 · E5 는 글리프 하나(◀ ↑), E7 은 작은 글리프 3개가
+        한 줄에 들어갑니다. 같은 폭으로 묶으면 글리프가 넓은 알약 안에서
+        작아 보입니다. 겉모습만 한 벌로 씁니다. */
   --mg-key-border: #7a6a4d;
   --mg-key-radius: calc(7 * var(--upx));
   --mg-key-bg:     linear-gradient(#efe6d3,#c9bda4);
@@ -214,9 +216,6 @@
    늘어나므로, 띠 안에서만 원래 크기로 되돌립니다. */
 .mg-strip .mini-action { width: auto; }
 .mg-strip .cut-footer { width: auto; }
-/* 온도 바(E6)는 띠 높이 78 안에 마커 삼각형까지 들어가야 합니다.
-   바 34 + 마커가 위로 튀어나오는 5 → 위 여백을 12 로 줄입니다. */
-.mg-strip .fry-temp-bar { padding-top: calc(12 * var(--upx)); }
 
 /* ---- 좁은 화면 보정 -----------------------------------------
    변수만 줄이면 11종이 같이 줄어듭니다. */
@@ -425,10 +424,10 @@
 .heat-ing-panel,
 .soak-ing-panel,
 .anchovy-ing-panel,
-.os-ing-panel      { --mg-panel-art: var(--mg-art-a1-613); }
+.os-ing-panel,
+.fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-613); }
 .cut-ing-panel,
-.ts-ing-panel,
-.fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-523); }
+.ts-ing-panel      { --mg-panel-art: var(--mg-art-a1-523); }
 .kf-ing-panel,
 .yk-ing-panel      { --mg-panel-art: var(--mg-art-a1-503); }
 
@@ -439,11 +438,11 @@
 .sk-guide,
 .heat-control,
 .soak-guide,
-.os-guide          { --mg-panel-art: var(--mg-art-a2-460); }
+.os-guide,
+.fry-rack-panel    { --mg-panel-art: var(--mg-art-a2-460); }
 .anchovy-ref-card  { --mg-panel-art: var(--mg-art-a2-403); }
 .cut-ref-card,
-.ts-control,
-.fry-control-card  { --mg-panel-art: var(--mg-art-a2-370); }
+.ts-control        { --mg-panel-art: var(--mg-art-a2-370); }
 .kf-next,
 .yk-next           { --mg-panel-art: var(--mg-art-a2-350); }
 
@@ -528,7 +527,6 @@
 /* 재료가 하나뿐인 화면 — 카드를 세로 가운데에 두고 높이를 --mg-ing-card-h 로 묶습니다.
    E11(.os-ing-list)이 같은 이유로 쓰던 방식입니다. */
 .cut-ing-list,
-.fry-ing-list,
 .anchovy-ing-list {
   flex: 1;
   display: flex;
@@ -537,7 +535,6 @@
   min-height: 0;
 }
 .cut-ing-card,
-.fry-ing-card,
 .anchovy-ing-card {
   flex: 0 1 var(--mg-ing-card-h);
   min-height: 0;
@@ -553,7 +550,6 @@
 .sk-ing-card,
 .soak-ing-card,
 .cut-ing-card,
-.fry-ing-card,
 .anchovy-ing-card,
 .heat-ing-card,
 .ts-ing-card,
@@ -580,7 +576,6 @@
 /* 🟪 B 재료 카드 — 카드 수와 패널 높이로 크기가 갈립니다 (5종) */
 .cut-ing-card,
 .ts-ing-card,
-.fry-ing-card,
 .anchovy-ing-card,
 .os-ing-card   { --mg-card-art: var(--mg-art-b-280); }
 .fp-ing-card,
@@ -595,9 +590,8 @@
 .yk-ing-card { --mg-card-art: var(--mg-art-b-139); }
 
 /* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
-   원래 200(E1) · 150(E6) · 190(E10) 으로 셋이 달랐던 에셋 자리가 하나가 됩니다. */
+   원래 200(E1) · 190(E10) 으로 달랐던 에셋 자리가 하나가 됩니다. */
 .cut-ing-card .cut-card-figure,
-.fry-ing-card .fry-ing-figure,
 .anchovy-ing-card .anchovy-card-figure {
   height: auto;
   min-height: 0;
@@ -637,7 +631,8 @@
         E5  `.ts-time`       얇은 바 9              → 136.8 이면 충분
         E6  `.fry-time-bar`  얇은 바 10             → 132.6 이면 충분
       6배 차이인데 같은 198.1 을 쓰느라 E5 는 53.3, E6 는 65.5 가 비어 있었습니다.
-      둘을 기본 140.6 으로 내렸습니다. 이제 13화면 중 12화면이 140.6 입니다. */
+      둘을 기본 140.6 으로 내렸습니다. 이제 13화면 중 12화면이 140.6 입니다.
+      (E6 은 그 뒤 제한시간 자체가 없어져 시간 바도 사라졌습니다) */
 .anchovy-count-card {
   height: var(--mg-prog-time-h);
 }
@@ -670,22 +665,20 @@
    이제 13화면이 같은 ★ 를 씁니다. */
 /* ---- 게이지 바 + 포인터 마커 (공용 규격) --------------------
    원래 높이가 28(.progress-track) · 30(.prep-timing-bar) · 34(.doneness-gauge)
-   · 38(.heat-gauge) · 46(.fry-temp-track) 다섯 가지였습니다.
+   · 38(.heat-gauge) · 46(E6 옛 온도 바) 다섯 가지였습니다.
    34 로 통일했습니다. 34 를 고른 이유는 E5 굽기 게이지가 이미 34 라
    그 게임만 손대지 않아도 되기 때문입니다.
+   (E6 은 튀기기가 드래그 방식으로 바뀌면서 게이지 자체가 없어졌습니다)
 
    색·무늬는 게임마다 다르게 두었습니다(온도/굽기/화력이 서로 다른 정보라서).
    여기서 맞추는 것은 높이·모서리·마커뿐입니다. */
 .prep-timing-bar,
 .progress-track,
 .doneness-gauge,
-.heat-gauge,
-.fry-temp-track {
+.heat-gauge {
   height: var(--mg-gauge-h);
   border-radius: var(--mg-gauge-r);
 }
-/* 튀김 온도 바만 테두리가 4px 라 안쪽이 좁아집니다. 2px 로 맞춥니다. */
-.fry-temp-track { border-width: 2px; }
 
 /* 마커는 바(34) 위아래로 5씩 튀어나와 44 가 됩니다. */
 .prep-timing-marker,

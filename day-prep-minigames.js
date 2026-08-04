@@ -293,7 +293,19 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
     `mandoline${veg.charAt(0).toUpperCase()}${veg.slice(1)}Whole${index+1}`,
     `assets/minigame/E2/food_${veg}_whole_0${index+1}.webp`
   ]))),
-  knife:"assets/minigame/E1/knife.png",
+  /* E1 칼질 소품 — 납품 파일명을 그대로 씁니다. 자리마다 그림이 다릅니다.
+       knife            세로 썰기 : 손잡이가 아래, 칼끝이 위, 날이 왼쪽입니다.
+       knifeHorizontal  두부 마지막 가로 썰기 : 눕힌 그림이 따로 와서 회전을 안 씁니다.
+       cutImpactFx1~3   썰릴 때 도마에 터지는 3장짜리 연속 이펙트 (1 → 2 → 3 순서).
+     ⚠️ 납품본은 1024x1535 · 1536x1024 · 887x1774 캔버스에 여백이 크게 남아 있었습니다.
+        여기 있는 파일은 알파 여백만 잘라낸 것이라 "CSS 상자 = 보이는 그림"입니다.
+        이펙트 3장만은 낱장으로 자르면 안 됩니다 — 세 장의 알파 영역을 합친
+        공통 캔버스(424x1642, 세로 68.8% 지점이 도마에 닿는 자리)로 잘라야
+        1 → 2 → 3 이 같은 자리에서 번집니다. 낱장 트리밍은 프레임이 어긋납니다. */
+  knife:"assets/minigame/E1/prop_knife_chop_vertical_ready_v4.png",
+  knifeHorizontal:"assets/minigame/E1/prop_knife_chop_horizontal_ready_v2.png",
+  ...Object.fromEntries(["01","02","03"].map((no,index)=>
+    [`cutImpactFx${index+1}`,`assets/minigame/E1/fx_knife_board_impact_vertical_${no}.png`])),
   ...Object.fromEntries(TTEOKBOKKI_CUT_SEQUENCE.flatMap(item=>item.progressSprites.map((src,index)=>[`${item.assetPrefix}${index}`,src]))),
   /* 감자튀김 준비(봉투 흔들기) — assets/minigame/E2/fries/ 의 납품 에셋입니다.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
