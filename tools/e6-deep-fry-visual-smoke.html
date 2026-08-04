@@ -78,7 +78,10 @@
        ?drop=N       냄비에 넣을 재료 수 (기본 3 = 정원)
        ?cook=SEC     넣은 뒤 흘려 볼 시간(초). 3.4 미만 설익음 / 7.6 미만 잘 익음 / 그 뒤 탐
        ?lift=N       망으로 건질 개수 (기본 0)
-       ?full=1       5개를 전부 잘 익은 상태로 건져 완성까지 갑니다 */
+       ?full=1       5개를 전부 잘 익은 상태로 건져 완성까지 갑니다
+       ?hold=1       마지막 끌기를 **손을 떼지 않은 채로** 멈춥니다.
+                     집게 커서가 튀김을 물고 있는 모습(아래팔 → 튀김 → 윗팔)을
+                     캡처할 때 씁니다. 이 상태에서는 냄비에 아무것도 안 들어갑니다. */
     const params = new URLSearchParams(location.search);
     const dishId = params.get("dish") === "fries" ? "fries" : "shrimpTempura";
     const dropCount = Math.max(0, Math.min(3, Number(params.get("drop") ?? 3)));
@@ -94,7 +97,15 @@
        기다리지 않고 바로 그리면 파일이 있는데도 임시 도형만 잡힙니다.
        한 장이라도 뜨면(= 있는 파일은 다 왔다는 뜻) 진행하고, 하나도 없으면
        1.5초 뒤 임시 도형 그대로 진행합니다(감자튀김은 아직 그림이 없습니다). */
-    waitForFryAssets().then(() => {
+    Promise.all([waitForFryAssets(), waitForStyles()]).then(() => {
+      /* ⚠️ 진짜 게임과 같이 .open 을 붙입니다. 이게 없으면 css/minigame-frame.css 의
+         손 그림 커서 규칙(.mini-overlay.open ...)이 안 걸려서, E6 이 그 규칙을
+         제대로 눌렀는지(cursor:none) 여기서 확인할 수가 없습니다.
+         ⚠️ 붙이자마자 **패널이 아래에서 올라오는 연출(mg-rise)이 시작됩니다.**
+            그 상태로 끌어다 놓으면 놓는 자리가 창 밖(약 1000 아래)이라 냄비에
+            아무것도 안 들어갑니다. 그래서 바로 연출을 끝으로 보냅니다. */
+      document.getElementById("miniOverlay")?.classList.add("open");
+      settleAnimations();
       state.mini = mini;
       // 실제 진입로와 같은 함수를 씁니다 — 화면을 베껴 적으면 진짜 화면과 어긋납니다
       // set 은 game.js 가 제목·설명·부제를 채우는 자리입니다. 같은 세 곳을 채웁니다.
@@ -113,8 +124,14 @@
             const piece = document.querySelector("[data-fry-source='piece']");
             if (piece) dragTo(`[data-fry-piece='${piece.dataset.fryPiece}']`, ".fry-rack", { x:50, y:50 });
           }
+          // 집게가 물고 있는 모습을 보려고 마지막 하나를 손에 쥔 채로 멈춥니다
+          if (params.get("hold") === "1") {
+            const held = document.querySelector("[data-fry-source='piece']") || document.querySelector("[data-fry-source='raw']");
+            if (held) dragTo(`[data-fry-source='${held.dataset.frySource}']`, ".fry-pot", { x:52, y:44 }, true);
+          }
         }
       } catch (error) { document.body.dataset.error = `play: ${error.message}\n${error.stack}`; }
+      settleAnimations();
       measure();
     });
 
@@ -126,6 +143,17 @@
           setTimeout(poll, 30);
         })();
       });
+    }
+
+    /* ⚠️ **스타일시트를 기다려야 합니다.** 그림이 먼저 오면 CSS 가 아직 안 붙은
+       상태로 끌어다 놓기가 시작되는데, 그때 .fry-pot 은 그냥 div 라 화면 아래
+       한참 밖에 있습니다. 그러면 놓는 자리가 창 밖(예: y=1426)이 되어
+       elementFromPoint 가 null 을 돌려주고, **냄비에 아무것도 안 들어간 채로**
+       "냄비가 비었다" 는 결과만 남습니다 — 게임이 멀쩡한데 스모크만 깨집니다.
+       (그림 용량이 바뀔 때마다 붙었다 떨어졌다 하는 종류의 함정입니다) */
+    function waitForStyles(){
+      if (document.readyState === "complete") return Promise.resolve();
+      return new Promise(resolve => window.addEventListener("load", resolve, { once:true }));
     }
 
     /* 5개를 전부 '잘 익은' 상태로 건져 완성까지 가 봅니다.
@@ -155,7 +183,7 @@
     /* 진짜 Pointer Events 로 끕니다.
        ⚠️ setPointerCapture 는 헤드리스에서 붙잡아 두면 이어지는 이벤트가
           안 오므로 비웁니다. 대신 이벤트를 잡은 요소에 직접 쏩니다. */
-    function dragTo(fromSelector, toSelector, spot){
+    function dragTo(fromSelector, toSelector, spot, keepHolding = false){
       const card = document.querySelector(fromSelector);
       if (!card || card.disabled) return;
       card.setPointerCapture = () => {}; card.releasePointerCapture = () => {};
@@ -164,7 +192,22 @@
         { pointerId:31, pointerType:"mouse", button:0, clientX:x, clientY:y, bubbles:true, cancelable:true }));
       send("pointerdown", from.left + from.width / 2, from.top + from.height / 2);
       send("pointermove", to.x, to.y);
-      send("pointerup", to.x, to.y);
+      if (!keepHolding) send("pointerup", to.x, to.y);
+    }
+
+    /* 재는 시점에 아직 돌고 있는 연출을 정리합니다.
+         한 번짜리(떨어지기·물결) → 끝으로 보냅니다.
+       ⚠️ 이게 없으면 방금 넣은 조각이 **기름으로 떨어지는 도중**에 잡혀,
+          자리(off)도 크기도 실제와 다르게 나옵니다 — 자리 검사가 통째로 무의미해집니다.
+         무한 반복(기포·기름 방울) → 한 바퀴의 40% 지점으로 맞춰 세웁니다.
+       ⚠️ finish() 는 무한 반복에서 예외를 던집니다. 그냥 두면 캡처 순간의 위상이
+          매번 달라서, 기포가 마침 사라진 프레임에 잡히면 "연출이 없다" 로 오해합니다. */
+    function settleAnimations(){
+      document.getAnimations().forEach(animation => {
+        const timing = animation.effect?.getTiming() || {};
+        if (timing.iterations === Infinity) animation.currentTime = (Number(timing.duration) || 0) * .4;
+        else { try { animation.finish(); } catch (error) { /* 이미 끝났습니다 */ } }
+      });
     }
 
     function measure(){
@@ -233,12 +276,45 @@
         counter:document.querySelector(".fry-progress-value")?.textContent.trim(),
         left:data.raw, potCount:data.pot.length, doneCount:data.done.length,
         inPot, worstOff:Math.max(0, ...inPot.map(p => p.off ?? 0)),
-        allInsideOil:inPot.every(p => p.reach <= 1),
+        /* ⚠️ 냄비가 비었으면 **참이 아니라 null 입니다.** every 는 빈 배열에서 늘 참이라,
+           끌어다 놓기가 통째로 실패해 아무것도 안 들어간 판을 "다 잘 들어갔다" 로
+           읽게 됩니다 — 실제로 그렇게 한 번 속았습니다. */
+        allInsideOil:inPot.length ? inPot.every(p => p.reach <= 1) : null,
         onRack, allOnRack:onRack.every(p => p.inside),
         // 그림 파일이 있는 쪽은 <img>, 없는 쪽은 임시 CSS 도형이어야 정상입니다
         assets:{ piece:!!document.querySelector(".fry-piece .fry-art-asset") || !!document.querySelector(".fry-raw-item .fry-art-asset"),
                  shape:!!document.querySelector(".fry-art"),
+                 burner:!!document.querySelector(".fry-burner-asset"),
                  potShape:!!document.querySelector(".fry-pot-shape"), rackShape:!!document.querySelector(".fry-rack-shape") },
+        /* 집게 커서. held 는 지금 물고 있는 튀김, drips 는 거기서 떨어지는 기름 방울입니다.
+           tongs 가 false 면 그림을 못 받아 기본 포인터로 돌아간 것입니다. */
+        tongs:(() => {
+          const cursor = document.querySelector(".fry-cursor");
+          if (!cursor) return null;
+          const held = cursor.querySelector(".fry-piece.held");
+          return { closed:cursor.classList.contains("closed"), holding:cursor.classList.contains("holding"),
+                   size:size(cursor), held:held ? size(held) : null,
+                   heldStage:held?.dataset.stage ?? null,
+                   drips:cursor.querySelectorAll(".fry-oil-drip").length,
+                   // 아래팔 → 튀김 → 윗팔 순서로 쌓여 있는지 (이 순서라야 물고 있는 것처럼 보입니다)
+                   layerOrder:[...cursor.children].map(child => child.className.replace("fry-tongs ", "")).join(">") };
+        })(),
+        /* 이 화면 안에서는 진짜 마우스 포인터가 통째로 숨어야 합니다(집게가 대신합니다).
+           ⚠️ css/minigame-frame.css 가 미니게임 패널 전체에 손 그림 커서를 !important
+              로 박아 두므로, 여기 값이 "none" 이 아니면 집게 옆에 손가락이 같이
+              따라다닙니다 — 눈으로만 보면 놓치기 쉬워서 수치로 남깁니다.
+           바깥(제목 줄)은 손 그림 그대로여야 합니다. */
+        cursor:{ screen:getComputedStyle(screen).cursor,
+                 card:document.querySelector(".fry-raw-item") ? getComputedStyle(document.querySelector(".fry-raw-item")).cursor : null,
+                 pot:getComputedStyle(pot).cursor,
+                 outside:document.querySelector(".mini-title-panel")
+                   ? getComputedStyle(document.querySelector(".mini-title-panel")).cursor.slice(0,9) : null },
+        // 기름에 잠긴 느낌 : 조각 투명도 + 그 위를 덮는 기름막 한 겹
+        oil:{ veil:!!document.querySelector(".fry-oil-veil"),
+              sunkOpacity:document.querySelector(".fry-pot-food .fry-piece")
+                ? getComputedStyle(document.querySelector(".fry-pot-food .fry-piece")).opacity : null,
+              idleBubbles:document.querySelectorAll(".fry-oil-bubbles i").length,
+              fizzGroups:document.querySelectorAll(".fry-fizz").length },
         finishing:!!data.finishing, grade:data.completionGrade,
         score:document.body.dataset.finished ?? null,
         result:document.querySelector("#e6Result")?.textContent ?? null,

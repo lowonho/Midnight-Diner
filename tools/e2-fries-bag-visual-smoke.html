@@ -66,14 +66,23 @@
     /* ?presses=0..14  몇 번 흔들었는지 (그림 9장 중 어느 장인지가 여기서 정해집니다)
        ?shake=left|right  흔드는 순간의 연출을 켠 채로 찍기
        ?fx=1..3           이펙트 한 장을 켜 둔 채로 찍기 (0.1초짜리라 그냥은 못 찍습니다)
-       ?drag=-70..70      봉투를 잡고 그만큼 가로로 끌어 놓은 상태 (px)
-       ?dragy=-58..58     같이 세로로 끌어 놓은 정도 (대각선으로 흔드는 중)
+       ?drag=px|max|-max  봉투를 잡고 그만큼 가로로 끌어 놓은 상태 (max = 한계까지)
+       ?dragy=px|max|-max 같이 세로로 끌어 놓은 정도 (대각선으로 흔드는 중)
+                          한계는 FRIES_BAG_DRAG_CONFIG 에서 그대로 가져옵니다 —
+                          여기 숫자를 베껴 적으면 게임과 어긋납니다
        ?tilt=-.7..7       흔든 대각선의 기울기 (이펙트가 같이 기웁니다) */
     const params = new URLSearchParams(location.search);
     const total = DAY4_PREP_CONFIG.potatoStarch.requiredPresses;
     const presses = Math.max(0, Math.min(total, Number(params.get("presses")) || 0));
-    const dragPx = Number(params.get("drag")) || 0;
-    const dragPy = Number(params.get("dragy")) || 0;
+    // "max" / "-max" 는 한계까지 — 실제 한계는 봉투를 그린 뒤에야 알 수 있으므로
+    // 아래 applyDragLimits() 에서 채웁니다 (여기서는 방향만 기억해 둡니다)
+    const dragRequest = axis => {
+      const raw = params.get(axis) || "";
+      if (/^-?max$/i.test(raw)) return { max:true, sign:raw[0] === "-" ? -1 : 1 };
+      return { max:false, value:Number(raw) || 0 };
+    };
+    const dragX = dragRequest("drag"), dragY = dragRequest("dragy");
+    const dragging = dragX.max || dragY.max || dragX.value || dragY.value;
 
     loadDayPrepAssets().then(() => {
       state.mini = {
@@ -81,15 +90,26 @@
         context:{ mode:"dayPrep" }, engine:"potatoStarch", complete:false,
         data:createAlternateFeelState({ mode:"potatoStarch", taskId:DAY4_PREP_CONFIG.potatoStarch.taskId,
                keys:["f","j"], expectedIndex:presses % 2, presses, total,
-               drag:(dragPx || dragPy)
-                 ? { kind:"friesBag", pointerId:1, startX:0, startY:0, position:dragPx, positionY:dragPy,
-                     step:90, limit:73, limitY:58 }
-                 : null })
+               // 자리(position)와 한계(limit)는 renderPotatoStarchShake() 뒤에 채웁니다
+               drag:dragging ? { kind:"friesBag", pointerId:1, startX:0, startY:0, position:0, positionY:0 } : null })
       };
       dom.miniTitle.textContent = "감자튀김 준비";
       dom.miniStation.textContent = "봉투를 잡고 흔들어 튀김가루를 골고루 묻혀주세요!";
       dom.miniDescription.textContent = "봉투를 잡고 좌우·대각선으로 크게 흔드세요. F / J를 번갈아 눌러도 됩니다.";
       renderPotatoStarchShake();
+      /* 끌어 놓은 자세 — 한계는 게임과 **같은 계산**으로 구합니다
+         (bindFriesBagDrag 의 pointerdown 이 하는 것과 같은 세 줄입니다) */
+      const applyDragLimits = () => {
+        const drag = state.mini.data.drag; if (!drag) return;
+        const rect = document.getElementById("friesBag").getBoundingClientRect();
+        drag.step = friesBagDragDistance(rect.width, FRIES_BAG_DRAG_CONFIG.travelRatio);
+        drag.limit = friesBagDragDistance(rect.width, FRIES_BAG_DRAG_CONFIG.visualLimitRatio);
+        drag.limitY = friesBagDragDistance(rect.height, FRIES_BAG_DRAG_CONFIG.visualLimitRatioY);
+        drag.position = dragX.max ? dragX.sign * drag.limit : clamp(dragX.value, -drag.limit, drag.limit);
+        drag.positionY = dragY.max ? dragY.sign * drag.limitY : clamp(dragY.value, -drag.limitY, drag.limitY);
+        updateFriesBagDragPose(state.mini.data);
+      };
+      applyDragLimits();
       // 기울기는 게임과 같은 함수로 넣습니다 (여기서 style 을 베껴 적으면 어긋납니다)
       setFriesShakeTilt(state.mini.data, params.has("tilt") ? Number(params.get("tilt")) : null);
       const side = params.get("shake");
@@ -119,6 +139,22 @@
         overflow:{ bag:bag.getBoundingClientRect().width > board.clientWidth,
                    fx:fx ? fx.getBoundingClientRect().width > board.clientWidth : null,
                    sceneY:scene.getBoundingClientRect().height > board.clientHeight },
+        /* 지금 자세에서 봉투가 조리대(.fp-board)·플레이 영역(.mini-stage, overflow:hidden)
+           을 얼마나 넘었는지. board 는 넘어도 되지만 **stage 가 양수면 잘립니다.** */
+        reach:(() => {
+          const out = (inner,outer) => ({
+            left:+(outer.left - inner.left).toFixed(1), right:+(inner.right - outer.right).toFixed(1),
+            top:+(outer.top - inner.top).toFixed(1), bottom:+(inner.bottom - outer.bottom).toFixed(1)
+          });
+          const b = bag.getBoundingClientRect(), stageEl = document.querySelector(".mini-stage");
+          return { drag:state.mini.data.drag
+                     ? { x:+state.mini.data.drag.position.toFixed(1), y:+state.mini.data.drag.positionY.toFixed(1),
+                         limit:+state.mini.data.drag.limit.toFixed(1), limitY:+state.mini.data.drag.limitY.toFixed(1),
+                         step:+state.mini.data.drag.step.toFixed(1) }
+                     : null,
+                   board:out(b, board.getBoundingClientRect()),
+                   stage:out(b, stageEl.getBoundingClientRect()) };
+        })(),
         assets:{ bag:!!bagAsset, fx:document.querySelectorAll(".fp-shake-fx-frame").length,
                  ing:document.querySelectorAll(".fp-ing-asset").length },
         ing:(() => {

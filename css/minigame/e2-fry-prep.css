@@ -213,7 +213,10 @@
    봉투는 **잡고 끌 수 있습니다** (engine-e2-alternate-input.js 의 bindFriesBagDrag).
    끄는 동안에는 손을 따라 가로세로 둘 다 밀려나고(--fp-drag-x / -y), 연타할 때의
    흔들림 애니메이션은 꺼집니다 — 둘 다 transform 이라 겹치면 봉투가 튑니다.
-   그래서 ↖↘ 든 ↙↗ 든 손이 가는 대각선으로 흔들 수 있습니다. */
+   그래서 ↖↘ 든 ↙↗ 든 손이 가는 대각선으로 흔들 수 있습니다.
+   ⚠️ 크게 흔들면 봉투가 **조리대 밖으로 나갑니다** (가로 173 · 세로 90 까지,
+      한계는 FRIES_BAG_DRAG_CONFIG). 그래서 .fp-board 에 overflow 를 걸면 안
+      됩니다 — 걸면 크게 흔들 때마다 봉투가 잘립니다. */
 .fp-bag-scene { position: relative; display: flex; align-items: center; justify-content: center; gap: calc(20 * var(--upx)); }
 .fp-bag {
   position: relative;
@@ -608,13 +611,16 @@
    축이 조금씩 기울어 손으로 흔드는 것처럼 보입니다
    (engine-e2-alternate-input.js 의 FRIES_SHAKE_TILTS · 끌어서 흔들 때는
     손이 실제로 지나간 방향이 그대로 들어옵니다). */
+/* 거리를 한 번 더 키웠습니다(30 → 62 · 되돌아오는 12 → 24) — 끌어서 흔들 때의
+   폭(봉투 폭의 34%)과 결을 맞춥니다. 62 면 봉투가 조리대 안(여유 120)에 그대로
+   머물러서, 잘릴 걱정 없이 크게 흔드는 맛만 커집니다. */
 @keyframes fp-shake-left {
-  38% { transform: translate(calc(-30 * var(--upx)),calc(-30 * var(--upx) * var(--fp-tilt,0))); }
-  74% { transform: translate(calc(12 * var(--upx)),calc(12 * var(--upx) * var(--fp-tilt,0))); }
+  38% { transform: translate(calc(-62 * var(--upx)),calc(-62 * var(--upx) * var(--fp-tilt,0))); }
+  74% { transform: translate(calc(24 * var(--upx)),calc(24 * var(--upx) * var(--fp-tilt,0))); }
 }
 @keyframes fp-shake-right {
-  38% { transform: translate(calc(30 * var(--upx)),calc(30 * var(--upx) * var(--fp-tilt,0))); }
-  74% { transform: translate(calc(-12 * var(--upx)),calc(-12 * var(--upx) * var(--fp-tilt,0))); }
+  38% { transform: translate(calc(62 * var(--upx)),calc(62 * var(--upx) * var(--fp-tilt,0))); }
+  74% { transform: translate(calc(-24 * var(--upx)),calc(-24 * var(--upx) * var(--fp-tilt,0))); }
 }
 @keyframes fp-wave-pop { 0% { opacity: .3; } 40% { opacity: 1; } 100% { opacity: .3; } }
 /* 이펙트 한 장이 뜨고 지는 동안. 좌우로 조금 벌어지며 사라집니다 */

@@ -585,7 +585,19 @@ function renderPotatoStarchShake(){
       있습니다. 다시 그린 뒤 잡은 자세를 되돌려 주는 것이 아래 pose 함수입니다. */
 const FRIES_BAG_DRAG_CONFIG=Object.freeze({
   travelRatio:.16,        // 한 번으로 치는 가로 거리 (봉투 폭 대비)
-  visualLimitRatio:.13,   // 손을 따라 봉투가 밀려나는 한계 (가로는 폭, 세로는 높이 대비)
+  /* 손을 따라 봉투가 밀려나는 한계 (가로는 봉투 폭, 세로는 봉투 높이 대비).
+     크게 흔드는 맛이 나야 하는 조작이라 **조리대 밖으로 나가는 것을 허용합니다** —
+     .fp-board 는 넘치는 것을 자르지 않아 봉투가 재료·진행도 칸 위로 지나갑니다.
+     ⚠️ 가로 한계는 한 번으로 치는 거리(travelRatio .16)보다 커야 합니다.
+        작으면 봉투가 먼저 멈춘 뒤에야 한 번으로 세어져 손이 헛도는 느낌이 납니다.
+     ⚠️ **세로는 플레이 영역이 먼저 막습니다.** .mini-stage 는 overflow:hidden 이라
+        거기를 넘으면 봉투가 밀려나는 게 아니라 잘립니다.
+     실측 (tools/e2-fries-bag-visual-smoke.html?drag=max&dragy=max 의 data-measure.reach,
+     1920 창 · 봉투 509.2 x 409.2 · 조리대 749.2 x 557.3):
+       가로 .34 → 173.1px : 조리대를 53.1 넘고도 플레이 영역까지 225.4 남습니다
+       세로 .22 →  90.0px : 조리대를 16 넘고 플레이 영역 위아래로 3.8 남습니다 (.28 은 20.8 잘림) */
+  visualLimitRatio:.34,
+  visualLimitRatioY:.22,
   /* 이펙트가 따라 도는 각도의 한계 (0.5 = 약 27도). 아래 friesBagDragTilt 참고.
      ⚠️ 더 키우면 돌아간 이펙트(760x228)가 도마(788.2 x 573.2) 밖으로 나갑니다 —
         .fp-board 는 넘치는 것을 자르지 않아서 액자 위에 그려집니다. */
@@ -635,7 +647,7 @@ function bindFriesBagDrag(){
       startX:event.clientX,startY:event.clientY,position:0,positionY:0,
       step:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.travelRatio),
       limit:friesBagDragDistance(rect.width,FRIES_BAG_DRAG_CONFIG.visualLimitRatio),
-      limitY:friesBagDragDistance(rect.height,FRIES_BAG_DRAG_CONFIG.visualLimitRatio)};
+      limitY:friesBagDragDistance(rect.height,FRIES_BAG_DRAG_CONFIG.visualLimitRatioY)};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
     updateFriesBagDragPose(m.data);
   });
