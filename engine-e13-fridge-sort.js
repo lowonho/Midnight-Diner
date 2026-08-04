@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   E13 냉장고 선반 정리 — 같은 재료 3개를 한 칸에 모으는 퍼즐
+   E13 냉장고 재료 꺼내기 — 같은 재료 3개를 한 칸에 모으는 퍼즐
 
    메뉴 선택 뒤, 낮 준비에 들어가기 전에 실행되는 독립 미니게임입니다.
    화면과 메뉴 데이터는 ingredient-select.js가 맡고 이 파일은
@@ -13,7 +13,7 @@ const E13_FRIDGE_SORT=Object.freeze({
   matchSize:3,
   shelfCount:9,
   waveSize:7,
-  emptyShelves:2,
+  emptyShelves:1,
   historyLimit:30
 });
 
@@ -30,16 +30,30 @@ function e13BuildShelves(ingredientIds=[]){
   if(!ids.length)return e13PadShelves();
   if(ids.length===1)return e13PadShelves([[ids[0],ids[0]],[ids[0]]]);
   const tokens=ids.flatMap(id=>Array(E13_FRIDGE_SORT.matchSize).fill(id));
+  const occupiedCount=Math.min(E13_FRIDGE_SORT.shelfCount-E13_FRIDGE_SORT.emptyShelves,tokens.length);
+  const capacities=Array.from({length:occupiedCount},(_,index)=>
+    Math.floor(tokens.length/occupiedCount)+(index<tokens.length%occupiedCount?1:0)
+  );
   let filled=[];
   let mixedEnough=false;
   for(let attempt=0;attempt<120;attempt+=1){
     const mixed=shuffle(tokens);
-    filled=ids.map((_,index)=>mixed.slice(index*E13_FRIDGE_SORT.matchSize,(index+1)*E13_FRIDGE_SORT.matchSize));
-    if(filled.every(shelf=>!shelf.every(id=>id===shelf[0]))){mixedEnough=true;break;}
+    let cursor=0;
+    filled=capacities.map(size=>{
+      const shelf=mixed.slice(cursor,cursor+size);
+      cursor+=size;
+      return shelf;
+    });
+    if(filled.every(shelf=>shelf.length<E13_FRIDGE_SORT.matchSize||!shelf.every(id=>id===shelf[0]))){mixedEnough=true;break;}
   }
   if(!mixedEnough){
     const interleaved=Array.from({length:tokens.length},(_,index)=>ids[index%ids.length]);
-    filled=ids.map((_,index)=>interleaved.slice(index*E13_FRIDGE_SORT.matchSize,(index+1)*E13_FRIDGE_SORT.matchSize));
+    let cursor=0;
+    filled=capacities.map(size=>{
+      const shelf=interleaved.slice(cursor,cursor+size);
+      cursor+=size;
+      return shelf;
+    });
   }
   return e13PadShelves([...filled,...Array.from({length:E13_FRIDGE_SORT.emptyShelves},()=>[])]);
 }

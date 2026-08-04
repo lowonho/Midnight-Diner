@@ -9,11 +9,9 @@ const FRIDGE_INGREDIENTS=Object.freeze({
   anchovy:{id:"anchovy",label:"멸치",icon:"🐟",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp"},
   tofu:{id:"tofu",label:"두부",icon:"⬜",asset:"assets/minigame/E11/food_tofu_kimchi_ingredient_tofu.webp"},
   kimchi:{id:"kimchi",label:"김치",icon:"🥬",asset:"assets/minigame/E11/food_tofu_kimchi_ingredient_kimchi.webp"},
-  // 돼지고기 전용 원화가 없어 같은 화풍의 손질 전 고기 원물을 공용으로 사용합니다.
-  pork:{id:"pork",label:"돼지고기",icon:"🥩",asset:"assets/minigame/E1/chicken-0.png"},
   flour:{id:"flour",label:"밀가루",icon:"🌾",asset:"assets/minigame/E8/02_food_pancake_flour_panel.webp"},
   water:{id:"water",label:"물",icon:"💧",asset:"assets/minigame/E8/03_food_water_cup_panel.webp"},
-  chicken:{id:"chicken",label:"닭고기",icon:"🍗",asset:"assets/minigame/E8/food_skewer_chicken_group.webp"},
+  chicken:{id:"chicken",label:"닭고기",icon:"🍗",asset:"assets/minigame/E1/chicken-0.png"},
   udon:{id:"udon",label:"우동면",icon:"🍜",asset:"assets/minigame/E3/food_udon_noodles.webp"},
   cabbage:{id:"cabbage",label:"양배추",icon:"🥬",asset:"assets/minigame/E2/food_cabbage_ingredient.webp"},
   carrot:{id:"carrot",label:"당근",icon:"🥕",asset:"assets/minigame/E2/food_carrot_ingredient.webp"},
@@ -30,7 +28,7 @@ const FRIDGE_INGREDIENTS=Object.freeze({
 
 const FRIDGE_RECIPES=Object.freeze({
   oden:["fishCake","radish","greenOnion","anchovy"],
-  tofu:["tofu","kimchi","pork"],
+  tofu:["tofu","kimchi"],
   kimchi:["kimchi","flour","water"],
   skewer:["chicken","greenOnion"],
   yakisoba:["udon","cabbage","carrot","yakisobaSauce"],
@@ -149,7 +147,7 @@ function moveIngredientAsset(fromShelf,fromSlot,toShelf){
   }else if(result.matchedId){
     dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 장바구니에 담았어요.`;
   }else{
-    dom.ingredientSelectFeedback.textContent="좋아요. 같은 재료 3개가 모이도록 계속 정리해보세요.";
+    dom.ingredientSelectFeedback.textContent="좋아요. 같은 재료 3개를 모아 필요한 재료를 계속 꺼내보세요.";
   }
   renderIngredientSelection();saveGame();
   if(!currentIngredientRoundComplete())scheduleIngredientHint();

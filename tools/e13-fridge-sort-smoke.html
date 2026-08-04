@@ -15,9 +15,9 @@ try{
   const ids=["fishCake","radish","greenOnion"];
   const built=e13BuildShelves(ids);
   assert(built.length===9,"fixed 3x3 shelves");
-  assert(built.filter(shelf=>!shelf.length).length>=2,"empty shelf count");
+  assert(built.filter(shelf=>!shelf.length).length===1,"one empty shelf when enough ingredients are present");
   assert(ids.every(id=>built.flat().filter(item=>item===id).length===3),"three copies per ingredient");
-  assert(built.filter(shelf=>shelf.length).every(shelf=>!shelf.every(id=>id===shelf[0])),"no free starting matches");
+  assert(built.filter(shelf=>shelf.length===3).every(shelf=>!shelf.every(id=>id===shelf[0])),"no free starting matches");
 
   const progress=e13CreateProgress(ids.slice(0,2));
   progress.shelves=[[ids[0],ids[0]],[ids[0]],[ids[1],ids[1]],[ids[1]],[],[]];
@@ -40,7 +40,7 @@ try{
   assert(e13Move(oneLeft,1,0,0).matchedId===ids[1],"single remaining ingredient matches");
 
   const many=Array.from({length:13},(_,index)=>`ingredient${index}`),continuous=e13CreateProgress(many);
-  assert(continuous.shelves.length===9&&continuous.waveIds.length===7&&continuous.queue.length===6,"3x3 board starts with two move spaces");
+  assert(continuous.shelves.length===9&&continuous.waveIds.length===7&&continuous.queue.length===6&&continuous.shelves.filter(shelf=>!shelf.length).length===1,"3x3 board starts with one empty shelf");
   continuous.shelves=e13PadShelves([[many[0],many[0]],[many[0]]]);
   const revealResult=e13Move(continuous,1,0,0);
   assert(revealResult.matchedId===many[0]&&revealResult.revealedId===many[7],"reserved ingredient comes forward after a match");

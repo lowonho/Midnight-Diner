@@ -17,7 +17,7 @@
     <section id="menuSelectOverlay" class="overlay"></section>
     <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
       <div class="ingredient-select-window wood-panel">
-        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">냉장고 선반을 정리해 주세요!</h2><p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
+        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">필요한 재료를 꺼내주세요!</h2><p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
         <div class="ingredient-select-layout">
           <aside class="ingredient-recipe-card"><span>오늘의 메뉴</span><h3 id="ingredientDishName"></h3><div id="ingredientDishGallery" class="ingredient-dish-gallery"></div><strong>냉장고에서 찾을 재료</strong><div id="ingredientChecklist" class="ingredient-checklist"></div><p id="ingredientPantryNote" class="ingredient-pantry-note"></p></aside>
           <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div><div class="ingredient-puzzle-controls"><button id="ingredientUndo" type="button">↶ 되돌리기</button><button id="ingredientHint" type="button">✦ 힌트</button><button id="ingredientShuffle" type="button">⟳ 선반 섞기</button></div><p id="ingredientSelectFeedback" class="ingredient-select-feedback"></p></section>
@@ -51,8 +51,11 @@
         const required=allRequiredIngredientIds();
         assert(state.ingredientSelection.engine==="E13","E13 engine state");
         assert(state.ingredientSelection.shelves.length===9,"fixed 3x3 sorting shelves");
+        assert(required.length<3||state.ingredientSelection.shelves.filter(shelf=>!shelf.length).length===1,"one empty fridge shelf");
         assert(required.every(id=>state.ingredientSelection.shelves.flat().filter(item=>item===id).length===3),"three of every required ingredient");
         assert(!required.includes("anchovy")&&!required.includes("gochujang"),"pantry ingredients excluded");
+        assert(!("pork" in FRIDGE_INGREDIENTS)&&!ingredientRecipe("tofu").includes("pork"),"pork removed from fridge and tofu kimchi");
+        assert(ingredientInfo("chicken").asset.endsWith("assets/minigame/E1/chicken-0.png"),"original chicken asset used");
         assert(ingredientPantryNote.textContent.includes("멸치")&&ingredientPantryNote.textContent.includes("고추장"),"pantry note rendered");
         const targetShelves=required.map(id=>[id,id]);
         const looseShelves=[];
