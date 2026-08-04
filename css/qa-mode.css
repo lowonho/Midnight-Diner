@@ -42,7 +42,6 @@
 /* ---- 낮밤 즉시 전환 ---------------------------------------- */
 .qa-phase-title { display: block; margin: 10px 0 4px; color: #ffd875; font-size: 11px; letter-spacing: .04em; }
 .qa-phase-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.qa-phase-switch [data-qa-phase="ingredient"] { grid-column: 1 / -1; background: #d8e5d3; }
 .qa-phase-switch button { padding: 6px 4px; }
 .qa-phase-hint { margin-top: 4px; font-size: 10px; line-height: 1.4; }
 .qa-mode-panel pre { min-height: 96px; margin: 8px 0; padding: 8px; overflow: auto; border-radius: 4px; background: #120b08; color: #d8c29f; white-space: pre-wrap; font: 11px/1.45 Consolas,monospace; }

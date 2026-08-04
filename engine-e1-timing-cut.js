@@ -9,7 +9,7 @@
    [현재 사용하는 조작]
    모든 날짜의 준비 칼질은 같은 타이밍 판정을 사용합니다.
 
-     timing    하단 조준선이 초록 판정 구간에 들어올 때 Space.
+     timing    칼날이 미리 보이는 절단선에 닿을 때 Space.
                낮 준비의 모든 칼질. 닭고기만 절단선에서 빠르게 2연타.
      chop      밤 조리용. 두부는 timing 과 같은 초록 구간 방식이고,
                "정밀 손질"은 노란 중심에 가까울수록 점수가 높은 방식입니다.
@@ -285,10 +285,10 @@ function setupTimingCut(taskId){
     title:config.title,
     onComplete:()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:config.requiresDoubleTap
-      ?"하단 조준선이 초록 판정 구간에 들어올 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
+      ?"칼날이 절단선에 닿을 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
       :config.horizontalLastCut
-      ?`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
-      :`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르세요. 총 ${config.total}번 썹니다.`
+      ?`칼날이 절단선에 닿을 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
+      :`미리 보이는 절단선에 칼날이 닿을 때 Space를 누르세요. 총 ${config.total}번 썹니다.`
   });
 }
 
@@ -348,7 +348,7 @@ function renderTimingCut(){
         <button class="mini-action cut-action" id="dayPrepAction" type="button" ${countdownActive?"disabled":""}>Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
       <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>
       ${countdownActive?`<div class="cut-start-countdown" id="cutStartCountdown" aria-live="assertive"><strong>${data.countdownStep}</strong></div>`:""}`;
-  // 하단 바의 초록 구간과 조준선을 실제 판정 좌표에 맞춥니다.
+  // 하단 바는 유지하되, 초록 구간과 포인터를 실제 절단선·칼날의 X축에 맞춥니다.
   const footer=cutTimingBarMarkup(0,0,0,"cut-path-timing");
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer});
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",timingCutAction);
@@ -403,16 +403,13 @@ function timingCutTarget(data){
 
 function syncTimingKnife(data){
   const work=dom.miniContent.querySelector("#prepWorkObject");
-  // knifeX/knifeY are the moving timing playhead. The knife artwork waits on
-  // the next cut line while only the marker in the bottom bar travels.
-  const target=timingCutTarget(data);
-  if(target.axis==="x")work?.style.setProperty("--knife-x",`${target.value}%`);
-  else work?.style.setProperty("--knife-y",`${target.value}%`);
+  work?.style.setProperty("--knife-x",`${data.knifeX}%`);
+  work?.style.setProperty("--knife-y",`${data.knifeY}%`);
   syncCutPathTimingBar(data);
 }
 
 /* 하단 바가 보여줄 좌표 구간(재료 좌표 %).
-   조준선이 실제로 지나는 곳만 잡습니다 — 세로 썰기는 출발 자리부터 마지막
+   칼이 실제로 지나는 곳만 잡습니다 — 세로 썰기는 출발 자리부터 마지막
    절단선 판정 끝까지, 가로 썰기는 내려오기 시작하는 높이부터 판정 끝까지.
    이 구간을 바 전체로 펴는 것이 syncCutPathTimingBar 의 project 입니다. */
 function cutBarRange(data){
@@ -430,7 +427,7 @@ function cutBarRange(data){
       자리와 도마 위의 자리가 세로로 딱 맞아떨어지긴 하는데, 재료가 도마 가운데
       절반쯤만 차지하다 보니 바도 그만큼만 쓰였습니다. 포인터가 좁은 구간을
       천천히 지나 속도감이 없고, 초록 구간도 바늘처럼 얇았습니다.
-      이제 "조준선이 지나는 구간(cutBarRange)"을 바 0~100 으로 폅니다. 같은 배율이
+      이제 "칼이 지나는 구간(cutBarRange)"을 바 0~100 으로 폅니다. 같은 배율이
       초록 구간에도 걸리므로 구간 폭도 같이 넓어집니다.
    판정은 재료 좌표(cutPathGrade)로 그대로 하므로 절단선 위치·타이밍은
    하나도 바뀌지 않습니다. 바는 보여주기만 합니다. */
@@ -481,8 +478,7 @@ function snapTimingKnifeToTarget(data){
   else data.knifeY=target.value;
 }
 
-// The timing playhead advances once from the previous cut to the next. The
-// knife artwork itself stays on timingCutTarget(data) until the impact.
+// The knife is the playhead: it advances once from the previous cut to the next.
 function advanceTimingKnife(m,dt){
   const data=m.data,target=timingCutTarget(data);
   const step=data.travelSpeed*dt;
@@ -522,7 +518,7 @@ function timingCutAction(){
     if(timingKnifeIsEarly(data)){
       const earlyJudgement=dom.miniContent.querySelector("#cutJudgement");
       if(earlyJudgement){earlyJudgement.textContent="EARLY";earlyJudgement.className="cut-judgement show miss";}
-      dom.miniFeedback.textContent="하단 조준선이 아직 초록 판정 구간에 닿지 않았어요.";
+      dom.miniFeedback.textContent="아직 칼날이 절단선에 닿지 않았어요.";
       audio.bad();
       setTimeout(()=>{
         if(state.mini!==m||m.complete)return;
@@ -607,7 +603,7 @@ function setupTteokbokkiCut(taskId){
     assetStageMax:item.progressSprites.length-1,
     horizontalLastCut:!!item.horizontalLastCut,
     title:`떡볶이 · ${item.displayName} 썰기`,
-    description:`하단 조준선이 초록 판정 구간에 들어올 때 Space를 눌러 ${item.displayName}를 써세요.`,
+    description:`칼날이 다음 절단선에 닿을 때 Space를 눌러 ${item.displayName}를 써세요.`,
     onComplete:()=>finishDayPrepTask(taskId,`떡볶이용 ${item.displayName} 손질 완료`)
   });
 }

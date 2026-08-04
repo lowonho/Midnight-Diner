@@ -139,7 +139,6 @@ function restoreGameState(data){
   state.audio=savedAudio;
   state.story=normalizeStoryState(saved.story);
   normalizeDayPrepState();
-  if(typeof normalizeIngredientSelectionState==="function")normalizeIngredientSelectionState();
   state.inventory=Object.fromEntries(DISHES.map(dish=>[
     dish.id,{count:0,quality:0,...(saved.inventory?.[dish.id]||{})}
   ]));
@@ -153,7 +152,7 @@ function restoreGameState(data){
   clampChefToWalkArea(state.player);   // chef-walk-area.js — 예전 세이브 위치를 새 영역으로 보정
   state.screen="game";state.settingsFrom="game";state.paused=state.phase==="result";
   state.mini=null;state.particles=[];state.popups=[];state.joyX=0;state.joyY=0;
-  if([GAME_PHASES.PREP,GAME_PHASES.MENU_SELECT,GAME_PHASES.INGREDIENT_SELECT].includes(state.phase))state.phaseTime=null;
+  if(state.phase===GAME_PHASES.PREP||state.phase===GAME_PHASES.MENU_SELECT)state.phaseTime=null;
   else if(!Number.isFinite(state.phaseTime))state.phaseTime=0;
   nextOrderId=Math.max(Number(data.nextOrderId)||1,...state.orders.map(order=>(Number(order.id)||0)+1));
   try{

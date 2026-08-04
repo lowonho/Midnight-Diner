@@ -70,8 +70,9 @@
          ?ingredient=  radish|greenOnion|cabbage|chicken|kimchi|tofu|fishCake
          ?stage=N      몇 번 썬 뒤인가 (기본 0)
          ?hit=1        방금 썬 순간(.slice-hit) — 칼 이펙트를 붙여 봅니다
-         ?start=1      카운트다운이 끝난 조준선 출발 자리 그대로 (stage 무시).
-                       칼은 첫 절단선에서 기다리고 하단 조준선만 오른쪽에서 출발합니다 */
+         ?start=1      카운트다운이 끝난 출발 자리 그대로 (stage 무시).
+                       칼이 첫 절단선보다 한 칸 오른쪽에 서는데, 재료를 키우면
+                       그 자리가 도마 밖이라 3초 동안 칼이 잘려 보입니다 */
     const params = new URLSearchParams(location.search);
     /* ⚠️ 떡볶이 3종(양배추 · 대파 · 어묵)은 그림 키가 assetPrefix 로 따로 등록돼
        있습니다(day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE). 안 넘기면 키를
@@ -120,8 +121,9 @@
       data.inputLocked = false;
       data.countdownRemaining = 0;
       data.countdownStep = 0;
-      /* ?start=1 은 startCuttingMinigame 이 잡아 둔 하단 조준선 출발 좌표를
-         그대로 둡니다. 칼 그림은 syncTimingKnife 가 다음 절단선에 고정합니다. */
+      /* ?start=1 은 startCuttingMinigame 이 잡아 둔 출발 좌표를 그대로 둡니다.
+         그 자리가 이 하네스에서 제일 아슬아슬한 자리입니다 (칼이 재료 오른쪽 끝
+         **밖**에 서므로, 재료를 키우면 여기가 제일 먼저 도마를 넘칩니다). */
       if(params.get("start") !== "1"){
         data.successes = stage;
         const target = timingCutTarget(data);
@@ -198,12 +200,12 @@
                         left:+(boardRect.left - workRect.left > 0), right:+(workRect.right - boardRect.right > 0) },
         knife:knifeRect ? u(knifeRect) : null,
         knifeFile:knife?.querySelector(".knife-asset")?.getAttribute("src") || null,
-        // 칼이 도마 밖으로 잘리는지 (세로 칼의 손잡이가 아래로 나가는 것은 허용합니다)
+        // 칼이 도마 밖으로 잘리는지 (세로 칼은 위아래, 출발 자리는 오른쪽이 위험합니다)
         knifeClipped:knifeRect ? { top:+(boardRect.top - knifeRect.top > 0),
                                    bottom:+(knifeRect.bottom - boardRect.bottom > 0),
                                    right:+(knifeRect.right - boardRect.right > 0) } : null,
-        // 하단 조준선 출발 자리. 첫 박자가 이후 박자와 같은 길이인지 함께 봅니다
-        playheadStartX:state.mini.data.knifeX,
+        // 출발 자리(--knife-x). 첫 박자가 이후 박자와 같은 길이인지 함께 봅니다
+        knifeStartX:state.mini.data.knifeX,
         firstBeatRatio:(() => {
           const positions = CUT_POSITION_PERCENTAGES[ingredient];
           if(!positions || positions.length < 2) return null;
@@ -213,7 +215,8 @@
         })(),
         /* 칼날이 다음 절단선 위에 서 있는지 — 1920 프레임 기준 px 차이.
            세로 썰기는 칼의 **왼쪽 끝**이 날이고, 가로 썰기는 **아래 끝**이 날입니다.
-           대기 중에는 세로 칼의 왼쪽 끝, 가로 칼의 아래 끝이 절단선과 겹쳐야 합니다. */
+           ⚠️ ?start=1 에서는 칼이 일부러 한 칸 오른쪽에 서 있으므로 0 이 아닙니다.
+              출발 자리에서 볼 값은 knifeClipped.right 와 firstBeatRatio 입니다. */
         knifeEdgeOffPx:(() => {
           const line = work.querySelector(".cut-line.active") || work.querySelector(".tofu-horizontal-line");
           if(!knifeRect || !line) return null;
@@ -262,7 +265,7 @@
                    sweepUnder:+((foodStart - sweptStart) / scale).toFixed(1),
                    ok:sweptEnd >= foodEnd - .5 && sweptStart <= foodStart + .5 };
         })(),
-        /* 하단 바를 얼마나 쓰는지. 조준선이 지나는 구간을 바 전체로 펴야
+        /* 하단 바를 얼마나 쓰는지. 칼이 지나는 구간을 바 전체로 펴야
            포인터가 빠르게 지나가고 초록 구간도 읽힙니다. */
         bar:(() => {
           const zone = document.querySelector(".cut-path-timing .prep-success-zone");
@@ -277,7 +280,7 @@
           const low = at();
           data.knifeX = keep; data.knifeY = keepY; syncTimingKnife(data);
           return { zoneWidth:+parseFloat(zone.style.width).toFixed(1), marker:+at().toFixed(1),
-                   // 조준선이 지나는 구간이 바에서 차지하는 폭 (100 에 가까울수록 꽉 씁니다)
+                   // 칼이 지나는 구간이 바에서 차지하는 폭 (100 에 가까울수록 꽉 씁니다)
                    travelUse:+Math.abs(high - low).toFixed(1) };
         })(),
         fx:(() => { const el = document.querySelector(".cut-impact-fx");
@@ -299,8 +302,6 @@
         }),
         lines:[...work.querySelectorAll(".cut-line")].length
       });
-      document.getElementById("miniOverlay")?.classList.add("open");
-      document.body.dataset.cursor=getComputedStyle(document.querySelector(".cut-screen")).cursor;
       document.body.dataset.ready = "true";
     }
   </script>

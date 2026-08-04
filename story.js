@@ -222,7 +222,7 @@ function resumeDeferredStoryOrderScene(){
 function resumeStoryForCurrentPhase(){
   if(storyIsActive()||state.screen!=="game")return;
   if(state.day===1&&!state.story?.prologueComplete){queueStoryMoments(["newGame","dayStart"]);return;}
-  if([GAME_PHASES.MENU_SELECT,GAME_PHASES.INGREDIENT_SELECT,GAME_PHASES.PREP].includes(state.phase))queueStoryMoments(["dayStart"]);
+  if(state.phase===GAME_PHASES.MENU_SELECT||state.phase===GAME_PHASES.PREP)queueStoryMoments(["dayStart"]);
   else if(state.phase===GAME_PHASES.OPEN)queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
   else if(state.phase===GAME_PHASES.RESULT)queueStoryMoments(["nightEnd"]);
 }

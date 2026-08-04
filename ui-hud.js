@@ -24,7 +24,6 @@ const UI_TEXT = Object.freeze({
      바꿔도 같이 따라갑니다. 목록에 없는 단계는 phaseNameFallback. */
   phaseName: Object.freeze({
     [GAME_PHASES.MENU_SELECT]:"메뉴 선택",
-    [GAME_PHASES.INGREDIENT_SELECT]:"냉장고 재료 고르기",
     [GAME_PHASES.PREP]:"낮 재료 준비",
     [GAME_PHASES.OPEN]:"밤 영업",
     [GAME_PHASES.RESULT]:"영업 종료"
@@ -44,7 +43,6 @@ const UI_TEXT = Object.freeze({
   // 목록에 없는 단계는 result("정산")로 떨어집니다. (원래 동작 그대로)
   phaseBadge: Object.freeze({
     [GAME_PHASES.MENU_SELECT]:"선택",
-    [GAME_PHASES.INGREDIENT_SELECT]:"재료",
     [GAME_PHASES.PREP]:"준비",
     [GAME_PHASES.OPEN]:"영업 중",
     [GAME_PHASES.RESULT]:"정산"
