@@ -334,8 +334,10 @@
   display:grid;
   place-items:center;
   pointer-events:auto;
-  background:radial-gradient(circle,rgba(34,15,5,.18),rgba(34,15,5,.42));
-  backdrop-filter:blur(calc(.8 * var(--upx)));
+  /* ⚠️ 예전에는 backdrop-filter:blur 로 뒤를 흐렸습니다. 숫자는 잘 읽혔지만
+     재료 에셋이 통째로 뭉개져서 3초 동안 그림이 죽어 보였습니다.
+     흐림은 빼고 반투명 회색 딤 한 겹만 덮습니다 — 결이 그대로 보입니다. */
+  background:rgba(26,26,30,.4);
 }
 .cut-start-countdown strong {
   min-width:calc(150 * var(--upx));
@@ -373,8 +375,8 @@
   100% { opacity:0; transform:scale(1.28); }
 }
 @keyframes cut-countdown-go {
-  0%,45% { background:radial-gradient(circle,rgba(34,15,5,.12),rgba(34,15,5,.3)); backdrop-filter:blur(calc(.8 * var(--upx))); }
-  100% { background:transparent; backdrop-filter:blur(0); }
+  0%,45% { background:rgba(26,26,30,.4); }
+  100% { background:transparent; }
 }
 /* 타이밍 바가 없는 빠른 칼질에서는 아래 여백을 도로 줄입니다 */
 .cut-board:not(:has(.cut-timing)) { padding-bottom: calc(22 * var(--upx)); }
@@ -429,10 +431,11 @@
    ⚠️ 폭을 더 키우지 마세요. 칼은 첫 절단선보다 한 칸 오른쪽(그림 폭의 최대
       101% — engine-e1-timing-cut.js 의 startXCeiling)에서 출발하는데, 그
       자리가 도마 밖이면 카운트다운 3초 동안 칼이 잘려 보입니다.
-      들어갈 수 있는 최대 폭은 `332.5 / (1.01 - 0.5) ≈ 652` 입니다
+      칼 폭이 69 이므로 들어갈 수 있는 최대 폭은
+      `(765 - 69 - 382.5) / (1.01 - 0.5) ≈ 614` 입니다
       (재료가 가운데 정렬이라 폭을 키우면 왼쪽 여백도 같이 줄어듭니다).
       실제로 걸리는지는 tools/e1-cut-screen-visual-smoke.html 의
-      ?start=1 이 `knifeStartClipped` 로 알려 줍니다. */
+      ?start=1 이 `knifeClipped.right` 로 알려 줍니다. */
 .cut-board .prep-work-object.has-prep-asset {
   width: min(100%, calc(var(--cut-obj-w,620) * var(--upx)));
   height: auto;
@@ -521,33 +524,41 @@
    밀어 날이 절단선 위에 서게 합니다. 예전 납품본은 세로로 길쭉해 상자를
    220x410 으로 크게 잡고 그림을 scaleX(1.48) 로 늘려 썼는데, 새 그림은
    칼폭이 제대로 그려져 있어 늘리지 않습니다. */
+/* 칼은 **7종 모두 같은 크기**입니다 (김치 썰기 기준 69 x 564).
+   재료 크기를 따라가게 하면 무는 과도, 양배추는 대검이 되어 같은 주방의
+   같은 칼로 안 보였습니다. 크기를 고정하는 대신,
+   칼날보다 큰 재료(양배추·두부·어묵)는 **써는 동작이 그만큼 크게 지나가면서**
+   덮습니다 — 아래 cut-knife-chop-asset 참고.
+
+     height 564  → 날(그림의 위 59.07%)이 333
+     top         → 그 날 한가운데를 재료 한가운데에 맞춥니다 (333/2 = 166.5)
+
+   손잡이는 도마 밖으로 나가도 됩니다 — 위에서 내려다본 도마라 손잡이가
+   화면 아래로 빠지는 편이 자연스럽습니다. */
 .cut-screen .knife-effect.has-prep-asset {
-  top:calc(var(--knife-top,-96) * var(--upx));
-  width:calc(var(--knife-w,50) * var(--upx));
-  height:calc(var(--knife-h,406) * var(--upx));
-  margin-left:calc(var(--knife-w,50) * var(--upx) / 2);
+  top:calc(50% - 166.5 * var(--upx));
+  width:auto;
+  height:calc(564 * var(--upx));
+  /* 그림 그대로(135:1351)면 날이 바늘처럼 얇아서 가로만 1.22배 두껍게 씁니다.
+     예전 scaleX(1.48) 을 비율에 녹인 것이라 `상자 = 보이는 칼` 이 유지됩니다 —
+     그래야 상자 왼쪽 끝(= --knife-x)이 곧 절삭날입니다. */
+  aspect-ratio:165 / 1351;
+  margin-left:0;
   --knife-turn:0deg;
-  transform-origin:50% 50%;
+  /* 공용 규칙의 translateX(-50%) 를 끕니다. 상자 왼쪽 끝이 절삭날이라
+     가운데 정렬하면 반 칼폭만큼 밀립니다. */
+  transform:none;
+  /* 회전 중심을 **날이 도마에 닿는 자리**(왼쪽 끝 x 날 끝 59%)에 둡니다.
+     써는 획에서 칼을 기울일 때, 가운데를 축으로 돌리면 날이 절단선에서
+     떨어집니다. 여기를 축으로 돌리면 닿는 점은 그대로고 칼끝·손잡이만
+     흔들려서 진짜 도마질처럼 보입니다. */
+  transform-origin:0 59%;
 }
-/* `fill` 이라 상자 = 보이는 칼 입니다. contain 으로 두면 상자 안에서 그림이
-   가운데로 몰려 위 margin-left 보정(반 칼폭)이 어긋납니다.
-   세로로만 조금 눌린 셈인데(그림 그대로면 도마 높이 458 에 칼폭이 41 밖에
-   안 나옵니다), 예전 scaleX(1.48) 보다 훨씬 약합니다. */
 .cut-screen .knife-effect.has-prep-asset .knife-asset {
   width:100%;
   height:100%;
   object-fit:fill;
 }
-/* 재료마다 상자 높이가 달라 도마 안에서 재료가 앉는 자리도 다릅니다.
-   칼 위치는 그 자리에 맞춰 재료별로 잡습니다 — 위로는 도마 밖으로 나가고
-   아래로는 손잡이가 잘리므로, 도마 안쪽(458) 안에 칼 전체가 들어와야 합니다. */
-.cut-screen .greenOnion-shape .knife-effect.has-prep-asset { --knife-top:-103; }
-.cut-screen .chicken-shape .knife-effect.has-prep-asset { --knife-top:-62; }
-.cut-screen .tofu-shape .knife-effect.has-prep-asset { --knife-top:-58; }
-.cut-screen .fishCake-shape:not(.horizontal-cut) .knife-effect.has-prep-asset { --knife-top:-38; }
-.cut-screen .kimchi-shape .knife-effect.has-prep-asset { --knife-top:-18; }
-/* 양배추 상자가 가장 높아(≈427) 칼이 도마 위로 삐져나가지 않게 더 내립니다. */
-.cut-screen .cabbage-shape .knife-effect.has-prep-asset { --knife-top:26; }
 
 /* 두부 마지막 한 번은 가로 썰기입니다. 예전에는 세로 칼을 -90도 돌려 썼는데
    눕힌 그림(prop_knife_chop_horizontal_ready)이 따로 와서 그대로 놓습니다.
@@ -565,16 +576,26 @@
 .cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect {
   top:calc(var(--knife-y, 50%) - 24 * var(--upx));
 }
+/* 눕힌 칼도 같은 자 하나로 씁니다 — 세로 칼(564)을 그대로 눕힌 길이입니다.
+     width 564  → 날(그림의 왼 60.69%)이 342
+     left       → 그 날 한가운데를 재료 한가운데에 맞춥니다 (342/2 = 171)
+   두부(600)·어묵(470)은 날보다 넓어서, 왼→오로 크게 그으며 덮습니다.
+   ⚠️ 세로 칼과 달리 비율(1366:155)을 그대로 씁니다. 눕힌 그림은 날 두께가
+      이미 제대로 그려져 있어서, 세로 칼처럼 1.22배를 더 주면 칼이 재료를
+      덮을 만큼 두꺼워집니다. */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset,
 .cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset {
-  left:50%;
+  left:calc(50% - 171 * var(--upx));
   top:var(--knife-y,50%);
-  width:calc(560 * var(--upx));
+  width:calc(564 * var(--upx));
   height:auto;
   aspect-ratio:1366 / 155;
   margin-left:0;
-  transform:translate(-50%,-100%);
-  transform-origin:50% 100%;
+  /* 그림의 **아래 끝**이 절삭날이라 상자 바닥을 --knife-y 에 맞춥니다 */
+  transform:translateY(-100%);
+  /* 세로 칼과 같은 이유로, 날이 가장 깊게 닿는 자리(날 끝 60.69% x 아래 끝)를
+     회전 중심으로 씁니다. */
+  transform-origin:60.7% 100%;
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect::before { display: none; }
@@ -590,11 +611,23 @@
   transform: translateX(-50%) rotate(var(--knife-turn, 16deg)) scale(.98);
   filter: drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.48));
 }
+/* 에셋 칼은 X 를 안 옮기므로(상자 왼쪽 끝 = 날) 박힌 자리만 아래로 눌러 둡니다 */
+.cut-screen .prep-work-object.tough-first-hit .knife-effect.has-prep-asset {
+  transform: translateY(calc(13 * var(--upx))) scale(.99);
+}
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
-.cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect.has-prep-asset { animation: cut-knife-chop-side-asset .18s ease; }
+/* 에셋 칼은 제자리에서 눌리는 게 아니라 **날 방향으로 그어** 썹니다.
+   세로 칼은 위에서 아래로, 눕힌 칼은 왼쪽에서 오른쪽으로 —
+   내려찍는 힘(scale)과 긋는 이동이 한 번에 일어납니다. */
+.cut-screen .prep-work-object.slice-hit .knife-effect.has-prep-asset { animation: cut-knife-chop-asset .28s cubic-bezier(.3,.72,.28,1); }
+.cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect.has-prep-asset { animation: cut-knife-chop-side-asset .28s cubic-bezier(.3,.72,.28,1); }
 .cut-screen .prep-work-object.slice-perfect .knife-effect { animation-duration: .22s; filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,221,116,.9)); }
+/* 에셋 칼은 획이 길어 PERFECT 도 짧아지면 안 됩니다 (위 .22s 를 되돌립니다) */
+.cut-screen .prep-work-object.slice-perfect .knife-effect.has-prep-asset { animation-duration: .32s; }
 .cut-screen .prep-work-object.slice-miss .knife-effect { animation: cut-knife-miss .15s ease-out; }
+.cut-screen .prep-work-object.slice-miss .knife-effect.has-prep-asset { animation: cut-knife-miss-asset .22s ease-out; }
+.cut-screen .tofu-cook-object.horizontal-cut.slice-miss .knife-effect.has-prep-asset { animation: cut-knife-miss-side-asset .22s ease-out; }
 
 /* 썰리는 순간의 불꽃 */
 .cut-screen .cut-spark {
@@ -624,8 +657,9 @@
   z-index: 5;
   left: var(--cut-x, 50%);
   top: 50%;
-  /* 그림이 세로로 길어(424:1642) 폭을 잡으면 도마를 넘칩니다. 높이로 잡습니다. */
-  height: calc(var(--cut-fx-h,286) * var(--upx));
+  /* 그림이 세로로 길어(424:1642) 폭을 잡으면 도마를 넘칩니다. 높이로 잡습니다.
+     칼처럼 재료 크기를 따라갑니다 — 큰 재료에 작은 불꽃이 뜨면 따로 놉니다. */
+  height: max(calc(240 * var(--upx)),95%);
   aspect-ratio: 424 / 1642;
   opacity: 0;
   transform: translate(-50%,-68.8%);
@@ -649,8 +683,11 @@
 .cut-screen .prep-work-object.slice-hit .cut-impact-fx { opacity: 1; }
 .cut-screen .prep-work-object.slice-hit .cut-impact-1 { animation: cut-impact-frame .08s steps(1) both; }
 .cut-screen .prep-work-object.slice-hit .cut-impact-2 { animation: cut-impact-frame .08s steps(1) .06s both; }
-.cut-screen .prep-work-object.slice-hit .cut-impact-3 { animation: cut-impact-tail .26s ease-out .12s both; }
-.cut-screen .prep-work-object.slice-perfect .cut-impact-3 { animation-duration: .34s; }
+/* 마지막 장의 여운은 다음 박자로 넘어가기 전에 끝나야 합니다 —
+   0.12 + 0.2 = 0.32 로, engine 의 pathRecoveryMs(340) 안에 들어옵니다.
+   더 늘리면 화면을 다시 그릴 때 뚝 끊깁니다. */
+.cut-screen .prep-work-object.slice-hit .cut-impact-3 { animation: cut-impact-tail .2s ease-out .12s both; }
+.cut-screen .prep-work-object.slice-perfect .cut-impact-3 { animation-duration: .22s; }
 /* 빗나가면 도마만 얕게 찍힙니다 — 마지막 장 없이 첫 두 장만 짧게 */
 .cut-screen .prep-work-object.slice-miss .cut-impact-fx { opacity: .55; }
 .cut-screen .prep-work-object.slice-miss .cut-impact-1 { animation: cut-impact-frame .07s steps(1) both; }
@@ -828,11 +865,44 @@
   45%  { transform: translate(calc(-50% + 10 * var(--upx)),-50%) rotate(-90deg); }
   100% { transform: translate(-50%,-50%) rotate(-90deg); }
 }
-/* 눕힌 칼 에셋은 아래 끝이 날이라 위에서 내려찍는 모양으로 다시 잡습니다 */
+/* 세로 칼 : 왼쪽으로 5도 기울여 들었다가, 세우면서 위에서 아래로 크게 긋습니다.
+   칼 크기가 고정이라 날(333)이 재료보다 짧을 수 있는데, 이 획이 그만큼을
+   지나가면서 덮습니다. -84 ~ +96 (합 180) 이면 가장 큰 양배추(427, 위아래
+   47 씩 모자람)도 넉넉히 훑습니다.
+   ⚠️ -84 보다 더 들면 칼끝이 도마 위로 잘립니다. 칼 상자 위쪽은 늘 도마
+      안쪽 62.5 자리에 있고(날 한가운데를 재료 한가운데에 맞추므로), 도마
+      안쪽 여백이 22 뿐입니다.
+   ⚠️ 이 획이 다 끝나기 전에 다음 박자로 넘어가면 칼이 중간에 순간이동합니다 —
+      engine-e1-timing-cut.js 의 pathRecoveryMs 가 이 길이보다 길어야 합니다. */
+@keyframes cut-knife-chop-asset {
+  0%   { transform: translateY(calc(-84 * var(--upx))) rotate(-5deg) scale(1.05); }
+  /* 내려오는 동안 기울기를 유지합니다 — 빼면 가속 때문에 5도가 첫 프레임에
+     사라져서 기울인 티가 안 납니다. 닿는 순간(44%)에 칼이 서면서 썹니다. */
+  22%  { transform: translateY(calc(-28 * var(--upx))) rotate(-4.6deg) scale(1.03); }
+  44%  { transform: translateY(calc(96 * var(--upx))) rotate(0deg) scale(.978); }
+  74%  { transform: translateY(calc(16 * var(--upx))) rotate(-1.2deg) scale(1.012); }
+  100% { transform: translateY(0) rotate(0deg) scale(1); }
+}
+/* 눕힌 칼 : 아래 끝이 날이라, 칼끝을 왼쪽 아래로 5도 떨군 채 들어와
+   왼쪽에서 오른쪽으로 크게 그으며 눕습니다.
+   두부(600)가 날(342)보다 좌우로 129 씩 넓어서 획도 그만큼 큽니다. */
 @keyframes cut-knife-chop-side-asset {
-  0%   { transform: translate(-50%,calc(-100% - 26 * var(--upx))); }
-  45%  { transform: translate(-50%,calc(-100% + 9 * var(--upx))); }
-  100% { transform: translate(-50%,-100%); }
+  0%   { transform: translate(calc(-210 * var(--upx)),calc(-100% - 26 * var(--upx))) rotate(-5deg); }
+  22%  { transform: translate(calc(-96 * var(--upx)),calc(-100% - 9 * var(--upx))) rotate(-4.6deg); }
+  44%  { transform: translate(calc(200 * var(--upx)),calc(-100% + 12 * var(--upx))) rotate(0deg); }
+  74%  { transform: translate(calc(38 * var(--upx)),calc(-100% + 3 * var(--upx))) rotate(-1.2deg); }
+  100% { transform: translate(0,-100%) rotate(0deg); }
+}
+/* 빗나감 : 같은 방향으로 긋다가 겉만 스치고 튕깁니다 (획은 절반쯤만) */
+@keyframes cut-knife-miss-asset {
+  0%   { transform: translateY(calc(-46 * var(--upx))) rotate(-5deg); }
+  55%  { transform: translate(calc(20 * var(--upx)),calc(30 * var(--upx))) rotate(7deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes cut-knife-miss-side-asset {
+  0%   { transform: translate(calc(-86 * var(--upx)),calc(-100% - 8 * var(--upx))) rotate(-5deg); }
+  55%  { transform: translate(calc(64 * var(--upx)),calc(-100% - 20 * var(--upx))) rotate(-9deg); }
+  100% { transform: translate(0,-100%) rotate(0deg); }
 }
 @keyframes cut-impact-frame {
   0%   { opacity: 1; }

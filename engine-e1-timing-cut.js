@@ -36,7 +36,20 @@ const CUT_FEEL_CONFIG=Object.freeze({
         7종 모두 안 걸립니다. 이 값을 올리면 칼이 재료 오른쪽 끝 밖에 서므로,
         도마 안에 칼이 다 들어오도록 css 의 --cut-obj-w 도 같이 봐야 합니다. */
   startXCeiling:101,
-  pathRecoveryMs:115,
+  // 가로 썰기(두부·어묵 마지막 한 번)에서 칼이 내려오기 시작하는 높이(%)
+  horizontalStartY:12,
+  /* 하단 타이밍 바 양 끝 여유(재료 좌표 %). 칼이 실제로 지나는 구간을 바
+     전체로 펼 때, 초록 구간이 바 끝에 딱 붙지 않도록 조금 남깁니다. */
+  barEdgeMargin:1.5,
+  /* 한 번 썬 뒤 칼이 멈춰 있는 시간(ms). 이 시간이 지나면 화면을 다시 그리고
+     다음 박자로 넘어갑니다.
+     ⚠️ 원래 115 였습니다. 칼이 제자리에서 눌리기만 하던 시절엔 그걸로 충분했는데,
+        칼 크기를 7종 공통으로 고정하면서 "날보다 큰 재료는 획이 크게 지나가며
+        덮는" 방식이 됐습니다. 그 획(css 의 cut-knife-chop-asset, 0.28초 ·
+        PERFECT 는 0.32초)이 잘리면 칼이 중간에 순간이동합니다.
+        획 + 여운이 다 나오도록 잡은 값입니다. 더 줄이려면 CSS 쪽 획 길이도
+        같이 줄여야 합니다. */
+  pathRecoveryMs:340,
   completeDelayMs:620,
   startCountdownSeconds:3,
   startSignalMs:450
@@ -289,7 +302,8 @@ function startCuttingMinigame(options){
   const firstBeatDistance=verticalCount>1
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
-  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:Math.min(CUT_FEEL_CONFIG.startXCeiling,firstCutX+firstBeatDistance),knifeY:12,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
+  const startKnifeX=Math.min(CUT_FEEL_CONFIG.startXCeiling,firstCutX+firstBeatDistance);
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:startKnifeX,startKnifeX,knifeY:CUT_FEEL_CONFIG.horizontalStartY,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -394,9 +408,29 @@ function syncTimingKnife(data){
   syncCutPathTimingBar(data);
 }
 
-// Project the ingredient-local knife coordinates into the actual bottom bar.
-// This keeps the blade, cut line, hit zone, and marker on one screen-space X axis
-// even though every ingredient is rendered at a different width.
+/* 하단 바가 보여줄 좌표 구간(재료 좌표 %).
+   칼이 실제로 지나는 곳만 잡습니다 — 세로 썰기는 출발 자리부터 마지막
+   절단선 판정 끝까지, 가로 썰기는 내려오기 시작하는 높이부터 판정 끝까지.
+   이 구간을 바 전체로 펴는 것이 syncCutPathTimingBar 의 project 입니다. */
+function cutBarRange(data){
+  const margin=CUT_FEEL_CONFIG.barEdgeMargin;
+  if(isHorizontalTimingCut(data)){
+    return {min:CUT_FEEL_CONFIG.horizontalStartY-margin,max:50+data.hitTolerance+margin};
+  }
+  const verticalCount=timingCutVerticalCount(data);
+  const lastCut=suppliedCutPosition(data.ingredient,verticalCount-1,verticalCount);
+  return {min:lastCut-data.hitTolerance-margin,max:(data.startKnifeX??CUT_FEEL_CONFIG.startXCeiling)+margin};
+}
+
+/* 재료 좌표를 하단 바 좌표로 폅니다.
+   ⚠️ 원래는 재료 그림의 **화면 좌표**를 그대로 바에 투영했습니다. 그러면 바 위의
+      자리와 도마 위의 자리가 세로로 딱 맞아떨어지긴 하는데, 재료가 도마 가운데
+      절반쯤만 차지하다 보니 바도 그만큼만 쓰였습니다. 포인터가 좁은 구간을
+      천천히 지나 속도감이 없고, 초록 구간도 바늘처럼 얇았습니다.
+      이제 "칼이 지나는 구간(cutBarRange)"을 바 0~100 으로 폅니다. 같은 배율이
+      초록 구간에도 걸리므로 구간 폭도 같이 넓어집니다.
+   판정은 재료 좌표(cutPathGrade)로 그대로 하므로 절단선 위치·타이밍은
+   하나도 바뀌지 않습니다. 바는 보여주기만 합니다. */
 function syncCutPathTimingBar(data){
   const work=dom.miniContent.querySelector("#prepWorkObject");
   const timing=dom.miniContent.querySelector(".cut-path-timing");
@@ -408,16 +442,9 @@ function syncCutPathTimingBar(data){
   const target=timingCutTarget(data);
   const tolerance=data.hitTolerance;
   const perfectTolerance=tolerance*CUT_FEEL_CONFIG.perfectZoneRatio;
-  let project;
-  if(target.axis==="x"){
-    const workRect=work.getBoundingClientRect();
-    const timingRect=timing.getBoundingClientRect();
-    if(!workRect.width||!timingRect.width)return;
-    project=value=>(workRect.left+workRect.width*(value/100)-timingRect.left)/timingRect.width*100;
-  }else{
-    // The final horizontal tofu cut retains the familiar left-to-right bar readout.
-    project=value=>value;
-  }
+  const range=cutBarRange(data);
+  const span=Math.max(1,range.max-range.min);
+  const project=value=>(value-range.min)/span*100;
 
   const clamp=value=>Math.max(0,Math.min(100,value));
   const successLeft=clamp(project(target.value-tolerance));
@@ -555,7 +582,7 @@ function completeTimingCut(m,grade="good",missMessage=""){
   }
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
-    if(isHorizontalTimingCut(data))data.knifeY=12;
+    if(isHorizontalTimingCut(data))data.knifeY=CUT_FEEL_CONFIG.horizontalStartY;
     data.inputLocked=false;data.phase="ready";renderTimingCut();
   },CUT_FEEL_CONFIG.pathRecoveryMs);
 }

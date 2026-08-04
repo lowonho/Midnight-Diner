@@ -106,8 +106,17 @@
         onComplete(){}
       });
       /* 카운트다운을 걷어내고 원하는 진행도로 옮긴 뒤 다시 그립니다 —
-         진행 중 화면(절단선·칼·완성 개수)이 이 하네스의 본론입니다. */
+         진행 중 화면(절단선·칼·완성 개수)이 이 하네스의 본론입니다.
+         ?countdown=3|2|1 을 주면 카운트다운 화면 그대로 둡니다 (딤 확인용). */
       const data = state.mini.data;
+      const countdown = params.get("countdown");
+      if(countdown){
+        data.countdownStep = Number(countdown) || 3;
+        data.countdownRemaining = data.countdownStep;
+        renderTimingCut();
+        measure();
+        return;
+      }
       data.phase = "ready";
       data.inputLocked = false;
       data.countdownRemaining = 0;
@@ -125,6 +134,16 @@
       if(params.get("hit") === "1"){
         document.querySelector("#prepWorkObject")?.classList.add("slice-hit","slice-perfect");
         document.querySelector(".cut-board")?.classList.add("cut-perfect");
+        /* ?anim=0.05 처럼 초를 주면 써는 획을 그 시점에 **정지**시킵니다.
+           ⚠️ --virtual-time-budget 으로 시점을 맞추려 하면 안 됩니다 — 그 예산은
+              페이지 로드까지 포함해 흘러서, 캡처된 프레임이 획의 몇 % 인지
+              알 수가 없습니다(획 방향을 거꾸로 읽기 쉽습니다).
+              음수 delay + paused 는 정확히 그 시점에서 멈춥니다. */
+        const at = params.get("anim");
+        if(at !== null){
+          const knife = document.querySelector(".knife-effect");
+          if(knife){ knife.style.animationDelay = `-${Number(at) || 0}s`; knife.style.animationPlayState = "paused"; }
+        }
       }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
@@ -219,6 +238,50 @@
                    borderTop:s.borderTopWidth, borderLeft:s.borderLeftWidth,
                    // 재료 상자 기준 세로 한가운데(50%)에 있어야 맞습니다
                    atPercent:+(((r.top + r.height / 2) - workRect.top) / workRect.height * 100).toFixed(1) };
+        })(),
+        /* 칼날이 재료를 다 지나가는지.
+           칼은 7종 공통 크기(69 x 564)로 고정이라 날이 재료보다 짧을 수 있습니다.
+           대신 써는 획(css 의 cut-knife-chop-asset / -side-asset)이 그만큼 크게
+           지나가며 덮으므로, **날 길이가 아니라 획이 훑는 범위**로 봅니다.
+           ⚠️ STROKE 는 그 @keyframes 의 0% ~ 42% 이동량입니다. 획을 고치면
+              여기 숫자도 같이 고쳐야 판정이 살아 있습니다.
+           손잡이가 도마 밖으로 나가는 건 일부러 허용한 것이라 안 봅니다. */
+        bladeCoversFood:(() => {
+          if(!knifeRect) return null;
+          const horizontal = work.classList.contains("horizontal-cut");
+          const share = horizontal ? .6069 : .5907;
+          const STROKE = horizontal ? { back:210, forward:200 } : { back:84, forward:96 };
+          const bladeStart = horizontal ? knifeRect.left : knifeRect.top;
+          const bladeEnd = bladeStart + (horizontal ? knifeRect.width : knifeRect.height) * share;
+          const foodStart = horizontal ? workRect.left : workRect.top;
+          const foodEnd = horizontal ? workRect.right : workRect.bottom;
+          // 획이 훑는 범위 = 뒤로 뺀 자리의 날 시작 ~ 앞으로 그은 자리의 날 끝
+          const sweptStart = bladeStart - STROKE.back * scale;
+          const sweptEnd = bladeEnd + STROKE.forward * scale;
+          return { blade:+((bladeEnd - bladeStart) / scale).toFixed(1),
+                   food:+((foodEnd - foodStart) / scale).toFixed(1),
+                   // 획 끝에서 재료 밖으로 얼마나 더 나가는지 (0 이상이어야 다 훑습니다)
+                   sweepOver:+((sweptEnd - foodEnd) / scale).toFixed(1),
+                   sweepUnder:+((foodStart - sweptStart) / scale).toFixed(1),
+                   ok:sweptEnd >= foodEnd - .5 && sweptStart <= foodStart + .5 };
+        })(),
+        /* 하단 바를 얼마나 쓰는지. 칼이 지나는 구간을 바 전체로 펴야
+           포인터가 빠르게 지나가고 초록 구간도 읽힙니다. */
+        bar:(() => {
+          const zone = document.querySelector(".cut-path-timing .prep-success-zone");
+          const mark = document.querySelector(".cut-path-timing #dayPrepMarker");
+          if(!zone || !mark) return null;
+          const data = state.mini.data, keep = data.knifeX, keepY = data.knifeY;
+          const at = () => parseFloat(mark.style.left);
+          const range = cutBarRange(data);
+          data.knifeX = range.max; data.knifeY = range.max; syncTimingKnife(data);
+          const high = at();
+          data.knifeX = range.min; data.knifeY = range.min; syncTimingKnife(data);
+          const low = at();
+          data.knifeX = keep; data.knifeY = keepY; syncTimingKnife(data);
+          return { zoneWidth:+parseFloat(zone.style.width).toFixed(1), marker:+at().toFixed(1),
+                   // 칼이 지나는 구간이 바에서 차지하는 폭 (100 에 가까울수록 꽉 씁니다)
+                   travelUse:+Math.abs(high - low).toFixed(1) };
         })(),
         fx:(() => { const el = document.querySelector(".cut-impact-fx");
           return el ? { size:u(rect(el)), frames:el.querySelectorAll(".cut-impact-frame").length } : null; })(),
