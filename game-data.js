@@ -16,7 +16,7 @@ const SKEWER_BATCH_SIZE=3;
 // 절단선이 촘촘한 양배추·닭·김치는 다음 박자와 붙지 않는 선에서 키웁니다.
 const CUT_HIT_TOLERANCE=Object.freeze({
   radish:3.4,
-  fishCake:4.8,
+  fishCake:3.4,
   cabbage:3.1,
   chicken:3.5,
   greenOnion:3.5,
@@ -26,7 +26,7 @@ const CUT_HIT_TOLERANCE=Object.freeze({
 
 // 기존 작업 설정과의 호환을 위한 어묵 가로 썰기 값입니다.
 // 현재 엔진은 공통 hitTolerance를 사용하므로 세로 값과 동일하게 유지합니다.
-const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:4.8});
+const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:3.4});
 
 const PREP_TASKS=Object.freeze({
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish",miniGame:"cut",prepOrder:1,isImplemented:true},
