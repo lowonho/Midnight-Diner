@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>QA_INGREDIENT_MENU_PENDING</title>
+<body>QA_INGREDIENT_MENU_PENDING</body>
+<script src="../game-data.js"></script>
+<script>
+  const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks]}));
+  const state={day:1,phase:GAME_PHASES.MENU_SELECT,story:{flags:{}},selectedMenus:[],menuSelectionDraft:[],prepProgress:{},kimchiPrep:{},inventory:{}};
+  const dishById=id=>DISHES.find(dish=>dish.id===id)||null;
+  const buildMenuCards=()=>{},updateUI=()=>{},saveGame=()=>true;
+  const nativeAddEventListener=window.addEventListener.bind(window);
+  window.addEventListener=(type,listener,options)=>{if(type!=="load")nativeAddEventListener(type,listener,options);};
+</script>
+<script src="../day.js"></script>
+<script src="../qa-mode.js"></script>
+<script>
+  try{
+    qaIngredientAllMenus=true;
+    const rules=currentMenuSelectionRules();
+    if(rules.optionalMenus.length!==8)throw new Error(`expected 8 menus, got ${rules.optionalMenus.length}`);
+    if(rules.minSelectedMenus!==1||maxSelectedMenusForDay(rules)!==8)throw new Error("QA selection range mismatch");
+    if(!setSelectedMenus(["yakisoba","fries"]))throw new Error("future dishes rejected on Day 1 QA");
+    qaFinishIngredientMenuSelection();
+    const normal=currentMenuSelectionRules();
+    if(normal.optionalMenus.length!==0||normal.requiredMenus.length!==2)throw new Error("normal Day 1 rules were not restored");
+    document.title="QA_INGREDIENT_MENU_OK";document.body.textContent="QA_INGREDIENT_MENU_OK";
+  }catch(error){document.title="QA_INGREDIENT_MENU_FAIL";document.body.textContent=`QA_INGREDIENT_MENU_FAIL ${error.stack||error}`;}
+</script>

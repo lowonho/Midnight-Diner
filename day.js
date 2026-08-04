@@ -22,6 +22,7 @@ function getCurrentDayData(){
 
 function maxSelectedMenusForDay(dayData){
   const configuredMax=Math.max(1,Math.floor(Number(dayData.maxSelectedMenus)||1));
+  if(dayData.ignoreStoryMenuLimit)return configuredMax;
   return Number(state.day)===5&&state.story?.flags?.day5_limit_menus
     ?Math.min(configuredMax,3)
     :configuredMax;
@@ -89,7 +90,7 @@ function normalizeDayPrepState(){
 }
 
 function setSelectedMenus(menuIds){
-  const dayData=getCurrentDayData(),allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
+  const dayData=currentMenuSelectionRules(),allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
   const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   const unique=[...new Set(menuIds)].filter(id=>allowed.has(id)&&dishById(id));
   if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length<dayData.minSelectedMenus||unique.length>maxSelectedMenus)return false;
@@ -220,17 +221,19 @@ function updateDayObjective(){
 
 function renderMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return;
-  const dayData=getCurrentDayData();
+  const dayData=currentMenuSelectionRules();
   const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   const required=new Set(dayData.requiredMenus);
   const available=[...dayData.requiredMenus,...dayData.optionalMenus];
   const draft=Array.isArray(state.menuSelectionDraft)?state.menuSelectionDraft:[...dayData.requiredMenus];
   state.menuSelectionDraft=[...new Set([...dayData.requiredMenus,...draft.filter(id=>available.includes(id))])].slice(0,maxSelectedMenus);
   dom.menuSelectTitle.textContent=`Day ${state.day} · 오늘의 메뉴 선택`;
-  dom.menuSelectDescription.textContent=dayData.isSpecialDay
-    ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${maxSelectedMenus}개를 선택하세요.`
-    :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
-  const signature=`${state.day}|${state.menuSelectionDraft.join(",")}`;
+  dom.menuSelectDescription.textContent=dayData.qaAllMenus
+    ?`냉장고에서 확인할 요리를 자유롭게 선택하세요. 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개까지 고를 수 있습니다.`
+    :dayData.isSpecialDay
+      ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${maxSelectedMenus}개를 선택하세요.`
+      :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
+  const signature=`${dayData.qaAllMenus?"qa-all":"day"}|${state.day}|${state.menuSelectionDraft.join(",")}`;
   if(dom.menuSelectGrid.dataset.signature!==signature){
     dom.menuSelectGrid.dataset.signature=signature;
     dom.menuSelectGrid.innerHTML=available.map(id=>{
@@ -247,7 +250,7 @@ function renderMenuSelection(){
 
 function toggleMenuSelection(menuId){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return false;
-  const dayData=getCurrentDayData();
+  const dayData=currentMenuSelectionRules();
   const maxSelectedMenus=maxSelectedMenusForDay(dayData);
   if(dayData.requiredMenus.includes(menuId))return false;
   const selected=state.menuSelectionDraft.includes(menuId);
@@ -261,5 +264,13 @@ function confirmMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT||!setSelectedMenus(state.menuSelectionDraft)){showToast("메뉴 선택을 확인해 주세요.",true);return false;}
   dom.menuSelectOverlay.classList.remove("open");
   showToast("오늘의 메뉴가 저장되었습니다. 냉장고에서 재료를 골라주세요.");
-  return startIngredientSelection();
+  const started=startIngredientSelection();
+  if(started&&typeof qaFinishIngredientMenuSelection==="function")qaFinishIngredientMenuSelection();
+  return started;
+}
+
+function currentMenuSelectionRules(){
+  const dayData=getCurrentDayData();
+  const qaRules=typeof qaIngredientMenuSelectionRules==="function"?qaIngredientMenuSelectionRules(dayData):null;
+  return qaRules||dayData;
 }
