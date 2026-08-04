@@ -164,6 +164,10 @@
    05 흩어지는 조각). 스프라이트 시트가 아니라 낱장이라, 다섯 장을 겹쳐 두고
    자기 차례에만 한 장씩 켭니다 — 시작 시각만 20% 씩 미루면 됩니다.
 
+   [빠르기] `--ts-smoke-cycle` 한 곳만 고치면 됩니다. 한 바퀴 시간이고
+   장당 그 1/5 씩 보입니다 (1.6s → 장당 0.32s). 시작 시각을 초가 아니라
+   **한 바퀴의 비율**로 적어 두어서, 여기만 바꿔도 다섯 장이 같이 따라옵니다.
+
    ⚠️ 다섯 장 모두 1024 **정사각** 캔버스에 아래 가운데를 기준으로 그려져 있습니다.
       상자를 정사각(aspect-ratio:1)으로 두어야 장이 넘어갈 때 연기 뿌리가
       제자리에 붙어 있습니다. 그림 경계에 맞춰 상자를 좁히면 안 됩니다.
@@ -172,19 +176,21 @@
       나가는 것이 정상입니다 (.two-side-pan 은 overflow 를 자르지 않습니다).
    반투명입니다 — 김치전 색이 비쳐 보여야 익힘 단계를 가리지 않습니다.
    많이 익을수록(--cook-progress) 조금 더 진해집니다. */
-.ts-smoke { position:absolute; z-index:4; width:27%; aspect-ratio:1; opacity:calc(.26 + var(--cook-progress) * .3); pointer-events:none; }
+.ts-smoke { --ts-smoke-cycle:1.6s; position:absolute; z-index:4; width:27%; aspect-ratio:1; opacity:calc(.26 + var(--cook-progress) * .3); pointer-events:none; }
 /* ⚠️ bottom 을 더 올리면(예: 42%) 상자 윗변이 플레이 칸(.ts-board) 위로 나가
    overflow:hidden 에 잘립니다. 40% 가 딱 맞닿는 자리입니다. */
 .ts-smoke.smoke-one { left:13%; bottom:40%; }
 /* 두 번째 기둥은 조금 작고, 한 바퀴의 반대쪽에서 시작해 둘이 같이 뜨지 않습니다 */
-.ts-smoke.smoke-two { left:38%; bottom:53%; width:21%; --ts-smoke-offset:-2s; }
+.ts-smoke.smoke-two { left:38%; bottom:53%; width:21%; --ts-smoke-offset:-.5; }
+/* 시작 시각은 **한 바퀴의 비율**입니다 (-.2 = 한 바퀴의 20% 앞당기기).
+   초로 적으면 위 --ts-smoke-cycle 을 고칠 때마다 다섯 줄을 같이 고쳐야 합니다. */
 .ts-smoke-frame { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0;
-  animation:ts-smoke-frame 4s linear infinite;
-  animation-delay:calc(var(--ts-smoke-offset,0s) + var(--ts-smoke-frame,0s)); }
-.ts-smoke-frame.frame-2 { --ts-smoke-frame:-.8s; }
-.ts-smoke-frame.frame-3 { --ts-smoke-frame:-1.6s; }
-.ts-smoke-frame.frame-4 { --ts-smoke-frame:-2.4s; }
-.ts-smoke-frame.frame-5 { --ts-smoke-frame:-3.2s; }
+  animation:ts-smoke-frame var(--ts-smoke-cycle) linear infinite;
+  animation-delay:calc((var(--ts-smoke-offset,0) + var(--ts-smoke-frame,0)) * var(--ts-smoke-cycle)); }
+.ts-smoke-frame.frame-2 { --ts-smoke-frame:-.2; }
+.ts-smoke-frame.frame-3 { --ts-smoke-frame:-.4; }
+.ts-smoke-frame.frame-4 { --ts-smoke-frame:-.6; }
+.ts-smoke-frame.frame-5 { --ts-smoke-frame:-.8; }
 /* 한 장이 켜져 있는 20% 앞뒤로 5% 씩 겹칩니다 — 딱 끊어 바꾸면 연기가 툭툭 튑니다 */
 @keyframes ts-smoke-frame { 0% { opacity:0; } 5%,20% { opacity:1; } 25%,100% { opacity:0; } }
 .cook-steam { position:absolute; z-index:3; top:calc(4 * var(--upx)); width:calc(20 * var(--upx)); height:calc(44 * var(--upx)); border-left:calc(4 * var(--upx)) solid rgba(245,237,215,.58); border-radius:50%; filter:opacity(calc(.12 + var(--cook-progress) * .88)); animation:serving-oden-steam 1.3s ease-in-out infinite; }
