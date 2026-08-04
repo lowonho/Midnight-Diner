@@ -40,24 +40,39 @@
   border-radius: calc(8 * var(--upx));
   background: linear-gradient(rgba(27,16,11,.97),rgba(14,8,6,.98));
 }
+.ingredient-recipe-card { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
 .ingredient-recipe-card > span,.ingredient-basket-card > span { color: #c99a55; font-size: calc(13 * var(--upx)); font-weight: 800; letter-spacing: .08em; }
 .ingredient-recipe-card h3 { margin: calc(5 * var(--upx)) 0 calc(12 * var(--upx)); color: #ffe5aa; font-size: calc(27 * var(--upx)); }
-.ingredient-dish-picture {
-  display: grid;
-  place-items: center;
-  height: calc(188 * var(--upx));
+.ingredient-dish-gallery {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:calc(6 * var(--upx));
+  max-height:calc(150 * var(--upx));
   margin-bottom: calc(16 * var(--upx));
+  padding-right:calc(3 * var(--upx));
+  overflow:auto;
+}
+.ingredient-dish-gallery > span {
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-height:calc(70 * var(--upx));
   border: 1px solid #684329;
   border-radius: calc(6 * var(--upx));
   background: radial-gradient(circle,#6d4a2e 0,#24150e 68%);
   overflow: hidden;
 }
-.ingredient-dish-picture img { width: 88%; height: 88%; object-fit: contain; filter: drop-shadow(0 calc(8 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.5)); }
-.ingredient-checklist { display: grid; gap: calc(7 * var(--upx)); margin-top: calc(10 * var(--upx)); }
-.ingredient-check-item { display: flex; align-items: center; gap: calc(9 * var(--upx)); padding: calc(9 * var(--upx)); border-bottom: 1px solid #49301f; color: #d9c7aa; }
+.ingredient-dish-gallery img { width:88%; height:82%; object-fit:contain; filter:drop-shadow(0 calc(4 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5)); }
+.ingredient-dish-gallery strong { position:absolute; right:0; bottom:0; left:0; padding:2px; background:rgba(17,9,6,.76); color:#f1d6a1; font-size:calc(10 * var(--upx)); text-align:center; }
+.ingredient-checklist { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 calc(5 * var(--upx)); max-height:calc(245 * var(--upx)); margin-top:calc(8 * var(--upx)); overflow:auto; }
+.ingredient-check-item { display:flex; align-items:center; gap:calc(6 * var(--upx)); min-width:0; padding:calc(7 * var(--upx)) calc(4 * var(--upx)); border-bottom:1px solid #49301f; color:#d9c7aa; font-size:calc(12 * var(--upx)); }
 .ingredient-check-item span { color: #9a7650; }
 .ingredient-check-item.done { color: #f5d88f; }
 .ingredient-check-item.done span { color: #8fcf79; }
+.ingredient-pantry-note { margin:auto 0 0; padding-top:calc(10 * var(--upx)); border-top:1px solid #49301f; color:#a99576; font-size:calc(10 * var(--upx)); line-height:1.45; }
+.ingredient-pantry-note:empty { display:none; }
+.ingredient-pantry-note strong,.ingredient-pantry-note span { display:block; }
+.ingredient-pantry-note strong { margin-bottom:2px; color:#c79f62; }
 .ingredient-fridge {
   position: relative;
   display: grid;
@@ -127,7 +142,7 @@
   .ingredient-select-header p:not(.eyebrow) { font-size:12px; }
   .ingredient-select-layout { display:block; }
   .ingredient-recipe-card { margin-bottom:10px; }
-  .ingredient-dish-picture { display:none; }
+  .ingredient-dish-gallery { display:none; }
   .ingredient-checklist { grid-template-columns:repeat(2,1fr); }
   .ingredient-fridge { min-height:420px; padding:40px 15px 14px; }
   .ingredient-grid { grid-template-columns:repeat(3,1fr); gap:7px; }

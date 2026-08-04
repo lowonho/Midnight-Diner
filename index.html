@@ -130,15 +130,16 @@
                   <h2 id="ingredientSelectTitle">냉장고에서 재료를 골라주세요!</h2>
                   <p>시간 제한은 없어요. 요리에 필요한 재료를 천천히 찾아보세요.</p>
                 </div>
-                <span id="ingredientDishProgress" class="ingredient-dish-progress">요리 1 / 2</span>
+                <span id="ingredientDishProgress" class="ingredient-dish-progress">메뉴 2개</span>
               </header>
               <div class="ingredient-select-layout">
                 <aside class="ingredient-recipe-card">
-                  <span>오늘의 요리</span>
-                  <h3 id="ingredientDishName">어묵탕</h3>
-                  <div class="ingredient-dish-picture"><img id="ingredientDishImage" alt="" /></div>
-                  <strong>필요한 재료</strong>
+                  <span>오늘의 메뉴</span>
+                  <h3 id="ingredientDishName">한꺼번에 챙기기</h3>
+                  <div id="ingredientDishGallery" class="ingredient-dish-gallery"></div>
+                  <strong>냉장고에서 찾을 재료</strong>
                   <div id="ingredientChecklist" class="ingredient-checklist"></div>
+                  <p id="ingredientPantryNote" class="ingredient-pantry-note"></p>
                 </aside>
                 <section class="ingredient-fridge" aria-label="냉장고 재료 목록">
                   <div class="ingredient-fridge-light" aria-hidden="true"></div>
@@ -149,7 +150,7 @@
                   <span>장바구니</span>
                   <div id="ingredientBasket" class="ingredient-basket"></div>
                   <strong id="ingredientTotalProgress" class="ingredient-total-progress">0 / 0</strong>
-                  <button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>다음 요리</button>
+                  <button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button>
                   <small>잘못 골라도 괜찮아요.<br />잠시 기다리면 재료가 반짝여요.</small>
                 </aside>
               </div>
