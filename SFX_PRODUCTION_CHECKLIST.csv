@@ -1,44 +1,47 @@
-¼øÀ§,Á¦ÀÛ´Ü°è,¿£Áø,ÆÄÀÏ¸í,¼³¸í,ÃßÃµ °Ë»ö¾î,±Ô°İ,¿Ï·á
-1,1Â÷ ÇÊ¼ö,E3¡¤E5,sfx_pan_sizzle_loop,±èÄ¡ºº±â¿Í ±èÄ¡Àü ±Á±â °øÅë ÆÒ Áö±Û°Å¸²,food sizzling in frying pan loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-2,1Â÷ ÇÊ¼ö,E6,sfx_deep_fry_loop,»õ¿ì¿Í °¨ÀÚ°¡ ±â¸§¿¡¼­ Æ¢°ÜÁö´Â °­ÇÑ Áö¼ÓÀ½,deep fryer bubbling loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-3,1Â÷ ÇÊ¼ö,E3,sfx_griddle_sizzle_loop,ººÀ½¿ìµ¿ Ã¶ÆÇÀÇ ³Ğ°í °­ÇÑ Áö±Û°Å¸²,teppanyaki griddle sizzling loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-4,1Â÷ ÇÊ¼ö,E4,sfx_gas_flame_loop,¾î¹¬ÅÁ°ú ¶±ººÀÌ ³¿ºñ ¾Æ·¡ÀÇ °¡½ººÒ,gas stove flame loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-5,1Â÷ ÇÊ¼ö,E4,sfx_clear_simmer_loop,¾î¹¬ÅÁÃ³·³ ¸¼Àº ±¹¹°ÀÌ ÀÜÀÜÇÏ°Ô ²ú´Â ¼Ò¸®,soup simmering pot loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-6,1Â÷ ÇÊ¼ö,E4,sfx_thick_boil_loop,¶±ººÀÌÃ³·³ °ÉÂßÇÑ ¼Ò½º°¡ Å« ±âÆ÷·Î ²ú´Â ¼Ò¸®,thick sauce bubbling loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-7,1Â÷ ÇÊ¼ö,E1,sfx_knife_daikon,¹« Àı´Ü,kitchen knife chop whoosh,0.08~0.2ÃÊ,¿Ï·á
-8,1Â÷ ÇÊ¼ö,E1,sfx_cut_crisp,¾ç¹èÃß¡¤´ëÆÄÃ³·³ ¾Æ»èÇÑ Ã¤¼Ò Àı´Ü,crispy vegetable chopping sound,0.1~0.25ÃÊ,¿Ï·á
-9,1Â÷ ÇÊ¼ö,E1,sfx_cut_soft,µÎºÎ¡¤¾î¹¬Ã³·³ ºÎµå·´°í ÃËÃËÇÑ Àç·á Àı´Ü,soft food cutting sound,0.1~0.25ÃÊ,¿Ï·á
-10,1Â÷ ÇÊ¼ö,E1,sfx_cut_wet,±èÄ¡Ã³·³ Á¥Àº Ã¤¼Ò¸¦ ÀÚ¸£´Â ¼Ò¸®,wet vegetable chop sound,0.1~0.3ÃÊ,¿Ï·á
-11,1Â÷ ÇÊ¼ö,E1,sfx_cut_meat1,´ß°í±â¸¦ ¹¬Á÷ÇÏ°Ô Àı´ÜÇÏ´Â ¼Ò¸®1,raw chicken chopping sound,0.15~0.3ÃÊ,¿Ï·á
-12,1Â÷ ÇÊ¼ö,E1,sfx_cut_meat2,´ß°í±â¸¦ ¹¬Á÷ÇÏ°Ô Àı´ÜÇÏ´Â ¼Ò¸®2,raw chicken chopping sound,0.15~0.3ÃÊ,¿Ï·á
-13,1Â÷ ÇÊ¼ö,E3,sfx_metal_scrape1,Ã¶ÆÇ µÚÁı°³·Î Ã¶ÆÇ°ú ¿ìµ¿¸éÀ» ¹Ì´Â ¼Ò¸®1,metal spatula griddle scrape,0.15~0.4ÃÊ,¿Ï·á
-14,1Â÷ ÇÊ¼ö,E3,sfx_metal_scrape2,Ã¶ÆÇ µÚÁı°³·Î Ã¶ÆÇ°ú ¿ìµ¿¸éÀ» ¹Ì´Â ¼Ò¸®2,metal spatula griddle scrape,0.15~0.4ÃÊ,¿Ï·á
-15,1Â÷ ÇÊ¼ö,E3,sfx_wood_stir1,³ª¹« ÁÖ°ÆÀ¸·Î ±èÄ¡¸¦ ÆÒ¿¡¼­ ¹Ì´Â ¼Ò¸®1,wooden spatula stirring pan sound,0.15~0.35ÃÊ,¿Ï·á
-16,1Â÷ ÇÊ¼ö,E3,sfx_wood_stir2,³ª¹« ÁÖ°ÆÀ¸·Î ±èÄ¡¸¦ ÆÒ¿¡¼­ ¹Ì´Â ¼Ò¸®2,wooden spatula stirring pan sound,0.15~0.35ÃÊ,¿Ï·á
-17,1Â÷ ÇÊ¼ö,E2,sfx_mandoline_slide1,Ã¤Ä® À§·Î ¾ç¹èÃß¡¤´ç±Ù¡¤°¨ÀÚ¸¦ ºü¸£°Ô ¹Ì´Â ¼Ò¸®1,mandoline slicer vegetable sound,0.1~0.25ÃÊ,¿Ï·á
-18,1Â÷ ÇÊ¼ö,E2,sfx_mandoline_slide2,Ã¤Ä® À§·Î ¾ç¹èÃß¡¤´ç±Ù¡¤°¨ÀÚ¸¦ ºü¸£°Ô ¹Ì´Â ¼Ò¸®2,mandoline slicer vegetable sound,0.1~0.25ÃÊ,¿Ï·á
-19,1Â÷ ÇÊ¼ö,E6,sfx_fry_basket_lift,±İ¼Ó ¹Ù½ºÄÏÀ» ±â¸§ À§·Î µé¾î ¿Ã¸®´Â ¼Ò¸®,deep fryer basket lift sound,0.3~0.6ÃÊ,¿Ï·á
-20,1Â÷ ÇÊ¼ö,E6,sfx_fry_basket_shake,¹Ù½ºÄÏÀ» Å¹ ¿òÁ÷¿© ±â¸§À» ÅÍ´Â ¼Ò¸®,fryer basket shake metal sound,0.12~0.3ÃÊ,¿Ï·á
-21,1Â÷ ÇÊ¼ö,E5,sfx_pancake_flip,±èÄ¡ÀüÀÌ ¶°¿Ã¶ó µÚÁıÈù µÚ ÆÒ¿¡ ÂøÁöÇÏ´Â ÀüÃ¼ µ¿ÀÛ,pancake flip pan landing sound,0.4~0.8ÃÊ,¿Ï·á
-22,1Â÷ ÇÊ¼ö,E5,sfx_charcoal_grill_loop,´ß²¿Ä¡ ¾Æ·¡ ½¡ºÒ°ú ¶³¾îÁö´Â ±â¸§ÀÇ Áö¼ÓÀ½,charcoal grill sizzling loop,3~6ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-23,1Â÷ ÇÊ¼ö,E9,sfx_whisk_mix_loop1,°ÅÇ°±â·Î °ÉÂßÇÑ ±èÄ¡Àü ¹İÁ×À» °è¼Ó Á£´Â ¼Ò¸®1,whisking thick batter loop,2~4ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-24,1Â÷ ÇÊ¼ö,E9,sfx_whisk_mix_loop2,°ÅÇ°±â·Î °ÉÂßÇÑ ±èÄ¡Àü ¹İÁ×À» °è¼Ó Á£´Â ¼Ò¸®2,whisking thick batter loop,2~4ÃÊ ¹«ºÀÁ¦ ·çÇÁ,¿Ï·á
-25,1Â÷ ÇÊ¼ö,°øÅë,sfx_input_wrong,Àß¸øµÈ ¹æÇâ¡¤¼ø¼­¡¤Å¸ÀÌ¹ÖÀ» ¾Ë¸®´Â ³·°í ÂªÀº µĞÅ¹À½,soft game wrong input sound,0.15~0.3ÃÊ,¿Ï·á
-26,2Â÷ µğÅ×ÀÏ,E2,sfx_dry_shake,°¨ÀÚ ÀüºĞ ºÀÅõ¿Í »õ¿ì ¹Ğ°¡·ç¡¤»§°¡·ç¸¦ Èçµå´Â ¸¶¸¥ ¼Ò¸®,plastic bag powder shake sound,0.15~0.35ÃÊ,¹Ì¿Ï·á
-27,2Â÷ µğÅ×ÀÏ,E2,sfx_wet_coat,»õ¿ì¸¦ °è¶õ¹° ¾È¿¡¼­ ±¼¸®´Â ²öÀûÇÑ Ãâ··ÀÓ,egg wash slosh sound,0.15~0.35ÃÊ,¹Ì¿Ï·á
-28,2Â÷ µğÅ×ÀÏ,E5,sfx_skewer_turn,´ß²¿Ä¡ ÇÑ °³¸¦ Áı¾î ¹İ´ëÂÊÀ¸·Î µ¹¸®´Â ¼Ò¸®,wooden skewer turning grill sound,0.15~0.35ÃÊ,¹Ì¿Ï·á
-29,2Â÷ µğÅ×ÀÏ,E7¡¤E8¡¤E11,sfx_pour_thin,°£Àå¡¤°íÃß±â¸§¡¤¹°¡¤À°¼öÃ³·³ ¹±Àº ¾×Ã¼ Èå¸§,thin liquid pouring into bowl,1~2ÃÊ,¹Ì¿Ï·á
-30,2Â÷ µğÅ×ÀÏ,E7,sfx_pour_syrup,¿Ã¸®°í´çÃ³·³ Á¡¼ºÀÌ ÀÖ´Â ½Ã·´ Èå¸§,thick syrup pouring sound,1~2ÃÊ,¹Ì¿Ï·á
-31,2Â÷ µğÅ×ÀÏ,E7,sfx_pour_thick,°íÃßÀå¡¤±¼¼Ò½ºÃ³·³ °ÉÂßÇÑ ¼Ò½º°¡ ¶³¾îÁö´Â ¼Ò¸®,thick sauce squeeze pour sound,1~2ÃÊ,¹Ì¿Ï·á
-32,2Â÷ µğÅ×ÀÏ,E8,sfx_ingredient_dry_dump,ºÎÄ§°¡·ç °°Àº ¸¶¸¥ °¡·ç¸¦ º¼¿¡ º×´Â ¼Ò¸®,flour pouring into bowl sound,0.4~0.8ÃÊ,¹Ì¿Ï·á
-33,2Â÷ µğÅ×ÀÏ,E8¡¤E11,sfx_ingredient_wet_drop,±èÄ¡¡¤¶±¡¤¿ìµ¿¡¤¹«¡¤¾î¹¬¡¤¸êÄ¡¸¦ º¼ÀÌ³ª ³¿ºñ¿¡ ³Ö´Â ¼Ò¸®,food dropping into bowl sound,0.15~0.4ÃÊ,¹Ì¿Ï·á
-34,2Â÷ µğÅ×ÀÏ,E8,sfx_skewer_pierce,´ß°ú ÆÄ¸¦ ³ª¹« ²¿Ä¡¿¡ ²È´Â ÀÛÀº °üÅëÀ½,food piercing wooden skewer sound,0.1~0.25ÃÊ,¹Ì¿Ï·á
-35,2Â÷ µğÅ×ÀÏ,E10,sfx_anchovy_tension,¸êÄ¡ ¸Ó¸®¸¦ ÁÂ¿ì·Î Èçµé ¶§ Á¢ÇÕºÎ°¡ ´ç°ÜÁö´Â ¼Ò¸®,small fish bone tension sound,0.1~0.25ÃÊ,¹Ì¿Ï·á
-36,2Â÷ µğÅ×ÀÏ,E10,sfx_anchovy_tear,¸êÄ¡ ¸Ó¸®°¡ ¸öÅë¿¡¼­ ¶â¾îÁö´Â ¼ø°£,small fish tearing sound,0.15~0.35ÃÊ,¹Ì¿Ï·á
-37,2Â÷ µğÅ×ÀÏ,E10,sfx_anchovy_head_land,ºĞ¸®µÈ ¸êÄ¡ ¸Ó¸®°¡ µµ¸¶¿¡ ÀÛ°Ô ¶³¾îÁö´Â ¼Ò¸®,small object drop wooden board,0.08~0.2ÃÊ,¹Ì¿Ï·á
-38,2Â÷ µğÅ×ÀÏ,E11,sfx_plate_place,µÎºÎ¿Í ººÀº ±èÄ¡¸¦ Á¢½Ã¿¡ ºÎµå·´°Ô ³»·Á³õ´Â ¼Ò¸®,soft food placed on ceramic plate,0.15~0.35ÃÊ,¹Ì¿Ï·á
-39,3Â÷ ½Ã½ºÅÛ,°á°ú,sfx_result_perfect,PERFECT °á°ú¿¡¸¸ »ç¿ëÇÏ´Â ¸¼°í ¸¸Á·½º·¯¿î ¼º°øÀ½,perfect result sparkle chime,0.6~1ÃÊ,¿Ï·á
-40,3Â÷ ½Ã½ºÅÛ,°á°ú,sfx_result_good,GOOD °á°ú¿¡ »ç¿ëÇÏ´Â Âª°í µû¶æÇÑ 2À½,casual game good result chime,0.4~0.7ÃÊ,¿Ï·á
-41,3Â÷ ½Ã½ºÅÛ,Á¦ÇÑ½Ã°£,sfx_timer_warning,Áß¿äÇÑ Á¦ÇÑ½Ã°£ÀÌ ¾ó¸¶ ³²Áö ¾Ê¾ÒÀ» ¶§ÀÇ ½Ã°è °æ°í,kitchen timer warning tick,0.05~0.15ÃÊ,¿Ï·á
-42,3Â÷ ½Ã½ºÅÛ,¼­ºù,sfx_food_serve,¿Ï¼º Á¢½Ã¸¦ ¼Õ´Ô ¾Õ¿¡ ³»·Á³õ´Â ¼Ò¸®,ceramic plate serve table sound,0.2~0.5ÃÊ,¹Ì¿Ï·á
-43,3Â÷ ½Ã½ºÅÛ,UI,sfx_ui_click,¸Ş´º¡¤¼³Á¤¿¡¸¸ »ç¿ëÇÏ´Â ÀÛ°í ºÎµå·¯¿î Å¬¸¯,soft wooden UI click sound,0.05~0.1ÃÊ,¿Ï·á
+ìˆœìœ„,ì œì‘ë‹¨ê³„,ì—”ì§„,íŒŒì¼ëª…,ì„¤ëª…,ì¶”ì²œ ê²€ìƒ‰ì–´,ê·œê²©,ì™„ë£Œ
+1,3ì°¨ ì‹œìŠ¤í…œ,ì„œë¹™,sfx_food_serve,ì™„ì„± ì ‘ì‹œë¥¼ ì†ë‹˜ ì•ì— ë‚´ë ¤ë†“ëŠ” ì†Œë¦¬,ceramic plate serve table sound,0.2~0.5ì´ˆ,ì™„ë£Œ
+2,2ì°¨ ë””í…Œì¼,E7Â·E11,sfx_pour_thin,ê°„ì¥Â·ê³ ì¶”ê¸°ë¦„Â·ìœ¡ìˆ˜ì²˜ëŸ¼ ë¬½ì€ ì•¡ì²´ íë¦„,thin liquid pouring into bowl,1~2ì´ˆ,ì™„ë£Œ
+3,2ì°¨ ë””í…Œì¼,E8,sfx_pour_water,ë³¼ì— ë§‘ì€ ë¬¼ì„ ë¶“ëŠ” ì†Œë¦¬ (ë°˜ì£½Â·ë¶ˆë¦¬ê¸° ë¬¼),clean water pouring into bowl,1~2ì´ˆ,ì™„ë£Œ
+4,2ì°¨ ë””í…Œì¼,E8Â·E11,sfx_ingredient_wet_drop,ê¹€ì¹˜Â·ë–¡Â·ìš°ë™Â·ë¬´Â·ì–´ë¬µÂ·ë©¸ì¹˜ë¥¼ ë³¼ì´ë‚˜ ëƒ„ë¹„ì— ë„£ëŠ” ì†Œë¦¬,food dropping into bowl sound,0.15~0.4ì´ˆ,ë¯¸ì™„ë£Œ
+5,2ì°¨ ë””í…Œì¼,E2,sfx_potato_starch_shake,ê°ì ì „ë¶„ ë´‰íˆ¬ë¥¼ í”ë“œëŠ” ë§ˆë¥¸ ê°€ë£¨ ì†Œë¦¬,plastic bag powder shake sound,0.15~0.35ì´ˆ,ë¯¸ì™„ë£Œ
+6,2ì°¨ ë””í…Œì¼,E2,sfx_shrimp_flour_coat,ìƒˆìš°ë¥¼ ë°€ê°€ë£¨ ê·¸ë¦‡ì—ì„œ êµ´ë ¤ ê³ ìš´ ê°€ë£¨ë¥¼ ì…íˆëŠ” ë§ˆë¥¸ ì†Œë¦¬,dry flour coating shrimp sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+7,2ì°¨ ë””í…Œì¼,E2,sfx_shrimp_egg_coat,ìƒˆìš°ë¥¼ ê³„ë€ë¬¼ ì•ˆì—ì„œ êµ´ë¦¬ëŠ” ëˆì í•œ ì¶œë ì„,egg wash slosh sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+8,2ì°¨ ë””í…Œì¼,E2,sfx_shrimp_crumb_coat,ìƒˆìš°ë¥¼ ë¹µê°€ë£¨ ê·¸ë¦‡ì—ì„œ êµ´ë ¤ êµµì€ ë¹µê°€ë£¨ë¥¼ ì…íˆëŠ” ë¶€ìŠ¬ê±°ë¦¬ëŠ” ì†Œë¦¬,coarse breadcrumb coating sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+9,2ì°¨ ë””í…Œì¼,E5,sfx_skewer_turn,ë‹­ê¼¬ì¹˜ í•œ ê°œë¥¼ ì§‘ì–´ ë°˜ëŒ€ìª½ìœ¼ë¡œ ëŒë¦¬ëŠ” ì†Œë¦¬,wooden skewer turning grill sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+10,2ì°¨ ë””í…Œì¼,E7,sfx_pour_thick,ê³ ì¶”ì¥Â·êµ´ì†ŒìŠ¤ì²˜ëŸ¼ ê±¸ì­‰í•œ ì†ŒìŠ¤ê°€ ë–¨ì–´ì§€ëŠ” ì†Œë¦¬,thick sauce squeeze pour sound,1~2ì´ˆ,ì™„ë£Œ
+11,2ì°¨ ë””í…Œì¼,E7,sfx_pour_syrup,ì˜¬ë¦¬ê³ ë‹¹ì²˜ëŸ¼ ì ì„±ì´ ìˆëŠ” ì‹œëŸ½ íë¦„,thick syrup pouring sound,1~2ì´ˆ,ì™„ë£Œ
+12,2ì°¨ ë””í…Œì¼,E8,sfx_ingredient_dry_dump,ë¶€ì¹¨ê°€ë£¨ ê°™ì€ ë§ˆë¥¸ ê°€ë£¨ë¥¼ ë³¼ì— ë¶“ëŠ” ì†Œë¦¬,flour pouring into bowl sound,0.4~0.8ì´ˆ,ë¯¸ì™„ë£Œ
+13,2ì°¨ ë””í…Œì¼,E8,sfx_skewer_pierce,ë‹­ê³¼ íŒŒë¥¼ ë‚˜ë¬´ ê¼¬ì¹˜ì— ê½‚ëŠ” ì‘ì€ ê´€í†µìŒ,food piercing wooden skewer sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+14,2ì°¨ ë””í…Œì¼,E10,sfx_anchovy_tension1,ë©¸ì¹˜ ë¨¸ë¦¬ë¥¼ ì¢Œìš°ë¡œ í”ë“¤ ë•Œ ì ‘í•©ë¶€ê°€ ë‹¹ê²¨ì§€ëŠ” ì†Œë¦¬1,small fish bone tension sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+15,2ì°¨ ë””í…Œì¼,E10,sfx_anchovy_tension2,ë©¸ì¹˜ ë¨¸ë¦¬ë¥¼ ì¢Œìš°ë¡œ í”ë“¤ ë•Œ ì ‘í•©ë¶€ê°€ ë‹¹ê²¨ì§€ëŠ” ì†Œë¦¬2,small fish bone tension sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+16,2ì°¨ ë””í…Œì¼,E10,sfx_anchovy_finish,ë©¸ì¹˜ ë¨¸ë¦¬ê°€ ì™„ì „íˆ ëœ¯ì–´ì ¸ ë„ë§ˆì— ë–¨ì–´ì§€ëŠ” ë§ˆë¬´ë¦¬ ì†Œë¦¬,small fish tear finish drop sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+17,2ì°¨ ë””í…Œì¼,E11,sfx_plate_place,ë‘ë¶€ì™€ ë³¶ì€ ê¹€ì¹˜ë¥¼ ì ‘ì‹œì— ë¶€ë“œëŸ½ê²Œ ë‚´ë ¤ë†“ëŠ” ì†Œë¦¬,soft food placed on ceramic plate,0.15~0.35ì´ˆ,ë¯¸ì™„ë£Œ
+18,1ì°¨ í•„ìˆ˜,E3Â·E5,sfx_pan_sizzle_loop,ê¹€ì¹˜ë³¶ê¸°ì™€ ê¹€ì¹˜ì „ êµ½ê¸° ê³µí†µ íŒ¬ ì§€ê¸€ê±°ë¦¼,food sizzling in frying pan loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+19,1ì°¨ í•„ìˆ˜,E6,sfx_deep_fry_loop,ìƒˆìš°ì™€ ê°ìê°€ ê¸°ë¦„ì—ì„œ íŠ€ê²¨ì§€ëŠ” ê°•í•œ ì§€ì†ìŒ,deep fryer bubbling loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+20,1ì°¨ í•„ìˆ˜,E3,sfx_griddle_sizzle_loop,ë³¶ìŒìš°ë™ ì² íŒì˜ ë„“ê³  ê°•í•œ ì§€ê¸€ê±°ë¦¼,teppanyaki griddle sizzling loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+21,1ì°¨ í•„ìˆ˜,E4,sfx_gas_flame_loop,ì–´ë¬µíƒ•ê³¼ ë–¡ë³¶ì´ ëƒ„ë¹„ ì•„ë˜ì˜ ê°€ìŠ¤ë¶ˆ,gas stove flame loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+22,1ì°¨ í•„ìˆ˜,E4,sfx_clear_simmer_loop,ì–´ë¬µíƒ•ì²˜ëŸ¼ ë§‘ì€ êµ­ë¬¼ì´ ì”ì”í•˜ê²Œ ë“ëŠ” ì†Œë¦¬,soup simmering pot loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+23,1ì°¨ í•„ìˆ˜,E4,sfx_thick_boil_loop,ë–¡ë³¶ì´ì²˜ëŸ¼ ê±¸ì­‰í•œ ì†ŒìŠ¤ê°€ í° ê¸°í¬ë¡œ ë“ëŠ” ì†Œë¦¬,thick sauce bubbling loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+24,1ì°¨ í•„ìˆ˜,E1,sfx_knife_daikon,ë¬´ ì ˆë‹¨,kitchen knife chop whoosh,0.08~0.2ì´ˆ,ì™„ë£Œ
+25,1ì°¨ í•„ìˆ˜,E1,sfx_cut_crisp,ì–‘ë°°ì¶”Â·ëŒ€íŒŒì²˜ëŸ¼ ì•„ì‚­í•œ ì±„ì†Œ ì ˆë‹¨,crispy vegetable chopping sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+26,1ì°¨ í•„ìˆ˜,E1,sfx_cut_soft,ë‘ë¶€Â·ì–´ë¬µì²˜ëŸ¼ ë¶€ë“œëŸ½ê³  ì´‰ì´‰í•œ ì¬ë£Œ ì ˆë‹¨,soft food cutting sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+27,1ì°¨ í•„ìˆ˜,E1,sfx_cut_wet,ê¹€ì¹˜ì²˜ëŸ¼ ì –ì€ ì±„ì†Œë¥¼ ìë¥´ëŠ” ì†Œë¦¬,wet vegetable chop sound,0.1~0.3ì´ˆ,ì™„ë£Œ
+28,1ì°¨ í•„ìˆ˜,E1,sfx_cut_meat1,ë‹­ê³ ê¸°ë¥¼ ë¬µì§í•˜ê²Œ ì ˆë‹¨í•˜ëŠ” ì†Œë¦¬1,raw chicken chopping sound,0.15~0.3ì´ˆ,ì™„ë£Œ
+29,1ì°¨ í•„ìˆ˜,E1,sfx_cut_meat2,ë‹­ê³ ê¸°ë¥¼ ë¬µì§í•˜ê²Œ ì ˆë‹¨í•˜ëŠ” ì†Œë¦¬2,raw chicken chopping sound,0.15~0.3ì´ˆ,ì™„ë£Œ
+30,1ì°¨ í•„ìˆ˜,E3,sfx_metal_scrape1,ì² íŒ ë’¤ì§‘ê°œë¡œ ì² íŒê³¼ ìš°ë™ë©´ì„ ë¯¸ëŠ” ì†Œë¦¬1,metal spatula griddle scrape,0.15~0.4ì´ˆ,ì™„ë£Œ
+31,1ì°¨ í•„ìˆ˜,E3,sfx_metal_scrape2,ì² íŒ ë’¤ì§‘ê°œë¡œ ì² íŒê³¼ ìš°ë™ë©´ì„ ë¯¸ëŠ” ì†Œë¦¬2,metal spatula griddle scrape,0.15~0.4ì´ˆ,ì™„ë£Œ
+32,1ì°¨ í•„ìˆ˜,E3,sfx_wood_stir1,ë‚˜ë¬´ ì£¼ê±±ìœ¼ë¡œ ê¹€ì¹˜ë¥¼ íŒ¬ì—ì„œ ë¯¸ëŠ” ì†Œë¦¬1,wooden spatula stirring pan sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+33,1ì°¨ í•„ìˆ˜,E3,sfx_wood_stir2,ë‚˜ë¬´ ì£¼ê±±ìœ¼ë¡œ ê¹€ì¹˜ë¥¼ íŒ¬ì—ì„œ ë¯¸ëŠ” ì†Œë¦¬2,wooden spatula stirring pan sound,0.15~0.35ì´ˆ,ì™„ë£Œ
+34,1ì°¨ í•„ìˆ˜,E2,sfx_mandoline_slide1,ì±„ì¹¼ ìœ„ë¡œ ì–‘ë°°ì¶”Â·ë‹¹ê·¼Â·ê°ìë¥¼ ë¹ ë¥´ê²Œ ë¯¸ëŠ” ì†Œë¦¬1,mandoline slicer vegetable sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+35,1ì°¨ í•„ìˆ˜,E2,sfx_mandoline_slide2,ì±„ì¹¼ ìœ„ë¡œ ì–‘ë°°ì¶”Â·ë‹¹ê·¼Â·ê°ìë¥¼ ë¹ ë¥´ê²Œ ë¯¸ëŠ” ì†Œë¦¬2,mandoline slicer vegetable sound,0.1~0.25ì´ˆ,ì™„ë£Œ
+36,1ì°¨ í•„ìˆ˜,E6,sfx_fry_basket_lift,ê¸ˆì† ë°”ìŠ¤ì¼“ì„ ê¸°ë¦„ ìœ„ë¡œ ë“¤ì–´ ì˜¬ë¦¬ëŠ” ì†Œë¦¬,deep fryer basket lift sound,0.3~0.6ì´ˆ,ì™„ë£Œ
+37,1ì°¨ í•„ìˆ˜,E6,sfx_fry_basket_shake,ë°”ìŠ¤ì¼“ì„ íƒ ì›€ì§ì—¬ ê¸°ë¦„ì„ í„°ëŠ” ì†Œë¦¬,fryer basket shake metal sound,0.12~0.3ì´ˆ,ì™„ë£Œ
+38,1ì°¨ í•„ìˆ˜,E5,sfx_pancake_flip,ê¹€ì¹˜ì „ì´ ë– ì˜¬ë¼ ë’¤ì§‘íŒ ë’¤ íŒ¬ì— ì°©ì§€í•˜ëŠ” ì „ì²´ ë™ì‘,pancake flip pan landing sound,0.4~0.8ì´ˆ,ì™„ë£Œ
+39,1ì°¨ í•„ìˆ˜,E5,sfx_charcoal_grill_loop,ë‹­ê¼¬ì¹˜ ì•„ë˜ ìˆ¯ë¶ˆê³¼ ë–¨ì–´ì§€ëŠ” ê¸°ë¦„ì˜ ì§€ì†ìŒ,charcoal grill sizzling loop,3~6ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+40,1ì°¨ í•„ìˆ˜,E9,sfx_whisk_mix_loop1,ê±°í’ˆê¸°ë¡œ ê±¸ì­‰í•œ ê¹€ì¹˜ì „ ë°˜ì£½ì„ ê³„ì† ì “ëŠ” ì†Œë¦¬1,whisking thick batter loop,2~4ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+41,1ì°¨ í•„ìˆ˜,E9,sfx_whisk_mix_loop2,ê±°í’ˆê¸°ë¡œ ê±¸ì­‰í•œ ê¹€ì¹˜ì „ ë°˜ì£½ì„ ê³„ì† ì “ëŠ” ì†Œë¦¬2,whisking thick batter loop,2~4ì´ˆ ë¬´ë´‰ì œ ë£¨í”„,ì™„ë£Œ
+42,1ì°¨ í•„ìˆ˜,ê³µí†µ,sfx_input_wrong,ì˜ëª»ëœ ë°©í–¥Â·ìˆœì„œÂ·íƒ€ì´ë°ì„ ì•Œë¦¬ëŠ” ë‚®ê³  ì§§ì€ ë‘”íƒìŒ,soft game wrong input sound,0.15~0.3ì´ˆ,ì™„ë£Œ
+43,3ì°¨ ì‹œìŠ¤í…œ,ê²°ê³¼,sfx_result_perfect,PERFECT ê²°ê³¼ì—ë§Œ ì‚¬ìš©í•˜ëŠ” ë§‘ê³  ë§Œì¡±ìŠ¤ëŸ¬ìš´ ì„±ê³µìŒ,perfect result sparkle chime,0.6~1ì´ˆ,ì™„ë£Œ
+44,3ì°¨ ì‹œìŠ¤í…œ,ê²°ê³¼,sfx_result_good,GOOD ê²°ê³¼ì— ì‚¬ìš©í•˜ëŠ” ì§§ê³  ë”°ëœ»í•œ 2ìŒ,casual game good result chime,0.4~0.7ì´ˆ,ì™„ë£Œ
+45,3ì°¨ ì‹œìŠ¤í…œ,ì œí•œì‹œê°„,sfx_timer_warning,ì¤‘ìš”í•œ ì œí•œì‹œê°„ì´ ì–¼ë§ˆ ë‚¨ì§€ ì•Šì•˜ì„ ë•Œì˜ ì‹œê³„ ê²½ê³ ,kitchen timer warning tick,0.05~0.15ì´ˆ,ì™„ë£Œ
+46,3ì°¨ ì‹œìŠ¤í…œ,UI,sfx_ui_click,ë©”ë‰´Â·ì„¤ì •ì—ë§Œ ì‚¬ìš©í•˜ëŠ” ì‘ê³  ë¶€ë“œëŸ¬ìš´ í´ë¦­,soft wooden UI click sound,0.05~0.1ì´ˆ,ì™„ë£Œ

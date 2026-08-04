@@ -468,7 +468,7 @@ function placeFreeOneShotPiece(m,data,id,piece,spot){
 function startOneShotPour(m,data,id,piece){
   const timing=ONE_SHOT_VARIANTS.pour;
   data.selected=null;data.finishing=true;data.activeItem=id;data.actionPhase="pouring";
-  dom.miniFeedback.textContent=`${piece.label}을(를) 붓는 중...`;audio.click();renderOneShot();
+  dom.miniFeedback.textContent=`${piece.label}을(를) 붓는 중...`;audio.play?.("pour_thin",{owner:m});renderOneShot();
   setTimeout(()=>settleOneShotPour(m,data,id),timing.pourDuration);
 }
 

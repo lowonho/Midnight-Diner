@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E2 shrimp roll visual smoke</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/minigame-parts.css">
+  <link rel="stylesheet" href="../css/minigames.css">
+  <link rel="stylesheet" href="../css/day-prep-minigames.css">
+  <link rel="stylesheet" href="../css/minigame-frame.css">
+</head>
+<body>
+  <div id="appRoot" class="app-root"><div id="miniFrameMount"></div></div>
+  <script src="../ui-mini-frame.js"></script>
+  <script src="../game-data.js"></script>
+  <script src="../day4-prep-data.js"></script>
+  <script src="../mini-engine.js"></script>
+  <script>
+    "use strict";
+    const state={day:3,phase:GAME_PHASES.PREP,selectedMenus:["shrimpTempura"],prepProgress:{coatShrimp:false},mini:{engine:"shrimpCoat",context:{mode:"dayPrep"},complete:false,data:{}},kimchiPrep:{}};
+    const dom={
+      miniContent:document.getElementById("miniContent"),miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),miniFeedback:document.getElementById("miniFeedback"),
+      miniOverlay:document.getElementById("miniOverlay")
+    };
+    const audio={click(){},success(){},bad(){},play(){},loop(){}};
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+    function shuffle(items){return [...items];}
+    function finishMini(){}
+  </script>
+  <script src="../day.js"></script>
+  <script src="../prep.js"></script>
+  <script src="../day-prep-minigames.js"></script>
+  <script src="../engine-e2-alternate-input.js"></script>
+  <script>
+    setupShrimpCoat(SHRIMP_COAT_TASK_ID);
+    dom.miniOverlay.classList.add("open");
+    document.body.dataset.ready="true";
+    if(new URLSearchParams(location.search).has("autoplay")){
+      let pointerId=100;
+      const rollOne=()=>{
+        const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),surface=dom.miniContent.querySelector(".fp-roll-surface");
+        surface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
+        shrimp.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:200,clientY:120,bubbles:true}));
+        [340,60,340,60].forEach(clientX=>dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX,clientY:120,bubbles:true})));
+        pointerId++;
+      };
+      const rollStage=()=>{
+        for(let index=0;index<5;index++)rollOne();
+        if(state.mini.data.step<2){setTimeout(rollStage,E2_FEEL_CONFIG.stageTransitionMs+30);return;}
+        const passed=state.mini.data.phase==="complete"&&state.mini.data.successes===5&&state.mini.data.stageGrades.length===3;
+        document.body.dataset.result=passed?"pass":"fail";
+        document.title=passed?"E2_SHRIMP_ROLL_OK":"E2_SHRIMP_ROLL_FAIL";
+      };
+      rollStage();
+    }
+  </script>
+</body>
+</html>

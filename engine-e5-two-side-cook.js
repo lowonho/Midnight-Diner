@@ -410,6 +410,7 @@ function skewerFlipInput(direction) {
   skewer?.classList.remove("current"); skewer?.classList.add("turning");
   pairs[completedIndex]?.classList.remove("current", "left-done"); pairs[completedIndex]?.classList.add("done");
   data.flippedSkewers++;
+  audio.play?.("skewer_turn",{owner:m});
   setTimeout(() => { skewer?.classList.remove("turning"); skewer?.classList.add("flipped"); }, 300);
   if (data.flippedSkewers >= SKEWER_BATCH_SIZE) {
     data.phase = "skewerFinishing";

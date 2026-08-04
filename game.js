@@ -146,7 +146,19 @@ const audio = {
     result_perfect:["assets/sfx/sfx_result_perfect.MP3"],
     result_good:["assets/sfx/sfx_result_good.MP3"],
     timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
-    ui_click:["assets/sfx/sfx_ui_click.MP3"]
+    ui_click:["assets/sfx/sfx_ui_click.MP3"],
+    food_serve:["assets/sfx/sfx_food_serve.MP3"],
+    pour_thin:["assets/sfx/sfx_pour_thin.MP3"],
+    pour_thick:["assets/sfx/sfx_pour_thick.MP3"],
+    pour_syrup:["assets/sfx/sfx_pour_syrup.MP3"],
+    pour_water:["assets/sfx/sfx_pour_water.MP3"],
+    shrimp_flour_coat:["assets/sfx/sfx_shrimp_flour_coat.MP3"],
+    shrimp_egg_coat:["assets/sfx/sfx_shrimp_egg_coat.MP3"],
+    shrimp_crumb_coat:["assets/sfx/sfx_shrimp_crumb_coat.MP3"],
+    skewer_turn:["assets/sfx/sfx_skewer_turn.MP3"],
+    skewer_pierce:["assets/sfx/sfx_skewer_pierce.MP3"],
+    anchovy_tension:["assets/sfx/sfx_anchovy_tension1.MP3","assets/sfx/sfx_anchovy_tension2.MP3"],
+    anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"]
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
   bgmElements:new Map(),bgmElement:null,bgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,
@@ -242,7 +254,7 @@ const audio = {
     const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
     if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
   },
-  serve(){ this.tone(523,.08,"triangle",.12); this.tone(659,.08,"triangle",.1,.08); this.tone(784,.13,"triangle",.09,.16); },
+  serve(){ this.play("food_serve",{gain:.9}); },
   startBgm(){
     if(!this.ctx)return;
     this.bgmStarted=true;this.syncBgm(true);

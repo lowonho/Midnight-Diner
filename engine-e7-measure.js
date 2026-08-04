@@ -436,7 +436,7 @@ function addYakisobaSauce(id){
     return;
   }
   sauce.amount=sauce.target;m.data.pourLocked=true;m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
-  audio.click();dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
+  audio.play?.(`pour_${sauce.flow||"thin"}`,{owner:m});dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
   renderYakisobaSauce();
   playSaucePour(m,id);
   setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);

@@ -204,6 +204,7 @@ function moveAnchovyTug(button,event){
   if(!updateAnchovyGrip(grip,event.clientX,m.data.swingDistance))return;
   grip.wrapper.dataset.tug=String(grip.reversals);
   grip.wrapper.classList.remove("tug-pulse");void grip.wrapper.offsetWidth;grip.wrapper.classList.add("tug-pulse");
+  audio.play?.("anchovy_tension",{owner:m});
   dom.miniFeedback.textContent=`흔들기 ${Math.min(grip.reversals,m.data.requiredShakes)} / ${m.data.requiredShakes}`;
   if(grip.reversals>=m.data.requiredShakes)finishAnchovyTug(m,grip);
 }
@@ -229,7 +230,7 @@ function finishAnchovyTug(m,grip){
   grip.button.disabled=true;
   dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
   dom.miniContent.querySelector("#anchovyCount").innerHTML=`<b>${m.data.cleaned}</b> / ${m.data.total}`;
-  dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.success();
+  dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.play?.("anchovy_finish",{owner:m});
   if(m.data.cleaned===m.data.total){m.data.finishing=true;finishDayPrepTask("cleanAnchovy","멸치 손질 완료");}
 }
 

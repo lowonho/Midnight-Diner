@@ -246,7 +246,8 @@ function addBatterIngredient(ingredientId,button,target){
   const expected=m.data.ingredients[m.data.step],result=placeOrderedItem(m.data,ingredientId);
   if(!result.accepted){m.data.mistakes++;dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();pulseOrderTarget(target);return;}
   m.data.lastPlaced=ingredientId;
-  button.classList.add("pouring");button.disabled=true;audio.click();
+  button.classList.add("pouring");button.disabled=true;
+  if(ingredientId==="water")audio.play?.("pour_water",{owner:m});else audio.click();
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   const filled=m.data.step>=m.data.ingredients.length;
   setTimeout(()=>{
@@ -518,7 +519,7 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
     return rejectSkewerPiece(skewerIndex,required?`이 칸은 ${SKEWER_LABEL[required]} 자리입니다.`:"이 꼬치는 이미 다 찼습니다.",target);
   }
 
-  data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.click();
+  data.lastPlaced={track:skewerIndex,slot:stack.length-1};audio.play?.("skewer_pierce",{owner:m});
   const done=skewerDoneCount(data);
   dom.miniFeedback.textContent=result.complete
     ? `꼬치 ${done} / ${data.total} 완성!`
@@ -825,7 +826,7 @@ function pourSoakWaterOnce(){
   if(!isSoakMini(m)||m.complete||m.data.finishing||m.data.water>=100||!m.data.added[m.data.ingredientKey])return stopSoakPour();
   const data=m.data;
   data.water=Math.min(100,data.water+SOAK_POUR_STEP);
-  audio.click();tiltSoakPitcher();updateSoakWater(data);
+  audio.play?.("pour_water",{owner:m,gain:.8});tiltSoakPitcher();updateSoakWater(data);
   if(data.water>=100)finishSoakWater(m);
   else dom.miniFeedback.textContent=`물을 붓는 중 · ${data.water}%`;
 }

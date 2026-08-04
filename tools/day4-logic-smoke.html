@@ -83,12 +83,15 @@ try{
   assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
   assert(cutTimingGrade(.5,.4,.2)==="perfect"&&cutTimingGrade(.41,.4,.2)==="good"&&cutTimingGrade(.2,.4,.2)==="miss","Legacy night-cut grading remains available");
   assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startSignalMs===450,"E1 path timing config");
+  assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:6.8,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===4.8,"E1 ingredient-specific enlarged hit boxes");
+  assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,14"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki cut counts, tempos, and fish-cake horizontal finish");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,6.8"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===4.8,"E1 tteokbokki ingredients use enlarged hit boxes");
 
   dayPrepAssets.tteokCabbage0={src:"assets/minigame/E1/cabbage-0.png"};
   dayPrepAssets.tteokCabbage1={src:"assets/minigame/E1/cabbage-1.png"};
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:2.8,travelSpeed:22,title:"E1 smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:22,title:"E1 smoke",description:"smoke"});
   const cabbageMini=state.mini,cabbageStart=cabbageMini.data.knifeX;
   timingCutAction();
   assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
@@ -127,14 +130,14 @@ try{
   assert(cabbageStages==="0,1,2,3,4,5,6,7,8,9,10,11,12"&&tteokCabbage.progressSprites.length===13&&DAY_PREP_ASSET_PATHS.tteokCabbage12==="assets/minigame/E1/cabbage-12.png","E1 cabbage maps twelve cuts one-to-one onto thirteen progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeMiss",ingredient:"radish",requiredHits:2,hitTolerance:2.8,travelSpeed:22,title:"E1 miss smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeMiss",ingredient:"radish",requiredHits:2,hitTolerance:CUT_HIT_TOLERANCE.radish,travelSpeed:22,title:"E1 miss smoke",description:"smoke"});
   const missMini=state.mini,missTarget=timingCutTarget(missMini.data).value;
   missMini.data.knifeX=missTarget-missMini.data.hitTolerance+.1;
   advanceTimingKnife(missMini,.01);
   assert(missMini.data.successes===1&&missMini.data.mistakes===1&&missMini.data.phase==="impact","E1 passing a cut line consumes that beat as a miss and advances to the next score position");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeGreenOnion",ingredient:"greenOnion",requiredHits:7,hitTolerance:2.8,travelSpeed:19,title:"E1 green onion smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeGreenOnion",ingredient:"greenOnion",requiredHits:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19,title:"E1 green onion smoke",description:"smoke"});
   const greenOnionLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const tteokGreenOnion=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="greenOnion");
   const greenOnionStages=Array.from({length:8},(_,successes)=>cutAssetStage({ingredient:"greenOnion",total:7,successes})).join(",");
@@ -145,34 +148,34 @@ try{
   assert(DAY_PREP_ASSET_PATHS.knifeHorizontal==="assets/minigame/E1/prop_knife_chop_horizontal_ready_v2.png"&&[1,2,3].every(no=>DAY_PREP_ASSET_PATHS[`cutImpactFx${no}`]===`assets/minigame/E1/fx_knife_board_impact_vertical_0${no}.png`),"E1 knife props and impact effect frames are registered");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeRadish",ingredient:"radish",requiredHits:7,hitTolerance:2.8,travelSpeed:22,title:"E1 radish smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeRadish",ingredient:"radish",requiredHits:7,hitTolerance:CUT_HIT_TOLERANCE.radish,travelSpeed:22,title:"E1 radish smoke",description:"smoke"});
   const radishLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const radishStages=Array.from({length:8},(_,successes)=>cutAssetStage({ingredient:"radish",total:7,successes})).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.total===7&&DAY_PREP_MINI_CONFIG.cutRadish.travelSpeed===22&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="89.8%"&&radishLines==="89.8%,79%,67.8%,56.5%,45.7%,34.1%,22.3%","E1 radish uses the seven supplied cut gaps from right to left");
   assert(CUT_ASSET_STAGE_MAX.radish===7&&radishStages==="0,1,2,3,4,5,6,7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E1 radish maps seven cuts one-to-one onto eight progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:2.8,travelSpeed:14,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:14,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
   const fishCakeLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line:not(.tofu-horizontal-line)")].map(line=>line.style.left).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 fish cake uses three straight vertical cuts and one final horizontal cut");
   state.mini.data.successes=3;state.mini.data.knifeY=12;renderTimingCut();
   assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y","E1 fish cake changes the actual knife path to vertical for its fourth cut");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:2.8,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
   const kimchiLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const kimchiStages=Array.from({length:10},(_,successes)=>cutAssetStage({ingredient:"kimchi",total:9,successes})).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutTofuKimchi.total===9&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.total===9&&kimchiLines==="89.6%,79.9%,70.3%,60.8%,51.7%,42.2%,32.7%,22.9%,14.3%","E1 both kimchi tasks use the nine supplied cut gaps");
   assert(CUT_ASSET_STAGE_MAX.kimchi===9&&kimchiStages==="0,1,2,3,4,5,6,7,8,9"&&DAY_PREP_ASSET_PATHS.kimchiCut9==="assets/minigame/E1/kimchi-9.png","E1 kimchi maps nine cuts one-to-one onto ten progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:3,travelSpeed:10.5,title:"E1 tofu smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:10.5,title:"E1 tofu smoke",description:"smoke"});
   const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===10.5&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu keeps six cuts and the slowest heavy tempo");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
-  startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitTolerance:3,travelSpeed:15,requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
   const chickenStages=Array.from({length:12},(_,successes)=>cutAssetStage({ingredient:"chicken",total:11,successes})).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutSkewerChicken.total===11&&CUT_POSITION_PERCENTAGES.chicken.length===11,"E1 chicken uses eleven fine cuts");
   assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="91.4%","E1 chicken knife path starts at the first supplied sprite gap");
@@ -201,7 +204,7 @@ try{
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===12,"E12 mandoline stroke counts are doubled and each stroke drops a full dozen shreds");
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
-  assert(SHRIMP_COAT_STEPS.map(item=>item.presses).join(",")==="10,8,12"&&PREP_TASKS.coatShrimp,"Shrimp coating counts and merged task");
+  assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="5,5,5"&&PREP_TASKS.coatShrimp,"Shrimp coating uses five shrimp in each of three stages");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
@@ -228,10 +231,21 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.oden.visual!==HEAT_CONFIG.tteokbokki.visual&&HEAT_CONFIG.oden.response!==HEAT_CONFIG.tteokbokki.response,"Heat shared config and dish variants");
+  assert(HEAT_CONFIG.oden.targetHold===7&&HEAT_CONFIG.tteokbokki.targetHold===7&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a seven-second hold and dish-specific tracking variants");
+  const randomHeat={target:.5,targetGoal:.5,targetVelocity:0,targetRetargetIn:0,targetSpeedScale:1};
+  const heatRandomValues=[0,.2,.3,1,.8,.7],heatRandom=()=>heatRandomValues.shift();
+  retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);const firstHeatGoal=randomHeat.targetGoal,firstHeatSpeed=randomHeat.targetSpeedScale;
+  randomHeat.targetRetargetIn=0;updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.1,heatRandom);
+  assert(firstHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetSpeedScale!==firstHeatSpeed&&randomHeat.target>.5,"E4 target rerolls destination, speed, and direction instead of bouncing in a fixed cycle");
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
-  for(let index=0;index<SHRIMP_COAT_STEPS[0].presses;index++)shrimpCoatInput(state.mini.data.keys[state.mini.data.expectedIndex],false);
-  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===10&&state.mini.data.stageGrades[0]==="perfect","E2 shrimp first coating transition and grade");
+  function rollShrimp(pointerId){
+    const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
+    rollSurface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
+    shrimp.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:200,clientY:120,bubbles:true}));
+    [340,60,340,60].forEach(clientX=>dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX,clientY:120,bubbles:true})));
+  }
+  for(let index=0;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++)rollShrimp(60+index);
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1,"E2 shrimp rolls five pieces in one vessel before the first stage transition");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
@@ -263,23 +277,27 @@ try{
   playedSfx.length=0;
   const heatMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
-  const initialHeatPower=heatMini.data.power;
-  MINI_ENGINES.heat.key(heatMini,"arrowright",{repeat:false});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini,"arrowright");
-  assert(MINI_ENGINES.heat.timerRuns()===false&&heatMini.data.power>initialHeatPower&&dom.miniContent.querySelector(".heat-pot.oden")&&dom.miniContent.querySelector("#heatCookScene").style.getPropertyValue("--mg-knob-turn")!==""&&playedSfx.join(",")==="clear_simmer","E4 oden turns the burner knob and keeps simmer audio without gas flame audio");
-  heatMini.data.enteredZone=true;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
+  assert(MINI_ENGINES.heat.key(heatMini,"w",{repeat:false,code:"KeyW"})===false&&MINI_ENGINES.heat.key(heatMini,"arrowup",{repeat:false,code:"ArrowUp"})===false&&!heatMini.data.holding,"E4 ignores non-Space lift keys");
+  const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
+  MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
+  const raisedHeatValue=heatMini.data.value;MINI_ENGINES.heat.update(heatMini,.4);
+  assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
+  heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
-  heatMini.data.value=.5;heatMini.data.power=.5;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  heatMini.data.target=.5;heatMini.data.targetVelocity=0;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
-  assert(dom.miniContent.querySelector(".heat-pot.tteokbokki")&&dom.miniContent.querySelectorAll(".heat-tteok").length===4&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki keeps boil audio without gas flame audio");
+  assert(dom.miniContent.querySelector(".heat-pot-art.tteokbokki,.heat-pot.tteokbokki")&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki tracking variant and boil audio");
   finishedScore=null;
-  for(let tap=0;tap<4;tap++){setHeatControl(tteokHeatMini,1,true);setHeatControl(tteokHeatMini,1,false);}
-  for(let frame=0;frame<900&&!tteokHeatMini.complete;frame++)MINI_ENGINES.heat.update(tteokHeatMini,1/60);
-  assert(tteokHeatMini.complete&&finishedScore===100,"E4 tteokbokki is completable with four simple heat taps");
+  for(let frame=0;frame<1200&&!tteokHeatMini.complete;frame++){
+    setHeatControl(tteokHeatMini,tteokHeatMini.data.value<tteokHeatMini.data.target-.015);
+    MINI_ENGINES.heat.update(tteokHeatMini,1/60);
+  }
+  assert(tteokHeatMini.complete&&finishedScore>=85,"E4 tteokbokki moving target is completable with hold/release tracking");
 
   assert(twoSideCookVisualStage(.1)==="raw"&&twoSideCookVisualStage(.55)==="golden"&&twoSideCookVisualStage(.76)==="ready"&&twoSideCookVisualStage(.95)==="over"&&twoSideCookTimingGrade(.76,TWO_SIDE_COOK_CONFIG.pancake)==="perfect"&&twoSideCookTimingGrade(.68,TWO_SIDE_COOK_CONFIG.pancake)==="good"&&twoSideCookTimingGrade(.6,TWO_SIDE_COOK_CONFIG.pancake)==="miss"&&twoSideCookTimingScore(.76,TWO_SIDE_COOK_CONFIG.pancake)===100,"E5 shared visual stages and narrow GOOD/PERFECT timing");
   const pancakeMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeMini;
@@ -414,7 +432,7 @@ try{
   state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
   setupAnchovyPrep();
   const anchovyHead=dom.miniContent.querySelector("#anchovyWorkArea .anchovy-head");
-  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-joint").length===7,"E10 renders seven anchovies with asset-free joint tension feedback");
+  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&!dom.miniContent.querySelector("#anchovyWorkArea .anchovy-joint"),"E10 renders seven anchovies without the removed artificial joint overlay");
   anchovyHead.setPointerCapture=()=>{};anchovyHead.releasePointerCapture=()=>{};
   startAnchovyTug(anchovyHead,{pointerId:7,pointerType:"mouse",button:0,clientX:0,clientY:0,preventDefault(){}});
   const secondAnchovyHead=dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head")[1];
