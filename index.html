@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/day-prep-minigames.css" />
   <link rel="stylesheet" href="css/minigame-frame.css" /><!-- 미니게임 공용 패널 규격 (위 두 파일보다 뒤에 두어야 합니다) -->
   <link rel="stylesheet" href="css/menu-select.css" />
+  <link rel="stylesheet" href="css/ingredient-select.css" />
   <link rel="stylesheet" href="css/qa-mode.css" />
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
@@ -117,6 +118,40 @@
               <div class="menu-select-footer">
                 <strong id="menuSelectCount">선택 0 / 0</strong>
                 <button id="menuSelectConfirm" class="gold-button" type="button">선택 완료</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
+            <div class="ingredient-select-window wood-panel">
+              <header class="ingredient-select-header">
+                <div>
+                  <p class="eyebrow">OPEN THE FRIDGE</p>
+                  <h2 id="ingredientSelectTitle">냉장고에서 재료를 골라주세요!</h2>
+                  <p>시간 제한은 없어요. 요리에 필요한 재료를 천천히 찾아보세요.</p>
+                </div>
+                <span id="ingredientDishProgress" class="ingredient-dish-progress">요리 1 / 2</span>
+              </header>
+              <div class="ingredient-select-layout">
+                <aside class="ingredient-recipe-card">
+                  <span>오늘의 요리</span>
+                  <h3 id="ingredientDishName">어묵탕</h3>
+                  <div class="ingredient-dish-picture"><img id="ingredientDishImage" alt="" /></div>
+                  <strong>필요한 재료</strong>
+                  <div id="ingredientChecklist" class="ingredient-checklist"></div>
+                </aside>
+                <section class="ingredient-fridge" aria-label="냉장고 재료 목록">
+                  <div class="ingredient-fridge-light" aria-hidden="true"></div>
+                  <div id="ingredientGrid" class="ingredient-grid"></div>
+                  <p id="ingredientSelectFeedback" class="ingredient-select-feedback" role="status" aria-live="polite">필요한 재료를 눌러 장바구니에 담아보세요.</p>
+                </section>
+                <aside class="ingredient-basket-card">
+                  <span>장바구니</span>
+                  <div id="ingredientBasket" class="ingredient-basket"></div>
+                  <strong id="ingredientTotalProgress" class="ingredient-total-progress">0 / 0</strong>
+                  <button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>다음 요리</button>
+                  <small>잘못 골라도 괜찮아요.<br />잠시 기다리면 재료가 반짝여요.</small>
+                </aside>
               </div>
             </div>
           </section>
@@ -246,6 +281,7 @@
   <script src="story-cinematic.js"></script><!-- 프롤로그 등 스토리 전용 자동 이동 연출 -->
   <script src="story.js"></script>
   <script src="day.js"></script>
+  <script src="ingredient-select.js"></script>
 
   <!--
     미니게임 엔진.

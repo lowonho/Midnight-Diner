@@ -15,7 +15,7 @@ function initializeTitleScreen(){
 }
 
 function savePhaseLabel(phase){
-  return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 정산";
+  return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 정산";
 }
 
 function updateContinueButton(){
@@ -64,6 +64,7 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
   dom.settingsOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
   dom.resultOverlay.classList.toggle("open",state.phase==="result");
   dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
+  dom.ingredientSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.INGREDIENT_SELECT);
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
   if(state.phase==="result")renderNightResult();
   else audio.startBgm();
@@ -96,7 +97,8 @@ function returnTitle(){
   // 캡처 단계에서 막 재생한 타이틀 복귀 클릭음은 남기고 조리음만 정리합니다.
   audio.stopAllFiles?.("ui_click");
   clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
-  dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");
+  clearIngredientHintTimer();
+  dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");dom.ingredientSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
   showGameHud(false);audio.stopBgm();updateContinueButton();
 }

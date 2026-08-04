@@ -3,6 +3,7 @@
 // 날짜/메뉴 확장의 기준 데이터입니다. 새 메뉴와 날짜 규칙은 이 파일에 등록합니다.
 const GAME_PHASES=Object.freeze({
   MENU_SELECT:"menuSelect",
+  INGREDIENT_SELECT:"ingredientSelect",
   PREP:"day",
   OPEN:"night",
   RESULT:"result"

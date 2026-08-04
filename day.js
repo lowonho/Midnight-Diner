@@ -102,13 +102,15 @@ function setSelectedMenus(menuIds){
 }
 
 function resetDay(first=false) {
+  clearIngredientHintTimer();
   const dayData=getCurrentDayData();
-  state.phase=dayData.skipMenuSelect?GAME_PHASES.PREP:GAME_PHASES.MENU_SELECT;state.phaseTime=null;state.selectedOrderId=null;
+  state.phase=dayData.skipMenuSelect?GAME_PHASES.INGREDIENT_SELECT:GAME_PHASES.MENU_SELECT;state.phaseTime=null;state.selectedOrderId=null;
   state.selectedMenus=[...dayData.requiredMenus];state.menuSelectionDraft=[...dayData.requiredMenus];
   normalizeDayPrepState();
   state.selectedDishId=state.selectedMenus[0]||DISHES[0].id;
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0}]));
   state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();
+  state.ingredientSelection=state.phase===GAME_PHASES.INGREDIENT_SELECT?createIngredientSelectionState(state.selectedMenus):null;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
   state.served=0;state.satisfactionTotal=0;state.fiveStar=0;
@@ -116,6 +118,8 @@ function resetDay(first=false) {
   state.mini=null;resetPlayerPosition();state.joyX=0;state.joyY=0;   // 시작 좌표는 player.js PLAYER_START
   dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
   dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
+  dom.ingredientSelectOverlay.dataset.signature="";
+  dom.ingredientSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.INGREDIENT_SELECT);
   if(dom.miniClose)dom.miniClose.hidden=true;
   if(!first)showToast(`${state.day}일차 영업 준비를 시작합니다.`);
   buildMenuCards();updateUI(true);
@@ -255,9 +259,7 @@ function toggleMenuSelection(menuId){
 
 function confirmMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT||!setSelectedMenus(state.menuSelectionDraft)){showToast("메뉴 선택을 확인해 주세요.",true);return false;}
-  state.phase=GAME_PHASES.PREP;state.paused=false;
   dom.menuSelectOverlay.classList.remove("open");
-  showToast("오늘의 메뉴가 저장되었습니다. 영업 준비를 시작합니다.");
-  updateUI(true);saveGame();
-  return true;
+  showToast("오늘의 메뉴가 저장되었습니다. 냉장고에서 재료를 골라주세요.");
+  return startIngredientSelection();
 }

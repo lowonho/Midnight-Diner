@@ -30,6 +30,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishImage","ingredientChecklist","ingredientGrid","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -81,6 +82,7 @@ const state = {
   selectedDishId:"kimchi",
   selectedMenus:[],
   menuSelectionDraft:[],
+  ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   selectedOrderId:null,
@@ -299,7 +301,7 @@ audio.preload();
 const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
-  "#menuSelectConfirm",".menu-select-option",".order-row",
+  "#menuSelectConfirm",".menu-select-option","#ingredientSelectContinue",".ingredient-choice",".order-row",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause"
 ].join(",");
 document.addEventListener("click",event=>{
@@ -551,17 +553,18 @@ function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classLis
 
 function updateUI(force=false) {
   if(state.screen!=="game")return;
-  const isPrep=state.phase===GAME_PHASES.PREP, isOpen=state.phase===GAME_PHASES.OPEN;
-  dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isPrep);
+  const isPrep=state.phase===GAME_PHASES.PREP, isIngredientSelect=state.phase===GAME_PHASES.INGREDIENT_SELECT, isOpen=state.phase===GAME_PHASES.OPEN;
+  dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isPrep||isIngredientSelect);
   dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
-  dom.dayText.textContent=state.day;dom.timeLabel.textContent=isPrep?UI_TEXT.timeLabelPrep:UI_TEXT.timeLabelOther;dom.timeText.textContent=isPrep?UI_TEXT.timeNoLimit:isOpen?formatTime(state.phaseTime):UI_TEXT.blank;dom.moneyText.textContent=UI_TEXT.money(state.money);dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
+  dom.dayText.textContent=state.day;dom.timeLabel.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeLabelPrep:UI_TEXT.timeLabelOther;dom.timeText.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeNoLimit:isOpen?formatTime(state.phaseTime):UI_TEXT.blank;dom.moneyText.textContent=UI_TEXT.money(state.money);dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isPrep?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=[3,4].includes(Number(state.day))&&prepComplete()?UI_TEXT.phaseButtonReady(state.day):UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
   if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
+  else if(state.phase===GAME_PHASES.INGREDIENT_SELECT)renderIngredientSelection();
   else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
   else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
   updateRelationshipUI();
@@ -657,6 +660,7 @@ dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
+dom.ingredientSelectContinue.addEventListener("click",continueIngredientSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
 // 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.

@@ -167,6 +167,8 @@ function qaCancelTransientState({preserveStoryReturn=false}={}){
   dom.settingsOverlay.classList.remove("open");
   dom.resultOverlay.classList.remove("open");
   dom.menuSelectOverlay.classList.remove("open");
+  dom.ingredientSelectOverlay?.classList.remove("open");
+  if(typeof clearIngredientHintTimer==="function")clearIngredientHintTimer();
   dom.miniOverlay.classList.remove("open");
   dom.miniContent.innerHTML="";
   state.mini=null;state.paused=false;
