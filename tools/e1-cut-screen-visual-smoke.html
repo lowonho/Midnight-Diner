@@ -70,6 +70,8 @@
          ?ingredient=  radish|greenOnion|cabbage|chicken|kimchi|tofu|fishCake
          ?stage=N      몇 번 썬 뒤인가 (기본 0)
          ?hit=1        방금 썬 순간(.slice-hit) — 칼 이펙트를 붙여 봅니다
+         ?first=1      닭고기 2연타의 **첫 타**(.tough-first-hit). 첫 획도
+                       hit=1 과 같이 ?anim= 으로 멈춰 세울 수 있습니다
          ?start=1      카운트다운이 끝난 출발 자리 그대로 (stage 무시).
                        칼이 첫 절단선보다 한 칸 오른쪽에 서는데, 재료를 키우면
                        그 자리가 도마 밖이라 3초 동안 칼이 잘려 보입니다 */
@@ -131,19 +133,29 @@
         else data.knifeY = target.value;
       }
       renderTimingCut();
+      /* ?anim=0.05 처럼 초를 주면 써는 획을 그 시점에 **정지**시킵니다.
+         ⚠️ --virtual-time-budget 으로 시점을 맞추려 하면 안 됩니다 — 그 예산은
+            페이지 로드까지 포함해 흘러서, 캡처된 프레임이 획의 몇 % 인지
+            알 수가 없습니다(획 방향을 거꾸로 읽기 쉽습니다).
+            음수 delay + paused 는 정확히 그 시점에서 멈춥니다. */
+      const freezeKnife = () => {
+        const at = params.get("anim");
+        if(at === null) return;
+        const knife = document.querySelector(".knife-effect");
+        if(knife){ knife.style.animationDelay = `-${Number(at) || 0}s`; knife.style.animationPlayState = "paused"; }
+      };
       if(params.get("hit") === "1"){
         document.querySelector("#prepWorkObject")?.classList.add("slice-hit","slice-perfect");
         document.querySelector(".cut-board")?.classList.add("cut-perfect");
-        /* ?anim=0.05 처럼 초를 주면 써는 획을 그 시점에 **정지**시킵니다.
-           ⚠️ --virtual-time-budget 으로 시점을 맞추려 하면 안 됩니다 — 그 예산은
-              페이지 로드까지 포함해 흘러서, 캡처된 프레임이 획의 몇 % 인지
-              알 수가 없습니다(획 방향을 거꾸로 읽기 쉽습니다).
-              음수 delay + paused 는 정확히 그 시점에서 멈춥니다. */
-        const at = params.get("anim");
-        if(at !== null){
-          const knife = document.querySelector(".knife-effect");
-          if(knife){ knife.style.animationDelay = `-${Number(at) || 0}s`; knife.style.animationPlayState = "paused"; }
-        }
+        freezeKnife();
+      }
+      /* 첫 타는 게임에서 timingCutAction 이 붙이는 것과 같은 조합입니다 —
+         칼이 박힌 자세로 끝나므로 slice-hit 과 함께 켜면 안 됩니다. */
+      if(params.get("first") === "1"){
+        document.querySelector("#prepWorkObject")?.classList.add("tough-first-hit");
+        document.querySelector(".cut-board")?.classList.add("cut-embedded");
+        document.querySelector("#toughCutHint")?.classList.add("first-done");
+        freezeKnife();
       }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });

@@ -385,7 +385,7 @@ function setupChickenSkewer(){
   setDayPrepData({...createOrderPlacementState("skewer"),patterns:Array.from({length:SKEWER_TOTAL},createSkewerPattern),
     total:SKEWER_TOTAL,mistakes:0,lastPlaced:null,holdIndex:null,finishing:false,completionGrade:""});
   dom.miniTitle.textContent="닭꼬치 꽂기";
-  dom.miniDescription.textContent="칸 테두리 색에 맞춰 닭고기와 파를 꽂아주세요!";
+  dom.miniDescription.textContent="칸 테두리 색에 맞춰 아래부터 순서대로 꽂아주세요!";
   renderChickenSkewer();
 }
 
@@ -471,7 +471,7 @@ function renderChickenSkewer(){
         <p class="sk-active-title">${data.finishing?"꼬치 조립 완료":holding?`${activeIndex+1}번 꼬치 완성!`:`${activeIndex+1}번 꼬치 · ${activeStack.length} / ${SKEWER_SLOT_COUNT}`}</p>
         <div class="sk-active-rack" data-order-target="skewer" data-skewer="${activeIndex}">${skewerRackMarkup(activeStack,activeIndex,{active:true,lastPlaced:data.lastPlaced,pattern:activePattern})}</div>
         <!-- 무엇을 꽂을지는 알려 주지 않습니다. 칸 색을 읽는 것이 이 게임입니다. -->
-        <p class="sk-free-rule">빛나는 칸의<br /><b>테두리 색</b>에 맞춰<br />꽂아주세요!</p>
+        <p class="sk-free-rule">빛나는 칸의<br /><b>테두리 색</b>에 맞춰<br /><b>아래부터 순서대로</b><br />꽂아주세요!</p>
         ${data.finishing?`<strong class="order-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
       </div>
 

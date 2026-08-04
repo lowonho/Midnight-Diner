@@ -53,7 +53,7 @@
      E1 썰기        .cut-board                 (타이밍 방식 · 빠른 칼질 공용)
      E2 채썰기      .fp-board:has(.md-scene)
      E2 감자튀김    .fp-board:has(.fp-bag-scene)
-     E2 새우튀김    .fp-board:has(.fp-coat-row)
+     E2 새우튀김    .fp-board:has(.fp-shrimp-roll-scene)
      E8 불려두기    .soak-board
      E11 플레이팅  .os-board
    위 나무 쟁반과 같은 자리·같은 방식이고 그림만 다릅니다.
@@ -80,10 +80,14 @@
       E1 은 .cut-main 의 2행 격자 때문에 824.2 x 603.2 라 세로만 10 짧습니다.
       늘려 까는 그림이라 그 차이는 눈에 띄지 않습니다.
    ============================================================ */
+/* ⚠️ 새우튀김은 가운데 마크업이 바뀌면 이 줄도 같이 바꿔야 합니다. 예전
+      `:has(.fp-coat-row)` 는 세 그릇을 늘어놓던 화면 이름이라, 한 그릇 화면
+      (.fp-shrimp-roll-scene)으로 바꾼 뒤로 아무것도 안 잡아 **도마가 통째로
+      사라져 있었습니다.** 이런 종류의 선택자는 마크업 이름과 한 몸입니다. */
 .cut-board,
 .fp-board:has(.md-scene),
 .fp-board:has(.fp-bag-scene),
-.fp-board:has(.fp-coat-row),
+.fp-board:has(.fp-shrimp-roll-scene),
 .soak-board,
 .os-board {
   /* 테두리는 지우지 않고 색만 없앱니다 — 지우면 안쪽 상자가 12 커집니다 */

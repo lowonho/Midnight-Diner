@@ -23,14 +23,45 @@
 
 const TWO_SIDE_COOK_CONFIG=Object.freeze({
   pancake:Object.freeze({
-    sideSpeeds:Object.freeze([.21,.24]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,
-    foodAsset:"cookPancakeFood"
+    sideSpeeds:Object.freeze([.21,.24]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76
+    // 김치전은 익힘 단계마다 그림이 따로 있습니다 — 아래 PANCAKE_COOK_STEPS
   }),
   skewer:Object.freeze({
     sideSpeeds:Object.freeze([.23,.26]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,
     foodAsset:"cookSkewerFood"
   })
 });
+
+/* ── 굽는 김치전 그림 5장 ────────────────────────────────────
+   색을 CSS 필터로 만들지 않고 **그림을 갈아 끼웁니다**. 경계값은 판정 구간
+   (goodStart~goodEnd)에 맞춰 놓았습니다 — "노릇하게 익은 그림"이 보이는 동안이
+   곧 뒤집어야 하는 때라서, 게이지를 안 보고 팬만 봐도 타이밍을 알 수 있습니다.
+     ~.24            반죽 그대로
+     ~.67 goodStart  아직 덜 익음
+     ~.85 goodEnd    다 익음      ← 이 구간이 GOOD·PERFECT 판정 구간입니다
+     ~.93            살짝 탐
+     그 뒤            탐
+   ⚠️ 판정에는 전혀 관여하지 않습니다. 보이는 그림만 고릅니다. */
+const PANCAKE_COOK_STEPS=Object.freeze([
+  Object.freeze({key:"cookPancakeRaw",           until:.24}),
+  Object.freeze({key:"cookPancakeUndercooked",   until:TWO_SIDE_COOK_CONFIG.pancake.goodStart}),
+  Object.freeze({key:"cookPancakeCooked",        until:TWO_SIDE_COOK_CONFIG.pancake.goodEnd}),
+  Object.freeze({key:"cookPancakeSlightlyBurnt", until:.93}),
+  Object.freeze({key:"cookPancakeBurnt",         until:Infinity})
+]);
+
+/* 지금 보여 줄 그림 번호. **뒤로 돌아가지 않습니다** — 한 번 익은 김치전이
+   다시 반죽이 되지는 않으니까요. 이 한 줄이 "굽는 면"까지 함께 처리합니다.
+     · 앞면을 굽는 동안에는 게이지(marker)를 따라 그대로 진해집니다.
+     · 뒤집으면 게이지는 0 부터 다시 차지만, 보이는 면은 앞면이 다다른 단계에서
+       시작합니다. 뒷면을 태울 만큼 오래 두면 그때부터 다시 진해집니다.
+     · 늦게 눌러 게이지가 0 으로 되돌아가도(타이밍 실패) 이미 탄 김치전은
+       탄 채로 남습니다. */
+function pancakeCookStep(data){
+  const reached=PANCAKE_COOK_STEPS.findIndex(step=>data.marker<step.until);
+  data.cookStep=Math.max(data.cookStep||0,reached<0?PANCAKE_COOK_STEPS.length-1:reached);
+  return data.cookStep;
+}
 
 function twoSideCookVisualStage(marker){
   if(marker<.24)return "raw";
@@ -69,6 +100,21 @@ function updateTwoSideCookVisual(data){
     pan.classList.remove("cook-raw","cook-setting","cook-golden","cook-ready","cook-over");
     pan.classList.add(`cook-${stage}`);
   }
+  if(data.dishStyle==="pancake")updatePancakeCookArt(data);
+}
+
+/* 익힘 단계가 넘어갈 때만 그림을 켭니다 (매 프레임 DOM 을 훑지 않습니다).
+   ⚠️ 다섯 장을 겹쳐 두고 **지금 단계까지를 다 켜 둡니다.** 위 장이 아래 장을
+      완전히 덮으므로, 새 장이 서서히 나타나는 동안에도 팬 바닥이 비치지
+      않습니다. 한 장만 두고 src 를 바꾸면 넘어가는 순간이 뚝 끊깁니다.
+      (E8 불리기 볼 soakBowlFramesMarkup 과 같은 방식입니다) */
+function updatePancakeCookArt(data){
+  const step=pancakeCookStep(data);
+  if(data.renderedCookStep===step)return;
+  const frames=dom.miniContent.querySelectorAll(".pancake-food-asset");
+  if(!frames.length)return;
+  frames.forEach((frame,index)=>frame.classList.toggle("on",index<=step));
+  data.renderedCookStep=step;
 }
 
 registerMiniEngine("twoSideCook", {
@@ -137,7 +183,10 @@ registerMiniEngine("twoSideCook", {
 });
 
 function charcoalSkewerMarkup(data) {
-  const coals = Array.from({ length: 9 }, () => "<i></i>").join("");
+  /* 숯덩이 개수. 화로를 정면 탑뷰(바로 위에서 내려다보는 각)로 바꾸면서
+     숯이 화로 **안쪽 전체**를 채우게 되어 9개로는 바닥이 비어 보입니다.
+     넘치는 만큼은 .charcoal-bed 의 overflow:hidden 이 잘라 냅니다. */
+  const coals = Array.from({ length: 40 }, () => "<i></i>").join("");
   const flipped = data?.flippedSkewers || 0;
   const skewers = Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => {
     const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.skewer.foodAsset,"grill-skewer-asset","굽는 닭꼬치");
@@ -228,9 +277,28 @@ function pancakePanShell(inner, extraClass = "", id = "") {
   return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}>${asset}${inner}</div>`;
 }
 
-function pancakeCookFoodMarkup(){
-  const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.pancake.foodAsset,"pancake-food-asset","굽는 김치전");
-  return `<i class="cook-food ${asset?"has-asset":""}">${asset}<span class="cook-bubbles" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span></i>`;
+/* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다
+   (위 updatePancakeCookArt 참고). 한 장이라도 빠지면 예전처럼 CSS 도형으로 그립니다. */
+function pancakeCookFoodMarkup(data){
+  const hasArt=PANCAKE_COOK_STEPS.every(step=>hasDayPrepAsset(step.key));
+  const step=hasArt?pancakeCookStep(data):0;
+  if(hasArt)data.renderedCookStep=step;
+  const frames=hasArt?PANCAKE_COOK_STEPS.map((frame,index)=>dayPrepAssetMarkup(
+    frame.key,`pancake-food-asset${index<=step?" on":""}`,index===step?"굽는 김치전":""
+  )).join(""):"";
+  return `<i class="cook-food ${hasArt?"has-asset":""}">${frames}<span class="cook-bubbles" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span></i>`;
+}
+
+/* 김치전 위로 피어오르는 연기. 그림 5장이 한 바퀴 도는 연속 그림이라
+   **다섯 장을 겹쳐 두고 CSS 가 차례로 한 장씩만 켭니다**
+   (css 의 @keyframes ts-smoke-frame — 자바스크립트는 프레임을 돌리지 않습니다).
+   기둥 두 개가 서로 다른 자리·크기·박자로 오릅니다. 그림이 없으면
+   예전 CSS 김(.cook-steam) 두 줄이 그대로 보입니다. */
+function pancakeSmokeMarkup(){
+  const keys=["01","02","03","04","05"].map(no=>`cookSmoke${no}`);
+  if(!keys.every(hasDayPrepAsset))return `<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>`;
+  const frames=keys.map((key,index)=>dayPrepAssetMarkup(key,`ts-smoke-frame frame-${index+1}`)).join("");
+  return ["one","two"].map(which=>`<span class="ts-smoke smoke-${which}" aria-hidden="true">${frames}</span>`).join("");
 }
 
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
@@ -239,12 +307,16 @@ function twoSideStageMarkup(data, extraClass = "") {
   // 화구(가스버너)와 팬은 분리된 두 겹입니다 — day-prep-minigames.js 의 minigameBurnerMarkup 참고
   return `<div class="ts-cooktop">
       ${minigameBurnerMarkup("gas")}
-      ${pancakePanShell(`${pancakeCookFoodMarkup()}<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>`,`${extraClass} side-${data.side}`)}
+      ${pancakePanShell(`${pancakeCookFoodMarkup(data)}${pancakeSmokeMarkup()}`,`${extraClass} side-${data.side}`)}
     </div>`;
 }
 
-function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, total, timePercent }) {
-  return `<div class="ts-scene">
+/* ⚠️ 여기 있던 `<i class="ts-flip-arrow">`(조리 도구 위를 지나가던 회색 곡선 +
+   삼각형)은 뺐습니다. 뒤집기 안내용 임시 도형이었는데, 팬·화로 그림이 들어온
+   뒤로는 그림 위에 걸친 회색 선으로만 보였습니다. 되살리려면 css 의
+   .ts-flip-arrow 규칙과 함께 되돌리세요. */
+function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, total, timePercent, sceneClass = "" }) {
+  return `<div class="ts-scene ${sceneClass}">
       <aside class="ts-col">
         <div class="ts-panel ts-ing-panel">
           <h3 class="ts-col-title starred">재료</h3>
@@ -253,7 +325,6 @@ function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, to
       </aside>
       <div class="ts-main">
         <div class="ts-board">
-          <i class="ts-flip-arrow" aria-hidden="true"></i>
           ${board}
           <strong class="e5-result" id="e5Result" aria-live="polite"></strong>
         </div>
@@ -304,7 +375,7 @@ function renderTwoSideCook() {
     dom.miniDescription.textContent = "앞 버튼(↑)을 꾹 눌렀다가 반동으로 뒤 버튼(↓)을 눌러 뒤집으세요!";
     board = `<div class="flip-rebound-scene">
         ${minigameBurnerMarkup("gas")}
-        ${pancakePanShell(pancakeCookFoodMarkup(),"flip-ready cook-ready","reboundPan")}
+        ${pancakePanShell(`${pancakeCookFoodMarkup(data)}${pancakeSmokeMarkup()}`,"flip-ready cook-ready","reboundPan")}
         <div class="rebound-arrow" id="reboundArrow">↑</div>
       </div>`;
     gauge = `<div class="rebound-gauge"><i id="reboundGaugeBar"></i><span class="rebound-sweet-zone"></span></div>
@@ -315,10 +386,14 @@ function renderTwoSideCook() {
     gauge = `<p class="cut-count">${isSkewer ? `꼬치 ${SKEWER_BATCH_SIZE}개` : "김치전"} 뒤집는 중…</p>`;
     control = twoSideKeysMarkup(view);
   }
+  // 뒤집개 커서는 김치전 화면에서만, 그림이 있을 때만 켭니다 (아래 mountTwoSideSpatula)
+  const hasSpatula = !isSkewer && hasDayPrepAsset("cookSpatulaCursor");
   dom.miniContent.innerHTML = twoSideScreenMarkup(view, {
     board, gauge, control, strip, done, total: view.total,
-    timePercent: data.timeLimit ? clamp(m.time / data.timeLimit, 0, 1) * 100 : 100
+    timePercent: data.timeLimit ? clamp(m.time / data.timeLimit, 0, 1) * 100 : 100,
+    sceneClass: hasSpatula ? "has-spatula" : ""
   });
+  if (hasSpatula) mountTwoSideSpatula();
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click", miniAction);
   dom.miniContent.querySelector("#skewerFlipLeft")?.addEventListener("click", () => skewerFlipInput("left"));
   dom.miniContent.querySelector("#skewerFlipRight")?.addEventListener("click", () => skewerFlipInput("right"));
@@ -468,6 +543,62 @@ function releasePancakeFlip() {
   audio.play?.("pancake_flip",{owner:m});
   startTwoSideFlipAnimation(m);
   return true;
+}
+
+/* ============================================================
+   고양이 발 뒤집개 커서 (김치전 굽기 전용)
+
+   화구 위에 마우스를 올리면 포인터가 뒤집개로 바뀝니다. CSS `cursor: url()` 이
+   아니라 **DOM 한 겹을 body 에 붙여 포인터를 따라다니게** 합니다 —
+   크롬이 커서 그림을 128x128 로 제한해서 그 크기로는 뒤집개가 뭉개집니다.
+   E6 튀기기의 집게 커서(mountFryCursor)와 같은 방식이고, 기본 포인터를 숨기는
+   것은 css 의 `.ts-scene.has-spatula .ts-cooktop { cursor:none }` 입니다.
+
+   [치우기] 미니게임 엔진에는 teardown 이 없습니다. 그래서 포인터가 움직일 때마다
+   화면이 아직 있는지 보고, 없으면 그때 스스로 지웁니다.
+   ============================================================ */
+
+const TWO_SIDE_SPATULA_ZONE=".ts-cooktop,.flip-rebound-scene";   // 화구 + 팬이 있는 칸
+let twoSideSpatula=null;              // document.body 에 붙는 <img>
+let twoSideSpatulaListening=false;
+
+function mountTwoSideSpatula(){
+  if(!twoSideSpatula){
+    const image=document.createElement("img");
+    image.className="ts-spatula-cursor";
+    image.src=dayPrepAssets.cookSpatulaCursor.src;
+    image.alt=""; image.draggable=false;
+    image.setAttribute("aria-hidden","true");
+    document.body.appendChild(image);
+    twoSideSpatula=image;
+  }
+  if(twoSideSpatulaListening)return;
+  twoSideSpatulaListening=true;
+  // capture 로 받습니다 — 중간에서 이벤트를 막아도 커서는 따라가야 합니다.
+  ["pointermove","pointerdown","pointerup","pointercancel"]
+    .forEach(type=>document.addEventListener(type,trackTwoSideSpatula,true));
+}
+
+function removeTwoSideSpatula(){
+  twoSideSpatula?.remove();
+  twoSideSpatula=null;
+  twoSideSpatulaListening=false;
+  ["pointermove","pointerdown","pointerup","pointercancel"]
+    .forEach(type=>document.removeEventListener(type,trackTwoSideSpatula,true));
+}
+
+function trackTwoSideSpatula(event){
+  if(!twoSideSpatula)return;
+  const scene=dom.miniContent?.querySelector(".ts-scene.has-spatula");
+  if(!scene){removeTwoSideSpatula();return;}          // 미니게임이 끝났습니다
+  const over=event.target instanceof Element&&scene.contains(event.target)
+    &&!!event.target.closest(TWO_SIDE_SPATULA_ZONE);
+  twoSideSpatula.classList.toggle("show",over);
+  if(!over)return;
+  twoSideSpatula.style.left=`${event.clientX}px`;
+  twoSideSpatula.style.top=`${event.clientY}px`;
+  if(event.type==="pointerdown")twoSideSpatula.classList.add("pressed");
+  if(event.type==="pointerup"||event.type==="pointercancel")twoSideSpatula.classList.remove("pressed");
 }
 
 function startTwoSideFlipAnimation(m) {
