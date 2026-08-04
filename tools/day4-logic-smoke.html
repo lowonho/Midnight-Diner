@@ -102,8 +102,11 @@ try{
   MINI_ENGINES.timing.update(cabbageMini,1.01);
   assert(cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&!dom.miniContent.querySelector("#dayPrepAction").disabled&&dom.miniContent.querySelector("#cutStartCountdown.go strong").textContent==="시작!","E1 starts only after the three-two-one countdown");
   assert(Math.abs((cabbageStart-suppliedCutPosition("cabbage",0,12))-(suppliedCutPosition("cabbage",0,12)-suppliedCutPosition("cabbage",1,12)))<.01,"E1 first beat uses the same travel distance as the following supplied cut gap");
+  const waitingKnifeX=dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x");
+  const movingMarker=dom.miniContent.querySelector("#dayPrepMarker"),markerStart=movingMarker.style.left;
   advanceTimingKnife(cabbageMini,.1);
-  assert(cabbageMini.data.knifeX<cabbageStart,"E1 knife advances in one direction at the configured constant speed");
+  assert(cabbageMini.data.knifeX<cabbageStart&&movingMarker.style.left!==markerStart,"E1 bottom marker advances in one direction at the configured constant speed");
+  assert(waitingKnifeX===`${suppliedCutPosition("cabbage",0,12)}%`&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x")===waitingKnifeX,"E1 knife waits on the next cut line while the bottom marker moves");
   cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,12);
   const pathBar=dom.miniContent.querySelector(".cut-path-timing");
   syncTimingKnife(cabbageMini.data);
@@ -164,7 +167,7 @@ try{
   state.mini.data.knifeX=fishTarget+state.mini.data.hitTolerance+.01;
   assert(state.mini.data.hitTolerance===3.4&&fishEdgeGrade==="good"&&cutPathGrade(state.mini.data)==="miss","E1 fish-cake hit box ends at 3.4% from the cut line");
   state.mini.data.successes=3;state.mini.data.knifeY=12;renderTimingCut();
-  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y","E1 fish cake changes the actual knife path to vertical for its fourth cut");
+  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y"&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-y")==="50%"&&state.mini.data.knifeY===12,"E1 fish cake waits at the horizontal cut line while its bottom marker starts moving");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
