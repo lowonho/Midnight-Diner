@@ -36,7 +36,12 @@ const E2_FEEL_CONFIG=Object.freeze({
      눈으로는 다 됐는데 손은 조금 더 가는, 마무리 손질 구간입니다.
      횟수 자체(밀 10 · 계 8 · 빵 12)는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 이고,
      그중 마지막 몇 번을 이 구간으로 떼어 놓는 값입니다. */
-  shrimpFinishRolls:2
+  shrimpFinishRolls:2,
+  /* 다 묻은 새우가 **스스로** 재료칸으로 돌아가는 데 걸리는 시간.
+     다 됐다는 것을 한 박자 보여 주고(그릇 위에서 살짝 떠오름) 날아갑니다.
+     ⚠️ css/minigame/e2-fry-prep.css 의 `fp-shrimp-return` 길이와 같아야 합니다.
+        여기가 짧으면 날아가다 만 채로 사라지고, 길면 빈 그릇을 멀뚱히 봅니다. */
+  shrimpReturnMs:420
 });
 
 /* ---- 공통 판정 규칙 ----------------------------------------
@@ -366,9 +371,13 @@ function fryPrepIngredientMarkup(item){
 //          keys, expectedIndex, keyLink, controlMarkup, controlName, controlDesc }
 // keys 는 문자열("a") 또는 {value,glyph} 입니다. 문자열이면 대문자로 보여 줍니다.
 // controlName / controlDesc 는 비워 두면 그 줄이 아예 나오지 않습니다.
+// ingredientsMarkup 을 주면 재료 카드 목록 대신 그 마크업이 통째로 들어갑니다 —
+//   새우튀김 준비는 재료 카드가 아니라 굴릴 새우 다섯 마리를 놓습니다.
 // onKey 는 화면 안 키 버튼을 눌렀을 때 호출할 입력 함수입니다(entry.value 를 넘김).
 function renderFryPrepScreen(view,onKey){
   const keys=(view.keys||[]).map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
+  const ingredients=view.ingredientsMarkup!==undefined?view.ingredientsMarkup:
+    `<div class="fp-ing-list">${(view.ingredients||[]).map(fryPrepIngredientMarkup).join("")}</div>`;
   const controlMarkup=view.controlMarkup!==undefined?view.controlMarkup:
     `<div class="fp-keys">${keys.map((entry,index)=>`<button type="button" class="fp-key ${index===view.expectedIndex?"expected":""}" data-fry-prep-key="${entry.value}">${entry.glyph}</button>`).join(`<span class="fp-key-link" aria-hidden="true">${view.keyLink}</span>`)}</div>`;
   dom.miniContent.innerHTML=`
@@ -376,7 +385,7 @@ function renderFryPrepScreen(view,onKey){
       <div class="fp-col">
         <div class="fp-panel fp-ing-panel">
           <h3 class="fp-col-title starred">재료</h3>
-          <div class="fp-ing-list">${view.ingredients.map(fryPrepIngredientMarkup).join("")}</div>
+          ${ingredients}
         </div>
       </div>
       <div class="fp-board">${view.stage}<span class="e2-result" id="e2Result" aria-live="polite"></span></div>
@@ -684,9 +693,31 @@ function bindFriesBagDrag(){
 /* ============================================================
    3. 새우튀김 준비 — 밀가루 → 계란물 → 빵가루, 단계마다 다섯 마리
 
-   한 화면에는 현재 단계의 그릇 하나만 놓입니다. 새우를 잡아 그릇 안에서
-   좌우로 여러 번 굴리면 한 마리가 완성되고, 다섯 마리를 마치면 다음
-   재료 화면으로 넘어갑니다.
+   왼쪽 재료칸에는 밀가루·계란물·빵가루 카드가 아니라 **이번 단계에 굴릴
+   새우 다섯 마리**가 놓입니다. 어느 옷을 입히는 중인지는 가운데 그릇 그림과
+   단계 표시가 말해 주므로 재료 카드를 따로 둘 자리가 없습니다
+   (E6 튀기기의 왼쪽 '재료' 칸과 같은 결입니다 — 거기도 튀길 것만 늘어놓습니다).
+
+   한 마리의 흐름은 세 걸음입니다.
+     1) 재료칸의 새우를 잡아 가운데 그릇으로 끌어다 놓기   ← 손으로 합니다
+     2) 그릇 안에서 좌우로 굴려 옷을 다 묻히기            ← 손으로 합니다
+     3) 다 묻으면 새우가 스스로 재료칸으로 돌아갑니다     ← 여기서 한 마리 완료
+   다섯 마리를 전부 되돌려 놓아야 다음 그릇으로 넘어갑니다.
+
+   판 위에는 늘 새우가 한 마리뿐입니다(data.board). 그래서 재료칸 다섯 칸의
+   상태를 따로 들고 있지 않고 진행도(successes) 하나에서 그대로 나옵니다.
+     index < successes    done     다 묻혀 도로 갖다 놓은 새우
+     index === successes  ready    지금 꺼낼 차례 (판에 나가 있으면 out)
+     index > successes    pending  아직 차례가 아닌 새우
+
+   [끌어다 놓기]  1) 은 E8 공용 배치기(bindOrderPlacementPointers)를 그대로
+   씁니다 — 커서를 따라오는 유령(.order-drag-ghost)과 놓을 자리 표시
+   (.order-drop-ready)가 E8·E11 과 같은 클래스입니다. dragOnly 라 짧게 누르는
+   자동 배치는 없습니다: 반드시 끌어다 놓아야 합니다.
+   2) 의 굴리기만 이 파일이 직접 포인터를 잡습니다 — 잡은 채 계속 굴려야 해서
+   요소가 아니라 mini-content 에 포인터를 캡처합니다.
+   3) 은 손을 쓰지 않습니다. 다 묻는 순간 새우가 날아가는 연출(.returning)이
+   돌고, 그 길이(E2_FEEL_CONFIG.shrimpReturnMs)만큼 뒤에 재료칸에 놓입니다.
    ============================================================ */
 
 registerDayPrepEngine("shrimpCoat",{
@@ -697,47 +728,179 @@ const SHRIMP_ROLL_CONFIG=Object.freeze({requiredTravelRatio:2.2,visualLimitRatio
 // 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
 const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
 
+/* 새우 그림 10장이 앉는 자리 (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS).
+   [0] 은 "아직 이 옷을 안 입은 모습" 이라 직전 단계의 다 묻은 장을 그대로 씁니다.
+   그래서 재료칸에서 꺼낸 새우와 그릇에 막 놓은 새우가 같은 그림이고,
+   되돌려 놓은 새우는 [3] — 다음 단계 재료칸의 [0] 과 또 같은 그림입니다. */
+const SHRIMP_STATE_KEYS=Object.freeze({
+  flour:      ["shrimpStateRaw",    "shrimpStateFlour1", "shrimpStateFlour2", "shrimpStateFlour3"],
+  egg:        ["shrimpStateFlour3", "shrimpStateEgg1",   "shrimpStateEgg2",   "shrimpStateEgg3"],
+  breadcrumbs:["shrimpStateEgg3",   "shrimpStateCrumbs1","shrimpStateCrumbs2","shrimpStateCrumbs3"]
+});
+
+// 굴린 정도(0~1) → 그림 단계(0~3)
+function shrimpRollStage(progress){
+  return progress>=1?3:progress>=.7?2:progress>=.35?1:0;
+}
+
+function isShrimpCoatMini(m){
+  return isDayPrepMini(m)&&!m.complete&&m.data.mode==="shrimpCoat";
+}
+
+// 지금 손을 쓸 수 있는 때인가 (단계 넘어가는 중·다 끝난 뒤에는 잠급니다)
+function shrimpCoatPlayable(m){
+  return isShrimpCoatMini(m)&&!m.data.inputLocked&&!m.data.transitioning&&m.data.phase!=="complete";
+}
+
 function setupShrimpCoat(taskId){
   const item=SHRIMP_COAT_STEPS[0];
   if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
-  setDayPrepData({mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,successes:0,total:item.shrimpCount,
-    rollProgress:0,rollX:0,rollTurn:0,drag:null,stageGrades:[],inputLocked:false,transitioning:false,phase:"ready"});
+  const data={mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,successes:0,total:item.shrimpCount,
+    board:null,drag:null,stageGrades:[],justCompleted:-1,inputLocked:false,transitioning:false,phase:"pick"};
+  setDayPrepData(data);
   dom.miniTitle.textContent="새우튀김 준비";
-  dom.miniStation.textContent="새우를 직접 굴려 밀가루, 계란물, 빵가루를 차례로 묻혀주세요!";
-  dom.miniDescription.textContent=`새우를 잡고 ${item.label} 안에서 좌우로 여러 번 굴려주세요. 한 단계에 5마리씩 준비합니다!`;
+  dom.miniStation.textContent="새우를 한 마리씩 꺼내 밀가루, 계란물, 빵가루를 차례로 묻혀주세요!";
+  dom.miniDescription.textContent=shrimpCoatHelpText(data);
   renderShrimpCoat();
 }
 
-function updateShrimpRollPose(data){
-  const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),meter=dom.miniContent.querySelector("#shrimpRollMeter");
-  if(shrimp){
-    shrimp.style.setProperty("--shrimp-roll-x",`${data.drag?.position||0}px`);
-    shrimp.style.setProperty("--shrimp-roll-turn",`${data.rollTurn||0}deg`);
-    shrimp.classList.toggle("dragging",Boolean(data.drag));
-    const stage=data.rollProgress>=1?3:data.rollProgress>=.7?2:data.rollProgress>=.35?1:0;
-    shrimp.classList.remove("stage-0","stage-1","stage-2","stage-3");shrimp.classList.add(`stage-${stage}`);
-  }
-  if(meter)meter.style.width=`${Math.round((data.rollProgress||0)*100)}%`;
+// 타이틀 아래 긴 안내 — 지금 무엇을 할 차례인지 한 줄로 말해 줍니다.
+function shrimpCoatHelpText(data){
+  const label=data.sequence[data.step].label;
+  if(!data.board)return `재료칸의 새우를 잡아 ${label} 그릇으로 끌어다 놓으세요. 한 단계에 5마리씩 준비합니다!`;
+  if(data.board.coated)return "다 묻었습니다! 새우가 재료칸으로 돌아갑니다.";
+  return `${label} 안에서 새우를 좌우로 여러 번 굴려주세요.`;
 }
 
-function clearShrimpCoatDrag(m,pointerId=null){
-  const drag=m?.data?.drag;if(!drag||drag.kind!=="shrimpRoll"||(pointerId!==null&&drag.pointerId!==pointerId))return;
-  m.data.rollX=drag.limit?drag.position/drag.limit:0;m.data.drag=null;
-  dom.miniContent.querySelector("#shrimpRollShrimp")?.classList.remove("dragging");
-  dom.miniContent.querySelector("#shrimpCoatScene")?.classList.remove("rolling");
+// 판 아래 짧은 안내 — 위와 같은 내용을 한 손짓으로 줄인 것입니다.
+function shrimpCoatHintText(data){
+  if(data.successes>=data.total)return `${data.sequence[data.step].label} 새우 5마리 완료!`;
+  if(!data.board)return "재료칸의 새우를 끌어다 그릇에 놓으세요";
+  if(data.board.coated)return "다 묻었어요! 재료칸으로 돌아갑니다";
+  return "새우를 잡은 채 좌우로 여러 번 굴려주세요";
 }
 
-function finishShrimpCoatPiece(m,pointerId){
+/* ---- 왼쪽 재료칸 : 이번 단계에 굴릴 새우 다섯 마리 ---------- */
+
+function shrimpTraySlotStatus(data,index){
+  if(index<data.successes)return "done";
+  if(index>data.successes)return "pending";
+  return data.board?"out":"ready";
+}
+
+function shrimpTrayMarkup(data){
+  const coating=data.sequence[data.step].id;
+  const slots=Array.from({length:data.total},(_,index)=>{
+    const status=shrimpTraySlotStatus(data,index);
+    // 판에 나가 있는 한 칸만 비웁니다 — 새우가 어디서 나갔는지 자리가 남아 보입니다.
+    const piece=status==="out"?'<i class="fp-tray-empty" aria-hidden="true"></i>'
+      :shrimpPieceMarkup(coating,status==="done"?3:0,"fp-tray-shrimp");
+    return `<li class="fp-tray-slot ${status} ${index===data.justCompleted?"fresh":""}" data-shrimp-slot="${index}"
+      aria-label="새우 ${index+1} · ${status==="done"?"완료":status==="out"?"굴리는 중":"대기"}">${piece}</li>`;
+  }).join("");
+  return `<ul class="fp-shrimp-tray" id="shrimpTray" aria-label="새우 ${data.total}마리">${slots}</ul>`;
+}
+
+// 새우 한 마리. coating 은 지금 입고 있는 옷, stage 는 0~3 (묻은 정도) 입니다.
+function shrimpPieceMarkup(coating,stage,extraClass="",attributes=""){
+  const assetKey=SHRIMP_STATE_KEYS[coating]?.[stage]||"shrimpStateRaw";
+  const asset=dayPrepAssetMarkup(assetKey,"fp-shrimp-asset","새우");
+  // 임시 도형용 빵가루 알갱이. 납품 그림이 있으면 CSS 가 꺼 줍니다(.fp-shrimp.has-asset b).
+  const crumbs=coating==="breadcrumbs"?Array.from({length:Math.ceil(stage/3*12)},(_,index)=>`<b style="--fp-x:${12+(index*29)%74}%;--fp-y:${16+(index*41)%62}%;--fp-turn:${index*23}deg"></b>`).join(""):"";
+  return `<div class="fp-shrimp coating-${coating} stage-${stage} ${asset?"has-asset":""} ${extraClass}" ${attributes}>${asset}<i class="fp-shrimp-eye"></i>${crumbs}</div>`;
+}
+
+/* ---- 가운데 판 : 그릇 하나 ---------------------------------- */
+
+function shrimpCoatStageMarkup(data){
+  const current=data.sequence[data.step],board=data.board;
+  const vesselAsset=dayPrepAssetMarkup(`shrimpVessel${current.id[0].toUpperCase()}${current.id.slice(1)}`,"fp-vessel-asset",current.label);
+  const stages=data.sequence.map((item,index)=>`<span class="${index<data.step||(index===data.step&&data.successes>=data.total)?"done":index===data.step?"current":"pending"}"><i>${index+1}</i>${item.label}</span>`).join("");
+  // 다 묻은 새우는 곧바로 재료칸으로 날아갑니다 — .returning 이 그 연출입니다.
+  const shrimp=board?shrimpPieceMarkup(current.id,shrimpRollStage(board.progress),`fp-roll-shrimp ${board.coated?"returning":""}`,
+    'id="shrimpRollShrimp" role="button" aria-label="새우를 잡고 좌우로 굴리기"'):"";
+  return `<div class="fp-shrimp-roll-scene ${current.id} ${board?"has-shrimp":"empty"}" id="shrimpCoatScene">
+    <div class="fp-roll-stage-track">${stages}</div>
+    <div class="fp-roll-title"><small>${data.step+1}단계 / ${data.sequence.length}단계</small><strong>${current.label} 묻히기</strong></div>
+    <div class="fp-roll-vessel ${current.id} ${vesselAsset?"has-asset":""}" id="shrimpCoatVessel">${vesselAsset}
+      <div class="fp-roll-surface" id="shrimpRollSurface">${shrimp}</div>
+    </div>
+    <div class="fp-roll-meter"><i id="shrimpRollMeter" style="width:${Math.round((board?.progress||0)*100)}%"></i></div>
+    <p class="fp-roll-hint">${shrimpCoatHintText(data)}</p>
+  </div>`;
+}
+
+function renderShrimpCoat(){
+  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="shrimpCoat")return;
+  const data=m.data,percent=Math.round(data.successes/data.total*100);
+  dom.miniTimer.textContent=`${data.step+1}단계 · ${data.successes} / ${data.total}`;
+  renderFryPrepScreen({
+    ingredientsMarkup:shrimpTrayMarkup(data),
+    stage:shrimpCoatStageMarkup(data),
+    done:data.successes,
+    total:data.total,
+    percent,
+    controlMarkup:'<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>',
+    controlName:"새우를 꺼내<br />좌우로 굴리기",
+    controlDesc:"다 묻으면 새우가 스스로<br />재료칸으로 돌아갑니다",
+    phase:data.phase
+  });
+  bindShrimpCoatRoll();
+  bindShrimpCoatCarry(data);
+  updateShrimpRollPose(data);
+}
+
+/* ---- 1) 재료칸 → 그릇 끌어다 놓기 (E8 공용 배치기) ----------
+   화면을 다시 그릴 때마다 요소가 새것이라 그때그때 다시 걸어 줍니다.
+   걸리는 것은 "지금 꺼낼 차례" 한 칸뿐이고, 판에 새우가 나가 있는 동안에는
+   아무것도 안 걸립니다 — 그때는 굴리기(아래)와 자동 복귀가 맡습니다. */
+function bindShrimpCoatCarry(data){
+  if(data.inputLocked||data.transitioning||data.phase==="complete"||data.board)return;
+  const source=dom.miniContent.querySelector(".fp-tray-slot.ready");
+  if(!source)return;
+  bindOrderPlacementPointers({
+    sources:[source],targetSelector:"#shrimpCoatVessel",ghostSelector:".fp-shrimp",
+    itemFromSource:()=>"shrimp",dragOnly:true,
+    onPlace:()=>putShrimpInVessel(state.mini),
+    onMiss:()=>{dom.miniFeedback.textContent="새우를 잡은 채 그릇 안으로 끌어다 놓으세요.";}
+  });
+}
+
+// 1) 재료칸 → 그릇
+function putShrimpInVessel(m){
+  if(!shrimpCoatPlayable(m)||m.data.board)return;
+  const data=m.data;
+  data.board={progress:0,position:0,turn:0,coated:false};
+  data.phase="roll";data.justCompleted=-1;
+  audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m,gain:.6});
+  dom.miniDescription.textContent=shrimpCoatHelpText(data);
+  dom.miniFeedback.textContent=`${data.sequence[data.step].label} 안에서 새우를 좌우로 굴려주세요.`;
+  renderShrimpCoat();
+}
+
+/* 3) 그릇 → 재료칸. **한 마리가 끝나는 곳은 여기입니다.**
+   다 묻은 뒤 날아가는 연출(.returning)이 끝나면 finishShrimpRoll 의 타이머가
+   여기로 옵니다. 다섯 마리를 다 놓으면 다음 그릇으로 넘어갑니다.
+   ⚠️ 여기서는 shrimpCoatPlayable 을 쓰면 안 됩니다 — 날아가는 동안 손을
+      잠가 두므로(inputLocked) 스스로 걸려서 영영 안 놓입니다. */
+function placeShrimpBackInTray(m){
+  if(!isShrimpCoatMini(m)||m.data.phase==="complete"||!m.data.board?.coated)return;
   const data=m.data,stageComplete=data.successes+1>=data.total;
-  clearShrimpCoatDrag(m,pointerId);
-  data.successes++;data.rollProgress=stageComplete?1:0;data.rollX=0;data.rollTurn=0;data.justCompleted=data.successes-1;
+  data.board=null;data.successes++;data.justCompleted=data.successes-1;
+  // 돌아가는 동안 잠가 둔 손을 다시 풉니다 (아래 단계 완료면 곧바로 다시 잠급니다)
+  data.phase="pick";data.inputLocked=false;
   if(stageComplete){
     const finalStage=data.step>=data.sequence.length-1;
     data.stageGrades.push("perfect");data.completionGrade="perfect";
     data.transitioning=true;data.inputLocked=true;data.phase=finalStage?"complete":"transition";
   }
+  dom.miniDescription.textContent=shrimpCoatHelpText(data);
   renderShrimpCoat();
-  if(!stageComplete){audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 굴려주세요.`;return;}
+  if(!stageComplete){
+    audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});
+    dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 꺼내주세요.`;
+    return;
+  }
   const completed=data.sequence[data.step],finalStage=data.step>=data.sequence.length-1;
   dom.miniContent.querySelector(".fp-scene")?.classList.add(finalStage?"e2-complete":"stage-complete");
   showAlternateGrade("perfect");audio.success();
@@ -749,37 +912,88 @@ function finishShrimpCoatPiece(m,pointerId){
   dom.miniFeedback.textContent=`${completed.label} 5마리 완료 · 다음 코팅 재료로 넘어갑니다.`;
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
-    data.step++;data.successes=0;data.total=data.sequence[data.step].shrimpCount;data.rollProgress=0;data.rollX=0;data.rollTurn=0;data.transitioning=false;data.inputLocked=false;data.phase="ready";data.justCompleted=-1;
+    data.step++;data.successes=0;data.total=data.sequence[data.step].shrimpCount;
+    data.board=null;data.transitioning=false;data.inputLocked=false;data.phase="pick";data.justCompleted=-1;
     const next=data.sequence[data.step];
-    dom.miniDescription.textContent=`새우를 잡고 ${next.label} 안에서 좌우로 여러 번 굴려주세요. ${data.step+1}단계도 5마리입니다!`;
+    dom.miniDescription.textContent=shrimpCoatHelpText(data);
     dom.miniFeedback.textContent=`${data.step+1}단계 · ${next.label}를 골고루 묻혀주세요.`;
     renderShrimpCoat();
   },E2_FEEL_CONFIG.stageTransitionMs);
 }
 
-function bindShrimpCoatDrag(){
+/* ---- 2) 그릇 안에서 굴리기 ---------------------------------- */
+
+/* 굴리는 동안에는 화면을 다시 그리지 않고 손만 따라갑니다.
+   묻은 정도(stage)가 넘어갈 때 <img> 를 갈아 끼우는 것도 여기서 합니다 —
+   옷이 묻어 가는 것은 색 보정이 아니라 그림 자체가 바뀌는 일이라
+   클래스만 바꿔서는 아무 일도 안 일어납니다. */
+function updateShrimpRollPose(data){
+  const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),meter=dom.miniContent.querySelector("#shrimpRollMeter");
+  const board=data.board;
+  if(shrimp&&board){
+    shrimp.style.setProperty("--shrimp-roll-x",`${(board.position||0).toFixed(2)}px`);
+    shrimp.style.setProperty("--shrimp-roll-turn",`${(board.turn||0).toFixed(1)}deg`);
+    shrimp.classList.toggle("dragging",data.drag?.kind==="shrimpRoll");
+    const stage=shrimpRollStage(board.progress);
+    shrimp.classList.remove("stage-0","stage-1","stage-2","stage-3");shrimp.classList.add(`stage-${stage}`);
+    const key=SHRIMP_STATE_KEYS[data.sequence[data.step].id]?.[stage],image=shrimp.querySelector(".fp-shrimp-asset");
+    if(image&&key&&hasDayPrepAsset(key)&&image.getAttribute("src")!==dayPrepAssets[key].src)image.setAttribute("src",dayPrepAssets[key].src);
+  }
+  if(meter)meter.style.width=`${Math.round((board?.progress||0)*100)}%`;
+}
+
+function clearShrimpRollDrag(m,pointerId=null){
+  const drag=m?.data?.drag;if(!drag||drag.kind!=="shrimpRoll"||(pointerId!==null&&drag.pointerId!==pointerId))return;
+  m.data.drag=null;
+  dom.miniContent.querySelector("#shrimpRollShrimp")?.classList.remove("dragging");
+  dom.miniContent.querySelector("#shrimpCoatScene")?.classList.remove("rolling");
+}
+
+/* 다 묻었습니다. 새우는 손을 안 대도 스스로 재료칸으로 돌아갑니다 —
+   여기서는 날아가는 연출만 켜고, 실제로 한 마리가 끝나는 것은 그 연출이
+   끝난 뒤의 placeShrimpBackInTray 입니다.
+   ⚠️ 돌아가는 동안 손을 잠급니다(inputLocked). 안 잠그면 날아가는 새우를
+      다시 잡아 굴릴 수 있어서, 한 마리가 두 번 세어질 수 있습니다. */
+function finishShrimpRoll(m,pointerId){
+  const data=m.data;
+  clearShrimpRollDrag(m,pointerId);
+  data.board.progress=1;data.board.coated=true;data.board.position=0;data.board.turn=0;
+  data.phase="return";data.inputLocked=true;
+  audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});
+  dom.miniDescription.textContent=shrimpCoatHelpText(data);
+  dom.miniFeedback.textContent="다 묻었습니다! 새우가 재료칸으로 돌아갑니다.";
+  renderShrimpCoat();
+  setTimeout(()=>{if(state.mini===m&&!m.complete)placeShrimpBackInTray(m);},E2_FEEL_CONFIG.shrimpReturnMs);
+}
+
+function bindShrimpCoatRoll(){
   const surface=dom.miniContent;if(surface.__shrimpCoatDragBound)return;
   surface.__shrimpCoatDragBound=true;
+  // 굴릴 수 있는 때 = 판에 새우가 있고 아직 다 안 묻었을 때뿐입니다.
+  // 다 묻은 새우를 잡으면 굴리기가 아니라 되돌려놓기(위 공용 배치기)가 받습니다.
+  const rollable=m=>shrimpCoatPlayable(m)&&m.data.board&&!m.data.board.coated;
   surface.addEventListener("pointerdown",event=>{
     const shrimp=event.target?.closest?.("#shrimpRollShrimp"),m=state.mini;
-    if(!shrimp||!surface.contains(shrimp)||!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
+    if(!shrimp||!surface.contains(shrimp)||!rollable(m))return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
     event.preventDefault();
     const rect=shrimp.closest(".fp-roll-surface")?.getBoundingClientRect()||shrimp.getBoundingClientRect();
     const limit=Math.max(32,rect.width*SHRIMP_ROLL_CONFIG.visualLimitRatio);
-    m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,position:(m.data.rollX||0)*limit,limit,required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio),sinceSound:0};
+    m.data.board.position=clamp(m.data.board.position||0,-limit,limit);
+    m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,limit,
+      required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio),sinceSound:0};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
     dom.miniContent.querySelector("#shrimpCoatScene")?.classList.add("rolling");updateShrimpRollPose(m.data);
   });
   surface.addEventListener("pointermove",event=>{
     const m=state.mini,drag=m?.data?.drag;
-    if(!isDayPrepMini(m)||m.complete||m.data.mode!=="shrimpCoat"||!drag||drag.kind!=="shrimpRoll"||drag.pointerId!==event.pointerId)return;
-    event.preventDefault();if(m.data.inputLocked||m.data.transitioning||m.data.phase==="complete")return;
-    const previous=drag.position,next=clamp(previous+event.clientX-drag.lastX,-drag.limit,drag.limit);
-    drag.lastX=event.clientX;drag.position=next;
+    if(!drag||drag.kind!=="shrimpRoll"||drag.pointerId!==event.pointerId||!rollable(m))return;
+    event.preventDefault();
+    const board=m.data.board,previous=board.position,next=clamp(previous+event.clientX-drag.lastX,-drag.limit,drag.limit);
+    drag.lastX=event.clientX;board.position=next;
     const travelled=Math.abs(next-previous);
-    m.data.rollProgress=Math.min(1,m.data.rollProgress+travelled/drag.required);
-    m.data.rollTurn=(m.data.rollTurn+(next-previous)*.55)%360;
+    board.progress=Math.min(1,board.progress+travelled/drag.required);
+    board.turn=(board.turn+(next-previous)*.55)%360;
     updateShrimpRollPose(m.data);
     // 굴리는 거리만큼 쌓아 두었다가 한 번 왕복(limit)할 때마다 코팅 소리를 한 번씩 냅니다.
     // 완료 때만 소리가 나면 "묻히는 중"이라는 느낌이 안 나서, 움직이는 동안 계속 들리게 합니다.
@@ -788,68 +1002,18 @@ function bindShrimpCoatDrag(){
       drag.sinceSound-=drag.limit;
       audio.play?.(SHRIMP_COAT_SFX[m.data.sequence[m.data.step].id],{owner:m,gain:.8});
     }
-    if(m.data.rollProgress>=1){
+    if(board.progress>=1){
       try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
-      finishShrimpCoatPiece(m,event.pointerId);
+      finishShrimpRoll(m,event.pointerId);
     }
   });
   const finish=event=>{
     const m=state.mini,drag=m?.data?.drag;
     if(!drag||drag.kind!=="shrimpRoll"||drag.pointerId!==event.pointerId)return;
-    clearShrimpCoatDrag(m,event.pointerId);updateShrimpRollPose(m.data);
+    clearShrimpRollDrag(m,event.pointerId);
+    if(isDayPrepMini(m))updateShrimpRollPose(m.data);
     try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
   };
   surface.addEventListener("pointerup",finish);surface.addEventListener("pointercancel",finish);surface.addEventListener("lostpointercapture",finish);
   surface.addEventListener("dragstart",event=>{if(event.target?.closest?.("#shrimpRollShrimp"))event.preventDefault();});
-}
-
-// 새우 한 마리. coating 은 지금 입고 있는 옷, stage 는 0~3 (묻은 정도) 입니다.
-function shrimpPieceMarkup(coating,stage,extraClass="",attributes=""){
-  const assetKey={raw:"shrimpStateRaw",flour:"shrimpStateFlour",egg:"shrimpStateEgg",breadcrumbs:"shrimpStateBreadcrumbs"}[coating]||"shrimpStateRaw";
-  const asset=dayPrepAssetMarkup(assetKey,"fp-shrimp-asset","새우");
-  const crumbs=coating==="breadcrumbs"?Array.from({length:12},(_,index)=>`<b style="--fp-x:${12+(index*29)%74}%;--fp-y:${16+(index*41)%62}%;--fp-turn:${index*23}deg"></b>`).join(""):"";
-  return `<div class="fp-shrimp coating-${coating} stage-${stage} ${asset?"has-asset":""} ${extraClass}" ${attributes}>${asset}<i class="fp-shrimp-eye"></i>${crumbs}</div>`;
-}
-
-function shrimpCoatStageMarkup(data){
-  const current=data.sequence[data.step],stage=data.rollProgress>=.7?2:data.rollProgress>=.35?1:0;
-  const vesselAsset=dayPrepAssetMarkup(`shrimpVessel${current.id[0].toUpperCase()}${current.id.slice(1)}`,"fp-vessel-asset",current.label);
-  // 큰 새우는 목표 코팅 클래스로 그린 뒤 stage-0 색을 직전 단계 색으로 둡니다.
-  // 그래야 다시 그리지 않는 드래그 중에도 stage 클래스만 바꿔 옷이 입혀집니다.
-  const coating=current.id;
-  const stages=data.sequence.map((item,index)=>`<span class="${index<data.step||(index===data.step&&data.successes>=data.total)?"done":index===data.step?"current":"pending"}"><i>${index+1}</i>${item.label}</span>`).join("");
-  const batch=Array.from({length:data.total},(_,index)=>`<i class="${index<data.successes?"done":index===data.successes?"current":"pending"} ${index===data.justCompleted?"fresh":""}">${index<data.successes?"✓":index+1}</i>`).join("");
-  return `<div class="fp-shrimp-roll-scene ${current.id}" id="shrimpCoatScene">
-    <div class="fp-roll-stage-track">${stages}</div>
-    <div class="fp-roll-title"><small>${data.step+1}단계 / ${data.sequence.length}단계</small><strong>${current.label} 묻히기</strong></div>
-    <div class="fp-roll-vessel ${current.id} ${vesselAsset?"has-asset":""}">${vesselAsset}
-      <div class="fp-roll-surface">
-        ${shrimpPieceMarkup(coating,stage,"fp-roll-shrimp",'id="shrimpRollShrimp" role="button" aria-label="새우를 잡고 좌우로 굴리기"')}
-      </div>
-    </div>
-    <div class="fp-roll-batch" aria-label="현재 단계 새우 진행도">${batch}</div>
-    <div class="fp-roll-meter"><i id="shrimpRollMeter" style="width:${Math.round(data.rollProgress*100)}%"></i></div>
-    <p class="fp-roll-hint">${data.successes>=data.total?`${current.label} 새우 5마리 완료!`:"새우를 잡은 채 좌우로 여러 번 굴려주세요"}</p>
-  </div>`;
-}
-
-function renderShrimpCoat(){
-  const m=state.mini;if(!isDayPrepMini(m)||m.data.mode!=="shrimpCoat")return;
-  const data=m.data,current=data.sequence[data.step],percent=Math.round(data.successes/data.total*100);
-  dom.miniTimer.textContent=`${data.step+1}단계 · ${data.successes} / ${data.total}`;
-  renderFryPrepScreen({
-    ingredients:[
-      {id:data.step===0?"shrimpRaw":data.step===1?"shrimpFlour":"shrimpEgg",label:data.step?"코팅 새우":"생새우",count:data.total-data.successes,asset:data.step===0?"shrimpStateRaw":data.step===1?"shrimpStateFlour":"shrimpStateEgg"},
-      {id:current.id,label:current.label,count:1,asset:current.id==="flour"?"shrimpIngFlour":current.id==="egg"?"shrimpIngEgg":"shrimpIngCrumbs"}
-    ],
-    stage:shrimpCoatStageMarkup(data),
-    done:data.successes,
-    total:data.total,
-    percent,
-    controlMarkup:'<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>',
-    controlName:"새우를 잡고<br />좌우로 굴리기",
-    controlDesc:"그릇 안을 여러 번<br />왕복하면 한 마리 완성!",
-    phase:data.phase
-  });
-  bindShrimpCoatDrag();updateShrimpRollPose(data);
 }

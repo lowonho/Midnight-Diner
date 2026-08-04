@@ -237,14 +237,28 @@ try{
   retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);const firstHeatGoal=randomHeat.targetGoal,firstHeatSpeed=randomHeat.targetSpeedScale;
   randomHeat.targetRetargetIn=0;updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.1,heatRandom);
   assert(firstHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetSpeedScale!==firstHeatSpeed&&randomHeat.target>.5,"E4 target rerolls destination, speed, and direction instead of bouncing in a fixed cycle");
+  /* 새우튀김 준비는 한 마리가 세 걸음입니다 — 재료칸에서 꺼내기 → 굴리기 →
+     (스스로) 재료칸으로 돌아가기. 첫 걸음은 실제로는 끌어다 놓기(E8 공용
+     배치기)이고 셋째 걸음은 타이머라, 여기서는 그 둘이 부르는 함수를 바로
+     불러 로직만 봅니다. 끌어다 놓기와 그림·자리는 tools/e2-shrimp-carry-smoke.html
+     이 진짜 포인터 입력으로 확인합니다. */
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
+  assert(dom.miniContent.querySelectorAll(".fp-tray-slot").length===5&&dom.miniContent.querySelectorAll(".fp-tray-slot.ready").length===1&&!dom.miniContent.querySelector(".fp-ing-card")&&!state.mini.data.board,"E2 shrimp ingredient column holds five shrimp instead of coating ingredient cards");
   function rollShrimp(pointerId){
     const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
     rollSurface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
     shrimp.dispatchEvent(new PointerEvent("pointerdown",{pointerId,pointerType:"mouse",button:0,clientX:200,clientY:120,bubbles:true}));
     [340,60,340,60].forEach(clientX=>dom.miniContent.dispatchEvent(new PointerEvent("pointermove",{pointerId,pointerType:"mouse",clientX,clientY:120,bubbles:true})));
   }
-  for(let index=0;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++)rollShrimp(60+index);
+  putShrimpInVessel(state.mini);
+  assert(state.mini.data.board&&!state.mini.data.board.coated&&state.mini.data.successes===0&&dom.miniContent.querySelector(".fp-tray-slot.out")&&!dom.miniContent.querySelector(".fp-tray-slot.ready"),"E2 shrimp taken out of the tray sits in the vessel and empties its slot");
+  rollShrimp(60);
+  assert(state.mini.data.board.coated&&state.mini.data.inputLocked&&state.mini.data.successes===0&&dom.miniContent.querySelector("#shrimpRollShrimp.returning"),"E2 fully coated shrimp locks input and waits for the automatic return before it counts");
+  placeShrimpBackInTray(state.mini);   // 실제로는 shrimpReturnMs 뒤 타이머가 부릅니다
+  assert(state.mini.data.successes===1&&!state.mini.data.board&&!state.mini.data.inputLocked&&dom.miniContent.querySelectorAll(".fp-tray-slot.done").length===1,"E2 returned shrimp counts one piece and frees the next one");
+  for(let index=1;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++){
+    putShrimpInVessel(state.mini);rollShrimp(60+index);placeShrimpBackInTray(state.mini);
+  }
   assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1,"E2 shrimp rolls five pieces in one vessel before the first stage transition");
 
   let finishedScore=null;

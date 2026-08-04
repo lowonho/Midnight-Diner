@@ -338,9 +338,15 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      ⚠️ E7 소스 제조와 **같은 파일**이라 공용 폴더(assets/minigame/)에 있습니다.
         위 sauceArrow 와 같은 장이니 어느 한쪽만 갈아 끼울 수 없습니다. */
   shrimpArrow:"assets/minigame/ui_arrow_right_01.webp",
-  shrimpVesselFlour:"assets/minigame/E2/shrimp/food_tempura_flour_bowl.webp",
-  shrimpVesselEgg:"assets/minigame/E2/shrimp/food_egg_wash_bowl.webp",
-  shrimpVesselBreadcrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_bowl.webp",
+  /* 밀가루·계란물·빵가루 트레이. 새우를 **좌우로 굴리는** 놀이라 위에서 내려다본
+     둥근 볼이 아니라 옆으로 긴 트레이를 씁니다. 셋 다 1624x566 한 규격입니다.
+     ⚠️ 예전 둥근 볼 3장(food_tempura_flour_bowl · food_egg_wash_bowl ·
+        food_wet_breadcrumbs_bowl)은 세 그릇을 한꺼번에 늘어놓던 화면(.fp-vessel)
+        것이라 지금은 안 쓰입니다. 파일은 남아 있습니다 — 되돌리려면 여기 세 줄만
+        그 이름으로 되돌리고 CSS 의 .fp-roll-vessel 크기를 볼 비율로 되돌리세요. */
+  shrimpVesselFlour:"assets/minigame/E2/shrimp/food_shrimp_tempura_flour_tray_wide_75deg.webp",
+  shrimpVesselEgg:"assets/minigame/E2/shrimp/food_shrimp_tempura_egg_tray_wide_75deg.webp",
+  shrimpVesselBreadcrumbs:"assets/minigame/E2/shrimp/food_shrimp_tempura_breadcrumb_tray_wide_75deg.webp",
   /* 새우 10장. 생새우 한 장에 옷 3종 x 묻은 정도 3단계입니다.
      어느 장을 언제 쓰는지는 engine-e2-alternate-input.js 의 SHRIMP_STATE_KEYS 참고. */
   shrimpStateRaw:"assets/minigame/E2/shrimp/food_shrimp_raw.webp",
@@ -382,9 +388,22 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   cookPancakeBatter:"assets/minigame/E5/food_kimchi_batter_bowl_mixed_oblique.webp",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
-  // 실제 조리 음식은 메뉴별 1장만 있으면 익힘 단계의 색·기포·그을음을 CSS로 합성합니다.
-  cookPancakeFood:"assets/prep/two-side/pancake.png",
+  // 닭꼬치는 아직 한 장만 있어서 익힘 단계의 색·그을음을 CSS 로 합성합니다.
   cookSkewerFood:"assets/prep/two-side/skewer.png",
+  /* 굽는 김치전 5장 — **익힘 단계마다 한 장**입니다. 색을 CSS 필터로 만들지 않고
+     그림을 갈아 끼웁니다 (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS).
+     키 순서가 곧 익는 순서라 코드가 이 표를 순서대로 훑습니다. */
+  cookPancakeRaw:"assets/minigame/E5/food_kimchi_pancake_raw.webp",
+  cookPancakeUndercooked:"assets/minigame/E5/food_kimchi_pancake_undercooked.webp",
+  cookPancakeCooked:"assets/minigame/E5/food_kimchi_pancake_cooked.webp",
+  cookPancakeSlightlyBurnt:"assets/minigame/E5/food_kimchi_pancake_slightly_burnt.webp",
+  cookPancakeBurnt:"assets/minigame/E5/food_kimchi_pancake_burnt.webp",
+  // 김치전 위로 피어오르는 연기 5장. 01 → 05 가 한 바퀴 도는 연속 그림입니다.
+  ...Object.fromEntries(["01","02","03","04","05"].map(no=>[
+    `cookSmoke${no}`,`assets/minigame/E5/fx_cooking_smoke_${no}.webp`
+  ])),
+  // 김치전 굽기 화면 전용 마우스 포인터(고양이 발 뒤집개). 파일이 없으면 기본 포인터입니다.
+  cookSpatulaCursor:"assets/minigame/E5/prop_spatula_cat.webp",
   /* E8 떡 · 우동면 불려두기.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
 
