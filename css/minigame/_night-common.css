@@ -1,0 +1,193 @@
+/* ============================================================
+   밤 조리 미니게임 공용 위젯
+   원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
+   
+   여러 화면이 함께 쓰는 버튼·게이지와, 옛 미니게임(engine-legacy-night.js)의 조각들입니다.
+   ⚠️ .serving-oden-* 는 지금 어느 js 도 쓰지 않습니다(옛 서빙 화면 잔재).
+      지우기 전에 story/night 쪽에서 문자열로 만들지 않는지 한 번만 확인하세요.
+   ============================================================ */
+
+/* 공용 프레임(.mini-overlay / .mini-window / .mini-title-panel / .mini-stage /
+   .mini-content / .mini-timer / .mini-feedback / 닫기·일시정지 버튼)은
+   css/minigame-frame.css 에서 한 번에 관리합니다. 이 파일은 각 미니게임의
+   플레이 영역 내부 요소만 담습니다. */
+
+/* 두부김치 플레이팅(밤 조리)은 낮 준비와 같은 단발 액션 화면을 씁니다.
+   → css/day-prep-minigames.css 의 "단발 액션 (engine-e11)" 구역 */
+
+.serving-oden-pot {
+  position: relative;
+  width: calc(210 * var(--upx));
+  height: calc(100 * var(--upx));
+  margin: calc(18 * var(--upx)) 0 calc(5 * var(--upx));
+  border: calc(7 * var(--upx)) solid #564b42;
+  border-top: 0;
+  border-radius: calc(10 * var(--upx)) calc(10 * var(--upx)) calc(62 * var(--upx)) calc(62 * var(--upx));
+  background: linear-gradient(90deg,#413a35,#75685c 50%,#413a35);
+  box-shadow: 0 calc(8 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.3),inset 0 calc(-8 * var(--upx)) rgba(0,0,0,.14);
+}
+.serving-oden-broth {
+  position: absolute;
+  left: calc(-5 * var(--upx));
+  right: calc(-5 * var(--upx));
+  top: calc(-14 * var(--upx));
+  height: calc(42 * var(--upx));
+  overflow: hidden;
+  border: calc(6 * var(--upx)) solid #7c7065;
+  border-radius: 50%;
+  background: #b87532;
+  box-shadow: inset 0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(255,208,112,.3);
+}
+.serving-radish,.serving-fishcake,.serving-green-onion { position:absolute; display:block; }
+.serving-radish { left:calc(36 * var(--upx)); top:calc(12 * var(--upx)); width:calc(42 * var(--upx)); height:calc(18 * var(--upx)); border-radius:50%; background:#eee5c9; transform:rotate(-8deg); }
+.serving-fishcake { width:calc(48 * var(--upx)); height:calc(17 * var(--upx)); border-radius:calc(5 * var(--upx)); background:#dda355; }
+.serving-fishcake.fishcake-one { left:calc(88 * var(--upx)); top:calc(7 * var(--upx)); transform:rotate(12deg); }
+.serving-fishcake.fishcake-two { left:calc(118 * var(--upx)); top:calc(22 * var(--upx)); transform:rotate(-7deg); }
+.serving-green-onion { left:calc(81 * var(--upx)); top:calc(23 * var(--upx)); width:calc(18 * var(--upx)); height:calc(9 * var(--upx)); border-radius:50%; background:#72954b; }
+.serving-pot-handle { position:absolute; top:calc(20 * var(--upx)); width:calc(32 * var(--upx)); height:calc(18 * var(--upx)); border:calc(7 * var(--upx)) solid #51463e; background:#2e2926; }
+.serving-pot-handle.left { left:calc(-39 * var(--upx)); border-radius:calc(12 * var(--upx)) 0 0 calc(12 * var(--upx)); }
+.serving-pot-handle.right { right:calc(-39 * var(--upx)); border-radius:0 calc(12 * var(--upx)) calc(12 * var(--upx)) 0; }
+.oden-steam { position:absolute; z-index:2; top:calc(-52 * var(--upx)); width:calc(22 * var(--upx)); height:calc(45 * var(--upx)); border-left:calc(5 * var(--upx)) solid rgba(245,237,215,.62); border-radius:50%; animation: serving-oden-steam 1.5s ease-in-out infinite; }
+.oden-steam.steam-one { left:calc(72 * var(--upx)); }
+.oden-steam.steam-two { left:calc(127 * var(--upx)); animation-delay:.55s; }
+@keyframes serving-oden-steam { 0% { opacity:0; transform:translateY(calc(12 * var(--upx))) translateX(0); } 45% { opacity:.8; } 100% { opacity:0; transform:translateY(calc(-12 * var(--upx))) translateX(calc(9 * var(--upx))); } }
+
+.choice-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: calc(9 * var(--upx));
+}
+.choice-button,
+.bubble-button,
+.plate-button,
+.sort-button,
+.mini-action {
+  border: 2px solid #89562e;
+  border-radius: calc(9 * var(--upx));
+  background: linear-gradient(#edca8f,#b8773a);
+  color: #2d1b11;
+  box-shadow: inset 0 0 0 2px rgba(255,240,190,.5);
+  cursor: pointer;
+  font-weight: 800;
+}
+.choice-button { min-height: calc(52 * var(--upx)); padding: calc(8 * var(--upx)); }
+.choice-button.correct { background: linear-gradient(#c9df8c,#83a153); }
+.choice-button.wrong { background: linear-gradient(#eaa292,#a84b42); }
+
+.sequence-view {
+  min-height: calc(50 * var(--upx));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(8 * var(--upx));
+}
+.sequence-chip {
+  padding: calc(8 * var(--upx)) calc(12 * var(--upx));
+  border: 2px solid #936039;
+  border-radius: calc(8 * var(--upx));
+  background: #f1d39f;
+  color: #2d1b11;
+  font-weight: 800;
+}
+.progress-track {
+  position: relative;
+  width: 100%;
+  height: calc(28 * var(--upx));
+  overflow: hidden;
+  border: 2px solid #79502e;
+  border-radius: calc(8 * var(--upx));
+  background: #1a0f0a;
+}
+.progress-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(135,167,83,.85);
+}
+.progress-perfect {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(255,224,133,.72);
+}
+.progress-marker {
+  position: absolute;
+  top: calc(-5 * var(--upx));
+  width: calc(7 * var(--upx));
+  height: calc(38 * var(--upx));
+  border: 2px solid #75411f;
+  background: #fff1be;
+  transform: translateX(-50%);
+}
+.doneness-gauge {
+  position: relative;
+  width: 100%;
+  height: calc(34 * var(--upx));
+  overflow: hidden;
+  border: 2px solid #79502e;
+  border-radius: calc(9 * var(--upx));
+  background: linear-gradient(90deg,#a33c32 0 34%,#d5a63f 48% 67%,#6f9c4d 68% 82%,#d5a63f 83% 92%,#a33c32 100%);
+}
+
+.cut-count { color: #f3d495; font-size: calc(18 * var(--upx)); font-weight: 800; }
+
+
+
+.grill-targets {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: calc(10 * var(--upx));
+}
+.sauce-target {
+  min-height: calc(72 * var(--upx));
+  border: 2px dashed #c28a48;
+  border-radius: calc(12 * var(--upx));
+  background: #24140d;
+  color: #d1ac77;
+  font-size: calc(22 * var(--upx));
+  cursor: pointer;
+}
+.sauce-target.done {
+  border-style: solid;
+  background: #8c4a29;
+  color: #ffe6a7;
+}
+
+.bubble-grid, .plate-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: calc(9 * var(--upx));
+}
+.bubble-button {
+  height: calc(48 * var(--upx));
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,#eefcff,#89bfd0);
+  color: #2a5060;
+}
+.bubble-button.popped {
+  opacity: .18;
+  transform: scale(.7);
+  pointer-events: none;
+}
+.plate-button {
+  min-height: calc(64 * var(--upx));
+  background: radial-gradient(circle,#84634c 0 35%,#d8c8ad 38% 65%,#927259 67%);
+  color: #2f1c12;
+}
+.plate-button.clean {
+  background: radial-gradient(circle,#f4ead6 0 35%,#dcd4c5 38% 65%,#f6f1e8 67%);
+  color: #718a94;
+}
+
+.sort-area {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(12 * var(--upx));
+}
+.sort-button { min-height: calc(76 * var(--upx)); }
+.mini-action { min-width: calc(180 * var(--upx)); padding: calc(12 * var(--upx)) calc(20 * var(--upx)); font-size: calc(17 * var(--upx)); }

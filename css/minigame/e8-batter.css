@@ -1,0 +1,346 @@
+/* ============================================================
+   E8+E9 · 김치전 반죽 (engine-e8-order-place.js → engine-e9-whisk.js)
+   원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
+   읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
+   
+   재료 넣기(E8)와 젓기(E9)가 **같은 볼(.bt-*)** 을 이어서 쓰기 때문에
+   두 단계를 한 파일에 둡니다. 나누면 볼 크기·반죽 색이 두 파일로 흩어집니다.
+   ============================================================ */
+
+/* ── 김치전 반죽 (engine-e8 재료 넣기 → engine-e9 젓기) ───────
+   왼쪽 재료 · 가운데 반죽 볼 · 오른쪽 완성 개수/참고 모양 3단 구성입니다.
+   재료를 다 넣으면 화면 틀은 그대로 두고 가운데 볼만 젓기용으로 바뀝니다.
+
+   볼은 컨셉 그림처럼 "위에서 내려다본" 원형입니다. 마우스로 원을 그리는
+   조작과 그림 방향이 맞아떨어지도록 옆에서 본 볼에서 바꿨습니다.
+   그림은 전부 임시 CSS 도형이고, assets/prep/batter/ 에 파일을 넣으면
+   .has-asset 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+
+   [공용 프레임과의 관계]  닭꼬치·멸치와 같습니다.
+   css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 게임이 떠 있을
+   때 한정으로 공용 규칙을 덮어씁니다.
+     · .mini-content 기본 폭(가운데 922px)을 사이드 카드까지 쓰도록 100% 로
+     · 공용 타이머 카드는 오른쪽 '완성 개수' 카드와 자리가 겹치므로 숨김
+       (내용은 계속 채워 두므로 CSS 한 줄만 지우면 다시 보입니다)
+
+   볼·고리 크기는 .batter-prep-scene 의 --bowl / --ring 두 값이 정합니다.
+   안쪽 여백은 전부 % 라 두 값만 바꾸면 전체가 같은 비율로 커집니다. */
+
+/* E8 공통 포인터 배치: 원본 에셋 하나를 복제해 커서를 따라가게 합니다. */
+
+.batter-prep-scene {
+  /* 격자는 css/minigame-parts.css 공용 규격입니다.
+     ⚠️ 하단 띠를 쓰면 가운데 세로가 525.6 이 되어 고리(468) 여백이 위아래
+        28 씩만 남습니다. 볼 그림을 키우려면 --ring 도 같이 줄여야 합니다. */
+  --bowl: calc(400 * var(--upx));   /* 반죽 볼 지름 */
+  --ring: calc(468 * var(--upx));   /* 볼을 두르는 진행도 고리 = 젓기 조작 영역 */
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* 좌우 세로 칸 */
+.bt-col { display: flex; flex-direction: column; gap: var(--mg-col-gap); min-width: 0; }
+/* .bt-col-title · .bt-panel → css/minigame-parts.css */
+
+/* 왼쪽 재료 카드 : 넣을 차례가 깜빡이고, 넣은 재료는 흐려지며 ✓ 가 붙습니다 */
+.bt-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
+/* 목록 간격은 원래 9 로 혼자 달라 카드가 176.4 였습니다 → 공용 10 이면 E7 과 같은 175.7 */
+.bt-ing-list { flex: 1; display: grid; grid-template-rows: repeat(3,1fr); gap: var(--mg-ing-list-gap); }
+.bt-ing-card {
+  display: grid;
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: calc(4 * var(--upx));
+  cursor: pointer;
+  touch-action: none;
+}
+.bt-ing-card:disabled { cursor: default; }
+.bt-ing-card.next { border-color: var(--mg-card-active); box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); animation: sk-next-pulse 1.3s ease-in-out infinite; }
+.bt-ing-card.added { opacity: .42; }
+.bt-ing-card.added .bt-ing-name::after { content: "✓"; color: #a8c46a; }
+.bt-ing-card.pouring { animation: batter-pour .4s ease forwards; }
+.bt-ing-art { position: relative; display: grid; place-items: center; }
+.bt-ing-art i { position: relative; display: block; width: calc(74 * var(--upx)); height: calc(74 * var(--upx)); }
+.bt-ing-art.has-asset i { display: none; }
+/* 카드 한 장이 176.4 이고 이름 줄이 아래 26 을 가져가므로 그림 자리는 126 쯤 남습니다.
+   납품 그림이 정사각(1024)이라 세로가 먼저 막힙니다 → 120 (뽑는 크기는 그 2배인 240). */
+.bt-ing-asset { max-width: 100%; max-height: calc(120 * var(--upx)); object-fit: contain; }
+.bt-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
+.bt-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
+/* 재료 그림 (임시 도형) — 부침가루 한 그릇 / 물병 / 썰어 둔 김치 */
+.bt-ing-card.flour .bt-ing-art i { border-radius: calc(7 * var(--upx)) calc(7 * var(--upx)) 46% 46%; background: linear-gradient(#c58c43,#89591f); box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(70,40,15,.45); }
+.bt-ing-card.flour .bt-ing-art i::after { content: ""; position: absolute; left: 3%; right: 3%; top: 6%; height: 48%; border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 42% 26%,#fffdf6,#e4d9c0); }
+.bt-ing-card.water .bt-ing-art i { width: calc(56 * var(--upx)); border-radius: calc(9 * var(--upx)) calc(9 * var(--upx)) calc(22 * var(--upx)) calc(22 * var(--upx)); background: linear-gradient(180deg,rgba(255,255,255,.9) 0 16%,#b6e2f4 17%,#5fb2d8); box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
+.bt-ing-card.water .bt-ing-art i::after { content: ""; position: absolute; right: calc(-19 * var(--upx)); top: 30%; width: calc(24 * var(--upx)); height: calc(32 * var(--upx)); border: calc(5 * var(--upx)) solid #9dd6ec; border-left: 0; border-radius: 0 50% 50% 0; }
+.bt-ing-card.kimchi .bt-ing-art i { border-radius: calc(12 * var(--upx)) calc(30 * var(--upx)) calc(14 * var(--upx)) calc(26 * var(--upx)); background: repeating-linear-gradient(110deg,#b9472f 0 calc(14 * var(--upx)),#d66135 calc(15 * var(--upx)) calc(26 * var(--upx)),#83964d calc(27 * var(--upx)) calc(31 * var(--upx))); box-shadow: inset 0 calc(-6 * var(--upx)) calc(9 * var(--upx)) rgba(90,30,18,.35); }
+
+/* 가운데 조리대 */
+.bt-board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10 * var(--upx));
+  padding: calc(14 * var(--upx)) calc(12 * var(--upx));
+  border: calc(6 * var(--upx)) solid #6d4527;
+  border-radius: calc(14 * var(--upx));
+  background: linear-gradient(#4d2e1a,#33200f);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
+}
+.bt-progress { margin: 0; color: #e9c88b; font-size: calc(20 * var(--upx)); font-weight: 800; }
+.bt-progress b { color: var(--gold-bright); }
+
+/* 반죽 볼 (위에서 내려다본 모습) */
+.bt-bowl-wrap { position: relative; display: grid; place-items: center; width: var(--ring); height: var(--ring); max-width: 100%; touch-action: none; }
+/* 놓을 자리 표시에서 노란 테두리(.order-drop-ready 의 outline)만 뺍니다.
+   볼 그림이 이미 동그란데 그 바깥으로 원이 하나 더 그려져 겹쳐 보입니다.
+   밝아지는 것(filter)은 남겨 둬야 놓을 수 있는 자리인지 알 수 있습니다.
+   ⚠️ 꼬치(.sk-active-rack)·불리기(.soaking-bowl)는 테두리를 그대로 씁니다 —
+      거기는 놓을 자리가 동그랗지 않아 테두리가 실제로 도움이 됩니다. */
+.bt-bowl-wrap.order-drop-ready { outline: 0; }
+.bt-bowl-wrap.receive-flour .bt-batter { animation: batter-receive-flour .42s ease; }
+.bt-bowl-wrap.receive-water .bt-batter { animation: batter-receive-water .42s ease; }
+.bt-bowl-wrap.receive-kimchi .bt-batter { animation: batter-receive-kimchi .42s ease; }
+.bt-bowl {
+  position: relative;
+  width: var(--bowl);
+  height: var(--bowl);
+  max-width: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 28%,#f8f2e0 0 30%,#e2d6ba 58%,#b3a486 100%);
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) rgba(255,255,255,.35), 0 calc(10 * var(--upx)) calc(26 * var(--upx)) rgba(0,0,0,.5);
+}
+.bt-bowl::before {          /* 볼 안쪽 바닥 */
+  content: "";
+  position: absolute;
+  inset: 6.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 34%,#8e8168,#5f5544);
+  box-shadow: inset 0 calc(6 * var(--upx)) calc(16 * var(--upx)) rgba(0,0,0,.5);
+}
+.bt-bowl.has-asset { background: none; box-shadow: none; }
+.bt-bowl.has-asset::before { display: none; }
+.bt-bowl-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+
+/* 재료 넣기(E8)의 볼 그림은 **볼 안까지 그려져 있는** 조합별 9장입니다.
+   그래서 CSS 반죽 도형(.bt-batter)을 끕니다 — 켜 두면 그림 위에 겹쳐 그려집니다.
+   ⚠️ 젓기(E9)의 볼은 빈 볼 한 장이라 .state-art 가 붙지 않고, 반죽은 계속 CSS 로 그립니다. */
+.bt-bowl.state-art .bt-batter { display: none; }
+/* 재료가 담기는 순간의 반응. 도형이 아니라 그림 한 장이 통째로 바뀌므로
+   위 batter-receive-* (덩어리가 자라는 연출) 대신 짧게 번쩍이고 자리를 잡습니다. */
+.bt-bowl-wrap.receive-flour .state-art .bt-bowl-asset,
+.bt-bowl-wrap.receive-water .state-art .bt-bowl-asset,
+.bt-bowl-wrap.receive-kimchi .state-art .bt-bowl-asset { animation: batter-art-receive .42s ease; }
+@keyframes batter-art-receive {
+  0%   { transform: scale(.978); filter: brightness(1.32); }
+  55%  { transform: scale(1.014); filter: brightness(1.12); }
+  100% { transform: scale(1); filter: none; }
+}
+/* 세 가지를 다 넣고 젓기로 넘어가기 전, 담긴 볼을 보여 주는 한 박자
+   (engine-e8-order-place.js 의 BATTER_FULL_HOLD_MS). */
+.bt-bowl-wrap.filled .bt-bowl { animation: batter-filled-hold 1.15s ease both; }
+@keyframes batter-filled-hold {
+  0%   { transform: scale(1); }
+  22%  { transform: scale(1.035); filter: brightness(1.14); }
+  55%  { transform: scale(1.012); filter: brightness(1.04); }
+  100% { transform: scale(1); filter: none; }
+}
+
+/* 볼에 담긴 것. 재료 넣기 단계(step-N)는 양이 늘고, 젓기 단계(stage-N)는 색이 섞입니다 */
+.bt-batter { position: absolute; inset: 8.5%; border-radius: 50%; transform: scale(var(--fill,1)); transition: transform .3s ease, background .25s ease; }
+.bt-bowl.step-0 .bt-batter { --fill: 0; }
+.bt-bowl.step-1 .bt-batter { --fill: .6; background: radial-gradient(circle at 42% 36%,#fdf9ee,#e4dac2); }
+.bt-bowl.step-2 .bt-batter { --fill: .82; background: radial-gradient(circle at 42% 36%,#f2e7c8,#d6c599); }
+.bt-bowl.step-3 .bt-batter { --fill: .95; background: repeating-linear-gradient(112deg,#e5d0a1 0 calc(26 * var(--upx)),#c15c3c calc(27 * var(--upx)) calc(34 * var(--upx))); }
+/* 젓기 0 → 4 : 재료 덩어리(0)가 줄무늬(1~2)를 거쳐 고르게 섞인 반죽(4)이 됩니다.
+   김치 조각은 작은 원 여러 개로 흩뿌립니다. 저을 때 반죽 전체가 --spin 만큼
+   돌기 때문에, 이 조각들이 있어야 돌아가는 것이 눈에 보입니다. */
+.bt-bowl.stage-0 .bt-batter {
+  background:
+    radial-gradient(circle at 31% 33%,#c1502f 0 21%,transparent 22%),
+    radial-gradient(circle at 69% 61%,#b94b2e 0 19%,transparent 20%),
+    radial-gradient(circle at 64% 27%,#fbf6e6 0 18%,transparent 19%),
+    radial-gradient(circle at 34% 69%,#f4ecd6 0 17%,transparent 18%),
+    #e6d8b4;
+}
+.bt-bowl.stage-1 .bt-batter { background: repeating-linear-gradient(112deg,#eadfba 0 calc(26 * var(--upx)),#c25b3b calc(27 * var(--upx)) calc(40 * var(--upx))); }
+.bt-bowl.stage-2 .bt-batter { background: repeating-linear-gradient(126deg,#e4d0a2 0 calc(16 * var(--upx)),#c4663f calc(17 * var(--upx)) calc(24 * var(--upx))); }
+.bt-bowl.stage-3 .bt-batter {
+  background:
+    radial-gradient(circle at 33% 38%,#bb4e2f 0 4%,transparent 5%),
+    radial-gradient(circle at 62% 30%,#c25a38 0 3%,transparent 4%),
+    radial-gradient(circle at 55% 67%,#b94b2e 0 3.5%,transparent 4.5%),
+    radial-gradient(circle at 28% 63%,#c15c3c 0 3%,transparent 4%),
+    radial-gradient(circle at 72% 52%,#bd5133 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 46% 22%,#c1512f 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 44% 52%,#b94b2e 0 2%,transparent 3%),
+    radial-gradient(circle at 66% 74%,#c25a38 0 2.5%,transparent 3.5%),
+    repeating-linear-gradient(126deg,#e0c193 0 calc(9 * var(--upx)),#d3ac7a calc(10 * var(--upx)) calc(15 * var(--upx)));
+}
+.bt-bowl.stage-4 .bt-batter {
+  background:
+    radial-gradient(circle at 31% 37%,#b7472c 0 3.5%,transparent 4.5%),
+    radial-gradient(circle at 63% 29%,#c05334 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 54% 68%,#b94b2e 0 3%,transparent 4%),
+    radial-gradient(circle at 29% 65%,#c25a38 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 71% 55%,#bd5133 0 3%,transparent 4%),
+    radial-gradient(circle at 45% 50%,#b8492c 0 2%,transparent 3%),
+    radial-gradient(circle at 40% 76%,#c1512f 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 74% 40%,#b94b2e 0 2%,transparent 3%),
+    radial-gradient(circle at 22% 48%,#c25a38 0 2.5%,transparent 3.5%),
+    radial-gradient(circle at 40% 31%,rgba(255,246,222,.45) 0 14%,transparent 42%),
+    radial-gradient(circle at 50% 52%,#dcac72,#c98d54);
+  box-shadow: inset 0 calc(6 * var(--upx)) calc(14 * var(--upx)) rgba(255,226,169,.22);
+}
+@keyframes batter-receive-flour { 0% { opacity:.35; transform:scale(.25); } 65% { opacity:1; transform:scale(.68); } }
+@keyframes batter-receive-water { 35% { filter:brightness(1.35); transform:scale(.74); } }
+@keyframes batter-receive-kimchi { 35% { filter:saturate(1.8) brightness(1.12); transform:scale(1.02); } }
+/* 젓는 동안에는 반죽이 마우스 따라 출렁이고 저은 만큼 같이 돕니다 */
+.bt-bowl.whisk-bowl .bt-batter {
+  transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
+  transition: background .25s ease, opacity .2s ease;
+}
+
+/* E9 반죽 그림 10장 (batterMix0~9). 저을수록 이어지는 한 벌이라 전부 같은
+   자리에 겹쳐 두고, engine-e9-whisk.js 가 지금 장에만 .show 를 붙입니다.
+   opacity 전환이 짧게 겹치면서 장 넘김이 뚝뚝 끊기지 않고 이어집니다.
+
+   ⚠️ 이 그림들은 **볼까지 통째로** 그려져 있습니다. 그래서
+      · 자리가 볼 안쪽(8.5%)이 아니라 볼 전체(inset 0)입니다
+      · 저을 때 출렁·회전(--batter-x/--spin)을 걸지 않습니다.
+        걸면 반죽이 아니라 **볼째로** 돌아갑니다. */
+.bt-batter-stage-assets {
+  position: absolute;
+  inset: 8.5%;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(var(--batter-x,0px),var(--batter-y,0px)) rotate(var(--spin,0deg));
+}
+.bt-bowl.has-mix-art .bt-batter-stage-assets { inset: 0; overflow: visible; transform: none; }
+.bt-batter-stage-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .18s linear; }
+.bt-batter-stage-asset.show { opacity: 1; }
+/* 그림이 볼까지 그려 주므로 CSS 임시 볼(바탕·안쪽 바닥·반죽 도형)은 전부 끕니다. */
+.bt-bowl.has-mix-art { background: none; box-shadow: none; }
+.bt-bowl.has-mix-art::before { display: none; }
+.bt-bowl.has-mix-art .bt-batter { display: none; }
+
+/* 원을 그리라는 안내 고리. 젓기 시작하면 사라집니다.
+   방향은 시계·반시계 아무 쪽이나 되므로 화살표는 "여기를 따라 돌려라" 정도의
+   표시입니다. z-index 2 는 반죽 그림(.bt-batter-stage-assets 가 1)보다 위에
+   오게 하려는 것입니다 — 없으면 그림에 가려 안 보입니다. */
+.bt-stir-guide { position: absolute; z-index: 2; inset: 15%; border-radius: 50%; border: calc(5 * var(--upx)) dashed rgba(255,248,230,.5); opacity: 1; transition: opacity .25s ease; animation: bt-stir-hint 6s linear infinite; pointer-events: none; }
+.bt-stir-guide::after {
+  content: "";
+  position: absolute;
+  right: calc(-12 * var(--upx));
+  top: 50%;
+  border-top: calc(11 * var(--upx)) solid transparent;
+  border-bottom: calc(11 * var(--upx)) solid transparent;
+  border-left: calc(18 * var(--upx)) solid rgba(255,248,230,.75);
+  transform: translateY(-50%);
+}
+.whisk-work-area.stirring .bt-stir-guide { opacity: 0; }
+
+/* 진행도 고리 : 다 채우면 반죽 완성입니다 (--stir 은 engine-e9 가 채웁니다) */
+.bt-stir-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ring);
+  height: var(--ring);
+  border-radius: 50%;
+  background: conic-gradient(from -90deg,#e7c166 calc(var(--stir,0) * 1%),rgba(255,244,214,.12) calc(var(--stir,0) * 1%));
+  -webkit-mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
+  mask: radial-gradient(circle closest-side,transparent 91%,#000 91.5%);
+  transform: translate(-50%,-50%);
+  transition: filter .15s ease, opacity .15s ease;
+  pointer-events: none;
+}
+.whisk-work-area.off-course .bt-stir-ring { filter: hue-rotate(-38deg) saturate(1.7) brightness(1.15); opacity: .72; }
+.whisk-work-area.finishing .bt-stir-ring { filter: brightness(1.35); animation: whisk-ring-finish .72s ease both; }
+
+/* 거품기 : 에셋이 없을 때 손잡이와 철사 세 겹을 CSS로 그립니다. */
+.whisk-tool { position: absolute; z-index: 3; left: 50%; top: 50%; width: calc(70 * var(--upx)); height: calc(220 * var(--upx)); transform: translate(-50%,-50%) rotate(var(--tool-rot,20deg)); transform-origin: 50% 50%; pointer-events: none; filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.45)); }
+/* 납품 거품기는 손잡이가 오른쪽 위로 뻗은 대각선 한 장이라 자리가 거의 정사각입니다.
+   ⚠️ 예전처럼 진행 방향으로 돌리지 않습니다(--tool-rot 을 안 씁니다). 손에 쥔 각도는
+      그대로 두고 자리만 따라가는 것이 자연스럽습니다.
+   ⚠️ left/top 은 **포인터 자리**이고, 그림에서 철사 머리는 한가운데가 아니라
+      왼쪽 아래(26%,73%)에 있습니다. 그래서 그만큼 당겨 머리가 포인터에 오게 합니다.
+      (세 장 다 같은 자리라 실측값 26/73 하나로 씁니다) */
+.whisk-tool.has-asset {
+  --whisk-head-x: 26%;
+  --whisk-head-y: 73%;
+  width: calc(240 * var(--upx));
+  height: calc(243 * var(--upx));
+  transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y)));
+}
+.whisk-tool::before { content: ""; position: absolute; z-index: 2; left: 50%; top: 0; width: calc(20 * var(--upx)); height: calc(137 * var(--upx)); border-radius: calc(10 * var(--upx)); background: linear-gradient(90deg,#6f431e,#d49a55 42%,#865224 75%,#4e2d15); box-shadow: inset 0 0 0 calc(2 * var(--upx)) rgba(255,225,172,.24); transform: translateX(-50%); }
+.whisk-tool::after { content: ""; position: absolute; z-index: 3; left: 50%; top: calc(126 * var(--upx)); width: calc(30 * var(--upx)); height: calc(18 * var(--upx)); border-radius: calc(7 * var(--upx)); background: linear-gradient(90deg,#7d7770,#f1eadf 48%,#847d75); transform: translateX(-50%); }
+.whisk-wire { position: absolute; z-index: 1; left: 50%; bottom: 0; width: calc(62 * var(--upx)); height: calc(94 * var(--upx)); border: calc(3 * var(--upx)) solid #d8d3ca; border-top: 0; border-radius: 12% 12% 50% 50%; transform: translateX(-50%); }
+.whisk-wire::before,.whisk-wire::after { content:""; position:absolute; left:50%; bottom:calc(-3 * var(--upx)); height:calc(92 * var(--upx)); border:calc(3 * var(--upx)) solid #bdb8b0; border-top:0; border-radius:10% 10% 50% 50%; transform:translateX(-50%); }
+.whisk-wire::before { width:calc(38 * var(--upx)); }
+.whisk-wire::after { width:calc(15 * var(--upx)); border-color:#eee9df; }
+.whisk-tool.has-asset::before,.whisk-tool.has-asset::after,.whisk-tool.has-asset .whisk-wire { display:none; }
+/* 거품기 3종을 겹쳐 두고 지금 상태(.show)만 보입니다 — engine-e9-whisk.js 의 renderWhiskTool.
+     state-clean  섞기 전 · state-mix 젓는 중 · state-rest 젓다 멈춤 */
+.whisk-tool-asset { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .14s linear; }
+.whisk-tool-asset.show { opacity:1; }
+.whisk-work-area.finishing .whisk-tool { animation: whisk-tool-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+/* 마무리 연출도 그림용은 따로입니다. 위 keyframes 는 --tool-rot 과
+   translate(-50%,-50%) 로 되돌려 버려서, 그대로 두면 거품기가 마지막에 튑니다. */
+.whisk-work-area.finishing .whisk-tool.has-asset { animation: whisk-tool-asset-finish .72s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes whisk-tool-asset-finish {
+  45%  { transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y))) scale(1.06); }
+  100% { transform: translate(calc(-1 * var(--whisk-head-x)),calc(-1 * var(--whisk-head-y))) scale(.96); }
+}
+.whisk-result { z-index: 8; }
+
+/* 오른쪽 : 완성 개수 · 참고 모양 */
+.bt-count { text-align: center; }
+.bt-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.bt-guide { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
+.bt-guide-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
+.bt-guide-figure .bt-bowl { width: calc(172 * var(--upx)); height: calc(172 * var(--upx)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.3), 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45); }
+/* 그림 볼은 테두리가 동그랗지 않아 위 그림자가 네모로 드러납니다.
+   (.bt-bowl.has-asset 이 위쪽에 있어서 여기서 다시 지워야 합니다) */
+.bt-guide-figure .bt-bowl.has-asset { box-shadow: none; }
+.bt-guide-asset { max-width: 100%; max-height: calc(170 * var(--upx)); object-fit: contain; }
+/* 참고 모양이 무엇인지 한 줄. E8(재료 3가지)과 E9(고르게 섞인 반죽)를 가릅니다. */
+.bt-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-weight: 700; text-align: center; }
+
+@keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(calc(42 * var(--upx))) rotate(38deg); } 100% { opacity:.25; transform:translateX(calc(58 * var(--upx))) translateY(calc(24 * var(--upx))) rotate(52deg); } }
+
+/* 반죽 : 원을 그리라는 안내 고리가 천천히 한 바퀴 돕니다 */
+@keyframes bt-stir-hint { to { transform:rotate(360deg); } }
+@keyframes whisk-ring-finish { 45% { opacity:1; transform:translate(-50%,-50%) scale(1.035); } 100% { opacity:.25; transform:translate(-50%,-50%) scale(1); } }
+@keyframes whisk-tool-finish { 45% { transform:translate(-50%,-50%) rotate(calc(var(--tool-rot,20deg) + 24deg)) scale(1.04); } 100% { transform:translate(-50%,-50%) rotate(var(--tool-rot,20deg)) scale(.96); } }
+
+@media (max-width:600px) {
+  .batter-prep-scene { --bowl: calc(290 * var(--upx)); --ring: calc(340 * var(--upx)); }
+  .bt-ing-art i { width: calc(52 * var(--upx)); height: calc(52 * var(--upx)); }
+  .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
+  .bt-ing-asset { max-height: calc(84 * var(--upx)); }
+  .bt-count strong { font-size: calc(42 * var(--upx)); }
+  .bt-guide-figure .bt-bowl { width: calc(110 * var(--upx)); height: calc(110 * var(--upx)); }
+  .bt-guide-note { font-size: calc(15 * var(--upx)); }
+  .whisk-tool { width: calc(52 * var(--upx)); height: calc(165 * var(--upx)); }
+  /* 볼이 400 → 290 으로 줄어드는 화면이라 거품기도 같은 비율(0.725)로 줄입니다 */
+  .whisk-tool.has-asset { width: calc(174 * var(--upx)); height: calc(176 * var(--upx)); }
+  .whisk-tool::before { width: calc(15 * var(--upx)); height: calc(103 * var(--upx)); }
+  .whisk-tool::after { top: calc(94 * var(--upx)); width: calc(23 * var(--upx)); height: calc(14 * var(--upx)); }
+  .whisk-wire { width: calc(46 * var(--upx)); height: calc(70 * var(--upx)); }
+  .whisk-wire::before,.whisk-wire::after { height: calc(68 * var(--upx)); }
+  .whisk-wire::before { width: calc(28 * var(--upx)); }
+  .whisk-wire::after { width: calc(11 * var(--upx)); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .bt-bowl-wrap.receive-flour .bt-batter,.bt-bowl-wrap.receive-water .bt-batter,.bt-bowl-wrap.receive-kimchi .bt-batter,
+  .bt-bowl-wrap.receive-flour .state-art .bt-bowl-asset,.bt-bowl-wrap.receive-water .state-art .bt-bowl-asset,
+  .bt-bowl-wrap.receive-kimchi .state-art .bt-bowl-asset,.bt-bowl-wrap.filled .bt-bowl,
+  .whisk-work-area.finishing .bt-stir-ring,.whisk-work-area.finishing .whisk-tool { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
+}
