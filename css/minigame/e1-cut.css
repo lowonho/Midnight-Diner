@@ -479,8 +479,8 @@
 .cut-board .prep-work-object.chicken-shape.has-prep-asset    { --cut-obj-w: 650; }
 .cut-board .prep-work-object.kimchi-shape.has-prep-asset     { --cut-obj-w: 640; }
 .cut-board .prep-work-object.cabbage-shape.has-prep-asset    { --cut-obj-w: 560; }
-.cut-board .prep-work-object.tofu-shape.has-prep-asset       { --cut-obj-w: 600; }
-.cut-board .prep-work-object.fishCake-shape.has-prep-asset   { --cut-obj-w: 470; }
+.cut-board .prep-work-object.tofu-shape.has-prep-asset       { --cut-obj-w: 450; }
+.cut-board .prep-work-object.fishCake-shape.has-prep-asset   { --cut-obj-w: 350; }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
    올라가므로 테두리·바닥만 끄고 안쪽 배치(px)는 그대로 둡니다. */
 .cut-board .rapid-cut-stage { border: 0; background: none; box-shadow: none; overflow: visible; }
@@ -611,7 +611,8 @@
 /* 눕힌 칼도 같은 자 하나로 씁니다 — 세로 칼(564)을 그대로 눕힌 길이입니다.
      width 564  → 날(그림의 왼 60.69%)이 342
      left       → 그 날 한가운데를 재료 한가운데에 맞춥니다 (342/2 = 171)
-   두부(600)·어묵(470)은 날보다 넓어서, 왼→오로 크게 그으며 덮습니다.
+   두부(450)·어묵(350)은 공용 칼날과 비슷하거나 조금 넓으며, 기존 획이
+   왼→오로 재료 전체를 넉넉히 덮습니다.
    ⚠️ 세로 칼과 달리 비율(1366:155)을 그대로 씁니다. 눕힌 그림은 날 두께가
       이미 제대로 그려져 있어서, 세로 칼처럼 1.22배를 더 주면 칼이 재료를
       덮을 만큼 두꺼워집니다. */
@@ -917,7 +918,7 @@
 }
 /* 눕힌 칼 : 아래 끝이 날이라, 칼끝을 왼쪽 아래로 5도 떨군 채 들어와
    왼쪽에서 오른쪽으로 크게 그으며 눕습니다.
-   두부(600)가 날(342)보다 좌우로 129 씩 넓어서 획도 그만큼 큽니다. */
+   가장 넓은 두부(450)가 날(342)보다 좌우로 54 씩 넓어 기존 획이면 충분합니다. */
 @keyframes cut-knife-chop-side-asset {
   0%   { transform: translate(calc(-210 * var(--upx)),calc(-100% - 26 * var(--upx))) rotate(-5deg); }
   22%  { transform: translate(calc(-96 * var(--upx)),calc(-100% - 9 * var(--upx))) rotate(-4.6deg); }
