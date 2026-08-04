@@ -142,7 +142,9 @@ function moveIngredientAsset(fromShelf,fromSlot,toShelf){
     scheduleIngredientHint();
     return false;
   }
-  if(result.matchedId){
+  if(result.nextWave){
+    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 다음 재료들이 냉장고에 들어왔어요.`;
+  }else if(result.matchedId){
     dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 장바구니에 담았어요.`;
   }else{
     dom.ingredientSelectFeedback.textContent="좋아요. 같은 재료 3개가 모이도록 계속 정리해보세요.";
@@ -271,7 +273,10 @@ function renderIngredientSelection(){
     return;
   }
   dom.ingredientSelectOverlay.dataset.signature=signature;
-  dom.ingredientDishProgress.textContent=`메뉴 ${dishes.length}개`;
+  const totalWaves=Math.max(1,Math.ceil(allRequired.length/E13_FRIDGE_SORT.waveSize));
+  const completedBeforeWave=Math.max(0,allRequired.length-progress.queue.length-progress.waveIds.length);
+  const waveNumber=Math.min(totalWaves,Math.floor(completedBeforeWave/E13_FRIDGE_SORT.waveSize)+1);
+  dom.ingredientDishProgress.textContent=`메뉴 ${dishes.length}개${totalWaves>1?` · 냉장고 ${waveNumber}/${totalWaves}`:""}`;
   dom.ingredientDishName.textContent="오늘 메뉴 한꺼번에 챙기기";
   dom.ingredientDishGallery.innerHTML=dishes.map(dish=>`<span><img src="${foodPropUrl(dish.id)||""}" alt="" /><strong>${dish.name}</strong></span>`).join("");
   dom.ingredientChecklist.innerHTML=allRequired.map(id=>{

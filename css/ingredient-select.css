@@ -77,7 +77,7 @@
   position: relative;
   display: grid;
   grid-template-rows: minmax(0,1fr) auto auto;
-  padding: calc(55 * var(--upx)) calc(34 * var(--upx)) calc(23 * var(--upx));
+  padding: calc(44 * var(--upx)) calc(22 * var(--upx)) calc(18 * var(--upx));
   border: calc(10 * var(--upx)) solid #817768;
   border-radius: calc(18 * var(--upx));
   background: linear-gradient(rgba(31,27,23,.32),rgba(16,13,11,.38)),url("../assets/utensils/counter/fix_fridge_open.webp") center/cover no-repeat,#332e27;
@@ -88,12 +88,14 @@
 .ingredient-fridge::before { top:36%; }
 .ingredient-fridge::after { top:67%; }
 .ingredient-fridge-light { position:absolute; top:calc(16 * var(--upx)); left:38%; right:38%; height:calc(12 * var(--upx)); border-radius:50%; background:#ffe3a1; box-shadow:0 0 calc(35 * var(--upx)) calc(12 * var(--upx)) rgba(255,223,151,.27); }
-.ingredient-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:calc(10 * var(--upx)); align-content:center; overflow:auto; }
+.ingredient-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:calc(11 * var(--upx)); min-height:0; overflow:visible; }
 .ingredient-shelf {
   position:relative;
+  display:flex;
+  flex-direction:column;
   min-width:0;
-  min-height:calc(88 * var(--upx));
-  padding:calc(15 * var(--upx)) calc(7 * var(--upx)) calc(8 * var(--upx));
+  min-height:0;
+  padding:calc(16 * var(--upx)) calc(8 * var(--upx)) calc(9 * var(--upx));
   border:2px solid #716657;
   border-radius:calc(9 * var(--upx));
   background:linear-gradient(160deg,rgba(202,197,179,.9),rgba(91,85,75,.92));
@@ -105,8 +107,8 @@
 .ingredient-shelf:hover { border-color:#918574; }
 .ingredient-shelf.drag-over { transform:translateY(calc(-2 * var(--upx))); border-color:#8ed6a0; box-shadow:0 0 calc(20 * var(--upx)) rgba(117,197,139,.72); }
 .ingredient-shelf > b { position:absolute; top:calc(3 * var(--upx)); left:calc(6 * var(--upx)); color:#51483c; font-size:calc(9 * var(--upx)); }
-.ingredient-shelf-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:calc(4 * var(--upx)); }
-.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:calc(57 * var(--upx)); padding:0; border:1px solid rgba(68,58,47,.55); border-radius:calc(5 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; cursor:grab; appearance:none; transition:transform .15s,filter .15s,border-color .15s,box-shadow .15s; }
+.ingredient-shelf-slots { display:grid; flex:1; grid-template-columns:repeat(3,minmax(0,1fr)); gap:calc(6 * var(--upx)); min-height:0; }
+.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:auto; min-height:0; padding:0; border:1px solid rgba(68,58,47,.55); border-radius:calc(6 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; cursor:grab; appearance:none; transition:transform .15s,filter .15s,border-color .15s,box-shadow .15s; }
 .ingredient-shelf-slot.empty { background:rgba(42,38,33,.23); box-shadow:inset 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.3); cursor:default; pointer-events:none; }
 .ingredient-shelf-slot i { position:absolute; inset:calc(3 * var(--upx)); display:grid; place-items:center; overflow:hidden; font-style:normal; }
 .ingredient-shelf-slot img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.32)); }
@@ -152,9 +154,9 @@
   .ingredient-dish-gallery { display:none; }
   .ingredient-checklist { grid-template-columns:repeat(2,1fr); }
   .ingredient-fridge { min-height:420px; padding:40px 15px 14px; }
-  .ingredient-grid { grid-template-columns:repeat(3,1fr); gap:7px; }
+  .ingredient-grid { grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,minmax(72px,1fr)); gap:7px; }
   .ingredient-shelf { min-height:72px; padding:12px 4px 5px; }
-  .ingredient-shelf-slot { height:43px; }
+  .ingredient-shelf-slot { height:auto; }
   .ingredient-puzzle-controls { flex-wrap:wrap; }
   .ingredient-basket-card { display:flex; margin-top:10px; }
   .ingredient-basket-card > span { display:block; }

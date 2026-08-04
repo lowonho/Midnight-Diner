@@ -14,8 +14,8 @@ try{
   const assert=(condition,message)=>{if(!condition)throw new Error(message)};
   const ids=["fishCake","radish","greenOnion"];
   const built=e13BuildShelves(ids);
-  assert(built.length===ids.length+2,"two empty shelves");
-  assert(built.filter(shelf=>!shelf.length).length===2,"empty shelf count");
+  assert(built.length===9,"fixed 3x3 shelves");
+  assert(built.filter(shelf=>!shelf.length).length>=2,"empty shelf count");
   assert(ids.every(id=>built.flat().filter(item=>item===id).length===3),"three copies per ingredient");
   assert(built.filter(shelf=>shelf.length).every(shelf=>!shelf.every(id=>id===shelf[0])),"no free starting matches");
 
@@ -36,8 +36,17 @@ try{
   assert(direct.shelves[0].join(",")===`${ids[0]},${ids[2]}`&&direct.shelves[1][0]===ids[1],"selected asset, not shelf top, moved");
 
   const oneLeft=e13CreateProgress(ids.slice(0,2),[ids[0]]);
-  assert(oneLeft.shelves.length===3&&oneLeft.shelves[0].length===2&&oneLeft.shelves[1].length===1,"single remaining ingredient stays solvable");
+  assert(oneLeft.shelves.length===9&&oneLeft.shelves[0].length===2&&oneLeft.shelves[1].length===1,"single remaining ingredient stays solvable");
   assert(e13Move(oneLeft,1,0,0).matchedId===ids[1],"single remaining ingredient matches");
+
+  const many=Array.from({length:9},(_,index)=>`ingredient${index}`),waves=e13CreateProgress(many);
+  assert(waves.shelves.length===9&&waves.waveIds.length===7&&waves.queue.length===2,"overflow ingredients wait for next 3x3 wave");
+  waves.picked=waves.waveIds.slice(0,-1);
+  const lastWaveId=waves.waveIds[waves.waveIds.length-1];
+  waves.shelves=e13PadShelves([[lastWaveId,lastWaveId],[lastWaveId]]);
+  const waveResult=e13Move(waves,1,0,0);
+  assert(waveResult.nextWave&&waves.waveIds.length===2&&waves.queue.length===0,"next ingredient wave enters after clear");
+  assert(e13Undo(waves)&&waves.waveIds.length===7&&waves.queue.length===2,"undo restores previous wave");
 
   const legacy=e13NormalizeProgress({picked:[ids[0]],board:ids},ids.slice(0,2));
   assert(legacy.engine==="E13"&&legacy.picked.length===1,"legacy fridge save migrates to E13");
