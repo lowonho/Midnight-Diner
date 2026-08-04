@@ -214,9 +214,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   fryingPan:"assets/minigame/E3/fix_frying_pan_wide_inner_4x.webp",
   fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
   fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
-  // 왼쪽 재료 카드 2장 — assets/minigame/E3/ 의 납품 에셋입니다.
+  // 왼쪽 재료 카드 2장 — assets/minigame/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
-  fryIngKimchi:"assets/minigame/E3/food_kimchi_sliced.webp",
+  // ⚠️ 썬 김치 그림만 E5 폴더에 있습니다 (E5 김치전과 같은 재료라 그쪽으로 옮겼습니다).
+  fryIngKimchi:"assets/minigame/E5/food_kimchi_sliced.webp",
   fryIngSugar:"assets/minigame/E3/food_sugar.webp",
   // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 볶이는 면은 아직 CSS 임시 도형입니다.
   // ⚠️ stirGriddle 은 이제 **불이 빠진 철판 한 장**입니다. 불은 따로 깔리는

@@ -189,7 +189,7 @@ const FILES = [
      ⚠️ 볶음우동은 원래 max-height 94 였는데 그림칸이 86 뿐이라 카드가 139.1 → 147 로
         부풀어 아래 화살표 칩 줄과 겹쳤습니다. css/minigames.css 의 .yk-ing-asset 주석 참고.
         아래 크기는 그 수정 뒤 실측한 표시 크기의 2배입니다. */
-  { file:"E3/food_kimchi_sliced.png",      size:[259,208], css:".kf-ing-asset 129.5x104" },
+  { file:"E5/food_kimchi_sliced.png",      size:[259,208], css:".kf-ing-asset 129.5x104 (E5 폴더에 있지만 쓰는 곳은 E3 김치 볶기)" },
   { file:"E3/food_sugar.png",              size:[257,208], css:".kf-ing-asset 128.5x104" },
   { file:"E3/food_udon_noodles.png",       size:[216,172], css:".yk-ing-asset 108x86" },
   { file:"E3/food_udon_sauce.png",         size:[ 81,172], css:".yk-ing-asset 40.7x86 (세로로 긴 병)" },
