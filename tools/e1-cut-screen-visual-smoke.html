@@ -299,6 +299,8 @@
         }),
         lines:[...work.querySelectorAll(".cut-line")].length
       });
+      document.getElementById("miniOverlay")?.classList.add("open");
+      document.body.dataset.cursor=getComputedStyle(document.querySelector(".cut-screen")).cursor;
       document.body.dataset.ready = "true";
     }
   </script>
