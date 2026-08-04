@@ -54,6 +54,9 @@ const FRY_ASSET_PATHS = Object.freeze({
   // 조리대 : 위에서 본 가스 버너 상판 · 기름 냄비 · 기름빼기 트레이
   burner:       "assets/minigame/E6/fix_gas_burner_top_3297x2453.webp",
   pot:          "assets/minigame/E6/fix_fry_pot_oil_smooth.webp",
+  /* 냄비 안 기름만 따로 뽑은 장. 냄비와 캔버스가 같아서 같은 자리에 겹칩니다.
+     **튀김 위에 반투명으로 한 번 더 덮는 용도**입니다 — 이래야 기름에 잠겨 보입니다. */
+  oilSurface:   "assets/minigame/E6/fix_fry_oil_smooth_01.webp",
   rack:         "assets/minigame/E6/prop_fry_drain_tray_empty.webp",
   /* 집게 커서. 닫힌 집게는 아래팔·윗팔 두 장으로 나뉘어 있고, 그 사이에 집은
      튀김이 들어갑니다. 겹쳐 놓으면 닫힌 집게 한 장과 픽셀까지 같습니다. */
@@ -101,18 +104,21 @@ const FRY_COOK = Object.freeze({
 const FRY_STAGE_SCORE = Object.freeze({ under: 62, cooked: 100, burnt: 40 });
 const FRY_STAGE_LABEL = Object.freeze({ under: "설익은", cooked: "잘 익은", burnt: "탄" });
 
-/* potWidth · rackWidth 는 각각 냄비 칸(.fry-pot 418) · 망 칸(.fry-rack 225.6) 가로
-   대비 %입니다. artRatio 는 납품 그림의 가로/세로 — 3단계 그림이 한 자리에 겹쳐
-   있어서 상자 높이를 그림에서 못 받고(전부 absolute) 여기서 줍니다. */
+/* potWidth 는 냄비 칸(.fry-pot 461), rackWidth 는 트레이 안쪽 상자
+   (.fry-rack-food 197.6) 가로 대비 %입니다. artRatio 는 납품 그림의 가로/세로 —
+   3단계 그림이 한 자리에 겹쳐 있어서 상자 높이를 그림에서 못 받고(전부 absolute)
+   여기서 줍니다.
+   ⚠️ rackWidth 를 키우면 다섯 자리(FRY_RACK_SEATS)가 철망 밖으로 밀려납니다.
+      조각이 커진 만큼 위아래 여유가 줄어들기 때문입니다 — 둘은 한 짝입니다. */
 const FRY_DISHES = Object.freeze({
   shrimp: Object.freeze({
     key: "shrimp", label: "새우튀김", pieceLabel: "새우튀김", count: 5,
-    potWidth: 34, rackWidth: 46, artRatio: 1200 / 1127,
+    potWidth: 31, rackWidth: 56, artRatio: 1200 / 1127, heldRot: 32,
     stateAssets: Object.freeze({ under: "shrimpUnder", cooked: "shrimpCooked", burnt: "shrimpBurnt" })
   }),
   fries: Object.freeze({
     key: "fries", label: "감자튀김", pieceLabel: "감자채 뭉치", count: 5,
-    potWidth: 30, rackWidth: 42, artRatio: 733 / 658,
+    potWidth: 27, rackWidth: 52, artRatio: 733 / 658, heldRot: -6,
     stateAssets: Object.freeze({ under: "friesUnder", cooked: "friesCooked", burnt: "friesBurnt" })
   })
 });
@@ -120,10 +126,14 @@ const FRY_DISHES = Object.freeze({
 /* 냄비 안에서 조각 한가운데가 갈 수 있는 가장 바깥(냄비 칸 한가운데 기준 %).
    ⚠️ **.fry-pot 칸은 냄비 전체가 아니라 기름 타원입니다** (css 의 .fry-pot-asset
       참고). 그래서 기름 가장자리가 곧 반지름 50 이고, 조각이 쇠테에 걸치지 않게
-      25 로 묶습니다. (E11 의 FREE_PLATE_RADIUS 와 같은 방식)
-        25 + 조각 반지름(34% 짜리 그림의 대각선 절반 ≒ 23.3) = 48.3  <  50
-   tools/e6-deep-fry-visual-smoke.html 의 reach 값으로 잽니다 — 1.0 이 기름 가장자리입니다. */
-const FRY_POT_RADIUS = 25;
+      26 으로 묶습니다. (E11 의 FREE_PLATE_RADIUS 와 같은 방식)
+        26 + 조각 반지름(31% 짜리 그림의 대각선 절반 ≒ 21.2) = 47.2  <  50
+   ⚠️ 다 익은 조각은 떠오르면서 1.08배까지 커집니다(css 의 fry-float). 그 몫까지
+      들어간 값이라 더 키우지 마세요 — 대각선으로 가장 멀리 놓았을 때
+      떠오르는 순간 조각 귀퉁이가 쇠테를 넘습니다.
+   tools/e6-deep-fry-visual-smoke.html 의 reach 값으로 잽니다 — 1.0 이 기름 가장자리입니다.
+      (reach 는 커지기 전 크기로 재므로, 여기 값을 만질 때는 1.08 을 곱해 보세요) */
+const FRY_POT_RADIUS = 26;
 
 // 좌표 없이(스페이스·클릭) 넣을 때 쓰는 냄비 안 기본 자리. 컨셉 이미지의 배치입니다.
 const FRY_POT_SEATS = Object.freeze([
@@ -132,12 +142,23 @@ const FRY_POT_SEATS = Object.freeze([
 // 조각이 눕는 각도. 난수를 쓰지 않아 다시 그려도 각도가 그대로입니다.
 const FRY_TILTS = Object.freeze([-14, 8, -5, 16, -9, 4, 12, -17]);
 
-/* 오른쪽 망 위 다섯 자리. 위에서부터 차례로 채웁니다.
-   좌우로 엇갈리게 놓습니다 — 한 줄로 세우면 조각이 망 폭(226)에 맞춰
-   작아져서 왼쪽 재료보다 초라해 보입니다. */
+/* 오른쪽 트레이 위 다섯 자리. 위에서부터 차례로 채웁니다.
+   조각을 크게 담고 좌우로 조금씩만 엇갈리게 놓습니다 — **서로 겹치는 것은
+   괜찮습니다.** 튀김을 트레이에 수북이 담아 둔 모습이 목적이라, 띄엄띄엄
+   놓으면 다섯 개를 다 튀겨 놓고도 트레이가 허전해 보입니다.
+
+   ⚠️ **다섯 자리가 전부 철망 안에 들어와야 합니다.** 자리는 .fry-rack-food
+      (트레이에서 상하 10 · 좌우 14 를 들인 상자) 기준 0~100 인데, 트레이 그림에서
+      철망은 위 7% ~ 아래 90% · 좌우 10% ~ 90% 뿐이고 나머지는 테두리입니다(실측).
+      그 상자 좌표로 옮기면 가로 4.4% ~ 95.6% · 세로 4.5% ~ 92.4% 가 쓸 수 있는
+      자리입니다. 거기서 조각을 눕힌 바깥 상자의 절반(새우 56% 기준 가로 31.0% ·
+      세로 17.3%)을 사방에서 빼면 **가로 35.4~64.6 · 세로 21.8~75.1** 이 남고,
+      아래 값이 그 안입니다. 조각을 키우면 이 여유가 그만큼 줄어드니
+      rackWidth 와 이 표는 늘 같이 고쳐야 합니다.
+      (예전 값 14~86 은 이 범위를 넘어서 다섯 번째가 트레이 밖으로 나갔습니다) */
 const FRY_RACK_SEATS = Object.freeze([
-  { x: 34, y: 14, rot: -6 }, { x: 66, y: 32, rot: 5 }, { x: 33, y: 50, rot: -3 },
-  { x: 67, y: 68, rot: 7 }, { x: 36, y: 86, rot: -5 }
+  { x: 39, y: 22,   rot: -6 }, { x: 61, y: 35.3, rot: 5 }, { x: 38, y: 48.5, rot: -3 },
+  { x: 62, y: 61.8, rot: 7 },  { x: 40, y: 75,   rot: -5 }
 ]);
 
 /* ---- 판정 --------------------------------------------------- */
@@ -199,7 +220,11 @@ registerMiniEngine("fry", {
   update(m, dt) {
     const data = fryData(m);
     if (!data || data.finishing) return;
+    /* 집게로 들어 올려 둔 조각은 **안 익습니다.** 기름 밖으로 나와 있는데 시간이
+       계속 가면, 어디에 놓을지 고르는 동안 손에서 타 버립니다. */
+    const lifted = fryPointer?.dragging && fryPointer.source === "piece" ? fryPointer.id : null;
     data.pot.forEach(piece => {
+      if (piece.id === lifted) return;
       piece.t += dt;
       const stage = fryStageAt(piece.t);
       const changed = stage !== piece.stage;
@@ -300,7 +325,7 @@ function fryPotMarkup(data, dish) {
       <span class="fry-pot-food">${data.pot.map((piece, index) => fryPieceMarkup(dish, piece, {
         width: dish.potWidth, z: index + 2, source: "piece", dive: piece.id === data.diveId
       })).join("")}</span>
-      <span class="fry-oil-veil" aria-hidden="true"></span>
+      ${fryAssetMarkup("oilSurface", "fry-oil-veil-asset", "") || `<span class="fry-oil-veil" aria-hidden="true"></span>`}
       <span class="fry-oil-bubbles" aria-hidden="true">${"<i></i>".repeat(10)}</span>
       <span class="fry-fizz-layer" aria-hidden="true">${data.pot.map(piece =>
         fryFizzMarkup(dish, piece, piece.id === data.diveId)).join("")}</span>
@@ -315,13 +340,22 @@ const FRY_FIZZ_DOTS = Object.freeze([
   { x: 22, y: 74, s: .9,  d: -.2 },  { x: 46, y: 88, s: 1.25, d: -1.5 },
   { x: 70, y: 70, s: .8,  d: -.9 },  { x: 88, y: 46, s: 1.05, d: -2.1 },
   { x: 12, y: 44, s: 1.1, d: -1.2 }, { x: 34, y: 22, s: .75,  d: -.55 },
-  { x: 62, y: 14, s: .95, d: -1.8 }, { x: 84, y: 92, s: .7,   d: -2.5 }
+  { x: 62, y: 14, s: .95, d: -1.8 }, { x: 84, y: 92, s: .7,   d: -2.5 },
+  { x: 6,  y: 66, s: .65, d: -.75 }, { x: 30, y: 52, s: 1.15, d: -1.95 },
+  { x: 54, y: 38, s: .6,  d: -.35 }, { x: 76, y: 26, s: 1.0,  d: -2.3 },
+  { x: 96, y: 68, s: .85, d: -1.05 },{ x: 18, y: 12, s: .6,   d: -1.65 },
+  { x: 48, y: 62, s: .7,  d: -2.75 },{ x: 66, y: 96, s: 1.05, d: -.95 }
 ]);
 function fryFizzMarkup(dish, piece, dive = false) {
   const dots = FRY_FIZZ_DOTS.map(dot =>
     `<i style="--fx:${dot.x}%;--fy:${dot.y}%;--fs:${dot.s};animation-delay:${dot.d}s"></i>`).join("");
-  return `<span class="fry-fizz ${dive ? "splash" : ""}"
+  return `<span class="fry-fizz ${dive ? "splash" : ""}" data-fry-fizz="${piece.id}"
       style="--x:${piece.x}%;--y:${piece.y}%;--w:${dish.potWidth}%;--ar:${dish.artRatio.toFixed(4)}">${dots}</span>`;
+}
+
+// 집게로 들어 올린 자리는 끓는 것을 멈춥니다 — 없는 재료 둘레에서 기포가 나면 안 됩니다.
+function setFryFizzLifted(id, lifted) {
+  dom.miniContent.querySelector(`[data-fry-fizz="${id}"]`)?.classList.toggle("lifted", lifted);
 }
 
 /* 오른쪽 완성 망. 위에서부터 다섯 자리를 차례로 채웁니다. */
@@ -352,7 +386,7 @@ function fryPieceMarkup(dish, piece, { width, z = 2, source = null, done = false
   return `<span class="fry-piece ${fryHasArt(dish) ? "" : "shape-tinted"} ${done ? "on-rack" : "in-oil"}
       ${last ? "just-added" : ""} ${dive ? "diving" : ""}"
       ${drag} data-stage="${stage}"
-      style="--x:${piece.x}%;--y:${piece.y}%;--w:${width}%;--ar:${dish.artRatio.toFixed(4)};--rot:${piece.rot || 0}deg;--cook:${fryCookRatio(piece.t || 0).toFixed(3)};z-index:${z}">
+      style="--x:${piece.x}%;--y:${piece.y}%;--w:${width}%;--ar:${dish.artRatio.toFixed(4)};--rot:${piece.rot || 0}deg;--cook:${fryCookRatio(piece.t || 0).toFixed(3)};--z:${z}">
       ${fryArtMarkup(dish, done ? stage : null)}
     </span>`;
 }
@@ -469,7 +503,7 @@ function holdFryPiece(drag) {
   if (potWidth) fryCursor.held.style.setProperty("--fry-held-w", `${potWidth * dish.potWidth / 100}px`);
   fryCursor.held.innerHTML = `
     <span class="fry-piece held ${fryHasArt(dish) ? "" : "shape-tinted"}" data-stage="${drag.stage || "under"}"
-          style="--ar:${dish.artRatio.toFixed(4)};--cook:${drag.card.style.getPropertyValue("--cook") || 0}">
+          style="--ar:${dish.artRatio.toFixed(4)};--held-rot:${dish.heldRot}deg;--cook:${drag.card.style.getPropertyValue("--cook") || 0}">
       ${fryArtMarkup(dish, drag.stage || "under")}
     </span>
     ${drag.source === "piece" ? fryOilDripMarkup() : ""}`;
@@ -514,6 +548,7 @@ function moveFryPointer(event) {
   if (!drag.dragging && Math.hypot(dx, dy) >= 5) {
     drag.dragging = true;
     drag.card.classList.add("dragging");
+    if (drag.source === "piece") setFryFizzLifted(drag.id, true);
     holdFryPiece(drag);
   }
   if (!drag.dragging) return;
@@ -550,6 +585,7 @@ function finishFryPointer(event, cancelled = false) {
   if (!drag || drag.pointerId !== event.pointerId) return;
   fryPointer = null;
   drag.card.classList.remove("dragging");
+  if (drag.source === "piece") setFryFizzLifted(drag.id, false);
   document.querySelectorAll("[data-fry-drop].drop-hover").forEach(drop => drop.classList.remove("drop-hover"));
   if (!drag.dragging) return;
   suppressFryClick = true;
@@ -676,7 +712,11 @@ function dropFryPiece(spot = null) {
   return true;
 }
 
-/* ---- 2) 기름 안에서 자리 옮기기 ------------------------------ */
+/* ---- 2) 집게로 들었다가 기름에 도로 넣기 ----------------------
+   집게에 물고 있는 동안은 **기름 밖**입니다 — 안 익고(update), 기포도 안 나고
+   (setFryFizzLifted), 냄비 안 자리는 비어 보입니다(css 의 .in-oil.dragging).
+   그래서 도로 넣는 것은 자리만 옮기는 게 아니라 **다시 넣는 것**이라,
+   처음 넣을 때와 같은 물결·떨어지는 연출을 답니다. */
 function moveFryPieceInPot(id, spot) {
   const data = fryData();
   const piece = data?.pot.find(item => item.id === id);
@@ -685,6 +725,8 @@ function moveFryPieceInPot(id, spot) {
   if (!point) return false;
   piece.x = point.x; piece.y = point.y;
   data.selected = null;
+  data.diveId = piece.id;
+  audio.play?.("fry_basket_shake", { owner: state.mini });
   renderFry();
   return true;
 }

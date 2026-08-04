@@ -264,6 +264,25 @@
   border-color: transparent;
   background: transparent;
 }
+/* ⚠️ 그림을 쓸 때는 box-shadow 로 강조하면 안 됩니다.
+   box-shadow 는 **상자**를 따라 그려지는데 그림 머리는 border-radius:0 인
+   네모 상자라, 손을 올리거나 잡는 동안 멸치 머리 둘레에 옅은 네모가 떴습니다.
+   대신 그림의 실루엣을 따라가는 drop-shadow 로 바꿉니다. 초점 테두리도
+   같은 이유로 네모라서, 그림일 때만 같은 빛번짐으로 대신합니다.
+   (CSS 도형으로 그리던 시절의 동그란 링은 위 규칙에 그대로 남아 있습니다) */
+.anchovy-head.has-prep-asset:hover,
+.anchovy-head.has-prep-asset:focus-visible,
+.anchovy.grabbing .anchovy-head.has-prep-asset {
+  box-shadow: none;
+  outline: none;
+}
+.anchovy-head.has-prep-asset:hover .anchovy-head-asset,
+.anchovy-head.has-prep-asset:focus-visible .anchovy-head-asset {
+  filter: drop-shadow(0 0 calc(3 * var(--upx)) rgba(255,224,141,.85));
+}
+.anchovy.grabbing .anchovy-head.has-prep-asset .anchovy-head-asset {
+  filter: drop-shadow(0 0 calc(2 * var(--upx)) rgba(255,224,141,.95));
+}
 .anchovy-body.has-prep-asset::after,
 .anchovy-body.has-prep-asset::before { display: none; }
 .anchovy-body-asset,

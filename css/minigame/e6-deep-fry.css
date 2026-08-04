@@ -40,8 +40,18 @@
 .fry-screen [data-fry-source] { cursor: pointer; }
 .fry-screen [data-fry-source]:active { cursor: grabbing; }
 /* 집게 커서를 띄운 뒤에만 진짜 포인터를 감춥니다 — 그림이 없어 집게를 못 띄웠을 때
-   (engine-e6 의 mountFryCursor) 커서가 통째로 사라지면 안 됩니다. */
-.fry-screen.has-tongs, .fry-screen.has-tongs * { cursor: none; }
+   (engine-e6 의 mountFryCursor) 커서가 통째로 사라지면 안 됩니다.
+
+   ⚠️ **!important 와 이 긴 선택자가 필요합니다.** css/minigame-frame.css 가 미니게임
+      패널 안쪽 전체에 손 그림 커서를 `!important` 로 박아 둡니다(11종 공용).
+      그냥 `.fry-screen.has-tongs *` 로 쓰면 그 규칙이 이겨서 집게 옆에 손가락이
+      같이 따라다닙니다. 저쪽 :active 규칙이 (0,4,0) 이라 여기는 그보다 높아야 합니다.
+   ⚠️ 이 화면 밖(제목 줄 · TIP · 일시정지 버튼)은 손 그림 그대로 둡니다. 거기까지
+      감추면 눌러야 할 버튼 위에서 커서가 통째로 사라집니다. */
+.mini-overlay.open .fry-screen.has-tongs,
+.mini-overlay.open .fry-screen.has-tongs *,
+.mini-overlay.open:active .fry-screen.has-tongs,
+.mini-overlay.open:active .fry-screen.has-tongs * { cursor: none !important; }
 
 /* ── 왼쪽 : 아직 안 튀긴 재료 5개 ─────────────────────────────
    자리는 늘 5칸입니다. 하나씩 튀기러 나가면 위에서부터 줄어들고 칸은 그대로라,
@@ -88,7 +98,11 @@
 }
 .fry-raw-item:disabled { opacity: .55; cursor: default; }
 .fry-raw-item:hover:not(:disabled) { transform: scale(1.04); }
-.fry-raw-item.selected { border-color: var(--mg-card-active); background: rgba(255,224,141,.09); }
+/* ⚠️ 집었을 때의 금색 테두리는 **일부러 없앴습니다.** 왼쪽 재료는 5칸이 전부 같은
+   재료라 selectFryItem 이 다섯 칸에 한꺼번에 `selected` 를 붙입니다. 그러면 하나를
+   집었을 뿐인데 칸 다섯 개가 동시에 번쩍여서, 무엇을 집었는지가 오히려 흐려집니다.
+   집었다는 표시는 집게가 그 재료를 물고 나가는 것과 아래 흐려진 칸으로 충분합니다.
+   (클래스 자체는 남겨 둡니다 — 나중에 다른 표시를 붙일 자리입니다) */
 .fry-raw-item.dragging { opacity: .35; }
 
 /* ── 가운데 : 가스 버너 상판 + 탑뷰 기름 냄비 ───────────────── */
@@ -121,30 +135,31 @@
 /* ⚠️ **이 칸은 냄비가 아니라 기름 타원입니다.**
    조각 자리(--x · --y)와 engine-e6 의 FRY_POT_RADIUS 가 이 칸 기준 0~100 이라,
    칸이 눈에 보이는 기름과 같아야 끌어다 놓은 자리가 기름 안쪽과 맞습니다.
-   납품 그림(1081x983) 안에서 기름은 x 16.28% w 67.44% · y 13.43% h 76.40% 이고
-   그 부분만 떼면 729x751 입니다 — 그게 아래 aspect-ratio 입니다.
+   기름 자리는 **기름 레이어(fix_fry_oil_smooth_01)** 에서 잰 값입니다 —
+   1081x983 캔버스 안에서 x 12.86% w 74.38% · y 7.02% h 85.15%, 그 부분만 떼면
+   804x837 이고 그게 아래 aspect-ratio 입니다.
    냄비 몸통·손잡이는 이 칸 밖으로 넘겨 깝니다(.fry-pot-asset). */
 .fry-pot {
   position: relative;
-  width: min(70%, calc(418 * var(--upx)));
-  aspect-ratio: 729 / 751;
+  width: min(76%, calc(461 * var(--upx)));
+  aspect-ratio: 804 / 837;
   border: 0;
   padding: 0;
   background: none;
   filter: drop-shadow(0 calc(10 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.45));
 }
-/* 기름 타원이 이 칸에 딱 맞도록 그림을 밖으로 넘깁니다.
-     가로 100 / 0.6744 = 148.281%     왼쪽 -0.1628 x 148.281 = -24.140%
-     세로 100 / 0.7640 = 130.890%     위쪽  -0.1343 x 130.890 = -17.579%
-   ⚠️ 숫자를 바꾸려면 위 실측값(기름 자리)부터 다시 재세요. 여기만 고치면
-      기름은 그대로인데 조각만 어긋납니다. */
+/* 기름 타원이 이 칸에 딱 맞도록 냄비 그림을 칸 밖으로 넘깁니다.
+     가로 100 / 0.7438 = 134.445%     왼쪽 -0.1286 x 134.445 = -17.290%
+     세로 100 / 0.8515 = 117.440%     위쪽  -0.0702 x 117.440 =  -8.244%
+   ⚠️ 숫자를 바꾸려면 위 실측값(기름 레이어의 알파 자리)부터 다시 재세요.
+      여기만 고치면 기름은 그대로인데 조각만 어긋납니다. */
 .fry-pot-asset {
   position: absolute;
   z-index: 0;
-  left: -24.140%;
-  top: -17.579%;
-  width: 148.281%;
-  height: 130.890%;
+  left: -17.290%;
+  top: -8.244%;
+  width: 134.445%;
+  height: 117.440%;
   object-fit: fill;
 }
 /* 에셋이 없을 때 쓰는 임시 냄비 — 쇠테 + 기름 원 */
@@ -164,11 +179,27 @@
 .fry-pot.full.drop-hover { filter: drop-shadow(0 0 calc(16 * var(--upx)) rgba(214,86,52,.75)); }
 
 /* ── 기름막 : 재료가 기름에 잠겨 보이게 하는 한 겹 ──────────────
-   튀김 **위**에 덮는 얇은 기름 한 겹입니다. 튀김 쪽 투명도(.fry-piece.in-oil)만
-   낮추면 그냥 흐릿한 튀김이 되고, 이 겹을 위에 덮어야 "기름 아래에 있다" 가 됩니다.
-   가운데가 옅고 가장자리가 진한 것은 냄비 벽 쪽 기름이 더 깊어서입니다.
+   냄비 안 기름만 따로 그린 그림(fix_fry_oil_smooth_01)을 **튀김 위에** 반투명으로
+   한 번 더 덮습니다. 냄비 그림에서 오려 낸 장이라 모양·색·가장자리 그늘이 아래
+   기름과 정확히 겹칩니다 — 그래서 덮어도 "기름이 두 겹" 으로 안 보이고, 그 아래
+   깔린 튀김만 기름 속으로 가라앉아 보입니다.
+   ⚠️ 투명도를 더 올리면 튀김이 안 보이고, 내리면 그냥 기름 위에 얹힌 튀김이 됩니다.
+      튀김 쪽 흐림·투명도(.fry-piece.in-oil)와 한 짝으로 봐야 합니다.
    ⚠️ mix-blend-mode 를 쓰지 않습니다 — 헤드리스(--disable-gpu)에서 통째로 빠져
-      스모크 캡처에 안 잡힙니다(.fry-piece 익힘 색을 사본 방식으로 낸 것과 같은 이유). */
+      스모크 캡처에 안 잡힙니다. 그냥 opacity 로 겹칩니다. */
+.fry-oil-veil-asset {
+  /* 빌드에서 기름 원만 잘라 뽑아 두어(tools/build-minigame-art-webp.js) 이 칸과
+     그림이 1:1 입니다 — 냄비 그림처럼 밖으로 넘길 것이 없습니다. */
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: .44;
+  pointer-events: none;
+}
+/* 기름 그림이 없을 때 자리를 지키는 임시 기름막 */
 .fry-oil-veil {
   position: absolute;
   z-index: 6;
@@ -183,7 +214,7 @@
    두 가지가 겹칩니다. 둘 다 기름막 **위**입니다 — 수면에서 터져야 하니까요.
      .fry-oil-bubbles  재료가 없어도 늘 아주 천천히 올라오는 밑기포
      .fry-fizz         냄비에 들어간 조각 둘레에서 마구 끓어오르는 튀김 기포 */
-.fry-oil-bubbles { position: absolute; z-index: 9; inset: 16%; pointer-events: none; }
+.fry-oil-bubbles { position: absolute; z-index: 12; inset: 16%; pointer-events: none; }
 .fry-oil-bubbles i {
   position: absolute;
   width: calc(11 * var(--upx));
@@ -208,7 +239,7 @@
 
 /* 조각 둘레에서 끓는 기포. 상자가 조각과 같은 자리·같은 크기라, 조각을 옮기면
    기포도 따라갑니다(engine-e6 의 fryFizzMarkup 이 --x/--y/--w 를 같이 넘깁니다). */
-.fry-fizz-layer { position: absolute; z-index: 8; inset: 0; pointer-events: none; }
+.fry-fizz-layer { position: absolute; z-index: 11; inset: 0; pointer-events: none; }
 .fry-fizz {
   position: absolute;
   left: var(--x);
@@ -216,17 +247,25 @@
   width: var(--w);
   aspect-ratio: var(--ar, 1);
   translate: -50% -50%;
+  transition: opacity .18s linear;
 }
+/* 집게로 들어 올려 둔 자리 — 재료가 기름 밖으로 나갔으니 끓는 것도 멈춥니다
+   (engine-e6 의 setFryFizzLifted). 조각이 안 익는 것과 한 짝입니다. */
+.fry-fizz.lifted { opacity: 0; }
+/* ⚠️ 조각 둘레에 흰 거품을 한 겹 깔아 봤지만 **뺐습니다.** 위에서 보면 기름 위에
+   허연 원이 둥실 떠 있는 것으로만 보여서, 끓는 느낌은 안 나고 재료만 가렸습니다.
+   "빠글빠글" 은 아래 기포 알갱이 수와 속도로 냅니다. */
 .fry-fizz i {
   position: absolute;
   left: var(--fx);
   top: var(--fy);
-  width: calc(11 * var(--upx) * var(--fs,1));
-  height: calc(11 * var(--upx) * var(--fs,1));
-  border: calc(2.5 * var(--upx)) solid rgba(255,250,214,.86);
+  width: calc(14 * var(--upx) * var(--fs,1));
+  height: calc(14 * var(--upx) * var(--fs,1));
+  border: calc(3 * var(--upx)) solid rgba(255,253,232,.96);
   border-radius: 50%;
-  box-shadow: 0 0 calc(5 * var(--upx)) rgba(255,214,120,.55);
-  animation: fry-fizz-rise 1.15s ease-out infinite;
+  background: rgba(255,250,215,.3);
+  box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,226,150,.8);
+  animation: fry-fizz-rise .82s ease-out infinite;
 }
 /* 기름에 떨어진 그 순간의 물결. 한 번만 돕니다(다시 그려도 안 돌게 engine-e6 이
    data.diveId 를 renderFry 에서 지웁니다). */
@@ -257,7 +296,10 @@
   top: var(--y);
   width: var(--w);
   aspect-ratio: var(--ar, 1);
-  transform: translate(-50%,-50%) rotate(var(--rot));
+  /* z 를 인라인 z-index 가 아니라 변수로 받습니다 — 인라인이면 아래
+     '떠오른 조각을 기름막 위로' 규칙이 !important 없이는 못 이깁니다. */
+  z-index: var(--z, 2);
+  transform: translate(-50%,-50%) rotate(var(--rot)) scale(var(--pop,1));
   pointer-events: auto;
 }
 .fry-piece.on-rack { pointer-events: none; }
@@ -293,6 +335,30 @@
 }
 /* 기름으로 떨어지는 순간. 위에서 조금 떨어져 잠기고, 그러면서 반투명해집니다. */
 .fry-piece.diving { animation: fry-dive .44s cubic-bezier(.34,.06,.28,1); }
+
+/* ── 잘 익으면 기름 위로 떠오릅니다 ────────────────────────────
+   진짜 튀김이 다 익으면 뜨는 것을 그대로 씁니다. 위에서 보는 화면이라 "떠오름"
+   을 높이로 못 그리므로 **가라앉은 표시를 하나씩 되돌려** 냅니다 —
+   흐림을 걷고, 투명도를 올리고, 조금 커지고, 그림자가 멀어집니다.
+   그러면 이 조각만 기름막 위로 올라온 것처럼 또렷해집니다.
+   ⚠️ 이게 "지금 건져라" 신호라, 아래 금빛 무리(::before)와 한 벌로 봐야 합니다.
+      하나만 두면 잘 익은 순간이 눈에 안 들어옵니다. */
+.fry-piece.in-oil[data-stage="cooked"] {
+  /* 기름막(z 6) **위로** 올라옵니다. 진짜로 떠오른 것이라 기름에 안 덮여야 합니다 —
+     흐림·투명도를 걷는 것보다 이 한 줄이 "떴다" 를 제일 크게 만듭니다. */
+  z-index: calc(var(--z, 2) + 6);
+  opacity: .98;
+  filter: saturate(1.1) brightness(1.04)
+          drop-shadow(0 calc(9 * var(--upx)) calc(9 * var(--upx)) rgba(92,44,6,.5));
+  animation: fry-float 1.9s ease-in-out infinite alternate;
+}
+
+/* 집게로 들어 올린 조각은 냄비에서 **아예 사라집니다.**
+   기름 밖으로 꺼낸 것이니 자리가 비어야 맞고, 그래야 도로 넣을 때 다시
+   떨어지는 연출이 말이 됩니다. 안 익는 것(update)·기포가 멎는 것과 한 짝입니다.
+   ⚠️ 선택자를 이렇게 길게 쓴 이유는 위 '떠오름' 규칙(0,3,0)을 이겨야 해서입니다.
+      `.fry-piece.dragging` 만으로는 다 익은 조각이 들려 있어도 그대로 보입니다. */
+.fry-pot-food .fry-piece.in-oil.dragging { opacity: 0; animation: none; }
 
 /* 그림이 아예 없어 CSS 임시 도형을 쓸 때는 도형이 이미 주황이라
    필터만으로도 충분히 노릇해집니다. */
@@ -390,13 +456,16 @@
 .fry-cursor.closed .fry-tongs.bottom,
 .fry-cursor.closed .fry-tongs.top  { opacity: 1; }
 
-/* 집게에 물린 튀김. 집게 끝(= 포인터)에서 살짝 아래 왼쪽에 걸칩니다 —
-   윗팔이 튀김의 위쪽을 덮고 아래팔이 밑에 깔려야 물고 있는 것으로 보입니다.
+/* 집게에 물린 튀김.
+   ⚠️ **집게 끝이 튀김의 몸통 한가운데를 물어야 합니다.** 여기 값을 왼쪽·아래로
+      더 밀면 집게가 새우 꼬리(그림 오른쪽 위 끝)를 집은 꼴이 되어, 튀김이
+      꼬다리에 대롱대롱 매달린 것처럼 보입니다. 지금 값은 집게 끝(= 포인터)이
+      그림의 가로 56% · 세로 50% 쯤 — 몸통 한복판에 오도록 맞춘 것입니다.
    크기(--fry-held-w)는 냄비에 놓였을 때와 같게 engine-e6 이 px 로 넣어 줍니다. */
 .fry-cursor-held {
   position: absolute;
-  left: -13%;
-  top: 9%;
+  left: 3%;
+  top: -11%;
   width: 0;
   height: 0;
 }
@@ -409,8 +478,17 @@
   left: 0;
   top: 0;
   width: var(--fry-held-w, calc(140 * var(--upx)));
-  transform: translate(-50%,-50%) rotate(-9deg);
+  /* 눕는 각도는 재료마다 다릅니다(engine-e6 의 heldRot). 새우는 그림 자체가
+     비스듬히 서 있어서, 오른쪽으로 돌려 눕혀야 집게가 몸통을 문 것으로 보입니다. */
+  transform: translate(-50%,-50%) rotate(var(--held-rot, -9deg));
   pointer-events: none;
+  /* ⚠️ **z-index 를 반드시 auto 로 되돌립니다.** `.fry-piece` 가 냄비 안에서
+     떠오른 조각을 기름막 위로 올리려고 z-index:var(--z,2) 를 답니다. 집게에 문
+     조각은 --z 가 없어 그 기본값 2 를 받는데, 집게 두 장은 z-index 가 없어서(auto)
+     **튀김이 윗팔 위로 올라가 집게를 덮어 버립니다** — 물고 있는 게 아니라
+     얹어 놓은 것처럼 보입니다. auto 로 돌려놔야 아래팔 → 튀김 → 윗팔 이라는
+     마크업 순서가 그대로 그리는 순서가 됩니다. */
+  z-index: auto;
 }
 /* 건져 올린 튀김에서 떨어지는 기름 방울. 세 장이 서로 다른 자리에서 떨어집니다.
    ⚠️ 상자에 **폭을 줘야 합니다.** 크기 없는 상자에 넣으면 --dx 백분율이 전부 0 으로
@@ -419,7 +497,10 @@
 .fry-oil-drips {
   position: absolute;
   left: calc(var(--fry-held-w, 0px) * -.5);
-  top: calc(var(--fry-held-w, 0px) * .26);
+  /* 튀김 **아래 끝**에서 떨어지기 시작합니다. 그림 세로가 가로의 0.94 배쯤이니
+     반쪽이 0.47 이고, 거기서 조금 더 내려 잡았습니다. 이 값을 줄이면 방울이
+     튀김 몸통 한가운데에서 솟는 것처럼 보입니다. */
+  top: calc(var(--fry-held-w, 0px) * .52);
   width: var(--fry-held-w, 0px);
 }
 .fry-oil-drip {
@@ -498,10 +579,10 @@
 @keyframes fry-oil-bubble { 0%{transform:scale(.35) translateY(20%);opacity:0} 40%{opacity:.78} 100%{transform:scale(1.25) translateY(-30%);opacity:0} }
 /* 재료 둘레에서 끓는 기포 — 떠오르면서 커지고 수면에서 터집니다 */
 @keyframes fry-fizz-rise {
-  0%   { transform:translateY(18%) scale(.25); opacity:0 }
-  22%  { opacity:.95 }
-  70%  { transform:translateY(-46%) scale(1); opacity:.9 }
-  100% { transform:translateY(-88%) scale(1.32); opacity:0 }
+  0%   { transform:translateY(22%) scale(.2); opacity:0 }
+  18%  { opacity:1 }
+  70%  { transform:translateY(-52%) scale(1.05); opacity:.95 }
+  100% { transform:translateY(-98%) scale(1.45); opacity:0 }
 }
 /* 기름에 떨어진 순간의 물결 */
 @keyframes fry-splash-ring { from{transform:scale(.42);opacity:.9} to{transform:scale(1.5);opacity:0} }
@@ -510,6 +591,11 @@
   0%   { transform:translate(-50%,-86%) rotate(var(--rot)) scale(1.16); opacity:1 }
   58%  { transform:translate(-50%,-46%) rotate(var(--rot)) scale(.96);  opacity:.95 }
   100% { transform:translate(-50%,-50%) rotate(var(--rot)) scale(1);    opacity:.78 }
+}
+/* 다 익어 기름 위로 떠오른 뒤, 기름에 밀려 아주 천천히 오르내립니다 */
+@keyframes fry-float {
+  from { transform:translate(-50%,-51%) rotate(var(--rot)) scale(1.03) }
+  to   { transform:translate(-50%,-49%) rotate(var(--rot)) scale(1.08) }
 }
 /* 집게에 물린 튀김에서 떨어지는 기름 방울 */
 @keyframes fry-oil-drip {
@@ -522,10 +608,13 @@
 @keyframes e6-result-in { to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
 
 @media (prefers-reduced-motion:reduce) {
-  .fry-oil-bubbles i,.fry-fizz i,.fry-fizz.splash::after,.fry-piece.diving,.fry-oil-drip,
-  .fry-piece[data-stage="cooked"]::before,.e6-result.show {
+  .fry-oil-bubbles i,.fry-fizz i,.fry-fizz.splash::after,.fry-piece.diving,
+  .fry-oil-drip,.fry-piece.in-oil[data-stage="cooked"],.fry-piece[data-stage="cooked"]::before,.e6-result.show {
     animation-duration:.01ms !important; animation-iteration-count:1 !important;
   }
+  /* ⚠️ 다 익어 떠오른 조각은 **커진 채로 세웁니다.** duration 만 줄이면 첫 프레임의
+     scale(1.05) 에서 끝나 버려, 떠오른 표시가 거의 안 남습니다. */
+  .fry-piece.in-oil[data-stage="cooked"] { animation:none; --pop:1.08; }
   /* ⚠️ 밑기포·튀김 기포는 **끄지 않고 멈춰 세웁니다.** duration 만 줄이면 첫
      프레임(opacity:0)에서 끝나 기포가 통째로 사라져, 기름이 죽은 것처럼 보입니다. */
   .fry-oil-bubbles i,.fry-fizz i { animation:none; opacity:.5; }
