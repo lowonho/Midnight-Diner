@@ -76,7 +76,7 @@
 .ingredient-fridge {
   position: relative;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: minmax(0,1fr) auto auto;
   padding: calc(55 * var(--upx)) calc(34 * var(--upx)) calc(23 * var(--upx));
   border: calc(10 * var(--upx)) solid #817768;
   border-radius: calc(18 * var(--upx));
@@ -88,34 +88,38 @@
 .ingredient-fridge::before { top:36%; }
 .ingredient-fridge::after { top:67%; }
 .ingredient-fridge-light { position:absolute; top:calc(16 * var(--upx)); left:38%; right:38%; height:calc(12 * var(--upx)); border-radius:50%; background:#ffe3a1; box-shadow:0 0 calc(35 * var(--upx)) calc(12 * var(--upx)) rgba(255,223,151,.27); }
-.ingredient-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:calc(12 * var(--upx)); align-content:center; }
-.ingredient-choice {
+.ingredient-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:calc(10 * var(--upx)); align-content:center; overflow:auto; }
+.ingredient-shelf {
   position:relative;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  min-height:calc(118 * var(--upx));
-  padding:calc(10 * var(--upx)) calc(5 * var(--upx));
-  border:2px solid #806e56;
+  min-width:0;
+  min-height:calc(88 * var(--upx));
+  padding:calc(15 * var(--upx)) calc(7 * var(--upx)) calc(8 * var(--upx));
+  border:2px solid #716657;
   border-radius:calc(9 * var(--upx));
-  background:linear-gradient(#dbd0b9,#a79375);
-  color:#352419;
-  box-shadow:0 calc(5 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.42),inset 0 1px #f8eed9;
+  background:linear-gradient(160deg,rgba(202,197,179,.9),rgba(91,85,75,.92));
+  color:#2b2119;
+  box-shadow:0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.5);
   cursor:pointer;
-  overflow:hidden;
-  transition:transform .14s,filter .14s,border-color .14s;
+  transition:transform .14s,filter .14s,border-color .14s,box-shadow .14s;
 }
-.ingredient-choice:hover:not(:disabled) { transform:translateY(calc(-3 * var(--upx))); filter:brightness(1.08); }
-.ingredient-choice-art { position:relative; display:grid; flex:0 0 calc(54 * var(--upx)); place-items:center; width:100%; height:calc(54 * var(--upx)); overflow:hidden; line-height:1; }
-.ingredient-choice-art > img { position:absolute; inset:0 6%; display:block; width:88%; height:100%; object-fit:contain; filter:drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.28)); }
-.ingredient-choice-art > span { font-size:calc(45 * var(--upx)); }
-.ingredient-choice > strong { display:block; margin-top:calc(6 * var(--upx)); font-size:calc(15 * var(--upx)); }
-.ingredient-choice > i { position:absolute; right:calc(5 * var(--upx)); top:calc(5 * var(--upx)); padding:2px calc(5 * var(--upx)); border-radius:8px; background:#37613a; color:#e8f7dc; font-size:calc(9 * var(--upx)); font-style:normal; }
-.ingredient-choice.selected { border-color:#78a95f; background:linear-gradient(#d8e2c3,#98ad7c); opacity:.82; }
-.ingredient-choice.wrong { animation:ingredient-wrong .4s ease; border-color:#b74e3e; }
-.ingredient-choice.hint { animation:ingredient-hint 1.15s ease-in-out infinite; border-color:#ffe07b; }
-.ingredient-select-feedback { position:relative; z-index:1; min-height:calc(22 * var(--upx)); margin:calc(14 * var(--upx)) 0 0; padding:calc(7 * var(--upx)); border-radius:calc(5 * var(--upx)); background:rgba(12,9,7,.78); color:#f1d7a1; text-align:center; }
+.ingredient-shelf:hover { transform:translateY(calc(-2 * var(--upx))); filter:brightness(1.08); }
+.ingredient-shelf > b { position:absolute; top:calc(3 * var(--upx)); left:calc(6 * var(--upx)); color:#51483c; font-size:calc(9 * var(--upx)); }
+.ingredient-shelf-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:calc(4 * var(--upx)); }
+.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:calc(57 * var(--upx)); border:1px solid rgba(68,58,47,.55); border-radius:calc(5 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; transition:transform .15s; }
+.ingredient-shelf-slot.empty { background:rgba(42,38,33,.23); box-shadow:inset 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.3); }
+.ingredient-shelf-slot i { position:absolute; inset:calc(3 * var(--upx)); display:grid; place-items:center; overflow:hidden; font-style:normal; }
+.ingredient-shelf-slot img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.32)); }
+.ingredient-shelf-slot i > span { font-size:calc(30 * var(--upx)); }
+.ingredient-shelf-slot small { position:absolute; right:0; bottom:0; left:0; padding:1px; background:rgba(38,26,18,.72); color:#f4dfb7; font-size:calc(7 * var(--upx)); line-height:1.2; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ingredient-shelf-slot.top { transform:translateY(calc(-3 * var(--upx))); border-color:#d8b36b; box-shadow:0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.35); }
+.ingredient-shelf.selected { border-color:#ffe08a; box-shadow:0 0 calc(18 * var(--upx)) rgba(255,211,112,.75),inset 0 1px #fff5cf; }
+.ingredient-shelf.hint-from { animation:ingredient-hint 1.15s ease-in-out infinite; border-color:#ffe07b; }
+.ingredient-shelf.hint-to { animation:ingredient-hint-target 1.15s ease-in-out infinite; border-color:#8ed6a0; }
+.ingredient-puzzle-controls { position:relative; z-index:1; display:flex; justify-content:center; gap:calc(8 * var(--upx)); margin-top:calc(9 * var(--upx)); }
+.ingredient-puzzle-controls button { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:1px solid #8d724b; border-radius:calc(5 * var(--upx)); background:rgba(37,25,17,.9); color:#ead29f; font-weight:700; cursor:pointer; }
+.ingredient-puzzle-controls button:hover:not(:disabled) { border-color:#d2a85e; background:#51361f; }
+.ingredient-puzzle-controls button:disabled { opacity:.38; cursor:default; }
+.ingredient-select-feedback { position:relative; z-index:1; min-height:calc(22 * var(--upx)); margin:calc(8 * var(--upx)) 0 0; padding:calc(7 * var(--upx)); border-radius:calc(5 * var(--upx)); background:rgba(12,9,7,.78); color:#f1d7a1; text-align:center; }
 .ingredient-basket-card { display:flex; flex-direction:column; }
 .ingredient-basket { display:flex; flex-wrap:wrap; align-content:flex-start; gap:calc(7 * var(--upx)); min-height:calc(300 * var(--upx)); max-height:calc(405 * var(--upx)); margin:calc(12 * var(--upx)) 0; overflow:auto; }
 .ingredient-basket > span { height:max-content; padding:calc(6 * var(--upx)) calc(8 * var(--upx)); border:1px solid #76502f; border-radius:calc(14 * var(--upx)); background:#342217; color:#eed6a8; font-size:calc(12 * var(--upx)); }
@@ -125,8 +129,8 @@
 .ingredient-total-progress { margin-top:auto; color:#f5d47f; font-size:calc(22 * var(--upx)); text-align:center; }
 .ingredient-continue { margin-top:calc(12 * var(--upx)); }
 .ingredient-basket-card > small { margin-top:calc(14 * var(--upx)); color:#aa9678; line-height:1.5; text-align:center; }
-@keyframes ingredient-wrong { 25%,75%{transform:translateX(calc(-5 * var(--upx)))} 50%{transform:translateX(calc(5 * var(--upx)))} }
 @keyframes ingredient-hint { 50%{transform:translateY(calc(-4 * var(--upx))) scale(1.025);box-shadow:0 0 calc(22 * var(--upx)) #f6c95e} }
+@keyframes ingredient-hint-target { 50%{transform:translateY(calc(-2 * var(--upx))) scale(1.02);box-shadow:0 0 calc(20 * var(--upx)) #75c58b} }
 @media (max-width:900px) {
   .ingredient-select-window { max-height:96%; }
   .ingredient-select-layout { grid-template-columns:minmax(170px,.8fr) minmax(420px,2fr); min-height:0; }
@@ -146,12 +150,12 @@
   .ingredient-checklist { grid-template-columns:repeat(2,1fr); }
   .ingredient-fridge { min-height:420px; padding:40px 15px 14px; }
   .ingredient-grid { grid-template-columns:repeat(3,1fr); gap:7px; }
-  .ingredient-choice { min-height:82px; }
-  .ingredient-choice-art { height:38px; }
-  .ingredient-choice-art > span { font-size:30px; }
+  .ingredient-shelf { min-height:72px; padding:12px 4px 5px; }
+  .ingredient-shelf-slot { height:43px; }
+  .ingredient-puzzle-controls { flex-wrap:wrap; }
   .ingredient-basket-card { display:flex; margin-top:10px; }
   .ingredient-basket-card > span { display:block; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .ingredient-choice.hint { animation:ingredient-hint 2s step-end infinite; }
+  .ingredient-shelf.hint-from,.ingredient-shelf.hint-to { animation-duration:2s; animation-timing-function:step-end; }
 }

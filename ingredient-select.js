@@ -44,7 +44,6 @@ const PANTRY_INGREDIENT_IDS=Object.freeze(new Set([
   "anchovy","flour","water","yakisobaSauce","breadcrumbs","gochujang","potato","oil","starch"
 ]));
 
-const INGREDIENT_BOARD_SIZE=12;
 const INGREDIENT_HINT_DELAY=7000;
 const INGREDIENT_ASSET_BASE=document.currentScript?.src||document.baseURI;
 let ingredientHintTimer=null;
@@ -71,15 +70,8 @@ function pantryIngredientIdsForMenus(menuIds=[]){
   return requiredIngredientIdsForMenus(menuIds).filter(id=>PANTRY_INGREDIENT_IDS.has(id));
 }
 
-function ingredientBoardForMenus(menuIds=[]){
-  const required=fridgeIngredientIdsForMenus(menuIds);
-  const distractors=shuffle(Object.keys(FRIDGE_INGREDIENTS).filter(id=>fridgeIngredientId(id)&&!required.includes(id)));
-  const boardSize=Math.max(INGREDIENT_BOARD_SIZE,required.length);
-  return shuffle([...required,...distractors.slice(0,Math.max(0,boardSize-required.length))]);
-}
-
 function createIngredientSelectionState(menuIds=[]){
-  return {picked:[],board:ingredientBoardForMenus(menuIds),hintedId:null};
+  return e13CreateProgress(fridgeIngredientIdsForMenus(menuIds));
 }
 
 function normalizeIngredientSelectionState(){
@@ -90,12 +82,7 @@ function normalizeIngredientSelectionState(){
   const menus=Array.isArray(state.selectedMenus)?state.selectedMenus.filter(id=>ingredientRecipe(id).length):[];
   const saved=state.ingredientSelection&&typeof state.ingredientSelection==="object"?state.ingredientSelection:{};
   const required=fridgeIngredientIdsForMenus(menus);
-  const picked=[...new Set(Array.isArray(saved.picked)?saved.picked.filter(id=>fridgeIngredientId(id)):[])];
-  const savedBoard=Array.isArray(saved.board)?[...new Set(saved.board.filter(fridgeIngredientId))]:[];
-  const board=savedBoard.length&&required.every(id=>savedBoard.includes(id))
-    ?savedBoard
-    :ingredientBoardForMenus(menus);
-  state.ingredientSelection={picked,board,hintedId:board.includes(saved.hintedId)?saved.hintedId:null};
+  state.ingredientSelection=e13NormalizeProgress(saved,required);
 }
 
 function currentIngredientRoundComplete(){
@@ -117,11 +104,11 @@ function scheduleIngredientHint(){
   ingredientHintTimer=setTimeout(()=>{
     if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return;
     const progress=state.ingredientSelection;
-    const missing=allRequiredIngredientIds().find(id=>!progress.picked.includes(id));
-    if(!missing)return;
-    progress.hintedId=missing;
+    const move=e13FindHint(progress);
+    if(!move)return;
+    progress.hintedMove=move;
     renderIngredientSelection();
-    dom.ingredientSelectFeedback.textContent="천천히 찾아도 괜찮아요. 반짝이는 재료를 살펴보세요.";
+    dom.ingredientSelectFeedback.textContent="반짝이는 재료를 선택한 뒤 표시된 빈 칸으로 옮겨보세요.";
   },INGREDIENT_HINT_DELAY);
 }
 
@@ -141,27 +128,73 @@ function startIngredientSelection(){
   state.ingredientSelection=createIngredientSelectionState(state.selectedMenus);
   dom.ingredientSelectOverlay.dataset.signature="";
   dom.ingredientSelectOverlay.classList.add("open");
-  dom.ingredientSelectFeedback.textContent="필요한 재료를 눌러 장바구니에 담아보세요.";
+  dom.ingredientSelectFeedback.textContent="재료를 고른 뒤 같은 재료가 있는 칸이나 빈 칸을 눌러 옮겨보세요.";
   renderIngredientSelection();updateUI(true);saveGame();
   return true;
 }
 
-function selectIngredient(id,button=null){
-  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT||!FRIDGE_INGREDIENTS[id])return false;
-  const progress=state.ingredientSelection,recipe=allRequiredIngredientIds();
-  if(progress.picked.includes(id))return false;
-  if(!recipe.includes(id)){
-    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(id).label}은(는) 오늘 메뉴에는 필요하지 않아요. 다른 재료를 골라볼까요?`;
-    button?.classList.add("wrong");
-    setTimeout(()=>button?.classList.remove("wrong"),420);
+function selectIngredientShelf(index){
+  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return false;
+  const progress=state.ingredientSelection,shelf=progress?.shelves?.[index];
+  if(!shelf)return false;
+  clearIngredientHintTimer();
+  if(progress.selectedShelf===null){
+    if(!shelf.length){
+      dom.ingredientSelectFeedback.textContent="먼저 옮길 재료가 있는 칸을 골라주세요.";
+      scheduleIngredientHint();
+      return false;
+    }
+    progress.selectedShelf=index;progress.hintedMove=null;
+    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(e13ShelfTop(shelf)).label}을(를) 어디로 옮길까요?`;
+    renderIngredientSelection();scheduleIngredientHint();
+    return true;
+  }
+  if(progress.selectedShelf===index){
+    progress.selectedShelf=null;progress.hintedMove=null;
+    dom.ingredientSelectFeedback.textContent="선택을 취소했어요. 다른 칸을 골라도 좋아요.";
+    renderIngredientSelection();scheduleIngredientHint();
+    return true;
+  }
+  const from=progress.selectedShelf,result=e13Move(progress,from,index);
+  if(!result.moved){
+    dom.ingredientSelectFeedback.textContent="빈 칸이나 같은 재료가 놓인 칸으로만 옮길 수 있어요.";
     scheduleIngredientHint();
     return false;
   }
-  clearIngredientHintTimer();
-  progress.picked.push(id);progress.hintedId=null;
-  dom.ingredientSelectFeedback.textContent=`${ingredientInfo(id).label}, 좋아요! 장바구니에 담았어요.`;
+  if(result.matchedId){
+    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 장바구니에 담았어요.`;
+  }else{
+    dom.ingredientSelectFeedback.textContent="좋아요. 같은 재료 3개가 모이도록 계속 정리해보세요.";
+  }
   renderIngredientSelection();saveGame();
   if(!currentIngredientRoundComplete())scheduleIngredientHint();
+  return true;
+}
+
+function undoIngredientMove(){
+  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT||!e13Undo(state.ingredientSelection))return false;
+  clearIngredientHintTimer();
+  dom.ingredientSelectFeedback.textContent="바로 전 상태로 되돌렸어요.";
+  renderIngredientSelection();saveGame();scheduleIngredientHint();
+  return true;
+}
+
+function shuffleIngredientShelves(){
+  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT||!e13Shuffle(state.ingredientSelection,allRequiredIngredientIds()))return false;
+  clearIngredientHintTimer();
+  dom.ingredientSelectFeedback.textContent="남은 재료를 다시 섞었어요. 천천히 이어가세요.";
+  renderIngredientSelection();saveGame();scheduleIngredientHint();
+  return true;
+}
+
+function hintIngredientMove(){
+  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return false;
+  const move=e13FindHint(state.ingredientSelection);
+  if(!move)return false;
+  clearIngredientHintTimer();
+  state.ingredientSelection.hintedMove=move;
+  dom.ingredientSelectFeedback.textContent="반짝이는 두 칸을 순서대로 눌러보세요.";
+  renderIngredientSelection();scheduleIngredientHint();
   return true;
 }
 
@@ -183,7 +216,14 @@ function renderIngredientSelection(){
   const picked=new Set(progress.picked);
   const allRequired=allRequiredIngredientIds(),pickedRequired=allRequired.filter(id=>picked.has(id));
   const pantry=pantryIngredientIdsForMenus(state.selectedMenus||[]);
-  const signature=[state.day,state.selectedMenus.join(","),progress.picked.join(","),progress.board.join(","),progress.hintedId||""].join("|");
+  const signature=[
+    state.day,
+    state.selectedMenus.join(","),
+    progress.picked.join(","),
+    progress.shelves.map(shelf=>shelf.join(",")).join("/"),
+    progress.selectedShelf??"",
+    progress.hintedMove?`${progress.hintedMove.from}>${progress.hintedMove.to}`:""
+  ].join("|");
   if(dom.ingredientSelectOverlay.dataset.signature===signature){
     dom.ingredientSelectOverlay.classList.add("open");
     return;
@@ -199,16 +239,30 @@ function renderIngredientSelection(){
   dom.ingredientPantryNote.innerHTML=pantry.length
     ?`<strong>냉장고 밖에 준비됨</strong><span>${pantry.map(id=>ingredientInfo(id).label).join(" · ")}</span>`
     :"";
-  dom.ingredientGrid.innerHTML=progress.board.map(id=>{
-    const item=ingredientInfo(id),selected=picked.has(id),hinted=progress.hintedId===id;
-    return `<button class="ingredient-choice ${selected?"selected":""} ${hinted?"hint":""}" data-ingredient-id="${id}" type="button" ${selected?"disabled":""} aria-pressed="${selected}"><span class="ingredient-choice-art" aria-hidden="true">${ingredientArt(item)}</span><strong>${item.label}</strong>${selected?"<i>담았어요</i>":""}</button>`;
+  dom.ingredientGrid.innerHTML=progress.shelves.map((shelf,index)=>{
+    const topId=e13ShelfTop(shelf),selected=progress.selectedShelf===index;
+    const hintedFrom=progress.hintedMove?.from===index,hintedTo=progress.hintedMove?.to===index;
+    const slots=Array.from({length:E13_FRIDGE_SORT.matchSize},(_,slotIndex)=>{
+      const id=shelf[slotIndex];
+      if(!id)return `<span class="ingredient-shelf-slot empty" aria-hidden="true"></span>`;
+      const item=ingredientInfo(id),top=slotIndex===shelf.length-1;
+      return `<span class="ingredient-shelf-slot ${top?"top":""}" title="${item.label}"><i>${ingredientArt(item)}</i><small>${item.label}</small></span>`;
+    }).join("");
+    const label=shelf.length?`${ingredientInfo(topId).label}이 위에 있는 냉장고 칸`:`빈 냉장고 칸`;
+    return `<button class="ingredient-shelf ${selected?"selected":""} ${hintedFrom?"hint-from":""} ${hintedTo?"hint-to":""}" data-shelf-index="${index}" type="button" aria-pressed="${selected}" aria-label="${label}"><b>${index+1}</b><span class="ingredient-shelf-slots">${slots}</span></button>`;
   }).join("");
-  dom.ingredientGrid.querySelectorAll("[data-ingredient-id]").forEach(button=>button.addEventListener("click",()=>selectIngredient(button.dataset.ingredientId,button)));
+  dom.ingredientGrid.querySelectorAll("[data-shelf-index]").forEach(button=>button.addEventListener("click",()=>selectIngredientShelf(Number(button.dataset.shelfIndex))));
   dom.ingredientBasket.innerHTML=pickedRequired.length?pickedRequired.map(id=>{
     const item=ingredientInfo(id);return `<span><i>${ingredientArt(item,"ingredient-basket-art")}</i>${item.label}</span>`;
   }).join(""):"<p>아직 담은 재료가 없어요.</p>";
   dom.ingredientTotalProgress.textContent=`전체 ${pickedRequired.length} / ${allRequired.length}`;
   const complete=currentIngredientRoundComplete();
+  dom.ingredientUndo.disabled=!progress.history.length;
+  dom.ingredientHint.disabled=complete;
+  dom.ingredientShuffle.disabled=complete;
+  dom.ingredientUndo.onclick=undoIngredientMove;
+  dom.ingredientHint.onclick=hintIngredientMove;
+  dom.ingredientShuffle.onclick=shuffleIngredientShelves;
   dom.ingredientSelectContinue.disabled=!complete;
   dom.ingredientSelectContinue.textContent="재료 준비 시작";
   if(complete)dom.ingredientSelectFeedback.textContent="오늘 메뉴에 필요한 냉장 재료를 모두 골랐어요!";

@@ -17,11 +17,11 @@
     <section id="menuSelectOverlay" class="overlay"></section>
     <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
       <div class="ingredient-select-window wood-panel">
-        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">냉장고에서 재료를 골라주세요!</h2><p>시간 제한은 없어요. 요리에 필요한 재료를 천천히 찾아보세요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
+        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">냉장고 선반을 정리해 주세요!</h2><p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
         <div class="ingredient-select-layout">
           <aside class="ingredient-recipe-card"><span>오늘의 메뉴</span><h3 id="ingredientDishName"></h3><div id="ingredientDishGallery" class="ingredient-dish-gallery"></div><strong>냉장고에서 찾을 재료</strong><div id="ingredientChecklist" class="ingredient-checklist"></div><p id="ingredientPantryNote" class="ingredient-pantry-note"></p></aside>
-          <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div><p id="ingredientSelectFeedback" class="ingredient-select-feedback"></p></section>
-          <aside class="ingredient-basket-card"><span>장바구니</span><div id="ingredientBasket" class="ingredient-basket"></div><strong id="ingredientTotalProgress" class="ingredient-total-progress"></strong><button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>다음 요리</button><small>잘못 골라도 괜찮아요.<br />잠시 기다리면 재료가 반짝여요.</small></aside>
+          <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div><div class="ingredient-puzzle-controls"><button id="ingredientUndo" type="button">↶ 되돌리기</button><button id="ingredientHint" type="button">✦ 힌트</button><button id="ingredientShuffle" type="button">⟳ 선반 섞기</button></div><p id="ingredientSelectFeedback" class="ingredient-select-feedback"></p></section>
+          <aside class="ingredient-basket-card"><span>장바구니</span><div id="ingredientBasket" class="ingredient-basket"></div><strong id="ingredientTotalProgress" class="ingredient-total-progress"></strong><button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button><small>시간 제한과 실패는 없어요.<br />막히면 되돌리거나 선반을 섞어보세요.</small></aside>
         </div>
       </div>
     </section>
@@ -32,14 +32,15 @@
     const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks]}));
     const smokeAllMenus=new URLSearchParams(location.search).has("all");
     const state={screen:"game",phase:GAME_PHASES.MENU_SELECT,paused:false,selectedMenus:smokeAllMenus?MENU_DATA.map(menu=>menu.id):["oden","tteokbokki"],ingredientSelection:null};
-    const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue"];
+    const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientUndo","ingredientHint","ingredientShuffle","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue"];
     const dom=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
-    const shuffle=items=>[...items].reverse();
+    const shuffle=items=>{const unique=[...new Set(items)];return unique.length>1?items.map((_,index)=>unique[index%unique.length]):[...items]};
     const dishById=id=>DISHES.find(dish=>dish.id===id)||null;
     const foodFiles={oden:"food_eomuk_tang",tofu:"food_dubu_kimchi",kimchi:"food_kimchijeon",skewer:"food_dak_kkochi",yakisoba:"food_bokkeum_udon",shrimpTempura:"food_saeu_twigim",tteokbokki:"food_tteokbokki",fries:"food_gamja_twigim"};
     const foodPropUrl=id=>foodFiles[id]?`../assets/food/prop/${foodFiles[id]}_normal.webp`:"";
     const saveGame=()=>true,updateUI=()=>{},showToast=()=>{};
   </script>
+  <script src="../engine-e13-fridge-sort.js"></script>
   <script src="../ingredient-select.js"></script>
   <script>
     const visual=new URLSearchParams(location.search).has("visual");
@@ -48,14 +49,19 @@
       if(!visual){
         const assert=(condition,message)=>{if(!condition)throw new Error(message)};
         const required=allRequiredIngredientIds();
-        assert(state.ingredientSelection.board.length===12,"board size");
-        assert(required.every(id=>state.ingredientSelection.board.includes(id)),"all selected-menu fridge ingredients on one board");
+        assert(state.ingredientSelection.engine==="E13","E13 engine state");
+        assert(state.ingredientSelection.shelves.length===required.length+2,"two empty sorting shelves");
+        assert(required.every(id=>state.ingredientSelection.shelves.flat().filter(item=>item===id).length===3),"three of every required ingredient");
         assert(!required.includes("anchovy")&&!required.includes("gochujang"),"pantry ingredients excluded");
         assert(ingredientPantryNote.textContent.includes("멸치")&&ingredientPantryNote.textContent.includes("고추장"),"pantry note rendered");
-        const wrong=state.ingredientSelection.board.find(id=>!required.includes(id));
-        selectIngredient(wrong);
-        assert(state.ingredientSelection.picked.length===0,"wrong pick has no penalty/state change");
-        required.forEach(id=>selectIngredient(id));
+        state.ingredientSelection={...e13CreateProgress(required),shelves:required.flatMap(id=>[[id,id],[id]])};
+        renderIngredientSelection();
+        selectIngredientShelf(1);selectIngredientShelf(0);
+        assert(state.ingredientSelection.picked.includes(required[0]),"matching three collects ingredient");
+        undoIngredientMove();
+        assert(!state.ingredientSelection.picked.includes(required[0]),"undo restores matched shelf");
+        selectIngredientShelf(1);selectIngredientShelf(0);
+        required.slice(1).forEach((id,index)=>{const source=(index+1)*2+1,target=(index+1)*2;selectIngredientShelf(source);selectIngredientShelf(target)});
         assert(currentIngredientRoundComplete(),"combined selection complete");
         continueIngredientSelection();
         assert(state.phase===GAME_PHASES.PREP,"continues to prep");

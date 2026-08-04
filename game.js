@@ -30,7 +30,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientUndo","ingredientHint","ingredientShuffle","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -301,7 +301,7 @@ audio.preload();
 const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
-  "#menuSelectConfirm",".menu-select-option","#ingredientSelectContinue",".ingredient-choice",".order-row",
+  "#menuSelectConfirm",".menu-select-option","#ingredientSelectContinue",".ingredient-shelf",".ingredient-puzzle-controls button",".order-row",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause"
 ].join(",");
 document.addEventListener("click",event=>{
