@@ -647,6 +647,18 @@
 .cut-screen .prep-work-object.tough-first-hit .knife-effect.has-prep-asset {
   transform: translateY(calc(13 * var(--upx))) scale(.99);
 }
+/* ⚠️ 첫 타는 원래 위 '박힌 자리'로 툭 건너뛰기만 했습니다 — 두 번째 타만 획이
+   나가서 첫 타가 멈칫하는 것처럼 보였습니다. 이제 첫 타도 같은 방향으로 긋되,
+   두 번째 타(cut-knife-chop-asset)처럼 제자리로 돌아오지 않고 **박힌 자리에서
+   멈춥니다**. 그래서 keyframe 의 100% 를 바로 위 두 규칙의 transform 과 같은
+   값으로 맞췄습니다 — 애니메이션이 끝나며 정지 자세로 이어붙어야 안 튑니다.
+   길이는 doubleTapWindow(0.35초)보다 짧아야 두 번째 타 전에 획이 끝납니다. */
+.cut-screen .prep-work-object.tough-first-hit .knife-effect { animation: cut-knife-chop-first .2s cubic-bezier(.3,.72,.28,1); }
+.cut-screen .prep-work-object.tough-first-hit .knife-effect.has-prep-asset { animation: cut-knife-chop-first-asset .2s cubic-bezier(.3,.72,.28,1); }
+/* 첫 타에도 도마 이펙트를 얕게 한 번 (두 번째 타의 절반 세기 · 여운 없이) */
+.cut-screen .prep-work-object.tough-first-hit .cut-impact-fx { opacity: .5; }
+.cut-screen .prep-work-object.tough-first-hit .cut-impact-1 { animation: cut-impact-frame .07s steps(1) both; }
+.cut-screen .prep-work-object.tough-first-hit .cut-impact-2 { animation: cut-impact-frame .1s ease-out .05s both; }
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
 /* 에셋 칼은 제자리에서 눌리는 게 아니라 **날 방향으로 그어** 썹니다.
@@ -915,6 +927,24 @@
   74%  { transform: translateY(calc(16 * var(--upx))) rotate(-1.2deg) scale(1.012); }
   100% { transform: translateY(0) rotate(0deg) scale(1); }
 }
+/* 닭고기 첫 타 : 위 획과 같은 방향·같은 기울기로 내려오다가, 질긴 고기에
+   걸려 도로 안 올라오고 박힌 자리(13)에서 멈춥니다.
+   두 번째 타보다 얕게(-58 ~ +22) 긋습니다 — 첫 타에 다 훑어버리면 두 번째
+   타의 큰 획이 덤처럼 보입니다.
+   ⚠️ 100% 는 .tough-first-hit 의 정지 transform 과 같은 값이어야 합니다.
+      (에셋 칼 translateY(13) scale(.99) · 임시 칼 translateX(-50%) rotate scale(.98)) */
+@keyframes cut-knife-chop-first-asset {
+  0%   { transform: translateY(calc(-58 * var(--upx))) rotate(-5deg) scale(1.04); }
+  26%  { transform: translateY(calc(-20 * var(--upx))) rotate(-4.4deg) scale(1.025); }
+  70%  { transform: translateY(calc(22 * var(--upx))) rotate(.6deg) scale(.972); }
+  100% { transform: translateY(calc(13 * var(--upx))) scale(.99); }
+}
+@keyframes cut-knife-chop-first {
+  0%   { transform: translate(-50%,calc(-42 * var(--upx))) rotate(calc(var(--knife-turn,16deg) - 9deg)) scale(1.03); }
+  26%  { transform: translate(-50%,calc(-14 * var(--upx))) rotate(calc(var(--knife-turn,16deg) - 7deg)) scale(1.02); }
+  70%  { transform: translate(-50%,calc(7 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 2deg)) scale(.962); }
+  100% { transform: translateX(-50%) rotate(var(--knife-turn,16deg)) scale(.98); }
+}
 /* 눕힌 칼 : 아래 끝이 날이라, 칼끝을 왼쪽 아래로 5도 떨군 채 들어와
    왼쪽에서 오른쪽으로 크게 그으며 눕습니다.
    두부(600)가 날(342)보다 좌우로 129 씩 넓어서 획도 그만큼 큽니다. */
@@ -987,6 +1017,8 @@
 @media (prefers-reduced-motion:reduce) {
   .cut-screen .prep-work-object.slice-hit .knife-effect,
   .cut-screen .prep-work-object.slice-miss .knife-effect,
+  .cut-screen .prep-work-object.tough-first-hit .knife-effect,
+  .cut-screen .prep-work-object.tough-first-hit .cut-impact-frame,
   .cut-screen .prep-work-object.slice-hit .cut-spark,
   .cut-screen .prep-work-object.slice-hit .cut-impact-frame,
   .cut-screen .prep-work-object.slice-miss .cut-impact-frame,

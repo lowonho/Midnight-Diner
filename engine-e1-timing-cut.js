@@ -533,6 +533,12 @@ function timingCutAction(){
   if(data.requiresDoubleTap){
     data.tapStep=1;data.tapWindow=CUT_FEEL_CONFIG.doubleTapWindow;data.pendingGrade=grade;
     playCutIngredientSfx(data,1);
+    /* 첫 타도 두 번째 타처럼 절단선 위에서 긋도록 칼을 선에 붙입니다.
+       판정은 위에서 이미 pendingGrade 로 잡아 두었고 두 번째 타는 그 값을 쓰므로,
+       여기서 칼을 옮겨도 점수·타이밍은 그대로입니다. 안 붙이면 두 획이 서로 다른
+       X 에서 시작해 칼이 옆으로 미끄러지는 것처럼 보입니다. */
+    snapTimingKnifeToTarget(data);
+    syncTimingKnife(data);
     const work=dom.miniContent.querySelector("#prepWorkObject");
     work?.classList.add("tough-first-hit");
     dom.miniContent.querySelector(".cut-board")?.classList.add("cut-embedded");
