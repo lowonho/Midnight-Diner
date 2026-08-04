@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E1 칼질 한 화면 visual smoke</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다. DAY_PREP_ASSET_PATHS 의 경로가
+       index.html(루트) 기준이라, 이게 없으면 tools/assets/... 를 찾다 전부 실패해
+       임시 CSS 도형만 보입니다. 아래 경로도 전부 루트 기준으로 적습니다. -->
+  <base href="../">
+  <!-- 실제 게임과 같은 순서 · 같은 파일입니다 (index.html 참고) -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    /* 오버레이는 평소 숨어 있습니다 — 스모크에서는 항상 켭니다 */
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- .active 가 없으면 .app-screen 이 display:none 이라 화면이 통째로 0x0 이 됩니다 -->
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
+  <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
+  <script src="ui-mini-frame.js"></script>
+  <script>
+    "use strict";
+    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E1 이 실제로 만지는
+       것만 흉내 냅니다 — 전역 state / dom / audio / clamp / finish* 입니다. */
+    const state = { day:4, mini:null };
+    const audio = new Proxy({}, { get:() => () => {} });
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+    function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+    function finishMini(score){ document.body.dataset.finished = String(score); }
+    function finishDayPrepTask(taskId,message){ document.body.dataset.finished = `${taskId}:${message}`; }
+    function showToast(){}
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e1-timing-cut.js"></script>
+  <script>
+    "use strict";
+    /* 썰기 한 화면을 그대로 그려 놓고 잽니다. 화면을 베껴 그리지 않고
+       실제 진입로(startCuttingMinigame → renderTimingCut)를 부릅니다.
+
+         ?ingredient=  radish|greenOnion|cabbage|chicken|kimchi|tofu|fishCake
+         ?stage=N      몇 번 썬 뒤인가 (기본 0)
+         ?hit=1        방금 썬 순간(.slice-hit) — 칼 이펙트를 붙여 봅니다
+         ?start=1      카운트다운이 끝난 출발 자리 그대로 (stage 무시).
+                       칼이 첫 절단선보다 한 칸 오른쪽에 서는데, 재료를 키우면
+                       그 자리가 도마 밖이라 3초 동안 칼이 잘려 보입니다 */
+    const params = new URLSearchParams(location.search);
+    /* ⚠️ 떡볶이 3종(양배추 · 대파 · 어묵)은 그림 키가 assetPrefix 로 따로 등록돼
+       있습니다(day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE). 안 넘기면 키를
+       못 찾아 임시 CSS 도형이 나오고, 에셋 검증이 통째로 헛돕니다. */
+    const CASES = {
+      radish:{ total:7, label:"무" },
+      greenOnion:{ total:7, label:"대파", assetPrefix:"tteokGreenOnion", assetStageMax:7 },
+      cabbage:{ total:12, label:"양배추", assetPrefix:"tteokCabbage", assetStageMax:12 },
+      chicken:{ total:11, label:"닭고기", requiresDoubleTap:true },
+      kimchi:{ total:9, label:"김치" },
+      tofu:{ total:6, label:"두부", horizontalLastCut:true },
+      fishCake:{ total:4, label:"어묵", assetPrefix:"tteokFishCake", assetStageMax:4, horizontalLastCut:true }
+    };
+    const ingredient = CASES[params.get("ingredient")] ? params.get("ingredient") : "radish";
+    const config = CASES[ingredient];
+    const stage = Math.max(0, Math.min(config.total, Number(params.get("stage")) || 0));
+
+    loadDayPrepAssets().then(() => {
+      state.mini = { context:{ mode:"dayPrep" }, engine:null, complete:false, data:null };
+      startCuttingMinigame({
+        taskId:`smoke-${ingredient}`,
+        ingredient,
+        ingredientLabel:config.label,
+        assetPrefix:config.assetPrefix||"",
+        assetStageMax:config.assetStageMax,
+        requiredHits:config.total,
+        requiresDoubleTap:!!config.requiresDoubleTap,
+        horizontalLastCut:!!config.horizontalLastCut,
+        title:`${config.label} 썰기`,
+        description:"스모크",
+        onComplete(){}
+      });
+      /* 카운트다운을 걷어내고 원하는 진행도로 옮긴 뒤 다시 그립니다 —
+         진행 중 화면(절단선·칼·완성 개수)이 이 하네스의 본론입니다. */
+      const data = state.mini.data;
+      data.phase = "ready";
+      data.inputLocked = false;
+      data.countdownRemaining = 0;
+      data.countdownStep = 0;
+      /* ?start=1 은 startCuttingMinigame 이 잡아 둔 출발 좌표를 그대로 둡니다.
+         그 자리가 이 하네스에서 제일 아슬아슬한 자리입니다 (칼이 재료 오른쪽 끝
+         **밖**에 서므로, 재료를 키우면 여기가 제일 먼저 도마를 넘칩니다). */
+      if(params.get("start") !== "1"){
+        data.successes = stage;
+        const target = timingCutTarget(data);
+        if(target.axis === "x") data.knifeX = target.value;
+        else data.knifeY = target.value;
+      }
+      renderTimingCut();
+      if(params.get("hit") === "1"){
+        document.querySelector("#prepWorkObject")?.classList.add("slice-hit","slice-perfect");
+        document.querySelector(".cut-board")?.classList.add("cut-perfect");
+      }
+      measure();
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    function measure(){
+      const rect = el => el.getBoundingClientRect();
+      const board = document.querySelector(".cut-board");
+      const work = document.querySelector("#prepWorkObject");
+      /* 화면 배율(--upx). 크기가 전부 calc(N * var(--upx)) 이라 잰 px 을 이 값으로
+         나누면 CSS 가 적어 둔 1920 프레임 기준 N 이 나옵니다.
+         ⚠️ getPropertyValue("--upx") 로는 못 읽습니다 (calc 문자열 그대로입니다). */
+      const ruler = document.createElement("i");
+      ruler.style.cssText = "position:absolute;width:calc(100 * var(--upx))";
+      board.appendChild(ruler);
+      const scale = ruler.getBoundingClientRect().width / 100 || 1;
+      ruler.remove();
+      const u = r => `${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}`;
+
+      const boardRect = rect(board), workRect = rect(work);
+      const boardStyle = getComputedStyle(board);
+      const inner = {
+        w:(boardRect.width - parseFloat(boardStyle.borderLeftWidth) * 2
+           - parseFloat(boardStyle.paddingLeft) - parseFloat(boardStyle.paddingRight)) / scale,
+        h:(boardRect.height - parseFloat(boardStyle.borderTopWidth) * 2
+           - parseFloat(boardStyle.paddingTop) - parseFloat(boardStyle.paddingBottom)) / scale
+      };
+      const objectAsset = work.querySelector(".prep-object-asset");
+      /* 그림이 상자를 꽉 채우는지 (contain 이라 비율이 어긋나면 레터박스가 생깁니다).
+         절단선 % 계산이 "그림 = 상자" 를 전제하므로 여기가 1.000 이어야 맞습니다. */
+      const fill = (() => {
+        if(!objectAsset?.naturalWidth) return null;
+        const ratio = objectAsset.naturalWidth / objectAsset.naturalHeight;
+        const w = Math.min(workRect.width, workRect.height * ratio);
+        const h = Math.min(workRect.height, workRect.width / ratio);
+        return { w:+(w / workRect.width).toFixed(3), h:+(h / workRect.height).toFixed(3) };
+      })();
+      const knife = document.querySelector(".knife-effect");
+      const knifeRect = knife && rect(knife);
+      const sampleAssets = [...document.querySelectorAll(".cut-card-figure .cut-sample")];
+
+      document.body.dataset.measure = JSON.stringify({
+        ingredient, stage,
+        boardInner:`${inner.w.toFixed(1)}x${inner.h.toFixed(1)}`,
+        object:u(workRect),
+        // 재료가 도마 안쪽을 가로·세로로 몇 % 채우는지 (사용자 요구: 꽉 차게)
+        objectFillsBoard:{ w:+(workRect.width / scale / inner.w).toFixed(3),
+                           h:+(workRect.height / scale / inner.h).toFixed(3) },
+        // 1.000 이 아니면 상자 비율과 그림 비율이 어긋나 레터박스가 생긴 것입니다
+        assetFillsBox:fill,
+        assetFile:objectAsset?.getAttribute("src") || null,
+        assetNatural:objectAsset?.naturalWidth ? `${objectAsset.naturalWidth}x${objectAsset.naturalHeight}` : null,
+        // 도마 안쪽을 벗어나면 재료·칼이 잘려 보입니다
+        objectClipped:{ top:+(boardRect.top - workRect.top > 0), bottom:+(workRect.bottom - boardRect.bottom > 0),
+                        left:+(boardRect.left - workRect.left > 0), right:+(workRect.right - boardRect.right > 0) },
+        knife:knifeRect ? u(knifeRect) : null,
+        knifeFile:knife?.querySelector(".knife-asset")?.getAttribute("src") || null,
+        // 칼이 도마 밖으로 잘리는지 (세로 칼은 위아래, 출발 자리는 오른쪽이 위험합니다)
+        knifeClipped:knifeRect ? { top:+(boardRect.top - knifeRect.top > 0),
+                                   bottom:+(knifeRect.bottom - boardRect.bottom > 0),
+                                   right:+(knifeRect.right - boardRect.right > 0) } : null,
+        // 출발 자리(--knife-x). 첫 박자가 이후 박자와 같은 길이인지 함께 봅니다
+        knifeStartX:state.mini.data.knifeX,
+        firstBeatRatio:(() => {
+          const positions = CUT_POSITION_PERCENTAGES[ingredient];
+          if(!positions || positions.length < 2) return null;
+          const gap = Math.abs(positions[0] - positions[1]);
+          return +((CUT_FEEL_CONFIG.startXCeiling >= positions[0] + gap
+            ? gap : CUT_FEEL_CONFIG.startXCeiling - positions[0]) / gap).toFixed(3);
+        })(),
+        /* 칼날이 다음 절단선 위에 서 있는지 — 1920 프레임 기준 px 차이.
+           세로 썰기는 칼의 **왼쪽 끝**이 날이고, 가로 썰기는 **아래 끝**이 날입니다.
+           ⚠️ ?start=1 에서는 칼이 일부러 한 칸 오른쪽에 서 있으므로 0 이 아닙니다.
+              출발 자리에서 볼 값은 knifeClipped.right 와 firstBeatRatio 입니다. */
+        knifeEdgeOffPx:(() => {
+          const line = work.querySelector(".cut-line.active") || work.querySelector(".tofu-horizontal-line");
+          if(!knifeRect || !line) return null;
+          const lr = rect(line);
+          return work.classList.contains("horizontal-cut")
+            ? +((knifeRect.bottom - lr.top) / scale).toFixed(1)
+            : +((knifeRect.left - lr.left) / scale).toFixed(1);
+        })(),
+        horizontalCut:work.classList.contains("horizontal-cut"),
+        /* 가로 절단선(.tofu-horizontal-line)이 실제로 눕는지.
+           `.cut-line` 이 뒤에 와서 top/bottom/width 를 도로 세로로 돌려놓기 쉬운 자리라
+           눈으로는 잘 안 보이고 마지막 한 번의 안내선만 조용히 틀어집니다. */
+        horizontalLine:(() => {
+          const el = work.querySelector(".tofu-horizontal-line");
+          if(!el) return null;
+          const r = rect(el), s = getComputedStyle(el);
+          return { box:`${(r.width / scale).toFixed(1)}x${(r.height / scale).toFixed(1)}`,
+                   top:s.top, bottom:s.bottom, width:s.width,
+                   borderTop:s.borderTopWidth, borderLeft:s.borderLeftWidth,
+                   // 재료 상자 기준 세로 한가운데(50%)에 있어야 맞습니다
+                   atPercent:+(((r.top + r.height / 2) - workRect.top) / workRect.height * 100).toFixed(1) };
+        })(),
+        fx:(() => { const el = document.querySelector(".cut-impact-fx");
+          return el ? { size:u(rect(el)), frames:el.querySelectorAll(".cut-impact-frame").length } : null; })(),
+        // 왼쪽 재료 카드 · 오른쪽 완성 예시 — 그림이 액자 밖으로 잘리는지 봅니다
+        samples:sampleAssets.map(el => {
+          const img = el.querySelector(".cut-sample-asset"), figure = el.closest(".cut-card-figure");
+          const r = rect(el), fr = rect(figure);
+          let boxFill = null;
+          if(img?.naturalWidth){
+            const ratio = img.naturalWidth / img.naturalHeight;
+            boxFill = { w:+(Math.min(r.width, r.height * ratio) / r.width).toFixed(3),
+                        h:+(Math.min(r.height, r.width / ratio) / r.height).toFixed(3) };
+          }
+          return { where:el.closest(".cut-ref-card") ? "완성예시" : "재료카드", size:u(r),
+                   assetFillsBox:boxFill,
+                   overflow:{ left:+(fr.left - r.left > .5), right:+(r.right - fr.right > .5),
+                              top:+(fr.top - r.top > .5), bottom:+(r.bottom - fr.bottom > .5) } };
+        }),
+        lines:[...work.querySelectorAll(".cut-line")].length
+      });
+      document.body.dataset.ready = "true";
+    }
+  </script>
+</body>
+</html>

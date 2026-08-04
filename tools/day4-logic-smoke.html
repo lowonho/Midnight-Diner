@@ -118,7 +118,7 @@ try{
   assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 advances to the next supplied asset while removing only the extra completed seam");
   const tteokCabbage=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="cabbage");
   const cabbageStages=Array.from({length:13},(_,successes)=>cutAssetStage({ingredient:"cabbage",total:12,successes})).join(",");
-  assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="71.4,67.3,63.1,59.2,55.5,51.7,47.8,43.8,40,35.8,32.2,28.4"&&CUT_ASSET_STAGE_MAX.cabbage===12,"E1 cabbage uses all twelve supplied cut gaps");
+  assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5"&&CUT_ASSET_STAGE_MAX.cabbage===12,"E1 cabbage uses all twelve supplied cut gaps");
   assert(cabbageStages==="0,1,2,3,4,5,6,7,8,9,10,11,12"&&tteokCabbage.progressSprites.length===13&&DAY_PREP_ASSET_PATHS.tteokCabbage12==="assets/minigame/E1/cabbage-12.png","E1 cabbage maps twelve cuts one-to-one onto thirteen progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
@@ -133,15 +133,17 @@ try{
   const greenOnionLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const tteokGreenOnion=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="greenOnion");
   const greenOnionStages=Array.from({length:8},(_,successes)=>cutAssetStage({ingredient:"greenOnion",total:7,successes})).join(",");
-  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="76.6%"&&greenOnionLines==="76.6%,68.6%,59.9%,52.1%,42.6%,34%,26%","E1 green onion uses seven supplied cut gaps from the white root side toward the green side");
+  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="87.7%"&&greenOnionLines==="87.7%,76.3%,63.8%,52.6%,39%,26.6%,15.2%","E1 green onion uses seven supplied cut gaps from the white root side toward the green side");
   assert(CUT_ASSET_STAGE_MAX.greenOnion===7&&greenOnionStages==="0,1,2,3,4,5,6,7"&&tteokGreenOnion.requiredPieces===7&&tteokGreenOnion.progressSprites.length===8,"E1 both green onion tasks map seven cuts one-to-one onto eight progress assets");
-  assert(DAY_PREP_ASSET_PATHS.greenOnion0==="assets/minigame/E1/green-onion-0.png"&&DAY_PREP_ASSET_PATHS.greenOnion7==="assets/minigame/E1/green-onion-7.png"&&DAY_PREP_ASSET_PATHS.knife==="assets/minigame/E1/knife.png","E1 cutting assets use the unified minigame folder");
+  assert(DAY_PREP_ASSET_PATHS.greenOnion0==="assets/minigame/E1/green-onion-0.png"&&DAY_PREP_ASSET_PATHS.greenOnion7==="assets/minigame/E1/green-onion-7.png"&&DAY_PREP_ASSET_PATHS.knife==="assets/minigame/E1/prop_knife_chop_vertical_ready_v4.png","E1 cutting assets use the unified minigame folder");
+  // 칼은 세로·가로 두 장, 썰릴 때 터지는 이펙트는 3장이 한 벌입니다
+  assert(DAY_PREP_ASSET_PATHS.knifeHorizontal==="assets/minigame/E1/prop_knife_chop_horizontal_ready_v2.png"&&[1,2,3].every(no=>DAY_PREP_ASSET_PATHS[`cutImpactFx${no}`]===`assets/minigame/E1/fx_knife_board_impact_vertical_0${no}.png`),"E1 knife props and impact effect frames are registered");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeRadish",ingredient:"radish",requiredHits:7,hitTolerance:2.8,travelSpeed:22,title:"E1 radish smoke",description:"smoke"});
   const radishLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const radishStages=Array.from({length:8},(_,successes)=>cutAssetStage({ingredient:"radish",total:7,successes})).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutRadish.total===7&&DAY_PREP_MINI_CONFIG.cutRadish.travelSpeed===22&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="78.3%"&&radishLines==="78.3%,70.6%,62.6%,54.6%,46.9%,38.6%,30.2%","E1 radish uses the seven supplied cut gaps from right to left");
+  assert(DAY_PREP_MINI_CONFIG.cutRadish.total===7&&DAY_PREP_MINI_CONFIG.cutRadish.travelSpeed===22&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="89.8%"&&radishLines==="89.8%,79%,67.8%,56.5%,45.7%,34.1%,22.3%","E1 radish uses the seven supplied cut gaps from right to left");
   assert(CUT_ASSET_STAGE_MAX.radish===7&&radishStages==="0,1,2,3,4,5,6,7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E1 radish maps seven cuts one-to-one onto eight progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
@@ -155,7 +157,7 @@ try{
   startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:2.8,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
   const kimchiLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
   const kimchiStages=Array.from({length:10},(_,successes)=>cutAssetStage({ingredient:"kimchi",total:9,successes})).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutTofuKimchi.total===9&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.total===9&&kimchiLines==="73.8%,68%,62.2%,56.5%,51%,45.3%,39.6%,33.7%,28.5%","E1 both kimchi tasks use the nine supplied cut gaps");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuKimchi.total===9&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.total===9&&kimchiLines==="89.6%,79.9%,70.3%,60.8%,51.7%,42.2%,32.7%,22.9%,14.3%","E1 both kimchi tasks use the nine supplied cut gaps");
   assert(CUT_ASSET_STAGE_MAX.kimchi===9&&kimchiStages==="0,1,2,3,4,5,6,7,8,9"&&DAY_PREP_ASSET_PATHS.kimchiCut9==="assets/minigame/E1/kimchi-9.png","E1 kimchi maps nine cuts one-to-one onto ten progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
@@ -168,7 +170,7 @@ try{
   startCuttingMinigame({taskId:"smokeChicken",ingredient:"chicken",requiredHits:1,hitTolerance:3,travelSpeed:15,requiresDoubleTap:true,title:"E1 chicken smoke",description:"smoke"});
   const chickenStages=Array.from({length:12},(_,successes)=>cutAssetStage({ingredient:"chicken",total:11,successes})).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutSkewerChicken.total===11&&CUT_POSITION_PERCENTAGES.chicken.length===11,"E1 chicken uses eleven fine cuts");
-  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="77%","E1 chicken knife path starts at the first supplied sprite gap");
+  assert(dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--cut-x")==="91.4%","E1 chicken knife path starts at the first supplied sprite gap");
   assert(CUT_ASSET_STAGE_MAX.chicken===11&&chickenStages==="0,1,2,3,4,5,6,7,8,9,10,11"&&DAY_PREP_ASSET_PATHS.chicken11==="assets/minigame/E1/chicken-11.png","E1 chicken maps eleven cuts one-to-one onto twelve progress assets");
   MINI_ENGINES.timing.update(state.mini,3.1);
   state.mini.data.knifeX=suppliedCutPosition("chicken",0,1);timingCutAction();

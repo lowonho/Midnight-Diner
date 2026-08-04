@@ -79,6 +79,19 @@
   border-radius: calc(13 * var(--upx));
   background: linear-gradient(105deg,#d99c4d,#e8b767 48%,#c88239);
 }
+/* 재료 그림 파일의 가로:세로. 도마 위 재료(.prep-work-object)와 카드 안 견본
+   (.cut-sample)이 같은 값을 씁니다 — 두 자리 다 그림을 통째로 보여줘야 해서
+   상자 비율을 그림에 맞춥니다.
+   ⚠️ 납품 에셋을 갈아 끼우면 여기 숫자도 같이 재세요. 값이 어긋나면 그림이
+      상자 안에서 레터박스로 뜨고, 절단선(engine-e1-timing-cut.js 의
+      CUT_POSITION_PERCENTAGES)이 실제 칼자국에서 밀립니다. */
+.radish-shape     { --ing-ar: 1096 / 266; }
+.greenOnion-shape { --ing-ar: 1071 / 242; }
+.cabbage-shape    { --ing-ar: 777 / 592; }
+.chicken-shape    { --ing-ar: 1001 / 337; }
+.kimchi-shape     { --ing-ar: 924 / 435; }
+.tofu-shape       { --ing-ar: 834 / 360; }
+.fishCake-shape   { --ing-ar: 729 / 517; }
 .cut-line {
   position: absolute;
   top: calc(-5 * var(--upx));
@@ -88,6 +101,18 @@
   opacity: .65;
 }
 .cut-line.done { border-left-style: solid; border-color: #65804a; opacity: 1; }
+/* ⚠️ 위 .tofu-horizontal-line 은 .cut-line 보다 **앞줄**이라 top/bottom/width 를
+   도로 세로선 값으로 뺏깁니다(둘 다 특정도가 같아 뒤가 이깁니다). 그래서
+   두부·어묵 마지막 한 번의 가로 안내선이 재료 왼쪽 위 귀퉁이의 3x3 점으로
+   찌그러져 있었습니다 — 눈에 안 띄어 그대로 있었습니다. 여기서 다시 눕힙니다. */
+.cut-line.tofu-horizontal-line {
+  top: 50%;
+  bottom: auto;
+  width: auto;
+  height: calc(3 * var(--upx));
+  border-left: 0;
+  border-top: calc(3 * var(--upx)) dashed #763d2d;
+}
 .prep-work-object.slice-hit { animation: prep-slice-hit .16s ease; }
 .prep-work-object.tough-first-hit { transform:translateY(calc(3 * var(--upx))); filter:drop-shadow(0 calc(4 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.35)); }
 .prep-work-object.has-prep-asset .cut-line { opacity: .35; }
@@ -256,6 +281,21 @@
 }
 .cut-sample-asset { width: 100%; height: 100%; object-fit: contain; }
 .cut-ref-card .cut-card-figure .cut-sample { width: calc(160 * var(--upx)); height: calc(120 * var(--upx)); }
+/* 에셋이 있으면 견본도 그림 비율(--ing-ar) 그대로 놓습니다.
+   원래는 160x52 · 160x120 고정 상자에 `object-fit:cover` 로 채워 넣었습니다.
+   여백 없는 새 납품본에서는 그게 곧 재료 끝을 잘라내는 규칙이 됩니다.
+   폭은 카드 안쪽(약 210)에 맞추고, 세로로 큰 재료만 높이로 걸립니다. */
+.cut-card-figure .cut-sample.has-prep-asset {
+  width: calc(196 * var(--upx));
+  height: auto;
+  max-height: calc(148 * var(--upx));
+  aspect-ratio: var(--ing-ar);
+  overflow: visible;
+}
+.cut-ref-card .cut-card-figure .cut-sample.has-prep-asset {
+  width: calc(196 * var(--upx));
+  max-height: calc(150 * var(--upx));
+}
 
 /* 완성 예시 그릇 (에셋이 없을 때만. 있으면 위 .cut-sample 그림을 씁니다) */
 .cut-done-bowl { position: relative; width: calc(148 * var(--upx)); height: calc(96 * var(--upx)); }
@@ -345,24 +385,10 @@
   height: calc(178 * var(--upx));
   transform-origin: 50% 78%;
 }
+/* 재료 상자 크기 (임시 CSS 도형용 기본값).
+   에셋이 들어오면 바로 아래 "에셋 기준 상자" 블록이 폭·비율을 다시 잡습니다. */
 .cut-board .prep-work-object.radish-shape { width:min(96%,calc(780 * var(--upx))); height:calc(150 * var(--upx)); }
-.cut-board .prep-work-object.radish-shape.has-prep-asset > .prep-object-asset,
-.cut-card-figure .cut-sample.radish-shape.has-prep-asset > .cut-sample-asset {
-  object-fit:cover;
-  object-position:center 46.8%;
-}
-.cut-card-figure .cut-sample.radish-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.greenOnion-shape { width:min(96%,calc(780 * var(--upx))); height:calc(138 * var(--upx)); }
-.cut-board .prep-work-object.greenOnion-shape.has-prep-asset > .prep-object-asset,
-.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset > .cut-sample-asset {
-  object-fit:cover;
-  object-position:center 47.4%;
-}
-.cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset { overflow:hidden; }
-.cut-ref-card .cut-card-figure .cut-sample.greenOnion-shape.has-prep-asset {
-  width:calc(210 * var(--upx));
-  height:calc(64 * var(--upx));
-}
 .cut-board .prep-work-object.radish-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.cabbage-shape.has-prep-asset .cut-line,
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset .cut-line,
@@ -384,28 +410,42 @@
   filter: drop-shadow(0 0 calc(5 * var(--upx)) rgba(255,184,65,.95));
 }
 .cut-board .prep-work-object.cabbage-shape { width:min(88%,calc(620 * var(--upx))); height:calc(300 * var(--upx)); }
-.cut-board .prep-work-object.cabbage-shape.has-prep-asset > .prep-object-asset,
-.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset > .cut-sample-asset {
-  object-fit:cover;
-  object-position:center 49.7%;
-}
-.cut-card-figure .cut-sample.cabbage-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.chicken-shape { width:min(94%,calc(760 * var(--upx))); height:calc(190 * var(--upx)); }
-.cut-board .prep-work-object.chicken-shape > .prep-object-asset,
-.cut-card-figure .cut-sample.chicken-shape > .cut-sample-asset {
-  object-fit:cover;
-  object-position:center 50.3%;
-}
-.cut-card-figure .cut-sample.chicken-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.kimchi-shape { width:min(94%,calc(760 * var(--upx))); height:calc(230 * var(--upx)); }
-.cut-board .prep-work-object.kimchi-shape > .prep-object-asset,
-.cut-card-figure .cut-sample.kimchi-shape > .cut-sample-asset {
-  object-fit:cover;
-  object-position:center 50.5%;
-}
-.cut-card-figure .cut-sample.kimchi-shape.has-prep-asset { overflow:hidden; }
 .cut-board .prep-work-object.fishCake-shape { width:min(60%,calc(288 * var(--upx))); height:calc(204 * var(--upx)); }
 .cut-board .prep-work-object.tofu-shape { width:min(68%,calc(360 * var(--upx))); height:calc(220 * var(--upx)); }
+
+/* ── 에셋 기준 상자 ────────────────────────────────────────
+   원래는 여백이 넉넉한 1536x1024 납품본을 `object-fit:cover` 로 잘라
+   쓰느라, 상자 비율과 그림 비율이 서로 달라도 됐습니다.
+   2026-08 납품본에서 그 여백이 사라지면서 같은 규칙이 **재료 자체를**
+   잘라내기 시작했습니다 (왼쪽 재료 카드에서 무 끝이 잘려 보이던 증상).
+
+   이제 상자를 그림 비율(--ing-ar)로 만들고 그림은 통째로 보여줍니다.
+   덕분에 "그림 = 상자" 가 되어 절단선 % 계산도 그림 기준 그대로입니다.
+     · 폭(--cut-obj-w)만 재료마다 잡으면 높이는 비율이 따라옵니다.
+     · 도마 안쪽은 765 x 458 입니다. 세로로 큰 양배추만 높이에 걸려 폭이
+       작습니다. max-height 로 한 번 더 막아 둡니다.
+   ⚠️ 폭을 더 키우지 마세요. 칼은 첫 절단선보다 한 칸 오른쪽(그림 폭의 최대
+      101% — engine-e1-timing-cut.js 의 startXCeiling)에서 출발하는데, 그
+      자리가 도마 밖이면 카운트다운 3초 동안 칼이 잘려 보입니다.
+      들어갈 수 있는 최대 폭은 `332.5 / (1.01 - 0.5) ≈ 652` 입니다
+      (재료가 가운데 정렬이라 폭을 키우면 왼쪽 여백도 같이 줄어듭니다).
+      실제로 걸리는지는 tools/e1-cut-screen-visual-smoke.html 의
+      ?start=1 이 `knifeStartClipped` 로 알려 줍니다. */
+.cut-board .prep-work-object.has-prep-asset {
+  width: min(100%, calc(var(--cut-obj-w,620) * var(--upx)));
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: var(--ing-ar);
+}
+.cut-board .prep-work-object.radish-shape.has-prep-asset     { --cut-obj-w: 650; }
+.cut-board .prep-work-object.greenOnion-shape.has-prep-asset { --cut-obj-w: 650; }
+.cut-board .prep-work-object.chicken-shape.has-prep-asset    { --cut-obj-w: 650; }
+.cut-board .prep-work-object.kimchi-shape.has-prep-asset     { --cut-obj-w: 640; }
+.cut-board .prep-work-object.cabbage-shape.has-prep-asset    { --cut-obj-w: 560; }
+.cut-board .prep-work-object.tofu-shape.has-prep-asset       { --cut-obj-w: 600; }
+.cut-board .prep-work-object.fishCake-shape.has-prep-asset   { --cut-obj-w: 470; }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
    올라가므로 테두리·바닥만 끄고 안쪽 배치(px)는 그대로 둡니다. */
 .cut-board .rapid-cut-stage { border: 0; background: none; box-shadow: none; overflow: visible; }
@@ -474,36 +514,45 @@
   /* 칼끝이 아래를 향한 식칼 모양 */
   clip-path: polygon(8% 0,100% 0,100% 72%,58% 100%,0 84%);
 }
+/* 세로 칼 (prop_knife_chop_vertical_ready) — 손잡이가 아래, 칼끝이 위,
+   날이 왼쪽입니다. 그림 여백을 잘라낸 파일이라 "상자 = 칼" 이고,
+   상자 폭만 정하면 길이는 비율(135:1351)이 따라옵니다.
+   --knife-x 는 칼 중심이 아니라 **날(왼쪽 끝)** 자리라, 반 칼폭만큼 오른쪽으로
+   밀어 날이 절단선 위에 서게 합니다. 예전 납품본은 세로로 길쭉해 상자를
+   220x410 으로 크게 잡고 그림을 scaleX(1.48) 로 늘려 썼는데, 새 그림은
+   칼폭이 제대로 그려져 있어 늘리지 않습니다. */
 .cut-screen .knife-effect.has-prep-asset {
-  top:calc(-72 * var(--upx));
-  width:calc(220 * var(--upx));
-  height:calc(410 * var(--upx));
-  /* 칼 몸통 중심이 아니라 오른쪽 절삭날이 점선 위에 오도록 반 칼폭만 왼쪽으로 당깁니다. */
-  /* --knife-x는 칼 중심이 아니라 세로 칼날의 보이는 왼쪽 끝입니다. */
-  margin-left:calc(25 * var(--upx));
+  top:calc(var(--knife-top,-96) * var(--upx));
+  width:calc(var(--knife-w,50) * var(--upx));
+  height:calc(var(--knife-h,406) * var(--upx));
+  margin-left:calc(var(--knife-w,50) * var(--upx) / 2);
   --knife-turn:0deg;
   transform-origin:50% 50%;
 }
+/* `fill` 이라 상자 = 보이는 칼 입니다. contain 으로 두면 상자 안에서 그림이
+   가운데로 몰려 위 margin-left 보정(반 칼폭)이 어긋납니다.
+   세로로만 조금 눌린 셈인데(그림 그대로면 도마 높이 458 에 칼폭이 41 밖에
+   안 나옵니다), 예전 scaleX(1.48) 보다 훨씬 약합니다. */
 .cut-screen .knife-effect.has-prep-asset .knife-asset {
-  transform:scaleX(1.48);
-  transform-origin:50% 50%;
+  width:100%;
+  height:100%;
+  object-fit:fill;
 }
-/* 두부·김치·양배추·닭은 칼 크기와 절단선 정렬은 유지하고 세로 위치만 내립니다. */
-.cut-screen .tofu-shape .knife-effect.has-prep-asset,
-.cut-screen .kimchi-shape .knife-effect.has-prep-asset,
-.cut-screen .cabbage-shape .knife-effect.has-prep-asset,
-.cut-screen .chicken-shape .knife-effect.has-prep-asset {
-  top:calc(-42 * var(--upx));
-}
-/* 양배추는 둥근 중심부를 지나도록 위 보정값에서 20px 더 내립니다. */
-.cut-screen .cabbage-shape .knife-effect.has-prep-asset {
-  top:calc(-22 * var(--upx));
-}
-/* 칼 크기는 무·대파와 같은 공용 규격을 유지하고, 어묵에서만 중심을 아래로 내립니다. */
-.cut-screen .fishCake-shape:not(.horizontal-cut) .knife-effect.has-prep-asset {
-  top:calc(-42 * var(--upx));
-}
-/* 두부 마지막 한 번은 가로 썰기라 칼도 눕습니다 (기존 규칙을 도마 안에서 다시 잡습니다) */
+/* 재료마다 상자 높이가 달라 도마 안에서 재료가 앉는 자리도 다릅니다.
+   칼 위치는 그 자리에 맞춰 재료별로 잡습니다 — 위로는 도마 밖으로 나가고
+   아래로는 손잡이가 잘리므로, 도마 안쪽(458) 안에 칼 전체가 들어와야 합니다. */
+.cut-screen .greenOnion-shape .knife-effect.has-prep-asset { --knife-top:-103; }
+.cut-screen .chicken-shape .knife-effect.has-prep-asset { --knife-top:-62; }
+.cut-screen .tofu-shape .knife-effect.has-prep-asset { --knife-top:-58; }
+.cut-screen .fishCake-shape:not(.horizontal-cut) .knife-effect.has-prep-asset { --knife-top:-38; }
+.cut-screen .kimchi-shape .knife-effect.has-prep-asset { --knife-top:-18; }
+/* 양배추 상자가 가장 높아(≈427) 칼이 도마 위로 삐져나가지 않게 더 내립니다. */
+.cut-screen .cabbage-shape .knife-effect.has-prep-asset { --knife-top:26; }
+
+/* 두부 마지막 한 번은 가로 썰기입니다. 예전에는 세로 칼을 -90도 돌려 썼는데
+   눕힌 그림(prop_knife_chop_horizontal_ready)이 따로 와서 그대로 놓습니다.
+   그림은 칼끝이 왼쪽 · 손잡이가 오른쪽 · 날이 아래쪽이라, 상자 **아래 끝**을
+   --knife-y 에 맞추면 날이 절단선 위에 섭니다. */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect {
   left: 50%;
   top: calc(50% - 24 * var(--upx));
@@ -515,6 +564,17 @@
 }
 .cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect {
   top:calc(var(--knife-y, 50%) - 24 * var(--upx));
+}
+.cut-screen .tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset,
+.cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset {
+  left:50%;
+  top:var(--knife-y,50%);
+  width:calc(560 * var(--upx));
+  height:auto;
+  aspect-ratio:1366 / 155;
+  margin-left:0;
+  transform:translate(-50%,-100%);
+  transform-origin:50% 100%;
 }
 /* 눕힌 칼은 손잡이를 감추고 칼날만 가로 막대로 씁니다 */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect::before { display: none; }
@@ -532,6 +592,7 @@
 }
 .cut-screen .prep-work-object.slice-hit .knife-effect { animation: cut-knife-chop .18s ease; }
 .cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect { animation: cut-knife-chop-side .18s ease; }
+.cut-screen .tofu-cook-object.horizontal-cut.slice-hit .knife-effect.has-prep-asset { animation: cut-knife-chop-side-asset .18s ease; }
 .cut-screen .prep-work-object.slice-perfect .knife-effect { animation-duration: .22s; filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,221,116,.9)); }
 .cut-screen .prep-work-object.slice-miss .knife-effect { animation: cut-knife-miss .15s ease-out; }
 
@@ -550,6 +611,50 @@
 }
 .cut-screen .prep-work-object.slice-hit .cut-spark { animation: cut-spark-flash .26s ease-out; }
 .cut-screen .prep-work-object.slice-perfect .cut-spark { animation: cut-spark-perfect .34s ease-out; }
+/* 이펙트 그림이 들어오면 위 CSS 불꽃은 끕니다 (두 개가 겹쳐 뜹니다) */
+.cut-screen .prep-work-object:has(.cut-impact-fx) .cut-spark { display: none; }
+
+/* 썰리는 순간 도마에 터지는 이펙트 (fx_knife_board_impact_vertical 3장).
+   세 장이 같은 캔버스라 같은 자리에 겹쳐 두고 차례로 켜기만 합니다 —
+   낱장으로 잘린 파일을 쓰면 프레임마다 자리가 튑니다.
+   그림 안에서 도마에 닿는 자리가 가로 50% · 세로 68.8% 라, 그 점을
+   회전 중심으로 잡아 두면 가로 썰기에서 90도 돌려도 자리가 안 흔들립니다. */
+.cut-screen .cut-impact-fx {
+  position: absolute;
+  z-index: 5;
+  left: var(--cut-x, 50%);
+  top: 50%;
+  /* 그림이 세로로 길어(424:1642) 폭을 잡으면 도마를 넘칩니다. 높이로 잡습니다. */
+  height: calc(var(--cut-fx-h,286) * var(--upx));
+  aspect-ratio: 424 / 1642;
+  opacity: 0;
+  transform: translate(-50%,-68.8%);
+  transform-origin: 50% 68.8%;
+  pointer-events: none;
+}
+.cut-screen .cut-impact-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+}
+/* 두부 마지막 가로 썰기 : 세로 이펙트를 그대로 눕혀 씁니다 */
+.cut-screen .tofu-cook-object.horizontal-cut .cut-impact-fx {
+  left: 50%;
+  top: var(--knife-y, 50%);
+  transform: translate(-50%,-68.8%) rotate(90deg);
+}
+.cut-screen .prep-work-object.slice-hit .cut-impact-fx { opacity: 1; }
+.cut-screen .prep-work-object.slice-hit .cut-impact-1 { animation: cut-impact-frame .08s steps(1) both; }
+.cut-screen .prep-work-object.slice-hit .cut-impact-2 { animation: cut-impact-frame .08s steps(1) .06s both; }
+.cut-screen .prep-work-object.slice-hit .cut-impact-3 { animation: cut-impact-tail .26s ease-out .12s both; }
+.cut-screen .prep-work-object.slice-perfect .cut-impact-3 { animation-duration: .34s; }
+/* 빗나가면 도마만 얕게 찍힙니다 — 마지막 장 없이 첫 두 장만 짧게 */
+.cut-screen .prep-work-object.slice-miss .cut-impact-fx { opacity: .55; }
+.cut-screen .prep-work-object.slice-miss .cut-impact-1 { animation: cut-impact-frame .07s steps(1) both; }
+.cut-screen .prep-work-object.slice-miss .cut-impact-2 { animation: cut-impact-frame .1s ease-out .05s both; }
 
 /* 판정은 공용 창을 바꾸지 않고 도마 안에서만 짧게 보여줍니다. */
 .cut-judgement {
@@ -723,6 +828,20 @@
   45%  { transform: translate(calc(-50% + 10 * var(--upx)),-50%) rotate(-90deg); }
   100% { transform: translate(-50%,-50%) rotate(-90deg); }
 }
+/* 눕힌 칼 에셋은 아래 끝이 날이라 위에서 내려찍는 모양으로 다시 잡습니다 */
+@keyframes cut-knife-chop-side-asset {
+  0%   { transform: translate(-50%,calc(-100% - 26 * var(--upx))); }
+  45%  { transform: translate(-50%,calc(-100% + 9 * var(--upx))); }
+  100% { transform: translate(-50%,-100%); }
+}
+@keyframes cut-impact-frame {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes cut-impact-tail {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.07); }
+}
 @keyframes cut-knife-miss {
   0% { transform:translateX(-50%) rotate(var(--knife-turn,16deg)) scale(1.04); }
   55% { transform:translateX(calc(-50% + 13 * var(--upx))) rotate(calc(var(--knife-turn,16deg) + 8deg)) scale(.98); }
@@ -767,6 +886,8 @@
   .cut-screen .prep-work-object.slice-hit .knife-effect,
   .cut-screen .prep-work-object.slice-miss .knife-effect,
   .cut-screen .prep-work-object.slice-hit .cut-spark,
+  .cut-screen .prep-work-object.slice-hit .cut-impact-frame,
+  .cut-screen .prep-work-object.slice-miss .cut-impact-frame,
   .cut-judgement.show,
   .cut-board.cut-miss,
   .cut-piece.fresh,.cut-screen .cut-line.fresh-cut,

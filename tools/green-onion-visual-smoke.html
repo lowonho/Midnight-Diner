@@ -33,7 +33,7 @@
     const guide=document.getElementById("guide");
     document.getElementById("asset").src=`../assets/minigame/E1/green-onion-${stage}.png`;
     document.getElementById("label").textContent=`대파 썰기 에셋 · ${stage} / 7`;
-    const cutPositions=[76.6,68.6,59.9,52.1,42.6,34,26];
+    const cutPositions=[87.7,76.3,63.8,52.6,39,26.6,15.2];
     work.style.setProperty("--cut-x",`${cutPositions[Math.min(stage,6)]}%`);
     if(stage===7)guide.hidden=true;
     document.body.dataset.ready="true";
