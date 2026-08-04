@@ -121,27 +121,42 @@ function e13PushHistory(progress){
   if(progress.history.length>E13_FRIDGE_SORT.historyLimit)progress.history.shift();
 }
 
+function e13RevealReservedIngredient(progress,id,fromShelf,toShelf){
+  const preferred=[toShelf,fromShelf,toShelf,...progress.shelves.map((_,index)=>index)];
+  for(let copy=0;copy<E13_FRIDGE_SORT.matchSize;copy+=1){
+    const shelfIndex=preferred.find(index=>{
+      const shelf=progress.shelves[index];
+      return shelf&&shelf.length<E13_FRIDGE_SORT.matchSize&&shelf.filter(itemId=>itemId===id).length<2;
+    });
+    if(!Number.isInteger(shelfIndex))return false;
+    progress.shelves[shelfIndex].push(id);
+    preferred.splice(preferred.indexOf(shelfIndex),1);
+    if(shelfIndex===toShelf)preferred.push(toShelf);
+  }
+  return true;
+}
+
 function e13Move(progress,fromShelf,fromSlot,toShelf){
-  if(!e13CanMove(progress,fromShelf,fromSlot,toShelf))return {moved:false,matchedId:null,nextWave:false};
+  if(!e13CanMove(progress,fromShelf,fromSlot,toShelf))return {moved:false,matchedId:null,revealedId:null};
   e13PushHistory(progress);
   const [id]=progress.shelves[fromShelf].splice(fromSlot,1);
   const target=progress.shelves[toShelf];
   target.push(id);
   let matchedId=null;
-  let nextWave=false;
+  let revealedId=null;
   if(target.length===E13_FRIDGE_SORT.matchSize&&target.every(itemId=>itemId===id)){
     target.length=0;
     if(!progress.picked.includes(id))progress.picked.push(id);
     matchedId=id;
-    if(progress.waveIds.every(waveId=>progress.picked.includes(waveId))&&progress.queue.length){
-      progress.waveIds=progress.queue.splice(0,E13_FRIDGE_SORT.waveSize);
-      progress.shelves=e13BuildShelves(progress.waveIds);
-      nextWave=true;
+    if(progress.queue.length){
+      revealedId=progress.queue.shift();
+      progress.waveIds.push(revealedId);
+      e13RevealReservedIngredient(progress,revealedId,fromShelf,toShelf);
     }
   }
   progress.selectedAsset=null;
   progress.hintedMove=null;
-  return {moved:true,matchedId,nextWave};
+  return {moved:true,matchedId,revealedId};
 }
 
 function e13Undo(progress){

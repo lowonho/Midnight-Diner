@@ -128,7 +128,9 @@ function startIngredientSelection(){
   state.ingredientSelection=createIngredientSelectionState(state.selectedMenus);
   dom.ingredientSelectOverlay.dataset.signature="";
   dom.ingredientSelectOverlay.classList.add("open");
-  dom.ingredientSelectFeedback.textContent="재료 그림을 직접 잡아 원하는 냉장고 칸으로 옮겨보세요.";
+  dom.ingredientSelectFeedback.textContent=state.ingredientSelection.queue.length
+    ?"재료를 맞춰 자리를 비우면 뒤쪽에 놓인 재료가 같은 냉장고 안에서 앞으로 나와요."
+    :"재료 그림을 직접 잡아 원하는 냉장고 칸으로 옮겨보세요.";
   renderIngredientSelection();updateUI(true);saveGame();
   return true;
 }
@@ -142,8 +144,8 @@ function moveIngredientAsset(fromShelf,fromSlot,toShelf){
     scheduleIngredientHint();
     return false;
   }
-  if(result.nextWave){
-    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 다음 재료들이 냉장고에 들어왔어요.`;
+  if(result.revealedId){
+    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 뒤에 있던 ${ingredientInfo(result.revealedId).label}이(가) 앞으로 나왔어요.`;
   }else if(result.matchedId){
     dom.ingredientSelectFeedback.textContent=`${ingredientInfo(result.matchedId).label} 3개 완성! 장바구니에 담았어요.`;
   }else{
@@ -273,10 +275,7 @@ function renderIngredientSelection(){
     return;
   }
   dom.ingredientSelectOverlay.dataset.signature=signature;
-  const totalWaves=Math.max(1,Math.ceil(allRequired.length/E13_FRIDGE_SORT.waveSize));
-  const completedBeforeWave=Math.max(0,allRequired.length-progress.queue.length-progress.waveIds.length);
-  const waveNumber=Math.min(totalWaves,Math.floor(completedBeforeWave/E13_FRIDGE_SORT.waveSize)+1);
-  dom.ingredientDishProgress.textContent=`메뉴 ${dishes.length}개${totalWaves>1?` · 냉장고 ${waveNumber}/${totalWaves}`:""}`;
+  dom.ingredientDishProgress.textContent=`메뉴 ${dishes.length}개`;
   dom.ingredientDishName.textContent="오늘 메뉴 한꺼번에 챙기기";
   dom.ingredientDishGallery.innerHTML=dishes.map(dish=>`<span><img src="${foodPropUrl(dish.id)||""}" alt="" /><strong>${dish.name}</strong></span>`).join("");
   dom.ingredientChecklist.innerHTML=allRequired.map(id=>{

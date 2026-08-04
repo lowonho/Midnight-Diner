@@ -39,14 +39,13 @@ try{
   assert(oneLeft.shelves.length===9&&oneLeft.shelves[0].length===2&&oneLeft.shelves[1].length===1,"single remaining ingredient stays solvable");
   assert(e13Move(oneLeft,1,0,0).matchedId===ids[1],"single remaining ingredient matches");
 
-  const many=Array.from({length:9},(_,index)=>`ingredient${index}`),waves=e13CreateProgress(many);
-  assert(waves.shelves.length===9&&waves.waveIds.length===7&&waves.queue.length===2,"overflow ingredients wait for next 3x3 wave");
-  waves.picked=waves.waveIds.slice(0,-1);
-  const lastWaveId=waves.waveIds[waves.waveIds.length-1];
-  waves.shelves=e13PadShelves([[lastWaveId,lastWaveId],[lastWaveId]]);
-  const waveResult=e13Move(waves,1,0,0);
-  assert(waveResult.nextWave&&waves.waveIds.length===2&&waves.queue.length===0,"next ingredient wave enters after clear");
-  assert(e13Undo(waves)&&waves.waveIds.length===7&&waves.queue.length===2,"undo restores previous wave");
+  const many=Array.from({length:13},(_,index)=>`ingredient${index}`),continuous=e13CreateProgress(many);
+  assert(continuous.shelves.length===9&&continuous.waveIds.length===7&&continuous.queue.length===6,"3x3 board starts with two move spaces");
+  continuous.shelves=e13PadShelves([[many[0],many[0]],[many[0]]]);
+  const revealResult=e13Move(continuous,1,0,0);
+  assert(revealResult.matchedId===many[0]&&revealResult.revealedId===many[7],"reserved ingredient comes forward after a match");
+  assert(continuous.shelves.flat().filter(id=>id===many[7]).length===3&&continuous.shelves.every(shelf=>shelf.length<=3),"reserved assets stay inside the same 3x3 board");
+  assert(continuous.queue.length===5&&e13Undo(continuous)&&continuous.queue.length===6,"undo restores the behind-shelf reserve");
 
   const legacy=e13NormalizeProgress({picked:[ids[0]],board:ids},ids.slice(0,2));
   assert(legacy.engine==="E13"&&legacy.picked.length===1,"legacy fridge save migrates to E13");
