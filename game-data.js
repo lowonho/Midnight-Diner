@@ -3,6 +3,7 @@
 // 날짜/메뉴 확장의 기준 데이터입니다. 새 메뉴와 날짜 규칙은 이 파일에 등록합니다.
 const GAME_PHASES=Object.freeze({
   MENU_SELECT:"menuSelect",
+  INGREDIENT_SELECT:"ingredientSelect",
   PREP:"day",
   OPEN:"night",
   RESULT:"result"
@@ -12,11 +13,11 @@ const SKEWER_BATCH_SIZE=3;
 
 // E1 썰기 판정의 절단선 기준 좌우 허용 폭(%).
 // 재료 그림의 실제 가로 폭과 절단선 간격이 달라 같은 숫자를 쓰면 화면상
-// 히팅 박스 크기가 크게 달라집니다. 좁게 보이는 어묵·두부는 더 넓게,
+// 히팅 박스 크기가 크게 달라집니다. 좁게 보이는 어묵·두부는 조금 넓게,
 // 절단선이 촘촘한 양배추·닭·김치는 다음 박자와 붙지 않는 선에서 키웁니다.
 const CUT_HIT_TOLERANCE=Object.freeze({
   radish:3.4,
-  fishCake:6.8,
+  fishCake:3.4,
   cabbage:3.1,
   chicken:3.5,
   greenOnion:3.5,
@@ -24,9 +25,9 @@ const CUT_HIT_TOLERANCE=Object.freeze({
   tofu:4.2
 });
 
-// 어묵의 마지막 가로 썰기는 타이밍 바 좌표를 그대로 쓰므로 세로 썰기와
-// 같은 6.8을 적용하면 화면상 박스가 지나치게 커집니다. 축별로 따로 둡니다.
-const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:4.8});
+// 기존 작업 설정과의 호환을 위한 어묵 가로 썰기 값입니다.
+// 현재 엔진은 공통 hitTolerance를 사용하므로 세로 값과 동일하게 유지합니다.
+const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:3.4});
 
 const PREP_TASKS=Object.freeze({
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish",miniGame:"cut",prepOrder:1,isImplemented:true},
@@ -56,7 +57,7 @@ const PREP_TASKS=Object.freeze({
 
 const MENU_DATA=Object.freeze([
   {id:"oden",displayName:"어묵탕",unlockDay:1,requiredPrepTasks:["cutRadish","cutFishCake","cleanAnchovy"],cookware:["pot"],isImplemented:true,icon:4,ingredients:["어묵","무","대파"],prep:["fridge","sink","board","pot"],openFlow:["fridge","pot","counter"],cook:[{station:"pot",game:"heat"}],price:7800},
-  {id:"tofu",displayName:"두부김치",unlockDay:1,requiredPrepTasks:["cutTofuKimchi","fryTofuKimchi"],cookware:["pan","board","fridge"],isImplemented:true,icon:3,ingredients:["두부","김치","돼지고기"],prep:["fridge","sink","board"],openFlow:["board","fridge","counter"],cook:[{station:"board",game:"chop"},{station:"fridge",game:"plateKimchi"}],price:8800},
+  {id:"tofu",displayName:"두부김치",unlockDay:1,requiredPrepTasks:["cutTofuKimchi","fryTofuKimchi"],cookware:["pan","board","fridge"],isImplemented:true,icon:3,ingredients:["두부","김치"],prep:["fridge","sink","board"],openFlow:["board","fridge","counter"],cook:[{station:"board",game:"chop"},{station:"fridge",game:"plateKimchi"}],price:8800},
   {id:"kimchi",displayName:"김치전",unlockDay:2,requiredPrepTasks:["cutPancakeKimchi","mixKimchiBatter"],cookware:["board","mixingBowl","pan"],isImplemented:true,icon:0,ingredients:["김치","밀가루","물"],prep:["board","mixingBowl"],cook:[{station:"pan",game:"twoSideCook"}],price:6200},
   {id:"skewer",displayName:"닭꼬치",unlockDay:2,requiredPrepTasks:["cutSkewerChicken","cutSkewerGreenOnion","assembleChickenSkewer"],cookware:["board","skewerTable","grill"],isImplemented:true,prepYield:SKEWER_BATCH_SIZE,icon:1,ingredients:["닭고기","대파"],prep:["board","skewerTable"],cook:[{station:"grill",game:"twoSideCook"}],price:7200},
   {id:"yakisoba",displayName:"볶음우동",unlockDay:3,requiredPrepTasks:["soakUdon","sliceYakisobaCabbage","sliceYakisobaCarrot","mixYakisobaSauce"],cookware:["griddle"],isImplemented:true,icon:2,ingredients:["우동면","양배추","당근","볶음우동 소스"],prep:["board"],cook:[{station:"griddle",game:"stir"}],price:8200},

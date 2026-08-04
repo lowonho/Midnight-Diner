@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>INGREDIENT_SELECT_PENDING</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/ingredient-select.css" />
+  <style>
+    body{margin:0;background:#100a06}.game-frame{position:relative;width:100vw;height:100vh;overflow:hidden}
+    #testResult{position:fixed;z-index:100;left:8px;bottom:8px;padding:6px 10px;background:#111;color:#fff;font:14px monospace}
+  </style>
+</head>
+<body>
+  <main class="game-frame">
+    <section id="menuSelectOverlay" class="overlay"></section>
+    <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
+      <div class="ingredient-select-window wood-panel">
+        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">필요한 재료를 꺼내주세요!</h2><p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
+        <div class="ingredient-select-layout">
+          <aside class="ingredient-recipe-card"><span>오늘의 메뉴</span><h3 id="ingredientDishName"></h3><div id="ingredientDishGallery" class="ingredient-dish-gallery"></div><strong>냉장고에서 찾을 재료</strong><div id="ingredientChecklist" class="ingredient-checklist"></div><p id="ingredientPantryNote" class="ingredient-pantry-note"></p></aside>
+          <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div><div class="ingredient-puzzle-controls"><button id="ingredientUndo" type="button">↶ 되돌리기</button><button id="ingredientHint" type="button">✦ 힌트</button><button id="ingredientShuffle" type="button">⟳ 선반 섞기</button></div><p id="ingredientSelectFeedback" class="ingredient-select-feedback"></p></section>
+          <aside class="ingredient-basket-card"><span>장바구니</span><div id="ingredientBasket" class="ingredient-basket"></div><strong id="ingredientTotalProgress" class="ingredient-total-progress"></strong><button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button><small>시간 제한과 실패는 없어요.<br />막히면 되돌리거나 선반을 섞어보세요.</small></aside>
+        </div>
+      </div>
+    </section>
+  </main>
+  <output id="testResult">PENDING</output>
+  <script src="../game-data.js"></script>
+  <script>
+    const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks]}));
+    const smokeAllMenus=new URLSearchParams(location.search).has("all");
+    const state={screen:"game",phase:GAME_PHASES.MENU_SELECT,paused:false,selectedMenus:smokeAllMenus?MENU_DATA.map(menu=>menu.id):["oden","tteokbokki"],ingredientSelection:null};
+    const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientUndo","ingredientHint","ingredientShuffle","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue"];
+    const dom=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
+    const shuffle=items=>{const unique=[...new Set(items)];return unique.length>1?items.map((_,index)=>unique[index%unique.length]):[...items]};
+    const dishById=id=>DISHES.find(dish=>dish.id===id)||null;
+    const foodFiles={oden:"food_eomuk_tang",tofu:"food_dubu_kimchi",kimchi:"food_kimchijeon",skewer:"food_dak_kkochi",yakisoba:"food_bokkeum_udon",shrimpTempura:"food_saeu_twigim",tteokbokki:"food_tteokbokki",fries:"food_gamja_twigim"};
+    const foodPropUrl=id=>foodFiles[id]?`../assets/food/prop/${foodFiles[id]}_normal.webp`:"";
+    const saveGame=()=>true,updateUI=()=>{},showToast=()=>{};
+  </script>
+  <script src="../engine-e13-fridge-sort.js"></script>
+  <script src="../ingredient-select.js"></script>
+  <script>
+    const visual=new URLSearchParams(location.search).has("visual");
+    try{
+      startIngredientSelection();
+      if(!visual){
+        const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+        const required=allRequiredIngredientIds();
+        assert(state.ingredientSelection.engine==="E13","E13 engine state");
+        assert(state.ingredientSelection.shelves.length===9,"fixed 3x3 sorting shelves");
+        assert(required.length<3||state.ingredientSelection.shelves.filter(shelf=>!shelf.length).length===1,"one empty fridge shelf");
+        assert(required.every(id=>state.ingredientSelection.shelves.flat().filter(item=>item===id).length===3),"three of every required ingredient");
+        assert(!required.includes("anchovy")&&!required.includes("gochujang"),"pantry ingredients excluded");
+        assert(!("pork" in FRIDGE_INGREDIENTS)&&!ingredientRecipe("tofu").includes("pork"),"pork removed from fridge and tofu kimchi");
+        assert(ingredientInfo("chicken").asset.endsWith("assets/minigame/E1/chicken-0.png"),"original chicken asset used");
+        assert(ingredientPantryNote.textContent.includes("멸치")&&ingredientPantryNote.textContent.includes("고추장"),"pantry note rendered");
+        const targetShelves=required.map(id=>[id,id]);
+        const looseShelves=[];
+        required.forEach((id,index)=>{const shelfIndex=Math.floor(index/3);(looseShelves[shelfIndex]||(looseShelves[shelfIndex]=[])).push(id)});
+        state.ingredientSelection={...e13CreateProgress(required),waveIds:[...required],queue:[],shelves:e13PadShelves([...targetShelves,...looseShelves])};
+        renderIngredientSelection();
+        const looseLocation=(id,target)=>{const shelf=state.ingredientSelection.shelves.findIndex((items,index)=>index!==target&&items.includes(id));return {shelf,slot:state.ingredientSelection.shelves[shelf].indexOf(id)}};
+        let location=looseLocation(required[0],0);
+        const transfer=new DataTransfer();
+        ingredientGrid.querySelector(`[data-asset-shelf="${location.shelf}"][data-asset-slot="${location.slot}"]`).dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:transfer}));
+        ingredientGrid.querySelector('[data-shelf-target="0"]').dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:transfer}));
+        assert(state.ingredientSelection.picked.includes(required[0]),"matching three collects ingredient");
+        undoIngredientMove();
+        assert(!state.ingredientSelection.picked.includes(required[0]),"undo restores matched shelf");
+        location=looseLocation(required[0],0);selectIngredientAsset(location.shelf,location.slot);moveSelectedIngredientToShelf(0);
+        required.slice(1).forEach((id,index)=>{const target=index+1,source=looseLocation(id,target);selectIngredientAsset(source.shelf,source.slot);moveSelectedIngredientToShelf(target)});
+        assert(currentIngredientRoundComplete(),"combined selection complete");
+        continueIngredientSelection();
+        assert(state.phase===GAME_PHASES.PREP,"continues to prep");
+        state.phase=GAME_PHASES.MENU_SELECT;state.selectedMenus=["fries"];
+        startIngredientSelection();
+        assert(state.phase===GAME_PHASES.PREP,"menu without refrigerated ingredients skips fridge");
+        document.title="INGREDIENT_SELECT_OK";testResult.textContent="INGREDIENT_SELECT_OK";
+      }else{document.title="INGREDIENT_SELECT_VISUAL";testResult.hidden=true;}
+    }catch(error){document.title="INGREDIENT_SELECT_FAIL";testResult.textContent=`INGREDIENT_SELECT_FAIL ${error.stack||error}`;}
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E13_FRIDGE_SORT_PENDING</title>
+<body>E13_FRIDGE_SORT_PENDING</body>
+<script>
+const shuffle=items=>{
+  const unique=[...new Set(items)];
+  return unique.length>1?items.map((_,index)=>unique[index%unique.length]):[...items];
+};
+</script>
+<script src="../engine-e13-fridge-sort.js"></script>
+<script>
+try{
+  const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+  const ids=["fishCake","radish","greenOnion"];
+  const built=e13BuildShelves(ids);
+  assert(built.length===9,"fixed 3x3 shelves");
+  assert(built.filter(shelf=>!shelf.length).length===1,"one empty shelf when enough ingredients are present");
+  assert(ids.every(id=>built.flat().filter(item=>item===id).length===3),"three copies per ingredient");
+  assert(built.filter(shelf=>shelf.length===3).every(shelf=>!shelf.every(id=>id===shelf[0])),"no free starting matches");
+
+  const progress=e13CreateProgress(ids.slice(0,2));
+  progress.shelves=[[ids[0],ids[0]],[ids[0]],[ids[1],ids[1]],[ids[1]],[],[]];
+  let result=e13Move(progress,1,0,0);
+  assert(result.matchedId===ids[0]&&progress.picked.includes(ids[0]),"match collects ingredient");
+  assert(e13Undo(progress)&&!progress.picked.includes(ids[0]),"undo restores collection");
+  result=e13Move(progress,1,0,0);
+  const hint=e13FindHint(progress);
+  assert(hint?.fromShelf===3&&hint?.fromSlot===0&&hint?.toShelf===2,"hint prefers matching shelf");
+  result=e13Move(progress,hint.fromShelf,hint.fromSlot,hint.toShelf);
+  assert(result.matchedId===ids[1]&&progress.picked.length===2,"all ingredients collected");
+
+  const direct=e13CreateProgress(ids);
+  direct.shelves=[[ids[0],ids[1],ids[2]],[],[],[],[]];
+  assert(e13Move(direct,0,1,1).moved,"middle asset moves directly");
+  assert(direct.shelves[0].join(",")===`${ids[0]},${ids[2]}`&&direct.shelves[1][0]===ids[1],"selected asset, not shelf top, moved");
+
+  const oneLeft=e13CreateProgress(ids.slice(0,2),[ids[0]]);
+  assert(oneLeft.shelves.length===9&&oneLeft.shelves[0].length===2&&oneLeft.shelves[1].length===1,"single remaining ingredient stays solvable");
+  assert(e13Move(oneLeft,1,0,0).matchedId===ids[1],"single remaining ingredient matches");
+
+  const many=Array.from({length:13},(_,index)=>`ingredient${index}`),continuous=e13CreateProgress(many);
+  assert(continuous.shelves.length===9&&continuous.waveIds.length===7&&continuous.queue.length===6&&continuous.shelves.filter(shelf=>!shelf.length).length===1,"3x3 board starts with one empty shelf");
+  continuous.shelves=e13PadShelves([[many[0],many[0]],[many[0]]]);
+  const revealResult=e13Move(continuous,1,0,0);
+  assert(revealResult.matchedId===many[0]&&revealResult.revealedId===many[7],"reserved ingredient comes forward after a match");
+  assert(continuous.shelves.flat().filter(id=>id===many[7]).length===3&&continuous.shelves.every(shelf=>shelf.length<=3),"reserved assets stay inside the same 3x3 board");
+  assert(continuous.queue.length===5&&e13Undo(continuous)&&continuous.queue.length===6,"undo restores the behind-shelf reserve");
+
+  const legacy=e13NormalizeProgress({picked:[ids[0]],board:ids},ids.slice(0,2));
+  assert(legacy.engine==="E13"&&legacy.picked.length===1,"legacy fridge save migrates to E13");
+  assert(legacy.shelves.flat().filter(id=>id===ids[1]).length===3,"migration rebuilds remaining shelves");
+
+  document.title="E13_FRIDGE_SORT_OK";document.body.textContent="E13_FRIDGE_SORT_OK";
+}catch(error){document.title="E13_FRIDGE_SORT_FAIL";document.body.textContent=`E13_FRIDGE_SORT_FAIL ${error.stack||error}`;}
+</script>

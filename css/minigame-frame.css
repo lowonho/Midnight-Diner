@@ -385,6 +385,13 @@
   cursor: url("../assets/minigame/ui_drag_hand_pointer_click.webp") 22 11, pointer !important;
 }
 
+/* E1 썰기 화면은 키보드 타이밍에 집중해야 하므로 커다란 손 그림을 쓰지 않습니다.
+   오버레이가 닫히거나 다른 미니게임으로 바뀌면 :has 조건도 바로 풀립니다. */
+.mini-overlay.open:has(.cut-screen) .mini-stage,
+.mini-overlay.open:has(.cut-screen) .mini-stage * {
+  cursor: default !important;
+}
+
 /* ── 좁은 화면 보정 : 글자만 조금 줄입니다(패널 비율은 그대로) ── */
 @media (max-width: 600px) {
   .mini-tip-label { letter-spacing: 0; }
