@@ -21,18 +21,23 @@ try{
 
   const progress=e13CreateProgress(ids.slice(0,2));
   progress.shelves=[[ids[0],ids[0]],[ids[0]],[ids[1],ids[1]],[ids[1]],[],[]];
-  let result=e13Move(progress,1,0);
+  let result=e13Move(progress,1,0,0);
   assert(result.matchedId===ids[0]&&progress.picked.includes(ids[0]),"match collects ingredient");
   assert(e13Undo(progress)&&!progress.picked.includes(ids[0]),"undo restores collection");
-  result=e13Move(progress,1,0);
+  result=e13Move(progress,1,0,0);
   const hint=e13FindHint(progress);
-  assert(hint?.from===3&&hint?.to===2,"hint prefers matching shelf");
-  result=e13Move(progress,hint.from,hint.to);
+  assert(hint?.fromShelf===3&&hint?.fromSlot===0&&hint?.toShelf===2,"hint prefers matching shelf");
+  result=e13Move(progress,hint.fromShelf,hint.fromSlot,hint.toShelf);
   assert(result.matchedId===ids[1]&&progress.picked.length===2,"all ingredients collected");
+
+  const direct=e13CreateProgress(ids);
+  direct.shelves=[[ids[0],ids[1],ids[2]],[],[],[],[]];
+  assert(e13Move(direct,0,1,1).moved,"middle asset moves directly");
+  assert(direct.shelves[0].join(",")===`${ids[0]},${ids[2]}`&&direct.shelves[1][0]===ids[1],"selected asset, not shelf top, moved");
 
   const oneLeft=e13CreateProgress(ids.slice(0,2),[ids[0]]);
   assert(oneLeft.shelves.length===3&&oneLeft.shelves[0].length===2&&oneLeft.shelves[1].length===1,"single remaining ingredient stays solvable");
-  assert(e13Move(oneLeft,1,0).matchedId===ids[1],"single remaining ingredient matches");
+  assert(e13Move(oneLeft,1,0,0).matchedId===ids[1],"single remaining ingredient matches");
 
   const legacy=e13NormalizeProgress({picked:[ids[0]],board:ids},ids.slice(0,2));
   assert(legacy.engine==="E13"&&legacy.picked.length===1,"legacy fridge save migrates to E13");

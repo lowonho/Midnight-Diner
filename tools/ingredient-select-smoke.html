@@ -56,12 +56,14 @@
         assert(ingredientPantryNote.textContent.includes("멸치")&&ingredientPantryNote.textContent.includes("고추장"),"pantry note rendered");
         state.ingredientSelection={...e13CreateProgress(required),shelves:required.flatMap(id=>[[id,id],[id]])};
         renderIngredientSelection();
-        selectIngredientShelf(1);selectIngredientShelf(0);
+        const transfer=new DataTransfer();
+        ingredientGrid.querySelector('[data-asset-shelf="1"][data-asset-slot="0"]').dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:transfer}));
+        ingredientGrid.querySelector('[data-shelf-target="0"]').dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:transfer}));
         assert(state.ingredientSelection.picked.includes(required[0]),"matching three collects ingredient");
         undoIngredientMove();
         assert(!state.ingredientSelection.picked.includes(required[0]),"undo restores matched shelf");
-        selectIngredientShelf(1);selectIngredientShelf(0);
-        required.slice(1).forEach((id,index)=>{const source=(index+1)*2+1,target=(index+1)*2;selectIngredientShelf(source);selectIngredientShelf(target)});
+        selectIngredientAsset(1,0);moveSelectedIngredientToShelf(0);
+        required.slice(1).forEach((id,index)=>{const source=(index+1)*2+1,target=(index+1)*2;selectIngredientAsset(source,0);moveSelectedIngredientToShelf(target)});
         assert(currentIngredientRoundComplete(),"combined selection complete");
         continueIngredientSelection();
         assert(state.phase===GAME_PHASES.PREP,"continues to prep");

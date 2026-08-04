@@ -108,7 +108,7 @@ function scheduleIngredientHint(){
     if(!move)return;
     progress.hintedMove=move;
     renderIngredientSelection();
-    dom.ingredientSelectFeedback.textContent="반짝이는 재료를 선택한 뒤 표시된 빈 칸으로 옮겨보세요.";
+    dom.ingredientSelectFeedback.textContent="반짝이는 재료를 직접 잡아 표시된 칸으로 옮겨보세요.";
   },INGREDIENT_HINT_DELAY);
 }
 
@@ -128,36 +128,17 @@ function startIngredientSelection(){
   state.ingredientSelection=createIngredientSelectionState(state.selectedMenus);
   dom.ingredientSelectOverlay.dataset.signature="";
   dom.ingredientSelectOverlay.classList.add("open");
-  dom.ingredientSelectFeedback.textContent="재료를 고른 뒤 같은 재료가 있는 칸이나 빈 칸을 눌러 옮겨보세요.";
+  dom.ingredientSelectFeedback.textContent="재료 그림을 직접 잡아 원하는 냉장고 칸으로 옮겨보세요.";
   renderIngredientSelection();updateUI(true);saveGame();
   return true;
 }
 
-function selectIngredientShelf(index){
+function moveIngredientAsset(fromShelf,fromSlot,toShelf){
   if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return false;
-  const progress=state.ingredientSelection,shelf=progress?.shelves?.[index];
-  if(!shelf)return false;
+  const progress=state.ingredientSelection,result=e13Move(progress,fromShelf,fromSlot,toShelf);
   clearIngredientHintTimer();
-  if(progress.selectedShelf===null){
-    if(!shelf.length){
-      dom.ingredientSelectFeedback.textContent="먼저 옮길 재료가 있는 칸을 골라주세요.";
-      scheduleIngredientHint();
-      return false;
-    }
-    progress.selectedShelf=index;progress.hintedMove=null;
-    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(e13ShelfTop(shelf)).label}을(를) 어디로 옮길까요?`;
-    renderIngredientSelection();scheduleIngredientHint();
-    return true;
-  }
-  if(progress.selectedShelf===index){
-    progress.selectedShelf=null;progress.hintedMove=null;
-    dom.ingredientSelectFeedback.textContent="선택을 취소했어요. 다른 칸을 골라도 좋아요.";
-    renderIngredientSelection();scheduleIngredientHint();
-    return true;
-  }
-  const from=progress.selectedShelf,result=e13Move(progress,from,index);
   if(!result.moved){
-    dom.ingredientSelectFeedback.textContent="빈 칸이나 같은 재료가 놓인 칸으로만 옮길 수 있어요.";
+    dom.ingredientSelectFeedback.textContent="재료가 가득 찬 칸에는 더 놓을 수 없어요. 다른 칸을 골라주세요.";
     scheduleIngredientHint();
     return false;
   }
@@ -169,6 +150,67 @@ function selectIngredientShelf(index){
   renderIngredientSelection();saveGame();
   if(!currentIngredientRoundComplete())scheduleIngredientHint();
   return true;
+}
+
+function selectIngredientAsset(shelfIndex,slotIndex){
+  if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return false;
+  const progress=state.ingredientSelection,id=progress?.shelves?.[shelfIndex]?.[slotIndex];
+  if(!id)return false;
+  clearIngredientHintTimer();
+  const selected=progress.selectedAsset;
+  if(selected&&selected.shelf!==shelfIndex)return moveIngredientAsset(selected.shelf,selected.slot,shelfIndex);
+  if(selected&&selected.shelf===shelfIndex&&selected.slot===slotIndex){
+    progress.selectedAsset=null;progress.hintedMove=null;
+    dom.ingredientSelectFeedback.textContent="선택을 취소했어요. 다른 재료를 잡아도 좋아요.";
+  }else{
+    progress.selectedAsset={shelf:shelfIndex,slot:slotIndex};progress.hintedMove=null;
+    dom.ingredientSelectFeedback.textContent=`${ingredientInfo(id).label}을(를) 잡았어요. 옮길 냉장고 칸을 눌러주세요.`;
+  }
+  renderIngredientSelection();scheduleIngredientHint();
+  return true;
+}
+
+function moveSelectedIngredientToShelf(toShelf){
+  const selected=state.ingredientSelection?.selectedAsset;
+  if(!selected){
+    dom.ingredientSelectFeedback.textContent="먼저 옮길 재료 그림을 직접 골라주세요.";
+    scheduleIngredientHint();
+    return false;
+  }
+  return moveIngredientAsset(selected.shelf,selected.slot,toShelf);
+}
+
+function bindIngredientAssetMovement(){
+  dom.ingredientGrid.querySelectorAll("[data-asset-shelf]").forEach(asset=>{
+    asset.addEventListener("click",event=>{
+      event.stopPropagation();
+      selectIngredientAsset(Number(asset.dataset.assetShelf),Number(asset.dataset.assetSlot));
+    });
+    asset.addEventListener("dragstart",event=>{
+      event.dataTransfer.effectAllowed="move";
+      event.dataTransfer.setData("text/plain",`${asset.dataset.assetShelf}:${asset.dataset.assetSlot}`);
+      asset.classList.add("dragging");
+    });
+    asset.addEventListener("dragend",()=>{
+      asset.classList.remove("dragging");
+      dom.ingredientGrid.querySelectorAll(".drag-over").forEach(shelf=>shelf.classList.remove("drag-over"));
+    });
+  });
+  dom.ingredientGrid.querySelectorAll("[data-shelf-target]").forEach(shelf=>{
+    const toShelf=Number(shelf.dataset.shelfTarget);
+    shelf.addEventListener("click",()=>moveSelectedIngredientToShelf(toShelf));
+    shelf.addEventListener("keydown",event=>{
+      if(event.key!=="Enter"&&event.key!==" ")return;
+      event.preventDefault();moveSelectedIngredientToShelf(toShelf);
+    });
+    shelf.addEventListener("dragover",event=>{event.preventDefault();event.dataTransfer.dropEffect="move";shelf.classList.add("drag-over");});
+    shelf.addEventListener("dragleave",event=>{if(!shelf.contains(event.relatedTarget))shelf.classList.remove("drag-over");});
+    shelf.addEventListener("drop",event=>{
+      event.preventDefault();shelf.classList.remove("drag-over");
+      const [fromShelf,fromSlot]=event.dataTransfer.getData("text/plain").split(":").map(Number);
+      moveIngredientAsset(fromShelf,fromSlot,toShelf);
+    });
+  });
 }
 
 function undoIngredientMove(){
@@ -193,7 +235,7 @@ function hintIngredientMove(){
   if(!move)return false;
   clearIngredientHintTimer();
   state.ingredientSelection.hintedMove=move;
-  dom.ingredientSelectFeedback.textContent="반짝이는 두 칸을 순서대로 눌러보세요.";
+  dom.ingredientSelectFeedback.textContent="반짝이는 재료를 표시된 칸으로 옮겨보세요.";
   renderIngredientSelection();scheduleIngredientHint();
   return true;
 }
@@ -221,8 +263,8 @@ function renderIngredientSelection(){
     state.selectedMenus.join(","),
     progress.picked.join(","),
     progress.shelves.map(shelf=>shelf.join(",")).join("/"),
-    progress.selectedShelf??"",
-    progress.hintedMove?`${progress.hintedMove.from}>${progress.hintedMove.to}`:""
+    progress.selectedAsset?`${progress.selectedAsset.shelf}:${progress.selectedAsset.slot}`:"",
+    progress.hintedMove?`${progress.hintedMove.fromShelf}:${progress.hintedMove.fromSlot}>${progress.hintedMove.toShelf}`:""
   ].join("|");
   if(dom.ingredientSelectOverlay.dataset.signature===signature){
     dom.ingredientSelectOverlay.classList.add("open");
@@ -240,18 +282,20 @@ function renderIngredientSelection(){
     ?`<strong>냉장고 밖에 준비됨</strong><span>${pantry.map(id=>ingredientInfo(id).label).join(" · ")}</span>`
     :"";
   dom.ingredientGrid.innerHTML=progress.shelves.map((shelf,index)=>{
-    const topId=e13ShelfTop(shelf),selected=progress.selectedShelf===index;
-    const hintedFrom=progress.hintedMove?.from===index,hintedTo=progress.hintedMove?.to===index;
+    const hintedTo=progress.hintedMove?.toShelf===index;
     const slots=Array.from({length:E13_FRIDGE_SORT.matchSize},(_,slotIndex)=>{
       const id=shelf[slotIndex];
       if(!id)return `<span class="ingredient-shelf-slot empty" aria-hidden="true"></span>`;
-      const item=ingredientInfo(id),top=slotIndex===shelf.length-1;
-      return `<span class="ingredient-shelf-slot ${top?"top":""}" title="${item.label}"><i>${ingredientArt(item)}</i><small>${item.label}</small></span>`;
+      const item=ingredientInfo(id);
+      const selected=progress.selectedAsset?.shelf===index&&progress.selectedAsset?.slot===slotIndex;
+      const hintedFrom=progress.hintedMove?.fromShelf===index&&progress.hintedMove?.fromSlot===slotIndex;
+      return `<button class="ingredient-shelf-slot ${selected?"selected":""} ${hintedFrom?"hint-from":""}" data-asset-shelf="${index}" data-asset-slot="${slotIndex}" type="button" draggable="true" aria-pressed="${selected}" aria-label="${item.label} 옮기기" title="${item.label}을(를) 잡아 옮기기"><i>${ingredientArt(item)}</i><small>${item.label}</small></button>`;
     }).join("");
-    const label=shelf.length?`${ingredientInfo(topId).label}이 위에 있는 냉장고 칸`:`빈 냉장고 칸`;
-    return `<button class="ingredient-shelf ${selected?"selected":""} ${hintedFrom?"hint-from":""} ${hintedTo?"hint-to":""}" data-shelf-index="${index}" type="button" aria-pressed="${selected}" aria-label="${label}"><b>${index+1}</b><span class="ingredient-shelf-slots">${slots}</span></button>`;
+    const names=shelf.map(id=>ingredientInfo(id).label).join(", ");
+    const label=shelf.length?`${names} 재료가 있는 ${index+1}번 냉장고 칸`:`빈 ${index+1}번 냉장고 칸`;
+    return `<div class="ingredient-shelf ${hintedTo?"hint-to":""}" data-shelf-target="${index}" role="button" tabindex="0" aria-label="${label}"><b>${index+1}</b><span class="ingredient-shelf-slots">${slots}</span></div>`;
   }).join("");
-  dom.ingredientGrid.querySelectorAll("[data-shelf-index]").forEach(button=>button.addEventListener("click",()=>selectIngredientShelf(Number(button.dataset.shelfIndex))));
+  bindIngredientAssetMovement();
   dom.ingredientBasket.innerHTML=pickedRequired.length?pickedRequired.map(id=>{
     const item=ingredientInfo(id);return `<span><i>${ingredientArt(item,"ingredient-basket-art")}</i>${item.label}</span>`;
   }).join(""):"<p>아직 담은 재료가 없어요.</p>";

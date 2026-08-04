@@ -99,21 +99,24 @@
   background:linear-gradient(160deg,rgba(202,197,179,.9),rgba(91,85,75,.92));
   color:#2b2119;
   box-shadow:0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.5);
-  cursor:pointer;
+  cursor:default;
   transition:transform .14s,filter .14s,border-color .14s,box-shadow .14s;
 }
-.ingredient-shelf:hover { transform:translateY(calc(-2 * var(--upx))); filter:brightness(1.08); }
+.ingredient-shelf:hover { border-color:#918574; }
+.ingredient-shelf.drag-over { transform:translateY(calc(-2 * var(--upx))); border-color:#8ed6a0; box-shadow:0 0 calc(20 * var(--upx)) rgba(117,197,139,.72); }
 .ingredient-shelf > b { position:absolute; top:calc(3 * var(--upx)); left:calc(6 * var(--upx)); color:#51483c; font-size:calc(9 * var(--upx)); }
 .ingredient-shelf-slots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:calc(4 * var(--upx)); }
-.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:calc(57 * var(--upx)); border:1px solid rgba(68,58,47,.55); border-radius:calc(5 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; transition:transform .15s; }
-.ingredient-shelf-slot.empty { background:rgba(42,38,33,.23); box-shadow:inset 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.3); }
+.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:calc(57 * var(--upx)); padding:0; border:1px solid rgba(68,58,47,.55); border-radius:calc(5 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; cursor:grab; appearance:none; transition:transform .15s,filter .15s,border-color .15s,box-shadow .15s; }
+.ingredient-shelf-slot.empty { background:rgba(42,38,33,.23); box-shadow:inset 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.3); cursor:default; pointer-events:none; }
 .ingredient-shelf-slot i { position:absolute; inset:calc(3 * var(--upx)); display:grid; place-items:center; overflow:hidden; font-style:normal; }
 .ingredient-shelf-slot img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.32)); }
 .ingredient-shelf-slot i > span { font-size:calc(30 * var(--upx)); }
 .ingredient-shelf-slot small { position:absolute; right:0; bottom:0; left:0; padding:1px; background:rgba(38,26,18,.72); color:#f4dfb7; font-size:calc(7 * var(--upx)); line-height:1.2; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.ingredient-shelf-slot.top { transform:translateY(calc(-3 * var(--upx))); border-color:#d8b36b; box-shadow:0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.35); }
-.ingredient-shelf.selected { border-color:#ffe08a; box-shadow:0 0 calc(18 * var(--upx)) rgba(255,211,112,.75),inset 0 1px #fff5cf; }
-.ingredient-shelf.hint-from { animation:ingredient-hint 1.15s ease-in-out infinite; border-color:#ffe07b; }
+.ingredient-shelf-slot:hover { transform:translateY(calc(-4 * var(--upx))) scale(1.04); filter:brightness(1.1); border-color:#d8b36b; box-shadow:0 calc(4 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.38); }
+.ingredient-shelf-slot:active { cursor:grabbing; }
+.ingredient-shelf-slot.selected { transform:translateY(calc(-5 * var(--upx))) scale(1.05); border-color:#ffe08a; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,211,112,.82); }
+.ingredient-shelf-slot.dragging { opacity:.45; cursor:grabbing; }
+.ingredient-shelf-slot.hint-from { animation:ingredient-hint 1.15s ease-in-out infinite; border-color:#ffe07b; }
 .ingredient-shelf.hint-to { animation:ingredient-hint-target 1.15s ease-in-out infinite; border-color:#8ed6a0; }
 .ingredient-puzzle-controls { position:relative; z-index:1; display:flex; justify-content:center; gap:calc(8 * var(--upx)); margin-top:calc(9 * var(--upx)); }
 .ingredient-puzzle-controls button { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:1px solid #8d724b; border-radius:calc(5 * var(--upx)); background:rgba(37,25,17,.9); color:#ead29f; font-weight:700; cursor:pointer; }
@@ -157,5 +160,5 @@
   .ingredient-basket-card > span { display:block; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .ingredient-shelf.hint-from,.ingredient-shelf.hint-to { animation-duration:2s; animation-timing-function:step-end; }
+  .ingredient-shelf-slot.hint-from,.ingredient-shelf.hint-to { animation-duration:2s; animation-timing-function:step-end; }
 }

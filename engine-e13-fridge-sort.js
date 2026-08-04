@@ -57,7 +57,7 @@ function e13CreateProgress(requiredIds=[],pickedIds=[]){
     engine:E13_FRIDGE_SORT.id,
     picked,
     shelves:e13BuildShelves(remaining),
-    selectedShelf:null,
+    selectedAsset:null,
     hintedMove:null,
     history:[]
   };
@@ -69,29 +69,31 @@ function e13NormalizeProgress(saved,requiredIds=[]){
   const picked=[...new Set(Array.isArray(source.picked)?source.picked:[])].filter(id=>required.includes(id));
   const remaining=required.filter(id=>!picked.includes(id));
   const shelves=e13ValidShelves(source.shelves,remaining)?e13CopyShelves(source.shelves):e13BuildShelves(remaining);
-  const selectedShelf=Number.isInteger(source.selectedShelf)&&source.selectedShelf>=0&&source.selectedShelf<shelves.length&&shelves[source.selectedShelf].length
-    ?source.selectedShelf
+  const legacyShelf=Number.isInteger(source.selectedShelf)?source.selectedShelf:null;
+  const rawSelected=source.selectedAsset&&typeof source.selectedAsset==="object"
+    ?source.selectedAsset
+    :legacyShelf!==null?{shelf:legacyShelf,slot:(shelves[legacyShelf]?.length||1)-1}:null;
+  const selectedAsset=rawSelected&&Number.isInteger(rawSelected.shelf)&&Number.isInteger(rawSelected.slot)&&rawSelected.shelf>=0&&rawSelected.shelf<shelves.length&&rawSelected.slot>=0&&rawSelected.slot<shelves[rawSelected.shelf].length
+    ?{shelf:rawSelected.shelf,slot:rawSelected.slot}
     :null;
   const hinted=source.hintedMove;
-  const hintedMove=hinted&&Number.isInteger(hinted.from)&&Number.isInteger(hinted.to)&&hinted.from>=0&&hinted.to>=0&&hinted.from<shelves.length&&hinted.to<shelves.length
-    ?{from:hinted.from,to:hinted.to}
+  const hintedFromShelf=hinted?.fromShelf??hinted?.from;
+  const hintedToShelf=hinted?.toShelf??hinted?.to;
+  const hintedFromSlot=hinted?.fromSlot??((shelves[hintedFromShelf]?.length||1)-1);
+  const hintedMove=hinted&&Number.isInteger(hintedFromShelf)&&Number.isInteger(hintedFromSlot)&&Number.isInteger(hintedToShelf)&&hintedFromShelf>=0&&hintedToShelf>=0&&hintedFromShelf<shelves.length&&hintedToShelf<shelves.length&&hintedFromSlot>=0&&hintedFromSlot<shelves[hintedFromShelf].length
+    ?{fromShelf:hintedFromShelf,fromSlot:hintedFromSlot,toShelf:hintedToShelf}
     :null;
   const history=Array.isArray(source.history)?source.history.slice(-E13_FRIDGE_SORT.historyLimit).filter(entry=>entry&&Array.isArray(entry.shelves)&&entry.shelves.every(Array.isArray)&&Array.isArray(entry.picked)).map(entry=>({
     shelves:e13CopyShelves(entry.shelves),
     picked:[...entry.picked]
   })):[];
-  return {engine:E13_FRIDGE_SORT.id,picked,shelves,selectedShelf,hintedMove,history};
+  return {engine:E13_FRIDGE_SORT.id,picked,shelves,selectedAsset,hintedMove,history};
 }
 
-function e13ShelfTop(shelf){
-  return shelf?.length?shelf[shelf.length-1]:null;
-}
-
-function e13CanMove(progress,from,to){
-  if(!progress||from===to||!Number.isInteger(from)||!Number.isInteger(to))return false;
-  const source=progress.shelves[from],target=progress.shelves[to];
-  if(!source?.length||!target||target.length>=E13_FRIDGE_SORT.matchSize)return false;
-  return !target.length||e13ShelfTop(source)===e13ShelfTop(target);
+function e13CanMove(progress,fromShelf,fromSlot,toShelf){
+  if(!progress||fromShelf===toShelf||![fromShelf,fromSlot,toShelf].every(Number.isInteger))return false;
+  const source=progress.shelves[fromShelf],target=progress.shelves[toShelf];
+  return !!source&&fromSlot>=0&&fromSlot<source.length&&!!target&&target.length<E13_FRIDGE_SORT.matchSize;
 }
 
 function e13PushHistory(progress){
@@ -99,11 +101,11 @@ function e13PushHistory(progress){
   if(progress.history.length>E13_FRIDGE_SORT.historyLimit)progress.history.shift();
 }
 
-function e13Move(progress,from,to){
-  if(!e13CanMove(progress,from,to))return {moved:false,matchedId:null};
+function e13Move(progress,fromShelf,fromSlot,toShelf){
+  if(!e13CanMove(progress,fromShelf,fromSlot,toShelf))return {moved:false,matchedId:null};
   e13PushHistory(progress);
-  const id=progress.shelves[from].pop();
-  const target=progress.shelves[to];
+  const [id]=progress.shelves[fromShelf].splice(fromSlot,1);
+  const target=progress.shelves[toShelf];
   target.push(id);
   let matchedId=null;
   if(target.length===E13_FRIDGE_SORT.matchSize&&target.every(itemId=>itemId===id)){
@@ -111,7 +113,7 @@ function e13Move(progress,from,to){
     if(!progress.picked.includes(id))progress.picked.push(id);
     matchedId=id;
   }
-  progress.selectedShelf=null;
+  progress.selectedAsset=null;
   progress.hintedMove=null;
   return {moved:true,matchedId};
 }
@@ -121,7 +123,7 @@ function e13Undo(progress){
   if(!previous)return false;
   progress.shelves=e13CopyShelves(previous.shelves);
   progress.picked=[...previous.picked];
-  progress.selectedShelf=null;
+  progress.selectedAsset=null;
   progress.hintedMove=null;
   return true;
 }
@@ -132,34 +134,30 @@ function e13Shuffle(progress,requiredIds=[]){
   if(!remaining.length)return false;
   e13PushHistory(progress);
   progress.shelves=e13BuildShelves(remaining);
-  progress.selectedShelf=null;
+  progress.selectedAsset=null;
   progress.hintedMove=null;
   return true;
 }
 
 function e13FindHint(progress){
   if(!progress)return null;
-  if(Number.isInteger(progress.selectedShelf)){
-    const from=progress.selectedShelf;
-    const targets=progress.shelves.map((shelf,to)=>({shelf,to})).filter(({to})=>e13CanMove(progress,from,to));
-    const same=targets.filter(({shelf})=>shelf.length).sort((a,b)=>b.shelf.length-a.shelf.length)[0];
-    const target=same||targets.find(({shelf})=>!shelf.length);
-    if(target)return {from,to:target.to};
+  if(progress.selectedAsset){
+    const {shelf:fromShelf,slot:fromSlot}=progress.selectedAsset;
+    const id=progress.shelves[fromShelf]?.[fromSlot];
+    const targets=progress.shelves.map((shelf,toShelf)=>({shelf,toShelf})).filter(({toShelf})=>e13CanMove(progress,fromShelf,fromSlot,toShelf));
+    const target=targets.sort((a,b)=>b.shelf.filter(item=>item===id).length-a.shelf.filter(item=>item===id).length||a.shelf.length-b.shelf.length)[0];
+    if(target)return {fromShelf,fromSlot,toShelf:target.toShelf};
   }
-  const matching=[];
-  for(let from=0;from<progress.shelves.length;from+=1){
-    const id=e13ShelfTop(progress.shelves[from]);
-    if(!id)continue;
-    for(let to=0;to<progress.shelves.length;to+=1){
-      if(from===to)continue;
-      const target=progress.shelves[to];
-      if(target.length&&target.length<E13_FRIDGE_SORT.matchSize&&e13ShelfTop(target)===id){
-        matching.push({from,to,score:target.length*10-progress.shelves[from].length});
+  const moves=[];
+  for(let fromShelf=0;fromShelf<progress.shelves.length;fromShelf+=1){
+    for(let fromSlot=0;fromSlot<progress.shelves[fromShelf].length;fromSlot+=1){
+      const id=progress.shelves[fromShelf][fromSlot];
+      for(let toShelf=0;toShelf<progress.shelves.length;toShelf+=1){
+        if(!e13CanMove(progress,fromShelf,fromSlot,toShelf))continue;
+        const target=progress.shelves[toShelf],same=target.filter(item=>item===id).length;
+        moves.push({fromShelf,fromSlot,toShelf,score:same*100-target.length});
       }
     }
   }
-  if(matching.length)return matching.sort((a,b)=>b.score-a.score)[0];
-  const empty=progress.shelves.findIndex(shelf=>!shelf.length);
-  const from=progress.shelves.findIndex((shelf,index)=>index!==empty&&shelf.length);
-  return from>=0&&empty>=0?{from,to:empty}:null;
+  return moves.length?moves.sort((a,b)=>b.score-a.score)[0]:null;
 }
