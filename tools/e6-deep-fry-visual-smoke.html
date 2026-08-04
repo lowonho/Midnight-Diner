@@ -78,7 +78,10 @@
        ?drop=N       냄비에 넣을 재료 수 (기본 3 = 정원)
        ?cook=SEC     넣은 뒤 흘려 볼 시간(초). 3.4 미만 설익음 / 7.6 미만 잘 익음 / 그 뒤 탐
        ?lift=N       망으로 건질 개수 (기본 0)
-       ?full=1       5개를 전부 잘 익은 상태로 건져 완성까지 갑니다 */
+       ?full=1       5개를 전부 잘 익은 상태로 건져 완성까지 갑니다
+       ?hold=1       마지막 끌기를 **손을 떼지 않은 채로** 멈춥니다.
+                     집게 커서가 튀김을 물고 있는 모습(아래팔 → 튀김 → 윗팔)을
+                     캡처할 때 씁니다. 이 상태에서는 냄비에 아무것도 안 들어갑니다. */
     const params = new URLSearchParams(location.search);
     const dishId = params.get("dish") === "fries" ? "fries" : "shrimpTempura";
     const dropCount = Math.max(0, Math.min(3, Number(params.get("drop") ?? 3)));
@@ -113,8 +116,14 @@
             const piece = document.querySelector("[data-fry-source='piece']");
             if (piece) dragTo(`[data-fry-piece='${piece.dataset.fryPiece}']`, ".fry-rack", { x:50, y:50 });
           }
+          // 집게가 물고 있는 모습을 보려고 마지막 하나를 손에 쥔 채로 멈춥니다
+          if (params.get("hold") === "1") {
+            const held = document.querySelector("[data-fry-source='piece']") || document.querySelector("[data-fry-source='raw']");
+            if (held) dragTo(`[data-fry-source='${held.dataset.frySource}']`, ".fry-pot", { x:52, y:44 }, true);
+          }
         }
       } catch (error) { document.body.dataset.error = `play: ${error.message}\n${error.stack}`; }
+      settleAnimations();
       measure();
     });
 
@@ -155,7 +164,7 @@
     /* 진짜 Pointer Events 로 끕니다.
        ⚠️ setPointerCapture 는 헤드리스에서 붙잡아 두면 이어지는 이벤트가
           안 오므로 비웁니다. 대신 이벤트를 잡은 요소에 직접 쏩니다. */
-    function dragTo(fromSelector, toSelector, spot){
+    function dragTo(fromSelector, toSelector, spot, keepHolding = false){
       const card = document.querySelector(fromSelector);
       if (!card || card.disabled) return;
       card.setPointerCapture = () => {}; card.releasePointerCapture = () => {};
@@ -164,7 +173,22 @@
         { pointerId:31, pointerType:"mouse", button:0, clientX:x, clientY:y, bubbles:true, cancelable:true }));
       send("pointerdown", from.left + from.width / 2, from.top + from.height / 2);
       send("pointermove", to.x, to.y);
-      send("pointerup", to.x, to.y);
+      if (!keepHolding) send("pointerup", to.x, to.y);
+    }
+
+    /* 재는 시점에 아직 돌고 있는 연출을 정리합니다.
+         한 번짜리(떨어지기·물결) → 끝으로 보냅니다.
+       ⚠️ 이게 없으면 방금 넣은 조각이 **기름으로 떨어지는 도중**에 잡혀,
+          자리(off)도 크기도 실제와 다르게 나옵니다 — 자리 검사가 통째로 무의미해집니다.
+         무한 반복(기포·기름 방울) → 한 바퀴의 40% 지점으로 맞춰 세웁니다.
+       ⚠️ finish() 는 무한 반복에서 예외를 던집니다. 그냥 두면 캡처 순간의 위상이
+          매번 달라서, 기포가 마침 사라진 프레임에 잡히면 "연출이 없다" 로 오해합니다. */
+    function settleAnimations(){
+      document.getAnimations().forEach(animation => {
+        const timing = animation.effect?.getTiming() || {};
+        if (timing.iterations === Infinity) animation.currentTime = (Number(timing.duration) || 0) * .4;
+        else { try { animation.finish(); } catch (error) { /* 이미 끝났습니다 */ } }
+      });
     }
 
     function measure(){
@@ -238,7 +262,27 @@
         // 그림 파일이 있는 쪽은 <img>, 없는 쪽은 임시 CSS 도형이어야 정상입니다
         assets:{ piece:!!document.querySelector(".fry-piece .fry-art-asset") || !!document.querySelector(".fry-raw-item .fry-art-asset"),
                  shape:!!document.querySelector(".fry-art"),
+                 burner:!!document.querySelector(".fry-burner-asset"),
                  potShape:!!document.querySelector(".fry-pot-shape"), rackShape:!!document.querySelector(".fry-rack-shape") },
+        /* 집게 커서. held 는 지금 물고 있는 튀김, drips 는 거기서 떨어지는 기름 방울입니다.
+           tongs 가 false 면 그림을 못 받아 기본 포인터로 돌아간 것입니다. */
+        tongs:(() => {
+          const cursor = document.querySelector(".fry-cursor");
+          if (!cursor) return null;
+          const held = cursor.querySelector(".fry-piece.held");
+          return { closed:cursor.classList.contains("closed"), holding:cursor.classList.contains("holding"),
+                   size:size(cursor), held:held ? size(held) : null,
+                   heldStage:held?.dataset.stage ?? null,
+                   drips:cursor.querySelectorAll(".fry-oil-drip").length,
+                   // 아래팔 → 튀김 → 윗팔 순서로 쌓여 있는지 (이 순서라야 물고 있는 것처럼 보입니다)
+                   layerOrder:[...cursor.children].map(child => child.className.replace("fry-tongs ", "")).join(">") };
+        })(),
+        // 기름에 잠긴 느낌 : 조각 투명도 + 그 위를 덮는 기름막 한 겹
+        oil:{ veil:!!document.querySelector(".fry-oil-veil"),
+              sunkOpacity:document.querySelector(".fry-pot-food .fry-piece")
+                ? getComputedStyle(document.querySelector(".fry-pot-food .fry-piece")).opacity : null,
+              idleBubbles:document.querySelectorAll(".fry-oil-bubbles i").length,
+              fizzGroups:document.querySelectorAll(".fry-fizz").length },
         finishing:!!data.finishing, grade:data.completionGrade,
         score:document.body.dataset.finished ?? null,
         result:document.querySelector("#e6Result")?.textContent ?? null,
