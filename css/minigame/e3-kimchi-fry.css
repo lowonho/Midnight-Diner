@@ -10,8 +10,9 @@
 /* ── 김치 볶기 (engine-e3 · direction) ────────────────────────
    왼쪽 재료 · 가운데 불 위의 팬 · 오른쪽 진행도/다음 순서 3단이고,
    맨 아래 화살표 12칸이 3단 폭을 가로질러 깔립니다.
-   그림은 전부 임시 CSS 도형이고, assets/prep/kimchi/ 에 파일을 넣으면
-   .has-asset(.has-prep-asset) 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   화구·팬·김치·나무 주걱은 assets/minigame/E3(+ /Kimchi) 의 납품 그림입니다.
+   그림이 있으면 .has-asset(.has-prep-asset) 이 붙어 아래 임시 CSS 도형이 꺼지고
+   <img> 가 대신 보입니다. 도형은 납품 전 대비로 남겨 둔 것입니다.
    (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  김치전 반죽과 같습니다.
@@ -177,10 +178,41 @@
 .frying-pan.has-prep-asset::after { display: none; }
 .frying-pan-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .frying-kimchi.has-prep-asset { z-index: 2; background: none; }
-.frying-kimchi-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 김치 그림 5장을 **같은 자리에 겹쳐 두고** 갈아 끼웁니다 (E8 불리기 볼과 같은 방식).
+   평소에는 base 한 장만 보이고, 저을 때 그 방향 장이 240ms 동안 대신 켜집니다
+   (engine-e3-direction-seq.js 의 E3_FEEL_CONFIG.actionMs 가 stir-○ 를 떼는 시각).
+   ⚠️ 전환(transition)을 두지 않습니다. 뒤집는 한 순간이라 툭 바뀌어야 뒤집힌 것처럼
+      보이고, 겹쳐 페이드하면 두 장이 같이 비쳐 김치가 두 겹으로 보입니다.
+   ⚠️ 다섯 장은 **가로만 같고 세로는 제각각**입니다(뒤집혀 흩어진 정도가 곧 세로 길이).
+      그래서 contain 이 세로 가운데를 맞춰 주는 것이 맞습니다 — 상자를 그림에 맞춰
+      좁히면 장이 넘어갈 때 김치가 위아래로 튑니다. */
+.frying-kimchi-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+}
+.frying-kimchi-asset.kimchi-base { opacity: 1; }
+/* ⚠️ base 를 끄는 조건에 `:has(.kimchi-○)` 를 답니다. 그 방향 장이 실제로 깔려 있을
+   때만 꺼야, 파일 하나가 안 실려도 240ms 동안 팬이 텅 비지 않습니다
+   (dayPrepAssetMarkup 은 그림이 없으면 <img> 를 아예 안 만듭니다). */
+.kf-board.stir-left  .frying-kimchi:has(.kimchi-left)  .frying-kimchi-asset.kimchi-base,
+.kf-board.stir-right .frying-kimchi:has(.kimchi-right) .frying-kimchi-asset.kimchi-base,
+.kf-board.stir-up    .frying-kimchi:has(.kimchi-up)    .frying-kimchi-asset.kimchi-base,
+.kf-board.stir-down  .frying-kimchi:has(.kimchi-down)  .frying-kimchi-asset.kimchi-base { opacity: 0; }
+.kf-board.stir-left  .frying-kimchi-asset.kimchi-left  { opacity: 1; }
+.kf-board.stir-right .frying-kimchi-asset.kimchi-right { opacity: 1; }
+.kf-board.stir-up    .frying-kimchi-asset.kimchi-up    { opacity: 1; }
+.kf-board.stir-down  .frying-kimchi-asset.kimchi-down  { opacity: 1; }
 
-/* E3 김치 볶기 도구. 에셋 전에는 나무 손잡이와 넓은 주걱 면을 CSS로 그립니다. */
+/* E3 김치 볶기 도구. 에셋 전에는 나무 손잡이와 넓은 주걱 면을 CSS로 그립니다.
+   기울기는 --kf-spatula-tilt 한 곳에서만 정합니다 — 아래 흔드는 애니메이션 세 개가
+   전부 이 값에서 상대로 꺾기 때문에, 임시 도형(-18도)과 납품 그림(0도)이 같은
+   손놀림을 씁니다. ⚠️ 각 키프레임에 각도를 직접 적으면 그림 쪽이 도로 세워집니다. */
 .kf-wood-spatula {
+  --kf-spatula-tilt: -18deg;
   position: absolute;
   z-index: 4;
   left: 40%;                    /* 팬 그림의 몸통 중심(39.9%)에 맞춥니다 */
@@ -197,7 +229,7 @@
   border-radius: calc(14 * var(--upx));
   background: linear-gradient(90deg,#8a5123,#d49a53 42%,#a9662d 76%,#704019);
   box-shadow: 0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.35);
-  transform: rotate(-18deg);
+  transform: rotate(var(--kf-spatula-tilt));
   transform-origin: 50% 80%;
   pointer-events: none;
 }
@@ -213,9 +245,46 @@
   background: linear-gradient(90deg,#9c622d,#d7a55e 46%,#9d612d);
   transform: translateX(-50%);
 }
-.kf-wood-spatula.has-prep-asset { width: calc(110 * var(--upx)); border: 0; background: none; box-shadow: none; }
+/* 납품 그림(토끼 손잡이 나무 주걱). 임시 도형과 크기·기울기가 둘 다 다릅니다.
+   [기울기 0] 그림이 **이미 18도 기울여 그려져 있습니다** (손잡이 위 오른쪽 · 주걱 면
+     아래 왼쪽, 원본 499x957 에서 축이 18.1도). 임시 도형용 -18 을 그대로 두면
+     두 번 기울어 도로 세워집니다.
+   [180 x 345] 주걱 면이 그림 가로의 61% 라 화면에서 110 — 임시 도형의 주걱 면(112)과
+     같습니다. 길이 345 는 팬 높이(356.2)보다 조금 짧아 끝이 팬 앞 테두리 안에 멈춥니다.
+   [왼쪽 33.1%] 그림에서 주걱 면 한가운데가 가로 31% 자리라, 그만큼 되당겨야
+     **주걱 면이 팬 몸통 중심(39.9%)에 옵니다.** 그림 상자를 40% 에 그냥 놓으면
+     주걱이 팬 오른쪽 손잡이 쪽으로 밀립니다. */
+.kf-wood-spatula.has-prep-asset {
+  --kf-spatula-tilt: 0deg;
+  left: 33.1%;
+  width: calc(180 * var(--upx));
+  height: calc(345 * var(--upx));
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
 .kf-wood-spatula.has-prep-asset::after { display: none; }
-.kf-wood-spatula-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 주걱 3장도 김치처럼 겹쳐 두고 갈아 끼웁니다. 어느 장이 보이는지는 data-spatula 하나가
+   정하고, 그 값은 engine-e3-direction-seq.js 의 frySpatulaState() 가 씁니다.
+     clean     한 번도 안 저은 깨끗한 주걱
+     stirring  젓는 중 (팬 위에 손을 대고 있는 동안)
+     rested    한 번 젓고 손을 뗀 상태 — 김치가 살짝 남습니다
+   ⚠️ 세 장은 캔버스가 미세하게 달라 tools/build-minigame-art-webp.js 에서 한 크기
+      (360x690)로 묶어 뽑습니다. 안 그러면 손을 대고 뗄 때 주걱이 들썩입니다. */
+.kf-wood-spatula-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+}
+.kf-wood-spatula[data-spatula="clean"]    .kf-wood-spatula-asset.spatula-clean,
+.kf-wood-spatula[data-spatula="stirring"] .kf-wood-spatula-asset.spatula-stirring,
+.kf-wood-spatula[data-spatula="rested"]   .kf-wood-spatula-asset.spatula-rested { opacity: 1; }
+/* 그림이 한 장이라도 빠져 임시 도형으로 돌아갔을 때, 남은 그림이 도형 위에 겹치지
+   않도록 아예 끕니다 (has-prep-asset 이 없으면 도형이 주인공입니다) */
+.kf-wood-spatula:not(.has-prep-asset) .kf-wood-spatula-asset { display: none; }
 .kf-steam {
   position: absolute;
   z-index: 3;
@@ -347,18 +416,30 @@
 .kf-board.input-wrong .kf-wood-spatula { animation: e3-tool-wrong .15s ease; }
 .kf-board.e3-complete .frying-kimchi { animation: kf-food-complete .48s cubic-bezier(.2,.9,.2,1); }
 
-@keyframes kf-spatula-left { 50% { transform: translateX(calc(-105 * var(--upx))) rotate(-30deg); } }
-@keyframes kf-spatula-right { 50% { transform: translateX(calc(105 * var(--upx))) rotate(12deg); } }
+/* ⚠️ 각도를 직접 적지 않고 쉬는 자세(--kf-spatula-tilt)에서 상대로 꺾습니다.
+   임시 도형은 -18 도에서 시작하고 납품 그림은 0 도에서 시작하는데(그림에 이미
+   18 도 기울여 그려져 있습니다), 손놀림의 폭 -12 / +30 은 둘이 같아야 합니다. */
+@keyframes kf-spatula-left { 50% { transform: translateX(calc(-105 * var(--upx))) rotate(calc(var(--kf-spatula-tilt) - 12deg)); } }
+@keyframes kf-spatula-right { 50% { transform: translateX(calc(105 * var(--upx))) rotate(calc(var(--kf-spatula-tilt) + 30deg)); } }
 @keyframes kf-food-left { 50% { transform: translateX(calc(-24 * var(--upx))) rotate(-1.5deg); } }
 @keyframes kf-food-right { 50% { transform: translateX(calc(24 * var(--upx))) rotate(1.5deg); } }
 @keyframes kf-food-complete { 45% { transform: scale(1.045); filter: saturate(1.35) brightness(1.05); } }
-@keyframes e3-tool-wrong { 35% { transform: rotate(-12deg); } 70% { transform: rotate(-24deg); } }
+/* 틀린 방향으로 저었을 때의 짧은 도리질. 위와 같은 이유로 쉬는 자세에서 ±6 도입니다.
+   (이름은 e3- 로 시작하지만 쓰는 곳은 김치 볶기 하나입니다 — 볶음우동은
+    yk-spatula-wrong-left/right 를 따로 갖고 있습니다) */
+@keyframes e3-tool-wrong {
+  35% { transform: rotate(calc(var(--kf-spatula-tilt) + 6deg)); }
+  70% { transform: rotate(calc(var(--kf-spatula-tilt) - 6deg)); }
+}
 /* 가스레인지 불꽃이 천천히 일렁입니다 */
 @keyframes kf-steam-rise { 0% { transform:translateY(calc(12 * var(--upx))); } 50% { transform:translateY(calc(-5 * var(--upx))) translateX(calc(7 * var(--upx))); } 100% { transform:translateY(calc(-20 * var(--upx))) translateX(calc(-4 * var(--upx))); } }
 
 @media (max-width:600px) {
   .kf-board { --kf-pan-drop: calc(112 * var(--upx)); --kf-pan-w: calc(380 * var(--upx)); }
   .frying-pan::after { width: calc(110 * var(--upx)); height: calc(18 * var(--upx)); }
+  /* 팬이 820 → 380 (0.463배)으로 줄어드니 주걱도 같은 배율로 줄입니다.
+     왼쪽 자리(33.1%)는 % 라 그대로 따라옵니다. */
+  .kf-wood-spatula.has-prep-asset { width: calc(83 * var(--upx)); height: calc(160 * var(--upx)); }
   .kf-ing-art i { width: calc(64 * var(--upx)); height: calc(64 * var(--upx)); }
   .kf-count strong { font-size: calc(42 * var(--upx)); }
   .kf-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }

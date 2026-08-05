@@ -286,6 +286,39 @@ const FILES = [
        철판  화면 760 x 321 */
   { file:"E3/fix_frying_pan_wide_inner_4x.png",             size:[1280,556], css:".frying-pan · .two-side-pan 640x278" },
   { file:"E3/fix_griddle_plate_wide_mild_trapezoid_4x.png", size:[1520,643], css:".yk-griddle 760x321" },
+  /* ---- E3 김치 볶기 : 팬 안의 김치 5장 -----------------------------
+     base 가 평소 모습이고 나머지 넷은 **그 방향으로 뒤집은 한 순간**입니다.
+     한 자리에 겹쳐 두고 젓는 240ms(E3_FEEL_CONFIG.actionMs) 동안만 갈아 끼웠다가
+     base 로 돌아옵니다 (css/minigame/e3-kimchi-fry.css 의 .frying-kimchi-asset).
+
+     [자리] .frying-kimchi 는 팬 그림(820 x 356.2)의 테두리 안쪽 상자(802 x 338.2)에
+     `inset: 14% 27% 16% 7%` → 529.3 x 236.7 입니다. 그 상자 비율(2.236)보다
+     다섯 장 모두 가로로 넓어(2.356~2.562) **가로 529.3 이 먼저 막힙니다** → 2배율 1059.
+
+     ⚠️ **가로만 한 값으로 묶고 세로는 각 장의 비율대로 둡니다.** 다른 연속 그림
+        (E4 냄비 · E8 볼)과 반대인데, 저 장들은 "같은 자리에 가만히 있는 그릇"이라
+        크기가 흔들리면 안 되는 반면 여기 넷은 **뒤집혀 흩어진 정도가 곧 세로 길이**라
+        한 크기로 묶으면 그 차이가 눌려 사라집니다. 가로가 같아서 좌우로는 안 튑니다.
+        (E2 봉투 흔들림 이펙트 3장과 같은 판단입니다) */
+  ...[["base",443],["stir_left",430],["stir_right",421],["stir_up",449],["stir_down",413]]
+    .map(([pose,h])=>({ file:`E3/Kimchi/food_stirfried_kimchi_${pose}.png`, size:[1059,h],
+      css:".frying-kimchi 529.3 폭 고정 (팬 안쪽 802x338.2 의 inset 14/27/16/7)" })),
+  /* ---- E3 김치 볶기 : 나무 주걱 3장 --------------------------------
+     젓는 손놀림에 따라 갈아 끼우는 한 벌입니다 (engine-e3-direction-seq.js 의 kimchiSpatulaState).
+       prop_spatula_rabbit                    한 번도 안 저은 깨끗한 주걱
+       ..._kimchi_light                       젓는 중 (김치가 많이 묻음)
+       ..._kimchi_very_light                  저은 뒤 손을 뗀 상태 (김치가 살짝 남음)
+
+     [크기] .kf-wood-spatula 180 x 345 의 2배율입니다. 주걱 면이 그림 가로의 61%
+     (원본 499 중 306)이라 화면에서 110 — 예전 임시 도형의 주걱 면(112)과 같습니다.
+     길이 345 는 팬 높이(356.2)보다 조금 짧아 주걱 끝이 팬 앞 테두리 안에 멈춥니다.
+
+     ⚠️ **세 장을 한 크기로 묶는 것이 중요합니다.** 납품본이 499x957 / 498x959 /
+        495x954 로 조금씩 다릅니다(비율 차 최대 0.54%). 여기서 한 크기로 뽑아야
+        손을 대고 뗄 때 주걱이 커졌다 작아졌다 하지 않습니다.
+        (E8 물병 3자세 · E5 김치전 5장과 같은 처리입니다.) */
+  ...["prop_spatula_rabbit","prop_spatula_rabbit_kimchi_light","prop_spatula_rabbit_kimchi_very_light"]
+    .map(name=>({ file:`E3/Kimchi/${name}.png`, size:[360,690], css:".kf-wood-spatula 180x345 (3장 한 크기)" })),
   /* E5 김치전 굽기의 왼쪽 재료 카드(반죽 그릇 한 장).
      그림칸이 210 x 225 인데 원본이 정사각이라 **가로 210 이 먼저 막습니다** → 2배율 420. */
   { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" },

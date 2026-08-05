@@ -23,7 +23,7 @@ function sequenceMatches(sequence,index,input){
 /* ============================================================
    1. 김치 볶기 (낮 준비)
 
-   화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
+   화면 구성 (그림은 assets/minigame/E3 · E3/Kimchi 의 납품 에셋입니다)
      왼쪽   재료 카드 — 썰은 김치 ×1 · 설탕 ×1 (보여주기만 합니다)
      가운데 불 위의 팬
      오른쪽 진행도 + 다음 순서 화살표
@@ -113,13 +113,14 @@ registerDayPrepEngine("direction",{});
 /* ---- 공통 슬라이드 입력 ------------------------------------
    누른 지점부터 작업 영역 짧은 변의 slideStep 만큼 크게 밀면 방향 입력 1회입니다.
    한 번 누른 동안에는 한 획만 인정하며, 다음 화살표는 손을 떼고 다시 휘젓습니다. */
-function bindDirectionSlide({surfaceSelector,gestureScaleSelector,isActive,onDirection}){
+function bindDirectionSlide({surfaceSelector,gestureScaleSelector,isActive,onDirection,onDragStart,onDragEnd}){
   const surface=dom.miniContent.querySelector(surfaceSelector);if(!surface)return;
   surface.addEventListener("pointerdown",event=>{
     const m=state.mini;if(!isActive(m)||m.complete||m.data.inputLocked||m.data.phase==="complete")return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
     event.preventDefault();m.data.drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,accepted:false};
     surface.setPointerCapture?.(event.pointerId);surface.classList.add("direction-sliding");
+    onDragStart?.(m.data);
   });
   surface.addEventListener("pointermove",event=>{
     const m=state.mini,drag=m?.data?.drag;if(!isActive(m)||m.complete||!drag||drag.pointerId!==event.pointerId)return;
@@ -140,6 +141,7 @@ function bindDirectionSlide({surfaceSelector,gestureScaleSelector,isActive,onDir
   const finish=event=>{
     const m=state.mini,drag=m?.data?.drag;if(!isActive(m)||!drag||drag.pointerId!==event.pointerId)return;
     m.data.drag=null;surface.classList.remove("direction-sliding");
+    onDragEnd?.(m.data);
   };
   surface.addEventListener("pointerup",finish);
   surface.addEventListener("pointercancel",finish);
@@ -197,6 +199,53 @@ function completeDirectionSequence(m,{workSelector,feedback,onDone}){
   setTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
 
+/* ---- 김치 볶기 그림 두 벌 ----------------------------------
+   팬 안의 김치와 나무 주걱은 둘 다 **한 자리에 겹쳐 두고 갈아 끼우는 연속 그림**입니다.
+   어느 장이 보이는지는 전부 CSS 가 정합니다 — 자바스크립트는 `.kf-board` 의
+   stir-○ 클래스(이미 있던 것)와 주걱의 data-spatula 만 바꿉니다.
+   (파일 경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고) */
+
+// 방향 → 그 방향으로 뒤집은 김치 그림 키. 방향 문자열이 그대로 키가 됩니다.
+function fryKimchiStirAssetKey(direction){
+  return direction?`fryKimchiStir${direction[0].toUpperCase()}${direction.slice(1)}`:"";
+}
+
+/* 팬 안에 겹쳐 깔 김치 그림. 평소 모습 1장 + 방향 4장입니다.
+   ⚠️ 지금 순서는 ← → 두 방향뿐이라 up/down 장은 화면에 안 나옵니다. 그래도 넷을 다
+      깔아 두는 이유는, DIRECTION_SEQUENCE_CONFIG.kimchi.directions 를 넷으로 늘리면
+      코드를 고치지 않고 그대로 살아나게 하기 위해서입니다. */
+const FRY_KIMCHI_STIR_POSES=Object.freeze(["left","up","right","down"]);
+const FRY_STIR_CLASSES=Object.freeze(FRY_KIMCHI_STIR_POSES.map(pose=>`stir-${pose}`));
+
+function fryKimchiHasArt(){return hasDayPrepAsset("fryKimchiBase");}
+function fryKimchiFramesMarkup(){
+  return [["fryKimchiBase","base"],...FRY_KIMCHI_STIR_POSES.map(pose=>[fryKimchiStirAssetKey(pose),pose])]
+    .map(([key,pose])=>dayPrepAssetMarkup(key,`frying-kimchi-asset kimchi-${pose}`,pose==="base"?"볶는 김치":""))
+    .join("");
+}
+
+/* 나무 주걱(토끼 손잡이) 3장. 어느 장을 보일지는 손놀림이 정합니다.
+     clean     한 번도 안 저은 깨끗한 주걱
+     stirring  젓는 중 — 손을 대고 있는 동안
+     rested    한 번 젓고 손을 뗀 상태
+   ⚠️ 세 장이 다 있어야 has-prep-asset 을 붙입니다. 한 장이라도 없으면 상태가 바뀔 때
+      주걱이 사라져 버리므로, 그럴 바에는 임시 CSS 도형을 그대로 쓰는 편이 낫습니다. */
+const FRY_SPATULA_ASSETS=Object.freeze({clean:"frySpatulaClean",stirring:"frySpatulaStirring",rested:"frySpatulaRested"});
+
+function frySpatulaHasArt(){return Object.values(FRY_SPATULA_ASSETS).every(hasDayPrepAsset);}
+function frySpatulaFramesMarkup(){
+  return Object.entries(FRY_SPATULA_ASSETS)
+    .map(([pose,key])=>dayPrepAssetMarkup(key,`kf-wood-spatula-asset spatula-${pose}`,pose==="clean"?"나무 주걱":""))
+    .join("");
+}
+function frySpatulaState(data,dragging){
+  return dragging?"stirring":(data.stirred?"rested":"clean");
+}
+function setFrySpatulaState(data,dragging){
+  const tool=dom.miniContent.querySelector(".kf-wood-spatula");
+  if(tool)tool.dataset.spatula=frySpatulaState(data,dragging);
+}
+
 function setupKimchiFry(taskId="fryTofuKimchi"){
   const config=DIRECTION_SEQUENCE_CONFIG.kimchi;
   const m=setDayPrepData({
@@ -209,6 +258,8 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
     inputLocked:false,
     transitioning:false,
     drag:null,
+    // 한 번이라도 저었는지. 나무 주걱 그림이 깨끗한 장 → 김치가 묻은 장으로 바뀝니다.
+    stirred:false,
     total:config.total,
     allowedDirections:[...config.directions],
     ingredients:config.ingredients,
@@ -240,9 +291,9 @@ function renderKimchiFry(){
         ${minigameBurnerMarkup("gas")}
         <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
           ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
-          <i class="frying-kimchi ${hasDayPrepAsset("fryingKimchi")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryingKimchi","frying-kimchi-asset","볶는 김치")}</i>
+          <i class="frying-kimchi ${fryKimchiHasArt()?"has-prep-asset":""}">${fryKimchiFramesMarkup()}</i>
           <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
-          <i class="kf-wood-spatula ${hasDayPrepAsset("fryWoodenSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("fryWoodenSpatula","kf-wood-spatula-asset","나무 주걱")}</i>
+          <i class="kf-wood-spatula ${frySpatulaHasArt()?"has-prep-asset":""}" data-spatula="${frySpatulaState(data,false)}">${frySpatulaFramesMarkup()}</i>
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -266,7 +317,10 @@ function renderKimchiFry(){
     surfaceSelector:".kf-scene",
     gestureScaleSelector:"#fryWorkArea",
     isActive:m=>isDayPrepMini(m)&&m.data.mode==="direction"&&m.data.configId==="kimchi",
-    onDirection:direction=>kimchiFryInput(direction)
+    onDirection:direction=>kimchiFryInput(direction),
+    // 주걱은 손을 대는 순간부터 젓는 장으로 바뀝니다 (한 획을 다 밀 때까지 기다리지 않습니다)
+    onDragStart:data=>setFrySpatulaState(data,true),
+    onDragEnd:data=>setFrySpatulaState(data,false)
   });
 }
 
@@ -274,6 +328,8 @@ function kimchiFryInput(direction,repeat=false){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete||m.data.mode!=="direction")return;
   if(repeat)return false;
   const data=m.data;
+  // 한 획을 밀었으면 방향이 틀렸어도 주걱에는 김치가 묻습니다
+  data.stirred=true;
   const current=dom.miniContent.querySelector(`[data-sequence-index="${data.successes}"]`);
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"sequence",indexKey:"successes",
@@ -296,8 +352,9 @@ function kimchiFryInput(direction,repeat=false){
       if(nextArrow)nextArrow.innerHTML=directionArrowMarkup(data.sequence[data.successes],"kf-next-arrow-asset");
       const work=dom.miniContent.querySelector("#fryWorkArea");
       if(work){
+        // stir-○ 는 팬 안의 김치를 그 방향으로 뒤집은 장으로 바꿉니다 (240ms 뒤 base 로 돌아옵니다)
         const actionClass=`stir-${direction}`,stage=`cook-stage-${directionVisualStage(data.successes,data.total)}`;
-        work.classList.remove("stir-left","stir-right","cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
+        work.classList.remove(...FRY_STIR_CLASSES,"cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
         setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },

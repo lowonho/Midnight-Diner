@@ -212,8 +212,28 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //    손잡이까지 들어 있는 그림이라 몸통은 전체 폭의 79.7% 뿐입니다.
   //    자리 잡는 방법은 css/day-prep-minigames.css 의 .frying-pan 주석 참고.
   fryingPan:"assets/minigame/E3/fix_frying_pan_wide_inner_4x.webp",
-  fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
-  fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
+  /* 팬 안의 김치 5장. base 가 평소 모습이고 나머지 넷은 **그 방향으로 뒤집은 한 순간**
+     입니다 — 다섯 장을 한 자리에 겹쳐 두고, 저을 때 그 방향 장을 240ms 만 켰다가
+     base 로 돌아옵니다 (css/minigame/e3-kimchi-fry.css 의 .frying-kimchi-asset).
+     키 뒷자리는 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
+     fryKimchiStirAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다.
+     ⚠️ 지금 김치 볶기 순서는 ← → 두 방향뿐이라(DIRECTION_SEQUENCE_CONFIG.kimchi.directions)
+        up/down 장은 화면에 안 나옵니다. 방향을 넷으로 늘리면 그대로 살아납니다. */
+  fryKimchiBase:"assets/minigame/E3/Kimchi/food_stirfried_kimchi_base.webp",
+  ...Object.fromEntries(["left","up","right","down"].map(way=>
+    [`fryKimchiStir${way[0].toUpperCase()}${way.slice(1)}`,
+     `assets/minigame/E3/Kimchi/food_stirfried_kimchi_stir_${way}.webp`])),
+  /* 나무 주걱(토끼 손잡이) 3장. 젓는 손놀림에 따라 갈아 끼웁니다
+     (engine-e3-direction-seq.js 의 kimchiSpatulaState).
+       Clean     한 번도 안 저은 깨끗한 주걱
+       Stirring  젓는 중 — 김치가 많이 묻은 주걱
+       Rested    한 번 젓고 손을 뗀 상태 — 김치가 살짝 남은 주걱
+     ⚠️ 그림이 **이미 18도 기울여 그려져 있습니다.** 임시 도형 시절의
+        `rotate(-18deg)` 를 그대로 두면 두 번 기울어 도로 세워집니다
+        (css 의 --kf-spatula-tilt 참고). */
+  frySpatulaClean:"assets/minigame/E3/Kimchi/prop_spatula_rabbit.webp",
+  frySpatulaStirring:"assets/minigame/E3/Kimchi/prop_spatula_rabbit_kimchi_light.webp",
+  frySpatulaRested:"assets/minigame/E3/Kimchi/prop_spatula_rabbit_kimchi_very_light.webp",
   // 왼쪽 재료 카드 2장 — assets/minigame/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   // ⚠️ 썬 김치 그림만 E5 폴더에 있습니다 (E5 김치전과 같은 재료라 그쪽으로 옮겼습니다).
