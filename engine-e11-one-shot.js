@@ -61,9 +61,11 @@ const ONE_SHOT_PIECES=Object.freeze({
         다른 방향에서 본 두부처럼 보입니다. 김치는 뭉쳐 놓은 가닥이라 돌려도
         그런 어긋남이 없어 그대로 둡니다. */
   tofu:{label:"썬 두부",art:"tofuSlices",asset:"osTofuSlices",slot:"plate-left",
-        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:25,pieceTilt:0},
+        pieceArt:"tofuPiece",pieceAsset:"osTofuPiece",pieceWidth:25,pieceTilt:0,
+        placeSfx:"plate_tofu_place",placeSfxGain:2.6},
   friedKimchi:{label:"볶은 김치",art:"friedKimchi",asset:"osFriedKimchi",slot:"plate-right",
-        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:26}
+        pieceArt:"kimchiPiece",pieceAsset:"osKimchiPiece",pieceWidth:26,
+        placeSfx:"drop_pancake_kimchi",placeSfxGain:.35}
 });
 
 // 그릇. asset 은 빈 그릇, doneAsset 은 오른쪽 '참고 모양'에 쓰는 완성 그림입니다.
@@ -454,7 +456,10 @@ function placeFreeOneShotPiece(m,data,id,piece,spot){
   // 눌러서 놓는 방식은 계속 눌러 담을 수 있게 집은 재료를 그대로 둡니다.
   // (끌어다 놓은 뒤에는 놓아 줍니다 — 접시를 잘못 눌러 얹히지 않게)
   data.selected=!spot?.drag&&oneShotLeft(data,id)>0?id:null;
-  audio.click();
+  if(piece.placeSfx){
+    if(data.placeSfx)audio.stopFile?.(data.placeSfx);
+    data.placeSfx=audio.play?.(piece.placeSfx,{owner:m,gain:piece.placeSfxGain})||null;
+  }else audio.click();
   const done=oneShotDoneCount(data),total=oneShotTotal(data),allPlaced=done>=total;
   if(allPlaced){data.finishing=true;data.actionPhase="complete";}
   dom.miniFeedback.textContent=allPlaced
