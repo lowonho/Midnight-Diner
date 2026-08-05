@@ -74,7 +74,7 @@ try{
   assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startSignalMs===450,"E1 path timing config");
   assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:3.4,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===3.4,"E1 ingredient-specific tuned hit boxes");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,14"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki cut counts, tempos, and fish-cake horizontal finish");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,16"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki cut counts, tempos, and fish-cake horizontal finish");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,3.4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===3.4,"E1 tteokbokki ingredients use tuned hit boxes");
 
   dayPrepAssets.tteokCabbage0={src:"assets/minigame/E1/cabbage-0.png"};
@@ -147,7 +147,7 @@ try{
   assert(CUT_ASSET_STAGE_MAX.radish===7&&radishStages==="0,1,2,3,4,5,6,7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E1 radish maps seven cuts one-to-one onto eight progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:14,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
   const fishCakeLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line:not(.tofu-horizontal-line)")].map(line=>line.style.left).join(",");
   assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 fish cake uses three straight vertical cuts and one final horizontal cut");
   const fishTarget=timingCutTarget(state.mini.data).value;
@@ -166,9 +166,9 @@ try{
   assert(CUT_ASSET_STAGE_MAX.kimchi===9&&kimchiStages==="0,1,2,3,4,5,6,7,8,9"&&DAY_PREP_ASSET_PATHS.kimchiCut9==="assets/minigame/E1/kimchi-9.png","E1 kimchi maps nine cuts one-to-one onto ten progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:10.5,title:"E1 tofu smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:12,title:"E1 tofu smoke",description:"smoke"});
   const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===10.5&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu keeps six cuts and the slowest heavy tempo");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===12&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu keeps six cuts and the tuned heavy tempo");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
