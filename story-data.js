@@ -5,7 +5,7 @@
 // 조리 미니게임의 구성과 메뉴 ID는 game-data.js의 기존 정의를 그대로 사용합니다.
 const STORY_CHARACTERS = {
   protagonist: { name: "김다은", role: "주인공", portraitRow: null, alwaysKnown: true },
-  recalledBoss: { name: "상사(회상)", role: "퇴사한 회사의 상사", portraitRow: null, alwaysKnown: true },
+  recalledBoss: { name: "상사(회상)", role: "김다은이 다니는 회사의 상사", portraitRow: null, alwaysKnown: true },
   journal: { name: "영업일지", role: "달빛식탁의 장부", portraitRow: null, alwaysKnown: true },
   moonlightTable: { name: "달빛식탁", role: "달빛식탁의 목소리", portraitRow: null, alwaysKnown: true },
   rainyChild: { name: "비에 젖은 아이", role: "첫째 날 특별 손님", portraitRow: 0, alwaysKnown: true },
@@ -60,9 +60,9 @@ const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
 // 기존 미니게임 점수를 이야기 평가 세 단계로 변환하는 기준입니다.
 const STORY_SCORE_THRESHOLDS = Object.freeze({ warm: 50, great: 80 });
 
-// 화면에는 두 기록 모두 「영업일지」로 표시하지만, 이 정의는 현재 진행
-// 세이브(state.story)에 종속되는 손님 8장의 고정 목차입니다. 타이틀의 영구
-// 컬렉션은 같은 손님 메타데이터를 읽되 별도 localStorage 데이터로 해금합니다.
+// 특별 손님을 실제로 만난 뒤 날짜별 기록을 채울 때와 타이틀 영구
+// 컬렉션을 만들 때 쓰는 메타데이터입니다. 진행 영업일지의 미래 목차로는
+// 직접 노출하지 않습니다.
 const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   {
     guestId: "rainyChild", title: "1일차 — 비에 젖은 아이", dayLabel: "1일차",
@@ -149,7 +149,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
     appearanceCondition: "6일차 밤 · 일반 손님 7명 응대 후", displayName: "바닷물로 된 손님",
     portraitRow: 5, trace: "사람 형태의 몸 안에서 움직이는 작은 파도와 물고기",
     dishId: "shrimpTempura", dishName: "새우튀김",
-    clue: "바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진 휘어진 음식.",
+    clue: "뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식.",
     preferredStyle: "겉은 바삭하고 속의 새우는 촉촉하게 남은 새우튀김",
     storyByLevel: {
       1: "찾던 음식이 새우튀김이라는 사실을 확인했지만 자신의 이름은 떠올리지 못했다.",
@@ -188,7 +188,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
       2: "입사 첫해 동료들과 볶음우동을 나누며 먹는 사람의 표정을 직접 보았던 기억을 되찾았다.",
       3: "자신이 김다은이 포기한 내일이며, 새벽으로 가는 길을 닫은 것은 다은의 소원이었음을 밝혔다."
     },
-    completedStory: "김다은이 포기한 내일이었다. 다은은 자신이 닫은 새벽문을 다시 열고 내일을 마주하기로 했다.",
+    completedStory: "김다은이 포기한 내일이었다. 다은은 자신이 닫은 새벽문을 알아보고, 이 밤을 어떻게 끝낼지 스스로 선택하기로 했다.",
     shardId: "daeuns_tomorrow", shardName: "김다은의 내일",
     epilogue: "다은은 아직 정하지 못한 내일도 없애지 않고 현실의 아침에서 다시 생각하기로 했다."
   }
@@ -284,7 +284,7 @@ function createSpecialGuestArc(config) {
 const STORY_SCENES = {
   "SCN-P01": {
     id: "SCN-P01",
-    title: "퇴사한 밤 - 퇴근길",
+    title: "지친 밤 - 퇴근길",
     day: 1,
     moment: "newGame",
     sceneType: "prologue",
@@ -293,13 +293,14 @@ const STORY_SCENES = {
     nextSceneId: "SCN-P02",
     lines: [
       {
-        ...storyNarration("몇 달째 줄어든 인원으로 신제품 일정을 버티던 김다은은 두 사람 몫의 일정과 보고서를 떠안았다.\n퇴근 직전의 수정 지시와 주말 연락이 반복되었고, 원가를 맞추면 상품성이 없다는 평가가, 맛을 살리면 원가가 높다는 지적이 돌아왔다.\n마지막 메뉴도 수차례 수정 끝에 처음 의도와 전혀 다른 상품이 되었다."),
+        ...storyNarration("몇 달째 줄어든 인원으로 신제품 일정을 버티던 김다은은 두 사람 몫의 일정과 보고서를 떠안았다.\n퇴근 직전의 수정 지시와 주말 연락이 반복되었고, 원가를 맞추면 상품성이 없다는 평가가, 맛을 살리면 원가가 높다는 지적이 돌아왔다.\n마지막 메뉴도 수차례 수정 끝에 처음 의도와 전혀 다른 상품이 되었다. 다은은 늦은 밤이 되어서야 회사 건물을 나선다."),
         cinematic: { id: "pr01Exterior", beat: "exit" }
       },
       { ...storyLine("recalledBoss", "맛은 나쁘지 않아. 그런데 이걸 사람들이 사서 먹을까?"), cinematic: { id: "pr01Exterior", beat: "pause" } },
       storyCaption("김다은(속말)", "또 처음부터 바꾸라고 하겠지."),
       storyCaption("김다은(속말)", "더 버티면 내가 좋아했던 음식까지 싫어하게 될 것 같아."),
-      storyLine("protagonist", "…그만하자. 도저히 이 회사생활은 더 못 버티겠어.")
+      storyLine("protagonist", "오늘도 겨우 퇴근이네."),
+      storyCaption("김다은(속말)", "그냥 내일이 오지 않았으면 좋겠다.")
     ]
   },
 
@@ -315,12 +316,12 @@ const STORY_SCENES = {
     interactionTarget: "restaurantDoor",
     lines: [
       {
-        ...storyNarration("퇴사 뒤의 계획은 없었지만 회사로 돌아갈 생각도 없었다.\n휴대전화에는 팀장과 동료들이 보낸 메시지와 부재중 전화가 몇 개 쌓여 있었다. 다은은 알림만 확인하고 화면을 끈다.\n그 순간 비가 내리기 시작한다."),
+        ...storyNarration("다은은 평소처럼 익숙한 퇴근길을 걷는다.\n비 예보는 없었지만 굵은 빗방울이 하나둘 떨어지더니 순식간에 거센 비가 쏟아진다.\n다은은 비를 피할 곳을 찾아 늘 지나던 골목 안쪽으로 뛰어간다."),
         cinematic: { id: "pr01Exterior", beat: "rainRun" }
       },
-      storyLine("protagonist", "내일이 와도 달라질 게 없는데."),
-      storyLine("protagonist", "그냥 내일 같은 건 오지 않았으면 좋겠다."),
-      { ...storyLine("protagonist", "…저 식당, 아까부터 있었나?"), cinematic: { id: "pr01Exterior", beat: "enter" } }
+      storyLine("protagonist", "갑자기 무슨 비야… 우산도 없는데."),
+      storyNarration("고개를 들자 골목 끝에 작은 식당 하나가 보인다.\n매일 지나던 퇴근길인데도 한 번도 본 적 없는 식당이다."),
+      { ...storyLine("protagonist", "저런 식당이 여기 있었나? 일단 비부터 피하자."), cinematic: { id: "pr01Exterior", beat: "enter" } }
     ]
   },
 
@@ -337,6 +338,7 @@ const STORY_SCENES = {
     lines: [
       storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
       storyLine("protagonist", "아무도 없나…?"),
+      storyNarration("다은은 들어왔던 문을 다시 열고 빗속으로 발을 내딛는다.\n그러나 다음 발을 딛는 순간, 다은은 다시 식당 안에 서 있다."),
       storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?"),
       storyLine("protagonist", "이 문은 밖으로 나가는 문이 아니야.", { repeatInteraction: "exitDoor" })
     ]
@@ -353,17 +355,14 @@ const STORY_SCENES = {
     completesPrologue: true,
     opensMenuSelection: true,
     lines: [
-      storyNarration("장부의 빈 페이지 위로 글자가 한 줄씩 나타난다.\n달빛식탁의 출입문은 현실로 나가는 문이 아니며, 손님들이 돌려주는 달빛 조각이 모여야 현실의 아침으로 이어지는 새벽문이 열린다."),
-      storyLine("journal", "손님에게 기억하는 음식을 대접하십시오."),
-      storyLine("journal", "기본 특별 손님이 음식의 기억을 일부 되찾으면 부분 달빛 조각을, 완전히 되찾으면 완전한 달빛 조각을 돌려받을 수 있습니다."),
-      storyLine("journal", "완전한 달빛 조각 여덟 개가 식탁에 모이면 현실의 아침으로 이어지는 새벽문이 열립니다."),
-      storyLine("journal", "일곱 번째 밤의 영업이 끝날 때 새벽문이 열리지 않았다면 시간은 첫째 날 낮으로 돌아갑니다."),
-      storyLine("journal", "회귀한 뒤에는 완료된 영업 기록만 이 장부에 남고, 모은 달빛 조각은 사라집니다."),
-      storyLine("journal", "마지막 예약 손님: 김다은."),
-      storyLine("journal", "방문 시각: 일곱째 밤 영업 종료 후."),
-      storyLine("journal", "예약 조건: 부분 달빛 조각과 완전한 달빛 조각은 현재 회차 조각 수에 각각 하나로 세지만, 기본 손님 일곱 명의 조각이 모두 완전해야 마지막 예약 손님이 찾아옵니다. 마지막 예약 손님은 기억을 완전히 되찾았을 때만 완전한 조각을 돌려줍니다."),
-      storyLine("protagonist", "마지막 예약 손님이 나라고…? 지금은 이유를 알 수 없어."),
-      storyLine("protagonist", "우선 손님들을 만나고 이 장부의 기록부터 확인해 보자.")
+      storyNarration("장부의 첫 장에 「주의사항」이라는 제목과 네 줄의 글자가 나타난다.\n주의사항 아래에는 이 식당에서 만들 수 있는 여덟 가지 음식의 이름이 적혀 있다.\n그 뒤의 일곱 장에는 첫째 날부터 일곱째 날까지 날짜만 적혀 있을 뿐, 아직 아무 기록도 없다."),
+      storyLine("journal", "하나. 매일 여덟 가지 음식 중 다섯 가지 메뉴를 준비하십시오."),
+      storyLine("journal", "둘. 손님이 기억하는 음식을 대접하고, 얻은 단서는 날짜별 기록에 남기십시오."),
+      storyLine("journal", "셋. 손님들이 돌려주는 달빛 조각을 모아 현실로 이어지는 문을 여십시오."),
+      storyLine("journal", "넷. 일곱째 밤까지 문을 열지 못하면 첫째 날로 돌아갑니다. 기록은 남지만 모은 조각은 사라집니다."),
+      storyLine("protagonist", "여기서 나가려면 결국 이 식당을 열어야 한다는 거네."),
+      storyCaption("김다은(속말)", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지."),
+      storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.")
     ]
   },
 
@@ -398,10 +397,10 @@ const STORY_SCENES = {
     repeatEachLoop: true,
     dynamicJournalHint: true,
     journalVariants: {
-      none: [storyLine("protagonist", "아직 이 날의 기록이 없어. 오늘은 내가 판단해서 골라야 해.")],
-      clue: [storyLine("protagonist", "이 날 손님은 ‘[영업일지 단서]’라고 했어. 그 말에 맞는 음식을 준비해 보자.")],
-      confirmed: [storyLine("protagonist", "찾던 음식은 [음식명]이야. 이번에는 기억을 되찾게 해 줘야 해.")],
-      shard: [storyLine("protagonist", "지난 회차에 이 손님의 달빛 조각을 얻었다는 기록이 있어. 하지만 조각은 사라졌으니 이번 회차에 다시 얻어야 해.")]
+      none: [storyCaption("김다은(속말)", "아직 이 날의 기록이 없어. 오늘은 내가 판단해서 골라야 해.")],
+      clue: [storyCaption("김다은(속말)", "이 날의 기록에는 ‘[영업일지 단서]’라고 적혀 있어. 그 말에 맞는 음식을 준비해 보자.")],
+      confirmed: [storyCaption("김다은(속말)", "지난 기록에서 확인한 음식은 [음식명]이야. 이번에는 기억을 되찾게 해 줘야 해.")],
+      shard: [storyCaption("김다은(속말)", "지난 회차에 이 손님의 달빛 조각을 얻었다는 기록이 있어. 하지만 조각은 사라졌으니 이번 회차에 다시 얻어야 해.")]
     },
     lines: [storyNarration("다은은 영업일지에 실제로 적힌 범위만 확인한다.")]
   },
@@ -440,26 +439,32 @@ const STORY_SCENES = {
       storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.")
     ],
     missingLines: [
-      storyNarration("오늘 메뉴에 김치전이 없다. 아이는 다른 음식으로 바꾸지 않고 기억나는 특징을 더 말한 뒤 돌아간다."),
+      storyNarration("아이가 말한 특징에 맞는 음식은 오늘 준비한 다섯 메뉴에 없다.\n아이는 다른 음식으로 바꾸지 않고 기억나는 특징을 더 말한 뒤 돌아간다."),
       storyLine("protagonist", "오늘 준비한 메뉴에는 없는 것 같아."),
       storyLine("rainyChild", "그럼 다음 비가 올 때 다시 올게요."),
       storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
     softLines: [
+      storyNarration("아이는 뜨거운 한입을 조심스럽게 베어 물고 잠시 미소 짓는다.\n곧 지글거리던 소리를 떠올리려는 듯 고개를 기울인다."),
       storyNarration("아이는 김치전이 맞다는 사실만 확인한다. 기억은 열리지 않는다."),
       storyLine("rainyChild", "이 음식은 맞는 것 같은데… 비 오는 날 들었던 소리와는 조금 달라요."),
-      storyLine("protagonist", "김치전은 맞는 거네. 다음에 다시 오면 더 잘 만들어 볼게.")
+      storyLine("protagonist", "김치전은 맞는 거네. 다음에 다시 오면 더 잘 만들어 볼게."),
+      storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ],
     warmLines: [
+      storyNarration("바삭한 가장자리가 부서지는 소리에 아이의 어깨가 가볍게 들썩인다.\n아이는 빗소리를 잊은 듯 따뜻한 김치전을 연달아 먹는다."),
       storyNarration("아이는 누군가와 비를 기다리며 김치전을 나누어 먹던 기억과, 비가 그치면 그 사람도 떠날 것 같았다는 두려움을 떠올린다."),
       storyLine("rainyChild", "맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요."),
-      storyLine("protagonist", "비가 그쳐도 같이 먹었던 일까지 없어지는 건 아니잖아.")
+      storyLine("protagonist", "비가 그쳐도 같이 먹었던 일까지 없어지는 건 아니잖아."),
+      storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ],
     greatLines: [
+      storyNarration("노릇한 가장자리와 촉촉한 속을 번갈아 맛본 아이가 환하게 웃는다.\n빈 접시를 내려놓는 손끝에서 빗물이 맑은 빛으로 반짝인다."),
       storyNarration("아이는 모두가 떠날까 두려워 달빛 한 조각을 빗속에 붙잡아 두었다고 고백한다."),
       storyLine("rainyChild", "이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요."),
-      storyLine("protagonist", "그 빛은 이제 식탁에 두자. 비가 그쳐도 네 기억은 남아.")
+      storyLine("protagonist", "그 빛은 이제 식탁에 두자. 비가 그쳐도 네 기억은 남아."),
+      storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ]
   }),
 
@@ -476,31 +481,37 @@ const STORY_SCENES = {
     triggerAfterGeneral: 0,
     journalClue: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("간판이 켜지자 문밖의 불빛이 길게 늘어난다.\n머리 대신 낡은 종이등을 단 손님이 그날의 첫 손님으로 들어온다."),
+      storyNarration("간판이 켜지자 식당 바닥에 길쭉한 불빛이 번진다.\n빛이 모인 자리에는 머리 대신 낡은 종이등을 단 손님이 어느새 나타나 있다."),
       storyLine("lanternGuest", "손끝이 따뜻해지는 국물이 있습니까?"),
       storyLine("protagonist", "무슨 국물인지 기억나요?"),
       storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.")
     ],
     missingLines: [
-      storyNarration("어묵탕이 준비되지 않았다. 손님은 빈 테이블에 두 손을 얹었다가 조용히 돌아선다."),
+      storyNarration("손님이 찾는 따뜻한 국물은 오늘 준비한 다섯 메뉴에 없다.\n손님은 빈 테이블에 두 손을 얹었다가 조용히 돌아선다."),
       storyLine("lanternGuest", "오늘은 제 손을 녹여 줄 그릇이 없군요."),
       storyLine("protagonist", "다음에는 그 국물을 준비해 볼게요."),
       { kind: "journal", text: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다." }
     ],
     softLines: [
+      storyNarration("손님은 그릇을 두 손으로 감싸고 국물을 천천히 삼킨다.\n종이등 안의 불꽃이 잠깐 포근한 빛을 내다가 다시 가늘어진다."),
       storyNarration("따뜻한 음식은 맞지만 기억의 온기에는 닿지 않는다."),
       storyLine("lanternGuest", "따뜻하군요. 하지만 길을 떠나기 전 받았던 온기에는 아직 닿지 못했습니다."),
-      storyLine("protagonist", "찾던 음식은 맞네요. 다음에 다시 만들어 드릴게요.")
+      storyLine("protagonist", "찾던 음식은 맞네요. 다음에 다시 만들어 드릴게요."),
+      storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ],
     warmLines: [
+      storyNarration("따뜻한 국물이 목을 타고 내려가자 종이등의 빛이 식탁을 부드럽게 물들인다.\n손님은 그릇을 놓지 않은 채 오래도록 남은 온기를 즐긴다."),
       storyNarration("손님은 밤길을 걷는 사람들을 집으로 돌려보내던 존재였음을 떠올리지만 자신의 귀환지는 기억하지 못한다."),
       storyLine("lanternGuest", "이 국물로 많은 사람을 돌려보냈습니다. 그런데 제 길만 기억나지 않는군요."),
-      storyLine("protagonist", "계속 남의 길만 비추느라 자기 길은 못 찾았던 거군요.")
+      storyLine("protagonist", "계속 남의 길만 비추느라 자기 길은 못 찾았던 거군요."),
+      storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ],
     greatLines: [
+      storyNarration("손님이 어묵과 국물을 남김없이 비우자 종이등이 환하게 밝아진다.\n그 빛은 눈부시기보다 오래 기다린 집의 불빛처럼 따뜻하다."),
       storyNarration("모두를 보내고 혼자 남는 것이 두려워 등불 안에 달빛 조각을 붙잡았다고 고백한다."),
       storyLine("lanternGuest", "모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요."),
-      storyLine("protagonist", "돌아갈 곳이 정해져 있지 않아도, 이제부터 찾을 수 있어요.")
+      storyLine("protagonist", "돌아갈 곳이 정해져 있지 않아도, 이제부터 찾을 수 있어요."),
+      storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ]
   }),
 
@@ -523,7 +534,7 @@ const STORY_SCENES = {
       storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.")
     ],
     missingLines: [
-      storyNarration("두부김치가 없다. 두 그림자는 서로 탓하다가 같은 음식을 찾고 있었다는 사실만 남긴다."),
+      storyNarration("두 그림자가 함께 찾는 음식은 오늘 준비한 다섯 메뉴에 없다.\n둘은 서로 탓하다가 같은 음식을 찾고 있었다는 사실만 남긴다."),
       storyLine("leftShadow", "오늘은 내가 찾는 쪽이 없나 봐."),
       storyLine("rightShadow", "아니, 우리 둘 다 찾는 음식이 없는 거야."),
       storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어."),
@@ -531,21 +542,27 @@ const STORY_SCENES = {
       { kind: "journal", text: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다." }
     ],
     softLines: [
+      storyNarration("두 그림자는 흰 음식과 붉은 음식을 번갈아 한입씩 맛본다.\n잠시 말다툼을 멈추지만 서로 붙은 경계는 그대로다."),
       storyNarration("음식이 맞다는 사실만 확인하며 두 그림자의 기억은 열리지 않는다."),
       storyLine("leftShadow", "둘이 함께 있는 음식은 맞아."),
       storyLine("rightShadow", "하지만 아직 우리를 하나로 떠올리게 하진 못해."),
-      storyLine("protagonist", "둘 다 같은 음식을 기억하는 건 맞네. 다음에 다시 해 볼게.")
+      storyLine("protagonist", "둘 다 같은 음식을 기억하는 건 맞네. 다음에 다시 해 볼게."),
+      storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ],
     warmLines: [
+      storyNarration("부드러운 흰 음식과 매콤한 붉은 음식이 한입에서 어우러지자 두 그림자가 동시에 웃는다.\n둘의 목소리는 처음으로 다투지 않고 같은 높이로 겹친다."),
       storyNarration("두 그림자가 한 사람의 서로 다른 선택이며 하나는 떠나고 다른 하나는 남고 싶어 한다는 사실이 드러난다."),
       storyLine("leftShadow", "나는 떠나고 싶었어."),
       storyLine("rightShadow", "나는 남고 싶었어."),
-      storyLine("protagonist", "떠나고 싶은 마음도, 남고 싶은 마음도 둘 다 네 마음이잖아.")
+      storyLine("protagonist", "떠나고 싶은 마음도, 남고 싶은 마음도 둘 다 네 마음이잖아."),
+      storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ],
     greatLines: [
+      storyNarration("두 그림자는 서로 다른 순서로 두부김치를 먹다가 마지막 한입을 함께 나눈다.\n접시가 비자 바닥의 두 그림자가 가볍고 선명하게 흔들린다."),
       storyNarration("선택하지 않은 가능성도 자신의 일부임을 받아들인다."),
       storyLine("twinShadows", "선택하지 않은 우리도 사라지는 건 아니었어."),
-      storyLine("protagonist", "하나를 고른다고 다른 쪽이 없던 일이 되는 건 아니야.")
+      storyLine("protagonist", "하나를 고른다고 다른 쪽이 없던 일이 되는 건 아니야."),
+      storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ]
   }),
 
@@ -562,32 +579,38 @@ const STORY_SCENES = {
     triggerAfterGeneral: 3,
     journalClue: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("주방이 가장 분주해지기 시작하는 순간 문이 급하게 열리고 검은 외투를 입은 배달부가 들어온다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
+      storyNarration("주방이 가장 분주해지기 시작하는 순간, 빈 테이블 곁에서 검은 깃털이 소용돌이친다.\n깃털이 걷히자 검은 외투를 입은 배달부가 나타나 있다. 가방 안에는 배달되지 않은 편지 한 통이 있다."),
       storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다."),
       storyLine("protagonist", "어떤 모양이었죠?"),
       storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.")
     ],
     missingLines: [
-      storyNarration("닭꼬치가 없어 배달부는 다시 길을 나설 수밖에 없다고 말한다."),
+      storyNarration("배달부가 찾는 한 손 음식은 오늘 준비한 다섯 메뉴에 없다.\n배달부는 다시 길을 나설 수밖에 없다고 말한다."),
       storyLine("crowCourier", "오늘은 배달을 계속 미뤄야겠군요."),
       storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다."),
       storyLine("protagonist", "다음에 오면 그 음식을 준비해 둘게요."),
       { kind: "journal", text: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다." }
     ],
     softLines: [
+      storyNarration("배달부는 꼬치를 한 손에 들고 급하게 몇 점을 먹는다.\n불향에 굳었던 날개가 잠시 느슨해지지만 편지를 쥔 손에는 힘이 남아 있다."),
       storyNarration("음식이 맞다는 사실만 확인하고 편지를 들고 다시 길을 나선다."),
       storyLine("crowCourier", "음식은 맞습니다. 하지만 아직 발걸음을 떼기엔 부족하군요."),
-      storyLine("protagonist", "찾던 음식은 맞네요. 그래도 아직 편지를 놓기는 어려운가 봐요.")
+      storyLine("protagonist", "찾던 음식은 맞네요. 그래도 아직 편지를 놓기는 어려운가 봐요."),
+      storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ],
     warmLines: [
+      storyNarration("불향 밴 조각을 씹을 때마다 배달부의 검은 깃털이 차분히 가라앉는다.\n그는 오랜 이동 끝에 처음 쉬는 사람처럼 천천히 꼬치를 비운다."),
       storyNarration("편지를 전하면 누군가 떠날까 두려워 마지막 편지를 숨겨 왔다는 사실을 말한다."),
       storyLine("crowCourier", "이 편지를 전하면 누군가 떠날 것 같았습니다. 그래서 계속 미뤘지요."),
-      storyLine("protagonist", "전하지 않으면 기다리는 사람도 계속 그 자리에 있어요.")
+      storyLine("protagonist", "전하지 않으면 기다리는 사람도 계속 그 자리에 있어요."),
+      storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ],
     greatLines: [
+      storyNarration("배달부는 마지막 불향까지 음미하고 만족스러운 듯 부리를 가볍게 다문다.\n빈 꼬치를 내려놓자 편지를 누르던 손끝에서도 힘이 빠진다."),
       storyNarration("배달하지 않은 것이 상대의 내일까지 멈추게 했음을 인정한다."),
       storyLine("crowCourier", "제가 미룬 건 배달이 아니라 그 사람의 내일이었습니다."),
-      storyLine("protagonist", "이제는 그 사람이 직접 다음을 정할 수 있게 전해 주세요.")
+      storyLine("protagonist", "이제는 그 사람이 직접 다음을 정할 수 있게 전해 주세요."),
+      storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ]
   }),
 
@@ -610,26 +633,32 @@ const STORY_SCENES = {
       storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.")
     ],
     missingLines: [
-      storyNarration("감자튀김이 없어 짐승은 몸 안의 빛을 꺼내지 않겠다고 말한다."),
+      storyNarration("작은 짐승이 찾는 노란 음식은 오늘 준비한 다섯 메뉴에 없다.\n짐승은 몸 안의 빛을 꺼내지 않겠다고 말한다."),
       storyLine("starBeast", "오늘은 빛을 꺼내지 않을래."),
       storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데."),
       storyLine("protagonist", "다음에는 그걸 준비해 볼게."),
       { kind: "journal", text: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다." }
     ],
     softLines: [
+      storyNarration("작은 짐승은 노란 조각을 앞발로 집어 바삭 소리가 나게 깨문다.\n귀가 잠시 쫑긋 서지만 몸 안의 별빛은 여전히 웅크려 있다."),
       storyNarration("노란 음식이 맞다는 사실만 확인한다. 몸 안의 별빛은 그대로다."),
       storyLine("starBeast", "노란 건 맞아. 그런데 내 안의 별은 아직 나오기 싫대."),
-      storyLine("protagonist", "찾던 음식은 맞구나. 다음에 다시 와도 돼.")
+      storyLine("protagonist", "찾던 음식은 맞구나. 다음에 다시 와도 돼."),
+      storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ],
     warmLines: [
+      storyNarration("소금이 반짝이는 감자튀김을 와삭 깨물자 작은 짐승의 꼬리가 절로 흔들린다.\n몸속 별빛도 기분 좋은 박자에 맞춰 천천히 움직인다."),
       storyNarration("새벽을 알리는 가장 밝은 별을 삼켰고, 밝아지면 모두가 자신을 볼까 두려웠다고 털어놓는다."),
       storyLine("starBeast", "밝아지면 모두가 날 볼까 봐 가장 밝은 별을 먹었어."),
-      storyLine("protagonist", "보이는 게 무서워서 숨고 싶었던 거구나.")
+      storyLine("protagonist", "보이는 게 무서워서 숨고 싶었던 거구나."),
+      storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ],
     greatLines: [
+      storyNarration("작은 짐승은 바삭한 조각을 신나게 먹고 손끝의 소금까지 핥는다.\n배부른 듯 몸을 둥글게 말자 안에 갇혀 있던 별빛이 환하게 번진다."),
       storyNarration("두려웠던 것은 아침이 아니라 빛 속에서 자신을 바라보는 시선이었다고 고백한다."),
       storyLine("starBeast", "무서웠던 건 아침이 아니라 빛 속의 눈들이었어. 이제 별을 돌려줄게."),
-      storyLine("protagonist", "별을 돌려줘도 괜찮아. 밝은 곳에 있어도 네가 사라지는 건 아니야.")
+      storyLine("protagonist", "별을 돌려줘도 괜찮아. 밝은 곳에 있어도 네가 사라지는 건 아니야."),
+      storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ]
   }),
 
@@ -644,34 +673,40 @@ const STORY_SCENES = {
     arrival: "last",
     triggerTiming: "after",
     triggerAfterGeneral: 7,
-    journalClue: "여섯째 날의 손님은 바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진, 휘어진 모양의 음식을 찾았다.",
+    journalClue: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다.",
     arrivalLines: [
       storyNarration("마지막 일반 손님이 나가자 문 아래로 얕은 물결이 밀려 들어온다.\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."),
       storyLine("seawaterGuest", "바다에서 온 음식이 있습니까?"),
       storyLine("protagonist", "국물 요리인가요?"),
-      storyLine("seawaterGuest", "아닙니다. 물속이 아니라 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 휘어 있었지요.")
+      storyLine("seawaterGuest", "아닙니다. 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 바다 냄새가 나지요.")
     ],
     missingLines: [
-      storyNarration("새우튀김이 없어 손님은 바다의 이름을 떠올리지 못한 채 돌아간다."),
+      storyNarration("손님이 찾는 바다 냄새 나는 음식은 오늘 준비한 다섯 메뉴에 없다.\n손님은 바다의 이름을 떠올리지 못한 채 돌아간다."),
       storyLine("seawaterGuest", "오늘은 바다의 이름을 떠올리지 못하겠군요."),
-      storyLine("seawaterGuest", "휘어진 껍질과 바삭한 조각만 기억합니다."),
+      storyLine("seawaterGuest", "바삭한 겉과 그 안에 남은 바다 냄새만 기억합니다."),
       storyLine("protagonist", "다음에는 그 음식을 준비해 둘게요."),
-      { kind: "journal", text: "여섯째 날의 손님은 바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진, 휘어진 모양의 음식을 찾았다." }
+      { kind: "journal", text: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다." }
     ],
     softLines: [
+      storyNarration("손님은 바삭한 튀김옷을 조심스럽게 깨물고 안쪽의 향을 오래 음미한다.\n몸 안의 물결이 잠시 잔잔해지지만 이내 다시 방향을 잃는다."),
       storyNarration("음식은 맞지만 손님의 이름은 떠오르지 않는다."),
       storyLine("seawaterGuest", "찾던 음식은 맞습니다. 하지만 제 이름은 아직 떠오르지 않는군요."),
-      storyLine("protagonist", "다음에 다시 오면 조금 더 기억날지도 몰라요.")
+      storyLine("protagonist", "다음에 다시 오면 조금 더 기억날지도 몰라요."),
+      storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ],
     warmLines: [
+      storyNarration("바삭한 소리 뒤로 촉촉한 바다 향이 퍼지자 손님 몸속의 물고기들이 힘차게 헤엄친다.\n손님은 고향의 파도를 만난 듯 편안한 표정으로 접시를 바라본다."),
       storyNarration("새벽이 오면 동쪽 바다로 돌아가야 하지만 육지의 사람들이 자신의 이름을 잊을까 두려워한다."),
       storyLine("seawaterGuest", "동쪽으로 돌아가면 이곳에서 불리던 이름을 잃을까 두렵습니다."),
-      storyLine("protagonist", "돌아간다고 여기서 있었던 일까지 없어지지는 않아요.")
+      storyLine("protagonist", "돌아간다고 여기서 있었던 일까지 없어지지는 않아요."),
+      storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ],
     greatLines: [
+      storyNarration("손님은 바삭한 튀김과 그 안의 바다 향을 남김없이 즐긴다.\n접시가 비자 몸속에 작은 파도가 일고 물고기들이 반짝이는 비늘을 남긴다."),
       storyNarration("멈춘 이름을 남기는 대신 변해 가는 자신으로 돌아가기로 결심한다."),
       storyLine("seawaterGuest", "멈춘 이름을 남기는 대신, 변해 가는 나로 돌아가겠습니다."),
-      storyLine("protagonist", "내가 기억할게요. 이름이 달라져도 여기 왔던 당신을요.")
+      storyLine("protagonist", "내가 기억할게요. 이름이 달라져도 여기 왔던 당신을요."),
+      storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ]
   }),
 
@@ -694,26 +729,32 @@ const STORY_SCENES = {
       storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.")
     ],
     missingLines: [
-      storyNarration("떡볶이가 준비되지 않았다. 인형은 오늘도 시간이 4시 44분에서 끝난다고 말한다."),
+      storyNarration("인형이 찾는 방과 후 음식은 오늘 준비한 다섯 메뉴에 없다.\n인형은 오늘도 시간이 4시 44분에서 끝난다고 말한다."),
       storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
       storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
       storyLine("protagonist", "다음에는 그 음식을 준비해 볼게."),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
     ],
     softLines: [
+      storyNarration("인형은 붉은 소스가 묻은 한입을 천천히 씹는다.\n말랑한 식감에 입가가 살짝 올라가지만 벽시계의 초침은 움직이지 않는다."),
       storyNarration("음식은 맞지만 인형의 시계는 움직이지 않는다."),
       storyLine("schoolDoll", "그때 먹던 음식은 맞는데… 시계가 움직이지 않아요."),
-      storyLine("protagonist", "음식은 찾았는데, 아직 다음으로 갈 마음은 안 난 거구나.")
+      storyLine("protagonist", "음식은 찾았는데, 아직 다음으로 갈 마음은 안 난 거구나."),
+      storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ],
     warmLines: [
+      storyNarration("매콤한 소스와 말랑한 떡을 맛본 인형의 뺨에 옅은 온기가 돈다.\n종이컵을 두 손으로 감싸자 멈춘 초침이 작게 떨린다."),
       storyNarration("졸업 이후 무엇을 할지 몰라 가장 행복했던 방과 후 시간에 자신을 멈췄다고 말한다."),
       storyLine("schoolDoll", "졸업하면 뭘 해야 할지 몰랐어요. 그래서 방과 후를 멈췄어요."),
-      storyLine("protagonist", "모르는 채로 가도 돼. 나도 아직 뭘 할지 모르니까.")
+      storyLine("protagonist", "모르는 채로 가도 돼. 나도 아직 뭘 할지 모르니까."),
+      storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ],
     greatLines: [
+      storyNarration("인형은 방과 후의 맛을 되찾은 듯 떡볶이를 즐겁게 비운다.\n마지막 한입을 삼키는 순간 벽시계가 째깍 소리를 내며 4시 45분으로 넘어간다."),
       storyNarration("틀리지 않으려고 멈추면 맞을 기회도 없다는 사실을 받아들인다."),
       storyLine("schoolDoll", "틀리지 않으려고 멈추면, 맞을 기회도 없었네요."),
-      storyLine("protagonist", "맞아. 멈춰 있으면 다음 선택은 생기지 않아. 우리 둘 다 가 보자.")
+      storyLine("protagonist", "맞아. 멈춰 있으면 다음 선택은 생기지 않아. 우리 둘 다 가 보자."),
+      storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ]
   }),
 
@@ -734,11 +775,13 @@ const STORY_SCENES = {
     requiredBaseShards: 7,
     journalClue: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다.",
     arrivalLines: [
-      storyNarration("식당의 모든 조명이 꺼진 뒤 주방 위 조명 하나만 다시 켜진다.\n카운터에는 김다은과 같은 옷을 입었지만 얼굴이 없는 손님이 앉아 있다. 장부의 「마지막 예약 손님: 김다은」 문구가 다시 빛난다."),
+      storyNarration("식당의 모든 조명이 꺼진 뒤 주방 위 조명 하나만 다시 켜진다.\n카운터에는 김다은과 같은 옷을 입었지만 얼굴이 없는 손님이 앉아 있다. 장부의 일곱째 날 기록 맨 아래에 「마지막 손님」이라는 문구가 그제야 나타난다."),
       storyLine("facelessDaeun", "볶음우동 하나 부탁해."),
+      storyNarration("음식 이름을 듣는 순간 오래전 냄새가 스친다.\n입사 첫해 상품 테스트가 끝난 늦은 밤, 남은 우동면을 팬에 볶아 동료들과 나누었던 기억이다."),
+      storyLine("facelessDaeun", "그때는 잘 팔릴 음식보다, 앞에 앉은 사람들이 맛있게 먹는지가 더 중요했지."),
       storyLine("protagonist", "당신은 누구야?"),
-      storyLine("facelessDaeun", "네가 오지 않게 만든 사람."),
-      storyLine("protagonist", "장부에 적혀 있던 마지막 예약 손님… 그게 당신이었어?")
+      storyLine("facelessDaeun", "네가 오지 않기를 바랐던 내일에서 왔어."),
+      storyLine("protagonist", "내가 바라지 않았던 내일에서…?")
     ],
     missingLines: [
       storyNarration("얼굴 없는 손님은 자신이 올 자리가 또 준비되지 않았다고 말하고 사라진다.\n다은이 과거 야근 중 만들었던 음식에 관한 단서가 남는다."),
@@ -748,22 +791,28 @@ const STORY_SCENES = {
       { kind: "journal", text: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다." }
     ],
     softLines: [
+      storyNarration("얼굴 없는 손님은 볶음우동을 한 젓가락 먹고 익숙한 향을 확인하듯 잠시 멈춘다.\n따뜻한 면을 삼켜도 비어 있는 얼굴에는 아직 아무 표정도 생기지 않는다."),
       storyNarration("볶음우동이 맞다는 사실은 확인하지만 얼굴은 생기지 않는다."),
       storyLine("facelessDaeun", "이 음식은 맞아. 그런데 아직 네가 만들었던 맛은 아니야."),
-      storyLine("protagonist", "이 음식이 맞다는 건 기억나. 다시 만들어 볼게.")
+      storyLine("protagonist", "이 음식이 맞다는 건 기억나. 다시 만들어 볼게."),
+      storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어.")
     ],
     warmLines: [
+      storyNarration("볶은 면의 고소한 향이 퍼지자 얼굴 없는 손님의 입가에 희미한 미소가 그려진다.\n손님은 예전의 늦은 밤을 천천히 되짚듯 면을 한 젓가락씩 음미한다."),
       storyNarration("다은이 입사 초기에 야근하던 동료들과 볶음우동을 나누고, 먹는 사람의 표정을 직접 보며 기뻐했던 기억이 열린다."),
       storyLine("facelessDaeun", "입사한 첫해, 이걸 동료들과 나눠 먹었어. 그때는 누가 맛있어하는지 직접 보고 있었지."),
-      storyLine("protagonist", "그때의 나는 결과보다 먹는 사람을 먼저 보고 있었네.")
+      storyLine("protagonist", "그때의 나는 결과보다 먹는 사람을 먼저 보고 있었네."),
+      storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어.")
     ],
     greatLines: [
-      storyNarration("손님에게 다은의 얼굴이 생기고 자신이 다은이 포기한 내일이라고 밝힌다.\n손님들이 조각을 붙잡았지만 새벽으로 가는 길을 닫은 것은 다은의 소원이었다."),
-      storyLine("anotherDaeun", "나는 네가 포기한 내일이야."),
-      storyLine("anotherDaeun", "손님들이 달빛을 붙잡았고, 네가 그 빛이 새벽으로 가는 길을 닫았어."),
-      storyLine("protagonist", "내가 닫은 문이면 내가 다시 열 수 있어. 내일을 없애지 않고 마주할게."),
+      storyNarration("얼굴 없는 손님은 윤기 나는 면을 맛있게 먹고 빈 접시를 오래 바라본다.\n다은이 기억하던 동료들의 웃음과 따뜻한 팬의 온기가 식탁 위로 되살아난다."),
+      storyLine("facelessDaeun", "나는 김다은. 네가 포기한 내일이야."),
+      storyNarration("그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다.\n손님들이 붙잡아 둔 달빛은 조각으로 흩어졌고, 다은이 내일이 오지 않기를 바라던 순간 새벽으로 가는 문이 닫혔다."),
+      storyLine("anotherDaeun", "우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어."),
+      storyLine("protagonist", "내가 닫은 문이라면, 이제 이 밤을 어떻게 끝낼지도 내가 정할게."),
       storyLine("anotherDaeun", "아직 무엇을 할지 몰라도, 내일은 올 수 있어."),
-      storyLine("letter", "내일이 두렵더라도 오늘을 영원히 반복하고 싶지는 않다. 아직 무엇을 할지는 모르겠지만, 아침이 오면 그때 다시 생각하자.")
+      storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어."),
+      storyCaption("김다은(속말)", "내일이 두려워 오늘을 반복할지, 그래도 아침을 열지. 이제 선택은 내 몫이다.")
     ]
   }),
 
@@ -845,7 +894,8 @@ const STORY_SCENES = {
     ending: true,
     endingId: "alone_morning",
     endingTitle: "혼자 맞은 아침",
-    continuePolicy: "nextLoop",
+    continuePolicy: "endingRetryMenu",
+    retryJudgementSceneId: "SCN-J02",
     lines: [
       storyNarration("다은은 모은 달빛으로 한 사람이 지나갈 수 있는 새벽문을 만들고 혼자 현실로 돌아간다.\n조각을 돌려받지 못한 손님들은 식당에 남는다."),
       storyLine("protagonist", "나는 나왔지만… 그 밤은 아직 끝나지 않았어.")
@@ -863,7 +913,8 @@ const STORY_SCENES = {
     ending: true,
     endingId: "guests_dawn",
     endingTitle: "손님들의 새벽",
-    continuePolicy: "nextLoop",
+    continuePolicy: "endingRetryMenu",
+    retryJudgementSceneId: "SCN-J02",
     lines: [
       storyNarration("다은은 가진 달빛 조각을 원래 주인들에게 돌려준다.\n기억을 되찾은 손님들은 각자의 아침으로 떠나지만, 다은은 자신의 길을 밝힐 달빛을 쓰지 않고 식당에 남는다."),
       storyLine("protagonist", "오늘의 식사는 여기까지입니다. 이제 돌아가세요."),
@@ -882,7 +933,8 @@ const STORY_SCENES = {
     ending: true,
     endingId: "open_forever",
     endingTitle: "영원히 영업 중",
-    continuePolicy: "finalChoiceCheckpoint",
+    continuePolicy: "endingRetryMenu",
+    retryJudgementSceneId: "SCN-J03",
     lines: [
       storyNarration("다은은 달빛을 어느 길에도 비추지 않고 식당을 유지한다.\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다."),
       storyLine("protagonist", "어서 오세요."),
@@ -927,10 +979,10 @@ const STORY_SCENES = {
     clearProgressSaves: true,
     keepTitleJournal: true,
     lines: [
-      storyNarration("다은이 새벽문을 통과하면 비가 그친 현실의 아침 골목으로 이어진다.\n휴대전화에는 퇴사한 밤 동료들이 보낸 메시지가 그대로 남아 있다.\n다은에게 필요한 것은 퇴사를 되돌리는 일이 아니라 정하지 못한 다음 날을 두려워하지 않는 일이었다."),
-      storyCaption("김다은(메시지)", "걱정해 줘서 고마워. 나는 괜찮아. 나중에 만나서 이야기할게."),
-      storyCaption("김다은(속말)", "회사를 그만둔 건 후회하지 않아."),
-      storyCaption("김다은(속말)", "다음에 뭘 할지는… 오늘부터 생각하면 돼."),
+      storyNarration("다은이 새벽문을 통과하면 비가 그친 현실의 아침 골목으로 이어진다.\n휴대전화에는 출근 시간을 알리는 알람과 회사에서 온 메시지가 남아 있다.\n다은이 돌아가야 할 일상은 그대로지만, 내일을 없애고 싶었던 마음까지 그대로인 것은 아니다."),
+      storyCaption("김다은(메시지)", "걱정해 줘서 고마워요. 오늘 출근해서 이야기할게요."),
+      storyCaption("김다은(속말)", "당장 모든 게 달라지지는 않겠지."),
+      storyCaption("김다은(속말)", "그래도 내일을 없애지는 말자. 바꿀 수 있는 것부터 오늘 생각하면 돼."),
       storyLine("menuBack", "오늘의 메뉴는 내일 정합니다.")
     ]
   }

@@ -108,14 +108,19 @@ assert(titleSource.includes('if(event.target===elements.overlay)closeJournal()')
   "배경 클릭과 ESC로 닫아도 같은 영업일지 상태 복원 경로를 사용해야 합니다.");
 assert(titleSource.includes('typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[]'),
   "게임 내 영업일지는 현재 세이브에 종속된 8장 생성 함수를 사용해야 합니다.");
-assert(titleSource.includes("현재 세이브의 과거 영업 기록과 이번 회차 상태입니다."),
-  "진행용 영업일지 설명은 과거 기록과 현재 회차 데이터가 함께 표시됨을 알려야 합니다.");
+assert(titleSource.includes("첫 장에는 영업 규칙이, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."),
+  "진행용 영업일지는 방문 전 미래 손님 정보를 보여주지 않는다고 안내해야 합니다.");
+assert(titleSource.includes('page.pageType==="rules"')
+  &&titleSource.includes('page.pageType==="day"')
+  &&titleSource.includes("기록 없음")
+  &&titleSource.includes("page.entries.map(gameplayJournalEntryNote)"),
+  "진행용 영업일지는 주의사항 1장과 방문 뒤 채워지는 날짜별 기록을 구분해야 합니다.");
 [
-  "손님 정보","과거 영업 기록","현재 회차"
+  "주의사항","과거 영업 기록","현재 회차"
 ].forEach(label=>assert(titleSource.includes(`journalSection("${label}"`),
   `진행용 영업일지에 '[${label}]' 구역이 있어야 합니다.`));
 [
-  "이름","등장","단서","확인 음식","공개 이야기",
+  "음식 단서","확인 음식","최근 평가","공개 이야기",
   "이전 회차 평가","이전 회차 부분 조각","이전 회차 완전 조각","본 장면",
   "방문","평가","조각 상태","조각명"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
@@ -142,6 +147,9 @@ assert(settingsCssSource.includes(".journal-page-tab")
   &&settingsCssSource.includes(".is-locked")
   &&settingsCssSource.includes(".is-new"),
   "타이틀 영업일지는 고정 페이지의 잠금과 최초 해금 상태를 구분해야 합니다.");
+assert(settingsCssSource.includes(".journal-page-portrait.journal-page-icon")
+  &&titleSource.includes('classList.toggle("journal-page-icon",isGameplayRecord)'),
+  "날짜별 기록은 미래 손님 실루엣 대신 중립적인 날짜 아이콘을 표시해야 합니다.");
 const journalBodyRule=settingsCssSource.match(/\.journal-page p\s*\{([^}]+)\}/);
 assert(journalBodyRule
   &&/max-height\s*:/.test(journalBodyRule[1])

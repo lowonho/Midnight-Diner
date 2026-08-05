@@ -21,10 +21,9 @@ const STORY_CINEMATIC_BEATS=Object.freeze({
   enter:Object.freeze({from:.78,to:.90,duration:1100,rain:true,fade:true})
 });
 // 프롤로그도 실제 플레이어와 같은 김다은 스프라이트를 사용합니다.
-// 퇴근길에는 종이박스를 들고 있으므로 맨손 시트가 아니라 carry 걷기 시트의
-// 측면 모션을 재사용하고, 박스 그림만 그 위에 겹칩니다.
-const STORY_CINEMATIC_WALK_TEXTURE="chef_walk_carry";
-const STORY_CINEMATIC_WALK_ANIM="chef_walk_carry_side";
+// 평소처럼 퇴근하던 길이므로 짐을 든 변형이 아닌 맨손 걷기 시트를 씁니다.
+const STORY_CINEMATIC_WALK_TEXTURE="chef_walk";
+const STORY_CINEMATIC_WALK_ANIM="chef_walk_side";
 const STORY_CINEMATIC_WALK_FIRST_FRAME=16;
 let storyCinematicRuntime=null;
 
@@ -109,10 +108,7 @@ function createPrologueExteriorCinematic(scene){
     .setOrigin(.5,1)
     .setScale(typeof chefAnimScale==="function"?chefAnimScale(STORY_CINEMATIC_WALK_ANIM):.865)
     .setFlipX(true);
-  const box=scene.add.rectangle(50,-105,72,55,0xb67b48)
-    .setStrokeStyle(5,0x694326,1);
-  const boxTape=scene.add.rectangle(50,-105,9,55,0xd8b17c,.9);
-  const character=scene.add.container(width*.08,height*.70,[sprite,box,boxTape]);
+  const character=scene.add.container(width*.08,height*.70,[sprite]);
   root.add(character);
 
   storyCinematicRuntime={

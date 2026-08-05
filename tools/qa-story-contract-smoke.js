@@ -107,7 +107,7 @@ check(qaStoryLinesForScene(l02).length===l02.lines.length+l02.journalVariants.no
   "SCN-L02 미리보기에는 공통 내레이션과 선택한 상태 대사를 함께 표시해야 합니다.");
 qaStoryJournalStates[l02.id]="confirmed";
 check(qaStoryJournalState(l02)==="confirmed"
-  &&qaStoryLinesForScene(l02).at(-1).text.includes("찾던 음식은"),
+  &&qaStoryLinesForScene(l02).at(-1).text.includes("확인한 음식은"),
   "영업일지 음식 확정 상태를 실제 대화 미리보기 줄에 반영해야 합니다.");
 const journalBranches=qaStoryBranchEntries(l02,l02.lines[0]);
 same(journalBranches.map(entry=>entry.label),[

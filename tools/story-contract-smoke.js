@@ -7,6 +7,21 @@ const vm = require("node:vm");
 const root = path.resolve(__dirname, "..");
 const files = ["game-data.js", "story-data.js", "story.js"];
 const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
+const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
+
+[
+  "endingRetryOverlay",
+  "endingRetryTitle",
+  "endingRetryDescription",
+  "endingRetryBranchButton",
+  "endingNewLoopButton"
+].forEach(id=>{
+  if(!indexSource.includes(`id="${id}"`))throw new Error(`엔딩 후 선택 UI 누락: ${id}`);
+});
+if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".ending-retry-actions")){
+  throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
+}
 
 const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
@@ -65,15 +80,14 @@ assert(expectedCharacterIds.every(id=>STORY_CHARACTERS[id].alwaysKnown===true),
 assert(!("owner" in STORY_CHARACTERS)&&!("manager" in STORY_CHARACTERS)&&!("gicheol" in STORY_CHARACTERS),
   "기존 사장·팀장·박기철 캐릭터 정의가 남으면 안 됩니다.");
 
-// 진행용 영업일지는 세이브의 state.story에 종속됩니다. 아직 만나지 않은
-// 손님도 잠긴 페이지로 보여야 하므로 정의 자체가 항상 여덟 장이어야 합니다.
+// 손님 메타데이터 여덟 장은 타이틀 영구 컬렉션에서도 계속 사용합니다.
 assert(Array.isArray(GAMEPLAY_JOURNAL_PAGE_DEFS),
-  "진행용 영업일지 페이지 정의가 배열이어야 합니다.");
+  "특별 손님 영업일지 메타데이터가 배열이어야 합니다.");
 same(GAMEPLAY_JOURNAL_PAGE_DEFS.map(page=>page.guestId||page.id),
   expectedGameplayJournalGuestIds,
-  "진행용 영업일지는 특별 손님 여덟 장을 고정 순서로 정의해야 합니다.");
+  "타이틀 영구 컬렉션은 특별 손님 여덟 명을 고정 순서로 정의해야 합니다.");
 assert(new Set(GAMEPLAY_JOURNAL_PAGE_DEFS.map(page=>page.guestId||page.id)).size===8,
-  "진행용 영업일지에 중복 손님 페이지가 있으면 안 됩니다.");
+  "특별 손님 메타데이터에 중복 손님이 있으면 안 됩니다.");
 
 state.story=createStoryState();
 assert(state.story.schemaVersion===4,"스토리 상태는 회차 결과 분리 스키마를 사용해야 합니다.");
@@ -93,6 +107,32 @@ assert(expectedGameplayJournalGuestIds.every(id=>{
   return result&&!result.visited&&result.evaluationTier==null&&result.evaluationScore==null
     &&result.fragmentState==="none"&&result.fragmentName==null&&result.seenStoryScenes.length===0;
 }),"새 회차의 방문·평가·조각 결과는 모두 비어 있어야 합니다.");
+const initialGameplayJournal=getGameplayJournalPages();
+assert(initialGameplayJournal.length===8
+  &&initialGameplayJournal[0].pageType==="rules"
+  &&initialGameplayJournal.slice(1).every((page,index)=>
+    page.pageType==="day"&&page.day===index+1&&!page.recorded&&page.entries.length===0),
+  "새 게임의 진행용 영업일지는 주의사항 1장과 빈 1~7일차 기록이어야 합니다.");
+same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
+  "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
+assert(initialGameplayJournal[0].rules.length===4
+  &&initialGameplayJournal[0].menuRule.includes("다섯 가지")
+  &&initialGameplayJournal[0].menuNames.every(name=>
+    initialGameplayJournal[0].rules.some(rule=>rule.includes(name))),
+  "네 가지 주의사항 중 하나에서 기존 여덟 음식과 매일 다섯 메뉴 준비를 안내해야 합니다.");
+assert(initialGameplayJournal.slice(1).every(page=>
+  !page.guestId&&!page.guestName&&!page.appearance&&!page.confirmedDish),
+  "방문 전 날짜 페이지가 미래 손님·등장 조건·정답 음식을 노출하면 안 됩니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G7-A"]);
+let daySevenPage=getGameplayJournalPages().find(page=>page.day===7);
+assert(daySevenPage.entries.length===1
+  &&daySevenPage.entries[0].guestId==="schoolDoll",
+  "7일차에는 실제로 만난 교복 인형 기록만 먼저 표시해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G8-A"]);
+daySevenPage=getGameplayJournalPages().find(page=>page.day===7);
+same(daySevenPage.entries.map(entry=>entry.guestId),["schoolDoll","facelessDaeun"],
+  "7일차 페이지는 두 최종 손님을 방문한 뒤에만 함께 기록해야 합니다.");
+state.story=createStoryState();
 assert(storyDisplayName("protagonist")==="김다은"
   &&storyDisplayName("rainyChild")==="비에 젖은 아이"
   &&storyDisplayName("facelessDaeun")==="얼굴 없는 손님",
@@ -126,8 +166,17 @@ assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
 assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
   &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
   "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
-assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="SCN-P01 · 퇴사한 밤 - 퇴근길",
+assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="SCN-P01 · 지친 밤 - 퇴근길",
   "장면 카드는 새 문서의 장면 코드와 제목을 표시해야 합니다.");
+assert(!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-A"])
+  &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-B"])
+  &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-완벽"])
+  &&!storySceneCardText(STORY_SCENES["SCN-G1-완벽"]).includes("SCN-G1")
+  &&!storySceneCardText(STORY_SCENES["SCN-G1-완벽"]).includes("완벽"),
+  "특별 손님의 등장·미준비·평가 장면은 내부 코드와 결과명 카드를 숨겨야 합니다.");
+assert(String(showStorySceneIntro).includes("storySceneShowsIntroCard")
+  &&String(showStorySceneIntro).includes("showStoryLine"),
+  "특별 손님은 메타 카드 없이 바로 대화 장면으로 들어가야 합니다.");
 
 const l01=STORY_SCENES["SCN-L01"];
 const l02=STORY_SCENES["SCN-L02"];
@@ -139,12 +188,14 @@ same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
   "영업일지 상태별 안내 종류");
 Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&lines.length>0,
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
-assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("영업 기록만")&&line.text.includes("달빛 조각은 사라집니다")),
+assert(Object.values(l02.journalVariants).flat().every(line=>line.speakerLabel==="김다은(속말)"&&!line.speaker),
+  "회귀 기록을 아는 다은의 반응은 손님에게 아는 척하는 대사가 아니라 속말이어야 합니다.");
+assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("기록은 남지만")&&line.text.includes("모은 조각은 사라집니다")),
   "프롤로그는 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
-assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("각각 하나로 세지만")
-  &&line.text.includes("일곱 명의 조각이 모두 완전해야")
-  &&line.text.includes("마지막 예약 손님은 기억을 완전히 되찾았을 때만")),
-  "프롤로그는 현재 회차 조각 계산과 마지막 예약 손님의 완전 조각 조건을 알려야 합니다.");
+assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("달빛 조각을 모아")
+  &&line.text.includes("현실로 이어지는 문"))
+  &&!STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("완전한 조각")),
+  "프롤로그는 세부 등급을 선공개하지 않고 조각을 모아 문을 여는 목표만 알려야 합니다.");
 same(l01.lines.slice(-3).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
@@ -225,6 +276,18 @@ assert(STORY_SCENES["SCN-G8-완벽"].character==="anotherDaeun"
   "G8 완벽에서 또 다른 김다은과 여덟 번째 조각을 공개해야 합니다.");
 assert(!JSON.stringify(STORY_SCENES).includes("undelivered_letter_read"),
   "배달되지 못한 편지는 별도 읽기 플래그를 요구하면 안 됩니다.");
+assert(STORY_SCENES["SCN-G2-A"].lines[0].text.includes("나타나")
+  &&STORY_SCENES["SCN-G4-A"].lines[0].text.includes("나타나"),
+  "등불 손님과 까마귀 배달부는 출입문으로 들어오지 않고 식당 안에 나타나야 합니다.");
+assert(STORY_SCENES["SCN-G6-A"].lines.some(line=>
+  line.speaker==="seawaterGuest"&&line.text.includes("겉은 바삭하고 속은 바다 냄새가 나지요.")),
+  "새우튀김 단서는 바삭한 겉과 속의 바다 냄새로 묘사해야 합니다.");
+const g8GreatLines=STORY_SCENES["SCN-G8-완벽"].lines;
+const g8IdentityIndex=g8GreatLines.findIndex(line=>
+  line.speaker==="facelessDaeun"&&line.text.includes("나는 김다은"));
+const g8RevealedNameIndex=g8GreatLines.findIndex(line=>line.speaker==="anotherDaeun");
+assert(g8IdentityIndex>=0&&g8RevealedNameIndex>g8IdentityIndex,
+  "얼굴 없는 손님이 스스로 김다은이라고 밝힌 다음 줄부터 이름표가 바뀌어야 합니다.");
 
 same(STORY_ENDING_RULES,{
   low:{minShards:0,maxShards:3,judgementSceneId:"SCN-J01"},
@@ -245,8 +308,11 @@ assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requir
   "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
 
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
-  ["nextLoop","nextLoop","finalChoiceCheckpoint","clearRunKeepMeta"],
+  ["endingRetryMenu","endingRetryMenu","endingRetryMenu","clearRunKeepMeta"],
   "엔딩별 이어하기 정책");
+same(["END-01","END-02","END-03"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
+  ["SCN-J02","SCN-J02","SCN-J03"],
+  "일반 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
 assert(STORY_SCENES["END-04"].trueEnding
   &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01",
   "함께 오는 아침에서 진엔딩 에필로그로 이어져야 합니다.");
@@ -267,9 +333,12 @@ assert(completeSceneRuntimeSource.includes("conclusionQueued")
   &&finishSessionRuntimeSource.includes("if(!conclusionAction)saveGame()"),
   "회귀·엔딩 결론 직전의 완료된 Day 7 상태를 중간 자동 저장하면 안 됩니다.");
 assert(String(runStoryConclusion).includes("beginNextStoryLoop")
-  &&String(runStoryConclusion).includes("restoreFinalChoiceCheckpoint")
+  &&String(runStoryConclusion).includes("showEndingRetryMenu")
   &&String(runStoryConclusion).includes("finishTrueEnding"),
-  "회귀·END-03 체크포인트·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
+  "자동 회귀·일반 엔딩 후 선택·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
+assert(String(restoreEndingChoiceCheckpoint).includes("playStoryScenes")
+  &&String(startNewLoopAfterEnding).includes("beginNextStoryLoop"),
+  "엔딩 기록 뒤 마지막 분기 재생과 새 회차 시작 기능을 모두 제공해야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
   assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");
@@ -309,10 +378,14 @@ state.orders=[];
 const storyText=JSON.stringify(STORY_SCENES);
 assert(!storyText.includes("박기철")&&!storyText.includes("한 달만 가게")&&!storyText.includes("사표 아직 수리"),
   "기존 박기철·가게 인수·복귀 제안 이야기가 남으면 안 됩니다.");
-assert(storyText.includes("완전한 달빛 조각 여덟 개")
-  &&storyText.includes("마지막 예약 손님: 김다은")
+assert(!storyText.includes("퇴사")&&!storyText.includes("퇴직")&&!storyText.includes("사표"),
+  "새 프롤로그에 퇴사 설정이 남으면 안 됩니다.");
+assert(storyText.includes("내일이 오지 않았으면 좋겠다")
+  &&storyText.includes("「마지막 손님」이라는 문구가 그제야 나타난다")
   &&storyText.includes("오늘의 메뉴는 내일 정합니다"),
-  "달빛 조각 목표와 마지막 예약 손님, 진엔딩 문구가 필요합니다.");
+  "지친 퇴근길과 마지막 손님 공개 시점, 진엔딩 문구가 필요합니다.");
+assert(!storyText.includes("마지막 예약 손님: 김다은"),
+  "마지막 손님의 이름을 등장 전에 영업일지에서 선공개하면 안 됩니다.");
 
 // 실행기 통합 규칙: 회차·날짜별 재생, 미준비 방문, 재평가 영속성과
 // 7일차 조각 판정이 데이터 선언과 실제 함수에서 같은지 확인합니다.
@@ -369,16 +442,18 @@ assert(rainy.seenStoryScenes.includes("SCN-G1-B")&&rainy.seenStoryScenes.include
   &&lantern.seenStoryScenes.includes("SCN-G2-완벽"),
   "현재 회차에 본 손님 장면은 과거 손님 기록으로 중복 없이 병합되어야 합니다.");
 
-const rainyPage=getGameplayJournalPages().find(page=>page.guestId==="rainyChild");
-assert(rainyPage.previousLoopEvaluation==="맛있다"
+const dayOnePage=getGameplayJournalPages().find(page=>page.day===1);
+const rainyPage=dayOnePage.entries.find(entry=>entry.guestId==="rainyChild");
+assert(dayOnePage.recorded&&rainyPage
+  &&rainyPage.previousLoopEvaluation==="맛있다"
   &&rainyPage.previouslyObtainedPartial==="획득 기록 있음"
   &&rainyPage.previouslyObtainedFull==="없음"
   &&rainyPage.currentLoopVisited==="미방문"
   &&rainyPage.currentLoopEvaluation==="미평가"
   &&rainyPage.currentFragmentState==="미획득"
-  &&rainyPage.currentFragmentName==="???"
+  &&rainyPage.currentFragmentName==="미획득"
   &&rainyPage.seenStoryScenes.includes(STORY_SCENES["SCN-G1-맛있다"].title),
-  "진행용 영업일지는 과거 기록과 현재 회차 필드를 분리해 반환해야 합니다.");
+  "날짜별 영업일지는 과거 기록과 현재 회차 필드를 분리해 반환해야 합니다.");
 
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
 archiveCurrentStoryLoopResults();

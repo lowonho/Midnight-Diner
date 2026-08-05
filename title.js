@@ -92,7 +92,39 @@ function journalFirstUnlockLabel(page){
     .format(new Date(timestamp));
 }
 
+function gameplayJournalEntryNote(entry){
+  return [
+    journalSection(entry.guestName,[
+      journalField("음식 단서",entry.clue),
+      journalField("확인 음식",entry.confirmedDish),
+      journalField("최근 평가",entry.latestEvaluation),
+      journalField("공개 이야기",entry.revealedStory)
+    ]),
+    journalSection("과거 영업 기록",[
+      journalField("이전 회차 평가",entry.previousLoopEvaluation),
+      journalField("이전 회차 부분 조각",entry.previouslyObtainedPartial),
+      journalField("이전 회차 완전 조각",entry.previouslyObtainedFull),
+      journalField("본 장면",entry.seenStoryScenes)
+    ]),
+    journalSection("현재 회차",[
+      journalField("방문",entry.currentLoopVisited),
+      journalField("평가",entry.currentLoopEvaluation),
+      journalField("조각 상태",entry.currentFragmentState),
+      journalField("조각명",entry.currentFragmentName)
+    ])
+  ].join("\n\n");
+}
+
 function journalPageNote(page){
+  if(journalMode==="gameplay"&&page.pageType==="rules"){
+    return journalSection("주의사항",(page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`));
+  }
+  if(journalMode==="gameplay"&&page.pageType==="day"){
+    if(!page.recorded||!page.entries?.length){
+      return "기록 없음\n\n그날 손님을 직접 만난 뒤 얻은 단서와 결과가 여기에 기록됩니다.";
+    }
+    return page.entries.map(gameplayJournalEntryNote).join("\n\n────────\n\n");
+  }
   if(!page.unlocked){
     if(journalMode==="gameplay")return [
       journalSection("손님 정보",[
@@ -176,6 +208,8 @@ function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
+    if(page.pageType==="rules")return "준비 메뉴 · 여덟 가지 중 매일 다섯 가지";
+    if(page.pageType==="day")return page.recorded?`방문 기록 · ${page.entries.length}건`:"기록 없음";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
     if(page.currentLoopEvaluation&&page.currentLoopEvaluation!=="미평가"){
       items.push(`현재 평가 · ${page.currentLoopEvaluation}`);
@@ -231,15 +265,20 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pageKind.textContent=journalPageKindLabel(page);
   elements.pageProgress.textContent=`${journalPageIndex+1} / ${journalPages.length}`;
   const portraitRow=Number(page.portraitRow);
-  const isGuestPortrait=page.kind!=="ending";
+  const isGameplayRecord=journalMode==="gameplay";
+  const isGuestPortrait=!isGameplayRecord&&page.kind!=="ending";
   const hasPortrait=isGuestPortrait&&Number.isFinite(portraitRow)&&portraitRow>=0&&portraitRow<=5;
   elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
   elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!hasPortrait);
+  elements.pagePortrait.classList.toggle("journal-page-icon",isGameplayRecord);
   if(hasPortrait){
     const row=Math.floor(portraitRow);
     elements.pagePortrait.style.setProperty("--journal-portrait-y",row===5?"100%":`${row*20}%`);
   }
-  elements.pagePortrait.textContent=!page.unlocked?"?":page.kind==="ending"?"☾":"";
+  elements.pagePortrait.textContent=!page.unlocked
+    ?"?"
+    :isGameplayRecord?page.pageType==="rules"?"!":String(page.day||"·")
+      :page.kind==="ending"?"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.textContent=journalPageNote(page);
   elements.pageMeta.textContent=journalPageMeta(page);
@@ -265,7 +304,7 @@ function refreshJournalUI(){
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
   elements.description.textContent=journalMode==="gameplay"
-    ?"현재 세이브의 과거 영업 기록과 이번 회차 상태입니다."
+    ?"첫 장에는 영업 규칙이, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
     :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
   renderJournalPage();
 }

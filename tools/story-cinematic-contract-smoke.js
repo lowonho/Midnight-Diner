@@ -13,9 +13,9 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(chefTableSource.includes('key:"walk_carry"'),
-  "김다은의 상자 운반용 걷기 시트가 플레이어 애니메이션 표에 있어야 합니다.");
-assert(fs.existsSync(path.join(root, "assets", "character", "sprites", "char_chef_walk_carry.webp")),
+assert(chefTableSource.includes('key:"walk"'),
+  "김다은의 맨손 걷기 시트가 플레이어 애니메이션 표에 있어야 합니다.");
+assert(fs.existsSync(path.join(root, "assets", "character", "sprites", "char_chef_walk.webp")),
   "프롤로그가 사용할 김다은 걷기 에셋이 있어야 합니다.");
 assert(/function resetStoryStage\(\)\s*\{\s*clearStoryCinematic\(\)/.test(storySource),
   "실제 스토리 장면 전환에서 프롤로그 연출을 정리해야 합니다.");
@@ -39,9 +39,9 @@ const context = {
 const tests = `
 const assertRuntime=(condition,message)=>{if(!condition)throw new Error(message);};
 
-assertRuntime(STORY_CINEMATIC_WALK_TEXTURE==="chef_walk_carry",
-  "프롤로그는 기존 임시 chef 시트가 아니라 김다은 carry 텍스처를 사용해야 합니다.");
-assertRuntime(STORY_CINEMATIC_WALK_ANIM==="chef_walk_carry_side",
+assertRuntime(STORY_CINEMATIC_WALK_TEXTURE==="chef_walk",
+  "프롤로그는 김다은의 맨손 걷기 텍스처를 사용해야 합니다.");
+assertRuntime(STORY_CINEMATIC_WALK_ANIM==="chef_walk_side",
   "프롤로그는 김다은의 측면 걷기 애니메이션을 사용해야 합니다.");
 
 let moveStops=0;

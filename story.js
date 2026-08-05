@@ -13,6 +13,7 @@ let storySceneIntroTimer=null;
 let storySubtitleMeasureEl=null;
 let storySubtitleResizeTimer=null;
 let storyUiInitialized=false;
+let pendingEndingRetryAction=null;
 const STORY_CHECKPOINT_VERSION=1;
 const STORY_SCENE_INTRO_DURATION=1700;
 const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
@@ -280,58 +281,111 @@ function storySceneTitlesSeenForGuest(guestId){
     .map(sceneId=>STORY_SCENES[sceneId]?.title||sceneId);
 }
 
+const GAMEPLAY_JOURNAL_DAY_GUEST_IDS=Object.freeze([
+  Object.freeze(["rainyChild"]),
+  Object.freeze(["lanternGuest"]),
+  Object.freeze(["twinShadows"]),
+  Object.freeze(["crowCourier"]),
+  Object.freeze(["starBeast"]),
+  Object.freeze(["seawaterGuest"]),
+  Object.freeze(["schoolDoll","facelessDaeun"])
+]);
+
+function gameplayJournalGuestRecord(definition){
+  if(!definition)return null;
+  const guest=state.story?.guestState?.[definition.guestId]||createStoryGuestState();
+  const result=state.story?.guestResults?.[definition.guestId]||createStoryGuestResult();
+  const recorded=!!(
+    Number(guest.visits)>0||guest.previousLoopVisited||guest.clueFound||guest.foodConfirmed
+    ||guest.revealedStoryLevel>0||guest.previouslyObtainedPartial
+    ||guest.previouslyObtainedFull||result.visited
+  );
+  if(!recorded)return null;
+  const currentFragmentState=["none","partial","full"].includes(result.fragmentState)
+    ?result.fragmentState:"none";
+  const revealedStory=definition.storyByLevel?.[guest.revealedStoryLevel]
+    ||"아직 손님이 들려준 이야기가 없습니다.";
+  const hasKnownDish=!!guest.foodConfirmed;
+  const hasClue=!!(guest.clueFound||hasKnownDish);
+  const currentEvaluation=storyJournalEvaluationLabel(
+    result.evaluationTier,
+    result.evaluationScore
+  );
+  const previousEvaluation=storyJournalEvaluationLabel(
+    guest.previousLoopTier,
+    guest.previousLoopScore
+  );
+  return {
+    guestId:definition.guestId,
+    guestName:definition.displayName,
+    clue:hasClue?definition.clue:"아직 음식 단서를 얻지 못했습니다.",
+    confirmedDish:hasKnownDish?definition.dishName:"미확인",
+    latestEvaluation:result.evaluationTier?currentEvaluation:previousEvaluation,
+    revealedStory,
+    previousLoopEvaluation:previousEvaluation,
+    previouslyObtainedPartial:guest.previouslyObtainedPartial?"획득 기록 있음":"없음",
+    previouslyObtainedFull:guest.previouslyObtainedFull?"획득 기록 있음":"없음",
+    seenStoryScenes:storySceneTitlesSeenForGuest(definition.guestId),
+    currentLoopVisited:result.visited?"방문 완료":"미방문",
+    currentLoopEvaluation:currentEvaluation,
+    currentFragmentState:storyFragmentStateLabel(currentFragmentState),
+    currentFragmentName:currentFragmentState==="none"?"미획득":definition.shardName
+  };
+}
+
 // 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
-// 잠긴 페이지도 포함해 언제나 8장을 반환하므로 수동 저장 슬롯마다 서로 다른
-// 기록을 안전하게 복원할 수 있습니다.
+// 첫 장은 규칙, 나머지 일곱 장은 날짜별 기록입니다. 아직 만나지 않은 미래
+// 손님의 이름·등장 조건·정답 음식은 날짜 페이지에 미리 노출하지 않습니다.
 function getGameplayJournalPages(){
-  return GAMEPLAY_JOURNAL_PAGE_DEFS.map((definition,index)=>{
-    const guest=state.story?.guestState?.[definition.guestId]||createStoryGuestState();
-    const result=state.story?.guestResults?.[definition.guestId]||createStoryGuestResult();
-    const currentFragmentState=["none","partial","full"].includes(result.fragmentState)
-      ?result.fragmentState:"none";
-    const hasCurrentFull=currentFragmentState==="full";
-    const met=!!(
-      Number(guest.visits)>0||guest.clueFound||guest.foodConfirmed
-      ||guest.revealedStoryLevel>0||guest.previouslyObtainedPartial
-      ||guest.previouslyObtainedFull||result.visited
-    );
-    const revealedStory=definition.storyByLevel?.[guest.revealedStoryLevel]
-      ||(met?"아직 손님이 들려준 이야기가 없습니다.":"???");
-    const latestTier=result.evaluationTier;
-    const latestScore=result.evaluationScore;
+  const definitionsByGuest=Object.fromEntries(
+    GAMEPLAY_JOURNAL_PAGE_DEFS.map(definition=>[definition.guestId,definition])
+  );
+  const menuNames=STORY_MENU_RULES.dishIds
+    .map(id=>MENU_DATA.find(menu=>menu.id===id)?.displayName)
+    .filter(Boolean);
+  const menuRule=`매일 ${menuNames.join(" · ")} 중 다섯 가지를 골라 준비하고, 찾아온 손님이 기억하는 음식을 대접한다.`;
+  const rulesPage={
+    id:"gameplay-rules",
+    pageType:"rules",
+    index:0,
+    number:1,
+    total:8,
+    title:"영업일지 주의사항",
+    label:"주의사항",
+    dayLabel:"주의사항",
+    unlocked:true,
+    locked:false,
+    rules:[
+      "식당의 문으로는 지금 나갈 수 없다.",
+      menuRule,
+      "대접을 마치고 받은 달빛 조각을 모아 문을 연다.",
+      "일곱 번째 밤까지 문을 열지 못하면 첫째 날로 돌아간다. 영업 기록은 남지만 모은 조각은 사라진다."
+    ],
+    menuRule,
+    menuNames
+  };
+  const dayPages=GAMEPLAY_JOURNAL_DAY_GUEST_IDS.map((guestIds,index)=>{
+    const day=index+1;
+    const entries=guestIds
+      .map(guestId=>gameplayJournalGuestRecord(definitionsByGuest[guestId]))
+      .filter(Boolean);
     return {
-      ...definition,
-      index,
-      number:index+1,
-      total:GAMEPLAY_JOURNAL_PAGE_DEFS.length,
-      locked:!met,
-      unlocked:met,
-      storyLevel:guest.revealedStoryLevel,
-      guestName:met?definition.displayName:"???",
-      appearance:met?definition.appearanceCondition:"등장 기록 없음",
-      trace:met?definition.trace:"???",
-      clue:met&&(guest.clueFound||guest.foodConfirmed)?definition.clue:"???",
-      confirmedDish:met&&guest.foodConfirmed?definition.dishName:"???",
-      latestEvaluation:met&&latestTier
-        ?storyEvaluationLabel(latestTier,latestScore)
-        :"평가 기록 없음",
-      revealedStory,
-      previousLoopEvaluation:storyJournalEvaluationLabel(
-        guest.previousLoopTier,
-        guest.previousLoopScore
-      ),
-      previouslyObtainedPartial:guest.previouslyObtainedPartial?"획득 기록 있음":"없음",
-      previouslyObtainedFull:guest.previouslyObtainedFull?"획득 기록 있음":"없음",
-      seenStoryScenes:storySceneTitlesSeenForGuest(definition.guestId),
-      currentLoopVisited:result.visited?"방문 완료":"미방문",
-      currentLoopEvaluation:storyJournalEvaluationLabel(result.evaluationTier,result.evaluationScore),
-      currentFragmentState:storyFragmentStateLabel(currentFragmentState),
-      currentFragmentName:currentFragmentState==="none"?"???":definition.shardName,
-      shardOwned:hasCurrentFull,
-      shardName:currentFragmentState==="none"?"???":definition.shardName,
-      shardStatus:storyFragmentStateLabel(currentFragmentState)
+      id:`gameplay-day-${day}`,
+      pageType:"day",
+      index:day,
+      number:day+1,
+      total:8,
+      day,
+      dayLabel:`${day}일차`,
+      title:`${day}일차 기록`,
+      label:`${day}일차 기록`,
+      unlocked:true,
+      locked:false,
+      recorded:entries.length>0,
+      entries
     };
   });
+  return [rulesPage,...dayPages];
 }
 
 window.getGameplayJournalPages=getGameplayJournalPages;
@@ -417,8 +471,14 @@ function storySpeakerLabel(line){
   return typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
 }
 
+function storySceneShowsIntroCard(scene){
+  return !["specialGuestArrival","specialGuestMissing","specialGuestResult"].includes(scene?.sceneType);
+}
+
 function storySceneCardText(scene){
-  return scene?`${scene.id} · ${scene.title}`:"";
+  if(!scene)return "";
+  if(!storySceneShowsIntroCard(scene))return STORY_CHARACTERS[scene.character]?.name||"특별 손님";
+  return `${scene.id} · ${scene.title}`;
 }
 
 function storySceneDayLabel(scene){
@@ -447,6 +507,12 @@ function finishStorySceneIntro(){
 function showStorySceneIntro(){
   if(!storySession?.scene)return false;
   clearStorySceneIntro();
+  // 특별 손님 장면은 대화 자체가 등장 연출입니다. 내부 장면 코드와
+  // 아쉽다/맛있다/완벽 같은 결과명이 적힌 메타 카드는 표시하지 않습니다.
+  if(!storySceneShowsIntroCard(storySession.scene)){
+    showStoryLine();
+    return false;
+  }
   if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
     showStoryLine();
     return false;
@@ -519,6 +585,8 @@ function initializeStoryUI(){
   document.getElementById("storyNextButton").addEventListener("click",storyAdvance);
   document.getElementById("storyText").addEventListener("click",storyAdvance);
   document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
+  document.getElementById("endingRetryBranchButton")?.addEventListener("click",retryLastEndingBranch);
+  document.getElementById("endingNewLoopButton")?.addEventListener("click",startNewLoopAfterEnding);
   window.addEventListener("resize",()=>{
     clearTimeout(storySubtitleResizeTimer);
     storySubtitleResizeTimer=setTimeout(reflowCurrentStorySubtitle,80);
@@ -1356,7 +1424,12 @@ function queueStoryConclusion(scene){
   if(!storySession||!scene)return;
   if(scene.autoLoop)storySession.conclusionAction={type:"nextLoop",toTitle:false};
   else if(scene.continuePolicy==="nextLoop")storySession.conclusionAction={type:"nextLoop",toTitle:true};
-  else if(scene.continuePolicy==="finalChoiceCheckpoint")storySession.conclusionAction={type:"finalChoiceCheckpoint"};
+  else if(scene.continuePolicy==="endingRetryMenu")storySession.conclusionAction={
+    type:"endingRetryMenu",
+    judgementSceneId:scene.retryJudgementSceneId,
+    endingSceneId:scene.id,
+    endingTitle:scene.endingTitle||scene.title
+  };
   else if(scene.trueEndingEpilogue)storySession.conclusionAction={type:"trueEnding"};
 }
 
@@ -1648,15 +1721,61 @@ function beginNextStoryLoop({toTitle=false}={}){
   queueStoryMoments(["dayStart"]);
 }
 
-function restoreFinalChoiceCheckpoint(){
-  const judgement=STORY_SCENES["SCN-J03"];
-  const ending=STORY_SCENES["END-03"];
+function endingRetryElements(){
+  return {
+    overlay:document.getElementById("endingRetryOverlay"),
+    title:document.getElementById("endingRetryTitle"),
+    description:document.getElementById("endingRetryDescription"),
+    branchButton:document.getElementById("endingRetryBranchButton")
+  };
+}
+
+function closeEndingRetryMenu(){
+  const {overlay}=endingRetryElements();
+  overlay?.classList.remove("open");
+  overlay?.setAttribute("aria-hidden","true");
+  pendingEndingRetryAction=null;
+}
+
+function showEndingRetryMenu(action){
+  const {overlay,title,description,branchButton}=endingRetryElements();
+  if(!overlay||!action?.judgementSceneId||!action?.endingSceneId){
+    beginNextStoryLoop({toTitle:false});
+    return false;
+  }
+  pendingEndingRetryAction={...action};
+  state.paused=true;
+  if(title)title.textContent=`「${action.endingTitle||"엔딩"}」 기록 완료`;
+  if(description)description.textContent="이 결말은 타이틀 영업일지에 남았습니다. 마지막 선택을 다시 보거나 새 회차를 시작할 수 있습니다.";
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-hidden","false");
+  branchButton?.focus?.();
+  return true;
+}
+
+function restoreEndingChoiceCheckpoint(action){
+  const judgement=STORY_SCENES[action?.judgementSceneId];
+  const ending=STORY_SCENES[action?.endingSceneId];
+  if(!judgement||!ending)return false;
   delete state.story.completed[storySceneProgressKey(judgement)];
   delete state.story.completed[storySceneProgressKey(ending)];
-  delete state.story.choices["SCN-J03"];
+  delete state.story.choices[judgement.id];
   state.story.endingSeen=false;
   state.story.judgmentComplete=false;
-  showTitleAfterStory({save:true});
+  saveGame(true);
+  updateUI(true);
+  return playStoryScenes([judgement.id]);
+}
+
+function retryLastEndingBranch(){
+  const action=pendingEndingRetryAction;
+  closeEndingRetryMenu();
+  if(!restoreEndingChoiceCheckpoint(action))beginNextStoryLoop({toTitle:false});
+}
+
+function startNewLoopAfterEnding(){
+  closeEndingRetryMenu();
+  beginNextStoryLoop({toTitle:false});
 }
 
 function finishTrueEnding(){
@@ -1668,7 +1787,7 @@ function finishTrueEnding(){
 function runStoryConclusion(action){
   if(!action)return;
   if(action.type==="nextLoop")beginNextStoryLoop({toTitle:!!action.toTitle});
-  else if(action.type==="finalChoiceCheckpoint")restoreFinalChoiceCheckpoint();
+  else if(action.type==="endingRetryMenu")showEndingRetryMenu(action);
   else if(action.type==="trueEnding")finishTrueEnding();
 }
 

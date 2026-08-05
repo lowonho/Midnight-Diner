@@ -135,6 +135,12 @@
     radial-gradient(ellipse at 50% 105%,#5b3828 0 43%,transparent 44%),
     radial-gradient(circle at 45% 35%,#fff0bf,#b57b45);
 }
+.journal-page-portrait.journal-page-icon {
+  aspect-ratio: 1;
+  background: radial-gradient(circle at 45% 35%,#fff4c8,#b97d42);
+  color: #5a321d;
+  font-size: calc(26 * var(--upx));
+}
 .journal-page.is-locked .journal-page-portrait.has-portrait {
   background-color: #7d6d5d;
   background-image:

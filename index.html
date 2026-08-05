@@ -176,7 +176,7 @@
             <button id="storySkipButton" class="story-skip" type="button" hidden>SKIP</button>
             <div id="storySceneMeta" class="story-scene-meta">
               <span id="storyDayLabel">DAY 1</span>
-              <strong id="storySceneTitle">퇴사한 밤 - 퇴근길</strong>
+              <strong id="storySceneTitle">지친 밤 - 퇴근길</strong>
             </div>
             <div id="storyStage" class="story-stage" aria-hidden="true"></div>
             <div class="story-dialogue-box">
@@ -276,6 +276,26 @@
           <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
         <div id="journalPageTabs" class="journal-page-tabs" role="tablist" aria-label="영업일지 페이지 선택"></div>
+      </div>
+    </section>
+
+    <section
+      id="endingRetryOverlay"
+      class="global-overlay ending-retry-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="endingRetryTitle"
+      aria-describedby="endingRetryDescription"
+      aria-hidden="true"
+    >
+      <div class="ending-retry-window wood-panel">
+        <p class="eyebrow">ENDING RECORDED</p>
+        <h2 id="endingRetryTitle">엔딩 기록 완료</h2>
+        <p id="endingRetryDescription">이 결말은 타이틀 영업일지에 남았습니다.</p>
+        <div class="ending-retry-actions">
+          <button id="endingRetryBranchButton" class="gold-button" type="button">마지막 분기로 돌아가기</button>
+          <button id="endingNewLoopButton" class="dark-button" type="button">새 회차 시작</button>
+        </div>
       </div>
     </section>
 
