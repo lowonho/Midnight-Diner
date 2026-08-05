@@ -127,7 +127,7 @@ registerMiniEngine("twoSideCook", {
       26
     );
     m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: config.sideSpeeds[0], hits: [], dishStyle, flipErrors: 0, cookErrors:0, timeLimit: m.time };
-    audio.loop?.(isSkewer?"charcoal_grill":"pan_sizzle",m,isSkewer ? .58 : .6);
+    audio.loop?.(isSkewer?"charcoal_grill":"pan_sizzle",m,isSkewer ? 1.8 : .6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     renderTwoSideCook();
