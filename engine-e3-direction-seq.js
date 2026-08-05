@@ -235,6 +235,15 @@ function fryKimchiFramesMarkup(){
 const FRY_SPATULA_ASSETS=Object.freeze({clean:"frySpatulaClean",stirring:"frySpatulaStirring",rested:"frySpatulaRested"});
 
 function frySpatulaHasArt(){return Object.values(FRY_SPATULA_ASSETS).every(hasDayPrepAsset);}
+
+/* 주걱을 커서로 내보낼지, 예전처럼 팬에 붙여 둘지.
+   ⚠️ **포인터를 올려놓을 수 있는 장치에서만** 커서로 씁니다. 손가락으로 하는
+      화면에서는 대는 순간까지 주걱이 아예 안 보이고, 대고 나면 손 밑에 깔립니다.
+      거기서는 팬에 붙은 주걱이 그대로 맞습니다 (그림 세 장도 그대로 씁니다). */
+function frySpatulaAsCursor(){
+  if(!frySpatulaHasArt())return false;
+  return window.matchMedia?window.matchMedia("(hover: hover)").matches:true;
+}
 function frySpatulaFramesMarkup(){
   return Object.entries(FRY_SPATULA_ASSETS)
     .map(([pose,key])=>dayPrepAssetMarkup(key,`kf-wood-spatula-asset spatula-${pose}`,pose==="clean"?"나무 주걱":""))
@@ -243,9 +252,83 @@ function frySpatulaFramesMarkup(){
 function frySpatulaState(data,dragging){
   return dragging?"stirring":(data.stirred?"rested":"clean");
 }
+// 주걱은 커서로 나갔을 때와 팬 위에 붙어 있을 때(임시 도형) 자리가 다릅니다. 둘 다 씁니다.
 function setFrySpatulaState(data,dragging){
+  const pose=frySpatulaState(data,dragging);
   const tool=dom.miniContent.querySelector(".kf-wood-spatula");
-  if(tool)tool.dataset.spatula=frySpatulaState(data,dragging);
+  if(tool)tool.dataset.spatula=pose;
+  if(frySpatulaCursor)frySpatulaCursor.dataset.spatula=pose;
+}
+
+/* ---- 나무 주걱 커서 -----------------------------------------
+   팬 칸 위에 마우스를 올리면 포인터가 나무 주걱으로 바뀝니다. 그림이 세 장 다
+   있을 때만이고, 그때는 팬에 붙어 있던 주걱을 빼서 **커서 한 자루만** 남깁니다.
+   (E5 김치전의 고양이 발 뒤집개 · E6 튀기기의 집게와 같은 방식입니다)
+
+   CSS `cursor: url()` 이 아니라 DOM 한 겹을 body 에 붙여 따라다니게 합니다 —
+   크롬이 커서 그림을 128x128 로 제한해서 그 크기로는 주걱이 뭉개집니다.
+   기본 포인터를 숨기는 것은 css 의 `.kf-scene.has-spatula .kf-board { cursor:none }` 입니다.
+
+   [치우기] 미니게임 엔진에는 teardown 이 없습니다. 그래서 포인터가 움직일 때마다
+   화면이 아직 있는지 보고, 없으면 그때 스스로 지웁니다 (E5 와 같은 한계입니다 —
+   미니게임을 닫고 마우스를 **한 번도 안 움직이면** 주걱이 잠깐 남아 있습니다). */
+const FRY_SPATULA_ZONE=".kf-board";        // 화구 + 팬이 있는 가운데 칸
+let frySpatulaCursor=null;                 // document.body 에 붙는 <div>
+let frySpatulaCursorListening=false;
+
+function mountFrySpatulaCursor(){
+  if(!frySpatulaCursor){
+    const root=document.createElement("div");
+    root.className="kf-spatula-cursor";
+    root.dataset.spatula="clean";
+    root.setAttribute("aria-hidden","true");
+    // 회전은 안쪽 <i> 가 맡습니다 — 바깥 상자의 transform 은 포인터에 맞추는
+    // 자리 잡기(translate)라, 여기에 회전을 얹으면 서로 덮어씁니다.
+    root.innerHTML=`<i class="kf-spatula-cursor-art">${frySpatulaFramesMarkup()}</i>`;
+    document.body.appendChild(root);
+    frySpatulaCursor=root;
+  }
+  if(frySpatulaCursorListening)return;
+  frySpatulaCursorListening=true;
+  // capture 로 받습니다 — 중간에서 이벤트를 막아도 커서는 따라가야 합니다.
+  ["pointermove","pointerdown","pointerup","pointercancel"]
+    .forEach(type=>document.addEventListener(type,trackFrySpatulaCursor,true));
+}
+
+function removeFrySpatulaCursor(){
+  frySpatulaCursor?.remove();
+  frySpatulaCursor=null;
+  frySpatulaCursorListening=false;
+  ["pointermove","pointerdown","pointerup","pointercancel"]
+    .forEach(type=>document.removeEventListener(type,trackFrySpatulaCursor,true));
+}
+
+function trackFrySpatulaCursor(event){
+  if(!frySpatulaCursor)return;
+  const scene=dom.miniContent?.querySelector(".kf-scene.has-spatula");
+  if(!scene){removeFrySpatulaCursor();return;}          // 미니게임이 끝났습니다
+  /* 젓는 동안에는 팬 칸을 벗어나도 계속 보입니다. 한 획이 짧은 변의 45%(226)라
+     팬 칸 밖까지 밀고 나가는 일이 흔한데, 거기서 주걱이 사라지면 손이 끊깁니다.
+     (포인터가 이미 붙잡혀 있어서 입력은 계속 들어갑니다)
+     ⚠️ 손을 떼는 순간은 젓는 중으로 치지 않습니다. 이 listener 는 capture 라
+        bindDirectionSlide 가 drag 를 비우기 **전에** 불리는데, 그걸 그대로 믿으면
+        칸 밖에서 손을 뗐을 때 주걱이 다음 마우스 움직임까지 남아 있습니다. */
+  const releasing=event.type==="pointerup"||event.type==="pointercancel";
+  const dragging=!releasing&&!!state.mini?.data?.drag;
+  const over=dragging||(event.target instanceof Element&&scene.contains(event.target)
+    &&!!event.target.closest(FRY_SPATULA_ZONE));
+  frySpatulaCursor.classList.toggle("show",over);
+  if(!over)return;
+  frySpatulaCursor.style.left=`${event.clientX}px`;
+  frySpatulaCursor.style.top=`${event.clientY}px`;
+}
+
+// 틀린 방향으로 저었을 때의 짧은 도리질. 팬에 붙은 주걱은 CSS(.kf-board.input-wrong)가
+// 맡지만, 커서는 body 에 있어 그 규칙이 안 닿으므로 여기서 직접 붙였다 뗍니다.
+function shakeFrySpatulaCursor(){
+  const root=frySpatulaCursor;if(!root)return;
+  root.classList.remove("wrong");void root.offsetWidth;root.classList.add("wrong");
+  setTimeout(()=>root.classList.remove("wrong"),E3_FEEL_CONFIG.wrongLockMs);
 }
 
 function setupKimchiFry(taskId="fryTofuKimchi"){
@@ -275,9 +358,12 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
 
 function renderKimchiFry(){
   const data=state.mini.data;
+  /* 주걱을 커서로 내보내면 팬에는 붙이지 않습니다 — 둘 다 두면 두 자루로 보입니다.
+     터치 화면이나 그림이 없을 때는 예전처럼 팬 위에 남습니다 (frySpatulaAsCursor). */
+  const spatulaAsCursor=frySpatulaAsCursor();
   dom.miniTimer.textContent=`${data.successes} / ${data.total}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
   dom.miniContent.innerHTML=`
-    <div class="kf-scene">
+    <div class="kf-scene ${spatulaAsCursor?"has-spatula":""}">
       <aside class="kf-col">
         <div class="kf-panel kf-ing-panel">
           <h3 class="kf-col-title starred">재료</h3>
@@ -295,7 +381,7 @@ function renderKimchiFry(){
           ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
           <i class="frying-kimchi ${fryKimchiHasArt()?"has-prep-asset":""}">${fryKimchiFramesMarkup()}</i>
           <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
-          <i class="kf-wood-spatula ${frySpatulaHasArt()?"has-prep-asset":""}" data-spatula="${frySpatulaState(data,false)}">${frySpatulaFramesMarkup()}</i>
+          ${spatulaAsCursor?"":`<i class="kf-wood-spatula ${frySpatulaHasArt()?"has-prep-asset":""}" data-spatula="${frySpatulaState(data,false)}">${frySpatulaFramesMarkup()}</i>`}
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -324,6 +410,7 @@ function renderKimchiFry(){
     onDragStart:data=>setFrySpatulaState(data,true),
     onDragEnd:data=>setFrySpatulaState(data,false)
   });
+  if(spatulaAsCursor)mountFrySpatulaCursor();
 }
 
 function kimchiFryInput(direction,repeat=false){
@@ -338,6 +425,7 @@ function kimchiFryInput(direction,repeat=false){
     onWrong(){
       if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");setTimeout(()=>current.classList.remove("wrong"),260);}
       lockDirectionInput(m,"#fryWorkArea",`${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]} 방향입니다. 나무 주걱을 그 방향으로 움직이세요.`);
+      shakeFrySpatulaCursor();
     },
     onCorrect(){
       audio.play?.("wood_stir",{owner:m});

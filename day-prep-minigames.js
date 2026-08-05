@@ -410,6 +410,19 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      뺐습니다. 밤 굽기는 낮에 꽂은 배치 그대로 구워야 해서, 한 장짜리 그림 대신
      위 E8 조각(skewerChicken · skewerGreenOnion)과 꼬챙이(skewerStick)를
      한 개씩 쌓습니다 — engine-e5-two-side-cook.js 의 grillSkewerMarkup. */
+  /* 굽는 닭꼬치 조각 8장 — **재료 2종 x 익힘 4단계**입니다. 김치전과 같은 방식으로
+     색을 CSS 필터로 만들지 않고 그림을 갈아 끼웁니다
+     (engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS).
+     ⚠️ **raw(안 익은) 장은 여기 없습니다.** 낮 '닭꼬치 꽂기'에 쓴 위쪽 E8 조각
+        (skewerChicken · skewerGreenOnion)이 그대로 첫 장입니다 — 실제로 같은 그림을
+        익힘만 다르게 다시 그린 한 벌이라, 캔버스도 그 장에 맞춰 뽑아 두었습니다
+        (tools/build-minigame-art-webp.js 의 pad). 그래서 다섯 장이 한 자리에 겹칩니다.
+     키 뒷자리가 곧 익는 순서입니다 — SlightlyCooked → WellCooked → SlightlyBurnt → Burnt. */
+  ...Object.fromEntries([["Chicken","chicken"],["GreenOnion","green_onion"]].flatMap(([key,file])=>
+    [["SlightlyCooked","slightly_cooked"],["WellCooked","well_cooked"],
+     ["SlightlyBurnt","slightly_burnt"],["Burnt","burnt"]].map(([step,name])=>[
+      `cookSkewer${key}${step}`,`assets/minigame/E5/yakitori/food_skewer_${file}_piece_${name}.webp`
+    ]))),
   /* 굽는 김치전 5장 — **익힘 단계마다 한 장**입니다. 색을 CSS 필터로 만들지 않고
      그림을 갈아 끼웁니다 (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS).
      키 순서가 곧 익는 순서라 코드가 이 표를 순서대로 훑습니다. */

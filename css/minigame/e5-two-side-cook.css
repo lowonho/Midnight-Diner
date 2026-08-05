@@ -140,8 +140,20 @@
 .grill-skewer { --gs-piece-w: calc(62 * var(--upx)); --gs-piece-h: calc(54 * var(--upx)); --gs-piece-overlap: calc(-10 * var(--upx)); }
 .grill-skewer.has-pieces .gs-pieces { gap: 0; }
 .gs-piece { position: relative; display: block; width: var(--gs-piece-w); height: var(--gs-piece-h); margin-block: var(--gs-piece-overlap); }
-/* 익힘 색은 조각 그림에 필터로 입힙니다 (임시 도형의 b::before 자리) */
+/* 익힘 색은 조각 그림에 필터로 입힙니다 (임시 도형의 b::before 자리).
+   ⚠️ 익힘 단계 그림 5장이 다 있으면 아래 .has-cook-art 가 이 필터를 끕니다. */
 .gs-piece-asset { display:block; width:100%; height:100%; object-fit:contain; filter:brightness(calc(1.08 - var(--cook-progress) * .27)) saturate(calc(.76 + var(--cook-progress) * .65)) sepia(calc(var(--cook-progress) * .2)); transition:filter .12s linear; }
+/* ── 익힘 단계 그림 5장 (assets/minigame/E5/yakitori/) ────────
+   raw 한 장에 색 필터를 입히는 대신 **그림을 갈아 끼웁니다** — 겉이 눌어붙는 결과
+   그을음 자국은 색을 어둡게 해서는 나오지 않습니다. 다섯 장을 같은 자리에 겹쳐 두고
+   지금 단계까지를 다 켜 둡니다 (engine-e5 의 updateSkewerCookArt · 김치전과 같은 방식).
+   ⚠️ 다섯 장의 캔버스가 같아야 갈아 낄 때 조각이 안 튑니다 — 납품본은 그림 경계까지
+      잘려 와서 tools/build-minigame-art-webp.js 의 pad 로 raw 장 캔버스에 맞춰 뽑습니다.
+   [필터를 끕니다] 그림이 이미 익어 있으므로 --cook-progress 색을 겹쳐 입히면 두 번 탑니다.
+      아래 .cook-over 줄은 그 규칙이 이 규칙보다 뒤에 있어(선택자 길이도 같음) 따로 끕니다. */
+.gs-piece.has-cook-art .gs-piece-asset { position:absolute; inset:0; opacity:0; filter:none; transition:opacity .28s ease; }
+.gs-piece.has-cook-art .gs-piece-asset.on { opacity:1; }
+.skewer-cook.cook-over .gs-piece.has-cook-art .gs-piece-asset { filter:none; }
 /* 뒤집힌 면. 그림이 한 벌뿐이라 좌우를 뒤집어 반대 면처럼 읽히게 합니다
    (김치전의 `.two-side-pan.side-1 .pancake-food-asset` 과 같은 처리입니다).
      · 뒤집기 단계 : 방금 뒤집은 꼬치만 (.grill-skewer.flipped)
@@ -565,26 +577,35 @@
 .mini-overlay.open:active .ts-scene.has-spatula .ts-cooktop *,
 .mini-overlay.open:active .ts-scene.has-spatula .flip-rebound-scene,
 .mini-overlay.open:active .ts-scene.has-spatula .flip-rebound-scene * { cursor: none !important; }
-/* 상자 왼쪽 위 귀퉁이가 포인터 자리입니다. 뒤집개 **날 끝**이 포인터에 오도록
-   제 크기의 비율(%)로 당깁니다 — px 로 박으면 창 크기에 따라 어긋납니다.
-   ⚠️ 12% 86% 는 아직 눈대중입니다. 마스터 그림이 들어오면 날 끝 자리를 재서
-      이 값(transform-origin 과 translate 둘 다)을 고치세요. */
+/* 상자 왼쪽 위 귀퉁이가 포인터 자리입니다. 뒤집개 **날 면 한가운데**가 포인터에
+   오도록 제 크기의 비율(%)로 당깁니다 — px 로 박으면 창 크기에 따라 어긋납니다.
+
+   [30% 85%] 납품본(502x943)에서 알파를 재서 잡은 값입니다 — 날 면이 가로 2~306
+   (한가운데 30.7%) · 세로 70~99.7% (한가운데 85%) 를 차지합니다.
+   원래 눈대중으로 12% 86% 였는데, 12% 는 날 면의 **왼쪽 끝**이라 주걱이 통째로
+   포인터 오른쪽에 붙어 보였습니다. E3 나무 주걱(31% 80%)과 같은 기준입니다.
+
+   [117] 화구 폭(710.2)의 16.5% 입니다. 처음에는 그림이 없던 시절의 눈대중값
+   210(=29.6%)이었는데, 팬과 김치전에 비해 너무 커서 E3 나무 주걱과 같은
+   비율로 맞췄습니다 (E3 는 팬 820 에 주걱 135).
+   ⚠️ 세로는 안 적습니다 — `height:auto` 라 그림 비율(0.5323)이 알아서 220 을 만듭니다.
+      **폭을 바꾸면 tools/build-minigame-art-webp.js 의 크기(2배율)도 같이 고치세요.** */
 .ts-spatula-cursor {
   position: fixed;
   z-index: 70;
   left: 0;
   top: 0;
-  width: calc(210 * var(--upx));
+  width: calc(140 * var(--upx));
   height: auto;
   opacity: 0;
-  transform-origin: 12% 86%;
-  transform: translate(-12%,-86%);
+  transform-origin: 30% 85%;
+  transform: translate(-30%,-85%);
   pointer-events: none;
   filter: drop-shadow(calc(3 * var(--upx)) calc(7 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.45));
 }
 .ts-spatula-cursor.show { opacity: 1; }
-/* 누르면 날 끝을 축으로 살짝 눕습니다 (뒤집는 시늉) */
-.ts-spatula-cursor.pressed { transform: translate(-12%,-86%) rotate(-11deg); }
+/* 누르면 날 면을 축으로 살짝 눕습니다 (뒤집는 시늉) */
+.ts-spatula-cursor.pressed { transform: translate(-30%,-85%) rotate(-11deg); }
 
 /* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
 .ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }

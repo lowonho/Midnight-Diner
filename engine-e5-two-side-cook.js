@@ -37,6 +37,8 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
    낮 '닭꼬치 꽂기'(engine-e8)에서 실제로 꽂은 배치를 그대로 굽습니다.
    조각·꼬챙이 그림도 그 게임과 **같은 파일**(assets/minigame/E8/)입니다 —
    day-prep-minigames.js 의 skewerChicken · skewerGreenOnion · skewerStick.
+   그 조각이 여기서는 **안 익은 첫 장**이고, 익어 가는 넷은 따로 있습니다
+   (assets/minigame/E5/yakitori/ · 아래 SKEWER_COOK_STEPS).
 
    배치는 state.skewerPrep.patterns (day.js) 에 낮이 남겨 둡니다.
    ⚠️ 꽂기를 건너뛰고 밤으로 오는 길이 있습니다(QA 모드가 준비를 완료로 찍는 경우).
@@ -71,16 +73,60 @@ const PANCAKE_COOK_STEPS=Object.freeze([
   Object.freeze({key:"cookPancakeBurnt",         until:Infinity})
 ]);
 
+/* ── 굽는 닭꼬치 조각 5단계 ──────────────────────────────────
+   김치전과 같은 방식입니다 — 조각 하나에 다섯 장을 겹쳐 두고 갈아 끼웁니다.
+   경계값도 김치전과 같게 판정 구간(goodStart~goodEnd)에 맞춰 두었습니다:
+   "잘 익은 조각"이 보이는 동안이 곧 뒤집어야 하는 때입니다.
+     ~.24            낮에 꽂은 그대로 (raw)
+     ~.67 goodStart  살짝 익음
+     ~.85 goodEnd    잘 익음        ← 이 구간이 GOOD·PERFECT 판정 구간입니다
+     ~.93            살짝 탐
+     그 뒤            탐
+   ⚠️ **raw 는 낮 '꽂기'와 같은 그림입니다**(SKEWER_ASSET_KEY). 그래서 첫 장만
+      suffix 가 비어 있고, 나머지 넷이 assets/minigame/E5/yakitori/ 의 납품본입니다.
+   ⚠️ 판정에는 전혀 관여하지 않습니다. 보이는 그림만 고릅니다. */
+const SKEWER_COOK_STEPS=Object.freeze([
+  Object.freeze({suffix:"",               until:.24}),
+  Object.freeze({suffix:"SlightlyCooked", until:TWO_SIDE_COOK_CONFIG.skewer.goodStart}),
+  Object.freeze({suffix:"WellCooked",     until:TWO_SIDE_COOK_CONFIG.skewer.goodEnd}),
+  Object.freeze({suffix:"SlightlyBurnt",  until:.93}),
+  Object.freeze({suffix:"Burnt",          until:Infinity})
+]);
+const SKEWER_COOK_ASSET_PREFIX=Object.freeze({chicken:"cookSkewerChicken",greenOnion:"cookSkewerGreenOnion"});
+
+function skewerCookAssetKey(ingredient,index){
+  const suffix=SKEWER_COOK_STEPS[index].suffix;
+  return suffix?`${SKEWER_COOK_ASSET_PREFIX[ingredient]}${suffix}`:SKEWER_ASSET_KEY[ingredient];
+}
+
+/* 익힘 그림 한 벌(2종 x 5장)이 다 있는지. 한 장이라도 빠지면 예전처럼 raw 한 장에
+   CSS 필터로 색을 입힙니다 — 섞어 쓰면 어떤 조각은 그림으로, 어떤 조각은 필터로
+   익어서 같은 꼬치 안에서 익힘이 달라 보입니다.
+   ⚠️ 판마다 한 번만 재고 data 에 적어 둡니다(매 프레임 10칸을 훑지 않습니다).
+      setup 이 아니라 여기서 재는 것은, 화면 점검용 하네스가 data 를 직접
+      만들어 넘기는 길(tools/e5-skewer-cook-visual-smoke.html)도 있어서입니다. */
+function skewerCookArtOn(data){
+  if(data.skewerCookArt===undefined){
+    data.skewerCookArt=["chicken","greenOnion"].every(ingredient=>
+      SKEWER_COOK_STEPS.every((_,index)=>hasDayPrepAsset(skewerCookAssetKey(ingredient,index))));
+  }
+  return data.skewerCookArt;
+}
+
 /* 지금 보여 줄 그림 번호. **뒤로 돌아가지 않습니다** — 한 번 익은 김치전이
    다시 반죽이 되지는 않으니까요. 이 한 줄이 "굽는 면"까지 함께 처리합니다.
      · 앞면을 굽는 동안에는 게이지(marker)를 따라 그대로 진해집니다.
      · 뒤집으면 게이지는 0 부터 다시 차지만, 보이는 면은 앞면이 다다른 단계에서
        시작합니다. 뒷면을 태울 만큼 오래 두면 그때부터 다시 진해집니다.
      · 늦게 눌러 게이지가 0 으로 되돌아가도(타이밍 실패) 이미 탄 김치전은
-       탄 채로 남습니다. */
-function pancakeCookStep(data){
-  const reached=PANCAKE_COOK_STEPS.findIndex(step=>data.marker<step.until);
-  data.cookStep=Math.max(data.cookStep||0,reached<0?PANCAKE_COOK_STEPS.length-1:reached);
+       탄 채로 남습니다.
+   두 요리가 같이 씁니다 — 한 판에는 한 요리만 도니까 data.cookStep 한 칸이면 됩니다. */
+function cookArtStep(data,steps){
+  // 게이지를 아직 안 잡은 화면(계약 점검용 마크업 등)은 안 익은 첫 장으로 봅니다 —
+  // undefined 로 비교하면 전부 false 라 조용히 "탄 것"이 됩니다.
+  const marker=data.marker||0;
+  const reached=steps.findIndex(step=>marker<step.until);
+  data.cookStep=Math.max(data.cookStep||0,reached<0?steps.length-1:reached);
   return data.cookStep;
 }
 
@@ -122,6 +168,7 @@ function updateTwoSideCookVisual(data){
     pan.classList.add(`cook-${stage}`);
   }
   if(data.dishStyle==="pancake")updatePancakeCookArt(data);
+  else if(skewerCookArtOn(data))updateSkewerCookArt(data);
 }
 
 /* 익힘 단계가 넘어갈 때만 그림을 켭니다 (매 프레임 DOM 을 훑지 않습니다).
@@ -130,11 +177,23 @@ function updateTwoSideCookVisual(data){
       않습니다. 한 장만 두고 src 를 바꾸면 넘어가는 순간이 뚝 끊깁니다.
       (E8 불리기 볼 soakBowlFramesMarkup 과 같은 방식입니다) */
 function updatePancakeCookArt(data){
-  const step=pancakeCookStep(data);
+  const step=cookArtStep(data,PANCAKE_COOK_STEPS);
   if(data.renderedCookStep===step)return;
   const frames=dom.miniContent.querySelectorAll(".pancake-food-asset");
   if(!frames.length)return;
   frames.forEach((frame,index)=>frame.classList.toggle("on",index<=step));
+  data.renderedCookStep=step;
+}
+
+/* 꼬치 3개 x 조각 5개가 **한 단계로 함께** 익습니다 — 익힘 게이지가 하나뿐이라
+   조각마다 다르게 익을 일이 없습니다. 겹쳐 켜는 규칙은 김치전과 같습니다. */
+function updateSkewerCookArt(data){
+  const step=cookArtStep(data,SKEWER_COOK_STEPS);
+  if(data.renderedCookStep===step)return;
+  const pieces=dom.miniContent.querySelectorAll(".gs-piece.has-cook-art");
+  if(!pieces.length)return;
+  pieces.forEach(piece=>piece.querySelectorAll(".gs-piece-asset")
+    .forEach((frame,index)=>frame.classList.toggle("on",index<=step)));
   data.renderedCookStep=step;
 }
 
@@ -210,10 +269,20 @@ registerMiniEngine("twoSideCook", {
    그림이 없으면 예전 임시 도형으로 되돌아갑니다 — 닭고기 <b> · 대파 <em> 이고,
    익힘 색은 css 의 .grill-skewer b/em 규칙이 --cook-progress 로 입힙니다.
    ⚠️ 두 종류가 다 있을 때만 그림을 씁니다(hasArt). 한쪽만 그림이면 크기·겹침
-      규칙(.has-pieces)이 임시 도형에도 걸려 조각이 서로 파고듭니다. */
-function grillSkewerPieceMarkup(ingredient, hasArt) {
+      규칙(.has-pieces)이 임시 도형에도 걸려 조각이 서로 파고듭니다.
+
+   [익힘 5장]  cookArt 면 raw 한 장 대신 다섯 장을 같은 자리에 겹쳐 깔고
+   **지금 단계까지를 다 켭니다.** 위 장이 아래 장을 완전히 덮으므로 새 장이 서서히
+   나타나는 동안에도 조각이 비쳐 보이지 않습니다 (김치전 5장과 같은 방식입니다).
+   이때는 CSS 필터로 익히지 않습니다 — css 의 .gs-piece.has-cook-art 참고. */
+function grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step) {
   if (!hasArt) return ingredient === "greenOnion" ? "<em></em>" : "<b></b>";
-  return `<span class="gs-piece ${ingredient}">${dayPrepAssetMarkup(SKEWER_ASSET_KEY[ingredient], "gs-piece-asset", SKEWER_LABEL[ingredient])}</span>`;
+  if (!cookArt) return `<span class="gs-piece ${ingredient}">${dayPrepAssetMarkup(SKEWER_ASSET_KEY[ingredient], "gs-piece-asset", SKEWER_LABEL[ingredient])}</span>`;
+  const frames = SKEWER_COOK_STEPS.map((_, index) => dayPrepAssetMarkup(
+    skewerCookAssetKey(ingredient, index), `gs-piece-asset${index <= step ? " on" : ""}`,
+    index === step ? SKEWER_LABEL[ingredient] : ""
+  )).join("");
+  return `<span class="gs-piece has-cook-art ${ingredient}">${frames}</span>`;
 }
 
 /* 꼬챙이. E8 과 같은 그림(skewerStick)이고, 손잡이까지 한 장에 들어 있어서
@@ -228,7 +297,12 @@ function grillSkewerRodMarkup() {
 function grillSkewerMarkup(pattern, index, data) {
   const flipped = data?.flippedSkewers || 0;
   const hasArt = Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset);
-  const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt)).join("");
+  // 익힘 단계는 화면을 다시 그릴 때(뒤집기 · 뒷면 익히기)도 이어져야 하므로
+  // 여기서 지금 단계를 읽어 그 자리부터 켜 둡니다 — 김치전의 pancakeCookFoodMarkup 과 같습니다.
+  const cookArt = hasArt && !!data && skewerCookArtOn(data);
+  const step = cookArt ? cookArtStep(data, SKEWER_COOK_STEPS) : 0;
+  if (cookArt) data.renderedCookStep = step;
+  const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step)).join("");
   const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
   return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${index < flipped && data?.phase !== "cook" ? "flipped" : ""} ${data?.phase === "skewerFlip" && index === flipped ? "current" : ""}" aria-label="${index + 1}번 꼬치 · ${label}">
       ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
@@ -331,7 +405,7 @@ function pancakePanShell(inner, extraClass = "", id = "") {
    (위 updatePancakeCookArt 참고). 한 장이라도 빠지면 예전처럼 CSS 도형으로 그립니다. */
 function pancakeCookFoodMarkup(data){
   const hasArt=PANCAKE_COOK_STEPS.every(step=>hasDayPrepAsset(step.key));
-  const step=hasArt?pancakeCookStep(data):0;
+  const step=hasArt?cookArtStep(data,PANCAKE_COOK_STEPS):0;
   if(hasArt)data.renderedCookStep=step;
   const frames=hasArt?PANCAKE_COOK_STEPS.map((frame,index)=>dayPrepAssetMarkup(
     frame.key,`pancake-food-asset${index<=step?" on":""}`,index===step?"굽는 김치전":""

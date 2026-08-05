@@ -38,6 +38,11 @@
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
   <script src="ui-mini-frame.js"></script>
+  <!-- ⚠️ 진짜 게임은 미니게임을 열 때 오버레이에 `.open` 을 붙입니다
+       (day-prep-minigames.js). 주걱 커서가 기본 포인터를 숨기는 규칙이
+       `.mini-overlay.open …` 으로 시작해서, 이게 없으면 팬 칸 커서가
+       `grab` 그대로라 커서 검증이 헛돕니다. -->
+  <script>document.querySelector(".mini-overlay")?.classList.add("open");</script>
   <script>
     "use strict";
     /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E3 이 실제로 만지는
@@ -96,14 +101,34 @@
         work.classList.remove("stir-left","stir-right","stir-up","stir-down");
         work.classList.add(`stir-${stir}`);
       }
-      if(spatula) document.querySelector(".kf-wood-spatula").dataset.spatula = spatula;
+      if(spatula){
+        const tool = document.querySelector(".kf-spatula-cursor,.kf-wood-spatula");
+        if(tool) tool.dataset.spatula = spatula;
+      }
       window.setTimeout = realSetTimeout;
-      /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 젓는 한가운데
-         (240ms 중 120ms)에서 멈춰 세워 주걱이 가장 크게 움직인 자세를 찍습니다.
+      /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 여기서 자세를 세웁니다.
          ⚠️ getComputedStyle 로 스타일을 한 번 강제로 계산해야 방금 붙인 클래스의
-            애니메이션이 등록됩니다 — 안 그러면 getAnimations() 가 빈 배열입니다. */
+            애니메이션이 등록됩니다 — 안 그러면 getAnimations() 가 빈 배열입니다.
+         ⚠️ 오버레이 등장 애니메이션(패널이 아래에서 올라옵니다)은 **끝까지 보냅니다.**
+            예전에는 전부 120ms 에 멈춰 세워서, 화면 전체가 아래로 밀린 채 찍혔습니다.
+            팬 칸 안의 것만 젓는 한가운데(240ms 중 120ms)에서 붙듭니다. */
       getComputedStyle(work).transform;
-      if(stir) document.getAnimations().forEach(a => { a.pause(); try { a.currentTime = 120; } catch(e){} });
+      document.getAnimations().forEach(a => {
+        const target = a.effect?.target;
+        if(stir && target && work.contains(target)){ a.pause(); try { a.currentTime = 120; } catch(e){} }
+        else if(!target || !work.contains(target)) try { a.finish(); } catch(e){}
+      });
+      /* 주걱은 그림이 다 있고 마우스를 올릴 수 있는 장치이면 팬이 아니라 **포인터를
+         따라다니는 커서**입니다. 헤드리스에는 포인터가 없으니 팬 한가운데에 세워 둡니다.
+         ⚠️ **자리는 등장 애니메이션을 끝낸 뒤에 읽어야 합니다.** 올라오는 도중의
+            좌표로 세우면 커서만 화면 아래(팬 기준 y 985)에 덩그러니 남습니다. */
+      const cursor = document.querySelector(".kf-spatula-cursor");
+      if(cursor){
+        const r = work.getBoundingClientRect();
+        cursor.style.left = `${r.left + r.width / 2}px`;
+        cursor.style.top = `${r.top + r.height / 2}px`;
+        cursor.classList.add("show");
+      }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
 
@@ -119,7 +144,12 @@
       const board = document.getElementById("fryWorkArea");
       const pan = document.querySelector(".frying-pan");
       const kimchi = document.querySelector(".frying-kimchi");
-      const tool = document.querySelector(".kf-wood-spatula");
+      /* 주걱은 그림이 다 있으면 커서(body 밑), 없으면 팬에 붙은 임시 도형입니다.
+         쓰는 쪽이 어느 쪽인지도 같이 적어 둡니다 — 둘 다 보이면(cursor 이면서
+         .kf-wood-spatula 도 있으면) 주걱이 두 자루라는 뜻이라 그 자체가 결함입니다. */
+      const cursorTool = document.querySelector(".kf-spatula-cursor");
+      const panTool = document.querySelector(".kf-wood-spatula");
+      const tool = cursorTool || panTool;
       const boardRect = rect(board), panRect = rect(pan);
       // 1920 프레임 기준 px 로 되돌리는 배율
       const s = boardRect.width / parseFloat(getComputedStyle(board).width);
@@ -145,17 +175,19 @@
           frames:kimchiFrames.map(f => ({ src:f.src.split("/").pop(), drawn:drawn(f),
             opacity:+(+getComputedStyle(f).opacity).toFixed(2) })) },
         /* 주걱 3장. 한 장만 보이고 셋 다 같은 크기로 그려져야 합니다.
-           tilt 는 지금 걸린 회전 — 그림 쪽은 0 이 기본입니다(그림에 이미 18도). */
-        tool:{ box:box(tool), at:atPan(tool), asset:tool.classList.contains("has-prep-asset"),
-          state:tool.dataset.spatula, shown:shown(toolFrames),
-          tilt:getComputedStyle(tool).getPropertyValue("--kf-spatula-tilt").trim(),
-          transform:getComputedStyle(tool).transform,
+           where 가 cursor 이면 포인터를 따라다니는 쪽이고, 그때 twoTools 는 false 여야
+           합니다 — true 면 팬에도 주걱이 남아 두 자루가 보인다는 뜻입니다. */
+        tool:{ where:cursorTool ? "cursor" : "pan", twoTools:!!(cursorTool && panTool),
+          box:box(tool), at:atPan(tool), state:tool.dataset.spatula, shown:shown(toolFrames),
+          hotspot:cursorTool ? getComputedStyle(cursorTool).transform : null,
+          artTurn:cursorTool ? getComputedStyle(cursorTool.querySelector(".kf-spatula-cursor-art")).transform
+                             : getComputedStyle(tool).transform,
           frames:toolFrames.map(f => ({ src:f.src.split("/").pop(), drawn:drawn(f),
             opacity:+(+getComputedStyle(f).opacity).toFixed(2) })) },
         // 임시 CSS 도형이 남아 보이면 안 됩니다
         fallback:{ panShape:!pan.classList.contains("has-prep-asset"),
                    kimchiShape:!kimchi.classList.contains("has-prep-asset"),
-                   toolShape:!tool.classList.contains("has-prep-asset") },
+                   toolShape:!cursorTool && !panTool?.classList.contains("has-prep-asset") },
         // 주걱·김치가 판 밖으로 새어 나가는지 (음수면 칸 안, 양수면 넘침)
         spill:{ toolBottom:+((rect(tool).bottom - boardRect.bottom) / s).toFixed(1),
                 toolTop:+((boardRect.top - rect(tool).top) / s).toFixed(1) }

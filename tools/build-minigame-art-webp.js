@@ -52,7 +52,14 @@ const ART_DIR = path.join(__dirname, "..", "assets", "minigame");
               ⚠️ 숫자를 직접 적습니다. sharp 의 trim() 을 쓰면 임계값에 따라
                  결과가 흔들려 convert 와 verify 가 다른 그림을 비교하게 됩니다.
                  새 납품본을 받으면 알파 경계를 다시 재서 이 숫자를 고치세요.
-              ⚠️ 가로세로비 검사(checkAspect)도 자른 뒤 크기로 합니다. */
+              ⚠️ 가로세로비 검사(checkAspect)도 자른 뒤 크기로 합니다.
+   [pad]      줄이기 **전에** 투명 여백을 덧대 캔버스를 맞출 것
+              [캔버스가로, 캔버스세로, 왼쪽여백, 위여백].
+              한 자리에서 갈아 끼우는 한 벌인데 **납품본만 그림 경계에 맞춰 잘려 온**
+              경우에 씁니다 — 그대로 두면 contain 이 잘린 그림을 상자에 맞추느라
+              장이 넘어갈 때 그림이 커졌다 작아졌다 합니다 (E5 닭꼬치 익힘 4장 참고).
+              [crop] 과 같이 주면 **자른 뒤에** 덧댑니다.
+              ⚠️ checkAspect 와 size 생략 시의 기본 크기도 덧댄 캔버스 기준입니다. */
 const FILES = [
   { file:"ui_drag_hand_pointer_normal.png", size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
   { file:"ui_drag_hand_pointer_click.png",  size:[128,128], css:"CSS 커서 (크롬 상한 128)",       lossless:true },
@@ -309,16 +316,20 @@ const FILES = [
        ..._kimchi_light                       젓는 중 (김치가 많이 묻음)
        ..._kimchi_very_light                  저은 뒤 손을 뗀 상태 (김치가 살짝 남음)
 
-     [크기] .kf-wood-spatula 180 x 345 의 2배율입니다. 주걱 면이 그림 가로의 61%
-     (원본 499 중 306)이라 화면에서 110 — 예전 임시 도형의 주걱 면(112)과 같습니다.
-     길이 345 는 팬 높이(356.2)보다 조금 짧아 주걱 끝이 팬 앞 테두리 안에 멈춥니다.
+     [크기] 화면 135 x 259 의 2배율입니다. 주걱 면이 그림 가로의 61%(원본 499 중 306)
+     이라 화면에서 82 이고, 길이 259 는 팬 높이(356.2)보다 한참 짧습니다.
+     ⚠️ 처음에는 예전 임시 도형의 주걱 면(112)에 맞춰 180x345(→ 360x690) 였는데,
+        팬과 김치 조각에 비해 커 보여 0.75 배로 줄였습니다. **화면 자리를 다시
+        바꾸면 여기도 같이 고쳐야 합니다** — 안 그러면 흐려지거나 용량만 먹습니다.
+        자리는 css/minigame/e3-kimchi-fry.css 의 .kf-spatula-cursor(커서) 와
+        .kf-wood-spatula.has-prep-asset(터치) 두 곳인데 늘 같은 값입니다.
 
      ⚠️ **세 장을 한 크기로 묶는 것이 중요합니다.** 납품본이 499x957 / 498x959 /
         495x954 로 조금씩 다릅니다(비율 차 최대 0.54%). 여기서 한 크기로 뽑아야
         손을 대고 뗄 때 주걱이 커졌다 작아졌다 하지 않습니다.
         (E8 물병 3자세 · E5 김치전 5장과 같은 처리입니다.) */
   ...["prop_spatula_rabbit","prop_spatula_rabbit_kimchi_light","prop_spatula_rabbit_kimchi_very_light"]
-    .map(name=>({ file:`E3/Kimchi/${name}.png`, size:[360,690], css:".kf-wood-spatula 180x345 (3장 한 크기)" })),
+    .map(name=>({ file:`E3/Kimchi/${name}.png`, size:[270,518], css:"나무 주걱 135x259 (커서·터치 공용 · 3장 한 크기)" })),
   /* E5 김치전 굽기의 왼쪽 재료 카드(반죽 그릇 한 장).
      그림칸이 210 x 225 인데 원본이 정사각이라 **가로 210 이 먼저 막습니다** → 2배율 420. */
   { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" },
@@ -353,10 +364,35 @@ const FILES = [
     css:".ts-smoke 186.8x186.8 (팬 안쪽 폭 692 의 27%) — 2배율 374 를 380 으로 올림" })),
   /* 김치전 굽기 화면의 마우스 포인터(고양이 발 뒤집개). E6 튀기기의 집게 커서와
      같은 방식으로 **DOM 으로 그려** 포인터를 따라다닙니다 (.ts-spatula-cursor).
-     ⚠️ 크기를 안 박습니다(size:null). 아직 마스터가 안 들어와 화면 자리(가로 210)의
-        2배율이 되는지 확인을 못 했습니다 — 파일을 받으면 원본 크기를 재서
-        E6 집게(420x472)처럼 2배율 숫자로 바꾸세요. */
-  { file:"E5/prop_spatula_cat.png", size:null, css:".ts-spatula-cursor 가로 210 (원본 배율 유지 · 크기 재확인 필요)" },
+     **이 화면의 뒤집개는 한 종뿐입니다** — E3 나무 주걱처럼 손놀림에 따라 갈아 끼우는
+     장이 없어서, 누른 자세는 그림을 바꾸지 않고 CSS 로 살짝 눕혀서 냅니다.
+
+     [크기] 화면 140 x 263 의 2배율입니다. 납품본이 502x943(비율 0.5323)이라
+     세로는 그 비율 그대로 나옵니다.
+     ⚠️ 화면 자리가 오래 **눈대중 210** 이었습니다(그림이 없던 시절 값). 그림을 받아
+        얹어 보니 화구 폭(710.2)의 29.6% 라 팬과 김치전에 비해 너무 컸고,
+        E3 나무 주걱과 같은 눈높이(팬 폭의 20% 안쪽)로 140 까지 내렸습니다.
+        자리를 또 바꾸면 여기 크기도 같이 고치세요 — css/minigame/e5-two-side-cook.css
+        의 .ts-spatula-cursor 가 짝입니다. */
+  { file:"E5/prop_spatula_cat.png", size:[280,526], css:".ts-spatula-cursor 140x263" },
+  /* ---- E5 닭꼬치 굽기 : 조각 익힘 4단계 x 2종 -----------------------
+     낮에 꽂은 조각(E8 food_skewer_*_piece)이 그대로 raw 이고, 여기 넷이 그 뒤입니다.
+     한 조각 자리에 다섯 장을 겹쳐 두고 익힘에 따라 갈아 끼웁니다
+     (engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS · css 의 .gs-piece.has-cook-art).
+
+     ⚠️ **캔버스를 raw 장에 맞춰 되돌려 놓는 것이 핵심입니다(pad).** 납품본은 같은 그림을
+        **알파 경계까지 바짝 잘라** 왔습니다 — 닭 416x300 · 대파 416x260 이 곧 raw 장
+        512x448 안에서 그림이 차지하던 자리(닭 48,74 · 대파 48,94)와 정확히 같습니다
+        (알파를 재서 확인했습니다). 그대로 뽑으면 상자에 contain 으로 들어갈 때
+        잘린 그림이 상자 폭까지 커져, 살짝 익는 순간 조각이 **1.23배로 튑니다.**
+        여백을 도로 덧대면 다섯 장이 한 자리에 그대로 겹칩니다.
+     ⚠️ 그래서 크기도 raw 장(E8 조각)과 **같은 240x210** 입니다. 두 자리가 함께 쓰는
+        크기라 여기만 바꾸면 안 됩니다 — 낮 꼬치판 .sk-piece 120x105 와
+        밤 화로 .ts-board .gs-piece 108x94.5 중 큰 쪽 기준입니다. */
+  ...[["chicken",[512,448,48,74]],["green_onion",[512,448,48,94]]].flatMap(([kind,pad])=>
+    ["slightly_cooked","well_cooked","slightly_burnt","burnt"].map(step=>({
+      file:`E5/yakitori/food_skewer_${kind}_piece_${step}.png`, size:[240,210], pad,
+      css:".sk-slot .sk-piece 120x105 · .ts-board .gs-piece 108x94.5 (raw 장과 한 크기)" }))),
   /* ---- E6 튀기기 (새우튀김 · 감자튀김) -----------------------------
      [가스 버너 상판] 가운데 플레이 칸(824.2x613.2)을 통째로 덮는 바닥입니다.
      E3·E4 의 옆에서 본 화구(.mg-burner)와 달리 **위에서 본 한 장**이라
@@ -675,16 +711,31 @@ const EFFORT = 6;   // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 작
 
 function kb(bytes){ return Math.round(bytes/1024); }
 
+/* [pad] 전용 앞단계. 자를 것이 있으면 자르고, 투명 여백을 덧대 캔버스를 맞춥니다.
+   ⚠️ **여기서 한 번 끊어 버퍼로 뽑습니다.** sharp 의 extend() 는 파이프라인 순서상
+      항상 resize **뒤**에 걸려서, 한 파이프라인에 이어 붙이면 "줄인 그림에 여백을
+      덧대는" 반대 순서가 됩니다. 무손실 PNG 버퍼라 잃는 화소는 없습니다. */
+async function padSource(src, entry){
+  const image = sharp(src);
+  if(entry.crop) image.extract({ left:entry.crop[0], top:entry.crop[1], width:entry.crop[2], height:entry.crop[3] });
+  const from = entry.crop ? { width:entry.crop[2], height:entry.crop[3] } : await sharp(src).metadata();
+  const [canvasW, canvasH, left, top] = entry.pad;
+  return image.extend({ top, left, bottom:canvasH - top - from.height, right:canvasW - left - from.width,
+    background:{ r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
+}
+
 // 축소 파이프라인. 검증(verify)도 같은 함수를 써야 "인코딩 손실"만 측정됩니다.
 // 여기가 갈라지면 축소 오차까지 손실로 잡혀서 수치가 의미 없어집니다.
-function resized(src, w, h, crop){
+async function resized(src, w, h, entry){
+  if(entry.pad) return sharp(await padSource(src, entry)).resize(w, h, { kernel:"lanczos3", fit:"fill" });
   const image = sharp(src);
-  if(crop) image.extract({ left:crop[0], top:crop[1], width:crop[2], height:crop[3] });
+  if(entry.crop) image.extract({ left:entry.crop[0], top:entry.crop[1], width:entry.crop[2], height:entry.crop[3] });
   return image.resize(w, h, { kernel: "lanczos3", fit: "fill" });
 }
 
-// 자른 뒤 크기. 크기 계산과 비율 검사가 전부 이 값을 기준으로 돌아갑니다.
+// 자르고 덧댄 뒤 크기. 크기 계산과 비율 검사가 전부 이 값을 기준으로 돌아갑니다.
 function sourceSize(entry, meta){
+  if(entry.pad) return { width:entry.pad[0], height:entry.pad[1] };
   return entry.crop ? { width:entry.crop[2], height:entry.crop[3] } : meta;
 }
 
@@ -723,7 +774,7 @@ async function convert(){
     checkAspect(entry, meta);
     const from = sourceSize(entry, meta);
     const [w,h] = entry.size || [from.width, from.height];
-    await resized(src, w, h, entry.crop)
+    await (await resized(src, w, h, entry))
       .webp(entry.lossless ? {lossless:true, effort:EFFORT}
                            : {quality:entry.quality||QUALITY, effort:EFFORT, alphaQuality:100})
       .toFile(out);
@@ -751,8 +802,9 @@ async function verify(){
     const meta = await sharp(src).metadata();
     const from = sourceSize(entry, meta);
     const [w,h] = entry.size || [from.width, from.height];
+    const reference = await resized(src,w,h,entry);
     const [a,b] = await Promise.all([
-      resized(src,w,h,entry.crop).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
+      reference.ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
     if(a.data.length!==b.data.length){ console.log(outFile(entry),"크기 불일치!"); continue; }

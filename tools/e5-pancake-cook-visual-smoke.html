@@ -81,6 +81,17 @@
       dom.miniStation.textContent = TWO_SIDE_VIEW.pancake.subtitle;
       renderTwoSideCook();
       updateTwoSideCookVisual(state.mini.data);
+      /* 뒤집개 커서는 포인터를 따라다니는 DOM 한 겹입니다. 헤드리스에는 포인터가
+         없으니 화구 한가운데에 세워 둡니다 — 실제로 마우스를 올렸을 때와 같은
+         자리·같은 크기입니다. ?press=1 이면 누른 자세(살짝 눕는)로 찍습니다. */
+      const cursor = document.querySelector(".ts-spatula-cursor");
+      if(cursor){
+        const r = document.querySelector(".two-side-pan").getBoundingClientRect();
+        cursor.style.left = `${r.left + r.width / 2}px`;
+        cursor.style.top = `${r.top + r.height / 2}px`;
+        cursor.classList.add("show");
+        if(params.get("press") === "1") cursor.classList.add("pressed");
+      }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
 
@@ -119,6 +130,21 @@
                    // 위로는 팬 밖으로 나가는 것이 정상. 칸(.ts-board) 안에는 남아야 합니다.
                    aboveBoard:+(boardRect.top - r.top).toFixed(1) };
         }),
+        /* 고양이 발 뒤집개 커서. 헤드리스에는 포인터가 없어서 화구 한가운데에
+           세워 둡니다 (자리 잡기는 CSS 의 translate 가 하므로 실제와 같습니다).
+           hotspot 은 그림 안에서 **날 끝**으로 잡은 자리이고, 포인터로 놓은
+           좌표와 같아야 합니다 — 어긋나면 주걱이 클릭 지점에서 떠 보입니다. */
+        spatula:(() => {
+          const c = document.querySelector(".ts-spatula-cursor");
+          if(!c) return { mounted:false, hasAsset:hasDayPrepAsset("cookSpatulaCursor") };
+          const r = rect(c);
+          return { mounted:true, box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
+            natural:`${c.naturalWidth}x${c.naturalHeight}`,
+            // 화구 폭 대비 몇 % 인지 — E3 나무 주걱(팬 폭의 16.5%)과 견주는 값입니다
+            vsPan:+((r.width / panRect.width) * 100).toFixed(1),
+            hotspot:{ x:+(r.left + r.width * 0.30).toFixed(0), y:+(r.top + r.height * 0.85).toFixed(0) },
+            pressed:c.classList.contains("pressed") };
+        })(),
         // 뺀 것들이 정말 없는지
         flipArrow:!!document.querySelector(".ts-flip-arrow"),
         cssSteam:document.querySelectorAll(".cook-steam").length

@@ -249,16 +249,22 @@
    [기울기 0] 그림이 **이미 18도 기울여 그려져 있습니다** (손잡이 위 오른쪽 · 주걱 면
      아래 왼쪽, 원본 499x957 에서 축이 18.1도). 임시 도형용 -18 을 그대로 두면
      두 번 기울어 도로 세워집니다.
-   [180 x 345] 주걱 면이 그림 가로의 61% 라 화면에서 110 — 임시 도형의 주걱 면(112)과
-     같습니다. 길이 345 는 팬 높이(356.2)보다 조금 짧아 끝이 팬 앞 테두리 안에 멈춥니다.
-   [왼쪽 33.1%] 그림에서 주걱 면 한가운데가 가로 31% 자리라, 그만큼 되당겨야
-     **주걱 면이 팬 몸통 중심(39.9%)에 옵니다.** 그림 상자를 40% 에 그냥 놓으면
-     주걱이 팬 오른쪽 손잡이 쪽으로 밀립니다. */
+   [135 x 259] 주걱 면이 그림 가로의 61% 라 화면에서 82 입니다. 길이 259 는 팬
+     높이(356.2)보다 한참 짧아 손잡이 끝까지 팬 안에 듭니다.
+     ⚠️ 처음에는 임시 도형의 주걱 면(112)에 맞춰 180x345 였는데, 팬과 김치 조각에
+        비해 너무 커 보여 0.75 배로 줄였습니다. 아래 커서 쪽과 **같은 크기여야**
+        합니다 — 마우스가 있는 화면과 터치 화면에서 주걱 크기가 달라지면 안 됩니다.
+   [왼쪽 35%] 그림에서 주걱 면 한가운데가 가로 31% 자리라, 그만큼 되당겨야
+     **주걱 면이 팬 몸통 중심에 옵니다.** 그림 상자를 40% 에 그냥 놓으면 주걱이
+     팬 오른쪽 손잡이 쪽으로 밀립니다.
+     ⚠️ `left` 의 % 는 테두리 **안쪽** 상자(802) 기준이라, 팬 그림 좌표로는
+        9 + 802 x 0.35 + 135 x 0.31 = 331.4 — 팬 몸통 중심과 같습니다.
+        **폭을 바꾸면 이 값도 같이 다시 잡아야 합니다.** */
 .kf-wood-spatula.has-prep-asset {
   --kf-spatula-tilt: 0deg;
-  left: 33.1%;
-  width: calc(180 * var(--upx));
-  height: calc(345 * var(--upx));
+  left: 35%;
+  width: calc(135 * var(--upx));
+  height: calc(259 * var(--upx));
   border: 0;
   background: none;
   box-shadow: none;
@@ -285,6 +291,54 @@
 /* 그림이 한 장이라도 빠져 임시 도형으로 돌아갔을 때, 남은 그림이 도형 위에 겹치지
    않도록 아예 끕니다 (has-prep-asset 이 없으면 도형이 주인공입니다) */
 .kf-wood-spatula:not(.has-prep-asset) .kf-wood-spatula-asset { display: none; }
+
+/* ── 나무 주걱 커서 ───────────────────────────────────────────
+   그림이 세 장 다 있으면 주걱은 팬에 붙어 있지 않고 **포인터를 따라다닙니다**
+   (engine-e3-direction-seq.js 의 mountFrySpatulaCursor). 그때 위 .kf-wood-spatula 는
+   아예 안 그려지고 `.kf-scene` 에 `.has-spatula` 가 붙습니다.
+   CSS `cursor: url()` 이 아닌 이유는 E5 뒤집개·E6 집게와 같습니다 — 크롬이 커서
+   그림을 128x128 로 제한해서 그 크기로는 주걱이 뭉개집니다.
+
+   ⚠️ 선택자가 긴 이유도 E5 와 같습니다 — css/minigame-frame.css 의 손 그림 커서가
+      `!important` 로 패널 안쪽 전체에 걸려 있어서, `:active` 규칙까지 이기려면
+      여기가 더 길어야 합니다. */
+.mini-overlay.open .kf-scene.has-spatula .kf-board,
+.mini-overlay.open .kf-scene.has-spatula .kf-board *,
+.mini-overlay.open:active .kf-scene.has-spatula .kf-board,
+.mini-overlay.open:active .kf-scene.has-spatula .kf-board * { cursor: none !important; }
+/* 상자 왼쪽 위 귀퉁이가 포인터 자리입니다. **주걱 면 한가운데**가 포인터에 오도록
+   제 크기의 비율(%)로 당깁니다 — px 로 박으면 창 크기에 따라 어긋납니다.
+   31% 는 팬에 붙어 있을 때 쓰던 값과 같고(그림에서 주걱 면 중심), 80% 는 주걱
+   면이 세로로 걸치는 구간(60~99.7%)의 한가운데입니다. */
+.kf-spatula-cursor {
+  position: fixed;
+  z-index: 70;
+  left: 0;
+  top: 0;
+  width: calc(135 * var(--upx));
+  height: calc(259 * var(--upx));
+  opacity: 0;
+  transform: translate(-31%,-80%);
+  pointer-events: none;
+  filter: drop-shadow(calc(3 * var(--upx)) calc(7 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.45));
+}
+.kf-spatula-cursor.show { opacity: 1; }
+/* 회전은 안쪽 <i> 가 맡습니다 — 바깥 상자의 transform 은 포인터에 맞추는 자리
+   잡기라, 여기에 회전을 얹으면 서로 덮어씁니다. 축은 주걱 면입니다. */
+.kf-spatula-cursor-art {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 31% 80%;
+  transition: transform .12s ease;
+}
+/* 젓는 동안에는 주걱을 살짝 눕혀 힘이 들어간 것처럼 보이게 합니다 */
+.kf-spatula-cursor[data-spatula="stirring"] .kf-spatula-cursor-art { transform: rotate(-9deg); }
+.kf-spatula-cursor.wrong .kf-spatula-cursor-art { animation: kf-cursor-wrong .15s ease; }
+/* 커서 안에서도 세 장 중 한 장만 보입니다 (팬에 붙었을 때와 같은 규칙) */
+.kf-spatula-cursor[data-spatula="clean"]    .kf-wood-spatula-asset.spatula-clean,
+.kf-spatula-cursor[data-spatula="stirring"] .kf-wood-spatula-asset.spatula-stirring,
+.kf-spatula-cursor[data-spatula="rested"]   .kf-wood-spatula-asset.spatula-rested { opacity: 1; }
 .kf-steam {
   position: absolute;
   z-index: 3;
@@ -439,10 +493,18 @@
 @keyframes kf-spatula-down { 50% { transform: translateY(calc(22 * var(--upx))) scale(1.05) rotate(calc(var(--kf-spatula-tilt) - 5deg)); } }
 @keyframes kf-food-left { 50% { transform: translateX(calc(-24 * var(--upx))) rotate(-1.5deg); } }
 @keyframes kf-food-right { 50% { transform: translateX(calc(24 * var(--upx))) rotate(1.5deg); } }
-/* 김치도 위로는 멀어지듯 살짝 부풀고, 아래로는 눌리며 앞으로 옵니다
-   (볶음우동의 yk-food-up / yk-food-down 과 같은 손맛입니다) */
-@keyframes kf-food-up { 50% { transform: translateY(calc(-18 * var(--upx))) scale(1.03); } }
+/* 위로 볶을 때는 김치를 **세로로 부풀렸다 돌아옵니다.** 납품 그림(stir_up)이
+   납작하게 퍼진 모습이라 그대로 두면 뒤집었다기보다 눌린 것처럼 보입니다.
+   ⚠️ 축이 아래(50% 100%)여야 합니다 — 가운데를 축으로 늘리면 김치가 위로
+      솟는 만큼 아래로도 자라 팬 앞 테두리를 덮습니다. 아래를 붙들어 두면
+      더미가 제자리에서 위로만 부풀어 오릅니다.
+   아래로 볶을 때는 반대로 눌리며 앞으로 옵니다. */
+.kf-board.stir-up .frying-kimchi { transform-origin: 50% 100%; }
+@keyframes kf-food-up { 50% { transform: translateY(calc(-6 * var(--upx))) scaleY(1.14) scaleX(.98); } }
 @keyframes kf-food-down { 50% { transform: translateY(calc(12 * var(--upx))) scaleY(.94); } }
+/* 커서 주걱의 도리질. 팬에 붙은 주걱(e3-tool-wrong)과 달리 쉬는 자세가 0 도라
+   각도를 그대로 적습니다. */
+@keyframes kf-cursor-wrong { 35% { transform: rotate(9deg); } 70% { transform: rotate(-14deg); } }
 @keyframes kf-food-complete { 45% { transform: scale(1.045); filter: saturate(1.35) brightness(1.05); } }
 /* 틀린 방향으로 저었을 때의 짧은 도리질. 위와 같은 이유로 쉬는 자세에서 ±6 도입니다.
    (이름은 e3- 로 시작하지만 쓰는 곳은 김치 볶기 하나입니다 — 볶음우동은
@@ -458,8 +520,10 @@
   .kf-board { --kf-pan-drop: calc(112 * var(--upx)); --kf-pan-w: calc(380 * var(--upx)); }
   .frying-pan::after { width: calc(110 * var(--upx)); height: calc(18 * var(--upx)); }
   /* 팬이 820 → 380 (0.463배)으로 줄어드니 주걱도 같은 배율로 줄입니다.
-     왼쪽 자리(33.1%)는 % 라 그대로 따라옵니다. */
-  .kf-wood-spatula.has-prep-asset { width: calc(83 * var(--upx)); height: calc(160 * var(--upx)); }
+     왼쪽 자리(35%)는 % 라 그대로 따라옵니다. 커서 쪽도 같이 줄입니다 — 터치에서는
+     커서를 안 쓰지만 이 폭은 창이 좁은 데스크톱에도 걸립니다. */
+  .kf-wood-spatula.has-prep-asset,
+  .kf-spatula-cursor { width: calc(62 * var(--upx)); height: calc(120 * var(--upx)); }
   .kf-ing-art i { width: calc(64 * var(--upx)); height: calc(64 * var(--upx)); }
   .kf-count strong { font-size: calc(42 * var(--upx)); }
   .kf-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }

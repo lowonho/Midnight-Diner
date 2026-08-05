@@ -84,7 +84,7 @@ const markup=api.charcoalSkewerMarkup({phase:"cook",flippedSkewers:0,skewerPatte
 const racks=markup.split('class="grill-skewer').slice(1);
 assert(racks.length===api.SKEWER_BATCH_SIZE,`화로에 꼬치가 ${api.SKEWER_BATCH_SIZE}개가 아닙니다.`);
 racks.forEach((rack,index)=>{
-  const stacked=[...rack.matchAll(/class="gs-piece (chicken|greenOnion)"/g)].map(match=>match[1]);
+  const stacked=[...rack.matchAll(/class="gs-piece(?: has-cook-art)? (chicken|greenOnion)"/g)].map(match=>match[1]);
   assert(same(stacked,[...assembled[index]].reverse()),`${index+1}번 꼬치가 꽂은 순서와 다릅니다: ${stacked.join(",")}`);
 });
 // 조각 그림이 E8 꽂기와 같은 파일인지 (키가 다르면 낮과 밤의 닭고기가 서로 다른 그림이 됩니다)
@@ -92,4 +92,24 @@ assert(markup.includes('data-key="skewerChicken"')&&markup.includes('data-key="s
   "굽는 조각이 E8 꽂기와 같은 그림 키를 쓰지 않습니다.");
 assert(markup.includes('data-key="skewerStick"'),"꼬챙이가 E8 꽂기와 같은 그림 키를 쓰지 않습니다.");
 
-console.log(`SKEWER_DAY_TO_NIGHT_CONTRACT_OK ${api.SKEWER_BATCH_SIZE} skewers x ${api.SKEWER_SLOT_COUNT} slots`);
+/* 5) 익힘 단계. 조각 한 개에 5장이 깔리고 **지금 단계까지만** 켜져 있어야 합니다.
+      첫 장은 낮에 꽂은 그 그림(E8)이고, 나머지 넷이 E5/yakitori 납품본입니다.
+      ⚠️ 게이지(marker)를 안 준 위 4) 의 마크업은 안 익은 첫 장이어야 합니다 —
+         비교가 undefined 로 새면 조용히 "탄 것"이 되어 화면이 처음부터 까맣습니다. */
+// ⚠️ 조각 상자(.gs-piece)만 집습니다 — 조각을 담는 바깥 상자(.gs-pieces)와 이름이 겹쳐서,
+//    클래스 뒤에 **공백이 오는 것**(gs-piece + 재료 이름)으로 갈라 냅니다.
+const firstPiece=markup=>/<span class="gs-piece [^"]*">([\s\S]*?)<\/span>/.exec(markup)[1];
+const framesOf=piece=>[...piece.matchAll(/class="gs-piece-asset( on)?" data-key="([^"]+)"/g)]
+  .map(match=>({on:!!match[1],key:match[2]}));
+const rawFrames=framesOf(firstPiece(markup));
+assert(rawFrames.length===5,`조각에 익힘 단계 그림이 5장이 아닙니다 (${rawFrames.length}장).`);
+assert(rawFrames[0].key==="skewerChicken","익힘 첫 장이 낮에 꽂은 조각(skewerChicken)이 아닙니다.");
+assert(same(rawFrames.map(frame=>frame.on),[true,false,false,false,false]),
+  "게이지를 안 준 화면이 안 익은 첫 장으로 서지 않습니다.");
+// 게이지를 태울 만큼 올리면 마지막 장까지 다 켜집니다 (아래 장을 끄지 않는 것이 규칙입니다)
+const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(
+  {phase:"cook",marker:.99,flippedSkewers:0,skewerPatterns:api.skewerCookPatterns()})));
+assert(burnt.every(frame=>frame.on),"다 태운 화면에서 익힘 단계 5장이 다 켜지지 않았습니다.");
+assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 아닙니다: ${burnt[4].key}`);
+
+console.log(`SKEWER_DAY_TO_NIGHT_CONTRACT_OK ${api.SKEWER_BATCH_SIZE} skewers x ${api.SKEWER_SLOT_COUNT} slots · 익힘 ${rawFrames.length}단계`);

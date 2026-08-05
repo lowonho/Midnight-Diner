@@ -107,6 +107,20 @@
         // 숯불 바닥이 칸 가로를 얼마나 채우는가 (1 에 가까울수록 꽉 찬 것)
         grillFill:+(grillRect.width / boardRect.width).toFixed(3),
         coals:document.querySelectorAll(".charcoal-bed > i").length,
+        /* 익힘 단계 (assets/minigame/E5/yakitori/ 5장). 켜진 장수가 곧 단계+1 이고,
+           마지막으로 켜진 장의 파일 이름이 지금 보이는 그림입니다. */
+        cook:(() => {
+          const piece = document.querySelector(".gs-piece.has-cook-art");
+          if (!piece) return { art:false, step:state.mini.data.cookStep ?? 0 };
+          const frames = [...piece.querySelectorAll(".gs-piece-asset")];
+          const on = frames.filter(f => f.classList.contains("on"));
+          const box = rect(piece), art = rect(on[on.length - 1]);
+          return { art:true, step:state.mini.data.cookStep, frames:frames.length, on:on.length,
+                   shows:on.length ? on[on.length - 1].src.split("/").pop() : "없음",
+                   // 다섯 장이 한 자리에 겹치는지 (상자와 그림 크기가 장마다 같아야 합니다)
+                   piece:`${box.width.toFixed(1)}x${box.height.toFixed(1)}`,
+                   drawn:art ? `${art.width.toFixed(1)}x${art.height.toFixed(1)}` : "없음" };
+        })(),
         skewers:[...document.querySelectorAll(".grill-skewer")].map(s => {
           const r = rect(s);
           const pieces = [...s.querySelectorAll(".gs-piece")];
