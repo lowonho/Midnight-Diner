@@ -49,6 +49,10 @@ const expectedCharacterIds=[
   "crowCourier","starBeast","seawaterGuest","schoolDoll",
   "facelessDaeun","anotherDaeun","letter","menuBack"
 ];
+const expectedGameplayJournalGuestIds=[
+  "rainyChild","lanternGuest","twinShadows","crowCourier",
+  "starBeast","seawaterGuest","schoolDoll","facelessDaeun"
+];
 same(Object.keys(STORY_CHARACTERS),expectedCharacterIds,"새 시나리오 화자 목록");
 assert(STORY_CHARACTERS.protagonist.name==="김다은","주인공 이름은 김다은이어야 합니다.");
 assert(STORY_CHARACTERS.rainyChild.name==="비에 젖은 아이"
@@ -60,7 +64,24 @@ assert(expectedCharacterIds.every(id=>STORY_CHARACTERS[id].alwaysKnown===true),
 assert(!("owner" in STORY_CHARACTERS)&&!("manager" in STORY_CHARACTERS)&&!("gicheol" in STORY_CHARACTERS),
   "기존 사장·팀장·박기철 캐릭터 정의가 남으면 안 됩니다.");
 
+// 진행용 영업일지는 세이브의 state.story에 종속됩니다. 아직 만나지 않은
+// 손님도 잠긴 페이지로 보여야 하므로 정의 자체가 항상 여덟 장이어야 합니다.
+assert(Array.isArray(GAMEPLAY_JOURNAL_PAGE_DEFS),
+  "진행용 영업일지 페이지 정의가 배열이어야 합니다.");
+same(GAMEPLAY_JOURNAL_PAGE_DEFS.map(page=>page.guestId||page.id),
+  expectedGameplayJournalGuestIds,
+  "진행용 영업일지는 특별 손님 여덟 장을 고정 순서로 정의해야 합니다.");
+assert(new Set(GAMEPLAY_JOURNAL_PAGE_DEFS.map(page=>page.guestId||page.id)).size===8,
+  "진행용 영업일지에 중복 손님 페이지가 있으면 안 됩니다.");
+
 state.story=createStoryState();
+same(Object.keys(state.story.guestState),expectedGameplayJournalGuestIds,
+  "새 진행 상태는 잠긴 페이지를 포함한 손님 여덟 명의 상태를 가져야 합니다.");
+assert(expectedGameplayJournalGuestIds.every(id=>{
+  const guest=state.story.guestState[id];
+  return guest&&!guest.clueFound&&!guest.shardOwned&&!guest.memoryUnlocked
+    &&guest.currentTier==null&&guest.currentScore==null&&guest.revealedStoryLevel===0;
+}),"새 진행용 손님 페이지는 단서·이야기·조각·최근 평가가 잠겨 있어야 합니다.");
 assert(storyDisplayName("protagonist")==="김다은"
   &&storyDisplayName("rainyChild")==="비에 젖은 아이"
   &&storyDisplayName("facelessDaeun")==="얼굴 없는 손님",
@@ -201,6 +222,12 @@ assert(STORY_SCENES["SCN-EPI01"].disableContinue
   &&STORY_SCENES["SCN-EPI01"].clearProgressSaves
   &&STORY_SCENES["SCN-EPI01"].keepTitleJournal,
   "진엔딩 뒤 진행 저장은 초기화하고 타이틀 영업일지는 유지해야 합니다.");
+const trueEndingRuntimeSource=String(finishTrueEnding);
+assert(trueEndingRuntimeSource.includes("unlockTrueEndingEpilogues")
+  &&trueEndingRuntimeSource.includes("clearAutoSaveForTrueEnding")
+  &&trueEndingRuntimeSource.indexOf("unlockTrueEndingEpilogues")
+    <trueEndingRuntimeSource.indexOf("clearAutoSaveForTrueEnding"),
+  "진엔딩은 영구 후일담을 먼저 해금한 뒤 진행 자동 저장을 삭제해야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
   assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");
@@ -239,15 +266,19 @@ assert(state.story.pendingNightGuests.length===1
   "기억 음식 미선택 시 영업을 막지 않고 B분기 방문으로 준비해야 합니다.");
 
 const rainy=getStoryGuestState("rainyChild");
-rainy.clueFound=true;
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
+assert(rainy.clueFound&&!rainy.shardOwned&&!rainy.memoryUnlocked,
+  "음식 미준비 B분기는 진행용 페이지에 단서만 기록해야 합니다.");
 assert(storyLinesForScene(STORY_SCENES["SCN-L02"])[0].text.includes("팬 위에서 둥글게"),
   "회귀 영업일지에는 실제로 얻은 단서를 동적으로 넣어야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-완벽"]);
-assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="great",
-  "최초 완벽은 기억과 달빛 조각을 영구 해금해야 합니다.");
+assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="great"
+  &&rainy.revealedStoryLevel===3,
+  "최초 완벽은 진행용 이야기와 달빛 조각을 열고 최근 평가를 완벽으로 기록해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
-assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="warm",
-  "재방문 평가는 낮아져도 기존 조각과 해금 기억은 유지해야 합니다.");
+assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="warm"
+  &&rainy.revealedStoryLevel===3,
+  "재방문 최근 평가는 낮아져도 기존 조각과 해금 이야기는 유지해야 합니다.");
 
 STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestState(id).shardOwned=true;});
 state.day=7;

@@ -60,6 +60,149 @@ const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
 // 기존 미니게임 점수를 이야기 평가 세 단계로 변환하는 기준입니다.
 const STORY_SCORE_THRESHOLDS = Object.freeze({ warm: 50, great: 80 });
 
+// 화면에는 두 기록 모두 「영업일지」로 표시하지만, 이 정의는 현재 진행
+// 세이브(state.story)에 종속되는 손님 8장의 고정 목차입니다. 타이틀의 영구
+// 컬렉션은 같은 손님 메타데이터를 읽되 별도 localStorage 데이터로 해금합니다.
+const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
+  {
+    guestId: "rainyChild", title: "1일차 — 비에 젖은 아이", dayLabel: "1일차",
+    appearanceCondition: "1일차 밤 · 일반 손님 1명 응대 후", displayName: "비에 젖은 아이",
+    portraitRow: 0, trace: "젖은 우비와 창가 자리에 남은 빗물",
+    dishId: "kimchi", dishName: "김치전",
+    clue: "비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식. 빗소리보다 먼저 지글거렸다.",
+    preferredStyle: "빗소리가 묻힐 만큼 고르게 익힌 따뜻한 김치전",
+    storyByLevel: {
+      1: "찾던 음식이 김치전이라는 사실을 확인했지만 기억은 아직 열리지 않았다.",
+      2: "누군가와 비를 기다리며 김치전을 나누었고, 비가 그치면 그 사람도 떠날까 두려워했다.",
+      3: "모두가 떠날까 두려워 달빛 한 조각을 빗속에 붙잡아 두었다."
+    },
+    completedStory: "모두가 떠날까 두려워 달빛 한 조각을 빗속에 붙잡아 두었다.",
+    shardId: "first_raindrop", shardName: "첫 빗방울",
+    epilogue: "비가 그친 뒤에도 함께 먹었던 기억을 품고 자기 아침으로 걸어갔다."
+  },
+  {
+    guestId: "lanternGuest", title: "2일차 — 등불을 머리에 인 손님", dayLabel: "2일차",
+    appearanceCondition: "2일차 밤 · 영업 시작 직후", displayName: "등불을 머리에 인 손님",
+    portraitRow: 1, trace: "머리 대신 달린 낡은 종이등과 테이블에 남은 온기",
+    dishId: "oden", dishName: "어묵탕",
+    clue: "나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식.",
+    preferredStyle: "두 손으로 그릇을 감싸면 손끝까지 따뜻해지는 어묵탕",
+    storyByLevel: {
+      1: "찾던 음식이 어묵탕이라는 사실을 확인했지만 기억의 온기에는 닿지 못했다.",
+      2: "밤길의 사람들을 집으로 돌려보내던 존재였지만 자신의 귀환지는 기억하지 못했다.",
+      3: "모두를 보내고 혼자 남는 것이 두려워 등불 안에 달빛 조각을 붙잡았다."
+    },
+    completedStory: "모두를 보내고 혼자 남는 것이 두려워 등불 안에 달빛 조각을 붙잡았다.",
+    shardId: "remaining_warmth", shardName: "남은 온기",
+    epilogue: "남의 길만 비추던 등불은 이제 자신의 돌아갈 곳을 찾아 걷기 시작했다."
+  },
+  {
+    guestId: "twinShadows", title: "3일차 — 둘이 붙은 그림자", dayLabel: "3일차",
+    appearanceCondition: "3일차 밤 · 일반 손님 2명 응대 후", displayName: "둘이 붙은 그림자",
+    portraitRow: 2, trace: "한 사람처럼 붙은 모습과 바닥에 따로 드리운 두 그림자",
+    dishId: "tofu", dishName: "두부김치",
+    clue: "부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴.",
+    preferredStyle: "흰 두부와 뜨거운 김치가 한 접시에서 선명하게 어우러진 두부김치",
+    storyByLevel: {
+      1: "둘이 찾던 음식이 같은 두부김치라는 사실을 확인했다.",
+      2: "한 사람의 서로 다른 선택으로, 하나는 떠나고 다른 하나는 남고 싶어 했다.",
+      3: "선택하지 않은 가능성도 자신의 일부임을 받아들였다."
+    },
+    completedStory: "떠남과 남음이라는 서로 다른 선택을 모두 자신의 일부로 받아들였다.",
+    shardId: "two_half_names", shardName: "반쪽 이름 두 개",
+    epilogue: "두 그림자는 어느 쪽도 지우지 않은 채 같은 방향으로 첫걸음을 내디뎠다."
+  },
+  {
+    guestId: "crowCourier", title: "4일차 — 까마귀 우편배달부", dayLabel: "4일차",
+    appearanceCondition: "4일차 밤 · 일반 손님 3명 응대 후", displayName: "까마귀 우편배달부",
+    portraitRow: 3, trace: "검은 외투와 가방 속에 남은 배달되지 않은 편지",
+    dishId: "skewer", dishName: "닭꼬치",
+    clue: "불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식.",
+    preferredStyle: "한 손에 들고 걸으면서 먹을 수 있도록 불향을 입힌 닭꼬치",
+    storyByLevel: {
+      1: "찾던 음식이 닭꼬치라는 사실을 확인했지만 편지를 놓지 못했다.",
+      2: "편지를 전하면 누군가 떠날까 두려워 마지막 배달을 계속 미뤘다.",
+      3: "배달을 미룬 일이 상대의 내일까지 멈추게 했음을 인정했다."
+    },
+    completedStory: "이별이 두려워 마지막 편지를 미뤘고, 그것이 상대의 내일까지 멈추게 했음을 인정했다.",
+    shardId: "undelivered_letter", shardName: "배달되지 못한 편지",
+    epilogue: "오래 품고 있던 편지를 마침내 받을 사람에게 전하러 떠났다."
+  },
+  {
+    guestId: "starBeast", title: "5일차 — 별을 먹는 작은 짐승", dayLabel: "5일차",
+    appearanceCondition: "5일차 밤 · 일반 손님 3명 응대 후", displayName: "별을 먹는 작은 짐승",
+    portraitRow: 4, trace: "작은 몸 안에서 움직이는 삼킨 별빛",
+    dishId: "fries", dishName: "감자튀김",
+    clue: "손으로 집어 먹는 길고 노란 음식. 먹고 나면 손끝에 소금이 반짝였다.",
+    preferredStyle: "금빛으로 바삭하고 손끝에 소금이 살짝 남는 감자튀김",
+    storyByLevel: {
+      1: "찾던 음식이 감자튀김이라는 사실을 확인했지만 몸속 별빛은 그대로였다.",
+      2: "밝아지면 모두가 자신을 볼까 두려워 새벽을 알리는 가장 밝은 별을 삼켰다.",
+      3: "두려웠던 것은 아침이 아니라 빛 속의 시선이었음을 인정하고 별을 돌려주었다."
+    },
+    completedStory: "빛 속의 시선이 두려워 가장 밝은 별을 삼켰지만, 자신을 숨기지 않고 별을 돌려주었다.",
+    shardId: "golden_salt", shardName: "금빛 소금",
+    epilogue: "별을 하늘에 돌려준 뒤에도 밝은 곳에서 사라지지 않는 법을 배워 갔다."
+  },
+  {
+    guestId: "seawaterGuest", title: "6일차 — 바닷물로 된 손님", dayLabel: "6일차",
+    appearanceCondition: "6일차 밤 · 일반 손님 7명 응대 후", displayName: "바닷물로 된 손님",
+    portraitRow: 5, trace: "사람 형태의 몸 안에서 움직이는 작은 파도와 물고기",
+    dishId: "shrimpTempura", dishName: "새우튀김",
+    clue: "바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진 휘어진 음식.",
+    preferredStyle: "겉은 바삭하고 속의 새우는 촉촉하게 남은 새우튀김",
+    storyByLevel: {
+      1: "찾던 음식이 새우튀김이라는 사실을 확인했지만 자신의 이름은 떠올리지 못했다.",
+      2: "동쪽 바다로 돌아가면 육지에서 불리던 이름을 잃을까 두려워했다.",
+      3: "멈춘 이름을 남기는 대신 변해 가는 자신으로 돌아가기로 했다."
+    },
+    completedStory: "이름이 달라질까 두려워했지만, 멈춰 있기보다 변해 가는 자신으로 동쪽 바다에 돌아가기로 했다.",
+    shardId: "eastern_scale", shardName: "동쪽의 비늘",
+    epilogue: "동쪽 바다로 돌아가 이름이 달라져도 달빛식탁의 기억을 간직했다."
+  },
+  {
+    guestId: "schoolDoll", title: "7일차 — 멈춰버린 교복 인형", dayLabel: "7일차",
+    appearanceCondition: "7일차 밤 · 영업 시작 직후", displayName: "멈춰버린 교복 인형",
+    portraitRow: 6, trace: "나무와 천으로 된 피부, 4시 44분에 멈춘 벽시계",
+    dishId: "tteokbokki", dishName: "떡볶이",
+    clue: "방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식.",
+    preferredStyle: "종이컵의 방과 후를 떠올릴 만큼 맵고 말랑한 떡볶이",
+    storyByLevel: {
+      1: "찾던 음식이 떡볶이라는 사실을 확인했지만 시계는 움직이지 않았다.",
+      2: "졸업 뒤 무엇을 해야 할지 몰라 가장 행복했던 방과 후에 자신을 멈췄다.",
+      3: "틀리지 않으려고 멈추면 맞을 기회도 없다는 사실을 받아들였다."
+    },
+    completedStory: "졸업 뒤의 선택이 두려워 방과 후에 멈췄지만, 틀릴 가능성까지 품고 다음으로 가기로 했다.",
+    shardId: "stopped_minute_hand", shardName: "멈춘 분침",
+    epilogue: "4시 44분에 멈췄던 분침과 함께 자신의 시간도 다시 움직이기 시작했다."
+  },
+  {
+    guestId: "facelessDaeun", title: "마지막 예약 — 얼굴 없는 김다은", dayLabel: "마지막 예약",
+    appearanceCondition: "7일차 폐점 후 · 앞선 일곱 달빛 조각을 모두 획득", displayName: "얼굴 없는 김다은",
+    portraitRow: 7, trace: "김다은과 같은 옷, 비어 있는 얼굴과 장부에 남은 자신의 필체",
+    dishId: "yakisoba", dishName: "볶음우동",
+    clue: "야근 중 팬 하나에 급히 볶아 동료들과 나누어 먹던 굵은 면 요리.",
+    preferredStyle: "팬에서 고르게 볶아 동료들과 나누던 때의 온기가 남은 볶음우동",
+    storyByLevel: {
+      1: "찾던 음식이 볶음우동이라는 사실을 확인했지만 얼굴은 생기지 않았다.",
+      2: "입사 첫해 동료들과 볶음우동을 나누며 먹는 사람의 표정을 직접 보았던 기억을 되찾았다.",
+      3: "자신이 김다은이 포기한 내일이며, 새벽으로 가는 길을 닫은 것은 다은의 소원이었음을 밝혔다."
+    },
+    completedStory: "김다은이 포기한 내일이었다. 다은은 자신이 닫은 새벽문을 다시 열고 내일을 마주하기로 했다.",
+    shardId: "daeuns_tomorrow", shardName: "김다은의 내일",
+    epilogue: "다은은 아직 정하지 못한 내일도 없애지 않고 현실의 아침에서 다시 생각하기로 했다."
+  }
+].map(page=>Object.freeze({...page,storyByLevel:Object.freeze({...page.storyByLevel})})));
+
+const TITLE_JOURNAL_GUEST_DEFS = GAMEPLAY_JOURNAL_PAGE_DEFS;
+const TITLE_JOURNAL_ENDING_DEFS = Object.freeze([
+  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 새벽문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자."},
+  {id:"alone_morning",number:2,title:"혼자 맞은 아침",summary:"다은만 현실의 아침으로 돌아가고 달빛을 돌려받지 못한 손님들은 식당에 남았다.",lastLine:"나는 나왔지만… 그 밤은 아직 끝나지 않았어."},
+  {id:"guests_dawn",number:3,title:"손님들의 새벽",summary:"달빛을 손님들에게 돌려보내 각자의 아침으로 보내고 다은은 식당에 남았다.",lastLine:"남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게."},
+  {id:"open_forever",number:4,title:"영원히 영업 중",summary:"다은은 달빛을 식탁에 붙잡아 두고 달빛식탁의 새 주인이 되었다.",lastLine:"오늘도 새벽은 오지 않습니다."},
+  {id:"morning_together",number:5,title:"함께 오는 아침",summary:"여덟 달빛 조각을 모두의 길로 이어 다은과 손님들이 함께 현실의 아침을 맞았다.",lastLine:"오늘의 메뉴는 내일 정합니다."}
+].map(ending=>Object.freeze(ending)));
+
 const storyNarration = text => ({ kind: "direction", text });
 const storyLine = (speaker, text, extra = {}) => ({ speaker, text, ...extra });
 const storyCaption = (speakerLabel, text, extra = {}) => ({ speakerLabel, text, ...extra });

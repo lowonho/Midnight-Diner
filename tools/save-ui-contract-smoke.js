@@ -35,9 +35,14 @@ function assert(condition,message){
   "journalButton",
   "journalOverlay",
   "journalClose",
-  "journalGuestList",
-  "journalFragmentList",
-  "journalEndingList",
+  "journalPage",
+  "journalPageKind",
+  "journalPageTitle",
+  "journalPageNote",
+  "journalPageProgress",
+  "journalPrevious",
+  "journalNext",
+  "journalPageTabs",
   "storySkipButton"
 ].forEach(id=>{
   assert(
@@ -45,6 +50,8 @@ function assert(condition,message){
     `index.html에 #${id} 요소가 있어야 합니다.`
   );
 });
+assert(!/\bid=(["'])(?:journalGuestList|journalFragmentList|journalEndingList)\1/.test(indexSource),
+  "이전 가변 목록 UI가 남아 타이틀 고정 13페이지와 중복되면 안 됩니다.");
 
 const scriptOrder=[...indexSource.matchAll(/<script\b[^>]*\bsrc=(["'])([^"']+)\1[^>]*>/gi)]
   .map(match=>match[2]);
@@ -64,6 +71,8 @@ assert(indexSource.includes("<strong>달빛식탁</strong>"),
 assert(indexSource.includes('aria-label="달빛식탁 게임 화면"')
   &&indexSource.includes('aria-label="달빛식탁 게임"'),
   "게임 화면 접근성 이름도 달빛식탁으로 변경되어야 합니다.");
+assert(/id="codexButton"[^>]*aria-label="영업일지 열기"/.test(indexSource),
+  "게임 내 도감 버튼은 진행용 영업일지를 여는 버튼으로 안내해야 합니다.");
 assert(!indexSource.includes("심야식당"),
   "실제 게임 화면에 이전 게임명 심야식당이 남아 있으면 안 됩니다.");
 assert(packageData.description.startsWith("달빛식탁 Phaser 프로토타입"),
@@ -73,13 +82,48 @@ assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
 assert(/\.story-skip\[hidden\]\s*\{\s*display\s*:\s*none/.test(storyCssSource),
   "숨긴 SKIP 버튼을 대화 CSS가 다시 표시하면 안 됩니다.");
-assert(titleSource.includes("function openJournal()")
-  &&titleSource.includes("function closeJournal()")
+assert(titleSource.includes("function openJournal(")
+  &&titleSource.includes("function closeJournal(")
   &&titleSource.includes("function refreshJournalUI("),
   "타이틀에서 영업일지를 열고 닫고 다시 그릴 수 있어야 합니다.");
-assert(settingsCssSource.includes(".journal-sections")
-  &&settingsCssSource.includes(".journal-entry"),
-  "손님·조각·엔딩을 보여 줄 영업일지 레이아웃이 있어야 합니다.");
+assert(titleSource.includes("collectionPages")
+  &&titleSource.includes("journalPageProgress")
+  &&titleSource.includes("journalPageTabs"),
+  "타이틀 영업일지는 고정 13페이지 API로 페이지 수와 탭을 그려야 합니다.");
+assert(titleSource.includes('function openTitleJournal(){return openJournal("collection");}')
+  &&titleSource.includes('function openGameplayJournal(){return openJournal("gameplay");}'),
+  "타이틀 영구 컬렉션과 게임 내 진행 기록은 서로 다른 모드로 열려야 합니다.");
+const openJournalSource=titleSource.match(/function openJournal\([\s\S]+?\n}\n\nfunction openTitleJournal/)?.[0]||"";
+assert(openJournalSource.includes('journalMode==="gameplay"')
+  &&openJournalSource.includes("journalWasPaused=!!state.paused")
+  &&openJournalSource.includes("state.paused=true"),
+  "게임 내 영업일지를 열 때만 기존 일시정지 상태를 저장하고 게임을 멈춰야 합니다.");
+const closeJournalSource=titleSource.match(/function closeJournal\([\s\S]+?\n}\n\nfunction initializeJournalUI/)?.[0]||"";
+assert(closeJournalSource.includes('journalMode==="gameplay"')
+  &&closeJournalSource.includes("state.paused=journalWasPaused"),
+  "게임 내 영업일지를 닫으면 기존 일시정지 상태를 복원해야 합니다.");
+assert(titleSource.includes('if(event.target===elements.overlay)closeJournal()')
+  &&titleSource.includes('if(event.key!=="Escape"')
+  &&titleSource.includes("closeJournal();"),
+  "배경 클릭과 ESC로 닫아도 같은 영업일지 상태 복원 경로를 사용해야 합니다.");
+assert(titleSource.includes('typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[]'),
+  "게임 내 영업일지는 현재 세이브에 종속된 8장 생성 함수를 사용해야 합니다.");
+[
+  "등장","손님","외형·흔적","음식","최근 평가","달빛 조각","획득 상태"
+].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
+  `진행용 잠금 페이지에 '${label}' 예시 필드가 있어야 합니다.`));
+[
+  "이름","기억의 음식","좋아한 스타일","완성된 이야기","달빛 조각","진엔딩 이후 후일담"
+].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
+  `타이틀 손님 페이지에 '${label}' 필드가 있어야 합니다.`));
+[
+  "엔딩 번호","엔딩 제목","요약","마지막 대사","최초 달성"
+].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
+  `타이틀 엔딩 페이지에 '${label}' 필드가 있어야 합니다.`));
+assert(settingsCssSource.includes(".journal-page-tab")
+  &&settingsCssSource.includes(".is-locked")
+  &&settingsCssSource.includes(".is-new"),
+  "타이틀 영업일지는 고정 페이지의 잠금과 최초 해금 상태를 구분해야 합니다.");
 assert(saveSource.includes('const SAVE_VERSION=4;')
   &&saveSource.includes("function migrateSaveStorage()"),
   "새 시나리오는 저장 버전을 올리고 일회성 저장 초기화를 제공해야 합니다.");

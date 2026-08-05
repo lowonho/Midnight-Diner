@@ -654,8 +654,6 @@ function draw(){
 // drawFoodProp (음식 그림) → food-props.js
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
-// 도감은 아직 기능이 없어 안내 메시지만 띄웁니다.
-dom.codexButton.addEventListener("click",()=>showToast(UI_TEXT.toast.codexSoon));
 dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);

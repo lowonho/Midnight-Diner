@@ -176,7 +176,9 @@ legacyBases.forEach(base=>{
 });
 localStorage.setItem(SAVE_SCHEMA_KEY,String(SAVE_VERSION-1));
 localStorage.setItem(JOURNAL_KEY,JSON.stringify({
-  version:JOURNAL_VERSION,updatedAt:1,guests:{rain_child:{id:"rain_child",label:"비에 젖은 아이"}},fragments:{},endings:{}
+  version:JOURNAL_VERSION,updatedAt:1,
+  guests:{rainyChild:{id:"rainyChild",label:"비에 젖은 아이",unlocked:true}},
+  fragments:{},endings:{}
 }));
 initializeSaveSystem();
 legacyBases.forEach(base=>{
@@ -186,7 +188,8 @@ legacyBases.forEach(base=>{
 });
 assert(localStorage.getItem(SAVE_SCHEMA_KEY)===String(SAVE_VERSION),
   "저장 초기화 완료 버전을 기록해야 합니다.");
-assert(readJournalData().guests.rain_child?.label==="비에 젖은 아이",
+assert(readJournalData().guests.rainyChild?.label==="비에 젖은 아이"
+  &&readJournalData().guests.rainyChild?.unlocked,
   "저장 슬롯 초기화가 영업일지 메타 기록을 삭제하면 안 됩니다.");
 localStorage.setItem(saveKeyForSlot("auto"),"new-version-data");
 assert(migrateSaveStorage()===false&&rawSlot("auto")==="new-version-data",
@@ -233,21 +236,113 @@ same(readAllSaveSlots().map(slot=>slot.id),["auto","manual1","manual2","manual3"
   "전체 슬롯 조회도 표시 순서를 보존해야 합니다.");
 assert(hasAnySaveData(),"한 슬롯이라도 있으면 이어하기 저장이 존재해야 합니다.");
 
-assert(recordJournalGuest("crow_delivery",{label:"까마귀 배달부",day:4})?.label==="까마귀 배달부",
+assert(recordJournalGuest("crowCourier",{day:4,tier:"great"})?.label==="까마귀 우편배달부",
   "스토리에서 특별 손님을 영업일지에 기록할 수 있어야 합니다.");
 assert(recordJournalFragment("fragment-04",{label:"네 번째 달빛 조각",day:4})?.day===4,
   "스토리에서 받은 달빛 조각을 영업일지에 기록할 수 있어야 합니다.");
-assert(recordJournalEnding("true-ending",{label:"진엔딩"})?.label==="진엔딩",
+assert(recordJournalEnding("morning_together")?.label==="함께 오는 아침",
   "스토리에서 확인한 엔딩을 영업일지에 기록할 수 있어야 합니다.");
 const journalSnapshot=readJournalData();
-assert(journalSnapshot.guests.crow_delivery&&journalSnapshot.fragments["fragment-04"]
-  &&journalSnapshot.endings["true-ending"],
+assert(journalSnapshot.guests.crowCourier?.unlocked&&journalSnapshot.fragments["fragment-04"]
+  &&journalSnapshot.endings.morning_together?.unlocked,
   "손님·조각·엔딩 기록은 같은 영업일지에 누적되어야 합니다.");
 assert(window.MoonlightTableSave.readJournal===readJournalData
   &&window.MoonlightTableSave.recordGuest===recordJournalGuest
   &&window.MoonlightTableSave.recordFragment===recordJournalFragment
   &&window.MoonlightTableSave.recordEnding===recordJournalEnding,
   "story.js가 사용할 영업일지 helper API를 공개해야 합니다.");
+
+// 타이틀 영업일지는 진행 세이브와 별개인 영구 컬렉션입니다. raw 저장은
+// 해금 항목만 가져도 되지만 collectionPages()는 잠긴 페이지까지 합쳐
+// 언제나 손님 8장 + 엔딩 5장을 같은 순서로 반환해야 합니다.
+const expectedTitleGuestIds=[
+  "rainyChild","lanternGuest","twinShadows","crowCourier",
+  "starBeast","seawaterGuest","schoolDoll","facelessDaeun"
+];
+const expectedTitleEndingIds=[
+  "loop_return","alone_morning","guests_dawn","open_forever","morning_together"
+];
+same(TITLE_JOURNAL_GUEST_DEFS.map(page=>page.guestId||page.id),expectedTitleGuestIds,
+  "타이틀 손님 페이지는 여덟 장 고정이어야 합니다.");
+same(TITLE_JOURNAL_ENDING_DEFS.map(page=>page.id),expectedTitleEndingIds,
+  "타이틀 엔딩 페이지는 회귀 기록을 포함해 다섯 장 고정이어야 합니다.");
+const fixedJournalData=readJournalData();
+same(Object.keys(fixedJournalData.guests),expectedTitleGuestIds,
+  "영구 localStorage 손님 컬렉션은 잠금 페이지까지 여덟 키를 유지해야 합니다.");
+same(Object.keys(fixedJournalData.endings),expectedTitleEndingIds,
+  "영구 localStorage 엔딩 컬렉션은 잠금 페이지까지 다섯 키를 유지해야 합니다.");
+assert(typeof window.MoonlightTableSave.collectionPages==="function"
+  &&typeof window.MoonlightTableSave.pendingUnlocks==="function"
+  &&typeof window.MoonlightTableSave.acknowledgeUnlock==="function"
+  &&typeof window.MoonlightTableSave.unlockTrueEndingEpilogues==="function",
+  "타이틀 고정 페이지와 최초 해금 알림 API를 공개해야 합니다.");
+const fixedPages=window.MoonlightTableSave.collectionPages();
+const fixedGuests=Array.isArray(fixedPages)
+  ?fixedPages.filter(page=>page.kind==="guest")
+  :fixedPages.guests;
+const fixedEndings=Array.isArray(fixedPages)
+  ?fixedPages.filter(page=>page.kind==="ending")
+  :fixedPages.endings;
+assert(Array.isArray(fixedGuests)&&Array.isArray(fixedEndings),
+  "collectionPages()는 손님과 엔딩 페이지를 구분해 반환해야 합니다.");
+same(fixedGuests.map(page=>page.id),expectedTitleGuestIds,
+  "잠금 항목을 포함한 타이틀 손님 페이지 순서");
+same(fixedEndings.map(page=>page.id),expectedTitleEndingIds,
+  "잠금 항목을 포함한 타이틀 엔딩 페이지 순서");
+assert(fixedGuests.length+fixedEndings.length===13,
+  "타이틀 영업일지는 잠긴 페이지까지 항상 13장이어야 합니다.");
+
+const warmGuest=recordJournalGuest("lanternGuest",{
+  label:"등불 손님",tier:"warm",note:"기억의 일부"
+});
+assert(warmGuest&&warmGuest.unlocked===false,
+  "타이틀 손님 페이지는 맛있다 이하 평가로 해금되면 안 됩니다.");
+const perfectGuest=recordJournalGuest("lanternGuest",{
+  label:"등불 손님",tier:"great",note:"기억 회복"
+});
+assert(perfectGuest?.unlocked===true&&perfectGuest?.newlyUnlocked===true,
+  "타이틀 손님 페이지는 최초 완벽 평가에서만 새로 해금되어야 합니다.");
+const repeatedPerfectGuest=recordJournalGuest("lanternGuest",{
+  label:"등불 손님",tier:"great",note:"기억 회복"
+});
+assert(repeatedPerfectGuest?.unlocked===true&&!repeatedPerfectGuest?.newlyUnlocked,
+  "이미 해금한 손님 페이지를 다시 신규 해금으로 알리면 안 됩니다.");
+
+const firstLoopEnding=recordJournalEnding("SCN-J01",{label:"되돌아간 첫째 날"});
+const repeatedLoopEnding=recordJournalEnding("SCN-J01",{label:"되돌아간 첫째 날"});
+assert(firstLoopEnding?.id==="loop_return"&&firstLoopEnding.unlocked
+  &&firstLoopEnding.newlyUnlocked===true,
+  "첫 자동 회귀는 loop_return 엔딩 페이지를 새로 해금해야 합니다.");
+assert(repeatedLoopEnding?.id==="loop_return"&&repeatedLoopEnding.unlocked
+  &&!repeatedLoopEnding.newlyUnlocked,
+  "같은 회귀 엔딩은 중복 페이지나 두 번째 신규 알림을 만들면 안 됩니다.");
+const pendingTitleUnlocks=window.MoonlightTableSave.pendingUnlocks();
+assert(pendingTitleUnlocks.some(item=>item.kind==="guest"&&item.id==="lanternGuest")
+  &&pendingTitleUnlocks.some(item=>item.kind==="ending"&&item.id==="loop_return"),
+  "최초 손님·엔딩 해금은 타이틀 알림 대기열에 한 번씩 남아야 합니다.");
+assert(window.MoonlightTableSave.acknowledgeUnlock("guest","lanternGuest")
+  &&window.MoonlightTableSave.acknowledgeUnlock("ending","loop_return"),
+  "타이틀에서 확인한 최초 해금 알림을 소비할 수 있어야 합니다.");
+assert(!window.MoonlightTableSave.pendingUnlocks().some(item=>
+  (item.kind==="guest"&&item.id==="lanternGuest")
+  ||(item.kind==="ending"&&item.id==="loop_return")
+),"확인한 최초 해금 알림을 다시 표시하면 안 됩니다.");
+
+const guestsBeforeTrueEnding=window.MoonlightTableSave.collectionPages()
+  .filter(page=>page.kind==="guest"&&page.unlocked);
+assert(guestsBeforeTrueEnding.length>0
+  &&guestsBeforeTrueEnding.every(page=>page.epilogueUnlocked===false),
+  "진엔딩 전에는 해금한 손님도 후일담 본문이 잠겨 있어야 합니다.");
+assert(window.MoonlightTableSave.unlockTrueEndingEpilogues(),
+  "진엔딩 완료 시 영구 손님 후일담 해금 기록을 저장해야 합니다.");
+const guestsAfterTrueEnding=window.MoonlightTableSave.collectionPages()
+  .filter(page=>page.kind==="guest");
+assert(guestsAfterTrueEnding.filter(page=>page.unlocked)
+  .every(page=>page.epilogueUnlocked===true),
+  "진엔딩 뒤에는 이미 해금한 모든 손님의 후일담을 공개해야 합니다.");
+assert(guestsAfterTrueEnding.filter(page=>!page.unlocked)
+  .every(page=>page.epilogueUnlocked===false),
+  "진엔딩을 보아도 만나지 않은 손님 페이지 자체가 열리면 안 됩니다.");
 
 const manualBeforeAuto=MANUAL_SAVE_SLOTS.map(rawSlot);
 const autoBefore=rawSlot("auto");
@@ -431,6 +526,16 @@ assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
   "suspended orderCook 복원은 선택 주문과 특별 조리 여부를 되살려야 합니다.");
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
+
+const permanentJournalBeforeDelete=localStorage.getItem(JOURNAL_KEY);
+assert(permanentJournalBeforeDelete,"영구 타이틀 영업일지가 저장되어 있어야 합니다.");
+assert(clearAllSaveData(),"새 게임·전체 진행 초기화에 해당하는 저장 슬롯 삭제가 성공해야 합니다.");
+assert(localStorage.getItem(JOURNAL_KEY)===permanentJournalBeforeDelete,
+  "새 게임이나 진행 세이브 전체 삭제가 타이틀 영구 영업일지를 지우면 안 됩니다.");
+assert(window.MoonlightTableSave.collectionPages()
+  .filter(page=>page.kind==="guest"&&page.unlocked)
+  .every(page=>page.epilogueUnlocked===true),
+  "새 게임이나 진행 세이브 전체 삭제 뒤에도 진엔딩 후일담 해금을 유지해야 합니다.");
 
 console.log("SAVE_SLOTS_CONTRACT_OK 83");
 `;

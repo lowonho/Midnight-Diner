@@ -3,6 +3,10 @@
 // 타이틀 화면과 새 게임/이어하기 화면 전환을 전담합니다.
 let titleGameReady=false;
 let journalReturnFocus=null;
+let journalMode="collection";
+let journalPageIndex=0;
+let journalPages=[];
+let journalWasPaused=false;
 
 function initializeTitleScreen(){
   dom.startButton.disabled=true;
@@ -20,72 +24,242 @@ function journalElements(){
   return {
     overlay:document.getElementById("journalOverlay"),
     openButton:document.getElementById("journalButton"),
+    gameplayButton:document.getElementById("codexButton"),
     closeButton:document.getElementById("journalClose"),
-    guestList:document.getElementById("journalGuestList"),
-    fragmentList:document.getElementById("journalFragmentList"),
-    endingList:document.getElementById("journalEndingList")
+    modeLabel:document.getElementById("journalModeLabel"),
+    title:document.getElementById("journalTitle"),
+    description:document.getElementById("journalDescription"),
+    page:document.getElementById("journalPage"),
+    pageKind:document.getElementById("journalPageKind"),
+    pageProgress:document.getElementById("journalPageProgress"),
+    pagePortrait:document.getElementById("journalPagePortrait"),
+    pageTitle:document.getElementById("journalPageTitle"),
+    pageNote:document.getElementById("journalPageNote"),
+    pageMeta:document.getElementById("journalPageMeta"),
+    previous:document.getElementById("journalPrevious"),
+    next:document.getElementById("journalNext"),
+    tabs:document.getElementById("journalPageTabs")
   };
 }
 
-function journalEntryLabel(entry){
-  return entry.label||entry.name||entry.title||entry.id;
+function normalizedJournalPage(page,index,mode){
+  const id=String(page?.id||page?.guestId||`page-${index+1}`);
+  const label=page?.label||page?.guestName||page?.displayName||page?.title||id;
+  const unlocked=page?.unlocked===true||page?.locked===false
+    ||Number(page?.level)>0||Number(page?.storyLevel)>0;
+  return {...page,id,label,unlocked,mode};
 }
 
-function journalEntryNote(entry){
-  if(entry.note)return String(entry.note);
-  if(Number.isFinite(Number(entry.day)))return `DAY ${Number(entry.day)}`;
-  return "기록됨";
+function collectionJournalPages(){
+  const pages=window.MoonlightTableSave?.collectionPages?.()||[];
+  return pages.map((page,index)=>normalizedJournalPage(page,index,"collection"));
 }
 
-function renderJournalCollection(container,collection,emptyMessage){
-  if(!container)return;
-  const entries=Object.values(collection||{}).sort((a,b)=>
-    Number(a.firstRecordedAt||0)-Number(b.firstRecordedAt||0)
-  );
-  if(!entries.length){
-    const empty=document.createElement("p");
-    empty.className="journal-empty";
-    empty.textContent=emptyMessage;
-    container.replaceChildren(empty);
-    return;
+function gameplayJournalPages(){
+  const pages=typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[];
+  return (Array.isArray(pages)?pages:[]).map((page,index)=>normalizedJournalPage(page,index,"gameplay"));
+}
+
+function journalPageKindLabel(page){
+  if(journalMode==="gameplay")return page.dayLabel?`현재 진행 · ${page.dayLabel}`:"현재 진행";
+  return page.kind==="ending"?"엔딩":"특별 손님";
+}
+
+function journalField(label,value){
+  const text=value==null||value===""?"???":String(value);
+  return `${label} · ${text}`;
+}
+
+function journalFirstUnlockLabel(page){
+  if(!page.unlocked)return "미달성";
+  const timestamp=Number(page.unlockedAt);
+  if(!Number.isFinite(timestamp)||timestamp<=0)return "달성 기록 있음";
+  return new Intl.DateTimeFormat("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit"})
+    .format(new Date(timestamp));
+}
+
+function journalPageNote(page){
+  if(!page.unlocked){
+    if(journalMode==="gameplay")return [
+      journalField("등장","기록 없음"),
+      journalField("손님","???"),
+      journalField("외형·흔적","???"),
+      journalField("음식","???"),
+      journalField("최근 평가","평가 기록 없음"),
+      journalField("달빛 조각","???"),
+      journalField("획득 상태","미획득")
+    ].join("\n");
+    if(journalMode==="collection"&&page.kind==="ending")return [
+      journalField("엔딩 번호",page.number),
+      journalField("엔딩 제목","???"),
+      journalField("요약","???"),
+      journalField("마지막 대사","???"),
+      journalField("최초 달성","미달성")
+    ].join("\n");
+    return [
+      journalField("손님 이름","???"),
+      journalField("기억하는 음식","???"),
+      journalField("좋아한 스타일","???"),
+      journalField("완성된 손님 이야기","???"),
+      journalField("남긴 달빛 조각","???"),
+      journalField("진엔딩 이후 후일담","???")
+    ].join("\n");
   }
-  container.replaceChildren(...entries.map(entry=>{
-    const item=document.createElement("article");
-    item.className="journal-entry";
-    const label=document.createElement("strong");
-    label.textContent=journalEntryLabel(entry);
-    const note=document.createElement("small");
-    note.textContent=journalEntryNote(entry);
-    item.append(label,note);
-    return item;
+  if(journalMode==="collection"&&page.kind==="ending"){
+    return [
+      journalField("엔딩 번호",page.number),
+      journalField("요약",page.summary),
+      journalField("마지막 대사",page.lastLine?`“${page.lastLine}”`:"???"),
+      journalField("최초 달성",journalFirstUnlockLabel(page))
+    ].join("\n");
+  }
+  if(journalMode==="collection"){
+    return [
+      journalField("이름",page.displayName||page.label),
+      journalField("기억의 음식",page.dishName),
+      journalField("좋아한 스타일",page.preferredStyle),
+      journalField("완성된 이야기",page.completedStory),
+      journalField("달빛 조각",page.shardName),
+      journalField("진엔딩 이후 후일담",page.epilogueUnlocked?page.epilogue:"???")
+    ].join("\n");
+  }
+  return [
+    journalField("등장",page.appearance),
+    journalField("이름",page.guestName),
+    journalField("외형·흔적",page.trace),
+    journalField("단서",page.clue),
+    journalField("확인 음식",page.confirmedDish),
+    journalField("최근 평가",page.latestEvaluation),
+    journalField("이야기",page.revealedStory),
+    journalField("조각명",page.shardName),
+    journalField("획득 상태",page.shardStatus)
+  ].join("\n");
+}
+
+function journalPageMeta(page){
+  if(!page.unlocked)return "잠긴 페이지";
+  const items=[];
+  if(journalMode==="collection"&&page.dayLabel)items.push(page.dayLabel);
+  if(journalMode==="collection"&&page.dishName)items.push(`찾는 음식 · ${page.dishName}`);
+  else if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
+  if(page.latestEvaluation&&page.latestEvaluation!=="평가 기록 없음")items.push(page.latestEvaluation);
+  if(page.shardName&&(journalMode==="collection"||page.shardOwned))items.push(`달빛 조각 · ${page.shardName}`);
+  else if(page.shardStatus)items.push(`달빛 조각 · ${page.shardStatus}`);
+  if(page.day&&!page.dayLabel)items.push(`DAY ${page.day}`);
+  return items.join("  ·  ")||"기록 완료";
+}
+
+function renderJournalTabs(elements){
+  if(!elements.tabs)return;
+  elements.tabs.style.setProperty("--journal-page-count",String(Math.max(1,journalPages.length)));
+  elements.tabs.replaceChildren(...journalPages.map((page,index)=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="journal-page-tab";
+    button.classList.toggle("is-active",index===journalPageIndex);
+    button.classList.toggle("is-locked",!page.unlocked);
+    button.classList.toggle("is-new",!!page.notificationPending);
+    button.textContent=String(index+1);
+    button.setAttribute("role","tab");
+    button.setAttribute("aria-selected",String(index===journalPageIndex));
+    button.setAttribute("aria-label",`${index+1}쪽 · ${page.unlocked?page.label:"잠긴 기록"}`);
+    button.addEventListener("click",()=>selectJournalPage(index,true));
+    return button;
   }));
 }
 
-function refreshJournalUI(data=readJournalData()){
+function renderJournalPage({acknowledge=false}={}){
   const elements=journalElements();
-  renderJournalCollection(elements.guestList,data.guests,"아직 만난 특별 손님이 없습니다.");
-  renderJournalCollection(elements.fragmentList,data.fragments,"아직 받은 달빛 조각이 없습니다.");
-  renderJournalCollection(elements.endingList,data.endings,"아직 확인한 엔딩이 없습니다.");
+  const page=journalPages[journalPageIndex]||null;
+  if(!page){
+    elements.pageKind.textContent="영업일지";
+    elements.pageProgress.textContent="0 / 0";
+    elements.pageTitle.textContent="표시할 기록이 없습니다.";
+    elements.pageNote.textContent="이야기가 시작되면 이곳에 기록이 생깁니다.";
+    elements.pageMeta.textContent="";
+    elements.pagePortrait.textContent="?";
+    elements.previous.disabled=true;elements.next.disabled=true;
+    renderJournalTabs(elements);
+    return;
+  }
+  elements.page.classList.toggle("is-locked",!page.unlocked);
+  elements.page.classList.toggle("is-ending",page.kind==="ending");
+  elements.pageKind.textContent=journalPageKindLabel(page);
+  elements.pageProgress.textContent=`${journalPageIndex+1} / ${journalPages.length}`;
+  const portraitRow=Number(page.portraitRow);
+  const isGuestPortrait=page.kind!=="ending";
+  const hasPortrait=isGuestPortrait&&Number.isFinite(portraitRow)&&portraitRow>=0&&portraitRow<=5;
+  elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
+  elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!hasPortrait);
+  if(hasPortrait){
+    const row=Math.floor(portraitRow);
+    elements.pagePortrait.style.setProperty("--journal-portrait-y",row===5?"100%":`${row*20}%`);
+  }
+  elements.pagePortrait.textContent=!page.unlocked?"?":page.kind==="ending"?"☾":"";
+  elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
+  elements.pageNote.textContent=journalPageNote(page);
+  elements.pageMeta.textContent=journalPageMeta(page);
+  elements.previous.disabled=journalPageIndex<=0;
+  elements.next.disabled=journalPageIndex>=journalPages.length-1;
+  renderJournalTabs(elements);
+  if(acknowledge&&journalMode==="collection"&&page.unlocked&&page.notificationPending){
+    page.notificationPending=false;
+    window.MoonlightTableSave?.acknowledgeUnlock?.(page.kind,page.id);
+  }
 }
 
-function openJournal(){
+function selectJournalPage(index,acknowledge=false){
+  if(!journalPages.length)return false;
+  journalPageIndex=Math.max(0,Math.min(journalPages.length-1,Number(index)||0));
+  renderJournalPage({acknowledge});
+  return true;
+}
+
+function refreshJournalUI(){
+  const elements=journalElements();
+  journalPages=journalMode==="gameplay"?gameplayJournalPages():collectionJournalPages();
+  journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
+  elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
+  elements.description.textContent=journalMode==="gameplay"
+    ?"현재 회차에서 알아낸 특별 손님의 단서와 기억입니다."
+    :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
+  renderJournalPage();
+}
+
+function openJournal(mode="collection"){
+  journalMode=mode==="gameplay"?"gameplay":"collection";
+  journalPageIndex=0;
   const elements=journalElements();
   if(!elements.overlay)return false;
   journalReturnFocus=typeof document.activeElement?.focus==="function"
     ?document.activeElement
     :elements.openButton;
+  if(journalMode==="gameplay"&&typeof state!=="undefined"){
+    journalWasPaused=!!state.paused;
+    state.paused=true;
+    audio?.pauseLoops?.();
+  }
   refreshJournalUI();
   elements.overlay.classList.add("open");
   elements.overlay.setAttribute("aria-hidden","false");
   elements.closeButton?.focus();
+  renderJournalPage({acknowledge:true});
   return true;
 }
+
+function openTitleJournal(){return openJournal("collection");}
+function openGameplayJournal(){return openJournal("gameplay");}
 
 function closeJournal(){
   const elements=journalElements();
   if(!elements.overlay?.classList.contains("open"))return false;
   elements.overlay.classList.remove("open");
   elements.overlay.setAttribute("aria-hidden","true");
+  if(journalMode==="gameplay"&&typeof state!=="undefined"){
+    state.paused=journalWasPaused||state.phase===GAME_PHASES.RESULT
+      ||(typeof storyDialogueIsActive==="function"&&storyDialogueIsActive());
+    if(!state.paused)audio?.resumeLoops?.();
+  }
   journalReturnFocus?.focus?.();
   journalReturnFocus=null;
   return true;
@@ -95,8 +269,11 @@ function initializeJournalUI(){
   const elements=journalElements();
   if(!elements.overlay||elements.overlay.dataset.initialized==="true")return;
   elements.overlay.dataset.initialized="true";
-  elements.openButton?.addEventListener("click",openJournal);
+  elements.openButton?.addEventListener("click",openTitleJournal);
+  elements.gameplayButton?.addEventListener("click",openGameplayJournal);
   elements.closeButton?.addEventListener("click",closeJournal);
+  elements.previous?.addEventListener("click",()=>selectJournalPage(journalPageIndex-1,true));
+  elements.next?.addEventListener("click",()=>selectJournalPage(journalPageIndex+1,true));
   elements.overlay.addEventListener("click",event=>{
     if(event.target===elements.overlay)closeJournal();
   });
@@ -105,11 +282,14 @@ function initializeJournalUI(){
     event.preventDefault();
     event.stopImmediatePropagation();
     closeJournal();
-  });
+  },true);
   refreshJournalUI();
 }
 
 window.refreshJournalUI=refreshJournalUI;
+window.openJournal=openJournal;
+window.openTitleJournal=openTitleJournal;
+window.openGameplayJournal=openGameplayJournal;
 
 function savePhaseLabel(phase){
   return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 마감";

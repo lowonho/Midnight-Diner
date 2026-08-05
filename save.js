@@ -6,7 +6,8 @@ const SAVE_VERSION=4;
 const SAVE_SCHEMA_KEY="moonlightTable.save.schema";
 const LEGACY_SAVE_KEYS=Object.freeze(["midnightDiner.save.v1"]);
 const JOURNAL_KEY="moonlightTable.journal.v1";
-const JOURNAL_VERSION=1;
+const JOURNAL_VERSION=2;
+const JOURNAL_ENDING_ALIASES=Object.freeze({"SCN-J01":"loop_return"});
 const AUTO_SAVE_SLOT="auto";
 const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
 const SAVE_SLOT_DEFS=Object.freeze([
@@ -151,13 +152,49 @@ function clearAutoSaveForTrueEnding(){
   return clearSaveData(AUTO_SAVE_SLOT);
 }
 
+function titleJournalGuestDefs(){
+  return typeof TITLE_JOURNAL_GUEST_DEFS!=="undefined"&&Array.isArray(TITLE_JOURNAL_GUEST_DEFS)
+    ?TITLE_JOURNAL_GUEST_DEFS
+    :[];
+}
+
+function titleJournalEndingDefs(){
+  return typeof TITLE_JOURNAL_ENDING_DEFS!=="undefined"&&Array.isArray(TITLE_JOURNAL_ENDING_DEFS)
+    ?TITLE_JOURNAL_ENDING_DEFS
+    :[];
+}
+
+function journalDefinitionId(definition){
+  return String(definition?.id||definition?.guestId||"").trim();
+}
+
+function journalDefinitionLabel(definition,id=journalDefinitionId(definition)){
+  return definition?.displayName||definition?.label||definition?.name||definition?.title||id;
+}
+
+function fixedJournalCollection(definitions,stored={}){
+  return Object.fromEntries(definitions.map(definition=>{
+    const id=journalDefinitionId(definition);
+    const saved=stored[id]&&typeof stored[id]==="object"?stored[id]:{};
+    return [id,{
+      ...definition,
+      ...saved,
+      id,
+      label:journalDefinitionLabel(definition,id),
+      unlocked:!!saved.unlocked,
+      notificationPending:!!saved.notificationPending
+    }];
+  }).filter(([id])=>!!id));
+}
+
 function createJournalData(){
   return {
     version:JOURNAL_VERSION,
     updatedAt:0,
-    guests:{},
+    trueEndingEpilogueUnlocked:false,
+    guests:fixedJournalCollection(titleJournalGuestDefs()),
     fragments:{},
-    endings:{}
+    endings:fixedJournalCollection(titleJournalEndingDefs())
   };
 }
 
@@ -172,9 +209,10 @@ function normalizeJournalData(raw){
   const base=createJournalData();
   if(!raw||typeof raw!=="object"||raw.version!==JOURNAL_VERSION)return base;
   base.updatedAt=Number.isFinite(Number(raw.updatedAt))?Number(raw.updatedAt):0;
-  base.guests=normalizeJournalCollection(raw.guests);
+  base.trueEndingEpilogueUnlocked=!!raw.trueEndingEpilogueUnlocked;
+  base.guests=fixedJournalCollection(titleJournalGuestDefs(),normalizeJournalCollection(raw.guests));
   base.fragments=normalizeJournalCollection(raw.fragments);
-  base.endings=normalizeJournalCollection(raw.endings);
+  base.endings=fixedJournalCollection(titleJournalEndingDefs(),normalizeJournalCollection(raw.endings));
   return base;
 }
 
@@ -182,9 +220,15 @@ function readJournalData(){
   try{
     const raw=localStorage.getItem(JOURNAL_KEY);
     if(!raw)return createJournalData();
-    return normalizeJournalData(JSON.parse(raw));
+    const parsed=JSON.parse(raw);
+    if(parsed?.version!==JOURNAL_VERSION){
+      localStorage.removeItem(JOURNAL_KEY);
+      return createJournalData();
+    }
+    return normalizeJournalData(parsed);
   }catch(error){
     console.warn("영업일지를 읽지 못했습니다.",error);
+    try{localStorage.removeItem(JOURNAL_KEY);}catch(_storageError){}
     return createJournalData();
   }
 }
@@ -217,16 +261,121 @@ function recordJournalEntry(collection,id,details={}){
   return writeJournalData(journal)?.[collection]?.[entryId]||null;
 }
 
+function journalUnlockRequested(details){
+  return details?.perfect===true
+    ||details?.tier==="great"
+    ||details?.resultTier==="great";
+}
+
+function unlockFixedJournalEntry(collection,id,details={}){
+  const definitions=collection==="guests"?titleJournalGuestDefs():titleJournalEndingDefs();
+  const definition=definitions.find(item=>journalDefinitionId(item)===id);
+  if(!definition)return null;
+  const journal=readJournalData();
+  const previous=journal[collection][id];
+  const newlyUnlocked=!previous?.unlocked;
+  const now=Date.now();
+  journal[collection][id]={
+    ...previous,
+    ...(details&&typeof details==="object"?details:{}),
+    ...definition,
+    id,
+    label:journalDefinitionLabel(definition,id),
+    unlocked:true,
+    firstRecordedAt:previous?.firstRecordedAt||now,
+    lastRecordedAt:now,
+    unlockedAt:previous?.unlockedAt||now,
+    notificationPending:newlyUnlocked?true:!!previous?.notificationPending
+  };
+  const saved=writeJournalData(journal)?.[collection]?.[id];
+  return saved?{...saved,newlyUnlocked}:null;
+}
+
 function recordJournalGuest(id,details={}){
-  return recordJournalEntry("guests",id,details);
+  const definition=titleJournalGuestDefs().find(item=>journalDefinitionId(item)===id);
+  if(!definition)return null;
+  if(journalUnlockRequested(details))return unlockFixedJournalEntry("guests",id,details);
+  const journal=readJournalData();
+  const previous=journal.guests[id];
+  const now=Date.now();
+  journal.guests[id]={
+    ...previous,
+    ...(details&&typeof details==="object"?details:{}),
+    ...definition,
+    id,
+    label:journalDefinitionLabel(definition,id),
+    unlocked:!!previous?.unlocked,
+    notificationPending:!!previous?.notificationPending,
+    firstRecordedAt:previous?.firstRecordedAt||now,
+    lastRecordedAt:now
+  };
+  const saved=writeJournalData(journal)?.guests?.[id];
+  return saved?{...saved,newlyUnlocked:false}:null;
 }
 
 function recordJournalFragment(id,details={}){
-  return recordJournalEntry("fragments",id,details);
+  const fragment=recordJournalEntry("fragments",id,details);
+  const guestId=typeof details?.guestId==="string"?details.guestId:null;
+  const guest=guestId?unlockFixedJournalEntry("guests",guestId,{
+    day:details.day,
+    note:"기억 회복",
+    fragmentId:id,
+    perfect:true
+  }):null;
+  return fragment?{...fragment,newGuestUnlock:guest?.newlyUnlocked?guestId:null}:null;
 }
 
 function recordJournalEnding(id,details={}){
-  return recordJournalEntry("endings",id,details);
+  const normalizedId=JOURNAL_ENDING_ALIASES[id]||id;
+  return unlockFixedJournalEntry("endings",normalizedId,details);
+}
+
+function unlockTrueEndingEpilogues(){
+  const journal=readJournalData();
+  if(journal.trueEndingEpilogueUnlocked)return journal;
+  journal.trueEndingEpilogueUnlocked=true;
+  Object.entries(journal.guests).forEach(([id,entry])=>{
+    if(entry?.unlocked)journal.guests[id]={...entry,epilogueUnlocked:true};
+  });
+  return writeJournalData(journal);
+}
+
+function readJournalCollectionPages(){
+  const journal=readJournalData();
+  const build=(kind,definitions,collection)=>definitions.map(definition=>{
+    const id=journalDefinitionId(definition);
+    const entry=collection[id]||{};
+    return {
+      ...definition,
+      ...entry,
+      kind,
+      id,
+      label:journalDefinitionLabel(definition,id),
+      unlocked:!!entry.unlocked,
+      epilogueUnlocked:kind==="guest"
+        &&!!entry.unlocked
+        &&!!(entry.epilogueUnlocked||journal.trueEndingEpilogueUnlocked),
+      notificationPending:!!entry.notificationPending
+    };
+  });
+  return [
+    ...build("guest",titleJournalGuestDefs(),journal.guests),
+    ...build("ending",titleJournalEndingDefs(),journal.endings)
+  ];
+}
+
+function pendingJournalUnlocks(){
+  return readJournalCollectionPages().filter(page=>page.unlocked&&page.notificationPending);
+}
+
+function acknowledgeJournalUnlock(kind,id){
+  const collection=kind==="guest"?"guests":kind==="ending"?"endings":null;
+  if(!collection)return false;
+  const journal=readJournalData();
+  const entry=journal[collection]?.[id];
+  if(!entry?.unlocked||!entry.notificationPending)return false;
+  journal[collection][id]={...entry,notificationPending:false,notificationSeenAt:Date.now()};
+  return !!writeJournalData(journal);
 }
 
 // 스토리 쪽에서 전역 변수 결합 없이 호출할 수 있는 안정적인 연결점입니다.
@@ -235,6 +384,10 @@ window.MoonlightTableSave=Object.freeze({
   recordGuest:recordJournalGuest,
   recordFragment:recordJournalFragment,
   recordEnding:recordJournalEnding,
+  collectionPages:readJournalCollectionPages,
+  pendingUnlocks:pendingJournalUnlocks,
+  acknowledgeUnlock:acknowledgeJournalUnlock,
+  unlockTrueEndingEpilogues,
   clearAutoSaveForTrueEnding
 });
 

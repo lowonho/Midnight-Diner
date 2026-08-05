@@ -71,7 +71,7 @@
               <div class="stat-satisfaction"><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
               <div class="retired-economy-ui" aria-hidden="true"><span>인기도</span><strong id="popularityText">0</strong></div>
               <div class="stat-money retired-economy-ui" aria-hidden="true"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
-              <button id="codexButton" class="square-button" type="button" aria-label="도감 열기">📖</button>
+              <button id="codexButton" class="square-button" type="button" aria-label="영업일지 열기">📖</button>
               <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
             </div>
           </header>
@@ -255,26 +255,27 @@
       <div class="journal-window wood-panel">
         <div class="journal-heading">
           <div>
-            <p class="eyebrow">MOONLIGHT LOG</p>
+            <p id="journalModeLabel" class="eyebrow">COLLECTION</p>
             <h2 id="journalTitle">영업일지</h2>
           </div>
           <button id="journalClose" class="journal-close" type="button" aria-label="영업일지 닫기">×</button>
         </div>
-        <p class="journal-description">시간을 거듭하며 만난 손님과 받은 달빛 조각, 확인한 결말이 남습니다.</p>
-        <div class="journal-sections">
-          <section aria-labelledby="journalGuestTitle">
-            <h3 id="journalGuestTitle">손님</h3>
-            <div id="journalGuestList" class="journal-list"></div>
-          </section>
-          <section aria-labelledby="journalFragmentTitle">
-            <h3 id="journalFragmentTitle">달빛 조각</h3>
-            <div id="journalFragmentList" class="journal-list"></div>
-          </section>
-          <section aria-labelledby="journalEndingTitle">
-            <h3 id="journalEndingTitle">엔딩</h3>
-            <div id="journalEndingList" class="journal-list"></div>
-          </section>
+        <p id="journalDescription" class="journal-description">특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.</p>
+        <div class="journal-book">
+          <button id="journalPrevious" class="journal-page-arrow" type="button" aria-label="이전 영업일지 페이지">‹</button>
+          <article id="journalPage" class="journal-page" aria-live="polite">
+            <div class="journal-page-topline">
+              <span id="journalPageKind">특별 손님</span>
+              <strong id="journalPageProgress">1 / 13</strong>
+            </div>
+            <div id="journalPagePortrait" class="journal-page-portrait" aria-hidden="true">?</div>
+            <h3 id="journalPageTitle">잠긴 기록</h3>
+            <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
+            <small id="journalPageMeta"></small>
+          </article>
+          <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
+        <div id="journalPageTabs" class="journal-page-tabs" role="tablist" aria-label="영업일지 페이지 선택"></div>
       </div>
     </section>
 

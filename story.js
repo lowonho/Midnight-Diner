@@ -27,6 +27,9 @@ function createStoryGuestState(){
     foodConfirmed:false,
     memoryUnlocked:false,
     shardOwned:false,
+    // 최근 평가는 오르내릴 수 있지만, 한 번 공개된 손님 이야기는 다시
+    // 잠기지 않아야 하므로 공개 단계는 별도로 최고 단계만 누적합니다.
+    revealedStoryLevel:0,
     currentTier:null,
     currentScore:null
   };
@@ -101,6 +104,9 @@ function normalizeStoryState(raw){
     base.guestState[id].foodConfirmed=!!base.guestState[id].foodConfirmed;
     base.guestState[id].memoryUnlocked=!!base.guestState[id].memoryUnlocked;
     base.guestState[id].shardOwned=!!base.guestState[id].shardOwned;
+    base.guestState[id].revealedStoryLevel=clamp(
+      Math.floor(Number(base.guestState[id].revealedStoryLevel)||0),0,3
+    );
     base.guestState[id].currentTier=["soft","warm","great"].includes(base.guestState[id].currentTier)
       ?base.guestState[id].currentTier:null;
     base.guestState[id].currentScore=Number.isFinite(base.guestState[id].currentScore)
@@ -143,6 +149,53 @@ function storyShardCount({baseOnly=false}={}){
   return ids.reduce((count,id)=>count+(getStoryGuestState(id).shardOwned?1:0),0);
 }
 
+function storyTierRevealLevel(tier){
+  return tier==="great"?3:tier==="warm"?2:tier==="soft"?1:0;
+}
+
+function storyEvaluationLabel(tier,score){
+  const label=tier==="great"?"완벽":tier==="warm"?"맛있다":tier==="soft"?"아쉽다":"평가 없음";
+  return Number.isFinite(Number(score))?`${label} · ${Math.round(Number(score))}점`:label;
+}
+
+// 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
+// 잠긴 페이지도 포함해 언제나 8장을 반환하므로 수동 저장 슬롯마다 서로 다른
+// 기록을 안전하게 복원할 수 있습니다.
+function getGameplayJournalPages(){
+  return GAMEPLAY_JOURNAL_PAGE_DEFS.map((definition,index)=>{
+    const guest=state.story?.guestState?.[definition.guestId]||createStoryGuestState();
+    const met=!!(
+      Number(guest.visits)>0||guest.clueFound||guest.foodConfirmed
+      ||guest.revealedStoryLevel>0||guest.shardOwned
+    );
+    const revealedStory=definition.storyByLevel?.[guest.revealedStoryLevel]
+      ||(met?"아직 손님이 들려준 이야기가 없습니다.":"???");
+    return {
+      ...definition,
+      index,
+      number:index+1,
+      total:GAMEPLAY_JOURNAL_PAGE_DEFS.length,
+      locked:!met,
+      unlocked:met,
+      storyLevel:guest.revealedStoryLevel,
+      guestName:met?definition.displayName:"???",
+      appearance:met?definition.appearanceCondition:"등장 기록 없음",
+      trace:met?definition.trace:"???",
+      clue:met&&(guest.clueFound||guest.foodConfirmed)?definition.clue:"???",
+      confirmedDish:met&&guest.foodConfirmed?definition.dishName:"???",
+      latestEvaluation:met&&guest.currentTier
+        ?storyEvaluationLabel(guest.currentTier,guest.currentScore)
+        :"평가 기록 없음",
+      revealedStory,
+      shardOwned:!!guest.shardOwned,
+      shardName:guest.shardOwned?definition.shardName:"???",
+      shardStatus:guest.shardOwned?"획득 완료":"미획득"
+    };
+  });
+}
+
+window.getGameplayJournalPages=getGameplayJournalPages;
+
 function storyGuestArrivalScenes(){
   return Object.values(STORY_SCENES).filter(scene=>scene?.specialGuest===true&&/^SCN-G\d+-A$/.test(scene.id));
 }
@@ -162,11 +215,19 @@ function storyPrimaryGuestForDay(day=state.day){
 function recordStoryJournalGuest(guestId,scene=null){
   const character=STORY_CHARACTERS[guestId];
   const api=window.MoonlightTableSave;
-  if(!character||!api?.recordGuest)return null;
+  const guest=getStoryGuestState(guestId);
+  // 타이틀 영업일지는 완벽 평가를 받은 손님만 해금합니다. 만남·단서·낮은
+  // 평가는 현재 진행 세이브의 guestState에만 남습니다.
+  if(!character||!api?.recordGuest||!guest.shardOwned)return null;
+  const definition=GAMEPLAY_JOURNAL_PAGE_DEFS.find(page=>page.guestId===guestId);
   return api.recordGuest(guestId,{
-    label:character.name,
+    unlocked:true,
+    perfect:true,
+    label:definition?.displayName||character.name,
     day:Number(scene?.day)||Number(state.day)||1,
-    note:getStoryGuestState(guestId).memoryUnlocked?"기억 회복":"만남 기록"
+    dishId:definition?.dishId||scene?.dishId||null,
+    shardId:definition?.shardId||scene?.shardId||null,
+    note:"완벽 평가 · 기억 회복"
   });
 }
 
@@ -183,7 +244,16 @@ function recordStoryJournalShard(scene,guestId){
 function recordStoryJournalEnding(scene){
   const api=window.MoonlightTableSave;
   if(!api?.recordEnding||!scene?.id)return null;
-  return api.recordEnding(scene.id,{label:scene.title||scene.id,note:`루프 ${state.story?.loop||1}`});
+  const definition=TITLE_JOURNAL_ENDING_DEFS.find(ending=>ending.id===scene.id);
+  const entry=api.recordEnding(scene.id,{
+    unlocked:true,
+    label:definition?.title||scene.title||scene.id,
+    note:`루프 ${state.story?.loop||1}`
+  });
+  if(entry?.newlyUnlocked){
+    showToast(`영업일지에 새 엔딩 「${definition?.title||scene.title||scene.id}」이 기록되었습니다.`);
+  }
+  return entry;
 }
 
 function isCharacterNameRevealed(id){
@@ -893,6 +963,10 @@ function recordStorySceneOutcome(scene){
     const guest=getStoryGuestState(guestId);
     guest.foodConfirmed=true;
     guest.currentTier=scene.resultTier;
+    guest.revealedStoryLevel=Math.max(
+      Number(guest.revealedStoryLevel)||0,
+      storyTierRevealLevel(scene.resultTier)
+    );
     if(scene.resultTier==="great"&&scene.grantsShard){
       guest.memoryUnlocked=true;
       if(!guest.shardOwned){
@@ -908,6 +982,10 @@ function recordStorySceneOutcome(scene){
   if(scene.endingId){
     state.story.endingsSeen[scene.endingId]=true;
     recordStoryJournalEnding({...scene,id:scene.endingId,title:scene.endingTitle||scene.title});
+  }
+  if(scene.id==="SCN-J01"){
+    state.story.endingsSeen.loop_return=true;
+    recordStoryJournalEnding({id:"loop_return",title:"다시 첫째 날"});
   }
 }
 
@@ -1185,6 +1263,7 @@ function restoreFinalChoiceCheckpoint(){
 }
 
 function finishTrueEnding(){
+  window.MoonlightTableSave?.unlockTrueEndingEpilogues?.();
   window.MoonlightTableSave?.clearAutoSaveForTrueEnding?.();
   showTitleAfterStory({save:false});
 }
@@ -1224,7 +1303,12 @@ function finishStorySession(){
   if(openMenuAfterFinish&&state.phase===GAME_PHASES.MENU_SELECT)dom.menuSelectOverlay.classList.add("open");
   saveGame();
   if(complete)complete();
-  if(openJournalAfterFinish&&!conclusionAction&&typeof openJournal==="function")setTimeout(openJournal,0);
+  if(openJournalAfterFinish&&!conclusionAction){
+    const opener=typeof openGameplayJournal==="function"
+      ?openGameplayJournal
+      :typeof openJournal==="function"?openJournal:null;
+    if(opener)setTimeout(opener,0);
+  }
   if(state.story?.pendingResultSceneId&&!conclusionAction)setTimeout(playPendingStoryResult,0);
   if(conclusionAction)setTimeout(()=>runStoryConclusion(conclusionAction),0);
 }
