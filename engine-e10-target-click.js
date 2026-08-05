@@ -188,7 +188,6 @@ function startAnchovyTug(button,event){
   wrapper.classList.remove("tug-snap");wrapper.classList.add("grabbing");wrapper.dataset.tug="0";
   button.setPointerCapture?.(event.pointerId);
   dom.miniFeedback.textContent=`${item.id+1}번 멸치 머리를 잡았습니다 · 좌우로 흔드세요!`;
-  audio.click();
 }
 
 function moveAnchovyTug(button,event){
