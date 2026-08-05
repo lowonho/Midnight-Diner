@@ -206,16 +206,19 @@
 }
 
 /* 좌우 카드 (재료 · 완성 개수 · 완성 예시)
-   .cut-card 와 .cut-card-title 은 css/minigame-parts.css 에 있습니다. */
+   .cut-card 와 .cut-card-title 은 css/minigame-parts.css 에 있습니다.
+
+   ⚠️ 여기 있던 **안쪽 액자**(테두리 2px #5d3b22 · 검은 배경 #0e0805 · 안쪽 그림자)를
+      뺐습니다. 카드 자체가 이미 테두리·배경을 갖고 있어서(공용 .cut-card) 그림마다
+      검은 상자가 한 겹 더 둘리는 셈이었습니다. 재료 카드는 이미 아래에서 끄고
+      있었고, 남아 있던 '완성 예시' 카드만 혼자 검은 틀을 두르고 있었습니다.
+      되살리려면 이 네 줄을 여기가 아니라 `.cut-ref-card .cut-card-figure` 에
+      적으세요 — 그래야 재료 카드까지 함께 되살아나지 않습니다. */
 .cut-card-figure {
   position: relative;
   min-height: calc(110 * var(--upx));
   display: grid;
   place-items: center;
-  border: 2px solid #5d3b22;
-  border-radius: calc(8 * var(--upx));
-  background: #0e0805;
-  box-shadow: inset 0 0 calc(16 * var(--upx)) rgba(0,0,0,.6);
 }
 .cut-card-caption {
   margin: 0;
@@ -234,15 +237,13 @@
 /* 재료 카드 겉모습을 E5(.ts-ing-card)와 같은 결로 맞췄습니다.
    E5 는 그림을 카드 위에 바로 올리는데 여기만 안쪽에 액자(테두리+검은 배경)가
    한 겹 더 있어서, 같은 자리에 같은 그림을 넣어도 다르게 보였습니다.
-   ⚠️ 오른쪽 '완성 예시'(.cut-ref-card)의 액자는 그대로 둡니다 — 그건 참고용
-      그림이라 테두리가 있는 편이 구분됩니다. 그래서 .cut-ing-card 로 한정합니다. */
+   ⚠️ 이제 '완성 예시' 카드도 같습니다 — 안쪽 액자는 위 .cut-card-figure 에서
+      통째로 뺐습니다(그쪽 주석 참고). 여기서 따로 끄던 한 줄도 함께 지웠습니다. */
 /* 카드 겉모습(여백·테두리·배경)은 공용 규칙 한 곳이 정합니다 —
    css/minigame-parts.css 의 `.sc-goal, .sk-ing-card, .cut-ing-card …` 블록.
    여기서 그걸 끄던 `border:0; background:none` 을 걷어내 13화면이 같은
-   카드를 씁니다. 카드 **안쪽** 액자(.cut-card-figure)는 아래에서 계속 끕니다 —
-   카드 안에 액자를 또 두면 박스 안 박스로 보입니다. */
+   카드를 씁니다. */
 .cut-ing-card { gap: calc(6 * var(--upx)); }
-.cut-ing-card .cut-card-figure { border: 0; border-radius: 0; background: none; box-shadow: none; }
 .cut-ing-card .cut-card-caption {
   display: flex;
   align-items: baseline;
@@ -329,6 +330,11 @@
   overflow: hidden;
   display: grid;
   place-items: center;
+  /* 점선을 따라 긋는 조작(engine-e1-timing-cut.js · attachCutDragInput)이
+     도마 위에서 일어납니다. 모바일에서 그 획이 화면 스크롤로 새지 않도록
+     터치 제스처를 끕니다. */
+  touch-action: none;
+  cursor: var(--cursor-cat-drag);
   padding: calc(22 * var(--upx)) calc(24 * var(--upx)) calc(76 * var(--upx));
   border: calc(6 * var(--upx)) solid #8a5a2e;
   border-radius: calc(20 * var(--upx));
@@ -606,13 +612,21 @@
 /* 눕힌 칼도 같은 자 하나로 씁니다 — 세로 칼(564)을 그대로 눕힌 길이입니다.
      width 564  → 날(그림의 왼 60.69%)이 342
      left       → 그 날 한가운데를 재료 한가운데에 맞춥니다 (342/2 = 171)
-   두부(450)·어묵(350)은 공용 칼날과 비슷하거나 조금 넓으며, 기존 획이
-   왼→오로 재료 전체를 넉넉히 덮습니다.
+
+   획 길이(--slash-in / --slash-out)는 **재료 폭에 비례**시킵니다.
+   ⚠️ 원래는 -210 ~ +200 (총 410) 으로 못박혀 있었습니다. 날(342)이 이미
+      두부(450)는 한쪽 54 · 어묵(350)은 통째로 덮으므로 그만큼 그을 이유가
+      없고, 특히 어묵에서는 재료보다 획이 더 길어 칼이 허공을 크게 휘둘렀습니다.
+      이제 두부 225 · 어묵 175 로, 재료가 작으면 획도 같이 짧아집니다.
    ⚠️ 세로 칼과 달리 비율(1366:155)을 그대로 씁니다. 눕힌 그림은 날 두께가
       이미 제대로 그려져 있어서, 세로 칼처럼 1.22배를 더 주면 칼이 재료를
       덮을 만큼 두꺼워집니다. */
 .cut-screen .tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset,
 .cut-screen .cut-path-mode.tofu-cook-object.horizontal-cut .knife-effect.has-prep-asset {
+  /* 들어오는 쪽을 조금 더 길게 잡습니다 — 지나간 뒤는 짧게 거둬야 덜 사납습니다.
+     (--cut-obj-w 는 .prep-work-object 가 재료마다 잡아 두고 여기로 상속됩니다) */
+  --slash-in: calc(var(--cut-obj-w,450) * .27 * var(--upx));
+  --slash-out: calc(var(--cut-obj-w,450) * .23 * var(--upx));
   left:calc(50% - 171 * var(--upx));
   top:var(--knife-y,50%);
   width:calc(564 * var(--upx));
@@ -856,25 +870,98 @@
 .cut-timing .prep-timing-marker::before { top: calc(-14 * var(--upx)); border-top: calc(15 * var(--upx)) solid #fff6d6; }
 .cut-timing .prep-timing-marker::after { bottom: calc(-14 * var(--upx)); border-bottom: calc(15 * var(--upx)) solid #fff6d6; }
 
+/* ── 칠 때 조준선 자리에서 터지는 빛 ─────────────────────
+   engine-e1-timing-cut.js 의 flashCutTimingBar 가 자리(left)와 판정 색을
+   붙입니다. 그림 파일 없이 그라디언트 한 겹 + mask 로 그립니다 —
+   바를 세로로 꿰뚫는 얇고 날카로운 섬광(칼자국 쪽이 어울립니다).
+
+   ⚠️ .prep-timing-bar 안에 넣으면 안 됩니다. 그쪽은 초록 구간이 모서리
+      밖으로 새지 않도록 넘침을 잘라내서, 빛도 바 높이에 갇힙니다.
+      바깥 상자(.cut-timing) 의 형제로 얹어야 위아래로 번집니다.
+
+   ⚠️ 세로 길이는 **바 두께(44)를 다 덮고 남아야** 합니다. 96(위아래로 26 씩
+      넘침)에 마스크가 26~74% 구간을 꽉 채우므로, 바 높이(27.1~72.9%)가 통째로
+      가장 진한 구간에 들어갑니다. 마스크가 바 안쪽에서 흐려지기 시작하면
+      "빛이 바를 못 덮는" 그 문제로 되돌아갑니다.
+
+   ⚠️ filter:drop-shadow 로 후광을 주면 안 됩니다 — 마스크가 필터 결과를
+      잘라내는 순서라 상자 밖으로 번진 빛이 통째로 잘립니다. 후광은 좌우
+      그라디언트 바깥쪽 정지점이 대신합니다.
+      (brightness·saturate 는 상자를 안 넘치므로 같이 써도 됩니다) */
+.cut-timing-flash {
+  --flash: 255,214,86;
+  position: absolute;
+  z-index: 3;
+  inset-block: calc(-26 * var(--upx));
+  width: calc(56 * var(--upx));
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background:
+    /* ① 바와 만나는 자리의 뜨거운 심 — 세로로 짧고 좌우로만 번집니다 */
+    radial-gradient(58% 20% at 50% 50%, rgba(255,255,255,.98), rgba(var(--flash),.6) 52%, rgba(var(--flash),0) 100%),
+    /* ② 좌우 프로파일 : 흰 심지 → 판정색 → 얇은 곁줄기 → 투명(후광 몫) */
+    linear-gradient(90deg,
+      rgba(var(--flash),0) 0,
+      rgba(var(--flash),.28) 16%,
+      rgba(var(--flash),.88) 32%,
+      rgba(255,255,253,1) 45%,
+      rgba(255,255,253,1) 55%,
+      rgba(var(--flash),.88) 68%,
+      rgba(var(--flash),.28) 84%,
+      rgba(var(--flash),0) 100%);
+  /* 세로 : 바 구간은 꽉 채우고, 넘친 26 안에서만 뾰족하게 깎입니다. */
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,.5) 12%, #000 26%, #000 74%, rgba(0,0,0,.5) 88%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,.5) 12%, #000 26%, #000 74%, rgba(0,0,0,.5) 88%, rgba(0,0,0,0) 100%);
+  filter: saturate(1.35) brightness(1.12);
+}
+.cut-timing-flash.perfect { --flash: 255,214,86; }
+.cut-timing-flash.good    { --flash: 138,214,92; }
+.cut-timing-flash.miss,
+.cut-timing-flash.early   { --flash: 255,104,74; }
+.cut-timing-flash.show { animation: cut-timing-flash .26s ease-out; }
+/* PERFECT 만 조금 더 오래 남습니다 — 잘 쳤다는 표시입니다. */
+.cut-timing-flash.perfect.show { animation: cut-timing-flash-perfect .32s ease-out; }
+/* 납작하게 들어와 한 번 서고, 사라질 때는 옆으로 **얇아집니다**.
+   옆으로 굵어지면 다시 둥근 무리로 보입니다. */
+@keyframes cut-timing-flash {
+  0%   { opacity: .35; transform: translateX(-50%) scale(1.55,.42); }
+  14%  { opacity: 1;   transform: translateX(-50%) scale(1,1); }
+  46%  { opacity: .85; transform: translateX(-50%) scale(.82,1.05); }
+  100% { opacity: 0;   transform: translateX(-50%) scale(.42,1.16); }
+}
+@keyframes cut-timing-flash-perfect {
+  0%   { opacity: .4; transform: translateX(-50%) scale(1.7,.42); }
+  12%  { opacity: 1;  transform: translateX(-50%) scale(1.16,1.08); }
+  42%  { opacity: .9; transform: translateX(-50%) scale(.88,1.1); }
+  100% { opacity: 0;  transform: translateX(-50%) scale(.42,1.2); }
+}
+
 /* 타이밍 바를 하단 공용 띠로 내렸을 때 —— 원래 도마 위에 얹힌
    `position:absolute` 오버레이라, 띠에서는 그 자리 잡기를 전부 풀어야
    보통 요소처럼 한 줄에 앉습니다.
 
-   ⚠️ 마커를 그대로 두면 띠를 넘칩니다. 바 34 에 삼각형이 위아래로
-      (9+14+15) 씩 붙어 **110** 이 되는데, 띠는 78 입니다. 띠가 그만큼
-      늘어나면 위 3열이 523.2 → 491.2 로 깎여 격자 규격이 깨집니다.
-      그래서 띠 안에서만 삼각형을 줄여 70 에 맞췄습니다. */
+   띠가 1360.2 로 넓어서 바도 900 → **1120** 으로 길게, 두께도 34 → **44** 로
+   키웠습니다(도마 위에 얹혀 있던 시절의 34 는 도마 폭 기준이었습니다).
+
+   ⚠️ 마커를 그대로 두면 띠를 넘칩니다. 삼각형 꼭짓점은 바 위아래로
+      (마커 4 + 삼각형 top 8) = 12 씩 튀어나오므로 44 + 24 = **68**,
+      띠 78 안에 들어옵니다. 여기서 더 키워 78 을 넘기면 띠가 늘어나고
+      위 3열이 523.2 → 그만큼 깎여 격자 규격이 깨집니다. */
 .mg-strip .cut-timing {
   position: relative;
   left: auto;
   bottom: auto;
-  width: calc(900 * var(--upx));
+  width: calc(1120 * var(--upx));
+  height: calc(44 * var(--upx));
   max-width: 100%;
   transform: none;
+  /* 바 자체도 썰기 입력입니다 (engine-e1-timing-cut.js 의 renderTimingCut) */
+  cursor: var(--cursor-cat-click);
 }
-.mg-strip .cut-timing .prep-timing-marker { top: calc(-3 * var(--upx)); bottom: calc(-3 * var(--upx)); }
-.mg-strip .cut-timing .prep-timing-marker::before { top: calc(-7 * var(--upx)); border-top-width: calc(8 * var(--upx)); }
-.mg-strip .cut-timing .prep-timing-marker::after { bottom: calc(-7 * var(--upx)); border-bottom-width: calc(8 * var(--upx)); }
+.mg-strip .cut-timing .prep-timing-marker { top: calc(-4 * var(--upx)); bottom: calc(-4 * var(--upx)); }
+.mg-strip .cut-timing .prep-timing-marker::before { top: calc(-8 * var(--upx)); border-top-width: calc(9 * var(--upx)); }
+.mg-strip .cut-timing .prep-timing-marker::after { bottom: calc(-8 * var(--upx)); border-bottom-width: calc(9 * var(--upx)); }
 
 /* 도마 아래 줄 : 마우스용 썰기 버튼 · 2연타 안내 · 꾹 누르기 게이지 */
 .cut-footer { display: flex; align-items: center; justify-content: center; gap: calc(14 * var(--upx)); }
@@ -889,6 +976,28 @@
   bottom: auto;
   width: auto;
   transform: translateX(-50%);
+}
+/* 도마 아래 조작 안내 — "점선을 그어도 썰린다" 는 표시가 없으면 아무도 모릅니다.
+   .cut-footer(썰기 버튼)는 도마 **위쪽** 18 자리로 올라가 있어서, 아래 여백 76
+   이 통째로 비어 있습니다. 그 자리에 앉힙니다.
+   ⚠️ pointer-events 를 꺼 둡니다 — 이 안내가 바로 드래그 구역 위에 있어서,
+      켜 두면 여기서 시작한 획을 .cut-board 가 못 받습니다. */
+.cut-drag-hint {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: calc(18 * var(--upx));
+  margin: 0;
+  padding: calc(5 * var(--upx)) calc(16 * var(--upx));
+  transform: translateX(-50%);
+  border: calc(2 * var(--upx)) solid rgba(255,214,138,.34);
+  border-radius: calc(999 * var(--upx));
+  background: rgba(30,17,8,.58);
+  color: #f2d3a0;
+  font-size: calc(16 * var(--upx));
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
 }
 .cut-action { min-width: calc(150 * var(--upx)); padding: calc(8 * var(--upx)) calc(16 * var(--upx)); font-size: calc(15 * var(--upx)); }
 .cut-step-note { color: #e0bd85; font-size: calc(15 * var(--upx)); font-weight: 800; }
@@ -942,13 +1051,15 @@
   100% { transform: translateX(-50%) rotate(var(--knife-turn,16deg)) scale(.98); }
 }
 /* 눕힌 칼 : 아래 끝이 날이라, 칼끝을 왼쪽 아래로 5도 떨군 채 들어와
-   왼쪽에서 오른쪽으로 크게 그으며 눕습니다.
-   가장 넓은 두부(450)가 날(342)보다 좌우로 54 씩 넓어 기존 획이면 충분합니다. */
+   왼쪽에서 오른쪽으로 그으며 눕습니다.
+   획 길이는 재료 폭에 비례합니다(--slash-in / --slash-out · 위 규칙 참고) —
+   날(342)이 두부는 한쪽 54, 어묵은 통째로 이미 덮으므로 크게 휘두를 필요가
+   없습니다. 위아래 흔들림도 26 → 16 으로 줄여 획이 덜 사납습니다. */
 @keyframes cut-knife-chop-side-asset {
-  0%   { transform: translate(calc(-210 * var(--upx)),calc(-100% - 26 * var(--upx))) rotate(-5deg); }
-  22%  { transform: translate(calc(-96 * var(--upx)),calc(-100% - 9 * var(--upx))) rotate(-4.6deg); }
-  44%  { transform: translate(calc(200 * var(--upx)),calc(-100% + 12 * var(--upx))) rotate(0deg); }
-  74%  { transform: translate(calc(38 * var(--upx)),calc(-100% + 3 * var(--upx))) rotate(-1.2deg); }
+  0%   { transform: translate(calc(-1 * var(--slash-in)),calc(-100% - 16 * var(--upx))) rotate(-5deg); }
+  22%  { transform: translate(calc(-.46 * var(--slash-in)),calc(-100% - 6 * var(--upx))) rotate(-4.6deg); }
+  44%  { transform: translate(var(--slash-out),calc(-100% + 8 * var(--upx))) rotate(0deg); }
+  74%  { transform: translate(calc(.2 * var(--slash-out)),calc(-100% + 2 * var(--upx))) rotate(-1.2deg); }
   100% { transform: translate(0,-100%) rotate(0deg); }
 }
 /* 빗나감 : 같은 방향으로 긋다가 겉만 스치고 튕깁니다 (획은 절반쯤만) */
@@ -957,9 +1068,10 @@
   55%  { transform: translate(calc(20 * var(--upx)),calc(30 * var(--upx))) rotate(7deg); }
   100% { transform: translateY(0) rotate(0deg); }
 }
+/* 빗나감(눕힌 칼)도 같은 자를 씁니다 — 성공 획의 절반쯤만 지나가고 튕깁니다. */
 @keyframes cut-knife-miss-side-asset {
-  0%   { transform: translate(calc(-86 * var(--upx)),calc(-100% - 8 * var(--upx))) rotate(-5deg); }
-  55%  { transform: translate(calc(64 * var(--upx)),calc(-100% - 20 * var(--upx))) rotate(-9deg); }
+  0%   { transform: translate(calc(-.42 * var(--slash-in)),calc(-100% - 6 * var(--upx))) rotate(-5deg); }
+  55%  { transform: translate(calc(.38 * var(--slash-out)),calc(-100% - 14 * var(--upx))) rotate(-9deg); }
   100% { transform: translate(0,-100%) rotate(0deg); }
 }
 @keyframes cut-impact-frame {
@@ -1019,6 +1131,7 @@
   .cut-screen .prep-work-object.slice-hit .cut-impact-frame,
   .cut-screen .prep-work-object.slice-miss .cut-impact-frame,
   .cut-judgement.show,
+  .cut-timing-flash.show,
   .cut-board.cut-miss,
   .cut-piece.fresh,.cut-screen .cut-line.fresh-cut,
   .cut-board.cut-complete .prep-work-object { animation-duration:.01ms !important; animation-iteration-count:1 !important; }

@@ -88,7 +88,7 @@
       dom.miniStation.textContent = "튀김가루, 계란물, 빵가루를 순서대로 묻혀주세요!";
       dom.miniDescription.textContent = carry
         ? `새우를 ${SHRIMP_COAT_STEPS[step + 1].label} 그릇으로 끌어다 놓으세요!`
-        : `F / J를 빠르게 눌러 ${item.label}를 묻혀주세요!`;
+        : `${item.label} 안에서 새우를 좌우로 여러 번 굴려주세요.`;
       renderShrimpCoat();
       /* 실측용 — 자리와 크기를 콘솔이 아니라 DOM 에 박아 스크린샷에서도 읽힙니다 */
       const box = el => { const r = el.getBoundingClientRect(); return `${r.width.toFixed(1)}x${r.height.toFixed(1)}`; };

@@ -367,25 +367,19 @@
 /* 키 버튼은 안내이면서 실제 버튼입니다 (키보드·마우스 둘 다 지원) */
 .sc-control { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .sc-control-row { flex: 1; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: calc(9 * var(--upx)); }
-.sc-keys { display: flex; align-items: center; gap: calc(4 * var(--upx)); }
-.sc-keys em { color: #a98d67; font-size: calc(15 * var(--upx)); font-style: normal; }
-/* 겉모습은 공용 --mg-key-* 를 씁니다. 원래 이 화면만 어두운 키(금색 글자)였습니다. */
-.sc-key {
-  width: calc(46 * var(--upx));
-  height: calc(42 * var(--upx));
-  padding: 0;
-  border: 2px solid var(--mg-key-border);
-  border-radius: var(--mg-key-radius);
-  background: var(--mg-key-bg);
-  color: var(--mg-key-color);
-  box-shadow: var(--mg-key-shadow);
-  font-size: calc(20 * var(--upx));
-  font-weight: 900;
-  line-height: 1;
-  cursor: pointer;
-}
-.sc-key:active { transform: translateY(calc(3 * var(--upx))); box-shadow: none; }
-.sc-key[disabled] { opacity: .38; cursor: default; }
+/* ⚠️ 여기 있던 **키캡 세 개(.sc-keys · .sc-keys em · .sc-key)를 뺐습니다.**
+   ◀ ▶ 로 소스통을 고르고 ▼ 로 붓던 버튼인데, 소스통을 바로 클릭하는 길이 있어서
+   키보드(← → ↓)와 함께 걷어냈습니다 (engine-e7-measure.js 의 sauceControlRow 주석 참고).
+   자리에는 아래 CSS 도형 두 개가 들어갑니다 — 그림 파일을 늘리지 않으려고 도형입니다.
+     click  동그라미 + 내려찍는 점
+     pour   기울어진 통에서 떨어지는 방울 */
+.sc-control-icon { position: relative; width: calc(42 * var(--upx)); height: calc(42 * var(--upx)); }
+.sc-control-icon::before,
+.sc-control-icon::after { content: ""; position: absolute; }
+.sc-control-icon.click::before { inset: calc(9 * var(--upx)); border: calc(3 * var(--upx)) solid #f0c073; border-radius: 50%; }
+.sc-control-icon.click::after { left: 50%; top: calc(3 * var(--upx)); width: calc(8 * var(--upx)); height: calc(8 * var(--upx)); border-radius: 50%; background: #ffe6a8; transform: translateX(-50%); }
+.sc-control-icon.pour::before { left: calc(8 * var(--upx)); top: calc(5 * var(--upx)); width: calc(18 * var(--upx)); height: calc(16 * var(--upx)); border-radius: calc(4 * var(--upx)); background: linear-gradient(#c08a4a,#7a4c22); transform: rotate(28deg); }
+.sc-control-icon.pour::after { left: calc(24 * var(--upx)); top: calc(22 * var(--upx)); width: calc(8 * var(--upx)); height: calc(12 * var(--upx)); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #d8873c; }
 .sc-control-row p { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; line-height: 1.25; }
 .sc-control-row p b { color: var(--gold-bright); font-size: calc(19 * var(--upx)); }
 
@@ -418,7 +412,7 @@
   .sc-goal { grid-template-columns: calc(56 * var(--upx)) minmax(0,1fr); }
   .sc-bottle.mini { --bw: calc(46 * var(--upx)); }
   .sc-bottle.tiny { --bw: calc(34 * var(--upx)); }
-  .sc-key { width: calc(34 * var(--upx)); height: calc(32 * var(--upx)); font-size: calc(16 * var(--upx)); }
+  .sc-control-icon { width: calc(32 * var(--upx)); height: calc(32 * var(--upx)); }
   .sc-control-row p { font-size: calc(13 * var(--upx)); }
   .sc-count strong { font-size: calc(42 * var(--upx)); }
   .sc-bowl { width: calc(230 * var(--upx)); height: calc(196 * var(--upx)); }

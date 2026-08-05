@@ -203,8 +203,13 @@ try{
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
   assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="5,5,5"&&PREP_TASKS.coatShrimp,"Shrimp coating uses five shrimp in each of three stages");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
-  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.join(",")==="left,up,right,down"&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
+  // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.directions.every(way=>DAY_PREP_ASSET_PATHS[fryKimchiStirAssetKey(way)])&&DAY_PREP_ASSET_PATHS.fryKimchiBase&&["frySpatulaClean","frySpatulaStirring","frySpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 kimchi has one flipped frame per direction plus three spatula states");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
+  // 볶음우동도 김치 볶기와 같은 한 벌입니다 — 방향마다 볶은 면 한 장 + 뒤집개 3자세.
+  // 뒤집개는 두 자루지만 **한 장을 좌우로 뒤집어 나눠 쓰므로** 그림은 3장 그대로입니다.
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.every(way=>DAY_PREP_ASSET_PATHS[stirUdonPoseAssetKey(way)])&&DAY_PREP_ASSET_PATHS.stirUdonBase&&["stirSpatulaClean","stirSpatulaStirring","stirSpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 yakisoba has one flipped frame per direction plus three spatula states");
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
   assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
@@ -229,11 +234,30 @@ try{
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
   assert(HEAT_CONFIG.oden.targetHold===7&&HEAT_CONFIG.tteokbokki.targetHold===7&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a seven-second hold and dish-specific tracking variants");
-  const randomHeat={target:.5,targetGoal:.5,targetVelocity:0,targetRetargetIn:0,targetSpeedScale:1};
-  const heatRandomValues=[0,.2,.3,1,.8,.7],heatRandom=()=>heatRandomValues.shift();
-  retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);const firstHeatGoal=randomHeat.targetGoal,firstHeatSpeed=randomHeat.targetSpeedScale;
-  randomHeat.targetRetargetIn=0;updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.1,heatRandom);
-  assert(firstHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetSpeedScale!==firstHeatSpeed&&randomHeat.target>.5,"E4 target rerolls destination, speed, and direction instead of bouncing in a fixed cycle");
+  /* 적정 구간은 [출발점 → 목적지] 한 구간씩 계획하고 움직입니다.
+     random 값을 손으로 먹여, 같은 거리라도 뽑힌 성격(pace)에 따라 걸리는 시간이
+     달라지는지 · 도착 후 숨을 고르고 다음 이동을 새로 뽑는지 · 구간 폭이
+     좁아졌다 되돌아오는지를 봅니다. (엔진: engine-e4-gauge-hold.js) */
+  const randomHeat={target:.5,targetFrom:.5,targetGoal:.5,targetMoveTime:0,targetMoveDur:1,targetHoldIn:0,sizeScale:1,pinchIn:9,pinchTime:0,pinchDur:0,pinchDepth:0};
+  // [성격, 목적지, 도착 후 멈춤] 세 개씩 세 벌. 첫 벌은 drift(느긋), 두·세 벌은 cruise 입니다.
+  const heatRandomValues=[0,.2,.9, .5,.9,.1, .4,.3,.5],heatRandom=()=>heatRandomValues.shift();
+  retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);
+  const slowHeatGoal=randomHeat.targetGoal,slowHeatDur=randomHeat.targetMoveDur;
+  randomHeat.target=randomHeat.targetFrom=.5;retargetHeatZone(randomHeat,HEAT_CONFIG.oden,heatRandom);
+  assert(slowHeatGoal<.5&&randomHeat.targetGoal>.5&&randomHeat.targetMoveDur<slowHeatDur,"E4 target plans one move at a time and rerolls destination, direction, and pace");
+  const heatMidDur=randomHeat.targetMoveDur;
+  updateHeatTarget(randomHeat,HEAT_CONFIG.oden,heatMidDur/2,heatRandom);const heatHalfway=randomHeat.target;
+  updateHeatTarget(randomHeat,HEAT_CONFIG.oden,heatMidDur/2,heatRandom);
+  assert(Math.abs(heatHalfway-(.5+randomHeat.targetGoal)/2)<1e-6&&Math.abs(randomHeat.target-randomHeat.targetGoal)<1e-6,"E4 target eases into and out of each move instead of running at one flat speed");
+  randomHeat.targetHoldIn=0;const heatArrivedGoal=randomHeat.targetGoal;
+  updateHeatTarget(randomHeat,HEAT_CONFIG.oden,.05,heatRandom);
+  assert(randomHeat.targetGoal!==heatArrivedGoal&&randomHeat.targetMoveTime<randomHeat.targetMoveDur,"E4 target takes a breath at the destination and then starts a fresh move");
+  const pinchHeat={sizeScale:1,pinchIn:.02,pinchTime:0,pinchDur:0,pinchDepth:0};
+  const pinchRandom=()=>.5;
+  updateHeatPinch(pinchHeat,.05,pinchRandom);updateHeatPinch(pinchHeat,pinchHeat.pinchDur/2,pinchRandom);
+  const heatNarrowest=pinchHeat.sizeScale;
+  updateHeatPinch(pinchHeat,pinchHeat.pinchDur,pinchRandom);
+  assert(heatNarrowest<.6&&heatZoneSize({sizeScale:heatNarrowest},HEAT_CONFIG.oden)<HEAT_CONFIG.oden.targetSize&&pinchHeat.sizeScale===1&&pinchHeat.pinchIn>0,"E4 ideal band pinches narrow for a moment and then opens back up");
   /* 새우튀김 준비는 한 마리가 세 걸음입니다 — 재료칸에서 꺼내기 → 굴리기 →
      (스스로) 재료칸으로 돌아가기. 첫 걸음은 실제로는 끌어다 놓기(E8 공용
      배치기)이고 셋째 걸음은 타이머라, 여기서는 그 둘이 부르는 함수를 바로
@@ -277,8 +301,12 @@ try{
   const stirMini={engine:"stir",complete:false,data:{}};state.mini=stirMini;
   MINI_ENGINES.stir.setup(stirMini,{set:()=>{}});
   assert(typeof MINI_ENGINES.stir.key==="undefined"&&stirMini.data.index===0,"E3 yakisoba arrow keys are not registered as game input");
+  // 볶기 전에는 두 자루 다 깨끗한 장입니다 (김치 볶기의 나무 주걱과 같은 세 자세)
+  assert([...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="clean"),"E3 yakisoba spatulas start clean");
   const stirDirection=stirMini.data.arrows[0];slideE3Surface(dom.miniContent.querySelector(".yk-scene"),stirDirection,32);
   assert(stirMini.data.index===1&&stirMini.data.errors===0&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba accepts only one full sweep per drag");
+  // 한 획을 볶고 손을 뗐으면 두 자루 다 면이 묻은 장으로 바뀝니다 (한쪽만 바뀌면 짝이 안 맞습니다)
+  assert(stirMini.data.stirred&&[...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="rested"),"E3 yakisoba both spatulas pick up noodles after a sweep");
   while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);
   assert(stirMini.data.phase==="complete"&&stirMini.data.inputLocked&&dom.miniContent.querySelector("#e3Result.perfect"),"E3 full sequence grade and delayed completion state");
   state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
@@ -293,13 +321,26 @@ try{
   const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
   MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
   const raisedHeatValue=heatMini.data.value;MINI_ENGINES.heat.update(heatMini,.4);
-  assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
+  assert(MINI_ENGINES.heat.timerRuns()===true&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
+  /* 진행도(채워야 하는 점수)와 남은 시간(줄어드는 시간)은 서로 다른 값이라 한 줄에 섞으면
+     안 됩니다. 진행도 숫자에 '초' 가 붙으면 밖으로 나갈 때 시간이 거꾸로 가는 것처럼
+     보였습니다 — 그래서 단위 없이 "0.0 / 7.0", 시간은 아래 남은 시간 줄로 갈랐습니다. */
+  assert(heatMini.time===HEAT_CONFIG.oden.timeLimit&&HEAT_CONFIG.oden.timeLimit>HEAT_CONFIG.oden.targetHold&&HEAT_CONFIG.tteokbokki.timeLimit>HEAT_CONFIG.oden.timeLimit&&/^\d+\.\d \/ 7\.0$/.test(dom.miniContent.querySelector(".heat-count-value").textContent.trim())&&dom.miniContent.querySelector("#heatTime b").textContent==="22.0초","E4 fills a 7.0 progress score inside a time limit, with seconds only on the countdown row");
   heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
-  heatMini.data.target=.5;heatMini.data.targetVelocity=0;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  // 완료 판정만 보려는 곳이라 적정 구간은 세워 둡니다(도착 + 긴 멈춤 + 좁아짐 예약 뒤로).
+  heatMini.data.target=.5;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
+  /* 시간이 다 됐을 때. 0점으로 끝내면 그날 장사를 통째로 다시 해야 해서 벌이 너무 큽니다 —
+     채운 만큼(30~80) 줍니다. 다 채웠을 때의 85·100 보다는 반드시 낮아야 합니다. */
+  finishedScore=null;
+  const heatTimeoutMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatTimeoutMini;
+  MINI_ENGINES.heat.setup(heatTimeoutMini,{set:(title,description,time)=>{heatTimeoutMini.time=time;}});
+  heatTimeoutMini.data.inZone=3.5;
+  MINI_ENGINES.heat.timeout(heatTimeoutMini);
+  assert(finishedScore===55&&finishedScore<85&&heatTimeoutMini.data.phase==="complete"&&dom.miniContent.querySelector("#e4Result.timeout")&&dom.miniContent.querySelector("#heatTime b").textContent==="0.0초","E4 running out of time scores by how much of the 7.0 progress was filled");
   playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
@@ -311,19 +352,89 @@ try{
   }
   assert(tteokHeatMini.complete&&finishedScore>=85,"E4 tteokbokki moving target is completable with hold/release tracking");
 
-  assert(twoSideCookVisualStage(.1)==="raw"&&twoSideCookVisualStage(.55)==="golden"&&twoSideCookVisualStage(.76)==="ready"&&twoSideCookVisualStage(.95)==="over"&&twoSideCookTimingGrade(.76,TWO_SIDE_COOK_CONFIG.pancake)==="perfect"&&twoSideCookTimingGrade(.68,TWO_SIDE_COOK_CONFIG.pancake)==="good"&&twoSideCookTimingGrade(.6,TWO_SIDE_COOK_CONFIG.pancake)==="miss"&&twoSideCookTimingScore(.76,TWO_SIDE_COOK_CONFIG.pancake)===100,"E5 shared visual stages and narrow GOOD/PERFECT timing");
+  /* E5 굽기 — 게이지·Space 를 걷어내고 **신호 + 클릭/드래그**로 바뀐 뒤의 검사입니다.
+     예전 검사(익힘 게이지 위치로 판정 구간 맞추기 · ↑꾹→↓ 반동 뒤집기)는 그 조작이
+     사라져 통째로 갈았습니다. */
+  const stageOf=step=>twoSideCookVisualStage({units:[{cookStep:step}]});
+  assert(stageOf(0)==="raw"&&stageOf(1)==="setting"&&stageOf(2)==="ready"&&stageOf(4)==="over","E5 doneness step drives the cooking look");
+  const pancakeSteps=buildTwoSideUnitSteps("pancake"),skewerSteps=buildTwoSideUnitSteps("skewer");
+  const kinds=steps=>steps.reduce((count,step)=>({...count,[step.kind]:(count[step.kind]||0)+1}),{});
+  assert(pancakeSteps.length===7&&kinds(pancakeSteps).cook===4&&kinds(pancakeSteps).flip===3&&!kinds(pancakeSteps).sauce,"E5 pancake plan: cook four times with a flip between each");
+  // 할 일 목록은 이제 **자루 하나 몫**입니다 (자루 3개가 같은 목록을 따로 소화합니다)
+  assert(skewerSteps.length===4&&kinds(skewerSteps).cook===2&&kinds(skewerSteps).flip===1&&kinds(skewerSteps).sauce===1,"E5 skewer plan: two cook cycles plus one sauce per skewer");
+  assert(MINI_ENGINES.twoSideCook.noKeyboard===true,"E5 is mouse-only (no keyboard route)");
   const pancakeMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeMini;
   MINI_ENGINES.twoSideCook.setup(pancakeMini,{set:(title,description,time)=>{pancakeMini.time=time;},dish:dishById("kimchi")});
-  assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&dom.miniContent.querySelector(".doneness-good")&&dom.miniContent.querySelector(".doneness-perfect")&&!dom.miniContent.querySelector("#cookVisualLabel"),"E5 image-only cooking state with GOOD/PERFECT zones");
-  pancakeMini.data.marker=.76;updateTwoSideCookVisual(pancakeMini.data);twoSideCookAction();
-  assert(pancakeMini.data.phase==="flip"&&pancakeMini.data.hits[0]===100,"E5 pancake front timing enters flip phase");
-  playedSfx.length=0;pancakeMini.data.flipCharge=72;releasePancakeFlip();
-  assert(pancakeMini.data.phase==="flipping"&&playedSfx.join(",")==="pancake_flip","E5 pancake down input starts flip sound immediately");
-  assert(twoSideCookGrade({hits:[100,96,98],flipErrors:0,cookErrors:0})==="perfect"&&twoSideCookGrade({hits:[100,96,98],flipErrors:1,cookErrors:0})==="good","E5 PERFECT and GOOD grading");
+  const pancakeUnit=pancakeMini.data.units[0];
+  // 하단 게이지 줄(익힘 게이지 · Space 버튼)이 다시 생기면 조리 칸이 457 로 낮아집니다
+  assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&!dom.miniContent.querySelector(".doneness-gauge")&&!dom.miniContent.querySelector("#miniAction")&&!dom.miniContent.querySelector(".ts-key"),"E5 no doneness gauge, no Space button, no key caps");
+  // 익힘 신호를 켜고 창 한가운데에서 클릭 — 굽기 한 번이 끝나고 다음 할 일로 넘어갑니다
+  openTwoSideCue(pancakeMini,pancakeUnit);
+  pancakeUnit.cueTimer=TWO_SIDE_CUE.cook.window*.6;
+  assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook"),"E5 cue lights up the food itself");
+  pressTwoSideCue(pancakeMini,0);
+  /* ⚠️ 첫 굽기는 **'잘 익음'(2)까지 안 갑니다.** 뒤에 굽기가 더 남아 있으면 1(살짝 익음)에
+     머물고, 그 자루의 마지막 굽기에서만 2 가 됩니다 (raiseTwoSideCookStep 주석). */
+  assert(pancakeUnit.stepIndex===1&&pancakeUnit.cookStep===1&&pancakeMini.data.hits[0]>=94&&pancakeMini.data.cooked===1,"E5 an early cook cue stays at lightly-cooked");
+  // 뒤집기는 클릭이 아니라 드래그입니다 — 클릭은 아무 일도 일으키지 않아야 합니다
+  openTwoSideCue(pancakeMini,pancakeUnit);
+  assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===1,"E5 a flip cue does not accept a click");
+  playedSfx.length=0;flickTwoSideCue(pancakeMini,0);
+  assert(pancakeUnit.stepIndex===2&&pancakeUnit.flips===1&&playedSfx.join(",")==="pancake_flip","E5 flick drag flips the pancake and plays the flip sound");
+  /* 중간 굽기를 놓쳐도 **타지 않습니다** — 점수만 깎이고 같은 일이 다시 옵니다.
+     예전에는 아무 신호나 놓칠 때마다 탔습니다("왜 벌써 태워"의 원인). */
+  openTwoSideCue(pancakeMini,pancakeUnit);
+  const missedAt=pancakeUnit.stepIndex,burnBefore=pancakeUnit.cookStep;
+  MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
+  assert(pancakeUnit.stepIndex===missedAt&&pancakeMini.data.cookErrors===1&&pancakeUnit.cookStep===burnBefore&&pancakeUnit.phase==="wait","E5 a missed mid cue costs points but does not burn");
+  // 마지막 굽기 차례에서 놓치면 그때 탑니다
+  pancakeUnit.stepIndex=pancakeUnit.steps.length-1;
+  assert(!hasLaterCook(pancakeUnit),"E5 the last step of the pancake plan is its final cook");
+  openTwoSideCue(pancakeMini,pancakeUnit);
+  MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
+  assert(pancakeUnit.cookStep===burnBefore+1,"E5 missing the final cook is what burns it");
+  // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
+  const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
+  assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
+    &&twoSideCookGrade({...graded([{done:true,served:true}]),flipErrors:1})==="good"
+    &&twoSideCookGrade(graded([{done:true,served:false}]))==="good","E5 PERFECT and GOOD grading");
   const skewerCookMini={engine:"twoSideCook",context:{mode:"cook",dishId:"skewer"},complete:false,data:{}};state.mini=skewerCookMini;
   MINI_ENGINES.twoSideCook.setup(skewerCookMini,{set:(title,description,time)=>{skewerCookMini.time=time;},dish:dishById("skewer")});
-  assert(TWO_SIDE_VIEW.skewer.total===SKEWER_BATCH_SIZE&&dom.miniContent.querySelectorAll(".grill-skewer").length===3,"E5 skewer view follows the three-skewer batch");
-  finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.side=1;skewerCookMini.data.marker=.76;twoSideCookAction();
+  /* 시작할 때 화로는 **비어 있습니다** — 자리 3칸만 서 있고 꼬치는 재료 칸에 있습니다.
+     자루마다 신호 간격 배수가 달라야 3자루가 서로 다른 속도로 익습니다. */
+  assert(TWO_SIDE_VIEW.skewer.total===SKEWER_BATCH_SIZE&&dom.miniContent.querySelectorAll(".gs-slot.empty").length===3&&!dom.miniContent.querySelector(".cook-food .grill-skewer"),"E5 the grill starts empty and shows three slots");
+  assert(dom.miniContent.querySelectorAll("[data-ts-place]").length===SKEWER_BATCH_SIZE,"E5 every skewer waits in the ingredient card as a drag source");
+  assert(new Set(skewerCookMini.data.units.map(unit=>unit.speed)).size===SKEWER_BATCH_SIZE,"E5 each skewer cooks at its own pace");
+  /* 2번 자루만 올립니다 — 그 자루만 시계가 돌고, 나머지 둘은 그대로 기다립니다.
+     ⚠️ 자리는 **놓은 자리**이지 자루 번호가 아닙니다. 2번 자루를 첫 칸에 놓으면
+        첫 칸에 서야 합니다(예전에는 자루 번호대로 오른쪽으로 날아갔습니다). */
+  placeTwoSideUnit(skewerCookMini,1,0);
+  const skewerUnit=skewerCookMini.data.units[1];
+  assert(skewerUnit.placed&&skewerUnit.slot===0&&!skewerCookMini.data.units[0].placed
+    &&dom.miniContent.querySelector(".gs-slot.slot-1 .grill-skewer.skewer-2")
+    &&dom.miniContent.querySelectorAll("[data-ts-place]").length===2,"E5 a skewer lands in the seat you dropped it on");
+  /* 익힘도 자루마다 따로입니다 — 한 자루를 구워도 옆 자루는 그대로여야 합니다.
+     ⚠️ 여기서는 **값만** 봅니다. 이 하네스는 그림을 안 받아 두어(hasDayPrepAsset 이
+        false) 익힘 그림 다섯 장이 아예 안 깔립니다. 그림이 자루별로 갈아 끼워지는지는
+        tools/e5-skewer-cook-visual-smoke.html 이 진짜 에셋으로 봅니다. */
+  placeTwoSideUnit(skewerCookMini,0);
+  raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0],2);
+  assert(skewerCookMini.data.units[0].cookStep===2&&skewerUnit.cookStep===0,"E5 doneness is per skewer, not shared");
+  // 양념 신호 : 그 자루를 클릭하면 붓이 들어오고 자루에 윤기가 남습니다
+  skewerUnit.stepIndex=3;                                // 자루 한 벌의 네 번째 할 일 = 양념
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 sauce cue lights the skewer being finished");
+  pressTwoSideCue(skewerCookMini,1);
+  assert(skewerUnit.done&&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 clicking the sauce cue brings in the basting brush and finishes that skewer");
+  /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
+     담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
+  assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");
+  serveTwoSideUnit(skewerCookMini,1);
+  assert(skewerUnit.served&&skewerUnit.slot===null&&twoSideDone(skewerCookMini.data)===1
+    &&dom.miniContent.querySelectorAll(".ts-serve-stack .ts-served").length===1
+    &&dom.miniContent.querySelector(".ts-serve-plate.filled"),"E5 dragging a finished skewer to the plate counts it and frees the grill seat");
+  finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.units.forEach(unit=>{unit.done=true;unit.served=true;});
+  finishTwoSideCook(skewerCookMini);
   assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
 
   assert(fryStageAt(1)==="under"&&fryStageAt(FRY_COOK.underUntil)==="cooked"&&fryStageAt(FRY_COOK.cookedUntil)==="burnt"&&FRY_COOK.cookedUntil-FRY_COOK.underUntil>=4,"E6 three doneness stages with a wide enough window to lift");
@@ -332,14 +443,16 @@ try{
   MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
   // 하단 공용 띠(.mg-strip)를 쓰지 않는 화면입니다 — 띠가 다시 생기면 3열 세로가 613.2 에서 잘립니다
   assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen: five raw items, oil pot, rack, and no bottom strip");
-  dropFryPiece();dropFryPiece();dropFryPiece();
-  assert(fryMini.data.pot.length===FRY_COOK.potLimit&&fryMini.data.raw===2&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===3,"E6 oil pot holds three at a time");
+  for(let i=0;i<5;i++)dropFryPiece();
+  assert(FRY_COOK.potLimit===5&&FRY_POT_SEATS.length===FRY_COOK.potLimit&&fryMini.data.pot.length===5&&fryMini.data.raw===0&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===5,"E6 oil pot holds the whole batch of five at a time");
+  // 기본 자리는 전부 기름 안(FRY_POT_RADIUS)에 있어야 합니다 — 넘으면 쇠테에 걸칩니다
+  assert(FRY_POT_SEATS.every(seat=>Math.hypot(seat.x-50,seat.y-50)<=FRY_POT_RADIUS),"E6 every default pot seat sits inside the oil");
   for(let frame=0;frame<120;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="under"),"E6 pieces start undercooked");
   for(let frame=0;frame<180;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="cooked"),"E6 pieces turn cooked while they sit in the oil");
   liftFryPiece(fryMini.data.pot[0].id);
-  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&fryMini.data.pot.length===2&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 lifting a cooked piece moves it to the rack");
+  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&fryMini.data.pot.length===4&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 lifting a cooked piece moves it to the rack");
   // 남겨 두면 탑니다. 탄 것도 망에 올라가야 진행이 막히지 않습니다.
   for(let frame=0;frame<360;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&liftFryPiece(fryMini.data.pot[0].id)&&fryMini.data.done[1].stage==="burnt","E6 pieces burn if left in the oil and can still be lifted");
@@ -455,7 +568,7 @@ try{
   [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
   assert(state.mini.data.cleaned===1&&anchovyHead.closest(".anchovy").classList.contains("torn")&&anchovyHead.closest(".anchovy").style.getPropertyValue("--tear-x").includes("-38"),`E10 pointer tug completes outward and leaves one head beside the body: cleaned=${state.mini.data.cleaned}, classes=${anchovyHead.closest(".anchovy").className}`);
   MINI_ENGINES.anchovy.update(state.mini,25);
-  assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector("#anchovyRetry"),"E10 anchovy time limit and retry flow");
+  assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector(".anchovy-timeout")&&!dom.miniContent.querySelector(".anchovy-timeout button"),"E10 anchovy time over ends the task with no retry button");
   assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
   assert(ONE_SHOT_VARIANTS.place.finishDelay>ONE_SHOT_VARIANTS.drop.finishDelay&&ONE_SHOT_VARIANTS.pour.pourDuration===900,"E11 place, drop, and pour variants share input but keep separate finish timing");
   assert(!ONE_SHOT_VESSELS.pot&&!ONE_SHOT_PIECES.broth&&typeof showOdenIngredientDrop==="undefined"&&typeof setupOdenBroth==="undefined","E11 oden pot drop and broth pour are removed");
@@ -500,7 +613,7 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 99";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 100";
 }catch(error){
   if(error.message==="E1_PATH_TEST_COMPLETE"){document.title="E1_PATH_LOGIC_OK";document.body.textContent="E1_PATH_LOGIC_OK";}
   else{document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}

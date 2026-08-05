@@ -376,19 +376,6 @@
 }
 .anchovy-timeout strong { color: #ff725f; font-size: calc(29 * var(--upx)); letter-spacing: .08em; }
 .anchovy-timeout span { color: #d9c39a; font-size: calc(17 * var(--upx)); font-weight: 800; }
-.anchovy-timeout button {
-  margin-top: calc(6 * var(--upx));
-  padding: calc(9 * var(--upx)) calc(24 * var(--upx));
-  border: 2px solid #ddaa55;
-  border-radius: calc(7 * var(--upx));
-  background: linear-gradient(#8e4a22,#5f2d16);
-  color: #fff2c9;
-  font: inherit;
-  font-size: calc(16 * var(--upx));
-  font-weight: 900;
-  cursor: pointer;
-}
-.anchovy-timeout button:hover { filter: brightness(1.14); }
 
 @keyframes anchovy-time-warning { to { opacity: .58; transform: scale(1.04); } }
 @keyframes anchovy-body-resist {

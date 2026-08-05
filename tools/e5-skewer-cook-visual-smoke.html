@@ -54,31 +54,103 @@
   <script src="mini-engine.js"></script>
   <script src="day-prep-minigames.js"></script>
   <script src="engine-e5-two-side-cook.js"></script>
+  <!-- ⚠️ 꼬치를 화로로 끌어다 놓는 창구(bindOrderPlacementPointers)가 이 파일에 있습니다.
+       그리고 **index.html 과 같은 순서(E5 → E8)** 로 읽어야 합니다 — 두 파일에 같은 이름의
+       함수가 있어서, 순서를 뒤집으면 게임과 다른 쪽이 이깁니다(engine-e5 의
+       twoSideSkewerCardMarkup 주석 참고). -->
+  <script src="engine-e8-order-place.js"></script>
   <script>
     "use strict";
     /* 보려는 것 : 숯불 화로가 **정면 탑뷰**(바로 위에서 내려다보는 각)로 보이는가,
        꼬치 3개가 석쇠 위에 나란히 놓이고 손잡이가 한쪽으로 삐져나오는가.
 
-       ?phase=cook|skewerFlip     단계 (기본 cook)
-       ?marker=0..1               익힘 게이지 위치
-       ?flipped=0..3              뒤집어 놓은 꼬치 개수
-       ?side=0|1                  앞면(0) / 뒷면(1) */
+       그리고 **낮에 꽂은 배치 그대로** 구워지는가 (state.skewerPrep.patterns).
+
+       ⚠️ 예전에는 `?marker`(익힘 게이지 위치)로 익힘 단계를 정했습니다. 게이지가
+          없어지고 **몇 번째 장인지를 unit.cookStep 이 직접** 들고 있게 바뀌어서,
+          이제 ?step 하나가 그 자리를 대신합니다.
+
+       ⚠️ 꼬치는 이제 **플레이어가 하나씩 화로에 올립니다.** ?placed 로 몇 자루가
+          올라가 있는지 정합니다 — 0 이면 화로가 비고 재료 칸에 3자루가 그대로 섭니다.
+
+       ?placed=0..3               화로에 올려 둔 꼬치 개수 (기본 3)
+       ?step=0..4                 익힘 단계 (0 안 익음 … 4 탐)
+       ?flipped=0..3              굴려 놓은 꼬치 개수
+       ?unit=0..2                 신호·양념이 걸리는 자루
+       ?cue=cook|flip|sauce       신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음)
+       ?sauced=0..3               양념을 다 바른 꼬치 개수
+       ?served=0..3               완성 칸(접시)에 담아 둔 꼬치 개수
+       ?ready=1                   화로 위 첫 자루를 "다 구워서 옮길 수 있는" 상태로
+       ?patterns=cgcgc,ccggc,...  낮에 꽂은 배치 (c 닭고기 · g 대파). 없으면 꽂기를
+                                  건너뛴 것으로 보고 engine-e5 의 기본 배치가 나옵니다. */
     const params = new URLSearchParams(location.search);
-    const phase   = params.get("phase") || "cook";
-    const marker  = Math.max(0, Math.min(1, Number(params.get("marker") ?? .76)));
+    const step    = params.has("step") ? Number(params.get("step")) : 2;
+    const placed  = params.has("placed") ? Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("placed")))) : SKEWER_BATCH_SIZE;
     const flipped = Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("flipped")) || 0));
-    const side    = params.get("side") === "1" ? 1 : 0;
+    const unit    = Math.max(0, Math.min(SKEWER_BATCH_SIZE - 1, Number(params.get("unit")) || 0));
+    const sauced  = Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("sauced")) || 0));
+    const served  = Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("served")) || 0));
+    const ready   = params.get("ready") === "1";
+    const cue     = params.get("cue") || "";
+    const patterns = (params.get("patterns") || "").split(",").filter(Boolean)
+      .map(word => [...word].map(letter => letter === "g" ? "greenOnion" : "chicken"));
+    if (patterns.length) state.skewerPrep = { patterns };
 
     loadDayPrepAssets().then(() => {
+      /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
+         적으면 판 구조가 바뀔 때 하네스만 조용히 옛 모양으로 남습니다.
+         할 일 목록은 자루마다 네 개(굽기 · 뒤집기 · 굽기 · 양념)이고 **자루마다 따로** 돕니다. */
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
-        data:{ phase, side, marker, dir:1, speed:.23, hits:[], dishStyle:"skewer",
-               flipErrors:0, cookErrors:0, timeLimit:26,
-               flippedSkewers:flipped, flipStep:0, flipWindow:0 }
+        data:createTwoSideData("skewer",{timeLimit:58})
       };
+      const data = state.mini.data;
+      const offset = { cook:0, flip:1, sauce:3 }[cue] ?? 0;
+      /* 담아 둔 자루는 **뒤에서부터** 셉니다 — 화로에는 앞 자루가 남아 있는 그림이라야
+         "굽는 중 + 담은 것" 이 한 화면에 같이 보입니다. */
+      const servedFrom = SKEWER_BATCH_SIZE - served;
+      data.units.forEach((one, index) => {
+        one.served = index >= servedFrom;
+        if(one.served){ one.done = true; one.placed = true; one.slot = null; one.cookStep = 2; return; }
+        one.placed = index < placed;
+        // slot 은 화로의 **자리 번호**입니다 (자루 번호와 별개) — 안 채우면 화로가 빕니다
+        one.slot = one.placed ? index : null;
+        if(!one.placed) return;
+        one.cookStep = step;
+        one.flips = index < flipped ? 1 : 0;
+        one.stepIndex = offset;
+        one.phase = (cue && index === unit) ? "cue" : "wait";
+        one.cueTimer = (cue && index === unit) ? TWO_SIDE_CUE[cue].window : 1;
+      });
       dom.miniTitle.textContent = "닭꼬치 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.skewer.subtitle;
+      // 아래 TIP 띠는 setup 이 채웁니다. 하네스는 setup 을 안 거치므로 같은 줄을 여기서 넣습니다.
+      setMiniTipHint?.("드래그 : 꼬치 올리기 · 클릭 : 굽기·양념 · 드래그 : 굴려 뒤집기");
       renderTwoSideCook();
+      // 양념을 바른 자루 (실제로는 붓이 지나간 뒤에 붙는 클래스입니다)
+      document.querySelectorAll(".cook-food .grill-skewer").forEach((skewer, index) => {
+        if(index < sauced) skewer.classList.add("sauced");
+      });
+      /* 다 구워서 옮길 수 있는 자루. 실제로는 finishTwoSideUnit 이 0.52초 뒤에 붙이는
+         클래스라, 헤드리스에서는 같은 클래스를 여기서 직접 세워 둡니다. */
+      if(ready && placed){
+        const first = data.units.find(one => one.placed && !one.served);
+        if(first){
+          first.done = true; first.phase = "done"; first.cookStep = 2;
+          const element = twoSideTargetElement(data, first);
+          element?.classList.add("unit-done", "ready-to-serve");
+          element?.setAttribute("data-ts-serve", String(first.index));
+          bindTwoSideServePointers();
+          updateTwoSideHint(data);
+        }
+      }
+      // 신호 불빛은 openTwoSideCue 가 켜는 클래스입니다. 헤드리스에는 시간이 안 흐르니
+      // 같은 클래스를 여기서 직접 세워 둡니다 (실제 화면과 같은 모습입니다).
+      if(cue && unit < placed){
+        const target = twoSideTargetElement(data, twoSideUnit(data, unit));
+        target?.style.setProperty("--cue-left", "1");
+        target?.classList.add("cue-on", `cue-${cue}`);
+      }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
 
@@ -90,6 +162,28 @@
       const boardRect = rect(board), grillRect = rect(grill);
       document.body.dataset.measure = JSON.stringify({
         board:box(board), grill:box(grill),
+        /* 오른쪽 칸(진행도 · 참고 모양). 카드 안의 것이 카드 밖으로 나가면 안 됩니다 —
+           spill 이 **양수면 삐져나온 것**입니다 (단위: 화면 px). */
+        rightCol:(() => {
+          const col = document.querySelectorAll(".ts-scene .ts-col")[1];
+          if (!col) return null;
+          const colRect = rect(col);
+          return {
+            col:box(col),
+            colSpill:+(colRect.bottom - rect(document.querySelector(".ts-scene")).bottom).toFixed(1),
+            cards:[...col.querySelectorAll(".ts-panel")].map(card => {
+              const cardRect = rect(card);
+              const kids = [...card.children];
+              const worst = kids.reduce((most, kid) => {
+                const r = rect(kid);
+                return Math.max(most, r.bottom - cardRect.bottom, cardRect.top - r.top,
+                                r.right - cardRect.right, cardRect.left - r.left);
+              }, -999);
+              return { name:card.className.split(" ").filter(c => c !== "ts-panel").join("."),
+                       box:box(card), spill:+worst.toFixed(1) };
+            })
+          };
+        })(),
         // 화로가 칸 밖으로 넘치면 안 됩니다 (음수 = 여유)
         spill:{
           top:+(boardRect.top - grillRect.top).toFixed(1),
@@ -97,9 +191,78 @@
           left:+(boardRect.left - grillRect.left).toFixed(1),
           right:+(grillRect.right - boardRect.right).toFixed(1)
         },
-        skewers:[...document.querySelectorAll(".grill-skewer")].map(s => {
+        // 숯불 바닥이 칸 가로를 얼마나 채우는가 (1 에 가까울수록 꽉 찬 것)
+        grillFill:+(grillRect.width / boardRect.width).toFixed(3),
+        /* 왼쪽 재료 카드. **낮에 꽂은 배치 그대로**여야 합니다 — 화로 위 꼬치와 같은
+           그림·같은 쌓기를 쓰되 익힘 단계만 빼고 올립니다 (engine-e5 의
+           skewerIngredientArtMarkup). pattern 이 아래 skewers 와 같아야 맞습니다. */
+        ingCard:(() => {
+          const wrap = document.querySelector(".ts-ing-skewers");
+          if (!wrap) return { art:false };
+          // 다 올렸으면 카드가 비어 있는 것이 정상입니다 (?placed 로 남겨 두고 재세요)
+          if (!wrap.querySelector(".grill-skewer")) return { art:true, empty:true };
+          const card = rect(document.querySelector(".ts-ing-card.skewerRaw"));
+          const wrapRect = rect(wrap);
+          return { art:true,
+            card:box(document.querySelector(".ts-ing-card.skewerRaw")),
+            stack:box(wrap),
+            // 카드 밖으로 넘치면 안 됩니다 (음수 = 여유)
+            spill:{ top:+(card.top - wrapRect.top).toFixed(1), bottom:+(wrapRect.bottom - card.bottom).toFixed(1),
+                    left:+(card.left - wrapRect.left).toFixed(1), right:+(wrapRect.right - card.right).toFixed(1) },
+            skewers:[...wrap.querySelectorAll(".grill-skewer")].map(s => {
+              const rod = rect(s.querySelector(".gs-rod"));
+              const stack = rect(s.querySelector(".gs-pieces"));
+              return { pattern:[...s.querySelectorAll(".gs-piece")].map(p => p.classList.contains("greenOnion") ? "g" : "c").reverse().join(""),
+                       box:box(s), rodW:rod ? +rod.width.toFixed(1) : 0,
+                       // 꼬챙이가 조각 아래로 보이는 길이 (0 이면 손잡이가 안 보입니다)
+                       rodBelow:rod && stack ? +(rod.bottom - stack.bottom).toFixed(1) : 0,
+                       // 익힘 그림이 섞여 들어오면 안 됩니다 (재료 칸은 늘 안 익은 상태)
+                       cookFrames:s.querySelectorAll(".gs-piece.has-cook-art").length };
+            }) };
+        })(),
+        /* 화로 그림 5장(assets/minigame/E5/yakitori/fix_charcoal_grill_fire_*).
+           art:false 면 그림을 못 찾아 예전 CSS 화로(숯덩이 126개)로 떨어진 것입니다. */
+        grillArt:(() => {
+          const art = document.querySelector(".charcoal-grill-art");
+          if (!art) return { art:false, coals:document.querySelectorAll(".charcoal-bed > i").length };
+          const frames = [...art.querySelectorAll(".cg-frame")];
+          const first = rect(frames[0]);
+          return { art:true, frames:frames.length,
+                   // 다섯 장이 화로 상자를 그대로 덮는지 (그림 비율이 상자와 같아야 합니다)
+                   frameBox:first ? `${first.width.toFixed(1)}x${first.height.toFixed(1)}` : "없음",
+                   // 임시 화로가 같이 남아 있으면 숯 위에 숯이 깔립니다
+                   leftoverCoals:document.querySelectorAll(".charcoal-bed > i").length,
+                   leftoverFlames:document.querySelectorAll(".charcoal-flame").length };
+        })(),
+        /* 익힘 단계 (assets/minigame/E5/yakitori/ 5장). 켜진 장수가 곧 단계+1 이고,
+           마지막으로 켜진 장의 파일 이름이 지금 보이는 그림입니다. */
+        cook:(() => {
+          const piece = document.querySelector(".cook-food .gs-piece.has-cook-art");
+          const shown = twoSideUnit(state.mini.data, 0)?.cookStep ?? 0;
+          if (!piece) return { art:false, step:shown };
+          const frames = [...piece.querySelectorAll(".gs-piece-asset")];
+          const on = frames.filter(f => f.classList.contains("on"));
+          const box = rect(piece), art = rect(on[on.length - 1]);
+          return { art:true, step:shown, frames:frames.length, on:on.length,
+                   shows:on.length ? on[on.length - 1].src.split("/").pop() : "없음",
+                   // 다섯 장이 한 자리에 겹치는지 (상자와 그림 크기가 장마다 같아야 합니다)
+                   piece:`${box.width.toFixed(1)}x${box.height.toFixed(1)}`,
+                   drawn:art ? `${art.width.toFixed(1)}x${art.height.toFixed(1)}` : "없음" };
+        })(),
+        /* ⚠️ `.cook-food` 안으로 좁혀서 셉니다. 왼쪽 재료 카드에도 같은 클래스로
+           꼬치 3자루가 서 있어서(ingCard) 그냥 세면 그쪽이 먼저 잡힙니다. */
+        skewers:[...document.querySelectorAll(".cook-food .grill-skewer")].map(s => {
           const r = rect(s);
+          const pieces = [...s.querySelectorAll(".gs-piece")];
+          const stack = rect(s.querySelector(".gs-pieces"));
+          const rod = rect(s.querySelector(".gs-rod"));
           return { box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
+                   // 낮에 꽂은 순서 그대로인지 (아래→위 순서로 되돌려 읽습니다)
+                   pattern:pieces.map(p => p.classList.contains("greenOnion") ? "g" : "c").reverse().join(""),
+                   stack:stack ? `${stack.width.toFixed(1)}x${stack.height.toFixed(1)}` : "없음",
+                   rodW:rod ? +rod.width.toFixed(1) : 0,
+                   // 조각이 상자(손잡이 자리 제외) 안에 들어가는지 (음수 = 넘침)
+                   stackRoom:stack ? +(r.bottom - stack.bottom).toFixed(1) : 0,
                    // 꼬치가 화로 안에 있는지 (음수 = 밖으로 나감)
                    inLeft:+(r.left - grillRect.left).toFixed(1),
                    inRight:+(grillRect.right - r.right).toFixed(1),

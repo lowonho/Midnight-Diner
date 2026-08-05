@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>E13_FRIDGE_FIND_PENDING</title>
+<body>E13_FRIDGE_FIND_PENDING</body>
+<script>
+/* 엔진만 떼어 규칙을 봅니다(화면 없음).
+   shuffle 은 game.js 것이라 여기서 대신 채웁니다. 순서만 바꾸고 내용은
+   그대로여야 하므로 **자리 바꾸기**로 만듭니다 — 게임의 진짜 shuffle 과 같은
+   성질입니다. 씨앗을 고정해 실행마다 같은 판이 나오게 합니다. */
+let seed=20260806;
+const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
+const shuffle=items=>{
+  const copy=[...items];
+  for(let index=copy.length-1;index>0;index-=1){
+    const swap=Math.floor(random()*(index+1));
+    [copy[index],copy[swap]]=[copy[swap],copy[index]];
+  }
+  return copy;
+};
+</script>
+<script src="../engine-e13-fridge-find.js"></script>
+<script>
+try{
+  const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+  const required=["fishCake","radish","greenOnion","tofu"];
+  const fillers=["onion","egg","squid","kelp","corn","beef"];
+
+  const progress=e13CreateProgress(required,fillers);
+  assert(progress.slots.length===24,"24 slots");
+  assert(required.every(id=>progress.slots.filter(slot=>slot===id).length===1),"each required ingredient appears exactly once");
+  assert(!progress.slots.includes(null),"no empty slot at the start");
+  assert(progress.slots.some(id=>fillers.includes(id)),"fillers pad the rest");
+  assert(new Set(progress.slots).size>required.length,"slots are not only the required ingredients");
+
+  // 칸 자리: 5번째 열은 가운데 기둥, 짝수 행은 선반이라 둘 다 건너뜁니다.
+  assert(e13SlotCell(0).column===1&&e13SlotCell(0).row===1&&e13SlotCell(0).side==="left","first slot sits top-left");
+  assert(e13SlotCell(4).column===6&&e13SlotCell(4).side==="right","fifth slot skips the middle pillar");
+  assert(e13SlotCell(8).row===3,"second shelf row skips the shelf itself");
+  assert(e13SlotCell(23).column===9&&e13SlotCell(23).row===5,"last slot sits bottom-right");
+  assert(new Set(Array.from({length:24},(_,index)=>{const cell=e13SlotCell(index);return `${cell.row}:${cell.column}`})).size===24,"every slot has its own cell");
+
+  // 필요한 재료를 누르면 칸이 비고, 아닌 것은 안내만
+  const target=progress.slots.indexOf(required[0]);
+  let pick=e13Pick(progress,target);
+  assert(pick.result==="found"&&pick.id===required[0],"required ingredient is collected");
+  assert(progress.slots[target]===null,"picked slot becomes empty");
+  assert(e13Pick(progress,target).result==="empty","empty slot does nothing");
+  const wrongIndex=progress.slots.findIndex(id=>id&&!required.includes(id));
+  const beforePenalty=progress.elapsed;
+  pick=e13Pick(progress,wrongIndex);
+  assert(pick.result==="wrong"&&progress.slots[wrongIndex]!==null&&progress.misses===1,"wrong pick stays in the fridge");
+  assert(pick.penalty===3&&progress.elapsed===beforePenalty+3,"wrong pick adds three seconds to the clock");
+  assert(!e13Complete(progress)&&e13RemainingIds(progress).length===3,"three ingredients left");
+
+  required.slice(1).forEach(id=>e13Pick(progress,progress.slots.indexOf(id)));
+  assert(e13Complete(progress),"finding every ingredient completes the round");
+
+  // 걸린 시간은 기록입니다 — 완료 뒤에는 멈춥니다
+  const timed=e13CreateProgress(required,fillers);
+  assert(e13Tick(timed,1.5)&&e13TimeText(timed.elapsed)==="1.5초","elapsed time counts up in seconds (E10 멸치와 같은 표기)");
+  timed.elapsed=61.24;assert(e13TimeText(timed.elapsed)==="61.2초","one decimal, no minutes");
+  required.forEach(id=>e13Pick(timed,timed.slots.indexOf(id)));
+  assert(!e13Tick(timed,1),"timer stops once the round is complete");
+
+  // 세이브 되돌리기 : 형태가 어긋나면(옛 정렬 퍼즐 포함) 새 판으로
+  const saved=e13CreateProgress(required,fillers);
+  e13Pick(saved,saved.slots.indexOf(required[0]));
+  const restored=e13NormalizeProgress(JSON.parse(JSON.stringify(saved)),required,fillers);
+  assert(restored.found.join()===required[0]&&restored.slots.filter(Boolean).length===23,"valid save is kept as is");
+  const legacy=e13NormalizeProgress({shelves:[[ "radish" ]],picked:["radish"]},required,fillers);
+  assert(legacy.found.length===0&&legacy.slots.length===24,"old sorting-puzzle save falls back to a fresh fridge");
+  const menuChanged=e13NormalizeProgress(saved,["cabbage","carrot"],fillers);
+  assert(menuChanged.found.length===0&&["cabbage","carrot"].every(id=>menuChanged.slots.includes(id)),"changed menu refills the fridge");
+
+  document.title="E13_FRIDGE_FIND_OK";document.body.textContent="E13_FRIDGE_FIND_OK";
+}catch(error){
+  document.title="E13_FRIDGE_FIND_FAIL";
+  document.body.textContent=`E13_FRIDGE_FIND_FAIL ${error.stack||error}`;
+}
+</script>

@@ -1,166 +1,531 @@
-.ingredient-select-overlay {
-  z-index: 35;
-  padding: calc(28 * var(--upx));
-  background: rgba(8,5,3,.88);
+/* ============================================================
+   냉장고 재료 찾기 (E13) 화면
+
+   [패널 유형] 미니게임 공용 프레임 + 3열 격자 — 하단 공용 띠(.mg-strip) 없는 유형
+   배치는 E10 멸치 머리 떼기와 같은 벌입니다.
+     좌  A1 613.2   오늘의 요리
+     중  824.2      냉장고 24칸
+     우  C 198.1    완료 개수 + 걸린 시간   ← 멸치는 '남은 시간'
+        A2 403.1    찾아야 할 재료          ← 멸치는 '참고 모양'
+   패널 그림·격자·카드 제목은 css/minigame-parts.css 가 정합니다.
+   여기 남는 것은 냉장고 안쪽과 좌·우 패널 내용물뿐입니다.
+
+   [오버레이가 #miniOverlay 가 아닌 이유]
+   메뉴 선택 직후 · 낮 준비 앞에서 독립적으로 뜨는 단계라 game.js 의 미니게임
+   열고닫기 흐름을 타지 않습니다. 오버레이는 자기 것을 쓰되(#ingredientSelectOverlay)
+   클래스는 공용 프레임과 같은 것을 써서 등장 연출 · 손 그림 커서 · 패널 그림을
+   그대로 물려받습니다.
+
+   [건드릴 때 주의]
+   1. id 는 game.js 의 dom 목록과 ingredient-select.js 가 그대로 씁니다. 바꾸지 마세요.
+   2. 패널 크기는 여기가 아니라 css/minigame-parts.css 의 --mg-* 를 고치세요.
+      A1/A2/C 그림이 크기별 통짜라 값만 바꾸면 그림이 어긋납니다.
+   ============================================================ */
+
+/* ---- 공용 프레임에서 id 로 걸려 있어 못 물려받는 두 줄 -------
+   .mini-title-panel 안쪽은 #miniStation · #miniTitle 로 적혀 있어서
+   이 화면의 부제·제목이 그 규칙을 타지 못합니다. 같은 값으로 한 벌 적습니다. */
+.ingredient-select-overlay .mini-station {
+  order: 2;                 /* 마크업은 제목 위, 화면에서는 제목 아래 */
+  margin: 0;
+  color: var(--cream);
+  font-size: calc(19 * var(--upx));
+  font-weight: 700;
 }
-.ingredient-select-window {
-  width: min(calc(1430 * var(--upx)),97%);
-  max-height: 94%;
-  padding: calc(22 * var(--upx));
-  overflow: auto;
+.ingredient-select-overlay #ingredientSelectTitle {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--gold-bright);
+  font-size: calc(3.6 * var(--mh));
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.ingredient-select-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(20 * var(--upx));
-  margin-bottom: calc(18 * var(--upx));
-  padding: 0 calc(8 * var(--upx));
+
+/* ---- 3열 격자 ------------------------------------------------
+   ⚠️ width/height 100% 는 여기서 줘야 합니다. .mini-content 가
+      align-items:center 인 flex 라, 안 주면 격자가 내용 폭까지 쪼그라들어
+      3열이 가운데로 몰립니다. E4(.heat-scene) · E10 과 같은 방식입니다. */
+.fridge-scene { width: 100%; height: 100%; min-height: 0; }
+
+/* 카드 안쪽 열을 못박습니다. 공용 .fridge-panel 은 열 지정이 없어 기본이
+   내용물의 max-content 라, 안에 든 것이 250 보다 크면 카드가 통째로 벌어지고
+   패널 그림이 늘어나 찌그러집니다(.anchovy-card 와 같은 이유).
+
+   ⚠️ 안쪽 여백을 공용값(12 x 10)보다 넉넉히 줍니다. 이 화면은 카드 안에 글이 아니라
+      **그림**이 들어가서, 여백이 얇으면 그림이 패널 그림에 그려진 금테 위로 올라탑니다.
+   ⚠️ overflow:hidden 이 꼭 필요합니다. 재료가 많은 날(메뉴 5개 · 찾을 재료 12개)에는
+      목록이 패널보다 길어지는데, 안 자르면 금테 밖으로 그대로 흘러나옵니다. */
+.fridge-panel {
+  grid-template-columns: minmax(0,1fr);
+  padding: calc(17 * var(--upx)) calc(15 * var(--upx));
+  overflow: hidden;
 }
-.ingredient-select-header h2 { margin: 0; color: #f8d995; font-size: calc(31 * var(--upx)); }
-.ingredient-select-header p:not(.eyebrow) { margin: calc(5 * var(--upx)) 0 0; color: #d9c5a5; }
-.ingredient-dish-progress {
-  flex: 0 0 auto;
-  padding: calc(8 * var(--upx)) calc(15 * var(--upx));
-  border: 1px solid #a87437;
-  border-radius: calc(18 * var(--upx));
-  background: #170e09;
-  color: #f2c86f;
+
+.fridge-right {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  grid-template-columns: minmax(0,1fr);
+  gap: var(--mg-col-gap);
+}
+
+/* ---- 좌 : 오늘의 요리 (A1 613.2) -----------------------------
+   메뉴 개수는 날마다 2~5개입니다. 카드가 남는 자리를 **고르게 나눠** 갖습니다.
+   ⚠️ minmax(0,1fr) 이라야 5장일 때 카드가 같이 줄어 패널 안에 들어옵니다.
+      auto 나 고정 높이로 두면 마지막 장이 금테 밖으로 밀려납니다. */
+.fridge-dish-list {
+  flex: 1;
+  display: grid;
+  grid-auto-rows: minmax(0,1fr);
+  gap: var(--mg-ing-list-gap);
+  min-height: 0;
+  overflow: hidden;
+}
+/* 카드 한 장에 요리 그림 하나. 이름표는 없앴습니다 — 그림만 봐도 무슨 요리인지
+   알 수 있고, 이름이 빠진 만큼 그림이 커집니다(이름은 aria-label · title 로 남습니다).
+   [크기] 카드 그림(B 139.1) 안쪽 여백을 빼고 남는 자리를 그림이 전부 씁니다.
+   원화가 가로로 넓어 contain 으로 넣으면 대개 폭에 맞춰 들어갑니다. */
+.fridge-dish {
+  display: grid;
+  place-items: center;
+  /* [높이] 칸이 작으면 칸에 맞추고, 칸이 크면 150 에서 멈춘 뒤 **가운데**에 섭니다.
+     ⚠️ max-height 로만 잡으면 안 됩니다 — 그러면 카드 높이가 "내용물 기준"이 되는데
+        안쪽 그림이 height:100% 라 기댈 곳이 없어져 카드가 여백만 남기고 접힙니다.
+        min(100%, …) 로 **높이를 명시**해야 그림도 같이 살아납니다.
+     ⚠️ 늘어나게 두면 안 됩니다 — 카드 배경이 통짜 그림(B 139.1)이라
+        요리를 하나만 고른 날 세로로 쭉 늘어나 액자가 찌그러집니다. */
+  align-self: center;
+  height: min(100%,calc(150 * var(--upx)));
+  min-height: 0;
+  /* 안쪽 그림 크기를 칸에서 재려면 이 카드가 크기 컨테이너여야 합니다.
+     ⚠️ 그림에 %(height:82%)를 주면 안 됩니다 — 카드 높이가 min(100%,…) 이라
+        브라우저가 "정해진 높이"로 안 쳐서 % 가 풀리지 않고, 그림이 제 원본 비율대로
+        커져 **검은 액자 밖으로 삐져나옵니다**(실측 93 칸에 79). cqw/cqh 는 항상 풀립니다. */
+  container-type: size;
+  padding: calc(9 * var(--upx)) calc(8 * var(--upx));
+  border: 2px solid transparent;
+  border-radius: calc(9 * var(--upx));
+  background: var(--mg-art-b-139) center / 100% 100% no-repeat, #241610;
+  background-origin: border-box;
+  background-clip: border-box;
+}
+/* 그림이 카드를 그대로 채웁니다.
+   2026-08-06 에 요리 원화 24장의 투명 여백을 잘라내면서(전부 264x152 였습니다)
+   여기서 여백을 밀어내려고 상자를 118% 로 키워 두었던 것을 되돌렸습니다. */
+/* 요리 그림은 카드 안쪽에서 **한 뼘 작게** 놓습니다.
+   카드 배경(B 139.1)에 금테가 얇게 그려져 있어서, 그림을 안쪽 여백까지 꽉 채우면
+   금테 위로 올라타 "칸 밖으로 삐져나온" 것처럼 보입니다. */
+.fridge-dish img {
+  width: 84cqw;
+  height: 84cqh;
+  object-fit: contain;
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5));
+}
+
+/* ---- 중 : 냉장고 ---------------------------------------------
+   [왜 100% 100% 로 늘려 까나]
+   그림은 3215x2001(1.607)이고 플레이 칸은 824.2x613.2(1.344)입니다.
+   "가운데 칸을 꽉 채운다"가 요구사항이라 비율을 맞추지 않고 늘립니다.
+   칸 자리(.fridge-slots)를 전부 % 로 잡아 두었기 때문에 얼마를 늘리든
+   24칸이 그림 속 선반과 같이 움직입니다 — 값을 바꿔도 다시 안 재도 됩니다.
+   비율 그대로 넣고 싶어지면 background-size 를 contain 으로 바꾸고
+   .fridge-cabinet 에 aspect-ratio: 3215/2001 을 주면 됩니다(위아래가 남습니다). */
+.fridge-play { display: grid; min-width: 0; min-height: 0; }
+.fridge-cabinet {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: url("../assets/minigame/E13/fix_fridge_open_empty_lit_no_vertical_dividers.png") center / 100% 100% no-repeat;
+}
+
+/* ── 24칸 자리 ────────────────────────────────────────────────
+   냉장고 그림(3165x2033)에 **칸 구분(세로 칸막이)이 없습니다.** 그래서 맞출 것은
+   두 가지뿐입니다 — 선반 **높이**와 옆 재료와의 **간격**.
+   아래 값은 그림의 선반·벽을 밝기 경계로 실측한 것입니다(그림 대비 %).
+
+     안쪽 벽 x   왼칸 10.71 ~ 48.21 ┃ 가운데 기둥 3.99 ┃ 오른칸 52.20 ~ 88.66
+     선반   y   13.23 → 31.58 / 33.45 → 53.71 / 55.83 → 75.50
+
+   간격은 한쪽 칸을 넷으로 **똑같이** 나눠 만듭니다(칸막이가 없으니 원근 보정이
+   필요 없습니다). 왼칸 12.027% x 4 · 오른칸 11.693% x 4 로 살짝 다른 것은
+   그림에서 두 칸의 안쪽 폭이 1% 쯤 다르기 때문입니다.
+
+   ⚠️ 격자에 **선반 두께(2행·4행)와 가운데 기둥(5열)이 빈 줄로 들어 있습니다.**
+      칸은 engine-e13-fridge-find.js 의 e13SlotCell 이 준 자리에 직접 앉습니다.
+   ⚠️ 그림을 새로 받으면 위 숫자를 다시 재세요(가로/세로 밝기 gradient 봉우리). */
+.fridge-slots {
+  position: absolute;
+  top: 13.23%;
+  right: 11.34%;
+  bottom: 24.5%;
+  left: 10.71%;
+  display: grid;
+  grid-template-columns: repeat(4,12.027%) 5.12% repeat(4,11.693%);
+  grid-template-rows: 29.47% 3.00% 32.54% 3.40% 31.59%;
+}
+.fridge-slot {
+  position: relative;
+  /* 눕혀 놓는 재료가 칸의 **높이**를 기준으로 크기를 잡습니다(아래 .laid 의 cqh/cqw).
+     그래서 칸 자체가 크기 컨테이너여야 합니다. 칸 크기는 위 격자가 정하므로
+     내용물이 크기를 되밀 일이 없어 안전합니다. */
+  container-type: size;
+  display: grid;
+  /* 아래 정렬입니다 — 재료는 선반 위에 "놓여" 있어야 합니다.
+     가운데 정렬로 두면 납작한 재료(어묵 · 다시마)가 칸 한가운데에 떠 보입니다. */
+  place-items: end center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* 재료마다 조금씩 다르게 앉힙니다(칸 번호에서 뽑은 고정값 — 다시 그려도 안 흔들립니다) */
+  transform: translateX(var(--slot-shift,0)) scale(var(--slot-scale,1));
+  transition: transform .14s ease, filter .14s ease;
+}
+.fridge-slot.empty { pointer-events: none; }
+/* 크기는 칸이 아니라 **재료 실물 크기**를 따릅니다.
+   --art-size 는 ingredient-select.js 의 재료 표가 정합니다(1 = 두부 한 모쯤).
+   1 보다 큰 재료(배추·무·대파…)는 칸 밖으로 넘칩니다 — 칸막이가 없는 냉장고라
+   옆 재료와 겹쳐도 아무렇게나 넣어 둔 것처럼 보입니다. */
+.fridge-art {
+  width: calc(96% * var(--art-size,1));
+  height: calc(98% * var(--art-size,1));
+  object-fit: contain;
+  object-position: 50% 100%;   /* 그림 안에서도 아래를 기준으로 앉힙니다 */
+  filter: drop-shadow(0 calc(5 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.55));
+}
+
+/* ── 비스듬히 눕혀 놓는 재료 ──────────────────────────────────
+   무 · 대파 · 통김치 · 닭고기 · 멸치처럼 **원화가 눕혀 그려진** 재료입니다
+   (가로:세로가 2 이상). 그대로 두면 좁은 칸(76 x 110)에서 손톱만 해지고,
+   90도로 세우면 김치와 생선이 차렷 자세로 서 있어 우스꽝스럽습니다.
+   40~50도로 눕혀 아무렇게나 넣어 둔 것처럼 보이게 합니다.
+   기울기(--art-turn)는 칸마다 다르고 방향도 절반씩 갈립니다
+   (ingredient-select.js 의 ingredientSlotPose). 재료 표의 `long:true` 가 이 규칙을 켭니다.
+
+   [상자를 가로·세로 바꿔 잡는 방법]
+   돌리기(transform)는 **레이아웃 상자를 안 바꿉니다.** 그래서 돌리기 전 상자를
+   미리 뒤집어 잡아야 그림이 칸 크기를 제대로 씁니다. 칸을 크기 컨테이너로 두고
+   (위 .fridge-slot) 돌리기 전 가로에 칸 **높이**(cqh), 세로에 칸 **폭**(cqw)을 줍니다.
+   ⚠️ % 로는 안 됩니다 — 가로 % 는 언제나 부모 **폭** 기준이라 칸이 높아져도
+      그림이 길어지지 않습니다.
+   ⚠️ 이때만 아래 정렬을 풀고 가운데에 둡니다. 눕힌 그림은 상자 밖으로 나가는데,
+      아래 정렬로 두면 그 절반이 선반 아래로 삐져나옵니다.
+
+   [옆 칸과 겹치는 것은 괜찮습니다] 냉장고 그림에 칸막이가 없어서, 45도로 누우면
+   대각선으로 옆 칸에 조금 걸칩니다. 겹친 부분도 **자기 그림 위**를 누르면 자기가
+   잡힙니다(그림이 버튼의 자식이라 넘쳐도 그대로 클릭을 받습니다). */
+/* [세로 자리] 눕힌 그림은 상자 **가운데**에 놓입니다. 그런데 45도로 누우면
+   그림이 상자 안에서 대각선만 쓰고 위아래로 여백이 남아, 가운데에 두면
+   선반에서 한 뼘 떠 보입니다("하늘에 둥 떠 있다"). --art-drop 만큼 더 내려
+   선반에 닿게 합니다. 작은 재료일수록 여백이 크니 더 내려야 합니다
+   (멸치 18 · 닭고기 13 · 김치 12 · 무 11 · 대파 0 — 대파는 길어서 그대로가 낫습니다). */
+.fridge-art.laid {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--art-drop,0%));
+  width: calc(95cqh * var(--art-size,1));
+  height: calc(84cqw * var(--art-size,1));
+  object-position: 50% 50%;
+  transform: translate(-50%,-50%) rotate(var(--art-turn,-45deg));
+}
+.fridge-art-emoji { display: grid; place-items: center; font-size: calc(46 * var(--upx)); }
+/* 이름표는 평소엔 숨어 있다가 손을 올리면 뜹니다.
+   24칸에 이름을 전부 깔면 그림보다 글자가 먼저 보여서 "찾는" 재미가 없어집니다.
+   ⚠️ absolute 여야 합니다. 흐름에 두면 숨어 있는 동안에도 한 줄을 차지해
+      그만큼 재료 그림이 작아집니다(칸이 71 x 130 밖에 안 됩니다). */
+.fridge-slot small {
+  position: absolute;
+  bottom: calc(2 * var(--upx));
+  padding: 0 calc(4 * var(--upx));
+  border-radius: calc(4 * var(--upx));
+  background: rgba(20,12,7,.82);
+  color: #f4dfb7;
+  font-size: calc(11 * var(--upx));
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.fridge-slot:hover { transform: translateX(var(--slot-shift,0)) scale(calc(var(--slot-scale,1) * 1.09)) translateY(calc(-5 * var(--upx))); filter: brightness(1.12); }
+.fridge-slot:hover small,
+.fridge-slot:focus-visible small { opacity: 1; }
+.fridge-slot:focus-visible { outline: calc(3 * var(--upx)) solid rgba(255,224,141,.75); outline-offset: calc(-4 * var(--upx)); }
+.fridge-slot:active { filter: brightness(1.2); }
+/* 오늘 안 쓰는 재료를 눌렀을 때 — 실패는 없고 고개만 젓습니다 */
+.fridge-slot.wrong { animation: fridge-slot-wrong .32s ease-out; }
+
+/* 엉뚱한 재료를 눌렀을 때 냉장고 한가운데에 떠오르는 "+3초".
+   재료를 누른 자리가 아니라 **가운데**입니다 — 어디를 눌렀든 눈이 가는 자리라
+   시계를 안 보고 있어도 벌칙이 붙은 걸 바로 압니다. */
+.fridge-penalty {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  color: #ff725f;
+  font-size: calc(54 * var(--upx));
+  font-weight: 900;
+  letter-spacing: .02em;
+  text-shadow: 0 calc(3 * var(--upx)) 0 #3d1008, 0 0 calc(20 * var(--upx)) rgba(255,90,60,.5);
+  transform: translate(-50%,-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+.fridge-penalty.show { animation: fridge-penalty-rise 1s ease-out; }
+@keyframes fridge-penalty-rise {
+  0%   { opacity: 0; transform: translate(-50%,-28%) scale(.7); }
+  18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.14); }
+  32%  { transform: translate(-50%,-50%) scale(1); }
+  74%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%,-96%) scale(1); }
+}
+
+/* 다 찾았을 때 냉장고 위에 뜨는 안내. 잠시 뒤 낮 준비로 넘어갑니다. */
+.fridge-clear {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  gap: calc(6 * var(--upx));
+  padding: calc(20 * var(--upx)) calc(30 * var(--upx));
+  border: calc(3 * var(--upx)) solid #b47a38;
+  border-radius: calc(13 * var(--upx));
+  background: rgba(23,11,5,.94);
+  box-shadow: 0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.55);
+  transform: translate(-50%,-50%);
+  text-align: center;
+  animation: fridge-clear-pop .3s ease-out;
+}
+.fridge-clear strong { color: var(--gold-bright); font-size: calc(28 * var(--upx)); letter-spacing: .06em; }
+.fridge-clear span { color: #d9c39a; font-size: calc(16 * var(--upx)); font-weight: 800; }
+
+/* ---- 우 위 : 완료 개수 · 걸린 시간 (C 198.1) -----------------
+   숫자·간격은 E10 멸치(.anchovy-count / .anchovy-time)와 같은 값입니다. */
+.fridge-count {
+  margin: 0;
+  color: var(--gold-bright);
+  text-align: center;
+  font-size: calc(46 * var(--upx));
+  font-weight: 900;
+  line-height: 1.1;
+}
+.fridge-count b { color: #f2a03c; }
+.fridge-time {
+  margin: calc(12 * var(--upx)) 0 0;
+  padding-top: calc(11 * var(--upx));
+  border-top: 1px solid rgba(232,190,111,.28);
+  display: grid;
+  place-items: center;
+  gap: calc(2 * var(--upx));
+  color: #c9b58d;
+  font-size: calc(14 * var(--upx));
   font-weight: 800;
 }
-.ingredient-select-layout {
+.fridge-time b {
+  color: #f4d58b;
+  font-size: calc(25 * var(--upx));
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+/* 엉뚱한 재료를 눌러 3초가 붙었을 때. 숫자가 갑자기 뛰는 이유를 눈으로 알려 줍니다. */
+.fridge-time.penalty b { animation: fridge-time-penalty .5s ease-out; }
+@keyframes fridge-time-penalty {
+  0%,60% { color: #ff725f; transform: scale(1.12); }
+  100%   { color: #f4d58b; transform: scale(1); }
+}
+
+/* ---- 우 아래 : 찾아야 할 재료 (A2 403.1) ---------------------
+   컨셉 이미지처럼 2열 아이콘 판입니다. 찾은 것은 어두워지고 발자국 도장이 찍힙니다. */
+/* ⚠️ display:grid 를 여기서 직접 켜야 합니다. 공용 카드 껍데기(.fridge-panel)는
+   테두리·배경만 주고 display 는 건드리지 않아서, 이 카드가 **블록**으로 남아 있었습니다.
+   그러면 안쪽 목록의 높이가 정해지지 않아 아래 1fr 줄들이 전부 0 으로 접히고,
+   아이콘이 6px 짜리 실선처럼 보입니다(찾을 재료 8개 중 2개만 보이던 원인). */
+.fridge-goal-card {
   display: grid;
-  grid-template-columns: minmax(calc(230 * var(--upx)),.85fr) minmax(calc(600 * var(--upx)),2.25fr) minmax(calc(220 * var(--upx)),.8fr);
-  gap: calc(17 * var(--upx));
-  min-height: calc(610 * var(--upx));
+  grid-template-rows: auto minmax(0,1fr);
+  min-height: 0;
 }
-.ingredient-recipe-card,.ingredient-basket-card {
-  padding: calc(18 * var(--upx));
-  border: 1px solid #8b5a31;
-  border-radius: calc(8 * var(--upx));
-  background: linear-gradient(rgba(27,16,11,.97),rgba(14,8,6,.98));
-}
-.ingredient-recipe-card { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-.ingredient-recipe-card > span,.ingredient-basket-card > span { color: #c99a55; font-size: calc(13 * var(--upx)); font-weight: 800; letter-spacing: .08em; }
-.ingredient-recipe-card h3 { margin: calc(5 * var(--upx)) 0 calc(12 * var(--upx)); color: #ffe5aa; font-size: calc(27 * var(--upx)); }
-.ingredient-dish-gallery {
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:calc(6 * var(--upx));
-  max-height:calc(150 * var(--upx));
-  margin-bottom: calc(16 * var(--upx));
-  padding-right:calc(3 * var(--upx));
-  overflow:auto;
-}
-.ingredient-dish-gallery > span {
-  position:relative;
-  display:grid;
-  place-items:center;
-  min-height:calc(70 * var(--upx));
-  border: 1px solid #684329;
-  border-radius: calc(6 * var(--upx));
-  background: radial-gradient(circle,#6d4a2e 0,#24150e 68%);
+/* 찾을 재료는 하루 2~12가지라 줄 수가 1~6줄로 오갑니다.
+   ⚠️ 칸 높이를 고정(96)하면 재료가 많은 날 마지막 줄이 패널 밖으로 흘러나옵니다.
+      1fr 로 두어 **줄 수에 맞춰 아이콘이 같이 줄어들게** 합니다. 대신 재료가
+      적은 날 아이콘이 우스울 만큼 커지지 않도록 최대 높이만 걸어 둡니다. */
+/* 열 수는 재료 개수에 따라 2열 또는 3열입니다(ingredient-select.js 가 --goal-columns 를 줍니다).
+   재료가 많은 날 2열로 두면 칸이 95x48 처럼 납작해져서 아이콘이 손톱만 해집니다.
+   3열로 나누면 칸이 63x81 로 반듯해져 아이콘이 오히려 커집니다. */
+.fridge-goal-list {
+  display: grid;
+  grid-template-columns: repeat(var(--goal-columns,2),minmax(0,1fr));
+  grid-auto-rows: minmax(0,1fr);
+  gap: calc(7 * var(--upx));
+  align-content: stretch;
+  min-height: 0;
+  /* ⚠️ 아이콘이 자기 칸 **가로 폭 안**에 들어오게 잡아 두었습니다(아래 .fridge-goal-art).
+     칸 밖으로 나가게 두면 넓은 그림이 든 열만 바깥으로 붙어서 목록이 한쪽으로
+     쏠려 보입니다 — 어느 재료가 어느 칸에 오느냐에 따라 매번 달라져서 더 나쁩니다.
+     세로로는 넘쳐도 됩니다(줄끼리 겹치는 건 괜찮습니다).
+     여백은 좌우 대칭으로 얇게만 둡니다. overflow:hidden 은 안전장치입니다. */
+  padding: calc(10 * var(--upx));
   overflow: hidden;
 }
-.ingredient-dish-gallery img { width:88%; height:82%; object-fit:contain; filter:drop-shadow(0 calc(4 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5)); }
-.ingredient-dish-gallery strong { position:absolute; right:0; bottom:0; left:0; padding:2px; background:rgba(17,9,6,.76); color:#f1d6a1; font-size:calc(10 * var(--upx)); text-align:center; }
-.ingredient-checklist { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 calc(5 * var(--upx)); max-height:calc(245 * var(--upx)); margin-top:calc(8 * var(--upx)); overflow:auto; }
-.ingredient-check-item { display:flex; align-items:center; gap:calc(6 * var(--upx)); min-width:0; padding:calc(7 * var(--upx)) calc(4 * var(--upx)); border-bottom:1px solid #49301f; color:#d9c7aa; font-size:calc(12 * var(--upx)); }
-.ingredient-check-item span { color: #9a7650; }
-.ingredient-check-item.done { color: #f5d88f; }
-.ingredient-check-item.done span { color: #8fcf79; }
-.ingredient-pantry-note { margin:auto 0 0; padding-top:calc(10 * var(--upx)); border-top:1px solid #49301f; color:#a99576; font-size:calc(10 * var(--upx)); line-height:1.45; }
-.ingredient-pantry-note:empty { display:none; }
-.ingredient-pantry-note strong,.ingredient-pantry-note span { display:block; }
-.ingredient-pantry-note strong { margin-bottom:2px; color:#c79f62; }
-.ingredient-fridge {
-  position: relative;
+/* ⚠️ 여기 아이콘은 **눕히지도 키우지도 않습니다**(.laid · --art-size 는 .fridge-art 전용).
+   목록은 "무엇을 찾는지" 알려 주는 자리라 원화 방향 그대로에 크기도 고르게 둡니다.
+   틀(테두리·배경)과 이름표도 없앴습니다 — 재료 그림만 나란히 놓습니다.
+   찾은 재료는 **흑백으로** 바뀌는 것 하나로 표시합니다(체크 표시도 뺐습니다).
+   이름은 aria-label · title 로만 남습니다. */
+/* 높이 규칙은 왼쪽 요리 카드와 같습니다(min(100%, 최대) + 가운데 정렬).
+   찾을 재료는 하루 2~12가지라 줄 수가 1~6줄로 오가는데, 이 한 줄이 두 경우를 다 받습니다.
+     재료가 많은 날  칸이 작아짐 → 아이콘도 같이 작아짐
+     재료가 적은 날  칸이 커짐   → 아이콘은 112 에서 멈추고 칸 가운데에 섬 */
+.fridge-goal {
   display: grid;
-  grid-template-rows: minmax(0,1fr) auto auto;
-  padding: calc(44 * var(--upx)) calc(22 * var(--upx)) calc(18 * var(--upx));
-  border: calc(10 * var(--upx)) solid #817768;
-  border-radius: calc(18 * var(--upx));
-  background: linear-gradient(rgba(31,27,23,.32),rgba(16,13,11,.38)),url("../assets/utensils/counter/fix_fridge_open.webp") center/cover no-repeat,#332e27;
-  box-shadow: inset 0 0 calc(28 * var(--upx)) #050403,0 calc(7 * var(--upx)) calc(16 * var(--upx)) rgba(0,0,0,.45);
-  overflow: hidden;
+  place-items: center;
+  align-self: center;
+  height: min(100%,calc(112 * var(--upx)));
+  min-height: 0;
+  container-type: size;        /* 아래 아이콘이 칸 크기를 재는 기준(요리 카드와 같은 이유) */
+  padding: calc(1 * var(--upx));
 }
-.ingredient-fridge::before,.ingredient-fridge::after { content:""; position:absolute; left:3%; right:3%; height:2px; background:rgba(229,215,177,.28); box-shadow:0 2px 5px rgba(0,0,0,.8); pointer-events:none; }
-.ingredient-fridge::before { top:36%; }
-.ingredient-fridge::after { top:67%; }
-.ingredient-fridge-light { position:absolute; top:calc(16 * var(--upx)); left:38%; right:38%; height:calc(12 * var(--upx)); border-radius:50%; background:#ffe3a1; box-shadow:0 0 calc(35 * var(--upx)) calc(12 * var(--upx)) rgba(255,223,151,.27); }
-.ingredient-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:calc(11 * var(--upx)); min-height:0; overflow:visible; }
-.ingredient-shelf {
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  min-width:0;
-  min-height:0;
-  padding:calc(16 * var(--upx)) calc(8 * var(--upx)) calc(9 * var(--upx));
-  border:2px solid #716657;
-  border-radius:calc(9 * var(--upx));
-  background:linear-gradient(160deg,rgba(202,197,179,.9),rgba(91,85,75,.92));
-  color:#2b2119;
-  box-shadow:0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.5);
-  cursor:default;
-  transition:transform .14s,filter .14s,border-color .14s,box-shadow .14s;
+/* 재료가 하나뿐인 날에만 두 칸을 걸쳐 가운데에 세웁니다.
+   ⚠️ 홀수면 언제나 가운데로 보냈더니(예전 :last-child:nth-child(odd)) 마지막 줄만
+      반 칸 어긋나 격자가 흐트러져 보였습니다. 홀수는 그냥 왼쪽 자리에 둡니다. */
+.fridge-goal-list > :only-child {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc(50% - calc(3.5 * var(--upx)));
 }
-.ingredient-shelf:hover { border-color:#918574; }
-.ingredient-shelf.drag-over { transform:translateY(calc(-2 * var(--upx))); border-color:#8ed6a0; box-shadow:0 0 calc(20 * var(--upx)) rgba(117,197,139,.72); }
-.ingredient-shelf > b { position:absolute; top:calc(3 * var(--upx)); left:calc(6 * var(--upx)); color:#51483c; font-size:calc(9 * var(--upx)); }
-.ingredient-shelf-slots { display:grid; flex:1; grid-template-columns:repeat(3,minmax(0,1fr)); gap:calc(6 * var(--upx)); min-height:0; }
-.ingredient-shelf-slot { position:relative; display:grid; place-items:center; min-width:0; height:auto; min-height:0; padding:0; border:1px solid rgba(68,58,47,.55); border-radius:calc(6 * var(--upx)); background:rgba(239,232,211,.72); overflow:hidden; cursor:grab; appearance:none; transition:transform .15s,filter .15s,border-color .15s,box-shadow .15s; }
-.ingredient-shelf-slot.empty { background:rgba(42,38,33,.23); box-shadow:inset 0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.3); cursor:default; pointer-events:none; }
-.ingredient-shelf-slot i { position:absolute; inset:calc(3 * var(--upx)); display:grid; place-items:center; overflow:hidden; font-style:normal; }
-.ingredient-shelf-slot img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 calc(2 * var(--upx)) calc(2 * var(--upx)) rgba(0,0,0,.32)); }
-.ingredient-shelf-slot i > span { font-size:calc(30 * var(--upx)); }
-.ingredient-shelf-slot small { position:absolute; right:0; bottom:0; left:0; padding:1px; background:rgba(38,26,18,.72); color:#f4dfb7; font-size:calc(7 * var(--upx)); line-height:1.2; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.ingredient-shelf-slot:hover { transform:translateY(calc(-4 * var(--upx))) scale(1.04); filter:brightness(1.1); border-color:#d8b36b; box-shadow:0 calc(4 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.38); }
-.ingredient-shelf-slot:active { cursor:grabbing; }
-.ingredient-shelf-slot.selected { transform:translateY(calc(-5 * var(--upx))) scale(1.05); border-color:#ffe08a; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,211,112,.82); }
-.ingredient-shelf-slot.dragging { opacity:.45; cursor:grabbing; }
-.ingredient-shelf-slot.hint-from { animation:ingredient-hint 1.15s ease-in-out infinite; border-color:#ffe07b; }
-.ingredient-shelf.hint-to { animation:ingredient-hint-target 1.15s ease-in-out infinite; border-color:#8ed6a0; }
-.ingredient-puzzle-controls { position:relative; z-index:1; display:flex; justify-content:center; gap:calc(8 * var(--upx)); margin-top:calc(9 * var(--upx)); }
-.ingredient-puzzle-controls button { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:1px solid #8d724b; border-radius:calc(5 * var(--upx)); background:rgba(37,25,17,.9); color:#ead29f; font-weight:700; cursor:pointer; }
-.ingredient-puzzle-controls button:hover:not(:disabled) { border-color:#d2a85e; background:#51361f; }
-.ingredient-puzzle-controls button:disabled { opacity:.38; cursor:default; }
-.ingredient-select-feedback { position:relative; z-index:1; min-height:calc(22 * var(--upx)); margin:calc(8 * var(--upx)) 0 0; padding:calc(7 * var(--upx)); border-radius:calc(5 * var(--upx)); background:rgba(12,9,7,.78); color:#f1d7a1; text-align:center; }
-.ingredient-basket-card { display:flex; flex-direction:column; }
-.ingredient-basket { display:flex; flex-wrap:wrap; align-content:flex-start; gap:calc(7 * var(--upx)); min-height:calc(300 * var(--upx)); max-height:calc(405 * var(--upx)); margin:calc(12 * var(--upx)) 0; overflow:auto; }
-.ingredient-basket > span { height:max-content; padding:calc(6 * var(--upx)) calc(8 * var(--upx)); border:1px solid #76502f; border-radius:calc(14 * var(--upx)); background:#342217; color:#eed6a8; font-size:calc(12 * var(--upx)); }
-.ingredient-basket > span i { display:inline-grid; place-items:center; width:calc(25 * var(--upx)); height:calc(20 * var(--upx)); margin-right:calc(4 * var(--upx)); vertical-align:middle; font-style:normal; }
-.ingredient-basket-art { display:block; width:100%; height:100%; object-fit:contain; }
-.ingredient-basket > p { color:#9f8a6c; font-size:calc(12 * var(--upx)); }
-.ingredient-total-progress { margin-top:auto; color:#f5d47f; font-size:calc(22 * var(--upx)); text-align:center; }
-.ingredient-continue { margin-top:calc(12 * var(--upx)); }
-.ingredient-basket-card > small { margin-top:calc(14 * var(--upx)); color:#aa9678; line-height:1.5; text-align:center; }
-@keyframes ingredient-hint { 50%{transform:translateY(calc(-4 * var(--upx))) scale(1.025);box-shadow:0 0 calc(22 * var(--upx)) #f6c95e} }
-@keyframes ingredient-hint-target { 50%{transform:translateY(calc(-2 * var(--upx))) scale(1.02);box-shadow:0 0 calc(20 * var(--upx)) #75c58b} }
-@media (max-width:900px) {
-  .ingredient-select-window { max-height:96%; }
-  .ingredient-select-layout { grid-template-columns:minmax(170px,.8fr) minmax(420px,2fr); min-height:0; }
-  .ingredient-basket-card { grid-column:1/-1; display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; }
-  .ingredient-basket-card > span,.ingredient-basket-card > small { display:none; }
-  .ingredient-basket { min-height:0; max-height:85px; margin:0; }
-  .ingredient-total-progress { margin:0; }
-  .ingredient-continue { grid-column:2; margin:0; }
+/* 아이콘은 **똑같은 정사각 자리**를 갖습니다. 재료 원화의 가로세로비가 제각각이라
+   (0.84 ~ 2.2) 칸을 꽉 채우게 두면 어떤 건 길쭉하고 어떤 건 뭉툭해 줄이 안 맞아 보입니다.
+   한 변은 칸의 가로·세로 중 **짧은 쪽**을 따르므로 어느 쪽으로도 칸을 넘지 않습니다
+   — 재료가 많아 칸이 납작해지는 날(11가지면 95x48)에도 옆·위 칸을 침범하지 않습니다.
+   ⚠️ %(height:100%)로 재면 안 됩니다 — 칸 높이가 min(100%,…) 이라 % 가 풀리지 않고
+      그림이 제 크기대로 커져 줄끼리 겹칩니다(실측 48 칸에 89). cqh/cqw 는 항상 풀립니다. */
+/* [크기] 칸보다 조금 크게 잡아 서로 **살짝 겹치게** 둡니다 — 딱 맞춰 놓으면
+   표처럼 정갈해서 재미가 없습니다. 대신 가로 쪽 한도를 세로보다 낮게 잡아
+   (118 vs 130) 위아래로만 넉넉히 겹치고 옆 칸은 거의 침범하지 않습니다.
+   [기울기] 재료마다 몇 도씩 다르게 눕혀 아무렇게나 놓아 둔 느낌을 냅니다
+   (--goal-turn 은 ingredient-select.js 가 재료 이름에서 뽑습니다 — 다시 그려도 안 흔들립니다). */
+.fridge-goal-art {
+  /* 세 한도 중 가장 작은 값입니다.
+       126cqh  칸 높이 — 위아래로는 이만큼까지만
+       140cqw  칸 폭   — 옆 재료와 **겹치라고** 일부러 칸보다 크게 잡습니다
+       96upx   재료가 적은 날 혼자 커지지 않게 막는 절대 상한
+     세 값 모두 회전한 상자(최대 1.1배)까지 목록 안쪽 여백(13) 안에 들어오는 크기입니다
+     — 겹치는 건 되지만 **잘리면 안 됩니다**. */
+  width: min(126cqh,100cqw,calc(96 * var(--upx)));
+  height: min(126cqh,100cqw,calc(96 * var(--upx)));
+  object-fit: contain;
+  transform: rotate(var(--goal-turn,0deg));
+  filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.5));
+  transition: filter .18s ease, opacity .18s ease;
 }
-@media (max-width:650px) {
-  .ingredient-select-overlay { padding:8px; }
-  .ingredient-select-header h2 { font-size:19px; }
-  .ingredient-select-header p:not(.eyebrow) { font-size:12px; }
-  .ingredient-select-layout { display:block; }
-  .ingredient-recipe-card { margin-bottom:10px; }
-  .ingredient-dish-gallery { display:none; }
-  .ingredient-checklist { grid-template-columns:repeat(2,1fr); }
-  .ingredient-fridge { min-height:420px; padding:40px 15px 14px; }
-  .ingredient-grid { grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,minmax(72px,1fr)); gap:7px; }
-  .ingredient-shelf { min-height:72px; padding:12px 4px 5px; }
-  .ingredient-shelf-slot { height:auto; }
-  .ingredient-puzzle-controls { flex-wrap:wrap; }
-  .ingredient-basket-card { display:flex; margin-top:10px; }
-  .ingredient-basket-card > span { display:block; }
+/* 무 · 통김치 · 대파 · 닭고기 · 멸치는 여기서도 **냉장고에 넣은 것처럼** 45도로 눕힙니다.
+   눕히면 정사각 자리 안에서 대각선만 쓰게 되어 작아 보이므로 조금 키웁니다.
+   기우는 방향(--goal-lean)은 냉장고와 같은 값입니다 — 무·대파·멸치는 잎과 머리가 위로,
+   김치·닭고기는 반대. 거기에 재료마다 다른 잔각도(--goal-turn)를 더합니다.
+   ⚠️ 눕힌 그림은 상자의 대각선만 쓰기 때문에, 상자가 칸보다 커도 **보이는 그림**은
+      칸 밖으로 거의 안 나갑니다(4:1 그림이면 상자의 0.88배). 그래서 더 키워도 안 잘립니다. */
+.fridge-goal-art.laid {
+  width: min(140cqh,115cqw,calc(110 * var(--upx)));
+  height: min(140cqh,115cqw,calc(110 * var(--upx)));
+  transform: rotate(calc(var(--goal-lean,0deg) + var(--goal-turn,0deg)));
 }
+.fridge-goal.done .fridge-goal-art { filter: grayscale(1) brightness(.62); opacity: .55; }
+
+@keyframes fridge-slot-wrong {
+  25% { transform: translateX(calc(var(--slot-shift,0) - 6 * var(--upx))); }
+  75% { transform: translateX(calc(var(--slot-shift,0) + 6 * var(--upx))); }
+}
+@keyframes fridge-clear-pop { from { opacity: 0; transform: translate(-50%,-42%) scale(.92); } }
+
+/* ============================================================
+   냉기 (fx_cold_air_anim_01~05)
+   ------------------------------------------------------------
+   냉장고 안에 2~3덩이가 아무 데나 떠서 천천히 흐릅니다.
+   자리·크기·시작 박자는 ingredient-select.js 의 fridgeColdAirMarkup 이 뿌립니다.
+
+   [다섯 장을 겹쳐 두고 자기 차례에만 켭니다]
+   스프라이트 시트가 아니라 낱장이라, 겹쳐 두고 20% 씩 돌아가며 보여 줍니다
+   (조리 연기 .mg-smoke 와 같은 방식).
+
+   ⚠️ **다섯 장의 캔버스가 제각각입니다** (351x178 · 426x236 · 452x295 ·
+      559x429 · 514x316). 한 상자에 `100% 100%` 로 깔면 장마다 다르게 늘어나
+      덩이가 들썩입니다. 가장 큰 04 를 기준으로 각 장의 **상대 크기**를 아래
+      .frame-* 이 갖고, 다섯 장 모두 상자 **가운데**에 겹칩니다.
+      그래서 01 → 04 로 갈수록 덩이가 자연스럽게 부풀어 오릅니다.
+   ⚠️ 재료 위에 뜨지만 opacity 가 낮고 pointer-events 가 없어 찾기·클릭을
+      가리지 않습니다. 더 흐리게 하려면 .fridge-cold-air 의 opacity 만 고치세요.
+   ============================================================ */
+.fridge-cold-air {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  opacity: .34;
+  /* 원화가 하늘색이라 그대로 쓰면 냉장고 안이 파랗게 물듭니다.
+     색을 거의 빼서 흰 김에 가깝게 두고, 푸른 기는 살짝만 남깁니다. */
+  filter: grayscale(.8) brightness(1.06);
+  pointer-events: none;
+}
+/* 한 덩이의 일생 : 스르륵 떠올라 흐르다 사라집니다. **한 번만** 돕니다 —
+   다 사라지면 ingredient-select.js 가 자리와 개수를 다시 뽑아 새 무리를 띄웁니다.
+   (계속 반복시키면 같은 자리에서만 김이 나 스티커처럼 보입니다) */
+.fridge-cold-puff {
+  --cold-life: 3.4s;                /* ingredient-select.js 의 FRIDGE_COLD_AIR_LIFE 와 같아야 합니다 */
+  position: absolute;
+  aspect-ratio: 559 / 429;          /* 가장 큰 04 장의 비율 */
+  opacity: 0;
+  animation: fridge-cold-life var(--cold-life) ease-in-out var(--cold-life-delay,0s) both;
+}
+.fridge-cold-frame {
+  --cold-cycle: 1.3s;               /* 한 바퀴 — ingredient-select.js 의 FRIDGE_COLD_AIR_CYCLE 과 같아야 합니다 */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  opacity: 0;
+  transform: translate(-50%,-50%);
+  animation: fridge-cold-frame var(--cold-cycle) linear infinite;
+  animation-delay: var(--cold-delay,0s);
+}
+/* 04(559x429) 대비 상대 크기 */
+.fridge-cold-frame.frame-1 { width: 62.8%; height: 41.5%; animation-delay: calc(var(--cold-delay,0s)); }
+.fridge-cold-frame.frame-2 { width: 76.2%; height: 55.0%; animation-delay: calc(var(--cold-delay,0s) - var(--cold-cycle) * .2); }
+.fridge-cold-frame.frame-3 { width: 80.9%; height: 68.8%; animation-delay: calc(var(--cold-delay,0s) - var(--cold-cycle) * .4); }
+.fridge-cold-frame.frame-4 { width: 100%;  height: 100%;  animation-delay: calc(var(--cold-delay,0s) - var(--cold-cycle) * .6); }
+.fridge-cold-frame.frame-5 { width: 91.9%; height: 73.7%; animation-delay: calc(var(--cold-delay,0s) - var(--cold-cycle) * .8); }
+/* 한 장이 켜져 있는 20% 앞뒤로 조금씩 겹칩니다 — 딱 끊으면 냉기가 툭툭 튑니다 */
+@keyframes fridge-cold-frame { 0% { opacity: 0; } 5%,20% { opacity: 1; } 26%,100% { opacity: 0; } }
+/* 떠올랐다가(0~22%) 흐르다가(~70%) 스러집니다(100%). 흐르는 동안 살짝 커집니다. */
+@keyframes fridge-cold-life {
+  0%   { opacity: 0; transform: scaleX(var(--cold-flip,1)) translate(0,0) scale(.82); }
+  22%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: scaleX(var(--cold-flip,1)) translate(18%,-12%) scale(1.12); }
+}
+
+/* ---- 좁은 화면 -----------------------------------------------
+   열 폭(--mg-side)은 minigame-parts.css 가 이미 줄입니다.
+   여기서는 24칸 이름표와 요리 카드 글자만 줄입니다. */
+@media (max-width: 600px) {
+  .fridge-slot small { font-size: calc(9 * var(--upx)); }
+}
+
 @media (prefers-reduced-motion:reduce) {
-  .ingredient-shelf-slot.hint-from,.ingredient-shelf.hint-to { animation-duration:2s; animation-timing-function:step-end; }
+  .fridge-slot.wrong,
+  .fridge-clear { animation-duration: .01ms; }
+  /* 벌칙 글자는 애니메이션이 곧 표시라 시간만 줄입니다(끄면 아예 안 보입니다) */
+  .fridge-penalty.show { animation-duration: 1.2s; animation-timing-function: step-start; }
+  /* ⚠️ 냉기는 duration 을 줄이면 다섯 장 모두 opacity:0 으로 끝나 사라집니다.
+     애니메이션을 끄되 한 장(가장 큰 04)은 켜 둡니다 — 조리 연기와 같은 이유입니다.
+     덩이 자체도 opacity:0 에서 시작하므로 여기서 되살려 줘야 합니다. */
+  .fridge-cold-puff,
+  .fridge-cold-frame { animation: none; }
+  .fridge-cold-puff { opacity: 1; transform: scaleX(var(--cold-flip,1)); }
+  .fridge-cold-frame.frame-4 { opacity: 1; }
 }

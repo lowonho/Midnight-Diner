@@ -296,6 +296,23 @@ function clearOneShotPointer(){
 
 function oneShotDropAt(x,y){return document.elementFromPoint(x,y)?.closest(".os-drop")||null;}
 
+/* 끌고 다니는 조각을 플레이 패널(.mini-stage) 안에 가둡니다.
+   조각(.os-drag-ghost)은 position:fixed 로 <body> 에 붙습니다 — 패널의
+   overflow:hidden 이 안 걸리고 z-index 도 오버레이보다 위라, 그냥 두면
+   포인터를 패널 밖으로 빼는 순간 재료가 주방 화면 위까지 따라 나옵니다.
+   놓을 자리 판정(oneShotDropAt)은 **가두지 않은 진짜 포인터**로 그대로 합니다.
+   그래야 패널 밖에서 손을 떼면 지금처럼 카드로 되돌아갑니다. */
+function clampOneShotGhost(ghost,x,y){
+  const stage=dom.miniContent?.closest(".mini-stage");
+  if(!stage)return {x,y};
+  const area=stage.getBoundingClientRect(),box=ghost.getBoundingClientRect();
+  // 조각은 translate(-50%,-50%) 라 style.left/top 이 곧 한가운데입니다.
+  const halfW=box.width/2,halfH=box.height/2;
+  // 패널이 조각보다 좁으면(아주 작은 화면) 가운데로 모읍니다
+  const hold=(v,min,max)=>max<min?(min+max)/2:Math.min(Math.max(v,min),max);
+  return {x:hold(x,area.left+halfW,area.right-halfW),y:hold(y,area.top+halfH,area.bottom-halfH)};
+}
+
 function moveOneShotPointer(event){
   const drag=oneShotPointer;if(!drag||drag.pointerId!==event.pointerId)return;
   const dx=event.clientX-drag.startX,dy=event.clientY-drag.startY;
@@ -318,7 +335,9 @@ function moveOneShotPointer(event){
     document.body.appendChild(drag.ghost);
   }
   if(!drag.dragging)return;
-  event.preventDefault();drag.ghost.style.left=`${event.clientX}px`;drag.ghost.style.top=`${event.clientY}px`;
+  event.preventDefault();
+  const at=clampOneShotGhost(drag.ghost,event.clientX,event.clientY);
+  drag.ghost.style.left=`${at.x}px`;drag.ghost.style.top=`${at.y}px`;
   document.querySelectorAll(".os-drop.drop-hover").forEach(drop=>drop.classList.remove("drop-hover"));
   oneShotDropAt(event.clientX,event.clientY)?.classList.add("drop-hover");
 }

@@ -46,8 +46,16 @@ const FOOD_PROPS = [
 const FOOD_PROP_DIR = "assets/food/prop/";
 const FOOD_PROP_EXT = ".webp";
 
-// 원본 캔버스 규격. 24개 파일 전부 같은 크기라서 그림을 바꿔도 크기가 튀지 않습니다.
-// 가로형(1.74:1)이므로 예전 64x64 정사각 아이콘 자리에 그대로 넣으면 안 됩니다.
+/* 기준 캔버스. 화면에 그리는 크기를 재는 **자(尺)** 입니다.
+
+   2026-08-06 에 그림 24장의 투명 여백을 잘라내면서 파일 크기가 장마다 달라졌습니다
+   (129x136 ~ 244x136). 그래서 "그림 크기에 맞춰" 늘리면 **여백이 많던 요리일수록
+   갑자기 커집니다** — 같은 접시 위에서 감자튀김만 커지는 식입니다.
+   아래 두 함수는 그림 크기가 아니라 이 기준 캔버스로 배율을 잡습니다. 그러면
+   잘라내기 전과 화면에 보이는 크기가 **똑같습니다**(파일만 가벼워짐).
+   ⚠️ 여백을 자른 그림이라 그리는 기준점이 '캔버스 가운데'에서 '그림 가운데'로
+      바뀝니다. 자를 때 위아래 여백이 달랐던 요리는 몇 px 씩 올라가거나 내려갑니다.
+   가로형(1.74:1)이므로 예전 64x64 정사각 아이콘 자리에 그대로 넣으면 안 됩니다. */
 const FOOD_PROP_SIZE = { w:264, h:152 };
 const FOOD_PROP_ASPECT = FOOD_PROP_SIZE.w / FOOD_PROP_SIZE.h;
 
@@ -157,7 +165,8 @@ function drawFoodProp(dishId,centerX,centerY,maxW,maxH,grade=FOOD_GRADE_DEFAULT)
     ctx.fillStyle="#d69c4b";ctx.beginPath();ctx.arc(centerX,centerY,r,0,Math.PI*2);ctx.fill();
     return;
   }
-  const scale=Math.min(maxW/image.width,maxH/image.height);
+  // 배율은 그림 크기가 아니라 기준 캔버스로 잡습니다(위 FOOD_PROP_SIZE 주석).
+  const scale=Math.min(maxW/FOOD_PROP_SIZE.w,maxH/FOOD_PROP_SIZE.h);
   const w=image.width*scale,h=image.height*scale;
   ctx.drawImage(image,centerX-w/2,centerY-h/2,w,h);
 }
@@ -172,9 +181,17 @@ function setFoodPropTexture(sprite,dishId,grade=FOOD_GRADE_DEFAULT){
   return sprite;
 }
 
-// 가로 폭만 주면 비율에 맞는 세로를 계산해 크기를 잡습니다.
+/* 가로 폭만 주면 크기를 잡습니다. 여기서 받는 width 는 **기준 캔버스(264) 기준**이라,
+   실제 그림이 그보다 좁으면 그만큼만 씁니다(잘라내기 전과 같은 크기가 됩니다).
+   ⚠️ width/FOOD_PROP_ASPECT 로 세로를 계산하면 안 됩니다 — 여백을 자른 뒤로는 장마다
+      비율이 달라서(0.95 ~ 2.22) 감자튀김이 납작하게 눌리는 식으로 찌그러집니다. */
 function sizeFoodPropSprite(sprite,width){
-  return sprite?sprite.setDisplaySize(width,width/FOOD_PROP_ASPECT):sprite;
+  if(!sprite)return sprite;
+  const source=sprite.texture?.getSourceImage?.();
+  const scale=width/FOOD_PROP_SIZE.w;
+  return source?.width&&source?.height
+    ?sprite.setDisplaySize(source.width*scale,source.height*scale)
+    :sprite.setDisplaySize(width,width/FOOD_PROP_ASPECT);
 }
 
 

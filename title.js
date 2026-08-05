@@ -457,7 +457,7 @@ function returnTitle(){
   // 캡처 단계에서 막 재생한 타이틀 복귀 클릭음은 남기고 조리음만 정리합니다.
   audio.stopAllFiles?.("ui_click");
   clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
-  clearIngredientHintTimer();
+  stopIngredientTimer();
   dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");dom.ingredientSelectOverlay.classList.remove("open");
   dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
   showGameHud(false);audio.stopBgm();updateContinueButton();

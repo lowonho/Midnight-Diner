@@ -23,6 +23,10 @@
   <link rel="stylesheet" href="css/qa-mode.css" />
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
+  <link rel="stylesheet" href="css/cursor.css" /><!-- 고양이 마우스 포인터. 화면별 cursor 선언을 덮어야 하므로 CSS 중 맨 뒤입니다 -->
+  <!-- 고양이 마우스 ON/OFF. 다른 스크립트와 달리 여기 있어야 합니다 —
+       </body> 앞에 두면 꺼 놓아도 화면이 그려지는 동안 고양이가 잠깐 보입니다 -->
+  <script src="cursor-setting.js"></script>
 </head>
 <body>
   <div id="appRoot" class="app-root">
@@ -125,43 +129,67 @@
             </div>
           </section>
 
-          <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
-            <div class="ingredient-select-window wood-panel">
-              <header class="ingredient-select-header">
-                <div>
-                  <p class="eyebrow">OPEN THE FRIDGE</p>
-                  <h2 id="ingredientSelectTitle">필요한 재료를 꺼내주세요!</h2>
-                  <p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p>
-                </div>
-                <span id="ingredientDishProgress" class="ingredient-dish-progress">메뉴 2개</span>
-              </header>
-              <div class="ingredient-select-layout">
-                <aside class="ingredient-recipe-card">
-                  <span>오늘의 메뉴</span>
-                  <h3 id="ingredientDishName">한꺼번에 챙기기</h3>
-                  <div id="ingredientDishGallery" class="ingredient-dish-gallery"></div>
-                  <strong>냉장고에서 찾을 재료</strong>
-                  <div id="ingredientChecklist" class="ingredient-checklist"></div>
-                  <p id="ingredientPantryNote" class="ingredient-pantry-note"></p>
-                </aside>
-                <section class="ingredient-fridge" aria-label="E13 냉장고 재료 꺼내기 퍼즐">
-                  <div class="ingredient-fridge-light" aria-hidden="true"></div>
-                  <div id="ingredientGrid" class="ingredient-grid"></div>
-                  <div class="ingredient-puzzle-controls" aria-label="퍼즐 도움 기능">
-                    <button id="ingredientUndo" type="button">↶ 되돌리기</button>
-                    <button id="ingredientHint" type="button">✦ 힌트</button>
-                    <button id="ingredientShuffle" type="button">⟳ 선반 섞기</button>
+          <!-- 냉장고 재료 찾기(E13)
+               미니게임 공용 패널 4종(뒤 패널 · 타이틀 · 플레이 영역 · TIP 줄)을 그대로 쓰고,
+               플레이 칸 안은 3열 격자 중 **하단 공용 띠(.mg-strip) 없는 유형**입니다.
+               띠가 없으므로 3열이 615.6 을 그대로 씁니다(css/minigame-parts.css 참고).
+               ※ 이 화면은 #miniOverlay 를 타지 않는 독립 오버레이라 마크업이 여기 있습니다.
+                  대신 클래스는 공용 프레임과 같은 것을 씁니다. -->
+          <section id="ingredientSelectOverlay" class="overlay mini-overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
+            <!-- 1. 뒤에 깔리는 가장 큰 패널 -->
+            <div class="mini-window" aria-hidden="true"></div>
+
+            <!-- 3. 게임 메인 플레이 영역 -->
+            <div class="mini-stage">
+              <div class="mini-content">
+                <div class="fridge-scene">
+                  <!-- 좌 : 오늘 고른 요리 (A1 613.2) -->
+                  <aside class="fridge-col">
+                    <div class="fridge-panel fridge-menu-panel">
+                      <h3 class="fridge-col-title starred">오늘의 요리</h3>
+                      <div id="ingredientDishGallery" class="fridge-dish-list"></div>
+                    </div>
+                  </aside>
+
+                  <!-- 중 : 냉장고 24칸 (3단 x 4|4). 칸은 ingredient-select.js 가 채웁니다. -->
+                  <div class="fridge-play">
+                    <div class="fridge-cabinet">
+                      <div id="ingredientGrid" class="fridge-slots" aria-label="냉장고 24칸"></div>
+                      <!-- 냉기. 재료 위로 옅게 흐릅니다(ingredient-select.js 가 자리를 뿌립니다) -->
+                      <div id="fridgeColdAir" class="fridge-cold-air" aria-hidden="true"></div>
+                    </div>
                   </div>
-                  <p id="ingredientSelectFeedback" class="ingredient-select-feedback" role="status" aria-live="polite">재료 그림을 직접 잡아 원하는 칸으로 옮겨보세요.</p>
-                </section>
-                <aside class="ingredient-basket-card">
-                  <span>장바구니</span>
-                  <div id="ingredientBasket" class="ingredient-basket"></div>
-                  <strong id="ingredientTotalProgress" class="ingredient-total-progress">0 / 0</strong>
-                  <button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button>
-                  <small>시간 제한과 실패는 없어요.<br />막히면 되돌리거나 선반을 섞어보세요.</small>
-                </aside>
+
+                  <!-- 우 : 완료 개수·걸린 시간(C 198.1) + 찾아야 할 재료(A2 403.1) — E10 멸치와 같은 배치 -->
+                  <aside class="fridge-right">
+                    <div class="fridge-panel fridge-count-card">
+                      <h3 class="fridge-col-title">완료 개수</h3>
+                      <p id="ingredientTotalProgress" class="fridge-count"><b>0</b> / 0</p>
+                      <p id="ingredientTimer" class="fridge-time"><span>걸린 시간</span><b>0.0초</b></p>
+                    </div>
+                    <div class="fridge-panel fridge-goal-card">
+                      <h3 class="fridge-col-title">찾아야 할 재료</h3>
+                      <div id="ingredientChecklist" class="fridge-goal-list"></div>
+                    </div>
+                  </aside>
+                </div>
               </div>
+            </div>
+
+            <!-- 하단 TIP 줄. 설명은 고정, 피드백(#ingredientSelectFeedback)은 진행에 따라 바뀝니다. -->
+            <div class="mini-tip">
+              <span class="mini-tip-label" aria-hidden="true">TIP</span>
+              <div class="mini-tip-body">
+                <p class="mini-description">냉장고에서 필요한 재료를 클릭해 찾아주세요!</p>
+                <p id="ingredientSelectFeedback" class="mini-feedback" role="status" aria-live="polite"></p>
+              </div>
+              <span class="mini-tip-hint">클릭 · 재료 선택</span>
+            </div>
+
+            <!-- 2. 미니게임 타이틀 패널 (부제는 공용 프레임의 #miniStation 자리와 같습니다) -->
+            <div class="mini-title-panel">
+              <p class="mini-station">오늘의 메뉴에 필요한 재료를 찾아주세요!</p>
+              <h2 id="ingredientSelectTitle">냉장고 재료 찾기</h2>
             </div>
           </section>
 
@@ -264,6 +292,21 @@
             >ON</button>
           </div>
           <input id="sfxVolume" type="range" min="0" max="100" value="75" />
+        </div>
+        <!-- 고양이 마우스 포인터 켜기/끄기. 값 처리는 cursor-setting.js 입니다.
+             음량 행과 같은 .volume-row 를 씁니다 — 슬라이더 없이 라벨 + 토글
+             두 칸만 채우면 되고, 같은 화면에 나란히 서므로 모양이 맞아야 합니다. -->
+        <div id="catCursorRow" class="volume-row">
+          <span>고양이 마우스</span>
+          <div class="volume-state-controls">
+            <button
+              id="catCursorToggle"
+              class="audio-toggle-button"
+              type="button"
+              aria-pressed="true"
+              aria-label="고양이 마우스 켜짐. 누르면 끄기"
+            >ON</button>
+          </div>
         </div>
         <div id="saveLoadActions" class="save-load-actions" hidden>
           <button id="manualSaveButton" class="save-action-button" type="button">저장하기</button>
@@ -408,7 +451,7 @@
   <script src="engine-e10-target-click.js"></script>   <!-- E10 표적 클릭     게임 1 -->
   <script src="engine-e11-one-shot.js"></script>       <!-- E11 단발 액션     게임 2 -->
   <script src="engine-e12-grab-shake.js"></script>     <!-- E12 잡고 흔들기   게임 3 -->
-  <script src="engine-e13-fridge-sort.js"></script>    <!-- E13 재료 꺼내기   게임 1 -->
+  <script src="engine-e13-fridge-find.js"></script>    <!-- E13 재료 찾기     게임 1 -->
   <script src="engine-legacy-night.js"></script>       <!-- 표에 없음: 설거지 · 쓰레기 + 미사용 4종 -->
 
   <script src="night.js"></script>

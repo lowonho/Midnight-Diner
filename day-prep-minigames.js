@@ -212,19 +212,60 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   //    손잡이까지 들어 있는 그림이라 몸통은 전체 폭의 79.7% 뿐입니다.
   //    자리 잡는 방법은 css/day-prep-minigames.css 의 .frying-pan 주석 참고.
   fryingPan:"assets/minigame/E3/fix_frying_pan_wide_inner_4x.webp",
-  fryingKimchi:"assets/prep/kimchi/frying-kimchi.png",
-  fryWoodenSpatula:"assets/prep/kimchi/wooden-spatula.png",
+  /* 팬 안의 김치 5장. base 가 평소 모습이고 나머지 넷은 **그 방향으로 뒤집은 한 순간**
+     입니다 — 다섯 장을 한 자리에 겹쳐 두고, 저을 때 그 방향 장을 240ms 만 켰다가
+     base 로 돌아옵니다 (css/minigame/e3-kimchi-fry.css 의 .frying-kimchi-asset).
+     키 뒷자리는 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
+     fryKimchiStirAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다. */
+  fryKimchiBase:"assets/minigame/E3/Kimchi/food_stirfried_kimchi_base.webp",
+  ...Object.fromEntries(["left","up","right","down"].map(way=>
+    [`fryKimchiStir${way[0].toUpperCase()}${way.slice(1)}`,
+     `assets/minigame/E3/Kimchi/food_stirfried_kimchi_stir_${way}.webp`])),
+  /* 나무 주걱(토끼 손잡이) 3장. 젓는 손놀림에 따라 갈아 끼웁니다
+     (engine-e3-direction-seq.js 의 kimchiSpatulaState).
+       Clean     한 번도 안 저은 깨끗한 주걱
+       Stirring  젓는 중 — 김치가 많이 묻은 주걱
+       Rested    한 번 젓고 손을 뗀 상태 — 김치가 살짝 남은 주걱
+     ⚠️ 그림이 **이미 18도 기울여 그려져 있습니다.** 임시 도형 시절의
+        `rotate(-18deg)` 를 그대로 두면 두 번 기울어 도로 세워집니다
+        (css 의 --kf-spatula-tilt 참고). */
+  frySpatulaClean:"assets/minigame/E3/Kimchi/prop_spatula_rabbit.webp",
+  frySpatulaStirring:"assets/minigame/E3/Kimchi/prop_spatula_rabbit_kimchi_light.webp",
+  frySpatulaRested:"assets/minigame/E3/Kimchi/prop_spatula_rabbit_kimchi_very_light.webp",
   // 왼쪽 재료 카드 2장 — assets/minigame/ 의 납품 에셋입니다.
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   // ⚠️ 썬 김치 그림만 E5 폴더에 있습니다 (E5 김치전과 같은 재료라 그쪽으로 옮겼습니다).
   fryIngKimchi:"assets/minigame/E5/food_kimchi_sliced.webp",
   fryIngSugar:"assets/minigame/E3/food_sugar.webp",
-  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리). 볶이는 면은 아직 CSS 임시 도형입니다.
+  // 볶음우동 철판 볶기 (engine-e3 · 밤 조리).
   // ⚠️ stirGriddle 은 이제 **불이 빠진 철판 한 장**입니다. 불은 따로 깔리는
   //    화구 레이어(burnerGriddle1~3)가 그립니다.
   stirGriddle:"assets/minigame/E3/fix_griddle_plate_wide_mild_trapezoid_4x.webp",
-  stirNoodles:"assets/prep/yakisoba/noodles.png",
-  stirTeppanSpatula:"assets/prep/yakisoba/teppan-spatula.png",
+  /* 철판 위의 볶음우동 5장. **김치 볶기와 같은 규칙입니다** — base 가 평소 모습이고
+     나머지 넷은 그 방향으로 뒤집은 한 순간입니다. 다섯 장을 한 자리에 겹쳐 두고,
+     저을 때 그 방향 장을 240ms 만 켰다가 base 로 돌아옵니다
+     (css/minigame/e3-stir-wok.css 의 .yk-food-asset).
+     키 뒷자리는 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
+     stirUdonPoseAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다.
+     ⚠️ 김치와 달리 **다섯 장의 캔버스가 2200x803 으로 똑같습니다.** 그래서 세로도
+        한 값으로 묶습니다 (tools/build-minigame-art-webp.js 참고). */
+  stirUdonBase:"assets/minigame/E3/food_stirfried_udon_base.webp",
+  ...Object.fromEntries(["left","up","right","down"].map(way=>
+    [`stirUdon${way[0].toUpperCase()}${way.slice(1)}`,
+     `assets/minigame/E3/food_stirfried_udon_stir_${way}.webp`])),
+  /* 철판 뒤집개(너구리 손잡이) 3장. 김치 볶기의 나무 주걱과 같은 세 상태입니다
+     (engine-e3-direction-seq.js 의 stirSpatulaState).
+       Clean     한 번도 안 볶은 깨끗한 뒤집개
+       Stirring  볶는 중 — 면이 많이 묻은 뒤집개 (udon_heavy)
+       Rested    한 번 볶고 손을 뗀 상태 — 면이 살짝 남은 뒤집개 (udon_light)
+     ⚠️ **한 장을 두 자루가 나눠 씁니다.** 그림이 이미 16.2도 기울여 그려져 있어
+        (손잡이 위 오른쪽 · 날 아래 왼쪽) 그대로가 오른쪽 뒤집개이고, 왼쪽 뒤집개는
+        같은 그림을 좌우로 뒤집어 씁니다 (css 의 .spatula-left .yk-spatula-asset).
+        임시 도형 시절의 rotate(±17deg) 를 그대로 두면 두 번 기울어집니다
+        — css 의 --yk-spatula-tilt 참고. */
+  stirSpatulaClean:"assets/minigame/E3/prop_spatula_tanuki.webp",
+  stirSpatulaStirring:"assets/minigame/E3/prop_spatula_tanuki_udon_heavy.webp",
+  stirSpatulaRested:"assets/minigame/E3/prop_spatula_tanuki_udon_light.webp",
   // 왼쪽 재료 카드 3장 — assets/minigame/E3/ 의 납품 에셋입니다.
   stirIngUdon:"assets/minigame/E3/food_udon_noodles.webp",
   stirIngSauce:"assets/minigame/E3/food_udon_sauce.webp",
@@ -388,8 +429,34 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   cookPancakeBatter:"assets/minigame/E5/food_kimchi_batter_bowl_mixed_oblique.webp",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
-  // 닭꼬치는 아직 한 장만 있어서 익힘 단계의 색·그을음을 CSS 로 합성합니다.
-  cookSkewerFood:"assets/prep/two-side/skewer.png",
+  /* ⚠️ 여기 있던 `cookSkewerFood`(화로 위 꼬치 한 자루가 통째로 그려진 그림 한 장)는
+     뺐습니다. 밤 굽기는 낮에 꽂은 배치 그대로 구워야 해서, 한 장짜리 그림 대신
+     위 E8 조각(skewerChicken · skewerGreenOnion)과 꼬챙이(skewerStick)를
+     한 개씩 쌓습니다 — engine-e5-two-side-cook.js 의 grillSkewerMarkup. */
+  /* 숯불 화로 5장 — 화로 몸통 · 벌건 숯 · 석쇠 살이 **한 장에 다 그려져 있습니다**.
+     숯이 달아올랐다 사그라드는 연속 그림이라 한 자리에 겹쳐 두고 CSS 가 차례로 켭니다
+     (engine-e5-two-side-cook.js 의 CHARCOAL_GRILL_KEYS).
+     ⚠️ 다섯 장이 다 있어야 씁니다. 하나라도 빠지면 예전 CSS 화로(숯덩이 126개 +
+        석쇠 살 + 열기 두 겹)가 그대로 나옵니다.
+     ⚠️ E3·E4 의 화구(burnerGas 등)와 **다른 계통입니다.** 저쪽은 조리기구와 분리된
+        바닥 레이어라 minigameBurnerMarkup 이 공용으로 그리는데, 숯불 화로는 화로가
+        곧 조리기구여서 E5 닭꼬치 화면만 씁니다. */
+  ...Object.fromEntries(["01","02","03","04","05"].map((no,index)=>[
+    `cookCharcoalGrill${index+1}`,`assets/minigame/E5/yakitori/fix_charcoal_grill_fire_${no}.webp`
+  ])),
+  /* 굽는 닭꼬치 조각 8장 — **재료 2종 x 익힘 4단계**입니다. 김치전과 같은 방식으로
+     색을 CSS 필터로 만들지 않고 그림을 갈아 끼웁니다
+     (engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS).
+     ⚠️ **raw(안 익은) 장은 여기 없습니다.** 낮 '닭꼬치 꽂기'에 쓴 위쪽 E8 조각
+        (skewerChicken · skewerGreenOnion)이 그대로 첫 장입니다 — 실제로 같은 그림을
+        익힘만 다르게 다시 그린 한 벌이라, 캔버스도 그 장에 맞춰 뽑아 두었습니다
+        (tools/build-minigame-art-webp.js 의 pad). 그래서 다섯 장이 한 자리에 겹칩니다.
+     키 뒷자리가 곧 익는 순서입니다 — SlightlyCooked → WellCooked → SlightlyBurnt → Burnt. */
+  ...Object.fromEntries([["Chicken","chicken"],["GreenOnion","green_onion"]].flatMap(([key,file])=>
+    [["SlightlyCooked","slightly_cooked"],["WellCooked","well_cooked"],
+     ["SlightlyBurnt","slightly_burnt"],["Burnt","burnt"]].map(([step,name])=>[
+      `cookSkewer${key}${step}`,`assets/minigame/E5/yakitori/food_skewer_${file}_piece_${name}.webp`
+    ]))),
   /* 굽는 김치전 5장 — **익힘 단계마다 한 장**입니다. 색을 CSS 필터로 만들지 않고
      그림을 갈아 끼웁니다 (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS).
      키 순서가 곧 익는 순서라 코드가 이 표를 순서대로 훑습니다. */
@@ -404,6 +471,12 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   ])),
   // 김치전 굽기 화면 전용 마우스 포인터(고양이 발 뒤집개). 파일이 없으면 기본 포인터입니다.
   cookSpatulaCursor:"assets/minigame/E5/prop_spatula_cat.webp",
+  /* 닭꼬치 양념 붓. **아직 원화가 없습니다** — 파일이 없으면 임시 CSS 도형
+     (나무 손잡이 + 검은 솔)이 대신 나옵니다. 여기 경로에 파일만 넣으면
+     도형이 꺼지고 그림이 보입니다 (engine-e5-two-side-cook.js 의 sauceBrushMarkup ·
+     css 의 .ts-sauce-brush). 손잡이가 오른쪽 위로 가고 솔이 왼쪽 아래를 향하는
+     구도로 그려 주세요 — 화면 오른쪽 아래에서 들어와 꼬치를 쓸고 나갑니다. */
+  cookSauceBrush:"assets/minigame/E5/yakitori/prop_sauce_brush.webp",
   /* E8 떡 · 우동면 불려두기.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
 
@@ -487,6 +560,117 @@ function minigameBurnerMarkup(kind){
   return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}${knob}</div>`;
 }
 
+/* ---- 조리 연기 fx (팬·철판 위로 피어오르는 연기) ---------------
+   김치전(E5) · 김치 볶기 · 볶음우동이 같은 그림 5장을 나눠 씁니다.
+   01 작은 김 → 03 길게 오른 기둥 → 05 흩어지는 조각. **한 번 피어올랐다
+   사라지는 한 모금**이 그려져 있어서, 다섯 장을 같은 자리에 겹쳐 두고 CSS 가
+   차례로 한 장씩 켠 뒤 잠깐 쉽니다 (css/minigame-parts.css 의 @keyframes
+   mg-smoke-puff — 자바스크립트가 프레임을 돌리지 않습니다).
+
+   [자리는 무작위입니다] 기둥은 정해진 자리에 박혀 있지 않습니다. 한 모금이
+   사그라들 때마다 **다음 모금을 어디에서 피울지 새로 뽑습니다** — 그래서 조리물
+   위 여기저기에서 계속 올라옵니다. 뽑는 순간은 아래 mountMinigameSmoke 참고.
+
+   `count` 는 기둥 몇 개를 동시에 굴릴지입니다. 기둥마다 시작 박자를 어긋나게
+   두어 한꺼번에 피었다 한꺼번에 꺼지지 않습니다.
+   ⚠️ 그림이 한 장이라도 없으면 빈 문자열을 돌려줍니다 — 부르는 쪽에서
+      예전 CSS 김(.kf-steam · .yk-steam · .cook-steam)으로 넘어가라는 뜻입니다.
+   ⚠️ 마크업만으로는 기둥이 화면에 안 나옵니다. 그린 뒤 **반드시**
+      mountMinigameSmoke(뿌리) 를 불러야 첫 자리가 잡힙니다. */
+const MINIGAME_SMOKE_KEYS=Object.freeze(["01","02","03","04","05"].map(no=>`cookSmoke${no}`));
+
+function hasMinigameSmokeArt(){
+  return MINIGAME_SMOKE_KEYS.every(hasDayPrepAsset);
+}
+
+function minigameSmokeMarkup(count=3){
+  if(!hasMinigameSmokeArt())return "";
+  const frames=MINIGAME_SMOKE_KEYS.map((key,index)=>dayPrepAssetMarkup(key,`mg-smoke-frame frame-${index+1}`)).join("");
+  /* 시작 박자는 한 바퀴를 기둥 수로 나눠 갖되 칸 안에서 조금씩 흔듭니다.
+     고르게만 두면 "탁 · 탁 · 탁" 하고 박자가 들립니다. */
+  return Array.from({length:count},(_,index)=>{
+    const offset=((index+Math.random()*.7)/count).toFixed(3);
+    return `<span class="mg-smoke" style="--mg-smoke-offset:${offset}" aria-hidden="true">${frames}</span>`;
+  }).join("");
+}
+
+/* 한 기둥이 돌아다닐 수 있는 범위. 조리기구 상자 기준 % 이고, 공용 기본값은
+   css/minigame-parts.css 의 .mg-smoke 에, 화면마다 다른 것만 게임별 css 에
+   있습니다 (`--mg-smoke-zone-x: 20 80` 처럼 최소·최대 두 값).
+   ⚠️ x 는 상자 왼쪽이 아니라 **연기 뿌리(상자 아래 가운데)** 자리입니다.
+   여기 적힌 값은 css 를 아예 못 읽었을 때의 최후의 값입니다 — 실제로 쓰이는
+   값이 아니니 화면을 조정할 때 여기를 고치지 마세요. */
+const MINIGAME_SMOKE_ZONE_FALLBACK=Object.freeze({x:[16,62],y:[34,54],w:[20,28],top:102});
+
+function minigameSmokeZone(column){
+  const style=getComputedStyle(column);
+  const numbers=name=>style.getPropertyValue(name).trim().split(/\s+/)
+    .filter(Boolean).map(Number).filter(Number.isFinite);
+  const range=(name,fallback)=>{const parts=numbers(name);return parts.length===2?parts:fallback;};
+  const single=(name,fallback)=>{const parts=numbers(name);return parts.length===1?parts[0]:fallback;};
+  /* 상자는 정사각이라 "폭 1%" 가 세로로는 몇 % 인지 알아야 윗변을 계산할 수
+     있습니다. 조리기구 상자(팬·철판)는 가로로 길어서 이 값이 2 를 넘습니다. */
+  const host=column.parentElement?.getBoundingClientRect();
+  return {
+    x:range("--mg-smoke-zone-x",MINIGAME_SMOKE_ZONE_FALLBACK.x),
+    y:range("--mg-smoke-zone-y",MINIGAME_SMOKE_ZONE_FALLBACK.y),
+    w:range("--mg-smoke-zone-w",MINIGAME_SMOKE_ZONE_FALLBACK.w),
+    top:single("--mg-smoke-zone-top",MINIGAME_SMOKE_ZONE_FALLBACK.top),
+    aspect:host&&host.height>0?host.width/host.height:2.3
+  };
+}
+
+/* 다음 모금을 피울 자리·크기를 뽑습니다.
+
+   ⚠️ 높이(y)와 크기(w)를 **따로** 뽑으면 안 됩니다. 둘 다 큰 값이 걸리는 날에는
+      상자 윗변이 플레이 칸 위로 나가 잘립니다. 그래서 크기를 먼저 뽑고, 그 크기로
+      갈 수 있는 데까지만 높이를 뽑습니다 (--mg-smoke-zone-top 이 그 천장이고,
+      상자 윗변 = 높이 + 크기 x aspect 입니다).
+      예전처럼 기둥이 한두 개로 고정이면 값을 넣을 때마다 사람이 이 셈을 하면
+      됐지만, 자리를 계속 새로 뽑는 지금은 코드가 지켜야 합니다.
+   ⚠️ 바로 앞 모금과 너무 가까우면 다시 뽑습니다. 안 그러면 같은 자리에서 두세 번
+      이어 피어올라 "고정된 기둥" 처럼 보이는 때가 생각보다 잦습니다(무작위라
+      한 곳에 몰리는 것은 정상입니다). 몇 번 뽑아도 안 벌어지면 그냥 씁니다 —
+      범위가 좁은 화면에서 무한히 도는 것보다 낫습니다. */
+function placeMinigameSmoke(column,zone){
+  const pick=(low,high)=>low+Math.random()*Math.max(0,high-low);
+  const gap=(zone.x[1]-zone.x[0])*.35;
+  const last=Number(column.dataset.smokeRoot);
+  let root=pick(zone.x[0],zone.x[1]);
+  for(let tries=0;tries<4&&Number.isFinite(last)&&Math.abs(root-last)<gap;tries++)root=pick(zone.x[0],zone.x[1]);
+  const width=pick(zone.w[0],zone.w[1]);
+  const ceiling=zone.top-width*zone.aspect;      // 이 크기로 올라갈 수 있는 맨 위
+  const bottom=pick(zone.y[0],Math.min(zone.y[1],ceiling));
+  column.dataset.smokeRoot=root.toFixed(2);
+  column.style.width=`${width.toFixed(2)}%`;
+  column.style.left=`${(root-width/2).toFixed(2)}%`;
+  column.style.bottom=`${bottom.toFixed(2)}%`;
+}
+
+/* 기둥을 화면에 붙이고, 모금이 바뀔 때마다 자리를 다시 뽑게 걸어 둡니다.
+
+   [언제 옮기는가]  `animationiteration` 을 씁니다 — 자바스크립트 타이머가 아니라
+   **CSS 애니메이션이 한 바퀴를 돈 그 순간**에 브라우저가 알려 주는 사건이라,
+   그림이 넘어가는 박자와 어긋날 일이 없습니다. 첫 장(frame-1)의 한 바퀴가
+   끝나는 시각은 다섯 장이 전부 꺼져 있는 쉬는 참이라(css 의 mg-smoke-puff 참고)
+   그때 옮기면 연기가 순간이동하는 것처럼 보이지 않습니다.
+   ⚠️ 다른 장(frame-2~5)은 지연이 걸려 있어 한 바퀴가 끝나는 시각이 제각각입니다.
+      **반드시 frame-1 만** 봐야 합니다.
+
+   [치우기]  없습니다. 기둥은 미니게임 화면 안에 있어서 화면이 지워지면 listener 도
+   같이 사라집니다 (엔진에 teardown 이 없어도 새는 것이 없습니다).
+   [움직임 최소화]  애니메이션이 꺼지면 사건도 안 옵니다 — 처음 뽑은 자리에
+   가만히 있습니다. 그게 맞는 동작입니다. */
+function mountMinigameSmoke(root){
+  root?.querySelectorAll(".mg-smoke").forEach(column=>{
+    const zone=minigameSmokeZone(column);
+    placeMinigameSmoke(column,zone);
+    column.addEventListener("animationiteration",event=>{
+      if(event.target.classList?.contains("frame-1"))placeMinigameSmoke(column,zone);
+    });
+  });
+}
+
 function timingAssetKey(ingredient,successes,assetPrefix=""){
   if(assetPrefix)return `${assetPrefix}${successes}`;
   if(ingredient==="radish")return `radish${successes}`;
@@ -518,6 +702,9 @@ function registerDayPrepEngine(modes,engine){
     update:engine.update,
     action:engine.action,
     keyup:engine.keyup,
+    // 마우스 전용 표시는 그대로 넘겨야 합니다 — game.js 가 보는 것은 이 wrapped 쪽입니다
+    // (여기서 빠뜨리면 엔진에 붙여 놔도 키가 그대로 먹습니다). mini-engine.js 참고.
+    noKeyboard:engine.noKeyboard,
     key(m,k,e){
       if(k==="escape"){closeDayPrepMini();return true;}
       return engine.key?engine.key(m,k,e):false;

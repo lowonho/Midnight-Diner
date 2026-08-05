@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E3 볶음우동 visual smoke</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다. DAY_PREP_ASSET_PATHS 의 경로가
+       index.html(루트) 기준이라, 이게 없으면 tools/assets/... 를 찾다 전부 실패해
+       임시 CSS 도형만 보입니다. 아래 경로도 전부 루트 기준으로 적습니다. -->
+  <base href="../">
+  <!-- 실제 게임과 같은 순서 · 같은 파일입니다 (index.html 참고) -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    /* 오버레이는 평소 숨어 있습니다 — 스모크에서는 항상 켭니다 */
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- .active 가 없으면 .app-screen 이 display:none 이라 화면이 통째로 0x0 이 됩니다 -->
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
+  <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
+  <script src="ui-mini-frame.js"></script>
+  <script>document.querySelector(".mini-overlay")?.classList.add("open");</script>
+  <script>
+    "use strict";
+    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E3 이 실제로 만지는
+       것만 흉내 냅니다 — 전역 state / dom / audio 셋입니다.
+       ⚠️ 볶음우동은 **밤 조리**라 낮 준비 문맥(context.mode)이 없습니다.
+          대신 engine 이름이 "stir" 여야 stirInput 이 돕니다. */
+    const state = { day:4, mini:null };
+    const audio = new Proxy({}, { get:() => () => {} });
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e3-direction-seq.js"></script>
+  <script>
+    "use strict";
+    /* ?scrape=left|right|up|down   그 방향으로 볶은 한 순간에서 멈춥니다
+       ?done=6                      몇 번 볶은 뒤인지 (익힘 단계 cook-stage 확인용)
+
+       ⚠️ 볶은 직후 화면은 **진짜 입력으로 만듭니다**(stirInput). 클래스만 손으로
+          붙이면 "스모크만 맞고 게임은 틀린" 상황을 못 잡습니다. 다만 scrape-○ 를
+          떼는 240ms 타이머는 가상 시간에서 순식간에 지나가므로, 마지막 한 획만
+          클래스를 다시 세워 그 순간을 붙들어 둡니다. (김치 볶기 스모크와 같습니다) */
+    const params = new URLSearchParams(location.search);
+    const scrape = params.get("scrape");
+    const done = Math.max(0, Math.min(12, Number(params.get("done")) || 0));
+
+    loadDayPrepAssets().then(() => {
+      /* 실제 진입로와 같은 함수를 씁니다 — 화면을 베껴 적으면 진짜 화면과 어긋납니다.
+         밤 조리는 mini-engine 의 등록표를 거쳐 setup 이 불립니다. set() 은
+         제목·설명·제한시간을 공용 프레임에 적는 것뿐이라 여기서 대신 채웁니다. */
+      state.mini = { engine:"stir", complete:false, data:null };
+      MINI_ENGINES.stir.setup(state.mini, { set:(title, description) => {
+        dom.miniTitle.textContent = title;
+        dom.miniDescription.textContent = description;
+      } });
+      const data = state.mini.data;
+      /* ⚠️ 여기부터 끝까지 **한 호흡에 동기로** 끝냅니다. 에셋 200여 장을 다 읽고 난
+         뒤에는 가상 시간이 거의 다 흘러 있어서, 여기서 새로 거는 setTimeout 이나
+         requestAnimationFrame 은 울릴 때도 있고 안 울릴 때도 있습니다.
+         대신 볶을 때 걸리는 타이머 하나를 막습니다 — stirInput 은 240ms 뒤
+         scrape-○ 를 떼는 setTimeout 을 겁니다(E3_FEEL_CONFIG.actionMs). */
+      const realSetTimeout = window.setTimeout;
+      window.setTimeout = () => 0;
+      for(let i = 0; i < done; i++) stirInput(data.arrows[data.index]);
+      const work = document.getElementById("stirWorkArea");
+      if(scrape){
+        work.classList.remove("scrape-left","scrape-right","scrape-up","scrape-down");
+        work.classList.add(`scrape-${scrape}`);
+      }
+      window.setTimeout = realSetTimeout;
+      /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 여기서 자세를 세웁니다.
+         ⚠️ getComputedStyle 로 스타일을 한 번 강제로 계산해야 방금 붙인 클래스의
+            애니메이션이 등록됩니다 — 안 그러면 getAnimations() 가 빈 배열입니다.
+         ⚠️ 오버레이 등장 애니메이션은 **끝까지 보냅니다.** 철판 칸 안의 것만
+            볶는 한가운데(240ms 중 120ms)에서 붙듭니다. */
+      getComputedStyle(work).transform;
+      document.getAnimations().forEach(a => {
+        const target = a.effect?.target;
+        if(scrape && target && work.contains(target)){ a.pause(); try { a.currentTime = 120; } catch(e){} }
+        else if(!target || !work.contains(target)) try { a.finish(); } catch(e){}
+      });
+      parkSmoke();
+      measure();
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기는 한 모금 피우고 **쉽니다**(한 바퀴의 약 37%). 그냥 찍으면 그 쉬는 참에
+       걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+       ⚠️ 다섯 장은 같은 시각에 시작해서(currentTime 이 같이 움직입니다)
+          `animation-delay` 로만 어긋나 있습니다. 그래서 currentTime 에 0 을 넣으면
+          한 바퀴의 0 지점이 아니라 **아직 지연 구간**이라 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다. */
+    function parkSmoke(){
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        const first = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+        if(!first) return;
+        const { delay, duration } = first.effect.getTiming();
+        const at = delay + (.08 + index * .05) * duration;
+        column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+          const anim = frame.getAnimations()[0];
+          if(anim){ anim.pause(); anim.currentTime = at; }
+        });
+      });
+    }
+
+    function measure(){
+      const rect = el => el.getBoundingClientRect();
+      const box = el => { const r = rect(el); return `${r.width.toFixed(1)}x${r.height.toFixed(1)}`; };
+      const drawn = img => {
+        if(!img || !img.naturalWidth) return null;
+        const r = rect(img), ratio = img.naturalWidth / img.naturalHeight;
+        return `${Math.min(r.width, r.height * ratio).toFixed(1)}x${Math.min(r.height, r.width / ratio).toFixed(1)}`;
+      };
+      const board = document.getElementById("stirWorkArea");
+      const griddle = document.getElementById("stirPlate");
+      const food = document.getElementById("stirFood");
+      const boardRect = rect(board), plateRect = rect(griddle);
+      /* ⚠️ 실제로 잘리는 선은 플레이 칸(.yk-board)이 아니라 **그 바깥 .mini-stage**
+         입니다 (css/minigame-frame.css 의 overflow:hidden). 칸 위로 삐져나가도
+         이 선까지는 그대로 보이므로, 뒤집개 손잡이는 여기로 재야 합니다. */
+      const stageRect = rect(document.querySelector(".mini-stage"));
+      // 1920 프레임 기준 px 로 되돌리는 배율
+      const s = boardRect.width / parseFloat(getComputedStyle(board).width);
+      // 철판 그림 왼쪽 위를 0 으로 놓고 잽니다 — 면·연기 자리는 전부 철판 기준입니다
+      const atPlate = el => { const r = rect(el); return {
+        l:+((r.left - plateRect.left) / s).toFixed(1), r:+((r.right - plateRect.left) / s).toFixed(1),
+        t:+((r.top - plateRect.top) / s).toFixed(1),   b:+((r.bottom - plateRect.top) / s).toFixed(1) }; };
+      const shown = list => (list.filter(f => +getComputedStyle(f).opacity > .01)
+        .map(f => f.src.split("/").pop())[0] || null);
+
+      document.body.dataset.measure = JSON.stringify({
+        scrape, done, arrows:state.mini.data.arrows.join(""),
+        boardClass:board.className,
+        board:box(board),
+        griddle:{ box:box(griddle), drawn:drawn(document.querySelector(".yk-griddle-asset")) },
+        food:{ box:box(food), at:atPlate(food), asset:food.classList.contains("has-prep-asset"),
+               shown:shown([...food.querySelectorAll(".yk-food-asset")]) },
+        /* 철판 뒤집개 두 자루. 임시 도형이 아니라 납품 그림을 쓰고 있는지(asset),
+           지금 어느 자세인지(pose/shown), 그리고 **날 한가운데가 어디에 오는지**를 봅니다.
+           날 자리는 회전축(transform-origin)이 곧 그 지점이라 거기서 되짚습니다.
+           overTop 이 양수면 플레이 칸 위로 손잡이가 삐져나간다는 뜻입니다. */
+        spatulas:[...document.querySelectorAll(".yk-spatula")].map(tool => {
+          const r = rect(tool), at = atPlate(tool), style = getComputedStyle(tool);
+          const [ox,oy] = style.transformOrigin.split(" ").map(parseFloat);
+          return { which:tool.classList.contains("spatula-left") ? "left" : "right",
+            box:box(tool), at, pose:tool.dataset.spatula || null,
+            asset:tool.classList.contains("has-prep-asset"),
+            tilt:style.getPropertyValue("--yk-spatula-tilt").trim() || null,
+            // 날 중심 (철판 그림 왼쪽 위 기준)
+            bladeX:+(at.l + ox / s).toFixed(1), bladeY:+(at.t + oy / s).toFixed(1),
+            overTop:+((boardRect.top - r.top) / s).toFixed(1),
+            /* 잘리는 선 위로 얼마나 나갔는지. **양수가 정상입니다** — 날이 면 위로
+               나오려면 손잡이는 잘릴 수밖에 없습니다(css 의 [세로 top -180] 참고).
+               볼 것은 이 값이 아니라 **날이 철판 뒷턱(bladeY 기준 위쪽)을 벗어나
+               나무 바닥에 뜨지 않는가** 입니다. */
+            cut:+((stageRect.top - r.top) / s).toFixed(1),
+            shown:shown([...tool.querySelectorAll(".yk-spatula-asset")]) };
+        }),
+        /* 연기 기둥 셋. 상자는 정사각(w == h)이어야 하고, 뿌리(아래 가운데)가
+           면이 깔린 자리(철판 기준 가로 13% ~ 87%) 안에 있어야 합니다.
+           overTop 이 양수면 철판 칸 위로 삐져나간다는 뜻입니다. */
+        smoke:[...document.querySelectorAll(".yk-griddle .mg-smoke")].map(col => {
+          const r = rect(col), at = atPlate(col);
+          return { which:col.className.replace("mg-smoke ",""), box:box(col),
+            square:Math.abs(r.width - r.height) < 1, at,
+            rootX:+((at.l + at.r) / 2).toFixed(1),
+            overTop:+((boardRect.top - r.top) / s).toFixed(1),
+            opacity:+(+getComputedStyle(col).opacity).toFixed(2),
+            shown:shown([...col.querySelectorAll(".mg-smoke-frame")]) };
+        }),
+        // 그림이 있는데도 예전 CSS 김이 남아 있으면 안 됩니다
+        steamShape:document.querySelectorAll(".yk-steam").length,
+        // 임시 CSS 도형이 남아 보이면 안 됩니다
+        fallback:{ griddleShape:!griddle.classList.contains("has-asset"),
+                   foodShape:!food.classList.contains("has-prep-asset"),
+                   spatulaShape:[...document.querySelectorAll(".yk-spatula")]
+                     .some(tool => !tool.classList.contains("has-prep-asset")) }
+      });
+      document.body.dataset.ready = "true";
+    }
+  </script>
+</body>
+</html>

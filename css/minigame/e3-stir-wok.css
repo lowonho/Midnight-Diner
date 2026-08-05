@@ -12,8 +12,9 @@
    맨 아래 화살표 8칸이 3단 폭을 가로질러 깔립니다.
    (낮 준비의 "김치 볶기" 와 같은 틀입니다. 그쪽은 12칸 · css/day-prep-minigames.css)
 
-   그림은 전부 임시 CSS 도형이고, assets/prep/yakisoba/ 에 파일을 넣으면
-   .has-asset(.has-prep-asset) 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
+   화구·철판·면·뒤집개는 assets/minigame/E3 의 납품 그림입니다.
+   그림이 있으면 .has-asset(.has-prep-asset) 이 붙어 아래 임시 CSS 도형이 꺼지고
+   <img> 가 대신 보입니다. 도형은 납품 전 대비로 남겨 둔 것입니다.
    (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]
@@ -185,11 +186,23 @@
 .yk-griddle.has-asset { background: none; box-shadow: none; }
 .yk-griddle.has-asset::before { display: none; }
 .yk-griddle-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-/* 볶이는 면 (CSS 그대로). 자리만 새 철판 그림의 조리면에 맞췄습니다 —
-   아래 여백이 27% 일 때는 면이 판 위쪽으로 쏠리고 아래 1/3 이 비었습니다. */
+/* 볶이는 면. 자리만 새 철판 그림의 조리면에 맞췄습니다 —
+   아래 여백이 27% 일 때는 면이 판 위쪽으로 쏠리고 아래 1/3 이 비었습니다.
+
+   [쌓이는 순서 — 철판 · 뒤집개 · 면 · 연기]  철판 칸(.yk-griddle) 안의 네 겹입니다.
+     0  철판 그림 (.yk-griddle-asset — z-index 없이 맨 아래)
+     2  뒤집개 두 자루 (.yk-spatula)
+     3  볶이는 면 (여기)
+     4  연기 (.yk-griddle .mg-smoke)
+   ⚠️ **뒤집개가 면보다 아래입니다.** 날이 면 더미에 반쯤 파묻혀야 퍼 올리는 것처럼
+      보입니다 — 위에 얹으면 면 위에 올려놓은 것처럼 납작해집니다.
+      대신 뒤집개는 날이 더미 윗선 위로 나오도록 **높이 올라가 있고, 손잡이 끝은
+      잘려 나갑니다** (.yk-spatula.has-prep-asset 의 [세로 top -180] 참고).
+   ⚠️ 연기는 면보다 위여야 합니다. 공용 기본값이 3 이라 면과 같은 층이 되므로
+      아래 "조리 연기" 구역에서 4 로 올려 둡니다. */
 .yk-food {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   left: 13%;
   right: 13%;
   top: 17%;
@@ -232,20 +245,60 @@
 .yk-garnish.onion.garnish-one { left:47%; top:12%; }
 .yk-garnish.onion.garnish-two { right:34%; bottom:12%; transform:scale(.75); }
 .yk-food.has-prep-asset .yk-food-fallback { display:none; }
-.yk-food-asset { width: 100%; height: 100%; object-fit: contain; }
-/* 사진처럼 나무 손잡이와 넓은 금속 날이 달린 철판 뒤집개 두 개입니다. */
-.yk-spatula {
+/* 면 그림 5장을 **같은 자리에 겹쳐 두고** 갈아 끼웁니다 (김치 볶기와 같은 방식).
+   평소에는 base 한 장만 보이고, 볶을 때 그 방향 장이 240ms 동안 대신 켜집니다
+   (engine-e3-direction-seq.js 의 E3_FEEL_CONFIG.actionMs 가 scrape-○ 를 떼는 시각).
+   ⚠️ 전환(transition)을 두지 않습니다. 뒤집는 한 순간이라 툭 바뀌어야 뒤집힌 것처럼
+      보이고, 겹쳐 페이드하면 두 장이 같이 비쳐 면이 두 겹으로 보입니다.
+   ⚠️ 김치와 달리 **다섯 장의 캔버스가 2200x803 으로 똑같습니다.** 그래서 상자
+      비율(562.4 x 205.4 = 2.738)에 그림 비율(2.7397)이 거의 그대로 맞아떨어져
+      contain 이 상자를 꽉 채웁니다 — 장이 넘어가도 면 더미가 튀지 않습니다. */
+.yk-food-asset {
   position: absolute;
-  z-index: 4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+}
+.yk-food-asset.udon-base { opacity: 1; }
+/* ⚠️ base 를 끄는 조건에 `:has(.udon-○)` 를 답니다. 그 방향 장이 실제로 깔려 있을
+   때만 꺼야, 파일 하나가 안 실려도 240ms 동안 철판이 텅 비지 않습니다
+   (dayPrepAssetMarkup 은 그림이 없으면 <img> 를 아예 안 만듭니다). */
+.yk-board.scrape-left  .yk-food:has(.udon-left)  .yk-food-asset.udon-base,
+.yk-board.scrape-right .yk-food:has(.udon-right) .yk-food-asset.udon-base,
+.yk-board.scrape-up    .yk-food:has(.udon-up)    .yk-food-asset.udon-base,
+.yk-board.scrape-down  .yk-food:has(.udon-down)  .yk-food-asset.udon-base { opacity: 0; }
+.yk-board.scrape-left  .yk-food-asset.udon-left  { opacity: 1; }
+.yk-board.scrape-right .yk-food-asset.udon-right { opacity: 1; }
+.yk-board.scrape-up    .yk-food-asset.udon-up    { opacity: 1; }
+.yk-board.scrape-down  .yk-food-asset.udon-down  { opacity: 1; }
+/* 사진처럼 나무 손잡이와 넓은 금속 날이 달린 철판 뒤집개 두 개입니다.
+   기울기는 --yk-spatula-tilt 한 곳에서만 정합니다 — 아래 흔드는 애니메이션 열 개가
+   전부 이 값에서 상대로 꺾기 때문에, 임시 도형(∓17도)과 납품 그림(0도)이 같은
+   손놀림을 씁니다. ⚠️ 각 키프레임에 각도를 직접 적으면 그림 쪽이 도로 세워집니다.
+   (김치 볶기의 --kf-spatula-tilt 와 같은 장치입니다) */
+.yk-spatula {
+  /* 위로 볶을 때 뒤집개가 물러나는 정도. 아래 yk-spatula-up-a/b 두 곳만 씁니다.
+     ⚠️ 임시 도형과 납품 그림이 **값이 다릅니다** — 그림 쪽은 손잡이 끝(너구리 머리)이
+        훨씬 위에 있어 62 를 그대로 밀면 잘립니다. 자세한 사연은 아래
+        .yk-spatula.has-prep-asset 의 [위로 볶기] 주석에 적어 두었습니다. */
+  --yk-spatula-lift: calc(-62 * var(--upx));
+  --yk-spatula-shrink: 1;
+  position: absolute;
+  /* ⚠️ **면(.yk-food, 3)보다 아래입니다.** 날이 면 더미에 파묻혀야 퍼 올리는 것처럼
+     보입니다 — 쌓이는 순서 전체는 .yk-food 주석에 적어 두었습니다. */
+  z-index: 2;
   top: calc(-78 * var(--upx));
   width: calc(128 * var(--upx));
   height: calc(325 * var(--upx));
+  transform: rotate(var(--yk-spatula-tilt));
   transform-origin: 50% 82%;
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(5 * var(--upx)) rgba(0,0,0,.5));
   pointer-events: none;
 }
-.yk-spatula.spatula-left { left:25%; transform:rotate(-17deg); }
-.yk-spatula.spatula-right { right:23%; transform:rotate(17deg); }
+.yk-spatula.spatula-left { --yk-spatula-tilt: -17deg; left:25%; }
+.yk-spatula.spatula-right { --yk-spatula-tilt: 17deg; right:23%; }
 .yk-spatula::before {
   content: "";
   position: absolute;
@@ -276,14 +329,133 @@
   clip-path:polygon(38% 0,62% 0,72% 20%,100% 30%,100% 100%,0 100%,0 30%,28% 20%);
 }
 .yk-spatula.has-prep-asset::before,.yk-spatula.has-prep-asset::after { display: none; }
-.yk-spatula-asset { width: 100%; height: 100%; object-fit: contain; }
+/* 납품 그림(너구리 손잡이 철판 뒤집개). 임시 도형과 크기·기울기·자리가 셋 다 다릅니다.
+
+   [기울기 0] 그림이 **이미 16.2도 기울여 그려져 있습니다** (손잡이 위 오른쪽 · 날
+     아래 왼쪽 — 임시 도형의 오른쪽 뒤집개 rotate(17deg) 와 같은 모습). 임시 도형용
+     ∓17 을 그대로 두면 두 번 기울어집니다.
+
+   [한 장을 좌우로 나눠 씁니다] 그림 그대로가 **오른쪽** 뒤집개이고, 왼쪽은 같은 장을
+     좌우로 뒤집어 씁니다 (아래 .spatula-left .yk-spatula-asset).
+     ⚠️ 뒤집기(scaleX)는 반드시 **안쪽 <img>** 에 겁니다. 바깥 <i> 에 얹으면 아래
+        흔드는 애니메이션의 transform 이 그 자리를 덮어써서, 볶는 240ms 동안만
+        뒤집개가 좌우로 홱 뒤집혔다 돌아옵니다.
+
+   [170 x 300] 날이 그림 가로의 65.7% 라 화면에서 112 입니다. 임시 도형의 금속 날
+     (128)보다 조금 작은데, 그림 쪽 날이 둥글고 두툼해 같은 폭이면 오히려 커 보입니다.
+     세로 300 은 그림 비율(0.5667)에서 나온 값입니다.
+     ⚠️ tools/build-minigame-art-webp.js 의 크기(340x600)가 이 값의 2배입니다.
+        여기를 바꾸면 거기도 같이 고쳐야 합니다.
+
+   [가로 18.3%] 그림에서 **날 한가운데**가 가로 35% 자리라, 상자를 그냥 가운데
+     정렬하면 날이 손잡이 쪽으로 밀립니다. 되당겨서
+       왼쪽 날 중심  철판 상자의 250 (뒤집혀 있으므로 65% 지점)
+       오른쪽 날 중심 철판 상자의 510 (35% 지점)
+     — 면이 깔린 자리(13%~87% · 가운데 380)에서 좌우 ±130 으로 대칭입니다.
+
+   [세로 top -180 — 날이 면 위로 나오는 자리]
+     뒤집개는 면(.yk-food) **뒤**에 있으므로, 면 더미 실루엣보다 위로 올라온 만큼만
+     보입니다. 그래서 세로 자리는 "손잡이가 어디까지 보이나" 가 아니라
+     **"날이 얼마나 나오나"** 로 잡습니다. 실측한 두 선이 기준입니다.
+       철판 뒷턱   철판 상자의 y 0   (철판 그림이 상자를 꽉 채웁니다)
+       면 더미 윗선 왼쪽 날 자리 68 · 오른쪽 날 자리 75
+         (면 그림에서 가로 26.9% / 73.1% 지점의 윗선 6.7% / 9.8% 를
+          면 상자 54.6~260 에 올린 값입니다)
+     이 사이 70 남짓이 **날이 철판 위에 자연스럽게 드러나는 띠**입니다.
+     그림에서 날(넓은 판)이 세로 64%~99.6% 이므로 top -180 이면
+       날 12 ~ 119  →  그중 12~70 이 보입니다 (판의 위쪽 절반 남짓)
+     이고, 날이 가장 넓은 줄(84.9% = y 74.7)이 면 윗선에 딱 걸쳐 **더미에 반쯤
+     박혀 있는** 모습이 됩니다.
+     ⚠️ 손잡이 끝(너구리 머리)은 이 자리에서 **잘려 나갑니다.** 잘리는 선(.mini-stage
+        의 overflow:hidden — 철판 위 65)에서 면 윗선(70)까지가 135 뿐인데 상자 위끝에서
+        날 위끝까지가 192 라, **날을 보이게 하면서 머리를 남길 방법이 없습니다.**
+        머리를 살리려면 날은 도로 면에 파묻힙니다 — 둘 중 하나입니다.
+
+   [위로 볶기] 임시 도형은 위로 62 를 그냥 밀어 올렸는데, 그림은 그럴 수가 없습니다.
+     날 위끝이 쉬는 자세에서 이미 철판 뒷턱(0) 코앞인 12 라, 62 를 밀면 날이 철판을
+     벗어나 뒤쪽 나무 바닥 위에 떠 버립니다.
+     그래서 **밀어내는 거리 대신 원근으로** 표현합니다 — 멀어지면 작게.
+     축이 날(83.6%)이라 scale 이 날 위끝을 도로 아래로 당겨 주므로,
+       날 위끝 = 12 + 58.8 x .12(shrink) − 20(lift) ≈ -1
+     로 철판 뒷턱에 걸칩니다. (김치 볶기의 kf-spatula-up 과 같은 처리입니다)
+     ⚠️ 두 값을 키우려면 tools/e3-stir-wok-visual-smoke.html 을 `?scrape=up` 으로
+        띄워 날이 철판을 벗어나지 않는지 다시 보세요. */
+.yk-spatula.has-prep-asset {
+  --yk-spatula-tilt: 0deg;
+  --yk-spatula-lift: calc(-20 * var(--upx));
+  --yk-spatula-shrink: .88;
+  top: calc(-180 * var(--upx));
+  width: calc(170 * var(--upx));
+  height: calc(300 * var(--upx));
+}
+/* 회전축도 날 한가운데입니다 — 여기가 어긋나면 볶을 때 날이 아니라 손잡이가 제자리에
+   남고 날이 크게 휘둘립니다. 좌우가 뒤집혀 있어 x 만 서로 반대입니다. */
+.yk-spatula.has-prep-asset.spatula-left { left: 18.3%; right: auto; transform-origin: 65% 83.6%; }
+.yk-spatula.has-prep-asset.spatula-right { right: 18.3%; left: auto; transform-origin: 35% 83.6%; }
+/* 뒤집개 3장도 면처럼 겹쳐 두고 갈아 끼웁니다. 어느 장이 보이는지는 data-spatula 하나가
+   정하고, 그 값은 engine-e3-direction-seq.js 의 stirSpatulaState() 가 씁니다.
+     clean     한 번도 안 볶은 깨끗한 뒤집개
+     stirring  볶는 중 (철판 위에 손을 대고 있는 동안)
+     rested    한 번 볶고 손을 뗀 상태 — 면이 살짝 남습니다
+   ⚠️ 세 장은 캔버스가 미세하게 달라 tools/build-minigame-art-webp.js 에서 한 크기
+      (340x600)로 묶어 뽑습니다. 안 그러면 손을 대고 뗄 때 뒤집개가 들썩입니다. */
+.yk-spatula-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+}
+.yk-spatula.spatula-left .yk-spatula-asset { transform: scaleX(-1); }
+.yk-spatula[data-spatula="clean"]    .yk-spatula-asset.spatula-clean,
+.yk-spatula[data-spatula="stirring"] .yk-spatula-asset.spatula-stirring,
+.yk-spatula[data-spatula="rested"]   .yk-spatula-asset.spatula-rested { opacity: 1; }
+/* 그림이 한 장이라도 빠져 임시 도형으로 돌아갔을 때, 남은 그림이 도형 위에 겹치지
+   않도록 아예 끕니다 (has-prep-asset 이 없으면 도형이 주인공입니다) */
+.yk-spatula:not(.has-prep-asset) .yk-spatula-asset { display: none; }
 .yk-board.cook-stage-1 .yk-food { filter: saturate(1.06) brightness(.98); }
 .yk-board.cook-stage-2 .yk-food { filter: saturate(1.14) brightness(.92); }
 .yk-board.cook-stage-3 .yk-food { filter: saturate(1.22) brightness(.88) contrast(1.06); }
 .yk-board.cook-stage-0 .yk-steam { filter: opacity(.25); }
 .yk-board.cook-stage-1 .yk-steam { filter: opacity(.55); }
 .yk-board.cook-stage-2 .yk-steam,.yk-board.cook-stage-3 .yk-steam { filter: opacity(1); }
-/* 김 */
+/* ── 철판 위로 피어오르는 연기 ────────────────────────────────
+   **김치전(E5) · 김치 볶기와 똑같이 씁니다.** 그림 5장도, 도는 방식도, 기둥 수도
+   크기도 진하기도 이제 셋이 한 벌을 나눠 씁니다 — css/minigame-parts.css 의
+   .mg-smoke 한 곳입니다. (김치전에 있던 별도 한 벌 `.ts-smoke` 는 없앴습니다)
+   ⚠️ 원래는 화면마다 기둥 자리를 따로 적어서, 같은 연기가 화면마다 다르게
+      보였습니다. 한쪽을 고치면 다른 쪽도 같이 보세요.
+
+   ⚠️ 기둥은 이제 정해진 자리에 박혀 있지 않습니다. 한 모금이 사그라들 때마다
+      **다음 모금을 어디에서 피울지 새로 뽑습니다** (day-prep-minigames.js 의
+      placeMinigameSmoke). 그래서 여기 적는 것은 자리가 아니라 **뽑을 범위**입니다.
+      크기·박자·진하기는 세 화면이 똑같고, 이 화면만 다른 것 둘만 덮어씁니다.
+
+   ⚠️ 자리는 철판 상자(760 x 321) 기준 % 입니다 (김치전은 팬 상자 710 x 308.4 기준
+      — 두 상자가 거의 같은 크기라 같은 % 가 같은 그림이 됩니다).
+   ⚠️ [x] 면이 깔린 자리가 철판 상자의 13% ~ 87% 로(.yk-food 의 left/right) 팬보다
+      좌우로 넓습니다. 공용 기본값(16 ~ 62)을 그대로 쓰면 오른쪽 1/3 에서는 연기가
+      아예 안 나서, 이 화면만 넓게 잡습니다. 뿌리가 면 위에 오는 것은 그대로입니다.
+   ⚠️ [top] 위로 나가는 것은 정상입니다 — .yk-griddle 도 .yk-board 도 자르지
+      않습니다. 그래도 칸(높이 503) 안에 두려면 철판 위로 쓸 수 있는 높이가
+      503 - 138(철판 바닥) = 365 — 철판 세로(321)의 113% 입니다. 팬 쪽(101)보다
+      여유가 있는 것은 철판이 팬보다 낮게 앉아서입니다. */
+/* ⚠️ 공용 기본값(3)이 이제 면(.yk-food)과 같은 층이라 4 로 올립니다 — 안 그러면
+   DOM 순서(연기가 면보다 앞)에 밀려 연기가 면 뒤로 숨습니다. */
+.yk-griddle .mg-smoke {
+  z-index: 4;
+  --mg-smoke-zone-x: 20 80;
+  --mg-smoke-zone-top: 113;
+}
+/* 많이 볶을수록 진해집니다. 김치전은 `--cook-progress` 로 .26 → .56 을 이어서
+   훑는데, 여기는 단계가 넷(cook-stage-0~3)이라 그 구간을 넷으로 나눠 밟습니다. */
+.yk-board .mg-smoke { opacity: .26; }
+.yk-board.cook-stage-1 .mg-smoke { opacity: .36; }
+.yk-board.cook-stage-2 .mg-smoke { opacity: .46; }
+.yk-board.cook-stage-3 .mg-smoke { opacity: .56; }
+/* 김 — 연기 그림이 없을 때 쓰는 예전 CSS 김 두 줄입니다
+   (engine-e3-direction-seq.js 의 minigameSmokeMarkup 이 빈 문자열을 돌려줄 때) */
 .yk-steam {
   position: absolute;
   z-index: 2;
@@ -297,7 +469,6 @@
 }
 .yk-steam.steam-one { left: 26%; }
 .yk-steam.steam-two { left: 50%; animation-delay: .7s; }
-.yk-steam.steam-three { left: 72%; animation-delay: 1.3s; }
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .yk-count { text-align: center; }
@@ -420,20 +591,28 @@
 .yk-board.input-wrong .spatula-right { animation: yk-spatula-wrong-right .15s ease; }
 .yk-board.e3-complete .yk-food { animation: yk-food-complete .48s cubic-bezier(.2,.9,.2,1); }
 
-@keyframes yk-spatula-left-a { 50% { transform:translateX(calc(-95 * var(--upx))) rotate(-28deg); } }
-@keyframes yk-spatula-left-b { 50% { transform:translateX(calc(-72 * var(--upx))) rotate(7deg); } }
-@keyframes yk-spatula-right-a { 50% { transform:translateX(calc(72 * var(--upx))) rotate(-7deg); } }
-@keyframes yk-spatula-right-b { 50% { transform:translateX(calc(95 * var(--upx))) rotate(28deg); } }
-@keyframes yk-spatula-up-a { 50% { transform:translateX(calc(38 * var(--upx))) translateY(calc(-62 * var(--upx))) rotate(-5deg); } }
-@keyframes yk-spatula-up-b { 50% { transform:translateX(calc(-38 * var(--upx))) translateY(calc(-62 * var(--upx))) rotate(5deg); } }
-@keyframes yk-spatula-down-a { 50% { transform:translateX(calc(30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(-9deg); } }
-@keyframes yk-spatula-down-b { 50% { transform:translateX(calc(-30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(9deg); } }
+/* ⚠️ 각도를 직접 적지 않고 쉬는 자세(--yk-spatula-tilt)에서 상대로 꺾습니다.
+   임시 도형은 ∓17 도에서 시작하고 납품 그림은 0 도에서 시작하는데(그림에 이미
+   16.2 도 기울여 그려져 있습니다), 손놀림의 폭은 둘이 같아야 합니다.
+   -a 는 왼쪽 뒤집개, -b 는 오른쪽 뒤집개입니다. */
+@keyframes yk-spatula-left-a { 50% { transform:translateX(calc(-95 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) - 11deg)); } }
+@keyframes yk-spatula-left-b { 50% { transform:translateX(calc(-72 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) - 10deg)); } }
+@keyframes yk-spatula-right-a { 50% { transform:translateX(calc(72 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) + 10deg)); } }
+@keyframes yk-spatula-right-b { 50% { transform:translateX(calc(95 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) + 11deg)); } }
+/* ⚠️ 위로 볶을 때만 --yk-spatula-lift · --yk-spatula-shrink 를 씁니다. 임시 도형은
+   62 를 그냥 밀어 올리고(shrink 1 = 아무 일도 안 함), 납품 그림은 20 만 밀고 대신
+   작아집니다 — 손잡이 끝이 잘리기 때문입니다 (.yk-spatula.has-prep-asset 주석 참고). */
+@keyframes yk-spatula-up-a { 50% { transform:translateX(calc(38 * var(--upx))) translateY(var(--yk-spatula-lift)) scale(var(--yk-spatula-shrink)) rotate(calc(var(--yk-spatula-tilt) + 12deg)); } }
+@keyframes yk-spatula-up-b { 50% { transform:translateX(calc(-38 * var(--upx))) translateY(var(--yk-spatula-lift)) scale(var(--yk-spatula-shrink)) rotate(calc(var(--yk-spatula-tilt) - 12deg)); } }
+@keyframes yk-spatula-down-a { 50% { transform:translateX(calc(30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) + 8deg)); } }
+@keyframes yk-spatula-down-b { 50% { transform:translateX(calc(-30 * var(--upx))) translateY(calc(42 * var(--upx))) rotate(calc(var(--yk-spatula-tilt) - 8deg)); } }
 @keyframes yk-food-left { 50% { transform: translateX(calc(-34 * var(--upx))) rotate(-1.5deg); } }
 @keyframes yk-food-right { 50% { transform: translateX(calc(34 * var(--upx))) rotate(1.5deg); } }
 @keyframes yk-food-up { 50% { transform: translateY(calc(-25 * var(--upx))) scale(1.025); } }
 @keyframes yk-food-down { 50% { transform: translateY(calc(12 * var(--upx))) scaleY(.9); } }
-@keyframes yk-spatula-wrong-left { 35% { transform:rotate(-9deg); } 70% { transform:rotate(-24deg); } }
-@keyframes yk-spatula-wrong-right { 35% { transform:rotate(9deg); } 70% { transform:rotate(24deg); } }
+/* 틀린 방향으로 볶았을 때의 짧은 도리질. 위와 같은 이유로 쉬는 자세에서 상대로 꺾습니다. */
+@keyframes yk-spatula-wrong-left { 35% { transform:rotate(calc(var(--yk-spatula-tilt) + 8deg)); } 70% { transform:rotate(calc(var(--yk-spatula-tilt) - 7deg)); } }
+@keyframes yk-spatula-wrong-right { 35% { transform:rotate(calc(var(--yk-spatula-tilt) - 8deg)); } 70% { transform:rotate(calc(var(--yk-spatula-tilt) + 7deg)); } }
 @keyframes yk-food-complete { 45% { transform: scale(1.035); filter: saturate(1.3) brightness(1.04); } }
 @keyframes e3-result-pop { 0% { opacity:0; transform:translate(-50%,calc(8 * var(--upx))) scale(.82); } 38% { opacity:1; transform:translate(-50%,0) scale(1.08); } 78% { opacity:1; transform:translate(-50%,0) scale(1); } 100% { opacity:0; transform:translate(-50%,calc(-7 * var(--upx))) scale(1); } }
 @keyframes yk-steam-rise {

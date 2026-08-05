@@ -23,17 +23,13 @@ registerDayPrepSetup("udonSoak",()=>setupUdonSoak());
 /* 반죽·꼬치는 포인터 클릭·드래그로만 조작합니다.
    불리기의 물 붓기만 키보드로도 되도록 아래 세 키를 받습니다
    (누르고 있으면 계속 부어지므로 keyup 까지 짝으로 봅니다). */
-const SOAK_POUR_KEYS=Object.freeze([" ","enter","arrowdown"]);
-registerDayPrepEngine("orderPlace",{
-  key(m,k,e){
-    if(!isSoakMini(m)||!SOAK_POUR_KEYS.includes(k))return false;
-    if(!e?.repeat)startSoakPour();
-    return true;                         // true 를 돌려주면 Space 기본 동작(miniAction)이 안 걸립니다
-  },
-  keyup(m,k){
-    if(isSoakMini(m)&&SOAK_POUR_KEYS.includes(k))stopSoakPour();
-  }
-});
+/* ⚠️ 여기 있던 **키보드 물 붓기(Space · Enter · ↓ 꾹 누르기)를 뺐습니다.**
+   물병을 누르고 있는 것과 같은 조작이었는데, 화면 어디에도 키 안내가 없어서
+   아는 사람만 쓰는 숨은 조작이었습니다. 이제 물병을 누르고 있는 길 하나입니다
+   (bindSoakPitcherPointer). noKeyboard 는 mini-engine.js 의 등록 항목 설명 참고.
+   되살리려면 key/keyup 을 되돌리고 startSoakPour / stopSoakPour 를 부르면 됩니다 —
+   그 두 함수는 그대로 있습니다. */
+registerDayPrepEngine("orderPlace",{noKeyboard:true});
 
 /* ---- E8 공통 포인터 배치 -----------------------------------
    짧게 누르면 자동 배치, 누른 채 움직이면 재료 그림이 포인터를 따라갑니다.
@@ -232,9 +228,14 @@ function renderKimchiBatterIngredients(){
   // 볼 그림은 지금까지 넣은 재료 조합으로 고릅니다 (placements[0] 이 넣은 순서 그대로입니다).
   const added=data.placements[0]||[];
   dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
+  /* 맨 처음(아직 아무것도 안 넣은 화면)에만 "볼까지 끌어다 놓으세요" 점선을 그립니다.
+     두부김치 플레이팅(engine-e11 의 .os-drag-hint)과 같은 표시입니다 —
+     이 게임은 클릭 자동 배치가 없어서(dragOnly) 끌어야 하는 것을 알려 줘야 합니다.
+     자리는 absolute(도마 .bt-board 기준)라 여기 순서는 그리는 순서일 뿐입니다. */
   dom.miniContent.innerHTML=batterSceneMarkup(`
       <div class="bt-bowl-wrap ${data.lastPlaced?`receive-${data.lastPlaced}`:""} ${data.holding?"filled":""}" data-order-target="batter">${batterBowlMarkup(`step-${data.step}`,{assetKey:batterBowlAssetKey(added)})}</div>
-      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"재료 준비 완료! <b>이제 저어 주세요</b>"}</p>`,
+      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"재료 준비 완료! <b>이제 저어 주세요</b>"}</p>
+      ${data.step?"":`<i class="bt-drag-hint" aria-hidden="true"></i>`}`,
     data.step,{guide:"filled"});
   bindOrderPlacementPointers({
     sources:dom.miniContent.querySelectorAll("[data-batter-ingredient]"),
@@ -296,7 +297,8 @@ function addBatterIngredient(ingredientId,button,target){
 const SKEWER_SLOT_COUNT=5;
 const SKEWER_EXAMPLE_ORDER=["chicken","greenOnion","chicken","greenOnion","chicken"];
 const SKEWER_TOTAL=SKEWER_BATCH_SIZE;                                          // 만들 꼬치 수
-const SKEWER_LABEL={chicken:"닭고기",greenOnion:"파"};
+// SKEWER_LABEL · SKEWER_ASSET_KEY 는 game-data.js 에 있습니다 —
+// 밤 '닭꼬치 굽기'(engine-e5)가 낮에 꽂은 배치를 그대로 구우려고 같은 표를 봅니다.
 const SKEWER_INGREDIENTS=Object.freeze(Object.keys(SKEWER_LABEL));
 /* 꼬치 하나에 반드시 들어가야 하는 최소 개수. 정답 배치를 뽑을 때만 쓰이고
    화면 어디에도 적지 않습니다 (플레이어는 칸 색만 보면 됩니다).
@@ -304,8 +306,8 @@ const SKEWER_INGREDIENTS=Object.freeze(Object.keys(SKEWER_LABEL));
 const SKEWER_MIN_PIECES=Object.freeze({chicken:2,greenOnion:1});
 // assets/minigame/E8/ 의 그림을 씁니다. 파일이 없으면 CSS 도형으로 되돌아갑니다.
 // (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
-//   piece  꼬치에 꽂히는 조각 한 개      group  좌측 재료 카드에 놓는 묶음 그림
-const SKEWER_ASSET_KEY={chicken:"skewerChicken",greenOnion:"skewerGreenOnion"};
+//   piece  꼬치에 꽂히는 조각 한 개 → SKEWER_ASSET_KEY (game-data.js · 밤 굽기와 공용)
+//   group  좌측 재료 카드에 놓는 묶음 그림 → 아래 표 (이 게임에만 있습니다)
 const SKEWER_GROUP_ASSET_KEY={chicken:"skewerChickenGroup",greenOnion:"skewerGreenOnionGroup"};
 
 // E8의 공통 순서 데이터. 새 게임은 순서와 트랙 수만 추가하고 같은 판정을 씁니다.
@@ -508,6 +510,15 @@ function bindChickenSkewerEvents(){
   });
 }
 
+/* 방금 꽂은 3개의 배치를 밤 '닭꼬치 굽기'(engine-e5)에 넘깁니다.
+   화로 위에 올라가는 꼬치가 낮에 꽂은 그 꼬치여야 해서 모양까지 그대로 옮깁니다.
+   자리는 state.skewerPrep (day.js 의 createSkewerPrepProgress) 이고,
+   세이브는 state 를 통째로 뜨므로 따로 저장할 것이 없습니다. */
+function rememberAssembledSkewers(data){
+  if(!Array.isArray(data.patterns))return;
+  state.skewerPrep={...(state.skewerPrep||{}),patterns:data.patterns.map(pattern=>[...pattern])};
+}
+
 // 정답과 다른 조각은 애초에 쌓이지 않으므로, 5칸이 찼으면 곧 정답대로 꽂힌 꼬치입니다.
 function skewerDoneCount(data){
   return data.placements.filter(stack=>stack.length>=SKEWER_SLOT_COUNT).length;
@@ -532,7 +543,7 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
     ? `꼬치 ${done} / ${data.total} 완성!`
     : `${SKEWER_LABEL[ingredient]}를 꽂았습니다.`;
   if(done>=data.total){
-    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";renderChickenSkewer();
+    data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";rememberAssembledSkewers(data);renderChickenSkewer();
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);},720);
   }else if(result.complete){
     // 5개를 다 꽂았습니다. 바로 다음 꼬치로 갈아 끼우면 완성된 모습을 못 보고

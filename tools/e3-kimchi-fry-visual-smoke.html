@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E3 김치 볶기 visual smoke</title>
+  <!-- ⚠️ 기준 경로를 저장소 루트로 옮깁니다. DAY_PREP_ASSET_PATHS 의 경로가
+       index.html(루트) 기준이라, 이게 없으면 tools/assets/... 를 찾다 전부 실패해
+       임시 CSS 도형만 보입니다. 아래 경로도 전부 루트 기준으로 적습니다. -->
+  <base href="../">
+  <!-- 실제 게임과 같은 순서 · 같은 파일입니다 (index.html 참고) -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; display:grid; place-items:center; background:#0b0705; }
+    /* 오버레이는 평소 숨어 있습니다 — 스모크에서는 항상 켭니다 */
+    .mini-overlay { display:flex !important; opacity:1 !important; visibility:visible !important; pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- .active 가 없으면 .app-screen 이 display:none 이라 화면이 통째로 0x0 이 됩니다 -->
+    <main class="app-screen game-screen active">
+      <section class="game-app">
+        <section class="game-frame">
+          <div id="miniFrameMount"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
+  <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
+  <script src="ui-mini-frame.js"></script>
+  <!-- ⚠️ 진짜 게임은 미니게임을 열 때 오버레이에 `.open` 을 붙입니다
+       (day-prep-minigames.js). 주걱 커서가 기본 포인터를 숨기는 규칙이
+       `.mini-overlay.open …` 으로 시작해서, 이게 없으면 팬 칸 커서가
+       `grab` 그대로라 커서 검증이 헛돕니다. -->
+  <script>document.querySelector(".mini-overlay")?.classList.add("open");</script>
+  <script>
+    "use strict";
+    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E3 이 실제로 만지는
+       것만 흉내 냅니다 — 전역 state / dom / audio 셋입니다. */
+    const state = { day:4, mini:null };
+    const audio = new Proxy({}, { get:() => () => {} });
+    const dom = {
+      miniContent:document.getElementById("miniContent"),
+      miniTimer:document.getElementById("miniTimer"),
+      miniTitle:document.getElementById("miniTitle"),
+      miniStation:document.getElementById("miniStation"),
+      miniDescription:document.getElementById("miniDescription"),
+      miniFeedback:document.getElementById("miniFeedback")
+    };
+  </script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e3-direction-seq.js"></script>
+  <script>
+    "use strict";
+    /* ?stir=left|right|up|down   그 방향으로 뒤집은 한 순간에서 멈춥니다
+       ?spatula=clean|stirring|rested   나무 주걱 3장 중 한 장을 세워 둡니다
+       ?done=3                     몇 번 저은 뒤인지 (익힘 단계 cook-stage 확인용)
+
+       ⚠️ 저은 직후 화면은 **진짜 입력으로 만듭니다**(kimchiFryInput). 클래스만
+          손으로 붙이면 "스모크만 맞고 게임은 틀린" 상황을 못 잡습니다.
+          다만 stir-○ 를 떼는 240ms 타이머는 가상 시간에서 순식간에 지나가므로,
+          마지막 한 획만 클래스를 다시 세워 그 순간을 붙들어 둡니다. */
+    const params = new URLSearchParams(location.search);
+    const stir = params.get("stir");
+    const spatula = params.get("spatula");
+    const done = Math.max(0, Math.min(10, Number(params.get("done")) || 0));
+
+    loadDayPrepAssets().then(() => {
+      // 실제 진입로와 같은 함수를 씁니다 — 화면을 베껴 적으면 진짜 화면과 어긋납니다
+      state.mini = { context:{ mode:"dayPrep" }, engine:"direction", complete:false, data:null };
+      setupKimchiFry("fryTofuKimchi");
+      const data = state.mini.data;
+      // 완료 처리는 이 하네스에 낮 준비 전체 상태가 없어 던집니다. 불렀는지만 적어 둡니다.
+      finishDayPrepTask = (taskId) => { document.body.dataset.completed = taskId; };
+      /* ⚠️ 여기부터 끝까지 **한 호흡에 동기로** 끝냅니다. 에셋 200여 장을 다 읽고 난
+         뒤에는 가상 시간이 거의 다 흘러 있어서, 여기서 새로 거는 setTimeout 이나
+         requestAnimationFrame 은 울릴 때도 있고 안 울릴 때도 있습니다(캡처가 통째로
+         비는 증상이 3번에 2번 꼴로 났습니다). 기다리지 않으면 흔들릴 일이 없습니다.
+
+         대신 저을 때 걸리는 타이머 하나를 막습니다 — kimchiFryInput 은 240ms 뒤
+         stir-○ 를 떼는 setTimeout 을 겁니다(E3_FEEL_CONFIG.actionMs). 그게 울어
+         버리면 붙들려던 자세가 도로 풀려 김치가 base 로 돌아갑니다. */
+      const realSetTimeout = window.setTimeout;
+      window.setTimeout = () => 0;
+      for(let i = 0; i < done; i++) kimchiFryInput(data.sequence[data.successes]);
+      const work = document.getElementById("fryWorkArea");
+      if(stir){
+        work.classList.remove("stir-left","stir-right","stir-up","stir-down");
+        work.classList.add(`stir-${stir}`);
+      }
+      if(spatula){
+        const tool = document.querySelector(".kf-spatula-cursor,.kf-wood-spatula");
+        if(tool) tool.dataset.spatula = spatula;
+      }
+      window.setTimeout = realSetTimeout;
+      /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 여기서 자세를 세웁니다.
+         ⚠️ getComputedStyle 로 스타일을 한 번 강제로 계산해야 방금 붙인 클래스의
+            애니메이션이 등록됩니다 — 안 그러면 getAnimations() 가 빈 배열입니다.
+         ⚠️ 오버레이 등장 애니메이션(패널이 아래에서 올라옵니다)은 **끝까지 보냅니다.**
+            예전에는 전부 120ms 에 멈춰 세워서, 화면 전체가 아래로 밀린 채 찍혔습니다.
+            팬 칸 안의 것만 젓는 한가운데(240ms 중 120ms)에서 붙듭니다. */
+      getComputedStyle(work).transform;
+      document.getAnimations().forEach(a => {
+        const target = a.effect?.target;
+        if(stir && target && work.contains(target)){ a.pause(); try { a.currentTime = 120; } catch(e){} }
+        else if(!target || !work.contains(target)) try { a.finish(); } catch(e){}
+      });
+      /* 주걱은 그림이 다 있고 마우스를 올릴 수 있는 장치이면 팬이 아니라 **포인터를
+         따라다니는 커서**입니다. 헤드리스에는 포인터가 없으니 팬 한가운데에 세워 둡니다.
+         ⚠️ **자리는 등장 애니메이션을 끝낸 뒤에 읽어야 합니다.** 올라오는 도중의
+            좌표로 세우면 커서만 화면 아래(팬 기준 y 985)에 덩그러니 남습니다. */
+      const cursor = document.querySelector(".kf-spatula-cursor");
+      if(cursor){
+        const r = work.getBoundingClientRect();
+        cursor.style.left = `${r.left + r.width / 2}px`;
+        cursor.style.top = `${r.top + r.height / 2}px`;
+        cursor.classList.add("show");
+      }
+      /* 연기는 한 모금 피우고 **쉽니다**. 그냥 찍으면 쉬는 참(한 바퀴의 37%)에
+         걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+         기둥끼리 조금씩 어긋나게 두어 세 자리가 다 보이게 합니다. */
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        smokeSeek(column, .08 + index * .05);
+      });
+      measure();
+    }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기 기둥 하나를 "한 바퀴의 u 지점" 으로 돌려 세웁니다.
+
+       ⚠️ 여기가 함정입니다. 다섯 장은 **같은 시각에 시작해서**(startTime 이 같아
+          currentTime 도 같이 움직입니다) `animation-delay` 로만 어긋나 있습니다.
+          그래서 currentTime 에 0 을 넣으면 u=0 이 아니라 **아직 지연 구간**이고,
+          다섯 장이 전부 아직 시작을 안 해서 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다.
+       ⚠️ 그리고 첫 장의 지연 + 한 바퀴 = 첫 장의 `animationiteration` 이 울리는
+          바로 그 시각입니다 (자리를 새로 뽑는 순간 — 아래 puff 검사가 쓰는 값). */
+    function smokeFrameOne(column){
+      const anim = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+      if(!anim) return null;
+      const timing = anim.effect.getTiming();
+      return { delay:timing.delay, cycle:timing.duration };
+    }
+    function smokeSeek(column, u){
+      const base = smokeFrameOne(column); if(!base) return null;
+      const at = base.delay + u * base.cycle;
+      column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+        const anim = frame.getAnimations()[0];
+        if(anim){ anim.pause(); anim.currentTime = at; }
+      });
+      return at;
+    }
+
+    function measure(){
+      const rect = el => el.getBoundingClientRect();
+      const box = el => { const r = rect(el); return `${r.width.toFixed(1)}x${r.height.toFixed(1)}`; };
+      // 그림이 상자 안에서 실제로 차지한 크기 (object-fit:contain 결과)
+      const drawn = img => {
+        if(!img || !img.naturalWidth) return null;
+        const r = rect(img), ratio = img.naturalWidth / img.naturalHeight;
+        return `${Math.min(r.width, r.height * ratio).toFixed(1)}x${Math.min(r.height, r.width / ratio).toFixed(1)}`;
+      };
+      const board = document.getElementById("fryWorkArea");
+      const pan = document.querySelector(".frying-pan");
+      const kimchi = document.querySelector(".frying-kimchi");
+      /* 주걱은 그림이 다 있으면 커서(body 밑), 없으면 팬에 붙은 임시 도형입니다.
+         쓰는 쪽이 어느 쪽인지도 같이 적어 둡니다 — 둘 다 보이면(cursor 이면서
+         .kf-wood-spatula 도 있으면) 주걱이 두 자루라는 뜻이라 그 자체가 결함입니다. */
+      const cursorTool = document.querySelector(".kf-spatula-cursor");
+      const panTool = document.querySelector(".kf-wood-spatula");
+      const tool = cursorTool || panTool;
+      const boardRect = rect(board), panRect = rect(pan);
+      // 1920 프레임 기준 px 로 되돌리는 배율
+      const s = boardRect.width / parseFloat(getComputedStyle(board).width);
+      // 팬 그림 왼쪽 위를 0 으로 놓고 잽니다 — 김치·주걱 자리는 전부 팬 기준입니다
+      const atPan = el => { const r = rect(el); return {
+        l:+((r.left - panRect.left) / s).toFixed(1), r:+((r.right - panRect.left) / s).toFixed(1),
+        t:+((r.top - panRect.top) / s).toFixed(1),   b:+((r.bottom - panRect.top) / s).toFixed(1) }; };
+
+      const shown = list => (list.filter(f => +getComputedStyle(f).opacity > .01)
+        .map(f => f.src.split("/").pop())[0] || null);
+      const kimchiFrames = [...document.querySelectorAll(".frying-kimchi-asset")];
+      const toolFrames = [...document.querySelectorAll(".kf-wood-spatula-asset")];
+
+      document.body.dataset.measure = JSON.stringify({
+        stir, spatula, done, sequence:state.mini.data.sequence.join(""),
+        stirred:state.mini.data.stirred,
+        boardClass:board.className,
+        board:box(board), pan:{ box:box(pan), drawn:drawn(document.querySelector(".frying-pan-asset")) },
+        /* 김치 5장. 지금 보이는 한 장만 opacity 1 이어야 하고, drawn 의 가로는
+           다섯 장이 같아야 합니다(세로는 뒤집힌 정도라 달라도 됩니다). */
+        kimchi:{ box:box(kimchi), at:atPan(kimchi), asset:kimchi.classList.contains("has-prep-asset"),
+          shown:shown(kimchiFrames),
+          frames:kimchiFrames.map(f => ({ src:f.src.split("/").pop(), drawn:drawn(f),
+            opacity:+(+getComputedStyle(f).opacity).toFixed(2) })) },
+        /* 주걱 3장. 한 장만 보이고 셋 다 같은 크기로 그려져야 합니다.
+           where 가 cursor 이면 포인터를 따라다니는 쪽이고, 그때 twoTools 는 false 여야
+           합니다 — true 면 팬에도 주걱이 남아 두 자루가 보인다는 뜻입니다. */
+        tool:{ where:cursorTool ? "cursor" : "pan", twoTools:!!(cursorTool && panTool),
+          box:box(tool), at:atPan(tool), state:tool.dataset.spatula, shown:shown(toolFrames),
+          hotspot:cursorTool ? getComputedStyle(cursorTool).transform : null,
+          artTurn:cursorTool ? getComputedStyle(cursorTool.querySelector(".kf-spatula-cursor-art")).transform
+                             : getComputedStyle(tool).transform,
+          frames:toolFrames.map(f => ({ src:f.src.split("/").pop(), drawn:drawn(f),
+            opacity:+(+getComputedStyle(f).opacity).toFixed(2) })) },
+        // 임시 CSS 도형이 남아 보이면 안 됩니다
+        fallback:{ panShape:!pan.classList.contains("has-prep-asset"),
+                   kimchiShape:!kimchi.classList.contains("has-prep-asset"),
+                   toolShape:!cursorTool && !panTool?.classList.contains("has-prep-asset") },
+        /* 연기 기둥. 상자는 정사각(w == h)이어야 하고, 뿌리(아래 가운데)가
+           김치가 담긴 자리(팬 기준 가로 7% ~ 73%) 안에 있어야 합니다.
+           overTop 이 양수면 팬 칸 위로 나가 overflow:hidden 에 잘린다는 뜻입니다. */
+        smoke:[...document.querySelectorAll(".frying-pan .mg-smoke")].map(col => {
+          const r = rect(col), at = atPan(col);
+          return { which:col.className.replace("mg-smoke ",""), box:box(col),
+            square:Math.abs(r.width - r.height) < 1, at,
+            rootX:+((at.l + at.r) / 2).toFixed(1),
+            overTop:+((boardRect.top - r.top) / s).toFixed(1),
+            opacity:+(+getComputedStyle(col).opacity).toFixed(2),
+            shown:shown([...col.querySelectorAll(".mg-smoke-frame")]) };
+        }),
+        /* 자리는 모금마다 새로 뽑습니다. 한 판 찍어서는 "운 좋게 안 잘린 자리"
+           하나만 보는 셈이라, **진짜 뽑기 함수를 400번 돌려** 최악을 봅니다.
+             rootRange   뽑힌 뿌리 자리의 최소·최대 (김치 7~73% 안이어야 합니다)
+             topMax      상자 윗변이 올라간 최대 (팬 세로 % — 천장을 넘으면 잘립니다)
+             distinct    서로 다른 자리가 몇 개나 나왔는가 (1 이면 안 움직인 것) */
+        placement:(() => {
+          const column = document.querySelector(".frying-pan .mg-smoke");
+          if(!column) return null;
+          const zone = minigameSmokeZone(column);
+          const roots = [], tops = [], seen = new Set();
+          for(let i = 0; i < 400; i++){
+            placeMinigameSmoke(column, zone);
+            const w = parseFloat(column.style.width), b = parseFloat(column.style.bottom);
+            const root = parseFloat(column.style.left) + w / 2;
+            roots.push(root); tops.push(b + w * zone.aspect);
+            seen.add(`${column.style.left}|${column.style.bottom}`);
+          }
+          return { zone:{ x:zone.x, y:zone.y, w:zone.w, top:zone.top, aspect:+zone.aspect.toFixed(3) },
+            rootRange:[+Math.min(...roots).toFixed(1), +Math.max(...roots).toFixed(1)],
+            topMax:+Math.max(...tops).toFixed(1), ceiling:zone.top,
+            clipped:tops.filter(t => t > zone.top + .01).length,
+            distinct:seen.size };
+        })(),
+        /* 한 바퀴 동안 어느 장이 켜지는지. **다 꺼져 있는 쉬는 참**이 있어야
+           그때 자리를 옮겨도 순간이동으로 안 보입니다.
+             restSamples  100 중 다 꺼져 있던 횟수 (쉬는 참의 길이)
+             maxLit       한꺼번에 켜진 장의 최대 (2 = 넘어갈 때 겹치는 두 장)
+             litRuns      켜진 구간이 몇 덩어리인가 (1 이어야 안 툭툭 튑니다)
+             atMoveMoment **자리를 새로 뽑는 그 순간**의 다섯 장 불투명도.
+                          전부 0 이어야 옮겨도 안 보입니다. */
+        puff:(() => {
+          const column = document.querySelector(".frying-pan .mg-smoke");
+          if(!column) return null;
+          const base = smokeFrameOne(column); if(!base) return { error:"no animation" };
+          const frames = [...column.querySelectorAll(".mg-smoke-frame")];
+          const anims = frames.map(f => f.getAnimations()[0]).filter(Boolean);
+          if(anims.length !== 5) return { error:`animations ${anims.length}` };
+          // ⚠️ 훑고 나면 **원래 시각으로 돌려놓습니다.** 안 그러면 이 검사가
+          //    캡처용으로 세워 둔 자세를 밀어내서 화면이 빈 채로 찍힙니다.
+          const saved = anims.map(a => a.currentTime);
+          const opacities = u => { smokeSeek(column, u);
+            return frames.map(f => +(+getComputedStyle(f).opacity).toFixed(3)); };
+          const lit = [];
+          for(let k = 0; k < 100; k++) lit.push(opacities(k / 100).filter(o => o > .01).length);
+          // 첫 장의 animationiteration 이 울리는 시각 = 한 바퀴를 꽉 채운 그 지점
+          const atMoveMoment = opacities(1);
+          anims.forEach((a, i) => { a.currentTime = saved[i]; });
+          /* ⚠️ 한 바퀴는 **고리**입니다. 쉬는 참이 끝과 처음에 걸쳐 있으므로
+                문자열을 그냥 보면 안 되고, 켜진 구간이 몇 덩어리인지를 고리로
+                세어야 합니다 (1 덩어리면 이어진 것입니다). */
+          const on = lit.map(n => n > 0);
+          const runs = on.filter((v, i) => v && !on[(i + on.length - 1) % on.length]).length;
+          return { cycleMs:base.cycle, restSamples:lit.filter(n => n === 0).length,
+            maxLit:Math.max(...lit), atMoveMoment,
+            litRuns:runs, litRun:runs === 1 ? "이어짐" : "끊김" };
+        })(),
+        // 그림이 있는데도 예전 CSS 김이 남아 있으면 안 됩니다
+        steamShape:document.querySelectorAll(".kf-steam").length,
+        // 주걱·김치가 판 밖으로 새어 나가는지 (음수면 칸 안, 양수면 넘침)
+        spill:{ toolBottom:+((rect(tool).bottom - boardRect.bottom) / s).toFixed(1),
+                toolTop:+((boardRect.top - rect(tool).top) / s).toFixed(1) }
+      });
+      document.body.dataset.ready = "true";
+    }
+  </script>
+</body>
+</html>

@@ -57,32 +57,78 @@
   <script>
     "use strict";
     /* 보려는 것 : 굽는 김치전 그림 5장이 팬 **안쪽**에 제 크기로 들어가는가,
-       익힘 단계가 게이지(marker)를 따라 갈아 끼워지는가, 연기 두 기둥이
-       김치전 위에서 피어오르는가.
+       익힘 단계가 갈아 끼워지는가, 연기 두 기둥이 김치전 위에서 피어오르는가.
 
-       ?phase=cook|flip     단계 (기본 cook)
-       ?marker=0..1         익힘 게이지 위치 → 익힘 단계가 여기서 나옵니다
-       ?side=0|1            앞면(0) / 뒷면(1)
-       ?step=0..4           뒷면일 때 앞면이 다다랐던 단계(하한). 안 주면 marker 로만 정합니다 */
+       ⚠️ 예전에는 `?marker`(익힘 게이지 위치)로 익힘 단계를 정했습니다. 게이지가
+          없어지고 **몇 번째 장인지를 unit.cookStep 이 직접** 들고 있게 바뀌어서,
+          이제 ?step 하나가 그 자리를 대신합니다.
+
+       ?step=0..4    익힘 단계 (0 반죽 · 1 살짝 · 2 잘 익음 · 3 살짝 탐 · 4 탐)
+       ?side=0|1     앞면(0) / 뒷면(1)
+       ?cue=cook|flip  신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음) */
     const params = new URLSearchParams(location.search);
-    const phase  = params.get("phase") || "cook";
-    const marker = Math.max(0, Math.min(1, Number(params.get("marker") ?? .76)));
+    const step   = params.has("step") ? Number(params.get("step")) : 2;
     const side   = params.get("side") === "1" ? 1 : 0;
-    const step   = params.has("step") ? Number(params.get("step")) : 0;
+    const cue    = params.get("cue") || "";
 
     loadDayPrepAssets().then(() => {
+      /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
+         적으면 판 구조가 바뀔 때 하네스만 조용히 옛 모양으로 남습니다.
+         김치전은 자루가 하나뿐이라 그 한 칸(units[0])만 손봅니다. */
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
-        data:{ phase, side, marker, dir:1, speed:.21, hits:[], dishStyle:"pancake",
-               flipErrors:0, cookErrors:0, timeLimit:26, cookStep:step,
-               flipCharge:phase === "flip" ? 55 : 0, charging:false }
+        data:createTwoSideData("pancake",{timeLimit:32})
       };
+      const unit = state.mini.data.units[0];
+      unit.cookStep = step;
+      unit.flips = side;
+      unit.stepIndex = cue === "flip" ? 1 : 0;
+      unit.phase = cue ? "cue" : "wait";
+      unit.cueTimer = cue ? TWO_SIDE_CUE[cue].window : 1;
       dom.miniTitle.textContent = "김치전 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.pancake.subtitle;
       renderTwoSideCook();
       updateTwoSideCookVisual(state.mini.data);
+      // 신호 불빛은 openTwoSideCue 가 켜는 클래스입니다. 헤드리스에는 시간이 안 흐르니
+      // 같은 클래스를 여기서 직접 세워 둡니다 (실제 화면과 같은 모습입니다).
+      if(cue){
+        const target = twoSideTargetElement(state.mini.data, unit);
+        target?.style.setProperty("--cue-left", "1");
+        target?.classList.add("cue-on", `cue-${cue}`);
+      }
+      /* 뒤집개 커서는 포인터를 따라다니는 DOM 한 겹입니다. 헤드리스에는 포인터가
+         없으니 화구 한가운데에 세워 둡니다 — 실제로 마우스를 올렸을 때와 같은
+         자리·같은 크기입니다. ?press=1 이면 누른 자세(살짝 눕는)로 찍습니다. */
+      const cursor = document.querySelector(".ts-spatula-cursor");
+      if(cursor){
+        const r = document.querySelector(".two-side-pan").getBoundingClientRect();
+        cursor.style.left = `${r.left + r.width / 2}px`;
+        cursor.style.top = `${r.top + r.height / 2}px`;
+        cursor.classList.add("show");
+        if(params.get("press") === "1") cursor.classList.add("pressed");
+      }
+      parkSmoke();
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기는 한 모금 피우고 **쉽니다**(한 바퀴의 약 37%). 그냥 찍으면 그 쉬는 참에
+       걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+       ⚠️ 다섯 장은 같은 시각에 시작해서(currentTime 이 같이 움직입니다)
+          `animation-delay` 로만 어긋나 있습니다. 그래서 currentTime 에 0 을 넣으면
+          한 바퀴의 0 지점이 아니라 **아직 지연 구간**이라 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다. */
+    function parkSmoke(){
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        const first = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+        if(!first) return;
+        const { delay, duration } = first.effect.getTiming();
+        const at = delay + (.08 + index * .05) * duration;
+        column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+          const anim = frame.getAnimations()[0];
+          if(anim){ anim.pause(); anim.currentTime = at; }
+        });
+      });
+    }
 
     function measure(){
       const rect = el => el && el.getBoundingClientRect();
@@ -106,19 +152,39 @@
           top:+(foodRect.top - panRect.top).toFixed(1),
           bottom:+(panRect.bottom - foodRect.bottom).toFixed(1)
         },
-        cookStep:state.mini.data.cookStep,
+        cookStep:state.mini.data.units[0].cookStep,
         // 켜져 있는 그림 = 지금 단계까지. 맨 뒤가 보이는 장입니다.
         on:shown.map(i => i.getAttribute("src").split("/").pop()),
-        smoke:[...document.querySelectorAll(".ts-smoke")].map(s => {
+        /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(day-prep-minigames.js 의
+           placeMinigameSmoke) 여기 값은 "이번에 뽑힌 한 자리" 입니다 — 매번 달라지는
+           것이 정상입니다. 봐야 할 것은 자리가 아니라 **뿌리가 김치전 위에 있는지**와
+           **칸 안에 남는지**입니다. 뽑기 자체가 범위를 지키는지는 김치 볶기 스모크가
+           400번 돌려 확인합니다 (tools/e3-kimchi-fry-visual-smoke.html 의 placement). */
+        smoke:[...document.querySelectorAll(".mg-smoke")].map(s => {
           const r = rect(s);
           return { box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
-                   frames:s.querySelectorAll(".ts-smoke-frame").length,
+                   frames:s.querySelectorAll(".mg-smoke-frame").length,
                    // 연기 뿌리(상자 아래 가운데)가 김치전 위에 있는지
                    rootX:+(r.left + r.width / 2 - foodRect.left).toFixed(1),
                    rootY:+(r.bottom - foodRect.top).toFixed(1),
                    // 위로는 팬 밖으로 나가는 것이 정상. 칸(.ts-board) 안에는 남아야 합니다.
                    aboveBoard:+(boardRect.top - r.top).toFixed(1) };
         }),
+        /* 고양이 발 뒤집개 커서. 헤드리스에는 포인터가 없어서 화구 한가운데에
+           세워 둡니다 (자리 잡기는 CSS 의 translate 가 하므로 실제와 같습니다).
+           hotspot 은 그림 안에서 **날 끝**으로 잡은 자리이고, 포인터로 놓은
+           좌표와 같아야 합니다 — 어긋나면 주걱이 클릭 지점에서 떠 보입니다. */
+        spatula:(() => {
+          const c = document.querySelector(".ts-spatula-cursor");
+          if(!c) return { mounted:false, hasAsset:hasDayPrepAsset("cookSpatulaCursor") };
+          const r = rect(c);
+          return { mounted:true, box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
+            natural:`${c.naturalWidth}x${c.naturalHeight}`,
+            // 화구 폭 대비 몇 % 인지 — E3 나무 주걱(팬 폭의 16.5%)과 견주는 값입니다
+            vsPan:+((r.width / panRect.width) * 100).toFixed(1),
+            hotspot:{ x:+(r.left + r.width * 0.30).toFixed(0), y:+(r.top + r.height * 0.85).toFixed(0) },
+            pressed:c.classList.contains("pressed") };
+        })(),
         // 뺀 것들이 정말 없는지
         flipArrow:!!document.querySelector(".ts-flip-arrow"),
         cssSteam:document.querySelectorAll(".cook-steam").length

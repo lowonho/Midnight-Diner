@@ -33,7 +33,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientUndo","ingredientHint","ingredientShuffle","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -88,6 +88,7 @@ const state = {
   ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
+  skewerPrep:createSkewerPrepProgress(),   // 낮에 꽂은 꼬치 배치 → 밤 굽기가 그대로 씁니다 (day.js)
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0,prepared:false}])),
   prepRun:null,
@@ -342,7 +343,8 @@ audio.preload();
 const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
-  "#menuSelectConfirm",".menu-select-option","#ingredientSelectContinue",".ingredient-shelf",".ingredient-puzzle-controls button",".order-row",
+  // 냉장고 칸(.fridge-slot)은 넣지 않습니다 — 찾았을 때/아닐 때 소리를 게임이 직접 냅니다.
+  "#menuSelectConfirm",".menu-select-option",".order-row",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause"
 ].join(",");
 document.addEventListener("click",event=>{
@@ -693,7 +695,6 @@ dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
-dom.ingredientSelectContinue.addEventListener("click",continueIngredientSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
 // 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.
@@ -736,6 +737,9 @@ window.addEventListener("keydown",e=>{
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
     const engine=miniEngine(state.mini);
+    // noKeyboard : 마우스 전용 게임입니다. 엔진 key 도, Space 기본 동작(miniAction)도
+    // 부르지 않습니다 — 화면에 키 안내가 없는데 키가 먹으면 숨은 조작이 됩니다.
+    if(engine?.noKeyboard)return;
     if(!engine?.key?.(state.mini,k,e)&&e.code==="Space")miniAction();
     return;
   }
@@ -747,7 +751,10 @@ window.addEventListener("keydown",e=>{
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
 window.addEventListener("keyup",e=>{
-  if(state.mini)miniEngine(state.mini)?.keyup?.(state.mini,e.key.toLowerCase(),e);
+  if(!state.mini)return;
+  const engine=miniEngine(state.mini);
+  if(engine?.noKeyboard)return;                 // 마우스 전용 게임 (위 keydown 과 같은 이유)
+  engine?.keyup?.(state.mini,e.key.toLowerCase(),e);
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.setProperty(UI_VAR.knobX,`${px}px`);dom.joystickKnob.style.setProperty(UI_VAR.knobY,`${py}px`);state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
@@ -807,6 +814,7 @@ Promise.all([
   loadFoodPropAssets(),
   loadStageAssets(),
   loadCounterAssets(),
+  loadSignageAssets(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);

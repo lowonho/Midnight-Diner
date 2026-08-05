@@ -11,6 +11,14 @@ const GAME_PHASES=Object.freeze({
 
 const SKEWER_BATCH_SIZE=3;
 
+/* 닭꼬치 조각 2종. **낮 '꽂기'(engine-e8)와 밤 '굽기'(engine-e5)가 함께 씁니다** —
+   밤에는 낮에 꽂은 배치 그대로 구우므로 조각 이름도 그림도 같은 것을 봐야 합니다.
+   그래서 어느 한쪽 엔진이 아니라 두 엔진보다 먼저 읽히는 여기에 둡니다.
+     SKEWER_ASSET_KEY  그림 키 → 실제 파일은 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS
+   ⚠️ 한 칸에 들어갈 수 있는 재료가 늘면 두 표에 같이 추가해야 합니다. */
+const SKEWER_LABEL=Object.freeze({chicken:"닭고기",greenOnion:"파"});
+const SKEWER_ASSET_KEY=Object.freeze({chicken:"skewerChicken",greenOnion:"skewerGreenOnion"});
+
 // E1 썰기 판정의 절단선 기준 좌우 허용 폭(%).
 // 재료 그림의 실제 가로 폭과 절단선 간격이 달라 같은 숫자를 쓰면 화면상
 // 히팅 박스 크기가 크게 달라집니다. 좁게 보이는 어묵·두부는 조금 넓게,

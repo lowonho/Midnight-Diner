@@ -26,6 +26,11 @@
                        두부 썰기처럼 타이머 자리에 횟수를 쓰는 게임은 false.
      timeout(m)        제한시간이 0 이 됐을 때. 생략하면 finishMini(m.score||35).
      action(m)         Space / ACTION 버튼 / 화면 안 조작 버튼을 눌렀을 때.
+     noKeyboard        true 면 **마우스 전용 게임**입니다. game.js 가 키를 통째로
+                       무시합니다 — 아래 key/keyup 도, Space 기본 동작(action)도
+                       부르지 않습니다. 화면에 키 안내가 없는 게임에 붙이세요.
+                       (클릭·드래그로 다 되는 게임에 키가 몰래 먹으면, 안내에 없는
+                        조작이 생겨 QA 에서 매번 되묻게 됩니다)
      key(m, k, e)      키를 눌렀을 때. k 는 소문자 키 이름.
                        true 를 반환하면 "내가 처리했다"는 뜻이라 Space 기본
                        동작(action 호출)이 실행되지 않습니다.
