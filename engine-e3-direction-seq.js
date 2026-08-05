@@ -380,7 +380,7 @@ function renderKimchiFry(){
         <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
           ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
           <i class="frying-kimchi ${fryKimchiHasArt()?"has-prep-asset":""}">${fryKimchiFramesMarkup()}</i>
-          <i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>
+          ${minigameSmokeMarkup(["one","two"])||`<i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>`}
           ${spatulaAsCursor?"":`<i class="kf-wood-spatula ${frySpatulaHasArt()?"has-prep-asset":""}" data-spatula="${frySpatulaState(data,false)}">${frySpatulaFramesMarkup()}</i>`}
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
@@ -533,7 +533,7 @@ function renderStirScene(){
         ${minigameBurnerMarkup("griddle")}
         <div class="yk-griddle ${hasDayPrepAsset("stirGriddle")?"has-asset":""}" id="stirPlate">
           ${dayPrepAssetMarkup("stirGriddle","yk-griddle-asset","철판")}
-          <i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>
+          ${minigameSmokeMarkup(["one","two","three"])||`<i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>`}
           <div class="yk-food ${hasDayPrepAsset("stirNoodles")?"has-prep-asset":""}" id="stirFood">
             <span class="yk-food-fallback" aria-hidden="true">
               ${noodleStrands}

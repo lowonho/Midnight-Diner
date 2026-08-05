@@ -350,6 +350,27 @@
 .kf-spatula-cursor[data-spatula="clean"]    .kf-wood-spatula-asset.spatula-clean,
 .kf-spatula-cursor[data-spatula="stirring"] .kf-wood-spatula-asset.spatula-stirring,
 .kf-spatula-cursor[data-spatula="rested"]   .kf-wood-spatula-asset.spatula-rested { opacity: 1; }
+/* ── 팬 위로 피어오르는 연기 ─────────────────────────────────
+   김치전(E5)과 **같은 그림 5장**입니다. 도는 방식(다섯 장을 겹쳐 두고 차례로
+   한 장씩)은 공용으로 빠져 있고 — css/minigame-parts.css 의 .mg-smoke —
+   여기서는 **팬 위 어디에서 얼마만큼 피어오를지**만 정합니다.
+
+   ⚠️ 자리는 팬 상자(820 x 356.2) 기준 % 입니다. 상자 아래 가운데가 연기 뿌리라
+      bottom 은 "김치 위 어디에서 피어오르는가" 가 됩니다.
+   ⚠️ 위로는 팬 밖으로 나가지만 **플레이 칸(.kf-board, 높이 503)에서 잘립니다**
+      (칸이 overflow:hidden 입니다 — 위 .kf-board 참고). 상자 윗변이
+        142(팬 바닥) + bottom% x 356.2 + width% x 820
+      이라, 지금 값은 475 · 469 로 503 아래에 들어옵니다. 키우려면 이 셈을 다시 하세요.
+   ⚠️ 가로는 김치가 담긴 자리(팬 상자의 7% ~ 73% — .frying-kimchi 의 inset) 안에
+      뿌리가 오게 잡았습니다. 뿌리는 상자 가운데라 left + width/2 로 봅니다. */
+.frying-pan .mg-smoke.smoke-one { left: 15%; bottom: 36%; width: 25%; }
+/* 두 번째 기둥은 조금 작고, 한 바퀴의 반대쪽에서 시작해 둘이 같이 뜨지 않습니다 */
+.frying-pan .mg-smoke.smoke-two { left: 40%; bottom: 48%; width: 19%; --mg-smoke-offset: -.5; }
+/* 많이 볶을수록 진해집니다 (아래 .kf-steam 의 단계와 같은 흐름입니다) */
+.kf-board.cook-stage-1 .mg-smoke { opacity: .42; }
+.kf-board.cook-stage-2 .mg-smoke,.kf-board.cook-stage-3 .mg-smoke { opacity: .56; }
+/* 연기 그림이 없을 때 쓰는 예전 CSS 김 두 줄입니다
+   (engine-e3-direction-seq.js 의 minigameSmokeMarkup 이 빈 문자열을 돌려줄 때) */
 .kf-steam {
   position: absolute;
   z-index: 3;

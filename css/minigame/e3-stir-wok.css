@@ -283,7 +283,29 @@
 .yk-board.cook-stage-0 .yk-steam { filter: opacity(.25); }
 .yk-board.cook-stage-1 .yk-steam { filter: opacity(.55); }
 .yk-board.cook-stage-2 .yk-steam,.yk-board.cook-stage-3 .yk-steam { filter: opacity(1); }
-/* 김 */
+/* ── 철판 위로 피어오르는 연기 ────────────────────────────────
+   김치전(E5) · 김치 볶기와 **같은 그림 5장**입니다. 도는 방식은 공용으로 빠져
+   있고 — css/minigame-parts.css 의 .mg-smoke — 여기서는 **철판 위 어디에서
+   얼마만큼 피어오를지**만 정합니다. 철판은 넓고 길어서 기둥을 셋 세웁니다
+   (예전 CSS 김 .yk-steam 도 셋이었습니다).
+
+   ⚠️ 자리는 철판 상자(760 x 321) 기준 % 입니다. 상자 아래 가운데가 연기 뿌리라
+      bottom 은 "면 위 어디에서 피어오르는가" 가 됩니다.
+   ⚠️ 위로 나가는 것은 정상입니다 — .yk-griddle 도 .yk-board 도 자르지 않습니다.
+      그래도 칸(높이 503) 안에 두려면 상자 윗변
+        138(철판 바닥) + bottom% x 321 + width% x 760 ≤ 503
+      을 지키면 됩니다. 지금 값은 280 · 288 · 272 로 넉넉합니다.
+   ⚠️ 가로는 면이 깔린 자리(철판 상자의 13% ~ 87% — .yk-food 의 left/right) 안에
+      뿌리가 오게 잡았습니다. 뿌리는 상자 가운데라 left + width/2 로 봅니다.
+   셋이 한 바퀴를 1/3 씩 나눠 시작해 같이 뜨지 않습니다. */
+.yk-griddle .mg-smoke.smoke-one   { left: 18%; bottom: 40%; width: 20%; }
+.yk-griddle .mg-smoke.smoke-two   { left: 40%; bottom: 52%; width: 16%; --mg-smoke-offset: -.33; }
+.yk-griddle .mg-smoke.smoke-three { left: 62%; bottom: 42%; width: 18%; --mg-smoke-offset: -.66; }
+/* 많이 볶을수록 진해집니다 (아래 .yk-steam 의 단계와 같은 흐름입니다) */
+.yk-board.cook-stage-1 .mg-smoke { opacity: .42; }
+.yk-board.cook-stage-2 .mg-smoke,.yk-board.cook-stage-3 .mg-smoke { opacity: .56; }
+/* 김 — 연기 그림이 없을 때 쓰는 예전 CSS 김 세 줄입니다
+   (engine-e3-direction-seq.js 의 minigameSmokeMarkup 이 빈 문자열을 돌려줄 때) */
 .yk-steam {
   position: absolute;
   z-index: 2;

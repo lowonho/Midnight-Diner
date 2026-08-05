@@ -188,6 +188,20 @@
         fallback:{ panShape:!pan.classList.contains("has-prep-asset"),
                    kimchiShape:!kimchi.classList.contains("has-prep-asset"),
                    toolShape:!cursorTool && !panTool?.classList.contains("has-prep-asset") },
+        /* 연기 기둥. 상자는 정사각(w == h)이어야 하고, 뿌리(아래 가운데)가
+           김치가 담긴 자리(팬 기준 가로 7% ~ 73%) 안에 있어야 합니다.
+           overTop 이 양수면 팬 칸 위로 나가 overflow:hidden 에 잘린다는 뜻입니다. */
+        smoke:[...document.querySelectorAll(".frying-pan .mg-smoke")].map(col => {
+          const r = rect(col), at = atPan(col);
+          return { which:col.className.replace("mg-smoke ",""), box:box(col),
+            square:Math.abs(r.width - r.height) < 1, at,
+            rootX:+((at.l + at.r) / 2).toFixed(1),
+            overTop:+((boardRect.top - r.top) / s).toFixed(1),
+            opacity:+(+getComputedStyle(col).opacity).toFixed(2),
+            shown:shown([...col.querySelectorAll(".mg-smoke-frame")]) };
+        }),
+        // 그림이 있는데도 예전 CSS 김이 남아 있으면 안 됩니다
+        steamShape:document.querySelectorAll(".kf-steam").length,
         // 주걱·김치가 판 밖으로 새어 나가는지 (음수면 칸 안, 양수면 넘침)
         spill:{ toolBottom:+((rect(tool).bottom - boardRect.bottom) / s).toFixed(1),
                 toolTop:+((boardRect.top - rect(tool).top) / s).toFixed(1) }

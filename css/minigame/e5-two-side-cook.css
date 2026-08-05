@@ -78,16 +78,28 @@
 
    다섯 장은 숯이 달아올랐다 사그라드는 연속 그림입니다. 한 자리에 겹쳐 두고
    **CSS 가 차례로 한 장씩 켭니다** — 자바스크립트 타이머가 없으므로 미니게임이
-   닫혀도 뒷정리할 것이 없습니다 (김치전 연기 .ts-smoke-frame 과 같은 방식).
-   ⚠️ 화구 3장(.mg-burner-frame)처럼 딱 끊어 바꾸지 않고 5% 씩 겹쳐 넘깁니다.
-      가스불은 초당 11장이라 끊어야 팔랑거리는데, 숯은 천천히 달아오르는 것이라
-      끊어 바꾸면 화로 전체가 껌뻑입니다.
+   닫혀도 뒷정리할 것이 없습니다.
+   ⚠️ 화구 3장(.mg-burner-frame)처럼 **딱 끊어 바꿉니다.** 예전에는 5% 씩 겹쳐
+      넘겼는데, 그게 화로가 껌뻑이던 원인이었습니다. 겹치는 동안 두 장이 나란히
+      반투명이라 뒤의 어두운 판이 비쳐서, 장이 바뀔 때마다 **앞뒤 두 장보다 더
+      어두운 골**이 한 번씩 생겼습니다. 한 바퀴에 골이 다섯 개니 초당 네 번 껌뻑인
+      셈입니다. 화로 평균 밝기를 한 바퀴 재 보면 이렇습니다.
+        겹쳐 넘길 때  46 41 43 [48×7] 48 40 39 [42×9] 36 36 [39×8] …  ← 골이 골마다
+        딱 끊을 때    [48×10]  [42×10]  [39×10]  [44×10]  [46×10]     ← 계단만
+      남은 48 → 39 → 46 오르내림은 그림 다섯 장에 원래 그려진 숯의 밝기 차이입니다
+      (지우려면 그림을 고쳐야 합니다 — CSS 로 뭘 해도 이건 안 없어집니다).
+   ⚠️ 그래서 켜져 있는 구간은 한 장의 몫(20%)을 **꽉 채웁니다.** 19.99% 는
+      "다음 장이 켜지는 바로 그 순간에 끈다" 는 뜻이고, 여기를 19% 처럼 줄이면
+      그 1% 동안 다섯 장이 다 꺼져 화로가 통째로 사라집니다.
    ⚠️ 지연이 **음수**인 것이 중요합니다(화구와 같은 이유). 그리고 장 번호가 곧
       납품 순서라 01 → 05 로 흐르게 하려면 뒷 장일수록 **덜** 당겨야 합니다
-      (frame-2 가 -.8 이고 frame-5 가 -.2 — 연기 쪽과 방향이 반대입니다). */
+      (frame-2 가 -.8 이고 frame-5 가 -.2 — 연기 쪽과 방향이 반대입니다).
+
+   [빠르기] `--cg-cycle` 한 곳만 고치면 됩니다. 한 바퀴 시간이고 장당 그 1/5 씩
+   보입니다 (.6s → 장당 0.12s = 초당 8.3장). 참고로 가스불은 초당 11장입니다. */
 .two-side-pan.skewer-cook.has-grill-art { border: none; border-radius: 0; background: none; box-shadow: none; }
 .charcoal-grill-art { position: absolute; z-index: 0; inset: 0; }
-.charcoal-grill-art { --cg-cycle: 1.2s; }
+.charcoal-grill-art { --cg-cycle: .6s; }
 .cg-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0;
   animation: cg-ember var(--cg-cycle) linear infinite;
   animation-delay: calc(var(--cg-frame,0) * var(--cg-cycle)); }
@@ -95,7 +107,7 @@
 .cg-frame.frame-3 { --cg-frame: -.6; }
 .cg-frame.frame-4 { --cg-frame: -.4; }
 .cg-frame.frame-5 { --cg-frame: -.2; }
-@keyframes cg-ember { 0% { opacity:0; } 5%,20% { opacity:1; } 25%,100% { opacity:0; } }
+@keyframes cg-ember { 0%,19.99% { opacity:1; } 20%,100% { opacity:0; } }
 /* 태울 때는 숯이 더 달아오릅니다 — 예전 열기 두 겹(.charcoal-flame)이 하던 표시를
    그림 한 장에 필터로 겁니다. */
 .skewer-cook.cook-over .charcoal-grill-art { filter: brightness(1.16) saturate(1.12); }
@@ -504,18 +516,18 @@
 .ts-board .two-side-pan::after { top: calc(198 * var(--upx)); }
 /* ⚠️ 세로로 세운 뒤로는 **키가 이 화면의 상한**입니다. 굽기 칸은 아래 게이지 줄
    (익힘 게이지 + 문구 + Space 버튼) 때문에 457 입니다.
-   화로는 아래로 나온 손잡이(44)까지 칸 안에 있어야 하므로
-       화로 키 + 손잡이 44  ≤  457
-   를 지켜야 합니다. 409.8 + 44 = 453.8 로 3.2 남습니다.
+   화로는 아래로 나온 손잡이(36)까지 칸 안에 있어야 하므로
+       화로 키 + 손잡이 36  ≤  457
+   를 지켜야 합니다. 410.5 + 36 = 446.5 로 10.5 남습니다.
    ⚠️ 그래서 **위쪽에 붙여 놓습니다**(align-self:start). 예전처럼 세로 가운데로
       놓으면 같은 식이 `키/2 + 44 ≤ 457/2` 가 되어 화로가 369 까지밖에 못 큽니다.
-   ⚠️ 가로는 그 키에 화로 그림 비율(2761:1657 = 1.6693)을 곱한 값이라 칸 824.2 중
+   ⚠️ 가로는 그 키에 화로 그림 비율(2761:1657 = 1.66627)을 곱한 값이라 칸 824.2 중
       684 만 씁니다 — 좌우 70 씩 나무 상판이 보이는 것이 맞습니다. 가로를 꽉 채우면
       키가 494 가 되어 손잡이가 .ts-board 의 overflow:hidden 에 잘립니다.
       (그림이 들어오기 전 임시 화로는 비율이 자유로워 790 x 336 이었습니다)
    ⚠️ 크기를 바꾸면 tools/build-minigame-art-webp.js 의 화로 5장 크기(2배율)도
       같이 고치세요. 안 그러면 흐려지거나 용량만 먹습니다. */
-.ts-board .two-side-pan.skewer-cook { align-self: start; width: calc(684 * var(--upx)); height: calc(409.8 * var(--upx)); margin-bottom: 0; }
+.ts-board .two-side-pan.skewer-cook { align-self: start; width: calc(684 * var(--upx)); height: calc(410.5 * var(--upx)); margin-bottom: 0; }
 /* 꼬치가 놓이는 자리 = 화로 그림의 **석쇠 창** 안쪽입니다.
    ⚠️ 위·좌·우는 **% 입니다.** 화로 그림 안에서 석쇠 창이 차지하는 비율이라
       (좌우 5.3% · 위 8.6%), 넓은 화면과 좁은 화면이 한 값으로 맞습니다.
@@ -738,7 +750,7 @@
   /* 좁은 화면 화로 — 넓은 쪽(684)의 0.67 배입니다.
      ⚠️ 세로는 반드시 그림 비율(1.6693)로 따라옵니다. 눈대중으로 박으면 화로가 눌립니다.
         위·좌·우 석쇠 창 자리는 % 라 따로 고칠 것이 없습니다. */
-  .ts-board .two-side-pan.skewer-cook { width: calc(460 * var(--upx)); height: calc(275.6 * var(--upx)); }
+  .ts-board .two-side-pan.skewer-cook { width: calc(460 * var(--upx)); height: calc(276 * var(--upx)); }
   .ts-board .grill-skewer { min-height: calc(280 * var(--upx)); width: calc(84 * var(--upx)); padding-bottom: calc(34 * var(--upx)); }
   .ts-board .skewer-cook .cook-food { bottom: calc(-34 * var(--upx)); grid-template-columns: repeat(3,calc(126 * var(--upx))); }
   /* 쌓인 키 = 5 * 66.5 - 10 * 12.5 = 207.5  ≤  280 - 34 (=246) */

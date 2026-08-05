@@ -531,6 +531,32 @@ function minigameBurnerMarkup(kind){
   return `<div class="mg-burner mg-burner-${kind}" aria-hidden="true">${frames}${knob}</div>`;
 }
 
+/* ---- 조리 연기 fx (팬·철판 위로 피어오르는 연기) ---------------
+   김치전(E5)에 먼저 들어온 연기 그림 5장을 김치 볶기·볶음우동도 함께 씁니다.
+   01 → 05 가 한 바퀴 도는 **연속 그림**이라(스프라이트 시트가 아니라 낱장)
+   다섯 장을 같은 자리에 겹쳐 두고 CSS 가 차례로 한 장씩만 켭니다
+   (css/minigame-parts.css 의 @keyframes mg-smoke-frame — 자바스크립트 타이머가
+   없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다).
+
+   `columns` 는 기둥 몇 개를 어떤 이름으로 세울지입니다. 이름이 그대로
+   `.mg-smoke.smoke-○` 가 되고, 자리·크기·시작 박자는 게임별 CSS 가 정합니다.
+   ⚠️ 그림이 한 장이라도 없으면 빈 문자열을 돌려줍니다 — 부르는 쪽에서
+      예전 CSS 김(.kf-steam · .yk-steam)으로 넘어가라는 뜻입니다.
+   ⚠️ E5 김치전은 이 함수가 생기기 전에 만든 자기 것(.ts-smoke)을 그대로 씁니다.
+      그림도 규칙도 같고 클래스 이름만 다릅니다 (engine-e5-two-side-cook.js 의
+      pancakeSmokeMarkup). 한쪽 박자를 고치면 다른 쪽도 같이 보세요. */
+const MINIGAME_SMOKE_KEYS=Object.freeze(["01","02","03","04","05"].map(no=>`cookSmoke${no}`));
+
+function hasMinigameSmokeArt(){
+  return MINIGAME_SMOKE_KEYS.every(hasDayPrepAsset);
+}
+
+function minigameSmokeMarkup(columns=["one","two"]){
+  if(!hasMinigameSmokeArt())return "";
+  const frames=MINIGAME_SMOKE_KEYS.map((key,index)=>dayPrepAssetMarkup(key,`mg-smoke-frame frame-${index+1}`)).join("");
+  return columns.map(which=>`<span class="mg-smoke smoke-${which}" aria-hidden="true">${frames}</span>`).join("");
+}
+
 function timingAssetKey(ingredient,successes,assetPrefix=""){
   if(assetPrefix)return `${assetPrefix}${successes}`;
   if(ingredient==="radish")return `radish${successes}`;
