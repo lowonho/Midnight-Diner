@@ -99,7 +99,7 @@ assert(markup.includes('data-key="skewerStick"'),"꼬챙이가 E8 꽂기와 같�
 // ⚠️ 조각 상자(.gs-piece)만 집습니다 — 조각을 담는 바깥 상자(.gs-pieces)와 이름이 겹쳐서,
 //    클래스 뒤에 **공백이 오는 것**(gs-piece + 재료 이름)으로 갈라 냅니다.
 const firstPiece=markup=>/<span class="gs-piece [^"]*">([\s\S]*?)<\/span>/.exec(markup)[1];
-const framesOf=piece=>[...piece.matchAll(/class="gs-piece-asset( on)?" data-key="([^"]+)"/g)]
+const framesOf=piece=>[...piece.matchAll(/class="gs-piece-asset step-\d+( on)?" data-key="([^"]+)"/g)]
   .map(match=>({on:!!match[1],key:match[2]}));
 const rawFrames=framesOf(firstPiece(markup));
 assert(rawFrames.length===5,`조각에 익힘 단계 그림이 5장이 아닙니다 (${rawFrames.length}장).`);

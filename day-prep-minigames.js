@@ -410,6 +410,17 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      뺐습니다. 밤 굽기는 낮에 꽂은 배치 그대로 구워야 해서, 한 장짜리 그림 대신
      위 E8 조각(skewerChicken · skewerGreenOnion)과 꼬챙이(skewerStick)를
      한 개씩 쌓습니다 — engine-e5-two-side-cook.js 의 grillSkewerMarkup. */
+  /* 숯불 화로 5장 — 화로 몸통 · 벌건 숯 · 석쇠 살이 **한 장에 다 그려져 있습니다**.
+     숯이 달아올랐다 사그라드는 연속 그림이라 한 자리에 겹쳐 두고 CSS 가 차례로 켭니다
+     (engine-e5-two-side-cook.js 의 CHARCOAL_GRILL_KEYS).
+     ⚠️ 다섯 장이 다 있어야 씁니다. 하나라도 빠지면 예전 CSS 화로(숯덩이 126개 +
+        석쇠 살 + 열기 두 겹)가 그대로 나옵니다.
+     ⚠️ E3·E4 의 화구(burnerGas 등)와 **다른 계통입니다.** 저쪽은 조리기구와 분리된
+        바닥 레이어라 minigameBurnerMarkup 이 공용으로 그리는데, 숯불 화로는 화로가
+        곧 조리기구여서 E5 닭꼬치 화면만 씁니다. */
+  ...Object.fromEntries(["01","02","03","04","05"].map((no,index)=>[
+    `cookCharcoalGrill${index+1}`,`assets/minigame/E5/yakitori/fix_charcoal_grill_fire_${no}.webp`
+  ])),
   /* 굽는 닭꼬치 조각 8장 — **재료 2종 x 익힘 4단계**입니다. 김치전과 같은 방식으로
      색을 CSS 필터로 만들지 않고 그림을 갈아 끼웁니다
      (engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS).

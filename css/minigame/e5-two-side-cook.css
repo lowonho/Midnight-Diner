@@ -70,6 +70,35 @@
    실제 화면 크기는 아래 `.ts-board .two-side-pan.skewer-cook` 가 정합니다. */
 .two-side-pan.skewer-cook { width: calc(420 * var(--upx)); height: calc(330 * var(--upx)); margin-bottom: calc(18 * var(--upx)); overflow: visible; border: calc(10 * var(--upx)) solid #4b4540; border-radius: calc(14 * var(--upx)); background: #14110f; box-shadow: inset 0 0 0 calc(5 * var(--upx)) #0d0c0b,0 calc(5 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.45); }
 .two-side-pan.skewer-cook::after { display: none; }
+/* ── 숯불 화로 그림 5장 ──────────────────────────────────────
+   화로 몸통 · 벌건 숯 · 석쇠 살까지 **한 장에 다 그려져 있습니다**. 그래서
+   그림이 있으면 위 임시 몸통(테두리·배경·그림자)과 아래 숯덩이·살·열기를
+   전부 끕니다 — 겹치면 숯 위에 숯을 깔고 열기를 두 번 입히는 셈입니다.
+   (마크업은 engine-e5-two-side-cook.js 의 charcoalSkewerMarkup)
+
+   다섯 장은 숯이 달아올랐다 사그라드는 연속 그림입니다. 한 자리에 겹쳐 두고
+   **CSS 가 차례로 한 장씩 켭니다** — 자바스크립트 타이머가 없으므로 미니게임이
+   닫혀도 뒷정리할 것이 없습니다 (김치전 연기 .ts-smoke-frame 과 같은 방식).
+   ⚠️ 화구 3장(.mg-burner-frame)처럼 딱 끊어 바꾸지 않고 5% 씩 겹쳐 넘깁니다.
+      가스불은 초당 11장이라 끊어야 팔랑거리는데, 숯은 천천히 달아오르는 것이라
+      끊어 바꾸면 화로 전체가 껌뻑입니다.
+   ⚠️ 지연이 **음수**인 것이 중요합니다(화구와 같은 이유). 그리고 장 번호가 곧
+      납품 순서라 01 → 05 로 흐르게 하려면 뒷 장일수록 **덜** 당겨야 합니다
+      (frame-2 가 -.8 이고 frame-5 가 -.2 — 연기 쪽과 방향이 반대입니다). */
+.two-side-pan.skewer-cook.has-grill-art { border: none; border-radius: 0; background: none; box-shadow: none; }
+.charcoal-grill-art { position: absolute; z-index: 0; inset: 0; }
+.charcoal-grill-art { --cg-cycle: 1.2s; }
+.cg-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0;
+  animation: cg-ember var(--cg-cycle) linear infinite;
+  animation-delay: calc(var(--cg-frame,0) * var(--cg-cycle)); }
+.cg-frame.frame-2 { --cg-frame: -.8; }
+.cg-frame.frame-3 { --cg-frame: -.6; }
+.cg-frame.frame-4 { --cg-frame: -.4; }
+.cg-frame.frame-5 { --cg-frame: -.2; }
+@keyframes cg-ember { 0% { opacity:0; } 5%,20% { opacity:1; } 25%,100% { opacity:0; } }
+/* 태울 때는 숯이 더 달아오릅니다 — 예전 열기 두 겹(.charcoal-flame)이 하던 표시를
+   그림 한 장에 필터로 겁니다. */
+.skewer-cook.cook-over .charcoal-grill-art { filter: brightness(1.16) saturate(1.12); }
 /* 위에서 본 숯불 : 화로 안쪽(사방 같은 여백)을 가득 채웁니다.
    ⚠️ 예전처럼 `bottom + height` 로 잡으면 숯이 아래로 몰려 다시 측면이 됩니다. */
 .charcoal-bed { position: absolute; z-index: 0; inset: calc(9 * var(--upx)); overflow: hidden; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: calc(4 * var(--upx)) calc(5 * var(--upx)); padding: calc(4 * var(--upx)); border-radius: calc(7 * var(--upx)); background: radial-gradient(ellipse at 50% 50%,#8a3018 0,#3a1d15 52%,#140d0a 100%); box-shadow: inset 0 0 calc(20 * var(--upx)) #0a0807; }
@@ -154,6 +183,16 @@
 .gs-piece.has-cook-art .gs-piece-asset { position:absolute; inset:0; opacity:0; filter:none; transition:opacity .28s ease; }
 .gs-piece.has-cook-art .gs-piece-asset.on { opacity:1; }
 .skewer-cook.cook-over .gs-piece.has-cook-art .gs-piece-asset { filter:none; }
+/* [납품본 밝기 보정] 살짝 익음(step-1) 한 장만 낮춥니다. 그림의 평균 밝기가
+   닭 138.8(raw) → **189.0** → 122.3(잘 익음) 이라 익어 가는 도중에 한 번 확 밝아졌다
+   꺼지는 산 모양이었습니다. 0.88 배면 166 정도라 raw 보다는 여전히 밝고(익기 시작한
+   느낌은 남고) 다음 장으로 자연스럽게 이어집니다. 대파는 154.6 이라 원래 완만한데,
+   같은 단계에서 재료끼리 밝기 규칙이 갈리지 않게 함께 겁니다.
+   ⚠️ **여기서 한 줄로 잡습니다.** PNG 마스터를 고치면 납품본과 달라지고, 빌드에서
+      구워 넣으면 --verify 가 재는 "인코딩 손실"에 이 보정까지 섞여 들어갑니다.
+   ⚠️ 선택자가 위 .cook-over 줄(클래스 5개)보다 짧으면 다 태웠을 때 보정이 풀립니다 —
+      그래서 .skewer-cook 을 앞에 붙여 길이를 맞췄습니다. */
+.skewer-cook .gs-piece.has-cook-art .gs-piece-asset.step-1 { filter:brightness(.88); }
 /* 뒤집힌 면. 그림이 한 벌뿐이라 좌우를 뒤집어 반대 면처럼 읽히게 합니다
    (김치전의 `.two-side-pan.side-1 .pancake-food-asset` 과 같은 처리입니다).
      · 뒤집기 단계 : 방금 뒤집은 꼬치만 (.grill-skewer.flipped)
@@ -424,7 +463,7 @@
 /* ⚠️ 볶음우동(.yk-board)과 같이 **테두리 없는 맨 칸**입니다. 원래 나무 액자
    (테두리 5 + 안여백 12 + 배경 + 안쪽 그림자)가 있었는데 화구가 그 안에 갇혀
    보여서 뺐습니다. 액자를 되살리면 화구·팬의 절대배치 기준(패딩 박스)이
-   824.2 x 455.2 → 814.2 x 445.2 로 줄어 --ts-pan-drop 도 다시 잡아야 합니다. */
+   824.2 x 457 → 814.2 x 447 로 줄어 --ts-pan-drop 도 다시 잡아야 합니다. */
 .ts-board {
   position: relative;
   display: grid;
@@ -463,28 +502,46 @@
    팬은 E3 김치 볶기와 같습니다. 세로는 그림 비율(2.3022)에서 뽑습니다. */
 .ts-board .two-side-pan { width: var(--ts-pan-w); height: calc(var(--ts-pan-w) / 2.3022); margin-bottom: calc(40 * var(--upx)); }
 .ts-board .two-side-pan::after { top: calc(198 * var(--upx)); }
-/* ⚠️ 세로로 세운 뒤로는 **키가 이 화면의 상한**입니다. E5 굽기 칸은 아래 Space
-   버튼 줄 때문에 455.2 밖에 안 됩니다 (가로 824.2 는 넉넉합니다).
-   화로는 .ts-board 가 세로 가운데로 놓으므로 아래로 나온 손잡이까지 넣으려면
-       화로 키/2 + 손잡이 44  ≤  455.2/2 (=227.6)
-   를 지켜야 합니다. 350/2 + 44 = 219 로 8.6 남습니다.
-   키를 385 이상으로 올리면 손잡이가 .ts-board 의 overflow:hidden 에 잘립니다.
-   대신 가로는 남으므로 300 까지 넓혀 화로를 실하게 씁니다. */
-/* ⚠️ 가로는 **플레이 칸(824.2)을 꽉 채웁니다** (원래 300 이었습니다 — 숯불이
-   화면 가운데 좁은 기둥으로만 보였습니다). 790 이면 좌우로 17 씩 남습니다.
-   세로는 위 주석의 상한(385) 안이라 336 그대로입니다. */
-.ts-board .two-side-pan.skewer-cook { width: calc(790 * var(--upx)); height: calc(336 * var(--upx)); margin-bottom: 0; }
-/* 아래쪽 여백이 음수 = 손잡이가 화로 밖 상판(내 쪽)으로 나갑니다.
-   ⚠️ .two-side-pan.skewer-cook 의 overflow 가 visible 이어야 보입니다.
+/* ⚠️ 세로로 세운 뒤로는 **키가 이 화면의 상한**입니다. 굽기 칸은 아래 게이지 줄
+   (익힘 게이지 + 문구 + Space 버튼) 때문에 457 입니다.
+   화로는 아래로 나온 손잡이(44)까지 칸 안에 있어야 하므로
+       화로 키 + 손잡이 44  ≤  457
+   를 지켜야 합니다. 409.8 + 44 = 453.8 로 3.2 남습니다.
+   ⚠️ 그래서 **위쪽에 붙여 놓습니다**(align-self:start). 예전처럼 세로 가운데로
+      놓으면 같은 식이 `키/2 + 44 ≤ 457/2` 가 되어 화로가 369 까지밖에 못 큽니다.
+   ⚠️ 가로는 그 키에 화로 그림 비율(2761:1657 = 1.6693)을 곱한 값이라 칸 824.2 중
+      684 만 씁니다 — 좌우 70 씩 나무 상판이 보이는 것이 맞습니다. 가로를 꽉 채우면
+      키가 494 가 되어 손잡이가 .ts-board 의 overflow:hidden 에 잘립니다.
+      (그림이 들어오기 전 임시 화로는 비율이 자유로워 790 x 336 이었습니다)
+   ⚠️ 크기를 바꾸면 tools/build-minigame-art-webp.js 의 화로 5장 크기(2배율)도
+      같이 고치세요. 안 그러면 흐려지거나 용량만 먹습니다. */
+.ts-board .two-side-pan.skewer-cook { align-self: start; width: calc(684 * var(--upx)); height: calc(409.8 * var(--upx)); margin-bottom: 0; }
+/* 꼬치가 놓이는 자리 = 화로 그림의 **석쇠 창** 안쪽입니다.
+   ⚠️ 위·좌·우는 **% 입니다.** 화로 그림 안에서 석쇠 창이 차지하는 비율이라
+      (좌우 5.3% · 위 8.6%), 넓은 화면과 좁은 화면이 한 값으로 맞습니다.
+      px 로 박으면 좁은 화면에서 꼬치가 화로 테두리 위로 올라앉습니다.
+   ⚠️ 아래만 px 입니다 — 여기는 창 안쪽이 아니라 **손잡이가 화로 밖으로 나오는
+      길이**(.grill-skewer 의 padding-bottom 과 같은 값)라 화로 크기와 무관합니다.
+      음수 = 화로 밖 상판(내 쪽)으로 나갑니다. .two-side-pan.skewer-cook 의
+      overflow 가 visible 이어야 보입니다.
    ⚠️ 꼬치 3개는 `1fr` 로 흩뿌리지 않고 **폭을 못박아 가운데로 모읍니다**.
-      넓힌 화로에서 1fr 을 쓰면 꼬치 사이가 240 씩 벌어져 셋이 따로 놀아 보입니다.
-      200 x 3 + 간격 7 x 2 = 614 가 화로 안쪽(746) 가운데에 놓입니다. */
-.ts-board .skewer-cook .cook-food { inset: calc(14 * var(--upx)) calc(22 * var(--upx)) calc(-44 * var(--upx)) calc(22 * var(--upx)); grid-template-columns: repeat(3,calc(200 * var(--upx))); }
-/* 꼬치도 커진 화로에 맞춰 함께 커집니다 (개수·판정은 준비 배치와 같은 3개).
-   min-height 356 = 꼬치 위끝(테두리 10 + 여백 14 = 24) + 356 → 화로 바닥에서 44 아래.
-   아래 padding-bottom 44 가 그 손잡이 자리입니다. 둘을 따로 고치면 잘립니다.
+      1fr 을 쓰면 꼬치 사이가 벌어져 셋이 따로 놀아 보입니다.
+      190 x 3 + 간격 7 x 2 = 584 가 석쇠 창(684 - 5.3% x 2 = 611.5) 가운데에 놓입니다. */
+/* ⚠️ align-items 를 **stretch 로 되돌립니다.** 위 `.two-side-pan .cook-food`(김치전과
+   공용)가 center 로 두는데, 그러면 꼬치 상자가 제 키(min-height 356)로만 서고
+   남는 자리 가운데에 놓여 **손잡이가 화로 밖으로 안 나옵니다**(44 → 13).
+   늘려 놓아야 꼬치가 창 위끝부터 손잡이 자리까지 그대로 차지합니다. */
+.ts-board .skewer-cook .cook-food { inset: 8.6% 5.3% calc(-36 * var(--upx)) 5.3%; align-items: stretch; grid-template-columns: repeat(3,calc(190 * var(--upx))); }
+/* 꼬치는 늘어난 자리를 그대로 채웁니다(위 align-items:stretch). min-height 는
+   그림이 없을 때의 최소 키로만 남습니다.
+   ⚠️ padding-bottom 36 이 손잡이가 화로 밖으로 나오는 자리이고, 위 cook-food 의
+      `bottom: -36` 과 **같은 값이어야** 합니다. 하나만 고치면 손잡이가 잘리거나
+      화로 안에 갇힙니다.
+   ⚠️ 44 → 36 으로 줄인 이유 : 화로 키(409.8) + 손잡이 44 = 453.8 이 칸(457)에
+      3.2 밖에 안 남아, 꼬치가 ±2도 기울어 있는 만큼(약 2) 아슬아슬했습니다.
+      36 이면 445.8 로 11 남습니다.
    폭은 조각 그림(108)이 들어가야 해서 54 → 120 입니다. */
-.ts-board .grill-skewer { min-height: calc(356 * var(--upx)); width: calc(120 * var(--upx)); padding-bottom: calc(44 * var(--upx)); }
+.ts-board .grill-skewer { min-height: calc(356 * var(--upx)); width: calc(120 * var(--upx)); padding-bottom: calc(36 * var(--upx)); }
 /* 조각 그림 크기. E8 꽂기 화면(120 x 105)의 0.9 배입니다 — 쌓인 키가
    5 * 94.5 - 10 * 17.5 = 297.5 라, 손잡이를 뺀 자리(356 - 44 = 312) 안에 들어갑니다.
    ⚠️ 그림 캔버스 비율 512 : 448 을 지켜야 조각이 눌리지 않습니다 (108 / 1.1428 = 94.5). */
@@ -525,9 +582,9 @@
 /* 팬 자리는 E3 김치 볶기(--kf-pan-drop · --kf-pan-w)와 같은 뜻이고 값도 같습니다. */
 /* 드롭은 E3 김치 볶기와 같은 142 입니다 — 화구 중앙 헤드(바닥에서 142~260)가
    딱 가려지는 높이입니다. 자세한 근거는 css/day-prep-minigames.css 의 .kf-board 주석 참고.
-   ⚠️ 폭만 E3(820)보다 작은 710 입니다. E5 굽기 칸은 아래 Space 버튼 줄 때문에
-      455.2 로 48 낮아서, 820 을 쓰면 팬 윗변이 498 로 칸을 43 넘어 잘립니다.
-      710 이면 450.4 로 들어갑니다 (여유 4.8). */
+   ⚠️ 폭만 E3(820)보다 작은 710 입니다. E5 굽기 칸은 아래 게이지 줄(익힘 게이지 +
+      문구 + Space 버튼) 때문에 457 로 48 낮아서, 820 을 쓰면 팬 윗변이 498 로
+      칸을 41 넘어 잘립니다. 710 이면 450.4 로 들어갑니다 (여유 6.6). */
 .ts-board {
   --ts-pan-drop: calc(142 * var(--upx));
   --ts-pan-w: calc(710 * var(--upx));
@@ -607,27 +664,27 @@
 /* 누르면 날 면을 축으로 살짝 눕습니다 (뒤집는 시늉) */
 .ts-spatula-cursor.pressed { transform: translate(-30%,-85%) rotate(-11deg); }
 
-/* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어옵니다 */
+/* 게이지 한 줄. 단계에 따라 익힘 게이지 / 반동 게이지 / 꼬치 순서가 들어오고,
+   굽기 단계에서는 그 아래에 문구와 Space 버튼까지 세로로 쌓입니다
+   (하단 공용 띠를 안 쓰기 때문입니다 — engine-e5 의 twoSideScreenMarkup 주석 참고). */
 .ts-gauge-slot { display: flex; flex-direction: column; align-items: center; gap: calc(7 * var(--upx)); width: 100%; }
-/* 조작 버튼이 익힘 게이지와 자리를 바꿔 가운데로 올라왔습니다.
-   `.ts-action` 의 `width:100%` 는 원래 우측 조작 카드(250) 안에서 쓰던 값이라
-   824.2 짜리 가운데 칸에서는 화면을 가로지르는 띠처럼 보입니다.
-   (띠에 있을 때는 `.mg-strip .mini-action { width:auto }` 가 같은 일을 했습니다) */
+/* `.ts-action` 의 `width:100%` 는 원래 우측 조작 카드(250) 안에서 쓰던 값이라
+   824.2 짜리 가운데 칸에서는 화면을 가로지르는 띠처럼 보입니다. 여기서 되돌립니다. */
 .ts-gauge-slot .ts-action {
   width: auto;
   min-width: calc(240 * var(--upx));
   padding: calc(12 * var(--upx)) calc(24 * var(--upx));
   font-size: calc(17 * var(--upx));
 }
-/* ⚠️ 아래 게이지 겉모습은 원래 `.ts-gauge-slot` 에 묶여 있었습니다. 익힘 게이지를
-   하단 공용 띠로 내리면서 `.ts-scene`(E5 화면 뿌리 — 게이지 슬롯과 띠를 모두
-   감쌉니다)으로 올렸습니다. 이래야 게이지가 두 자리 어디에 있어도 같게 보입니다.
-   다시 `.ts-gauge-slot` 으로 되돌리면 띠에 내려간 게이지가 기본 34짜리
-   민무늬 바로 풀려 버립니다. */
+/* 아래 게이지 겉모습은 `.ts-scene`(E5 화면 뿌리)에 걸어 둡니다. 한때 익힘 게이지가
+   하단 공용 띠에 내려가 있었고, 그때도 같게 보이려고 슬롯이 아니라 뿌리에 건 것입니다.
+   띠는 걷어냈지만 그대로 둡니다 — 게이지가 어느 자리로 옮겨 가도 겉모습이 안 풀립니다. */
 .ts-scene .cut-count { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; }
-/* 띠 안에서는 가로로 눕습니다 — 게이지 옆에 `앞면 익히기` 문구가 붙습니다.
-   1360.2 를 꽉 채우지 않고 900 으로 모아 마커를 눈으로 쫓기 쉽게 둡니다. */
-.mg-strip .doneness-gauge { width: calc(900 * var(--upx)); max-width: 100%; }
+/* 익힘 게이지 폭. 가운데 칸(824.2)을 꽉 채우지 않고 760 으로 모아 마커를 눈으로
+   쫓기 쉽게 둡니다.
+   ⚠️ 예전에는 이 자리가 하단 공용 띠였습니다(`.mg-strip .doneness-gauge` 900).
+      띠를 걷어내면서 가운데 칸으로 돌아왔습니다 — engine-e5 의 twoSideScreenMarkup 주석 참고. */
+.ts-gauge-slot .doneness-gauge { width: calc(760 * var(--upx)); max-width: 100%; }
 /* 익힘 게이지 : 좁은 금색 PERFECT를 초록 GOOD이 감싸는 썰기식 판정 구간 */
 .ts-scene .doneness-gauge {
   height: calc(38 * var(--upx));
@@ -660,6 +717,9 @@
 
 @media (prefers-reduced-motion:reduce) {
   .cook-bubbles b,.charcoal-bed > i,.charcoal-flame,.two-side-pan.flip-ready { animation:none; }
+  /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */
+  .cg-frame { animation:none; }
+  .cg-frame.frame-1 { opacity:1; }
   /* 연기는 멈추되 사라지지는 않게 — 가운데 장(03) 한 장만 세워 둡니다 */
   .ts-smoke-frame { animation:none; }
   .ts-smoke-frame.frame-3 { opacity:1; }
@@ -675,10 +735,12 @@
   .ts-key-text em { font-size: calc(12 * var(--upx)); }
   .ts-ing-name { font-size: calc(16 * var(--upx)); }
   .ts-board .two-side-pan::after { top: calc(138 * var(--upx)); }
-  /* 좁은 화면에서도 화로는 칸 가로를 채웁니다 — 넓은 쪽(790)의 0.58 배입니다 */
-  .ts-board .two-side-pan.skewer-cook { width: calc(460 * var(--upx)); height: calc(300 * var(--upx)); }
+  /* 좁은 화면 화로 — 넓은 쪽(684)의 0.67 배입니다.
+     ⚠️ 세로는 반드시 그림 비율(1.6693)로 따라옵니다. 눈대중으로 박으면 화로가 눌립니다.
+        위·좌·우 석쇠 창 자리는 % 라 따로 고칠 것이 없습니다. */
+  .ts-board .two-side-pan.skewer-cook { width: calc(460 * var(--upx)); height: calc(275.6 * var(--upx)); }
   .ts-board .grill-skewer { min-height: calc(280 * var(--upx)); width: calc(84 * var(--upx)); padding-bottom: calc(34 * var(--upx)); }
-  .ts-board .skewer-cook .cook-food { grid-template-columns: repeat(3,calc(126 * var(--upx))); }
+  .ts-board .skewer-cook .cook-food { bottom: calc(-34 * var(--upx)); grid-template-columns: repeat(3,calc(126 * var(--upx))); }
   /* 쌓인 키 = 5 * 66.5 - 10 * 12.5 = 207.5  ≤  280 - 34 (=246) */
   .ts-board .grill-skewer { --gs-piece-w: calc(76 * var(--upx)); --gs-piece-h: calc(66.5 * var(--upx)); --gs-piece-overlap: calc(-12.5 * var(--upx)); }
   .ts-board .grill-skewer b,

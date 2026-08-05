@@ -278,8 +278,10 @@ registerMiniEngine("twoSideCook", {
 function grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step) {
   if (!hasArt) return ingredient === "greenOnion" ? "<em></em>" : "<b></b>";
   if (!cookArt) return `<span class="gs-piece ${ingredient}">${dayPrepAssetMarkup(SKEWER_ASSET_KEY[ingredient], "gs-piece-asset", SKEWER_LABEL[ingredient])}</span>`;
+  // step-N : 단계마다 손볼 자리를 css 에 열어 둡니다 (지금은 step-1 밝기 한 줄 —
+  //          css 의 "납품본 밝기 보정" 참고). 몇 번째 장인지가 곧 익힘 단계입니다.
   const frames = SKEWER_COOK_STEPS.map((_, index) => dayPrepAssetMarkup(
-    skewerCookAssetKey(ingredient, index), `gs-piece-asset${index <= step ? " on" : ""}`,
+    skewerCookAssetKey(ingredient, index), `gs-piece-asset step-${index}${index <= step ? " on" : ""}`,
     index === step ? SKEWER_LABEL[ingredient] : ""
   )).join("");
   return `<span class="gs-piece has-cook-art ${ingredient}">${frames}</span>`;
@@ -309,15 +311,42 @@ function grillSkewerMarkup(pattern, index, data) {
     </span>`;
 }
 
+/* ── 숯불 화로 그림 5장 ──────────────────────────────────────
+   화로 몸통 · 벌건 숯 · 석쇠 살까지 **한 장에 다 그려져 있습니다**. 다섯 장은
+   숯이 달아올랐다 사그라드는 연속 그림이라 한 자리에 겹쳐 두고 CSS 가 차례로
+   한 장씩 켭니다 (김치전 연기 .ts-smoke-frame 과 같은 방식 — 자바스크립트
+   타이머가 없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다).
+
+   그림이 다 있으면 예전 CSS 화로(.charcoal-bed 숯덩이 126개 · .grill-grate 살 ·
+   .charcoal-flame 열기 두 겹)는 **통째로 끕니다** — 그림에 이미 다 들어 있어서
+   겹치면 숯 위에 숯을 깔고 열기를 두 번 입히는 셈입니다.
+   한 장이라도 빠지면 예전 화로가 그대로 나옵니다. */
+const CHARCOAL_GRILL_KEYS=Object.freeze(Array.from({length:5},(_,index)=>`cookCharcoalGrill${index+1}`));
+
+function hasCharcoalGrillArt(){
+  return CHARCOAL_GRILL_KEYS.every(hasDayPrepAsset);
+}
+
+function charcoalGrillArtMarkup(){
+  const frames=CHARCOAL_GRILL_KEYS.map((key,index)=>dayPrepAssetMarkup(key,`cg-frame frame-${index+1}`)).join("");
+  return `<span class="charcoal-grill-art" aria-hidden="true">${frames}</span>`;
+}
+
+/* 예전 CSS 화로. 숯덩이는 화로 안쪽을 가득 채울 만큼 넉넉히 깔고 넘치는 만큼은
+   .charcoal-bed 의 overflow:hidden 이 잘라 냅니다 (790 x 336 기준 126개). */
+function charcoalBedShapeMarkup(){
+  const coals=Array.from({length:126},()=>"<i></i>").join("");
+  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span>`;
+}
+
 function charcoalSkewerMarkup(data) {
-  /* 숯덩이 개수. 화로를 정면 탑뷰(바로 위에서 내려다보는 각)로 바꾸면서
-     숯이 화로 **안쪽 전체**를 채우게 되어 9개로는 바닥이 비어 보입니다.
-     ⚠️ 화로를 플레이 칸 가로로 넓히면서(790 x 336) 40개로는 다시 아래가 비었습니다.
-        넉넉히 깔고 넘치는 만큼은 .charcoal-bed 의 overflow:hidden 이 잘라 냅니다. */
-  const coals = Array.from({ length: 126 }, () => "<i></i>").join("");
+  const hasGrillArt = hasCharcoalGrillArt();
   const patterns = data?.skewerPatterns || skewerCookPatterns();
   const skewers = patterns.map((pattern, index) => grillSkewerMarkup(pattern, index, data)).join("");
-  return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
+  const bed = hasGrillArt ? charcoalGrillArtMarkup() : charcoalBedShapeMarkup();
+  // 열기 두 겹도 그림에 들어 있습니다 (위 주석 참고)
+  const flames = hasGrillArt ? "" : `<i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
+  return `${bed}<span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span>${flames}`;
 }
 
 /* ============================================================
@@ -427,7 +456,8 @@ function pancakeSmokeMarkup(){
 
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
 function twoSideStageMarkup(data, extraClass = "") {
-  if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
+  // has-grill-art : 화로 그림이 있으면 임시 도형의 몸통(테두리·배경·그림자)을 끕니다
+  if (data.dishStyle === "skewer") return `<div class="two-side-pan skewer-cook ${hasCharcoalGrillArt() ? "has-grill-art" : ""} ${extraClass} side-${data.side}">${charcoalSkewerMarkup(data)}</div>`;
   // 화구(가스버너)와 팬은 분리된 두 겹입니다 — day-prep-minigames.js 의 minigameBurnerMarkup 참고
   return `<div class="ts-cooktop">
       ${minigameBurnerMarkup("gas")}
@@ -439,7 +469,14 @@ function twoSideStageMarkup(data, extraClass = "") {
    삼각형)은 뺐습니다. 뒤집기 안내용 임시 도형이었는데, 팬·화로 그림이 들어온
    뒤로는 그림 위에 걸친 회색 선으로만 보였습니다. 되살리려면 css 의
    .ts-flip-arrow 규칙과 함께 되돌리세요. */
-function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, total, timePercent, sceneClass = "" }) {
+/* ⚠️ **하단 공용 띠(.mg-strip)를 쓰지 않습니다** (E6 튀기기와 같습니다).
+   띠를 안 붙이면 상단 3열이 615.6 을 그대로 씁니다 — 게임 방식을 바꾸기로 하면서
+   띠에 남길 것이 없어졌고, 대신 화로가 그만큼 커집니다.
+   익힘 게이지는 띠로 내려가기 전 자리(가운데 .ts-gauge-slot)로 돌아왔습니다.
+   되살리려면 여기에 `<div class="mg-strip">${"${strip}"}</div>` 를 3열 다음에 넣고,
+   renderTwoSideCook 의 굽기 단계에서 게이지를 그쪽으로 옮기면 됩니다
+   (css 의 `.ts-gauge-slot .doneness-gauge` 폭 규칙도 함께). */
+function twoSideScreenMarkup(view, { board, gauge, control, done, total, timePercent, sceneClass = "" }) {
   return `<div class="ts-scene ${sceneClass}">
       <aside class="ts-col">
         <div class="ts-panel ts-ing-panel">
@@ -465,7 +502,6 @@ function twoSideScreenMarkup(view, { board, gauge, control, strip = "", done, to
           ${control}
         </div>
       </aside>
-      <div class="mg-strip">${strip}</div>
     </div>`;
 }
 
@@ -474,20 +510,19 @@ function renderTwoSideCook() {
   const data = m.data, isSkewer = data.dishStyle === "skewer", view = TWO_SIDE_VIEW[data.dishStyle];
   // 진행도 = 뒤집어 놓은 개수. 김치전은 1장, 닭꼬치는 준비 배치와 같은 3개입니다.
   const done = isSkewer ? (data.side === 1 ? view.total : data.flippedSkewers || 0) : (data.side === 1 ? 1 : 0);
-  // strip : 하단 공용 띠에 들어갈 것. 지금은 굽기 단계의 조작 버튼 하나뿐이고,
-  //         비어 있는 단계에서는 .mg-strip:empty 가 접혀 3열이 613.2 를 그대로 씁니다.
-  let board = "", gauge = "", control = "", strip = "";
+  let board = "", gauge = "", control = "";
   if (data.phase === "cook") {
     const sideLabel = data.side === 0 ? "앞면" : "뒷면", config = TWO_SIDE_COOK_CONFIG[data.dishStyle];
     dom.miniDescription.textContent = `${sideLabel}을 익히다가 포인터가 작은 금색 구간 또는 주변 초록 구간에 들어오면 Space를 누르세요.`;
     board = twoSideStageMarkup(data);
-    // 두꺼운 바는 전부 하단 공용 띠에 모읍니다 — 익힘 게이지가 띠로 내려가고
-    // Space 버튼이 그 자리(가운데 게이지 슬롯)로 올라옵니다. 겉모습 규칙은
-    // .ts-scene 을 타므로 두 자리 어디에 있어도 그대로 적용됩니다.
-    gauge = `<button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
+    /* 익힘 게이지 · 문구 · Space 버튼이 **전부 가운데 칸**에 세로로 쌓입니다.
+       ⚠️ 예전에는 게이지를 하단 공용 띠(.mg-strip)로 내리고 버튼만 여기 두었습니다.
+          띠를 걷어내면서(위 twoSideScreenMarkup 주석) 원래 자리로 돌아왔습니다.
+          겉모습 규칙은 .ts-scene 을 타므로 두 자리 어디에 있어도 그대로입니다. */
+    gauge = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
+      <p class="cut-count">${sideLabel} 익히기</p>
+      <button class="mini-action ts-action" id="miniAction" type="button">Space · ${sideLabel} 완료</button>`;
     control = twoSideKeysMarkup(view);
-    strip = `<div class="doneness-gauge"><i class="doneness-good" style="left:${config.goodStart*100}%;width:${(config.goodEnd-config.goodStart)*100}%"></i><i class="doneness-perfect" style="left:${config.perfectStart*100}%;width:${(config.perfectEnd-config.perfectStart)*100}%"></i><i id="miniMarker" class="progress-marker" style="left:${data.marker*100}%"></i></div>
-      <p class="cut-count">${sideLabel} 익히기</p>`;
   } else if (data.phase === "skewerFlip" || data.phase === "skewerTurning") {
     const current = Math.min(data.flippedSkewers || 0, SKEWER_BATCH_SIZE - 1);
     dom.miniDescription.textContent = "현재 꼬치에 ← 다음 →를 빠르게 누르세요. 한 쌍을 입력할 때마다 꼬치 하나가 뒤집힙니다.";
@@ -513,7 +548,7 @@ function renderTwoSideCook() {
   // 뒤집개 커서는 김치전 화면에서만, 그림이 있을 때만 켭니다 (아래 mountTwoSideSpatula)
   const hasSpatula = !isSkewer && hasDayPrepAsset("cookSpatulaCursor");
   dom.miniContent.innerHTML = twoSideScreenMarkup(view, {
-    board, gauge, control, strip, done, total: view.total,
+    board, gauge, control, done, total: view.total,
     timePercent: data.timeLimit ? clamp(m.time / data.timeLimit, 0, 1) * 100 : 100,
     sceneClass: hasSpatula ? "has-spatula" : ""
   });

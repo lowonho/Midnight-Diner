@@ -106,7 +106,20 @@
         },
         // 숯불 바닥이 칸 가로를 얼마나 채우는가 (1 에 가까울수록 꽉 찬 것)
         grillFill:+(grillRect.width / boardRect.width).toFixed(3),
-        coals:document.querySelectorAll(".charcoal-bed > i").length,
+        /* 화로 그림 5장(assets/minigame/E5/yakitori/fix_charcoal_grill_fire_*).
+           art:false 면 그림을 못 찾아 예전 CSS 화로(숯덩이 126개)로 떨어진 것입니다. */
+        grillArt:(() => {
+          const art = document.querySelector(".charcoal-grill-art");
+          if (!art) return { art:false, coals:document.querySelectorAll(".charcoal-bed > i").length };
+          const frames = [...art.querySelectorAll(".cg-frame")];
+          const first = rect(frames[0]);
+          return { art:true, frames:frames.length,
+                   // 다섯 장이 화로 상자를 그대로 덮는지 (그림 비율이 상자와 같아야 합니다)
+                   frameBox:first ? `${first.width.toFixed(1)}x${first.height.toFixed(1)}` : "없음",
+                   // 임시 화로가 같이 남아 있으면 숯 위에 숯이 깔립니다
+                   leftoverCoals:document.querySelectorAll(".charcoal-bed > i").length,
+                   leftoverFlames:document.querySelectorAll(".charcoal-flame").length };
+        })(),
         /* 익힘 단계 (assets/minigame/E5/yakitori/ 5장). 켜진 장수가 곧 단계+1 이고,
            마지막으로 켜진 장의 파일 이름이 지금 보이는 그림입니다. */
         cook:(() => {

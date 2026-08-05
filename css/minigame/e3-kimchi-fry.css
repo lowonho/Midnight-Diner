@@ -249,22 +249,23 @@
    [기울기 0] 그림이 **이미 18도 기울여 그려져 있습니다** (손잡이 위 오른쪽 · 주걱 면
      아래 왼쪽, 원본 499x957 에서 축이 18.1도). 임시 도형용 -18 을 그대로 두면
      두 번 기울어 도로 세워집니다.
-   [135 x 259] 주걱 면이 그림 가로의 61% 라 화면에서 82 입니다. 길이 259 는 팬
-     높이(356.2)보다 한참 짧아 손잡이 끝까지 팬 안에 듭니다.
-     ⚠️ 처음에는 임시 도형의 주걱 면(112)에 맞춰 180x345 였는데, 팬과 김치 조각에
-        비해 너무 커 보여 0.75 배로 줄였습니다. 아래 커서 쪽과 **같은 크기여야**
-        합니다 — 마우스가 있는 화면과 터치 화면에서 주걱 크기가 달라지면 안 됩니다.
-   [왼쪽 35%] 그림에서 주걱 면 한가운데가 가로 31% 자리라, 그만큼 되당겨야
+   [150 x 288] 주걱 면이 그림 가로의 61% 라 화면에서 92 입니다. 길이 288 은 팬
+     높이(356.2)보다 짧아 손잡이 끝까지 팬 안에 듭니다.
+     ⚠️ 크기를 두 번 옮겼습니다 — 임시 도형의 주걱 면(112)에 맞춘 180 은 팬·김치
+        조각에 비해 컸고, 0.75 배(135)는 반대로 작았습니다. 지금 150 이 그 사이입니다.
+        아래 커서 쪽과 **같은 크기여야** 합니다 — 마우스가 있는 화면과 터치 화면에서
+        주걱 크기가 달라지면 안 됩니다.
+   [왼쪽 34.4%] 그림에서 주걱 면 한가운데가 가로 31% 자리라, 그만큼 되당겨야
      **주걱 면이 팬 몸통 중심에 옵니다.** 그림 상자를 40% 에 그냥 놓으면 주걱이
      팬 오른쪽 손잡이 쪽으로 밀립니다.
      ⚠️ `left` 의 % 는 테두리 **안쪽** 상자(802) 기준이라, 팬 그림 좌표로는
-        9 + 802 x 0.35 + 135 x 0.31 = 331.4 — 팬 몸통 중심과 같습니다.
+        9 + 802 x 0.344 + 150 x 0.31 = 331.4 — 팬 몸통 중심과 같습니다.
         **폭을 바꾸면 이 값도 같이 다시 잡아야 합니다.** */
 .kf-wood-spatula.has-prep-asset {
   --kf-spatula-tilt: 0deg;
-  left: 35%;
-  width: calc(135 * var(--upx));
-  height: calc(259 * var(--upx));
+  left: 34.4%;
+  width: calc(150 * var(--upx));
+  height: calc(288 * var(--upx));
   border: 0;
   background: none;
   box-shadow: none;
@@ -306,6 +307,16 @@
 .mini-overlay.open .kf-scene.has-spatula .kf-board *,
 .mini-overlay.open:active .kf-scene.has-spatula .kf-board,
 .mini-overlay.open:active .kf-scene.has-spatula .kf-board * { cursor: none !important; }
+/* ⚠️ **젓는 동안에는 칸 전체에서 숨겨야 합니다.** 위 규칙만으로는 손을 대는 순간
+   기본 포인터(공용 손 그림)가 도로 나옵니다 — bindDirectionSlide 가 `.kf-scene` 에
+   setPointerCapture 를 걸면, 브라우저는 포인터 **아래**가 아니라 **붙잡은 요소**의
+   cursor 를 씁니다. 그 요소가 `.kf-scene` 이라 `.kf-board` 한정 규칙이 안 닿습니다.
+   `.direction-sliding` 은 손을 대면 붙고 떼면 떨어지므로, 딱 그동안만 숨습니다
+   (주걱 커서 쪽도 젓는 동안에는 칸 밖까지 따라오므로 서로 맞습니다). */
+.mini-overlay.open .kf-scene.has-spatula.direction-sliding,
+.mini-overlay.open .kf-scene.has-spatula.direction-sliding *,
+.mini-overlay.open:active .kf-scene.has-spatula.direction-sliding,
+.mini-overlay.open:active .kf-scene.has-spatula.direction-sliding * { cursor: none !important; }
 /* 상자 왼쪽 위 귀퉁이가 포인터 자리입니다. **주걱 면 한가운데**가 포인터에 오도록
    제 크기의 비율(%)로 당깁니다 — px 로 박으면 창 크기에 따라 어긋납니다.
    31% 는 팬에 붙어 있을 때 쓰던 값과 같고(그림에서 주걱 면 중심), 80% 는 주걱
@@ -315,8 +326,8 @@
   z-index: 70;
   left: 0;
   top: 0;
-  width: calc(135 * var(--upx));
-  height: calc(259 * var(--upx));
+  width: calc(150 * var(--upx));
+  height: calc(288 * var(--upx));
   opacity: 0;
   transform: translate(-31%,-80%);
   pointer-events: none;
@@ -520,10 +531,10 @@
   .kf-board { --kf-pan-drop: calc(112 * var(--upx)); --kf-pan-w: calc(380 * var(--upx)); }
   .frying-pan::after { width: calc(110 * var(--upx)); height: calc(18 * var(--upx)); }
   /* 팬이 820 → 380 (0.463배)으로 줄어드니 주걱도 같은 배율로 줄입니다.
-     왼쪽 자리(35%)는 % 라 그대로 따라옵니다. 커서 쪽도 같이 줄입니다 — 터치에서는
+     왼쪽 자리(34.4%)는 % 라 그대로 따라옵니다. 커서 쪽도 같이 줄입니다 — 터치에서는
      커서를 안 쓰지만 이 폭은 창이 좁은 데스크톱에도 걸립니다. */
   .kf-wood-spatula.has-prep-asset,
-  .kf-spatula-cursor { width: calc(62 * var(--upx)); height: calc(120 * var(--upx)); }
+  .kf-spatula-cursor { width: calc(69 * var(--upx)); height: calc(133 * var(--upx)); }
   .kf-ing-art i { width: calc(64 * var(--upx)); height: calc(64 * var(--upx)); }
   .kf-count strong { font-size: calc(42 * var(--upx)); }
   .kf-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
