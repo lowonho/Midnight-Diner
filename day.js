@@ -111,7 +111,7 @@ function setSelectedMenus(menuIds){
 }
 
 function resetDay(first=false) {
-  clearIngredientHintTimer();
+  stopIngredientTimer();
   const dayData=getCurrentDayData();
   state.phase=dayData.skipMenuSelect?GAME_PHASES.INGREDIENT_SELECT:GAME_PHASES.MENU_SELECT;state.phaseTime=null;state.selectedOrderId=null;
   state.selectedMenus=[...dayData.requiredMenus];state.menuSelectionDraft=[...dayData.requiredMenus];

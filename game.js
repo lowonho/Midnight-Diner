@@ -33,7 +33,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishProgress","ingredientDishName","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientUndo","ingredientHint","ingredientShuffle","ingredientSelectFeedback","ingredientBasket","ingredientTotalProgress","ingredientSelectContinue",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -343,7 +343,8 @@ audio.preload();
 const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
-  "#menuSelectConfirm",".menu-select-option","#ingredientSelectContinue",".ingredient-shelf",".ingredient-puzzle-controls button",".order-row",
+  // 냉장고 칸(.fridge-slot)은 넣지 않습니다 — 찾았을 때/아닐 때 소리를 게임이 직접 냅니다.
+  "#menuSelectConfirm",".menu-select-option",".order-row",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause"
 ].join(",");
 document.addEventListener("click",event=>{
@@ -694,7 +695,6 @@ dom.resumeButton.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",beginNight);
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
-dom.ingredientSelectContinue.addEventListener("click",continueIngredientSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
 // 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.

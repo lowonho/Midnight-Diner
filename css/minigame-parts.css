@@ -512,7 +512,7 @@
 .soak-ing-panel,
 .anchovy-ing-panel,
 .os-ing-panel,
-.fridge-ing-panel,
+.fridge-menu-panel,
 .fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-613); }
 .cut-ing-panel,
 .ts-ing-panel      { --mg-panel-art: var(--mg-art-a1-523); }
@@ -527,9 +527,9 @@
 .heat-control,
 .soak-guide,
 .os-guide,
-.fridge-basket,
 .fry-rack-panel    { --mg-panel-art: var(--mg-art-a2-460); }
-.anchovy-ref-card  { --mg-panel-art: var(--mg-art-a2-403); }
+.anchovy-ref-card,
+.fridge-goal-card  { --mg-panel-art: var(--mg-art-a2-403); }
 .cut-ref-card,
 .ts-control        { --mg-panel-art: var(--mg-art-a2-370); }
 .kf-next,
@@ -547,9 +547,10 @@
 .soak-count,
 .os-count,
 .heat-count,
-.fridge-count,
 .fry-progress-card { --mg-panel-art: var(--mg-art-c-140); }
-.anchovy-count-card{ --mg-panel-art: var(--mg-art-c-198); }
+/* 남은 시간 대신 '걸린 시간'이지만 글자 줄이 하나 더 붙는 것은 같아 큰 카드를 씁니다 */
+.anchovy-count-card,
+.fridge-count-card { --mg-panel-art: var(--mg-art-c-198); }
 
 /* 이 셋은 카드 안쪽도 여기서 쌓습니다.
    나머지 8개는 각자 .○-ing-panel / .○-count 가 따로 정하고 있어서 건드리지 않습니다. */
@@ -595,7 +596,7 @@
 .cut-ing-panel,
 .fry-ing-panel,
 .heat-ing-panel,
-.fridge-ing-panel,
+.fridge-menu-panel,
 .anchovy-ing-panel {
   flex: 1;
   display: flex;
@@ -706,9 +707,9 @@
 .soak-count,
 .os-count,
 .heat-count,
-.fridge-count,
 .fry-progress-card,
-.anchovy-count-card {
+.anchovy-count-card,
+.fridge-count-card {
   flex: none;
   height: var(--mg-prog-h);
   display: flex;
@@ -726,7 +727,8 @@
       6배 차이인데 같은 198.1 을 쓰느라 E5 는 53.3, E6 는 65.5 가 비어 있었습니다.
       둘을 기본 140.6 으로 내렸습니다. 이제 13화면 중 12화면이 140.6 입니다.
       (E6 은 그 뒤 제한시간 자체가 없어져 시간 바도 사라졌습니다) */
-.anchovy-count-card {
+.anchovy-count-card,
+.fridge-count-card {
   height: var(--mg-prog-time-h);
 }
 

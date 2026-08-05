@@ -1662,7 +1662,7 @@ function showTitleAfterStory({save=true}={}){
   audio.stopAllFiles?.();
   clearStoryRuntime();
   state.screen="title";state.paused=true;state.mini=null;
-  clearIngredientHintTimer?.();
+  stopIngredientTimer?.();
   dom.settingsOverlay.classList.remove("open");
   dom.resultOverlay.classList.remove("open");
   dom.miniOverlay.classList.remove("open");
