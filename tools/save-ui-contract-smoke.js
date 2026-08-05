@@ -143,12 +143,12 @@ assert(titleSource.includes("collectionPages")
 assert(titleSource.includes('function openTitleJournal(){return openJournal("collection");}')
   &&titleSource.includes('function openGameplayJournal(){return openJournal("gameplay");}'),
   "타이틀 영구 컬렉션과 게임 내 진행 기록은 서로 다른 모드로 열려야 합니다.");
-const openJournalSource=titleSource.match(/function openJournal\([\s\S]+?\n}\n\nfunction openTitleJournal/)?.[0]||"";
+const openJournalSource=titleSource.match(/function openJournal\([\s\S]+?\r?\n}\r?\n\r?\nfunction openTitleJournal/)?.[0]||"";
 assert(openJournalSource.includes('journalMode==="gameplay"')
   &&openJournalSource.includes("journalWasPaused=!!state.paused")
   &&openJournalSource.includes("state.paused=true"),
   "게임 내 영업일지를 열 때만 기존 일시정지 상태를 저장하고 게임을 멈춰야 합니다.");
-const closeJournalSource=titleSource.match(/function closeJournal\([\s\S]+?\n}\n\nfunction initializeJournalUI/)?.[0]||"";
+const closeJournalSource=titleSource.match(/function closeJournal\([\s\S]+?\r?\n}\r?\n\r?\nfunction initializeJournalUI/)?.[0]||"";
 assert(closeJournalSource.includes('journalMode==="gameplay"')
   &&closeJournalSource.includes("state.paused=journalWasPaused"),
   "게임 내 영업일지를 닫으면 기존 일시정지 상태를 복원해야 합니다.");
@@ -180,7 +180,7 @@ assert(titleSource.includes('page.pageType==="rules"')
   "currentLoopVisited","currentLoopEvaluation","currentFragmentState","currentFragmentName"
 ].forEach(field=>assert(titleSource.includes(`"${field}"`),
   `진행용 영업일지는 '${field}' 값을 표시해야 합니다.`));
-const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\n}\n\nfunction renderJournalTabs/)?.[0]||"";
+const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\r?\n}\r?\n\r?\nfunction renderJournalTabs/)?.[0]||"";
 assert(journalMetaSource.includes('journalMode==="gameplay"')
   &&journalMetaSource.includes('현재 평가 · ${page.currentLoopEvaluation}')
   &&journalMetaSource.includes('현재 조각 · ${page.currentFragmentState||"미획득"}'),
