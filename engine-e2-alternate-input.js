@@ -728,6 +728,13 @@ const SHRIMP_ROLL_CONFIG=Object.freeze({requiredTravelRatio:2.2,visualLimitRatio
 // 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
 const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
 
+function playShrimpCoatSfx(m){
+  const data=m?.data,name=SHRIMP_COAT_SFX[data?.sequence?.[data.step]?.id];
+  if(!name)return;
+  if(data.coatSfx)audio.stopFile?.(data.coatSfx);
+  data.coatSfx=audio.play?.(name,{owner:m,gain:.8})||null;
+}
+
 /* 새우 그림 10장이 앉는 자리 (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS).
    [0] 은 "아직 이 옷을 안 입은 모습" 이라 직전 단계의 다 묻은 장을 그대로 씁니다.
    그래서 재료칸에서 꺼낸 새우와 그릇에 막 놓은 새우가 같은 그림이고,
@@ -741,6 +748,10 @@ const SHRIMP_STATE_KEYS=Object.freeze({
 // 굴린 정도(0~1) → 그림 단계(0~3)
 function shrimpRollStage(progress){
   return progress>=1?3:progress>=.7?2:progress>=.35?1:0;
+}
+
+function shrimpRollSoundStage(progress){
+  return progress>=.8?4:progress>=.6?3:progress>=.4?2:progress>=.2?1:0;
 }
 
 function isShrimpCoatMini(m){
@@ -872,7 +883,6 @@ function putShrimpInVessel(m){
   const data=m.data;
   data.board={progress:0,position:0,turn:0,coated:false};
   data.phase="roll";data.justCompleted=-1;
-  audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m,gain:.6});
   dom.miniDescription.textContent=shrimpCoatHelpText(data);
   dom.miniFeedback.textContent=`${data.sequence[data.step].label} 안에서 새우를 좌우로 굴려주세요.`;
   renderShrimpCoat();
@@ -897,7 +907,6 @@ function placeShrimpBackInTray(m){
   dom.miniDescription.textContent=shrimpCoatHelpText(data);
   renderShrimpCoat();
   if(!stageComplete){
-    audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});
     dom.miniFeedback.textContent=`${data.sequence[data.step].label} 새우 ${data.successes} / ${data.total} 완료 · 다음 새우를 꺼내주세요.`;
     return;
   }
@@ -959,7 +968,6 @@ function finishShrimpRoll(m,pointerId){
   clearShrimpRollDrag(m,pointerId);
   data.board.progress=1;data.board.coated=true;data.board.position=0;data.board.turn=0;
   data.phase="return";data.inputLocked=true;
-  audio.play?.(SHRIMP_COAT_SFX[data.sequence[data.step].id],{owner:m});
   dom.miniDescription.textContent=shrimpCoatHelpText(data);
   dom.miniFeedback.textContent="다 묻었습니다! 새우가 재료칸으로 돌아갑니다.";
   renderShrimpCoat();
@@ -981,7 +989,7 @@ function bindShrimpCoatRoll(){
     const limit=Math.max(32,rect.width*SHRIMP_ROLL_CONFIG.visualLimitRatio);
     m.data.board.position=clamp(m.data.board.position||0,-limit,limit);
     m.data.drag={kind:"shrimpRoll",pointerId:event.pointerId,lastX:event.clientX,limit,
-      required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio),sinceSound:0};
+      required:Math.max(1,rect.width*SHRIMP_ROLL_CONFIG.requiredTravelRatio)};
     try{surface.setPointerCapture?.(event.pointerId);}catch{}
     dom.miniContent.querySelector("#shrimpCoatScene")?.classList.add("rolling");updateShrimpRollPose(m.data);
   });
@@ -992,16 +1000,13 @@ function bindShrimpCoatRoll(){
     const board=m.data.board,previous=board.position,next=clamp(previous+event.clientX-drag.lastX,-drag.limit,drag.limit);
     drag.lastX=event.clientX;board.position=next;
     const travelled=Math.abs(next-previous);
+    const previousSoundStage=shrimpRollSoundStage(board.progress);
     board.progress=Math.min(1,board.progress+travelled/drag.required);
     board.turn=(board.turn+(next-previous)*.55)%360;
     updateShrimpRollPose(m.data);
-    // 굴리는 거리만큼 쌓아 두었다가 한 번 왕복(limit)할 때마다 코팅 소리를 한 번씩 냅니다.
-    // 완료 때만 소리가 나면 "묻히는 중"이라는 느낌이 안 나서, 움직이는 동안 계속 들리게 합니다.
-    drag.sinceSound=(drag.sinceSound||0)+travelled;
-    while(drag.sinceSound>=drag.limit){
-      drag.sinceSound-=drag.limit;
-      audio.play?.(SHRIMP_COAT_SFX[m.data.sequence[m.data.step].id],{owner:m,gain:.8});
-    }
+    // 코팅 진행도(20% · 40% · 60% · 80%)를 지날 때만 한 번씩 재생합니다.
+    // 빠르게 굴려도 이전 코팅음을 먼저 끄므로 같은 효과음이 겹치지 않습니다.
+    if(shrimpRollSoundStage(board.progress)>previousSoundStage)playShrimpCoatSfx(m);
     if(board.progress>=1){
       try{if(surface.hasPointerCapture?.(event.pointerId))surface.releasePointerCapture?.(event.pointerId);}catch{}
       finishShrimpRoll(m,event.pointerId);
