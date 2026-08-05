@@ -913,7 +913,10 @@ function placeShrimpBackInTray(m){
   }
   const completed=data.sequence[data.step],finalStage=data.step>=data.sequence.length-1;
   dom.miniContent.querySelector(".fp-scene")?.classList.add(finalStage?"e2-complete":"stage-complete");
-  showAlternateGrade("perfect");audio.success();
+  const stageGrade=data.stageGrades.at(-1)||"perfect";
+  showAlternateGrade(stageGrade);
+  // 마지막 단계는 finishDayPrepTask가 최종 판정음을 재생하므로 두 번 겹치지 않게 합니다.
+  if(!finalStage)audio.result(stageGrade);
   if(finalStage){
     dom.miniFeedback.textContent="새우 5마리 튀김옷 3단계 준비 완료!";
     setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);

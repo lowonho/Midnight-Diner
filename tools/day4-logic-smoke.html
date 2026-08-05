@@ -11,7 +11,7 @@ function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
 const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki","fries"],prepProgress:Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false])),mini:null,kimchiPrep:{}};
 const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div"),miniTimer:{textContent:""},miniTitle:{textContent:""},miniStation:{textContent:""},miniDescription:{textContent:""},miniOverlay:document.createElement("div")};
 const playedSfx=[];
-const audio={click(){},success(){},bad(){},play(name){playedSfx.push(name);},loop(name){playedSfx.push(name);}};
+const audio={click(){},success(){},uiClick(){playedSfx.push("ui_click");},result(grade){playedSfx.push(`result_${grade}`);},bad(){},play(name){playedSfx.push(name);},loop(name){playedSfx.push(name);}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
@@ -239,6 +239,7 @@ try{
      배치기)이고 셋째 걸음은 타이머라, 여기서는 그 둘이 부르는 함수를 바로
      불러 로직만 봅니다. 끌어다 놓기와 그림·자리는 tools/e2-shrimp-carry-smoke.html
      이 진짜 포인터 입력으로 확인합니다. */
+  playedSfx.length=0;
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
   assert(dom.miniContent.querySelectorAll(".fp-tray-slot").length===5&&dom.miniContent.querySelectorAll(".fp-tray-slot.ready").length===1&&!dom.miniContent.querySelector(".fp-ing-card")&&!state.mini.data.board,"E2 shrimp ingredient column holds five shrimp instead of coating ingredient cards");
   function rollShrimp(pointerId){
@@ -256,7 +257,7 @@ try{
   for(let index=1;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++){
     putShrimpInVessel(state.mini);rollShrimp(60+index);placeShrimpBackInTray(state.mini);
   }
-  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1,"E2 shrimp rolls five pieces in one vessel before the first stage transition");
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1&&playedSfx.includes("result_perfect"),"E2 shrimp rolls five pieces in one vessel and plays its grade sound before the first stage transition");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};
