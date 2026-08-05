@@ -256,15 +256,21 @@
 .story-relation-badge:empty { display: none; }
 .story-text {
   flex: none;
-  height: calc(1.7em * var(--story-text-lines));
+  height: 2lh;
   margin: 0;
   padding-right: calc(8 * var(--upx));
-  overflow-y: auto;
+  overflow: hidden;
   color: #f1e0c2;
   font-size: calc(18 * var(--upx));
   line-height: 1.7;
   white-space: pre-line;
   word-break: keep-all;
+}
+.story-text-measure {
+  position: absolute !important;
+  inset: auto !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 /* 선택지는 개수와 무관하게 항상 가로 한 줄로 나열합니다(개수가 늘면 칸 폭만 좁아짐).
    선택지가 없어도 이 한 줄 자리를 비워 둬서 패널 크기가 흔들리지 않습니다. */

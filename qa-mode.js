@@ -618,11 +618,14 @@ function qaUpdateStoryControls(panel=qaStoryPanel()){
   const next=panel.querySelector("[data-qa-story-next]");
   const position=panel.querySelector("[data-qa-story-position]");
   const close=panel.querySelector("[data-qa-story-close]");
-  if(prev)prev.disabled=!active||index<=0;
-  if(next)next.disabled=!active||index>=total-1;
+  const subtitle=active?storySession.subtitle:null;
+  const subtitlePage=subtitle?.pageIndex||0;
+  const subtitleTotal=subtitle?.pages?.length||1;
+  if(prev)prev.disabled=!active||(index<=0&&subtitlePage<=0);
+  if(next)next.disabled=!active||(index>=total-1&&subtitlePage>=subtitleTotal-1);
   if(close)close.disabled=!active;
   if(position)position.textContent=entry
-    ?`${entry.id} · ${index+1} / ${total}`
+    ?`${entry.id} · ${index+1} / ${total}${subtitleTotal>1?` · 자막 ${subtitlePage+1} / ${subtitleTotal}`:""}`
     :"장면을 선택하세요";
 }
 
@@ -673,6 +676,21 @@ function qaSeedStoryPreviewState(sceneId,lineIndex){
   updateRelationshipUI();
 }
 
+function qaSyncStoryPreviewNextButton(){
+  if(!qaStoryPreviewIsActive())return false;
+  const nextButton=document.getElementById("storyNextButton");
+  if(!nextButton)return false;
+  const atLast=storySession.lineIndex>=storySession.lines.length-1;
+  const hasNextPage=typeof storySubtitleHasNextPage==="function"&&storySubtitleHasNextPage();
+  nextButton.disabled=atLast&&!hasNextPage;
+  nextButton.style.display="block";
+  nextButton.innerHTML=hasNextPage
+    ?'계속 <span>▼</span>'
+    :atLast?'마지막 대사 <span>■</span>':'다음 대사 <span>▼</span>';
+  qaUpdateStoryControls();
+  return true;
+}
+
 function qaShowStoryLineAt(lineIndex){
   if(!qaStoryPreviewIsActive())return false;
   const scene=storySession.scene;
@@ -698,13 +716,7 @@ function qaShowStoryLineAt(lineIndex){
   showStoryLine();
   finishStoryTyping();
 
-  const nextButton=document.getElementById("storyNextButton");
-  if(nextButton){
-    const atLast=target>=storySession.lines.length-1;
-    nextButton.disabled=atLast;
-    nextButton.style.display="block";
-    nextButton.innerHTML=atLast?'마지막 대사 <span>■</span>':'다음 대사 <span>▼</span>';
-  }
+  qaSyncStoryPreviewNextButton();
   qaRenderStoryBrowser();
   qaRefreshPanel(
     `${qaStoryDayLabel(qaStorySelectedDay)} · ${scene.id} · ${target+1}/${storySession.lines.length}`
@@ -773,6 +785,20 @@ function qaOpenStoryScene(sceneId,lineIndex=0,options={}){
 
 function qaStoryStep(delta){
   if(!qaStoryPreviewIsActive())return false;
+  const direction=Math.sign(Number(delta)||0);
+  const subtitle=storySession.subtitle;
+  if(direction>0&&typeof storySubtitleHasNextPage==="function"&&storySubtitleHasNextPage()){
+    showStorySubtitlePage(subtitle.pageIndex+1);
+    finishStoryTyping();
+    qaRenderStoryBrowser();
+    return true;
+  }
+  if(direction<0&&subtitle?.pageIndex>0){
+    showStorySubtitlePage(subtitle.pageIndex-1);
+    finishStoryTyping();
+    qaRenderStoryBrowser();
+    return true;
+  }
   const target=storySession.lineIndex+Number(delta||0);
   if(target<0||target>=storySession.lines.length){
     qaUpdateStoryControls();

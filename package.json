@@ -6,6 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "test:story": "node tools/story-contract-smoke.js",
+    "test:story-subtitle": "node tools/story-subtitle-pagination-smoke.js",
     "test:qa-story": "node tools/qa-story-contract-smoke.js",
     "test:save": "node tools/save-slots-contract-smoke.js",
     "test:save-ui": "node tools/save-ui-contract-smoke.js",

@@ -10,10 +10,13 @@ let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
 let storySceneIntroTimer=null;
+let storySubtitleMeasureEl=null;
+let storySubtitleResizeTimer=null;
 let storyUiInitialized=false;
 const STORY_CHECKPOINT_VERSION=1;
 const STORY_SCENE_INTRO_DURATION=1700;
 const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
+const STORY_SUBTITLE_MAX_LINES=2;
 
 function createStoryGuestState(){
   return {
@@ -516,6 +519,136 @@ function initializeStoryUI(){
   document.getElementById("storyNextButton").addEventListener("click",storyAdvance);
   document.getElementById("storyText").addEventListener("click",storyAdvance);
   document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
+  window.addEventListener("resize",()=>{
+    clearTimeout(storySubtitleResizeTimer);
+    storySubtitleResizeTimer=setTimeout(reflowCurrentStorySubtitle,80);
+  });
+}
+
+function storySubtitleMeasurementElement(textEl){
+  const parent=textEl?.parentElement;
+  if(!parent||typeof textEl.cloneNode!=="function")return null;
+  if(!storySubtitleMeasureEl||storySubtitleMeasureEl.parentElement!==parent){
+    storySubtitleMeasureEl=textEl.cloneNode(false);
+    storySubtitleMeasureEl.removeAttribute("id");
+    storySubtitleMeasureEl.removeAttribute("aria-live");
+    storySubtitleMeasureEl.setAttribute("aria-hidden","true");
+    storySubtitleMeasureEl.classList.add("story-text-measure");
+    parent.appendChild(storySubtitleMeasureEl);
+  }
+  const computed=typeof window.getComputedStyle==="function"
+    ?window.getComputedStyle(textEl)
+    :null;
+  if(computed?.width)storySubtitleMeasureEl.style.width=computed.width;
+  if(computed?.height)storySubtitleMeasureEl.style.height=computed.height;
+  return storySubtitleMeasureEl;
+}
+
+function storySubtitlePageFits(text,textEl=document.getElementById("storyText")){
+  if(!textEl)return true;
+  const measure=storySubtitleMeasurementElement(textEl)||textEl;
+  const mutatesLiveRegion=measure===textEl;
+  const previousText=mutatesLiveRegion?textEl.textContent:"";
+  const previousScrollTop=mutatesLiveRegion?(Number(textEl.scrollTop)||0):0;
+  measure.textContent=text||"\u200b";
+  const clientHeight=Number(measure.clientHeight)||Number(textEl.clientHeight)||0;
+  const scrollHeight=Number(measure.scrollHeight)||0;
+  let availableHeight=clientHeight;
+  if(!availableHeight&&typeof window.getComputedStyle==="function"){
+    const lineHeight=Number.parseFloat(window.getComputedStyle(measure).lineHeight);
+    if(Number.isFinite(lineHeight)&&lineHeight>0)availableHeight=lineHeight*STORY_SUBTITLE_MAX_LINES;
+  }
+  measure.textContent=mutatesLiveRegion?previousText:"";
+  if(mutatesLiveRegion&&"scrollTop" in textEl)textEl.scrollTop=previousScrollTop;
+  // DOM 크기를 제공하지 않는 계약 테스트 환경에서는 한 페이지로 취급합니다.
+  if(!availableHeight||!scrollHeight)return true;
+  return scrollHeight<=availableHeight+1;
+}
+
+function storySubtitlePreferredBreak(characters,maxLength){
+  const minimum=Math.max(1,Math.floor(maxLength*.55));
+  const punctuation=/[,.!?;:…。，、！？；：]/;
+  for(let index=maxLength;index>=minimum;index--){
+    const before=characters[index-1]||"";
+    const after=characters[index]||"";
+    if(/\s/.test(before)||punctuation.test(before)||/\s/.test(after))return index;
+  }
+  return maxLength;
+}
+
+function paginateStorySubtitle(text,textEl=document.getElementById("storyText")){
+  let remaining=String(text??"");
+  if(!remaining)return [""];
+  const pages=[];
+  while(remaining){
+    if(storySubtitlePageFits(remaining,textEl)){
+      pages.push(remaining);
+      break;
+    }
+    const characters=Array.from(remaining);
+    let low=1;
+    let high=characters.length-1;
+    let fittingLength=0;
+    while(low<=high){
+      const middle=Math.floor((low+high)/2);
+      if(storySubtitlePageFits(characters.slice(0,middle).join(""),textEl)){
+        fittingLength=middle;
+        low=middle+1;
+      }else high=middle-1;
+    }
+    // 한 글자도 측정 영역에 들어가지 않는 비정상 레이아웃에서도 무한 반복하지 않습니다.
+    fittingLength=Math.max(1,fittingLength);
+    const breakAt=storySubtitlePreferredBreak(characters,fittingLength);
+    const page=characters.slice(0,breakAt).join("").trimEnd();
+    pages.push(page||characters[0]);
+    remaining=characters.slice(page?breakAt:1).join("").trimStart();
+  }
+  return pages;
+}
+
+function storySubtitlePageOffsets(text,pages){
+  const source=String(text??"");
+  let cursor=0;
+  return pages.map(page=>{
+    const found=source.indexOf(page,cursor);
+    const start=found>=0?found:cursor;
+    cursor=start+page.length;
+    return start;
+  });
+}
+
+function storySubtitlePageForOffset(offset,pageOffsets){
+  const target=Math.max(0,Math.floor(Number(offset)||0));
+  let pageIndex=0;
+  pageOffsets.forEach((start,index)=>{if(start<=target)pageIndex=index;});
+  return pageIndex;
+}
+
+function storySubtitleHasNextPage(){
+  const subtitle=storySession?.subtitle;
+  return !!subtitle&&subtitle.pageIndex<subtitle.pages.length-1;
+}
+
+function reflowCurrentStorySubtitle(){
+  if(!storySession||storySession.suspended||storySession.sceneIntroActive||!storySession.subtitle)return false;
+  const line=storySession.lines[storySession.lineIndex];
+  if(!line)return false;
+  const previous=storySession.subtitle;
+  const startOffset=previous.pageOffsets?.[previous.pageIndex]||0;
+  const wasComplete=!!storySession.typing?.complete;
+  const fullText=storyLineText(line);
+  const textEl=document.getElementById("storyText");
+  const pages=paginateStorySubtitle(fullText,textEl);
+  const pageOffsets=storySubtitlePageOffsets(fullText,pages);
+  storySession.subtitle={
+    lineIndex:storySession.lineIndex,
+    pages,
+    pageOffsets,
+    pageIndex:storySubtitlePageForOffset(startOffset,pageOffsets)
+  };
+  showStorySubtitlePage(storySession.subtitle.pageIndex);
+  if(wasComplete)finishStoryTyping();
+  return true;
 }
 
 function storySceneHasRequiredInteraction(scene){
@@ -650,6 +783,10 @@ function normalizeStoryCheckpoint(checkpoint){
   if(!Array.isArray(checkpoint.lines)||!checkpoint.lines.length)return null;
   if(!checkpoint.lines.every(line=>isStoryCheckpointRecord(line)&&(typeof line.text==="string"||typeof line.prompt==="string")))return null;
   if(!Number.isInteger(checkpoint.lineIndex)||checkpoint.lineIndex<0||checkpoint.lineIndex>=checkpoint.lines.length)return null;
+  const subtitlePageIndex=checkpoint.subtitlePageIndex==null?0:checkpoint.subtitlePageIndex;
+  if(!Number.isInteger(subtitlePageIndex)||subtitlePageIndex<0)return null;
+  const subtitleStartOffset=checkpoint.subtitleStartOffset==null?null:checkpoint.subtitleStartOffset;
+  if(subtitleStartOffset!=null&&(!Number.isInteger(subtitleStartOffset)||subtitleStartOffset<0))return null;
   if(!Array.isArray(checkpoint.actorIds))return null;
   if(!checkpoint.actorIds.every(id=>typeof id==="string"&&!!STORY_CHARACTERS[id]))return null;
   if(new Set(checkpoint.actorIds).size!==checkpoint.actorIds.length)return null;
@@ -673,6 +810,8 @@ function normalizeStoryCheckpoint(checkpoint){
     sceneId:checkpoint.sceneId,
     lines:checkpoint.lines,
     lineIndex:checkpoint.lineIndex,
+    subtitlePageIndex,
+    subtitleStartOffset,
     actorIds:checkpoint.actorIds,
     waitingForCook:checkpoint.waitingForCook,
     suspended:checkpoint.suspended,
@@ -695,6 +834,12 @@ function captureStoryCheckpoint(){
     sceneId,
     lines:storySession.lines,
     lineIndex:storySession.lineIndex,
+    subtitlePageIndex:storySession.subtitle?.lineIndex===storySession.lineIndex
+      ?storySession.subtitle.pageIndex
+      :0,
+    subtitleStartOffset:storySession.subtitle?.lineIndex===storySession.lineIndex
+      ?storySession.subtitle.pageOffsets?.[storySession.subtitle.pageIndex]||0
+      :0,
     actorIds:(storySession.actors||[]).map(actor=>actor.id),
     waitingForCook:!!storySession.waitingForCook,
     suspended:!!storySession.suspended,
@@ -749,6 +894,7 @@ function restoreStoryCheckpoint(checkpoint){
     scene,
     lines:restored.lines,
     lineIndex:restored.lineIndex,
+    subtitle:null,
     actors:[],
     wasPaused:restored.wasPaused,
     onComplete:state.phase===GAME_PHASES.OPEN?resumeDeferredStoryOrderScene:null,
@@ -774,7 +920,7 @@ function restoreStoryCheckpoint(checkpoint){
 
   state.paused=true;
   document.getElementById("storyOverlay").classList.add("open");
-  showStoryLine();
+  showStoryLine(restored.subtitlePageIndex,restored.subtitleStartOffset);
   return true;
 }
 
@@ -866,6 +1012,7 @@ function beginNextStoryScene(){
   storySession.scene=scene;
   storySession.lines=storyLinesForScene(scene);
   storySession.lineIndex=0;
+  storySession.subtitle=null;
   resetStoryStage();
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
@@ -884,7 +1031,30 @@ function setStoryNextButton(isCook=false){
   button.innerHTML=isCook?'조리 시작 <span>▶</span>':'계속 <span>▼</span>';
 }
 
-function showStoryLine(){
+function startStorySubtitleTyping(line){
+  if(!storySession)return false;
+  clearStoryTyping();
+  const textEl=document.getElementById("storyText");
+  const subtitle=storySession.subtitle;
+  const fullText=subtitle?.pages?.[subtitle.pageIndex]??storyLineText(line);
+  const isFinalPage=!subtitle||subtitle.pageIndex>=subtitle.pages.length-1;
+  textEl.textContent="";
+  if("scrollTop" in textEl)textEl.scrollTop=0;
+  storySession.typing={line,fullText,index:0,complete:false,revealApplied:false,isFinalPage};
+  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){finishStoryTyping();return true;}
+  const typeCharacter=()=>{
+    if(!storySession?.typing||storySession.typing.complete)return;
+    const typing=storySession.typing;
+    typing.index++;
+    textEl.textContent=typing.fullText.slice(0,typing.index);
+    if(typing.index>=typing.fullText.length){finishStoryTyping();return;}
+    storyTypingTimer=setTimeout(typeCharacter,typing.fullText[typing.index-1].match(/[.!?。？！]/)?85:14);
+  };
+  typeCharacter();
+  return true;
+}
+
+function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   if(!storySession)return;
   clearStoryTyping();
   const scene=storySession.scene;
@@ -907,20 +1077,35 @@ function showStoryLine(){
   updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
   setStoryNextButton(false);
-  next.style.display=line.choices?"none":"block";
+  next.style.display="block";
   const fullText=storyLineText(line);
   textEl.textContent="";
-  storySession.typing={line,fullText,index:0,complete:false,revealApplied:false};
-  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){finishStoryTyping();return;}
-  const typeCharacter=()=>{
-    if(!storySession?.typing||storySession.typing.complete)return;
-    const typing=storySession.typing;
-    typing.index++;
-    textEl.textContent=typing.fullText.slice(0,typing.index);
-    if(typing.index>=typing.fullText.length){finishStoryTyping();return;}
-    storyTypingTimer=setTimeout(typeCharacter,typing.fullText[typing.index-1].match(/[.!?。？！]/)?85:14);
-  };
-  typeCharacter();
+  const pages=paginateStorySubtitle(fullText,textEl);
+  const pageOffsets=storySubtitlePageOffsets(fullText,pages);
+  const pageIndex=Number.isInteger(requestedStartOffset)&&requestedStartOffset>=0
+    ?storySubtitlePageForOffset(requestedStartOffset,pageOffsets)
+    :Math.max(0,Math.min(pages.length-1,Math.floor(Number(requestedPageIndex)||0)));
+  storySession.subtitle={lineIndex:storySession.lineIndex,pages,pageOffsets,pageIndex};
+  next.style.display=line.choices&&pageIndex===pages.length-1?"none":"block";
+  startStorySubtitleTyping(line);
+}
+
+function showStorySubtitlePage(pageIndex){
+  const subtitle=storySession?.subtitle;
+  if(!subtitle||pageIndex<0||pageIndex>=subtitle.pages.length)return false;
+  const line=storySession.lines[storySession.lineIndex];
+  subtitle.pageIndex=pageIndex;
+  document.getElementById("storyChoices").classList.remove("open");
+  setStoryNextButton(false);
+  document.getElementById("storyNextButton").style.display=
+    line.choices&&pageIndex===subtitle.pages.length-1?"none":"block";
+  startStorySubtitleTyping(line);
+  return true;
+}
+
+function showNextStorySubtitlePage(){
+  if(!storySubtitleHasNextPage())return false;
+  return showStorySubtitlePage(storySession.subtitle.pageIndex+1);
 }
 
 function finishStoryTyping(){
@@ -930,6 +1115,10 @@ function finishStoryTyping(){
   typing.complete=true;
   typing.index=typing.fullText.length;
   document.getElementById("storyText").textContent=typing.fullText;
+  if(!typing.isFinalPage){
+    if(storySession.qaPreview&&typeof qaSyncStoryPreviewNextButton==="function")qaSyncStoryPreviewNextButton();
+    return;
+  }
   if(typing.line.setsFlag)state.story.flags[typing.line.setsFlag]=true;
   if(typing.line.reveal&&!typing.revealApplied){
     typing.revealApplied=true;
@@ -937,10 +1126,12 @@ function finishStoryTyping(){
   }
   if(typing.line.cook||typing.line.orderCook)setStoryNextButton(true);
   if(typing.line.choices)renderStoryChoices(typing.line);
+  if(storySession.qaPreview&&typeof qaSyncStoryPreviewNextButton==="function")qaSyncStoryPreviewNextButton();
 }
 
 function renderStoryChoices(line){
   const wrap=document.getElementById("storyChoices");
+  document.getElementById("storyNextButton").style.display="none";
   wrap.innerHTML="";
   line.choices.forEach((choice,index)=>{
     const button=document.createElement("button");
@@ -996,12 +1187,13 @@ function chooseStoryOption(choice,index){
 
 function storyAdvance(){
   if(!storySession)return false;
+  if(storySession.sceneIntroActive)return finishStorySceneIntro();
+  if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
+  if(showNextStorySubtitlePage())return true;
   // QA_REMOVE: 미리보기에서는 조리·선택·완료 처리 없이 대사 인덱스만 이동합니다.
   if(storySession.qaPreview){
     return typeof qaStoryStep==="function"?qaStoryStep(1):true;
   }
-  if(storySession.sceneIntroActive)return finishStorySceneIntro();
-  if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   const line=storySession.lines[storySession.lineIndex];
   if(line?.choices)return true;
   if(storySession.waitingForCook)return true;
