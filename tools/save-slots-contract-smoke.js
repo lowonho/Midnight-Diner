@@ -131,7 +131,7 @@ function freshState(day=1,phase=GAME_PHASES.PREP){
     generalServed:0,
     satisfactionTotal:0,
     fiveStar:0,
-    audio:{master:0.8,bgm:0.7,sfx:0.9},
+    audio:{enabled:true,master:0.8,bgm:0.7,sfx:0.9},
     selectedMenus:["oden"],
     menuSelectionDraft:["oden"],
     prepProgress:{},
@@ -186,6 +186,8 @@ legacyBases.forEach(base=>{
   MANUAL_SAVE_SLOTS.forEach(slotId=>localStorage.setItem(base+"."+slotId,"legacy-manual"));
 });
 localStorage.setItem(SAVE_SCHEMA_KEY,String(SAVE_VERSION-1));
+const audioSettingsBeforeMigration=JSON.stringify({enabled:false,master:.61,bgm:.42,sfx:.83});
+localStorage.setItem(AUDIO_SETTINGS_KEY,audioSettingsBeforeMigration);
 localStorage.setItem(JOURNAL_KEY,JSON.stringify({
   version:JOURNAL_VERSION,updatedAt:1,
   guests:{rainyChild:{id:"rainyChild",label:"비에 젖은 아이",unlocked:true}},
@@ -199,6 +201,9 @@ legacyBases.forEach(base=>{
 });
 assert(localStorage.getItem(SAVE_SCHEMA_KEY)===String(SAVE_VERSION),
   "저장 초기화 완료 버전을 기록해야 합니다.");
+assert(localStorage.getItem(AUDIO_SETTINGS_KEY)===audioSettingsBeforeMigration,
+  "진행 저장 마이그레이션이 전역 음향 설정을 삭제하면 안 됩니다.");
+localStorage.removeItem(AUDIO_SETTINGS_KEY);
 assert(readJournalData().guests.rainyChild?.label==="비에 젖은 아이"
   &&readJournalData().guests.rainyChild?.unlocked,
   "저장 슬롯 초기화가 영업일지 메타 기록을 삭제하면 안 됩니다.");
@@ -547,11 +552,30 @@ assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 
+const legacyAudioSave=JSON.parse(JSON.stringify(suspendedSave));
+legacyAudioSave.state.audio={master:.31,bgm:.52,sfx:.73};
+localStorage.removeItem(AUDIO_SETTINGS_KEY);
+restoreGameState(legacyAudioSave);
+same(state.audio,{enabled:true,master:.31,bgm:.52,sfx:.73},
+  "ON/OFF 필드가 없는 구 저장 음향은 켜진 상태로 호환해야 합니다.");
+same(readStoredAudioSettings(),state.audio,
+  "전역 설정이 없으면 구 저장의 음향 값을 한 번 승격해 저장해야 합니다.");
+
+const globalAudio=writeAudioSettings({enabled:false,master:.64,bgm:.35,sfx:.86});
+const differentSlotAudio=JSON.parse(JSON.stringify(legacyAudioSave));
+differentSlotAudio.state.audio={enabled:true,master:.1,bgm:.2,sfx:.3};
+restoreGameState(differentSlotAudio);
+same(state.audio,globalAudio,
+  "저장 슬롯을 불러와도 전역 음향 ON/OFF와 슬라이더 값이 우선해야 합니다.");
+const permanentAudioBeforeDelete=localStorage.getItem(AUDIO_SETTINGS_KEY);
+
 const permanentJournalBeforeDelete=localStorage.getItem(JOURNAL_KEY);
 assert(permanentJournalBeforeDelete,"영구 타이틀 영업일지가 저장되어 있어야 합니다.");
 assert(clearAllSaveData(),"새 게임·전체 진행 초기화에 해당하는 저장 슬롯 삭제가 성공해야 합니다.");
 assert(localStorage.getItem(JOURNAL_KEY)===permanentJournalBeforeDelete,
   "새 게임이나 진행 세이브 전체 삭제가 타이틀 영구 영업일지를 지우면 안 됩니다.");
+assert(localStorage.getItem(AUDIO_SETTINGS_KEY)===permanentAudioBeforeDelete,
+  "새 게임이나 진행 세이브 전체 삭제가 전역 음향 설정을 지우면 안 됩니다.");
 assert(window.MoonlightTableSave.collectionPages()
   .filter(page=>page.kind==="guest"&&page.unlocked)
   .every(page=>page.epilogueUnlocked===true),

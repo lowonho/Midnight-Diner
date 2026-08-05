@@ -9,6 +9,8 @@ const indexSource=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
 const saveSource=fs.readFileSync(path.join(root,"save.js"),"utf8");
 const titleSource=fs.readFileSync(path.join(root,"title.js"),"utf8");
+const gameSource=fs.readFileSync(path.join(root,"game.js"),"utf8");
+const titleCssSource=fs.readFileSync(path.join(root,"css","title.css"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
 const hudCssSource=fs.readFileSync(path.join(root,"css","hud.css"),"utf8");
 const settingsCssSource=fs.readFileSync(path.join(root,"css","settings.css"),"utf8");
@@ -23,6 +25,8 @@ function assert(condition,message){
 
 [
   "continueButton",
+  "titleSettingsButton",
+  "masterAudioToggle",
   "saveLoadActions",
   "manualSaveButton",
   "loadGameButton",
@@ -77,6 +81,33 @@ assert(!indexSource.includes("심야식당"),
   "실제 게임 화면에 이전 게임명 심야식당이 남아 있으면 안 됩니다.");
 assert(packageData.description.startsWith("달빛식탁 Phaser 프로토타입"),
   "프로젝트 설명에도 새 게임명을 사용해야 합니다.");
+assert(/id="journalButton"[^>]*class="title-meta-button"/.test(indexSource)
+  &&/id="titleSettingsButton"[^>]*class="title-meta-button"/.test(indexSource),
+  "이어하기 아래 영업일지와 설정은 같은 사각 버튼 스타일을 사용해야 합니다.");
+assert(indexSource.indexOf('id="continueButton"')<indexSource.indexOf('id="journalButton"')
+  &&indexSource.indexOf('id="journalButton"')<indexSource.indexOf('id="saveInfo"'),
+  "영업일지와 설정 사각 버튼은 이어하기 바로 아래에 있어야 합니다.");
+assert(/\.title-meta-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2/.test(titleCssSource)
+  &&/\.title-meta-button\s*\{[\s\S]*border:\s*1px solid/.test(titleCssSource),
+  "타이틀 보조 동작은 두 개의 테두리 있는 사각 버튼으로 배치해야 합니다.");
+assert(/id="masterAudioToggle"[\s\S]*aria-pressed="true"[\s\S]*>ON<\/button>/.test(indexSource),
+  "설정창에 전체 음향 ON/OFF 버튼과 접근성 상태가 있어야 합니다.");
+assert(gameSource.includes("function audioIsEnabled()")
+  &&gameSource.includes("function audioMasterGain()")
+  &&gameSource.includes('dom.masterAudioToggle.textContent=enabled?"ON":"OFF"')
+  &&gameSource.includes('dom.masterAudioToggle.setAttribute("aria-pressed",String(enabled))'),
+  "전체 음향 버튼은 출력 상태와 ON/OFF 표시를 함께 갱신해야 합니다.");
+assert(gameSource.includes("fileGain(entry){return clamp(audioMasterGain()")
+  &&gameSource.includes("bgmFileGain(){return clamp(audioMasterGain()")
+  &&gameSource.includes("this.master.gain.value = audioMasterGain()"),
+  "전체 음향 OFF는 파일 효과음·BGM·Web Audio 출력을 모두 음소거해야 합니다.");
+assert(saveSource.includes('const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1"')
+  &&saveSource.includes("function readAudioSettings(")
+  &&saveSource.includes("function writeAudioSettings("),
+  "음향 ON/OFF와 볼륨은 진행 저장과 분리된 전역 설정으로 유지해야 합니다.");
+assert(settingsCssSource.includes(".audio-toggle-button.is-off")
+  &&settingsCssSource.includes(".settings-overlay.audio-muted"),
+  "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");

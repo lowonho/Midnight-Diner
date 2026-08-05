@@ -25,7 +25,7 @@ const dom = Object.fromEntries([
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
   "stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
-  "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
+  "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","masterAudioToggle","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
   "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
@@ -102,7 +102,7 @@ const state = {
   popups:[],
   player:{ x:PLAYER_START.x, y:PLAYER_START.y, facing:PLAYER_START.facing, moving:false, speed:PLAYER_START.speed },
   story:createStoryState(),
-  audio:{ master:.70, bgm:.45, sfx:.75 }
+  audio:readAudioSettings()
 };
 
 function hideRetiredEconomyUi(){
@@ -119,10 +119,22 @@ function shuffle(arr) { return [...arr].sort(() => Math.random()-.5); }
 function formatTime(sec) { sec=Math.max(0,Math.ceil(sec)); return `${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`; }
 function avgSatisfaction() { return state.served ? Math.round(state.satisfactionTotal/state.served) : 0; }
 
+function audioIsEnabled(){return state.audio?.enabled!==false;}
+function audioMasterGain(){return audioIsEnabled()?state.audio.master:0;}
+function persistAudioSettings(){state.audio=writeAudioSettings(state.audio);}
+
 function syncAudioControls(){
   [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>{
     const value=Math.round(state.audio[key]*100);input.value=value;label.textContent=`${value}%`;
   });
+  const enabled=audioIsEnabled();
+  dom.masterAudioToggle.textContent=enabled?"ON":"OFF";
+  dom.masterAudioToggle.classList.toggle("is-off",!enabled);
+  dom.masterAudioToggle.setAttribute("aria-pressed",String(enabled));
+  dom.masterAudioToggle.setAttribute("aria-label",enabled
+    ?"전체 음향 켜짐. 누르면 끄기"
+    :"전체 음향 꺼짐. 누르면 켜기");
+  dom.settingsOverlay.classList.toggle("audio-muted",!enabled);
 }
 
 const audio = {
@@ -182,8 +194,8 @@ const audio = {
       this.bgmElements.set(track,element);element.load();
     });
   },
-  fileGain(entry){return clamp(state.audio.master*state.audio.sfx*.72*(entry.gain??1),0,1);},
-  bgmFileGain(){return clamp(state.audio.master*state.audio.bgm*.32,0,1);},
+  fileGain(entry){return clamp(audioMasterGain()*state.audio.sfx*.72*(entry.gain??1),0,1);},
+  bgmFileGain(){return clamp(audioMasterGain()*state.audio.bgm*.32,0,1);},
   pickFile(name){
     const variants=this.files[name];if(!variants?.length)return null;
     const index=this.variantCursor[name]||0;this.variantCursor[name]=(index+1)%variants.length;
@@ -240,7 +252,7 @@ const audio = {
   },
   apply() {
     if(this.ctx){
-      this.master.gain.value = state.audio.master;
+      this.master.gain.value = audioMasterGain();
       this.bgm.gain.value = state.audio.bgm * .18;
       this.sfx.gain.value = state.audio.sfx * .35;
     }
@@ -334,6 +346,7 @@ function openSettings(from=state.screen) {
   dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
   dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||saveBlocked);
   dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
+  syncAudioControls();
   dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);audio.pauseLoops();
 }
 function closeSettings() {
@@ -664,8 +677,15 @@ dom.miniClose.addEventListener("click",closeDayPrepMini);
 // 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.
 dom.miniPause.addEventListener("click",()=>openSettings("game"));
 dom.stationPrompt.addEventListener("click",interact);
+dom.masterAudioToggle.addEventListener("click",()=>{
+  state.audio.enabled=!audioIsEnabled();
+  persistAudioSettings();
+  audio.apply();
+  syncAudioControls();
+  if(audioIsEnabled())audio.uiClick();
+});
 
-[[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;audio.apply();}));
+[[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;persistAudioSettings();audio.apply();}));
 
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();

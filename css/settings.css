@@ -13,6 +13,33 @@
   width: 100%;
   accent-color: #d79843;
 }
+.volume-state-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(9 * var(--upx));
+}
+.audio-toggle-button {
+  min-width: calc(52 * var(--upx));
+  min-height: calc(28 * var(--upx));
+  padding: calc(3 * var(--upx)) calc(9 * var(--upx));
+  border: 1px solid #9db66c;
+  border-radius: calc(4 * var(--upx));
+  background: linear-gradient(#516936,#2d3c21);
+  color: #f0ffd0;
+  font-weight: 800;
+  cursor: pointer;
+}
+.audio-toggle-button.is-off {
+  border-color: #755342;
+  background: linear-gradient(#3a2820,#1b110d);
+  color: #bfa99a;
+}
+.audio-toggle-button:focus-visible {
+  outline: 2px solid #f0bf64;
+  outline-offset: 2px;
+}
+.settings-overlay.audio-muted .volume-row input { opacity: .48; }
 .dark-button {
   width: 100%;
   margin-top: calc(10 * var(--upx));
@@ -23,14 +50,6 @@
   color: #d9b77c;
   cursor: pointer;
 }
-
-.title-meta-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(22 * var(--upx));
-}
-.title-meta-actions .text-button { margin-top: calc(11 * var(--upx)); }
 
 .journal-window {
   width: min(calc(900 * var(--upx)),94%);

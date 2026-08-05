@@ -8,6 +8,8 @@ const LEGACY_SAVE_KEYS=Object.freeze(["midnightDiner.save.v1"]);
 const JOURNAL_KEY="moonlightTable.journal.v1";
 const JOURNAL_VERSION=2;
 const JOURNAL_ENDING_ALIASES=Object.freeze({"SCN-J01":"loop_return"});
+const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1";
+const DEFAULT_AUDIO_SETTINGS=Object.freeze({enabled:true,master:.70,bgm:.45,sfx:.75});
 const AUTO_SAVE_SLOT="auto";
 const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
 const SAVE_SLOT_DEFS=Object.freeze([
@@ -16,6 +18,45 @@ const SAVE_SLOT_DEFS=Object.freeze([
 ]);
 let autosaveElapsed=0;
 let saveSystemInitialized=false;
+
+function normalizeAudioSettings(value={}){
+  const normalizedValue=value&&typeof value==="object"?value:{};
+  const volume=(key)=>{
+    const number=Number(normalizedValue[key]);
+    return Number.isFinite(number)
+      ?Math.max(0,Math.min(1,number))
+      :DEFAULT_AUDIO_SETTINGS[key];
+  };
+  return {
+    enabled:normalizedValue.enabled!==false,
+    master:volume("master"),
+    bgm:volume("bgm"),
+    sfx:volume("sfx")
+  };
+}
+
+function readStoredAudioSettings(){
+  try{
+    const raw=localStorage.getItem(AUDIO_SETTINGS_KEY);
+    if(!raw)return null;
+    return normalizeAudioSettings(JSON.parse(raw));
+  }catch(error){
+    console.warn("음향 설정을 읽지 못했습니다.",error);
+    try{localStorage.removeItem(AUDIO_SETTINGS_KEY);}catch(_storageError){}
+    return null;
+  }
+}
+
+function readAudioSettings(fallback=DEFAULT_AUDIO_SETTINGS){
+  return readStoredAudioSettings()||normalizeAudioSettings(fallback);
+}
+
+function writeAudioSettings(value){
+  const normalized=normalizeAudioSettings(value);
+  try{localStorage.setItem(AUDIO_SETTINGS_KEY,JSON.stringify(normalized));}
+  catch(error){console.warn("음향 설정을 저장하지 못했습니다.",error);}
+  return normalized;
+}
 
 function initializeSaveSystem(){
   if(saveSystemInitialized)return;
@@ -394,7 +435,10 @@ window.MoonlightTableSave=Object.freeze({
 function restoreGameState(data){
   if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   const saved=data.state;
-  const savedAudio={...state.audio,...(saved.audio||{})};
+  const savedAudio=normalizeAudioSettings({...state.audio,...(saved.audio||{})});
+  // 음향은 진행 슬롯과 무관한 사용자 설정입니다. 전역 설정이 아직 없는
+  // 구 버전에서는 불러온 슬롯의 값을 한 번 가져와 전역 설정으로 승격합니다.
+  const restoredAudio=readStoredAudioSettings()||writeAudioSettings(savedAudio);
   Object.assign(state,saved);
   state.day=DayManager.setDay(saved.day);
 
@@ -407,7 +451,7 @@ function restoreGameState(data){
     if(!Number.isFinite(state[key]))state[key]=fallback;
   });
 
-  state.audio=savedAudio;
+  state.audio=restoredAudio;
   state.story=normalizeStoryState(saved.story);
   normalizeDayPrepState();
   if(typeof normalizeIngredientSelectionState==="function")normalizeIngredientSelectionState();

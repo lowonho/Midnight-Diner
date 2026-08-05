@@ -45,11 +45,11 @@
         <p>낮에는 재료를 정성껏 준비하고, 밤에는 손님에게 맛있는 안주를 내어주세요.<br />새 게임을 시작하거나 자동 저장·수동 저장 슬롯을 골라 이어서 플레이하세요.</p>
         <button id="startButton" class="gold-button title-start" type="button">새 게임</button>
         <button id="continueButton" class="gold-button title-start title-continue" type="button" disabled>이어하기</button>
-        <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
         <div class="title-meta-actions">
-          <button id="journalButton" class="text-button" type="button">영업일지</button>
-          <button id="titleSettingsButton" class="text-button" type="button">설정</button>
+          <button id="journalButton" class="title-meta-button" type="button">영업일지</button>
+          <button id="titleSettingsButton" class="title-meta-button" type="button">설정</button>
         </div>
+        <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
       </div>
     </section>
 
@@ -223,10 +223,20 @@
         <p class="eyebrow">PAUSE MENU</p>
         <h2 id="settingsTitle">설정</h2>
         <p id="pauseMessage" class="pause-message">게임이 일시정지되었습니다.</p>
-        <label class="volume-row" for="masterVolume">
-          <span>전체 볼륨</span><strong id="masterVolumeValue">70%</strong>
+        <div class="volume-row master-volume-row">
+          <label for="masterVolume">전체 볼륨</label>
+          <div class="volume-state-controls">
+            <strong id="masterVolumeValue">70%</strong>
+            <button
+              id="masterAudioToggle"
+              class="audio-toggle-button"
+              type="button"
+              aria-pressed="true"
+              aria-label="전체 음향 켜짐. 누르면 끄기"
+            >ON</button>
+          </div>
           <input id="masterVolume" type="range" min="0" max="100" value="70" />
-        </label>
+        </div>
         <label class="volume-row" for="bgmVolume">
           <span>배경음악</span><strong id="bgmVolumeValue">45%</strong>
           <input id="bgmVolume" type="range" min="0" max="100" value="45" />
