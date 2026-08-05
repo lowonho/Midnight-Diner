@@ -131,7 +131,7 @@ function freshState(day=1,phase=GAME_PHASES.PREP){
     generalServed:0,
     satisfactionTotal:0,
     fiveStar:0,
-    audio:{enabled:true,master:0.8,bgm:0.7,sfx:0.9},
+    audio:{enabled:true,bgmEnabled:true,sfxEnabled:true,master:0.8,bgm:0.7,sfx:0.9},
     selectedMenus:["oden"],
     menuSelectionDraft:["oden"],
     prepProgress:{},
@@ -556,12 +556,14 @@ const legacyAudioSave=JSON.parse(JSON.stringify(suspendedSave));
 legacyAudioSave.state.audio={master:.31,bgm:.52,sfx:.73};
 localStorage.removeItem(AUDIO_SETTINGS_KEY);
 restoreGameState(legacyAudioSave);
-same(state.audio,{enabled:true,master:.31,bgm:.52,sfx:.73},
+same(state.audio,{enabled:true,bgmEnabled:true,sfxEnabled:true,master:.31,bgm:.52,sfx:.73},
   "ON/OFF 필드가 없는 구 저장 음향은 켜진 상태로 호환해야 합니다.");
 same(readStoredAudioSettings(),state.audio,
   "전역 설정이 없으면 구 저장의 음향 값을 한 번 승격해 저장해야 합니다.");
 
-const globalAudio=writeAudioSettings({enabled:false,master:.64,bgm:.35,sfx:.86});
+const globalAudio=writeAudioSettings({
+  enabled:false,bgmEnabled:false,sfxEnabled:true,master:.64,bgm:.35,sfx:.86
+});
 const differentSlotAudio=JSON.parse(JSON.stringify(legacyAudioSave));
 differentSlotAudio.state.audio={enabled:true,master:.1,bgm:.2,sfx:.3};
 restoreGameState(differentSlotAudio);

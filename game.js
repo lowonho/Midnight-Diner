@@ -25,7 +25,10 @@ const dom = Object.fromEntries([
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
   "stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
-  "settingsOverlay","pauseMessage","masterVolume","masterVolumeValue","masterAudioToggle","bgmVolume","bgmVolumeValue","sfxVolume","sfxVolumeValue",
+  "settingsOverlay","pauseMessage",
+  "masterVolumeRow","masterVolume","masterVolumeValue","masterAudioToggle",
+  "bgmVolumeRow","bgmVolume","bgmVolumeValue","bgmAudioToggle",
+  "sfxVolumeRow","sfxVolume","sfxVolumeValue","sfxAudioToggle",
   "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
@@ -120,21 +123,34 @@ function formatTime(sec) { sec=Math.max(0,Math.ceil(sec)); return `${String(Math
 function avgSatisfaction() { return state.served ? Math.round(state.satisfactionTotal/state.served) : 0; }
 
 function audioIsEnabled(){return state.audio?.enabled!==false;}
+function audioSettingIsEnabled(key){return state.audio?.[key]!==false;}
+function bgmAudioIsEnabled(){return audioIsEnabled()&&audioSettingIsEnabled("bgmEnabled");}
+function sfxAudioIsEnabled(){return audioIsEnabled()&&audioSettingIsEnabled("sfxEnabled");}
 function audioMasterGain(){return audioIsEnabled()?state.audio.master:0;}
 function persistAudioSettings(){state.audio=writeAudioSettings(state.audio);}
+
+function syncAudioToggle(button,enabled,label){
+  button.textContent=enabled?"ON":"OFF";
+  button.classList.toggle("is-off",!enabled);
+  button.setAttribute("aria-pressed",String(enabled));
+  button.setAttribute("aria-label",enabled
+    ?`${label} 켜짐. 누르면 끄기`
+    :`${label} 꺼짐. 누르면 켜기`);
+}
 
 function syncAudioControls(){
   [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>{
     const value=Math.round(state.audio[key]*100);input.value=value;label.textContent=`${value}%`;
   });
-  const enabled=audioIsEnabled();
-  dom.masterAudioToggle.textContent=enabled?"ON":"OFF";
-  dom.masterAudioToggle.classList.toggle("is-off",!enabled);
-  dom.masterAudioToggle.setAttribute("aria-pressed",String(enabled));
-  dom.masterAudioToggle.setAttribute("aria-label",enabled
-    ?"전체 음향 켜짐. 누르면 끄기"
-    :"전체 음향 꺼짐. 누르면 켜기");
-  dom.settingsOverlay.classList.toggle("audio-muted",!enabled);
+  const masterEnabled=audioIsEnabled();
+  const bgmEnabled=audioSettingIsEnabled("bgmEnabled");
+  const sfxEnabled=audioSettingIsEnabled("sfxEnabled");
+  syncAudioToggle(dom.masterAudioToggle,masterEnabled,"전체 음향");
+  syncAudioToggle(dom.bgmAudioToggle,bgmEnabled,"배경음악");
+  syncAudioToggle(dom.sfxAudioToggle,sfxEnabled,"효과음");
+  dom.settingsOverlay.classList.toggle("audio-muted",!masterEnabled);
+  dom.bgmVolumeRow.classList.toggle("is-muted",!bgmEnabled);
+  dom.sfxVolumeRow.classList.toggle("is-muted",!sfxEnabled);
 }
 
 const audio = {
@@ -194,8 +210,8 @@ const audio = {
       this.bgmElements.set(track,element);element.load();
     });
   },
-  fileGain(entry){return clamp(audioMasterGain()*state.audio.sfx*.72*(entry.gain??1),0,1);},
-  bgmFileGain(){return clamp(audioMasterGain()*state.audio.bgm*.32,0,1);},
+  fileGain(entry){return sfxAudioIsEnabled()?clamp(audioMasterGain()*state.audio.sfx*.72*(entry.gain??1),0,1):0;},
+  bgmFileGain(){return bgmAudioIsEnabled()?clamp(audioMasterGain()*state.audio.bgm*.32,0,1):0;},
   pickFile(name){
     const variants=this.files[name];if(!variants?.length)return null;
     const index=this.variantCursor[name]||0;this.variantCursor[name]=(index+1)%variants.length;
@@ -253,8 +269,8 @@ const audio = {
   apply() {
     if(this.ctx){
       this.master.gain.value = audioMasterGain();
-      this.bgm.gain.value = state.audio.bgm * .18;
-      this.sfx.gain.value = state.audio.sfx * .35;
+      this.bgm.gain.value = bgmAudioIsEnabled()?state.audio.bgm * .18:0;
+      this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .35:0;
     }
     this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
     if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
@@ -683,6 +699,20 @@ dom.masterAudioToggle.addEventListener("click",()=>{
   audio.apply();
   syncAudioControls();
   if(audioIsEnabled())audio.uiClick();
+});
+dom.bgmAudioToggle.addEventListener("click",()=>{
+  state.audio.bgmEnabled=!audioSettingIsEnabled("bgmEnabled");
+  persistAudioSettings();
+  audio.apply();
+  syncAudioControls();
+  if(audioIsEnabled()&&sfxAudioIsEnabled())audio.uiClick();
+});
+dom.sfxAudioToggle.addEventListener("click",()=>{
+  state.audio.sfxEnabled=!audioSettingIsEnabled("sfxEnabled");
+  persistAudioSettings();
+  audio.apply();
+  syncAudioControls();
+  if(sfxAudioIsEnabled())audio.uiClick();
 });
 
 [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;persistAudioSettings();audio.apply();}));

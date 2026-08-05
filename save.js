@@ -9,7 +9,14 @@ const JOURNAL_KEY="moonlightTable.journal.v1";
 const JOURNAL_VERSION=2;
 const JOURNAL_ENDING_ALIASES=Object.freeze({"SCN-J01":"loop_return"});
 const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1";
-const DEFAULT_AUDIO_SETTINGS=Object.freeze({enabled:true,master:.70,bgm:.45,sfx:.75});
+const DEFAULT_AUDIO_SETTINGS=Object.freeze({
+  enabled:true,
+  bgmEnabled:true,
+  sfxEnabled:true,
+  master:.70,
+  bgm:.45,
+  sfx:.75
+});
 const AUTO_SAVE_SLOT="auto";
 const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
 const SAVE_SLOT_DEFS=Object.freeze([
@@ -29,6 +36,8 @@ function normalizeAudioSettings(value={}){
   };
   return {
     enabled:normalizedValue.enabled!==false,
+    bgmEnabled:normalizedValue.bgmEnabled!==false,
+    sfxEnabled:normalizedValue.sfxEnabled!==false,
     master:volume("master"),
     bgm:volume("bgm"),
     sfx:volume("sfx")

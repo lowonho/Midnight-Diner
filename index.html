@@ -223,7 +223,7 @@
         <p class="eyebrow">PAUSE MENU</p>
         <h2 id="settingsTitle">설정</h2>
         <p id="pauseMessage" class="pause-message">게임이 일시정지되었습니다.</p>
-        <div class="volume-row master-volume-row">
+        <div id="masterVolumeRow" class="volume-row master-volume-row">
           <label for="masterVolume">전체 볼륨</label>
           <div class="volume-state-controls">
             <strong id="masterVolumeValue">70%</strong>
@@ -237,14 +237,34 @@
           </div>
           <input id="masterVolume" type="range" min="0" max="100" value="70" />
         </div>
-        <label class="volume-row" for="bgmVolume">
-          <span>배경음악</span><strong id="bgmVolumeValue">45%</strong>
+        <div id="bgmVolumeRow" class="volume-row">
+          <label for="bgmVolume">배경음악</label>
+          <div class="volume-state-controls">
+            <strong id="bgmVolumeValue">45%</strong>
+            <button
+              id="bgmAudioToggle"
+              class="audio-toggle-button"
+              type="button"
+              aria-pressed="true"
+              aria-label="배경음악 켜짐. 누르면 끄기"
+            >ON</button>
+          </div>
           <input id="bgmVolume" type="range" min="0" max="100" value="45" />
-        </label>
-        <label class="volume-row" for="sfxVolume">
-          <span>효과음</span><strong id="sfxVolumeValue">75%</strong>
+        </div>
+        <div id="sfxVolumeRow" class="volume-row">
+          <label for="sfxVolume">효과음</label>
+          <div class="volume-state-controls">
+            <strong id="sfxVolumeValue">75%</strong>
+            <button
+              id="sfxAudioToggle"
+              class="audio-toggle-button"
+              type="button"
+              aria-pressed="true"
+              aria-label="효과음 켜짐. 누르면 끄기"
+            >ON</button>
+          </div>
           <input id="sfxVolume" type="range" min="0" max="100" value="75" />
-        </label>
+        </div>
         <div id="saveLoadActions" class="save-load-actions" hidden>
           <button id="manualSaveButton" class="save-action-button" type="button">저장하기</button>
           <button id="loadGameButton" class="save-action-button" type="button">불러오기</button>

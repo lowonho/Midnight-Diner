@@ -39,7 +39,8 @@
   outline: 2px solid #f0bf64;
   outline-offset: 2px;
 }
-.settings-overlay.audio-muted .volume-row input { opacity: .48; }
+.settings-overlay.audio-muted .volume-row input,
+.volume-row.is-muted input { opacity: .48; }
 .dark-button {
   width: 100%;
   margin-top: calc(10 * var(--upx));

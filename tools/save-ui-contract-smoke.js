@@ -27,6 +27,8 @@ function assert(condition,message){
   "continueButton",
   "titleSettingsButton",
   "masterAudioToggle",
+  "bgmAudioToggle",
+  "sfxAudioToggle",
   "saveLoadActions",
   "manualSaveButton",
   "loadGameButton",
@@ -90,23 +92,31 @@ assert(indexSource.indexOf('id="continueButton"')<indexSource.indexOf('id="journ
 assert(/\.title-meta-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(2/.test(titleCssSource)
   &&/\.title-meta-button\s*\{[\s\S]*border:\s*1px solid/.test(titleCssSource),
   "타이틀 보조 동작은 두 개의 테두리 있는 사각 버튼으로 배치해야 합니다.");
-assert(/id="masterAudioToggle"[\s\S]*aria-pressed="true"[\s\S]*>ON<\/button>/.test(indexSource),
-  "설정창에 전체 음향 ON/OFF 버튼과 접근성 상태가 있어야 합니다.");
+assert(["masterAudioToggle","bgmAudioToggle","sfxAudioToggle"].every(id=>
+  new RegExp(`id="${id}"[\\s\\S]*?aria-pressed="true"[\\s\\S]*?>ON<\\/button>`).test(indexSource)),
+  "설정창의 전체 음향·배경음악·효과음에 각각 ON/OFF 버튼이 있어야 합니다.");
 assert(gameSource.includes("function audioIsEnabled()")
+  &&gameSource.includes("function bgmAudioIsEnabled()")
+  &&gameSource.includes("function sfxAudioIsEnabled()")
   &&gameSource.includes("function audioMasterGain()")
-  &&gameSource.includes('dom.masterAudioToggle.textContent=enabled?"ON":"OFF"')
-  &&gameSource.includes('dom.masterAudioToggle.setAttribute("aria-pressed",String(enabled))'),
-  "전체 음향 버튼은 출력 상태와 ON/OFF 표시를 함께 갱신해야 합니다.");
-assert(gameSource.includes("fileGain(entry){return clamp(audioMasterGain()")
-  &&gameSource.includes("bgmFileGain(){return clamp(audioMasterGain()")
+  &&gameSource.includes("function syncAudioToggle(button,enabled,label)")
+  &&gameSource.includes("syncAudioToggle(dom.masterAudioToggle")
+  &&gameSource.includes("syncAudioToggle(dom.bgmAudioToggle")
+  &&gameSource.includes("syncAudioToggle(dom.sfxAudioToggle"),
+  "세 음향 버튼은 실제 설정과 ON/OFF 표시를 함께 갱신해야 합니다.");
+assert(gameSource.includes("fileGain(entry){return sfxAudioIsEnabled()")
+  &&gameSource.includes("bgmFileGain(){return bgmAudioIsEnabled()")
   &&gameSource.includes("this.master.gain.value = audioMasterGain()"),
-  "전체 음향 OFF는 파일 효과음·BGM·Web Audio 출력을 모두 음소거해야 합니다.");
+  "전체·배경음악·효과음 OFF는 각 파일 및 Web Audio 출력에 적용되어야 합니다.");
 assert(saveSource.includes('const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1"')
+  &&saveSource.includes("bgmEnabled:true")
+  &&saveSource.includes("sfxEnabled:true")
   &&saveSource.includes("function readAudioSettings(")
   &&saveSource.includes("function writeAudioSettings("),
   "음향 ON/OFF와 볼륨은 진행 저장과 분리된 전역 설정으로 유지해야 합니다.");
 assert(settingsCssSource.includes(".audio-toggle-button.is-off")
-  &&settingsCssSource.includes(".settings-overlay.audio-muted"),
+  &&settingsCssSource.includes(".settings-overlay.audio-muted")
+  &&settingsCssSource.includes(".volume-row.is-muted"),
   "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
