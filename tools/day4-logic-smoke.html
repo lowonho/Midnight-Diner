@@ -203,7 +203,9 @@ try{
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
   assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="5,5,5"&&PREP_TASKS.coatShrimp,"Shrimp coating uses five shrimp in each of three stages");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
-  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.length===2&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.join(",")==="left,up,right,down"&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
+  // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
+  assert(DIRECTION_SEQUENCE_CONFIG.kimchi.directions.every(way=>DAY_PREP_ASSET_PATHS[fryKimchiStirAssetKey(way)])&&DAY_PREP_ASSET_PATHS.fryKimchiBase&&["frySpatulaClean","frySpatulaStirring","frySpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 kimchi has one flipped frame per direction plus three spatula states");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
@@ -499,7 +501,7 @@ try{
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
   assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
 
-  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 99";
+  document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 100";
 }catch(error){
   if(error.message==="E1_PATH_TEST_COMPLETE"){document.title="E1_PATH_LOGIC_OK";document.body.textContent="E1_PATH_LOGIC_OK";}
   else{document.title="MINIGAME_LOGIC_FAIL";document.body.textContent=`MINIGAME_LOGIC_FAIL ${error.stack||error}`;}

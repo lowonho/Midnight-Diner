@@ -80,6 +80,16 @@
       const data = state.mini.data;
       // 완료 처리는 이 하네스에 낮 준비 전체 상태가 없어 던집니다. 불렀는지만 적어 둡니다.
       finishDayPrepTask = (taskId) => { document.body.dataset.completed = taskId; };
+      /* ⚠️ 여기부터 끝까지 **한 호흡에 동기로** 끝냅니다. 에셋 200여 장을 다 읽고 난
+         뒤에는 가상 시간이 거의 다 흘러 있어서, 여기서 새로 거는 setTimeout 이나
+         requestAnimationFrame 은 울릴 때도 있고 안 울릴 때도 있습니다(캡처가 통째로
+         비는 증상이 3번에 2번 꼴로 났습니다). 기다리지 않으면 흔들릴 일이 없습니다.
+
+         대신 저을 때 걸리는 타이머 하나를 막습니다 — kimchiFryInput 은 240ms 뒤
+         stir-○ 를 떼는 setTimeout 을 겁니다(E3_FEEL_CONFIG.actionMs). 그게 울어
+         버리면 붙들려던 자세가 도로 풀려 김치가 base 로 돌아갑니다. */
+      const realSetTimeout = window.setTimeout;
+      window.setTimeout = () => 0;
       for(let i = 0; i < done; i++) kimchiFryInput(data.sequence[data.successes]);
       const work = document.getElementById("fryWorkArea");
       if(stir){
@@ -87,12 +97,14 @@
         work.classList.add(`stir-${stir}`);
       }
       if(spatula) document.querySelector(".kf-wood-spatula").dataset.spatula = spatula;
-      requestAnimationFrame(() => {
-        /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 젓는 한가운데
-           (240ms 중 120ms)에서 멈춰 세워 주걱이 가장 크게 움직인 자세를 찍습니다. */
-        if(stir) document.getAnimations().forEach(a => { a.pause(); try { a.currentTime = 120; } catch(e){} });
-        measure();
-      });
+      window.setTimeout = realSetTimeout;
+      /* 가상 시간에서는 CSS 애니메이션이 저절로 굴러가지 않습니다. 젓는 한가운데
+         (240ms 중 120ms)에서 멈춰 세워 주걱이 가장 크게 움직인 자세를 찍습니다.
+         ⚠️ getComputedStyle 로 스타일을 한 번 강제로 계산해야 방금 붙인 클래스의
+            애니메이션이 등록됩니다 — 안 그러면 getAnimations() 가 빈 배열입니다. */
+      getComputedStyle(work).transform;
+      if(stir) document.getAnimations().forEach(a => { a.pause(); try { a.currentTime = 120; } catch(e){} });
+      measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
 
     function measure(){

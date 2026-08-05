@@ -3,7 +3,7 @@
 /* ============================================================
    E3 방향 시퀀스 — 슬라이드 입력·단일 판정 컨트롤러
 
-     김치 볶기 (낮 준비)   ← → 중 10회
+     김치 볶기 (낮 준비)   ← ↑ → ↓ 중 10회
      볶음우동 (밤 조리)    ← ↑ → ↓ 중 12회
 
    화면에 나온 화살표 방향으로 팬·철판 영역을 슬라이드합니다. 입력 순서 생성,
@@ -59,9 +59,12 @@ function directionArrowMarkup(direction,className){
 const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
   kimchi:Object.freeze({
     total:10,
-    directions:Object.freeze(["left","right"]),
+    // 볶음우동과 같은 네 방향입니다. 김치 그림도 방향마다 한 장씩 있습니다
+    // (assets/minigame/E3/Kimchi/food_stirfried_kimchi_stir_*.png).
+    directions:Object.freeze(["left","up","right","down"]),
     // 작업 영역 짧은 변의 45%를 한 번에 밀어야 판정합니다.
     // 화살표마다 손을 떼고 팬을 가로지르듯 크게 휘젓습니다.
+    // ⚠️ 짧은 변 기준이라 네 방향이 전부 같은 거리(226)입니다 — 위아래만 멀지 않습니다.
     slideStep:.45,
     wrongPenalty:0,
     ingredients:Object.freeze([
@@ -150,7 +153,7 @@ function bindDirectionSlide({surfaceSelector,gestureScaleSelector,isActive,onDir
 }
 
 // 같은 동작을 두 번까지 이어 허용하되, 세 번 연속은 나오지 않게 합니다.
-// 좌우만 쓰는 김치 볶기도 단순 번갈아 입력이 되지 않아 E2와 손맛이 구분됩니다.
+// 두 게임 다 네 방향이라 순서가 충분히 흩어지고, 번갈아 누르기로는 안 풀립니다.
 function randomFryDirections(allowedDirections,length,random=Math.random){
   const sequence=[];
   for(let index=0;index<length;index++){
@@ -211,9 +214,8 @@ function fryKimchiStirAssetKey(direction){
 }
 
 /* 팬 안에 겹쳐 깔 김치 그림. 평소 모습 1장 + 방향 4장입니다.
-   ⚠️ 지금 순서는 ← → 두 방향뿐이라 up/down 장은 화면에 안 나옵니다. 그래도 넷을 다
-      깔아 두는 이유는, DIRECTION_SEQUENCE_CONFIG.kimchi.directions 를 넷으로 늘리면
-      코드를 고치지 않고 그대로 살아나게 하기 위해서입니다. */
+   순서에 쓰는 방향(DIRECTION_SEQUENCE_CONFIG.kimchi.directions)과 상관없이 넷을 다
+   깔아 둡니다 — 방향을 줄였다 늘렸다 해도 코드를 고칠 것이 없습니다. */
 const FRY_KIMCHI_STIR_POSES=Object.freeze(["left","up","right","down"]);
 const FRY_STIR_CLASSES=Object.freeze(FRY_KIMCHI_STIR_POSES.map(pose=>`stir-${pose}`));
 

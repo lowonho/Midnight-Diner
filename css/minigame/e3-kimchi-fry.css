@@ -408,11 +408,15 @@
 .kf-chip.upcoming { opacity: .78; }
 .kf-chip.wrong { animation: coat-wrong .26s ease; }
 
-/* 김치 볶기 : 팬은 고정하고 나무 주걱과 김치만 좌우로 움직입니다. */
+/* 김치 볶기 : 팬은 고정하고 나무 주걱과 김치만 네 방향으로 움직입니다. */
 .kf-board.stir-left .kf-wood-spatula { animation: kf-spatula-left .24s cubic-bezier(.2,.8,.3,1); }
 .kf-board.stir-right .kf-wood-spatula { animation: kf-spatula-right .24s cubic-bezier(.2,.8,.3,1); }
+.kf-board.stir-up .kf-wood-spatula { animation: kf-spatula-up .24s cubic-bezier(.2,.8,.3,1); }
+.kf-board.stir-down .kf-wood-spatula { animation: kf-spatula-down .24s cubic-bezier(.2,.8,.3,1); }
 .kf-board.stir-left .frying-kimchi { animation: kf-food-left .24s ease; }
 .kf-board.stir-right .frying-kimchi { animation: kf-food-right .24s ease; }
+.kf-board.stir-up .frying-kimchi { animation: kf-food-up .24s ease; }
+.kf-board.stir-down .frying-kimchi { animation: kf-food-down .24s ease; }
 .kf-board.input-wrong .kf-wood-spatula { animation: e3-tool-wrong .15s ease; }
 .kf-board.e3-complete .frying-kimchi { animation: kf-food-complete .48s cubic-bezier(.2,.9,.2,1); }
 
@@ -421,8 +425,24 @@
    18 도 기울여 그려져 있습니다), 손놀림의 폭 -12 / +30 은 둘이 같아야 합니다. */
 @keyframes kf-spatula-left { 50% { transform: translateX(calc(-105 * var(--upx))) rotate(calc(var(--kf-spatula-tilt) - 12deg)); } }
 @keyframes kf-spatula-right { 50% { transform: translateX(calc(105 * var(--upx))) rotate(calc(var(--kf-spatula-tilt) + 30deg)); } }
+/* 위아래는 좌우처럼 크게 밀 수가 없습니다. 주걱이 팬 윗변(top:0)에서 시작해
+   칸 위쪽 여유가 9 밖에 없어서, 좌우와 같은 105 를 위로 주면 토끼 머리가
+   .kf-board 의 overflow:hidden 에 잘립니다.
+   그래서 **밀어내는 거리 대신 원근으로** 표현합니다 — 멀어지면 작게, 당기면 크게.
+   scale 은 transform-origin(50% 80% · 주걱 면 언저리)을 향해 오므라들므로,
+   위로 밀 때 손잡이 끝이 도로 내려와 잘리는 것을 그만큼 상쇄해 줍니다
+   ⚠️ 위로 미는 값은 **실측해서 잡은 상한**입니다. -26 · 5도에서는 손잡이 끝이 칸 위로
+      2.6 삐져나와 잘렸습니다(회전이 모서리를 더 들어 올립니다). -18 · 3도면 손잡이
+      끝이 5.4 남기고 멈춥니다 — 더 키우려면 tools/e3-kimchi-fry-visual-smoke.html
+      의 `?stir=up` 으로 spill.toolTop 이 음수인지 다시 재세요. */
+@keyframes kf-spatula-up { 50% { transform: translateY(calc(-18 * var(--upx))) scale(.94) rotate(calc(var(--kf-spatula-tilt) + 3deg)); } }
+@keyframes kf-spatula-down { 50% { transform: translateY(calc(22 * var(--upx))) scale(1.05) rotate(calc(var(--kf-spatula-tilt) - 5deg)); } }
 @keyframes kf-food-left { 50% { transform: translateX(calc(-24 * var(--upx))) rotate(-1.5deg); } }
 @keyframes kf-food-right { 50% { transform: translateX(calc(24 * var(--upx))) rotate(1.5deg); } }
+/* 김치도 위로는 멀어지듯 살짝 부풀고, 아래로는 눌리며 앞으로 옵니다
+   (볶음우동의 yk-food-up / yk-food-down 과 같은 손맛입니다) */
+@keyframes kf-food-up { 50% { transform: translateY(calc(-18 * var(--upx))) scale(1.03); } }
+@keyframes kf-food-down { 50% { transform: translateY(calc(12 * var(--upx))) scaleY(.94); } }
 @keyframes kf-food-complete { 45% { transform: scale(1.045); filter: saturate(1.35) brightness(1.05); } }
 /* 틀린 방향으로 저었을 때의 짧은 도리질. 위와 같은 이유로 쉬는 자세에서 ±6 도입니다.
    (이름은 e3- 로 시작하지만 쓰는 곳은 김치 볶기 하나입니다 — 볶음우동은
@@ -450,6 +470,8 @@
 
 @media (prefers-reduced-motion:reduce) {
   .kf-board.stir-left .kf-wood-spatula,.kf-board.stir-right .kf-wood-spatula,
+  .kf-board.stir-up .kf-wood-spatula,.kf-board.stir-down .kf-wood-spatula,
   .kf-board.stir-left .frying-kimchi,.kf-board.stir-right .frying-kimchi,
+  .kf-board.stir-up .frying-kimchi,.kf-board.stir-down .frying-kimchi,
   .kf-board.input-wrong .kf-wood-spatula,.kf-board.e3-complete .frying-kimchi { animation-duration:.01ms !important; animation-iteration-count:1 !important; }
 }

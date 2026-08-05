@@ -216,9 +216,7 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      입니다 — 다섯 장을 한 자리에 겹쳐 두고, 저을 때 그 방향 장을 240ms 만 켰다가
      base 로 돌아옵니다 (css/minigame/e3-kimchi-fry.css 의 .frying-kimchi-asset).
      키 뒷자리는 engine-e3-direction-seq.js 의 방향 문자열(left/up/right/down)에서
-     fryKimchiStirAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다.
-     ⚠️ 지금 김치 볶기 순서는 ← → 두 방향뿐이라(DIRECTION_SEQUENCE_CONFIG.kimchi.directions)
-        up/down 장은 화면에 안 나옵니다. 방향을 넷으로 늘리면 그대로 살아납니다. */
+     fryKimchiStirAssetKey() 가 그대로 만들어 냅니다 — 한쪽만 고치면 그림이 사라집니다. */
   fryKimchiBase:"assets/minigame/E3/Kimchi/food_stirfried_kimchi_base.webp",
   ...Object.fromEntries(["left","up","right","down"].map(way=>
     [`fryKimchiStir${way[0].toUpperCase()}${way.slice(1)}`,
