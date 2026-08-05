@@ -133,7 +133,7 @@ const j03=STORY_SCENES["SCN-J03"];
 const j03Branches=qaStoryBranchEntries(j03,j03.lines[0]);
 same(j03Branches.map(entry=>entry.sceneId),["END-03","END-04"],
   "조각 8개 엔딩 선택 분기 표시");
-check(j03Branches[1].text==="모두의 길을 하나로 잇는다",
+check(j03Branches[1].text==="내일을 모두에게 돌려준다",
   "END-04 선택 문구를 QA 패널에서 확인할 수 있어야 합니다.");
 
 const p01=STORY_SCENES["SCN-P01"];

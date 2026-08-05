@@ -66,8 +66,22 @@ function journalPageKindLabel(page){
 }
 
 function journalField(label,value){
-  const text=value==null||value===""?"???":String(value);
+  const text=Array.isArray(value)
+    ?value.length?value.join(", "):"없음"
+    :value==null||value===""?"???":String(value);
   return `${label} · ${text}`;
+}
+
+function journalSection(title,fields){
+  return [`[${title}]`,...fields].join("\n");
+}
+
+function firstJournalValue(page,keys,fallback="???"){
+  for(const key of keys){
+    const value=page?.[key];
+    if(value!==undefined&&value!==null&&value!=="")return value;
+  }
+  return fallback;
 }
 
 function journalFirstUnlockLabel(page){
@@ -81,14 +95,26 @@ function journalFirstUnlockLabel(page){
 function journalPageNote(page){
   if(!page.unlocked){
     if(journalMode==="gameplay")return [
-      journalField("등장","기록 없음"),
-      journalField("손님","???"),
-      journalField("외형·흔적","???"),
-      journalField("음식","???"),
-      journalField("최근 평가","평가 기록 없음"),
-      journalField("달빛 조각","???"),
-      journalField("획득 상태","미획득")
-    ].join("\n");
+      journalSection("손님 정보",[
+        journalField("이름","???"),
+        journalField("등장","기록 없음"),
+        journalField("단서","???"),
+        journalField("확인 음식","???"),
+        journalField("공개 이야기","???")
+      ]),
+      journalSection("과거 영업 기록",[
+        journalField("이전 회차 평가","평가 기록 없음"),
+        journalField("이전 회차 부분 조각","없음"),
+        journalField("이전 회차 완전 조각","없음"),
+        journalField("본 장면","없음")
+      ]),
+      journalSection("현재 회차",[
+        journalField("방문","미방문"),
+        journalField("평가","평가 기록 없음"),
+        journalField("조각 상태","미획득"),
+        journalField("조각명","???")
+      ])
+    ].join("\n\n");
     if(journalMode==="collection"&&page.kind==="ending")return [
       journalField("엔딩 번호",page.number),
       journalField("엔딩 제목","???"),
@@ -124,21 +150,39 @@ function journalPageNote(page){
     ].join("\n");
   }
   return [
-    journalField("등장",page.appearance),
-    journalField("이름",page.guestName),
-    journalField("외형·흔적",page.trace),
-    journalField("단서",page.clue),
-    journalField("확인 음식",page.confirmedDish),
-    journalField("최근 평가",page.latestEvaluation),
-    journalField("이야기",page.revealedStory),
-    journalField("조각명",page.shardName),
-    journalField("획득 상태",page.shardStatus)
-  ].join("\n");
+    journalSection("손님 정보",[
+      journalField("이름",page.guestName),
+      journalField("등장",page.appearance),
+      journalField("단서",page.clue),
+      journalField("확인 음식",page.confirmedDish),
+      journalField("공개 이야기",page.revealedStory)
+    ]),
+    journalSection("과거 영업 기록",[
+      journalField("이전 회차 평가",firstJournalValue(page,["previousLoopEvaluation","previousEvaluation","pastEvaluation"])),
+      journalField("이전 회차 부분 조각",firstJournalValue(page,["previouslyObtainedPartial","previousPartialStory","pastPartialStory"])),
+      journalField("이전 회차 완전 조각",firstJournalValue(page,["previouslyObtainedFull","previousCompleteStory","pastCompleteStory"])),
+      journalField("본 장면",firstJournalValue(page,["seenStoryScenes","previousSeenScene","pastSeenScene"])),
+    ]),
+    journalSection("현재 회차",[
+      journalField("방문",firstJournalValue(page,["currentLoopVisited","currentVisit","visitStatus"])),
+      journalField("평가",firstJournalValue(page,["currentLoopEvaluation","currentEvaluation","latestEvaluation"])),
+      journalField("조각 상태",firstJournalValue(page,["currentFragmentState","currentShardStatus","shardStatus"])),
+      journalField("조각명",firstJournalValue(page,["currentFragmentName","currentShardName","shardName"]))
+    ])
+  ].join("\n\n");
 }
 
 function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
+  if(journalMode==="gameplay"){
+    if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
+    if(page.currentLoopEvaluation&&page.currentLoopEvaluation!=="미평가"){
+      items.push(`현재 평가 · ${page.currentLoopEvaluation}`);
+    }
+    items.push(`현재 조각 · ${page.currentFragmentState||"미획득"}`);
+    return items.join("  ·  ");
+  }
   if(journalMode==="collection"&&page.dayLabel)items.push(page.dayLabel);
   if(journalMode==="collection"&&page.dishName)items.push(`찾는 음식 · ${page.dishName}`);
   else if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
@@ -221,7 +265,7 @@ function refreshJournalUI(){
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
   elements.description.textContent=journalMode==="gameplay"
-    ?"현재 회차에서 알아낸 특별 손님의 단서와 기억입니다."
+    ?"현재 세이브의 과거 영업 기록과 이번 회차 상태입니다."
     :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
   renderJournalPage();
 }

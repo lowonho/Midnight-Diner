@@ -161,6 +161,17 @@ function applySlotMarker(marker,index){
   state.story.choices["choice-"+marker]=index;
   state.story.flags["flag-"+marker]=true;
   state.story.guestState[guestId].affinity=10+index;
+  state.story.guestState[guestId].previousLoopTier=index%2?"great":"warm";
+  state.story.guestState[guestId].previousLoopScore=60+index;
+  state.story.guestState[guestId].previouslyObtainedPartial=index%2===0;
+  state.story.guestState[guestId].previouslyObtainedFull=index%2===1;
+  state.story.guestResults[guestId]={
+    ...createStoryGuestResult(),visited:true,
+    evaluationTier:index%2?"great":"soft",evaluationScore:70+index,
+    fragmentState:index%2?"full":"none",
+    fragmentName:index%2?"첫 빗방울":null,
+    seenStoryScenes:["SCN-G1-A"]
+  };
   state.story.completed["scene-"+marker]=true;
   state.story.storyCookResults["result-"+marker]={
     score:70+index,tier:index%2?"great":"soft",day:index+1,dishId:"kimchi"
@@ -229,6 +240,15 @@ slotMarkers.forEach(([slotId,marker,index])=>{
   same(saved.state.story.choices,{["choice-"+marker]:index},slotId+" 선택지 격리");
   same(saved.state.story.flags,{["flag-"+marker]:true},slotId+" 플래그 격리");
   assert(saved.state.story.guestState[guestId].affinity===10+index,slotId+" 손님 상태 격리");
+  assert(saved.state.story.guestState[guestId].previousLoopScore===60+index
+    &&saved.state.story.guestState[guestId].previouslyObtainedPartial===(index%2===0)
+    &&saved.state.story.guestState[guestId].previouslyObtainedFull===(index%2===1),
+    slotId+" 과거 회차 손님 기록 격리");
+  assert(saved.state.story.guestResults[guestId].visited
+    &&saved.state.story.guestResults[guestId].evaluationScore===70+index
+    &&saved.state.story.guestResults[guestId].fragmentState===(index%2?"full":"none")
+    &&saved.state.story.guestResults[guestId].seenStoryScenes[0]==="SCN-G1-A",
+    slotId+" 현재 회차 평가·조각 결과 격리");
   same(saved.state.story.completed,{["scene-"+marker]:true},slotId+" 완료 장면 격리");
   assert(saved.state.story.storyCookResults["result-"+marker].score===70+index,slotId+" 조리 결과 격리");
 });
@@ -443,7 +463,7 @@ delete state.generalServed;
 delete state.generalSpawnedCustomers;
 state.story.loop=Math.max(1,Number(choiceScene.minLoop)||1);
 STORY_GUEST_IDS.slice(0,Number(choiceScene.shardRange?.[0])||0)
-  .forEach(id=>{state.story.guestState[id].shardOwned=true;});
+  .forEach(id=>{state.story.guestResults[id].fragmentState="full";});
 (choiceScene.requiredFlags||[]).forEach(flag=>{state.story.flags[flag]=true;});
 assert(playStoryScenes([choiceScene.id]),choiceScene.id+" 대화를 시작할 수 있어야 합니다.");
 const choiceLineIndex=storySession.lines.findIndex(line=>Array.isArray(line.choices)&&line.choices.length>=2);

@@ -30,20 +30,40 @@ function createStoryGuestState(){
     // 최근 평가는 오르내릴 수 있지만, 한 번 공개된 손님 이야기는 다시
     // 잠기지 않아야 하므로 공개 단계는 별도로 최고 단계만 누적합니다.
     revealedStoryLevel:0,
+    previousLoopVisited:false,
+    previousLoopTier:null,
+    previousLoopScore:null,
+    previousLoopFragmentState:"none",
+    previouslyObtainedPartial:false,
+    previouslyObtainedFull:false,
+    seenStoryScenes:[],
+    // 구 저장 호환을 위해 키는 남기되 현재 회차 데이터로 사용하지 않습니다.
     currentTier:null,
     currentScore:null
   };
 }
 
+function createStoryGuestResult(){
+  return {
+    visited:false,
+    evaluationTier:null,
+    evaluationScore:null,
+    fragmentState:"none",
+    fragmentName:null,
+    seenStoryScenes:[]
+  };
+}
+
 function createStoryState(){
   return {
-    schemaVersion:3,
+    schemaVersion:4,
     loop:1,
     prologueComplete:false,
     completed:{},
     seenScenes:{},
     choices:{},
     guestState:Object.fromEntries(STORY_GUEST_IDS.map(id=>[id,createStoryGuestState()])),
+    guestResults:Object.fromEntries(STORY_GUEST_IDS.map(id=>[id,createStoryGuestResult()])),
     flags:{},
     pendingNightGuests:[],
     specialServedDays:{},
@@ -61,7 +81,7 @@ function createStoryState(){
 function normalizeStoryState(raw){
   const base=createStoryState();
   if(!raw||typeof raw!=="object")return base;
-  base.schemaVersion=3;
+  base.schemaVersion=4;
   base.loop=Math.max(1,Math.floor(Number(raw.loop)||1));
   base.prologueComplete=!!raw.prologueComplete;
   base.completed={...(raw.completed||{})};
@@ -95,6 +115,9 @@ function normalizeStoryState(raw){
   base.endingsSeen={...(raw.endingsSeen||{})};
   base.judgmentComplete=!!raw.judgmentComplete;
   base.legacyImported=!!raw.legacyImported;
+  const hasSeparatedGuestResults=!!(
+    raw.guestResults&&typeof raw.guestResults==="object"&&!Array.isArray(raw.guestResults)
+  );
   STORY_GUEST_IDS.forEach(id=>{
     const saved=raw.guestState?.[id]||{};
     base.guestState[id]={...createStoryGuestState(),...saved};
@@ -107,13 +130,61 @@ function normalizeStoryState(raw){
     base.guestState[id].revealedStoryLevel=clamp(
       Math.floor(Number(base.guestState[id].revealedStoryLevel)||0),0,3
     );
-    base.guestState[id].currentTier=["soft","warm","great"].includes(base.guestState[id].currentTier)
-      ?base.guestState[id].currentTier:null;
-    base.guestState[id].currentScore=Number.isFinite(base.guestState[id].currentScore)
-      ?clamp(base.guestState[id].currentScore,0,100):null;
+    const previousTier=["soft","warm","great"].includes(base.guestState[id].previousLoopTier)
+      ?base.guestState[id].previousLoopTier
+      :["soft","warm","great"].includes(base.guestState[id].currentTier)
+        ?base.guestState[id].currentTier:null;
+    const previousScore=Number.isFinite(base.guestState[id].previousLoopScore)
+      ?base.guestState[id].previousLoopScore
+      :Number.isFinite(base.guestState[id].currentScore)?base.guestState[id].currentScore:null;
+    base.guestState[id].previousLoopVisited=!!base.guestState[id].previousLoopVisited;
+    base.guestState[id].previousLoopTier=previousTier;
+    base.guestState[id].previousLoopScore=Number.isFinite(previousScore)
+      ?clamp(previousScore,0,100):null;
+    base.guestState[id].previousLoopFragmentState=["none","partial","full"].includes(
+      base.guestState[id].previousLoopFragmentState
+    )?base.guestState[id].previousLoopFragmentState:"none";
+    base.guestState[id].previouslyObtainedPartial=!!(
+      base.guestState[id].previouslyObtainedPartial
+      ||base.guestState[id].previousLoopFragmentState==="partial"
+    );
+    base.guestState[id].previouslyObtainedFull=!!(
+      base.guestState[id].previouslyObtainedFull
+      ||base.guestState[id].previousLoopFragmentState==="full"
+      ||base.guestState[id].shardOwned
+    );
+    if(!hasSeparatedGuestResults&&base.guestState[id].previousLoopFragmentState==="none"){
+      if(base.guestState[id].previouslyObtainedFull)base.guestState[id].previousLoopFragmentState="full";
+    }
+    base.guestState[id].seenStoryScenes=Array.isArray(base.guestState[id].seenStoryScenes)
+      ?[...new Set(base.guestState[id].seenStoryScenes.filter(sceneId=>typeof sceneId==="string"&&STORY_SCENES[sceneId]))]
+      :[];
+    base.guestState[id].shardOwned=false;
+    base.guestState[id].currentTier=null;
+    base.guestState[id].currentScore=null;
     ["affinity","arcStep","visits","lastVisitDay"].forEach(key=>{
       if(!Number.isFinite(base.guestState[id][key]))base.guestState[id][key]=0;
     });
+
+    // v3까지의 guestState는 누적 기록이므로 새 회차 결과로 복사하지
+    // 않습니다. 그렇지 않으면 과거 완벽 기록만으로 조각이 다시 생깁니다.
+    const savedResult=hasSeparatedGuestResults?raw.guestResults[id]||{}:{};
+    const result={...createStoryGuestResult(),...savedResult};
+    result.visited=!!result.visited;
+    result.evaluationTier=["soft","warm","great"].includes(result.evaluationTier)
+      ?result.evaluationTier:null;
+    result.evaluationScore=Number.isFinite(result.evaluationScore)
+      ?clamp(result.evaluationScore,0,100):null;
+    result.fragmentState=["none","partial","full"].includes(result.fragmentState)
+      ?result.fragmentState:"none";
+    if(id==="facelessDaeun"&&result.fragmentState==="partial")result.fragmentState="none";
+    result.fragmentName=typeof result.fragmentName==="string"&&result.fragmentName.trim()
+      ?result.fragmentName:null;
+    if(result.fragmentState==="none")result.fragmentName=null;
+    result.seenStoryScenes=Array.isArray(result.seenStoryScenes)
+      ?[...new Set(result.seenStoryScenes.filter(sceneId=>typeof sceneId==="string"&&STORY_SCENES[sceneId]))]
+      :[];
+    base.guestResults[id]=result;
   });
   return base;
 }
@@ -122,6 +193,17 @@ function getStoryGuestState(id){
   if(!state.story)state.story=createStoryState();
   if(!state.story.guestState[id])state.story.guestState[id]=createStoryGuestState();
   return state.story.guestState[id];
+}
+
+function getStoryGuestResult(id){
+  if(!state.story)state.story=createStoryState();
+  if(!state.story.guestResults||typeof state.story.guestResults!=="object"){
+    state.story.guestResults=Object.fromEntries(STORY_GUEST_IDS.map(guestId=>[
+      guestId,createStoryGuestResult()
+    ]));
+  }
+  if(!state.story.guestResults[id])state.story.guestResults[id]=createStoryGuestResult();
+  return state.story.guestResults[id];
 }
 
 function storySceneProgressKey(sceneOrId){
@@ -144,9 +226,20 @@ function markStorySceneCompleted(scene){
   state.story.seenScenes[scene.id]=true;
 }
 
-function storyShardCount({baseOnly=false}={}){
+function storyFragmentCounts({baseOnly=false}={}){
   const ids=baseOnly?STORY_GUEST_IDS.slice(0,7):STORY_GUEST_IDS;
-  return ids.reduce((count,id)=>count+(getStoryGuestState(id).shardOwned?1:0),0);
+  return ids.reduce((counts,id)=>{
+    const fragmentState=getStoryGuestResult(id).fragmentState;
+    if(fragmentState==="partial")counts.partial++;
+    if(fragmentState==="full")counts.full++;
+    counts.count=counts.partial+counts.full;
+    return counts;
+  },{count:0,partial:0,full:0});
+}
+
+function storyShardCount({baseOnly=false,fullOnly=false}={}){
+  const counts=storyFragmentCounts({baseOnly});
+  return fullOnly?counts.full:counts.count;
 }
 
 function storyTierRevealLevel(tier){
@@ -158,18 +251,51 @@ function storyEvaluationLabel(tier,score){
   return Number.isFinite(Number(score))?`${label} · ${Math.round(Number(score))}점`:label;
 }
 
+function storyJournalEvaluationLabel(tier,score){
+  return tier==="great"?"완벽":tier==="warm"?"맛있다":tier==="soft"?"아쉽다":"미평가";
+}
+
+function storyFragmentStateLabel(fragmentState){
+  return fragmentState==="full"?"완전 획득":fragmentState==="partial"?"부분 획득":"미획득";
+}
+
+function storyFragmentStateForResult(scene,guestId){
+  if(scene?.resultTier==="great"&&scene.grantsShard)return "full";
+  // 마지막 예약 손님은 부분 조각을 남기지 않습니다. 일곱 조각을 이번
+  // 회차에 모두 완성한 뒤, G8까지 완벽해야 여덟 번째 조각이 생깁니다.
+  if(scene?.resultTier==="warm"&&guestId!=="facelessDaeun")return "partial";
+  return "none";
+}
+
+function strongerStoryFragmentState(current,next){
+  const rank={none:0,partial:1,full:2};
+  return (rank[next]||0)>(rank[current]||0)?next:current;
+}
+
+function storySceneTitlesSeenForGuest(guestId){
+  return (getStoryGuestState(guestId).seenStoryScenes||[])
+    .map(sceneId=>STORY_SCENES[sceneId]?.title||sceneId);
+}
+
 // 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
 // 잠긴 페이지도 포함해 언제나 8장을 반환하므로 수동 저장 슬롯마다 서로 다른
 // 기록을 안전하게 복원할 수 있습니다.
 function getGameplayJournalPages(){
   return GAMEPLAY_JOURNAL_PAGE_DEFS.map((definition,index)=>{
     const guest=state.story?.guestState?.[definition.guestId]||createStoryGuestState();
+    const result=state.story?.guestResults?.[definition.guestId]||createStoryGuestResult();
+    const currentFragmentState=["none","partial","full"].includes(result.fragmentState)
+      ?result.fragmentState:"none";
+    const hasCurrentFull=currentFragmentState==="full";
     const met=!!(
       Number(guest.visits)>0||guest.clueFound||guest.foodConfirmed
-      ||guest.revealedStoryLevel>0||guest.shardOwned
+      ||guest.revealedStoryLevel>0||guest.previouslyObtainedPartial
+      ||guest.previouslyObtainedFull||result.visited
     );
     const revealedStory=definition.storyByLevel?.[guest.revealedStoryLevel]
       ||(met?"아직 손님이 들려준 이야기가 없습니다.":"???");
+    const latestTier=result.evaluationTier;
+    const latestScore=result.evaluationScore;
     return {
       ...definition,
       index,
@@ -183,13 +309,24 @@ function getGameplayJournalPages(){
       trace:met?definition.trace:"???",
       clue:met&&(guest.clueFound||guest.foodConfirmed)?definition.clue:"???",
       confirmedDish:met&&guest.foodConfirmed?definition.dishName:"???",
-      latestEvaluation:met&&guest.currentTier
-        ?storyEvaluationLabel(guest.currentTier,guest.currentScore)
+      latestEvaluation:met&&latestTier
+        ?storyEvaluationLabel(latestTier,latestScore)
         :"평가 기록 없음",
       revealedStory,
-      shardOwned:!!guest.shardOwned,
-      shardName:guest.shardOwned?definition.shardName:"???",
-      shardStatus:guest.shardOwned?"획득 완료":"미획득"
+      previousLoopEvaluation:storyJournalEvaluationLabel(
+        guest.previousLoopTier,
+        guest.previousLoopScore
+      ),
+      previouslyObtainedPartial:guest.previouslyObtainedPartial?"획득 기록 있음":"없음",
+      previouslyObtainedFull:guest.previouslyObtainedFull?"획득 기록 있음":"없음",
+      seenStoryScenes:storySceneTitlesSeenForGuest(definition.guestId),
+      currentLoopVisited:result.visited?"방문 완료":"미방문",
+      currentLoopEvaluation:storyJournalEvaluationLabel(result.evaluationTier,result.evaluationScore),
+      currentFragmentState:storyFragmentStateLabel(currentFragmentState),
+      currentFragmentName:currentFragmentState==="none"?"???":definition.shardName,
+      shardOwned:hasCurrentFull,
+      shardName:currentFragmentState==="none"?"???":definition.shardName,
+      shardStatus:storyFragmentStateLabel(currentFragmentState)
     };
   });
 }
@@ -203,7 +340,7 @@ function storyGuestArrivalScenes(){
 function storyGuestArrivalForDay(day=state.day,{includeFinal=true}={}){
   return storyGuestArrivalScenes().filter(scene=>{
     if(Number(scene.day)!==Number(day))return false;
-    if(scene.id==="SCN-G8-A")return includeFinal&&storyShardCount({baseOnly:true})===7;
+    if(scene.id==="SCN-G8-A")return includeFinal&&storyShardCount({baseOnly:true,fullOnly:true})===7;
     return true;
   });
 }
@@ -216,9 +353,11 @@ function recordStoryJournalGuest(guestId,scene=null){
   const character=STORY_CHARACTERS[guestId];
   const api=window.MoonlightTableSave;
   const guest=getStoryGuestState(guestId);
+  const result=getStoryGuestResult(guestId);
   // 타이틀 영업일지는 완벽 평가를 받은 손님만 해금합니다. 만남·단서·낮은
   // 평가는 현재 진행 세이브의 guestState에만 남습니다.
-  if(!character||!api?.recordGuest||!guest.shardOwned)return null;
+  if(!character||!api?.recordGuest
+    ||!(guest.previouslyObtainedFull||result.fragmentState==="full"))return null;
   const definition=GAMEPLAY_JOURNAL_PAGE_DEFS.find(page=>page.guestId===guestId);
   return api.recordGuest(guestId,{
     unlocked:true,
@@ -341,7 +480,10 @@ function revealCharacterName(id,showNotice=true){
 function storyRelationLabel(id){
   const guest=state.story?.guestState?.[id];
   if(!guest)return "";
-  if(guest.shardOwned)return "달빛 조각 회수";
+  const fragmentState=getStoryGuestResult(id).fragmentState;
+  if(fragmentState==="full")return "달빛 조각 회수";
+  if(fragmentState==="partial")return "달빛 조각 부분 회수";
+  if(guest.previouslyObtainedFull)return "과거 달빛 조각 기록";
   if(guest.foodConfirmed)return "음식 확인";
   if(guest.clueFound)return "단서 기록";
   return "첫 만남";
@@ -352,7 +494,11 @@ function updateRelationshipUI(){
   if(!list||!state.story)return;
   const known=STORY_GUEST_IDS.filter(id=>{
     const guest=state.story.guestState[id];
-    return guest&&(guest.visits>0||guest.clueFound||guest.foodConfirmed||guest.shardOwned);
+    return guest&&(
+      guest.visits>0||guest.clueFound||guest.foodConfirmed
+      ||guest.previouslyObtainedPartial||guest.previouslyObtainedFull
+      ||getStoryGuestResult(id).visited
+    );
   });
   if(!known.length){
     list.innerHTML='<span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span>';
@@ -373,7 +519,7 @@ function initializeStoryUI(){
 }
 
 function storySceneHasRequiredInteraction(scene){
-  return !!scene?.specialGuest||!!scene?.lines?.some(line=>
+  return !!scene?.lines?.some(line=>
     line?.cook||line?.orderCook||line?.choices?.some(choice=>choice?.orderCook||choice?.nextSceneId)
   );
 }
@@ -414,7 +560,10 @@ function activeStoryCookStep(){
 
 function storySceneIdsForMoment(moment,day=state.day){
   if(moment==="nightEnd"&&Number(day)===7){
-    const shards=storyShardCount();
+    const fragments=storyFragmentCounts();
+    // 8조각 엔딩은 이번 회차에 완전한 조각 여덟 개를 모은 경우만
+    // 허용합니다. 그 외 판정은 부분 조각을 포함한 현재 회차 수를 씁니다.
+    const shards=fragments.full===8?8:Math.min(fragments.count,7);
     const rule=Object.values(STORY_ENDING_RULES||{}).find(item=>
       shards>=item.minShards&&shards<=item.maxShards
     );
@@ -650,10 +799,15 @@ function storySceneAvailable(scene){
   if(Number.isFinite(scene.minLoop)&&loop<scene.minLoop)return false;
   if(Number.isFinite(scene.maxLoop)&&loop>scene.maxLoop)return false;
   if(Array.isArray(scene.shardRange)){
-    const count=storyShardCount();
+    const counts=storyFragmentCounts();
+    const requiresAllFull=Number(scene.shardRange[0])===8&&Number(scene.shardRange[1])===8;
+    const count=requiresAllFull
+      ?counts.full
+      :counts.full===8?8:Math.min(counts.count,7);
     if(count<Number(scene.shardRange[0])||count>Number(scene.shardRange[1]))return false;
   }
-  if(Number.isFinite(scene.requiredBaseShards)&&storyShardCount({baseOnly:true})<scene.requiredBaseShards)return false;
+  if(Number.isFinite(scene.requiredBaseShards)
+    &&storyShardCount({baseOnly:true,fullOnly:true})<scene.requiredBaseShards)return false;
   if(Array.isArray(scene.requiredFlags)&&scene.requiredFlags.some(flag=>!state.story?.flags?.[flag]))return false;
   return true;
 }
@@ -662,7 +816,9 @@ function storyJournalStatusForDay(day=state.day){
   const arrival=storyPrimaryGuestForDay(day);
   if(!arrival)return {status:"none",arrival:null,guest:null};
   const guest=getStoryGuestState(arrival.character);
-  const status=guest.shardOwned?"shard":guest.foodConfirmed?"confirmed":guest.clueFound?"clue":"none";
+  const currentFull=getStoryGuestResult(arrival.character).fragmentState==="full";
+  const status=guest.previouslyObtainedFull||currentFull
+    ?"shard":guest.foodConfirmed?"confirmed":guest.clueFound?"clue":"none";
   return {status,arrival,guest};
 }
 
@@ -947,33 +1103,48 @@ function storyGuestIdForScene(scene){
 
 function recordStorySceneOutcome(scene){
   const guestId=storyGuestIdForScene(scene);
+  if(guestId&&scene?.id){
+    const result=getStoryGuestResult(guestId);
+    if(!result.seenStoryScenes.includes(scene.id))result.seenStoryScenes.push(scene.id);
+  }
   if(scene.specialGuest&&guestId){
     const guest=getStoryGuestState(guestId);
+    const result=getStoryGuestResult(guestId);
     guest.visits++;
     guest.lastVisitDay=state.day;
+    result.visited=true;
     recordStoryJournalGuest(guestId,scene);
   }
   if(scene.missingMenu&&guestId){
     const guest=getStoryGuestState(guestId);
+    const result=getStoryGuestResult(guestId);
     guest.clueFound=true;
+    result.visited=true;
     state.story.specialHandledDays[guestId]=state.story.loop;
     recordStoryJournalGuest(guestId,scene);
   }
   if(scene.resultTier&&guestId){
     const guest=getStoryGuestState(guestId);
+    const result=getStoryGuestResult(guestId);
+    const previousFragmentState=result.fragmentState;
+    const earnedFragmentState=storyFragmentStateForResult(scene,guestId);
     guest.foodConfirmed=true;
-    guest.currentTier=scene.resultTier;
+    result.visited=true;
+    result.evaluationTier=scene.resultTier;
+    result.fragmentState=strongerStoryFragmentState(previousFragmentState,earnedFragmentState);
+    if(result.fragmentState!=="none")result.fragmentName=scene.shardName||scene.shardId||null;
     guest.revealedStoryLevel=Math.max(
       Number(guest.revealedStoryLevel)||0,
       storyTierRevealLevel(scene.resultTier)
     );
-    if(scene.resultTier==="great"&&scene.grantsShard){
+    if(earnedFragmentState==="full"){
       guest.memoryUnlocked=true;
-      if(!guest.shardOwned){
-        guest.shardOwned=true;
+      if(previousFragmentState!=="full"){
         recordStoryJournalShard(scene,guestId);
         showToast(`달빛 조각 「${scene.shardName||scene.shardId}」을 받았습니다.`);
       }
+    }else if(earnedFragmentState==="partial"&&previousFragmentState==="none"){
+      showToast(`달빛 조각 「${scene.shardName||scene.shardId}」을 일부 되찾았습니다.`);
     }
     state.story.specialHandledDays[guestId]=state.story.loop;
     state.story.pendingResultSceneId=null;
@@ -1007,6 +1178,7 @@ function completeStoryScene(){
   if(scene.opensMenuSelection)storySession.openMenuAfterFinish=true;
   recordStorySceneOutcome(scene);
   queueStoryConclusion(scene);
+  const conclusionQueued=!!storySession.conclusionAction;
   if(scene.character&&STORY_GUEST_IDS.includes(scene.character)){
     const guest=getStoryGuestState(scene.character);
     guest.affinity+=Number(scene.affinity)||0;
@@ -1022,7 +1194,9 @@ function completeStoryScene(){
   beginNextStoryScene();
   // 완료된 현재 장면은 체크포인트를 만들 수 없으므로, 다음 장면으로
   // 커서를 옮긴 뒤 완료 플래그와 새 재개 위치를 한 번에 저장합니다.
-  saveGame(true);
+  // 회귀·엔딩 결론은 자체 최종 저장/삭제 경로가 있으므로 결론 직전의
+  // 완료된 Day 7 상태를 자동 저장하지 않습니다.
+  if(!conclusionQueued)saveGame(true);
 }
 
 function storyCookingTier(score,thresholds=null){
@@ -1235,7 +1409,38 @@ function showTitleAfterStory({save=true}={}){
   updateContinueButton();
 }
 
+function archiveCurrentStoryLoopResults(){
+  if(!state.story)return false;
+  STORY_GUEST_IDS.forEach(id=>{
+    const guest=getStoryGuestState(id);
+    const result=getStoryGuestResult(id);
+    guest.previousLoopVisited=!!result.visited;
+    // 음식 미준비 방문은 단서만 더하고 마지막 실제 평가를 지우지 않습니다.
+    if(result.evaluationTier){
+      guest.previousLoopTier=result.evaluationTier;
+      guest.previousLoopScore=Number.isFinite(result.evaluationScore)?result.evaluationScore:null;
+    }
+    guest.previousLoopFragmentState=result.fragmentState;
+    if(result.fragmentState==="partial")guest.previouslyObtainedPartial=true;
+    if(result.fragmentState==="full")guest.previouslyObtainedFull=true;
+    guest.seenStoryScenes=[...new Set([
+      ...(guest.seenStoryScenes||[]),
+      ...(result.seenStoryScenes||[])
+    ])];
+    // 현재 회차 호환 필드가 누적 조각 판정으로 새어 나가지 않도록 비웁니다.
+    guest.shardOwned=false;
+    guest.currentTier=null;
+    guest.currentScore=null;
+  });
+  state.story.guestResults=Object.fromEntries(
+    STORY_GUEST_IDS.map(id=>[id,createStoryGuestResult()])
+  );
+  state.story.storyCookResults={};
+  return true;
+}
+
 function beginNextStoryLoop({toTitle=false}={}){
+  archiveCurrentStoryLoopResults();
   state.story.loop=Math.max(1,Number(state.story.loop)||1)+1;
   state.story.pendingNightGuests=[];
   state.story.specialHandledDays={};
@@ -1301,7 +1506,7 @@ function finishStorySession(){
   updateRelationshipUI();
   updateUI(true);
   if(openMenuAfterFinish&&state.phase===GAME_PHASES.MENU_SELECT)dom.menuSelectOverlay.classList.add("open");
-  saveGame();
+  if(!conclusionAction)saveGame();
   if(complete)complete();
   if(openJournalAfterFinish&&!conclusionAction){
     const opener=typeof openGameplayJournal==="function"
@@ -1344,7 +1549,7 @@ function prepareStoryNight(){
 
 function storyNightPlanReady(plan){
   if(!plan||plan.ready)return !!plan?.ready;
-  if((Number(plan.requiredBaseShards)||0)>storyShardCount({baseOnly:true}))return false;
+  if((Number(plan.requiredBaseShards)||0)>storyShardCount({baseOnly:true,fullOnly:true}))return false;
   const served=Math.max(0,Number(state.generalServed)||0);
   if(plan.triggerTiming==="before")return served===0;
   return served>=Math.max(0,Number(plan.triggerAfterGeneral)||0);
@@ -1359,7 +1564,7 @@ function processStoryNightTrigger(){
   plans.slice().forEach(candidate=>{
     const impossibleFinalGuest=candidate.triggerOnNightEnd
       &&served>=Math.max(0,Number(candidate.triggerAfterGeneral)||0)
-      &&(Number(candidate.requiredBaseShards)||0)>storyShardCount({baseOnly:true});
+      &&(Number(candidate.requiredBaseShards)||0)>storyShardCount({baseOnly:true,fullOnly:true});
     if(impossibleFinalGuest){
       const index=plans.indexOf(candidate);
       if(index>=0)plans.splice(index,1);
@@ -1452,9 +1657,10 @@ function applyStoryCookingResult(order,satisfaction){
   if(order.storySceneId){
     state.story.storyCookResults[order.storySceneId]={score:satisfaction,tier,day:state.day,dishId:order.dishId};
     const guestId=storyGuestIdForScene(scene)||order.guestId;
-    const guest=getStoryGuestState(guestId);
-    guest.currentScore=satisfaction;
-    guest.currentTier=tier;
+    const result=getStoryGuestResult(guestId);
+    result.visited=true;
+    result.evaluationScore=satisfaction;
+    result.evaluationTier=tier;
     const resultSceneId=scene?.resultSceneIds?.[tier]||null;
     if(resultSceneId){
       state.story.pendingResultSceneId=resultSceneId;

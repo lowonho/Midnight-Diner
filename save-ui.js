@@ -181,7 +181,15 @@ function saveSlotSummary(data){
   const saved=data?.state||{};
   const day=Number.isFinite(saved.day)?saved.day:"-";
   const loop=Math.max(1,Math.floor(Number(saved.story?.loop)||1));
-  const shards=Object.values(saved.story?.guestState||{}).filter(guest=>guest?.shardOwned).length;
+  const currentLoop=saved.story?.currentLoop||saved.story||{};
+  const loopResults=currentLoop.guestResults||{};
+  const countedShards=Object.values(loopResults).filter(result=>
+    result?.fragmentState==="partial"||result?.fragmentState==="full"
+  ).length;
+  const storedCount=Number(currentLoop.moonFragmentCount);
+  const shards=Number.isFinite(storedCount)
+    ?Math.max(0,Math.min(8,Math.floor(storedCount)))
+    :countedShards;
   return `DAY ${day} · ${saveSlotPhaseLabel(saved.phase)} · 루프 ${loop} · 달빛 조각 ${shards}/8`;
 }
 

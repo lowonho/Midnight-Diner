@@ -108,10 +108,28 @@ assert(titleSource.includes('if(event.target===elements.overlay)closeJournal()')
   "배경 클릭과 ESC로 닫아도 같은 영업일지 상태 복원 경로를 사용해야 합니다.");
 assert(titleSource.includes('typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[]'),
   "게임 내 영업일지는 현재 세이브에 종속된 8장 생성 함수를 사용해야 합니다.");
+assert(titleSource.includes("현재 세이브의 과거 영업 기록과 이번 회차 상태입니다."),
+  "진행용 영업일지 설명은 과거 기록과 현재 회차 데이터가 함께 표시됨을 알려야 합니다.");
 [
-  "등장","손님","외형·흔적","음식","최근 평가","달빛 조각","획득 상태"
+  "손님 정보","과거 영업 기록","현재 회차"
+].forEach(label=>assert(titleSource.includes(`journalSection("${label}"`),
+  `진행용 영업일지에 '[${label}]' 구역이 있어야 합니다.`));
+[
+  "이름","등장","단서","확인 음식","공개 이야기",
+  "이전 회차 평가","이전 회차 부분 조각","이전 회차 완전 조각","본 장면",
+  "방문","평가","조각 상태","조각명"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
-  `진행용 잠금 페이지에 '${label}' 예시 필드가 있어야 합니다.`));
+  `진행용 영업일지에 '${label}' 필드가 있어야 합니다.`));
+[
+  "previousLoopEvaluation","previouslyObtainedPartial","previouslyObtainedFull","seenStoryScenes",
+  "currentLoopVisited","currentLoopEvaluation","currentFragmentState","currentFragmentName"
+].forEach(field=>assert(titleSource.includes(`"${field}"`),
+  `진행용 영업일지는 '${field}' 값을 표시해야 합니다.`));
+const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\n}\n\nfunction renderJournalTabs/)?.[0]||"";
+assert(journalMetaSource.includes('journalMode==="gameplay"')
+  &&journalMetaSource.includes('현재 평가 · ${page.currentLoopEvaluation}')
+  &&journalMetaSource.includes('현재 조각 · ${page.currentFragmentState||"미획득"}'),
+  "진행용 영업일지 상단 요약은 과거 조각이 아니라 현재 회차 평가와 조각 상태를 표시해야 합니다.");
 [
   "이름","기억의 음식","좋아한 스타일","완성된 이야기","달빛 조각","진엔딩 이후 후일담"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
@@ -124,6 +142,13 @@ assert(settingsCssSource.includes(".journal-page-tab")
   &&settingsCssSource.includes(".is-locked")
   &&settingsCssSource.includes(".is-new"),
   "타이틀 영업일지는 고정 페이지의 잠금과 최초 해금 상태를 구분해야 합니다.");
+const journalBodyRule=settingsCssSource.match(/\.journal-page p\s*\{([^}]+)\}/);
+assert(journalBodyRule
+  &&/max-height\s*:/.test(journalBodyRule[1])
+  &&/overflow\s*:\s*auto/.test(journalBodyRule[1])
+  &&/overflow-wrap\s*:\s*anywhere/.test(journalBodyRule[1])
+  &&/white-space\s*:\s*pre-line/.test(journalBodyRule[1]),
+  "긴 영업일지 본문은 문서 영역 안에서 스크롤되고 자동 줄바꿈되어야 합니다.");
 assert(saveSource.includes('const SAVE_VERSION=4;')
   &&saveSource.includes("function migrateSaveStorage()"),
   "새 시나리오는 저장 버전을 올리고 일회성 저장 초기화를 제공해야 합니다.");
@@ -384,7 +409,7 @@ let slots=[
     id:"auto",label:"자동 저장",manual:false,
     data:{
       savedAt,
-      state:{day:2,phase:"night",story:{loop:2,guestState:{rainyChild:{shardOwned:true}}}},
+      state:{day:2,phase:"night",story:{loop:2,guestResults:{rainyChild:{fragmentState:"partial"}}}},
       storyCheckpoint:{sceneId:"G-02"}
     }
   },
@@ -392,7 +417,7 @@ let slots=[
     id:"manual1",label:"수동 저장 1",manual:true,
     data:{
       savedAt,
-      state:{day:7,phase:"day",story:{loop:3,guestState:{rainyChild:{shardOwned:true},lanternGuest:{shardOwned:true}}}},
+      state:{day:7,phase:"day",story:{loop:3,guestResults:{rainyChild:{fragmentState:"partial"},lanternGuest:{fragmentState:"full"}}}},
       storyCheckpoint:{sceneId:"C1-04B"}
     }
   },

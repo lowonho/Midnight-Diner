@@ -178,7 +178,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "facelessDaeun", title: "마지막 예약 — 얼굴 없는 김다은", dayLabel: "마지막 예약",
-    appearanceCondition: "7일차 폐점 후 · 앞선 일곱 달빛 조각을 모두 획득", displayName: "얼굴 없는 김다은",
+    appearanceCondition: "7일차 폐점 후 · 현재 회차 기본 손님 7명의 완전한 달빛 조각을 모두 획득", displayName: "얼굴 없는 김다은",
     portraitRow: 7, trace: "김다은과 같은 옷, 비어 있는 얼굴과 장부에 남은 자신의 필체",
     dishId: "yakisoba", dishName: "볶음우동",
     clue: "야근 중 팬 하나에 급히 볶아 동료들과 나누어 먹던 굵은 면 요리.",
@@ -355,13 +355,13 @@ const STORY_SCENES = {
     lines: [
       storyNarration("장부의 빈 페이지 위로 글자가 한 줄씩 나타난다.\n달빛식탁의 출입문은 현실로 나가는 문이 아니며, 손님들이 돌려주는 달빛 조각이 모여야 현실의 아침으로 이어지는 새벽문이 열린다."),
       storyLine("journal", "손님에게 기억하는 음식을 대접하십시오."),
-      storyLine("journal", "손님이 그 음식으로 기억을 완전히 되찾으면 식사값으로 달빛 조각을 돌려받을 수 있습니다."),
-      storyLine("journal", "여덟 개의 달빛 조각이 식탁에 모이면 현실의 아침으로 이어지는 새벽문이 열립니다."),
+      storyLine("journal", "기본 특별 손님이 음식의 기억을 일부 되찾으면 부분 달빛 조각을, 완전히 되찾으면 완전한 달빛 조각을 돌려받을 수 있습니다."),
+      storyLine("journal", "완전한 달빛 조각 여덟 개가 식탁에 모이면 현실의 아침으로 이어지는 새벽문이 열립니다."),
       storyLine("journal", "일곱 번째 밤의 영업이 끝날 때 새벽문이 열리지 않았다면 시간은 첫째 날 낮으로 돌아갑니다."),
-      storyLine("journal", "회귀한 뒤에도 완료된 영업 기록과 달빛 조각은 이 장부에 남습니다."),
+      storyLine("journal", "회귀한 뒤에는 완료된 영업 기록만 이 장부에 남고, 모은 달빛 조각은 사라집니다."),
       storyLine("journal", "마지막 예약 손님: 김다은."),
       storyLine("journal", "방문 시각: 일곱째 밤 영업 종료 후."),
-      storyLine("journal", "예약 조건: 식탁의 일곱 자리에 달빛이 돌아온 때."),
+      storyLine("journal", "예약 조건: 부분 달빛 조각과 완전한 달빛 조각은 현재 회차 조각 수에 각각 하나로 세지만, 기본 손님 일곱 명의 조각이 모두 완전해야 마지막 예약 손님이 찾아옵니다. 마지막 예약 손님은 기억을 완전히 되찾았을 때만 완전한 조각을 돌려줍니다."),
       storyLine("protagonist", "마지막 예약 손님이 나라고…? 지금은 이유를 알 수 없어."),
       storyLine("protagonist", "우선 손님들을 만나고 이 장부의 기록부터 확인해 보자.")
     ]
@@ -379,10 +379,10 @@ const STORY_SCENES = {
     repeatEachLoop: true,
     autoOpenJournal: true,
     lines: [
-      storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌고, 완성된 기록만 영업일지에 남아 있다."),
-      storyLine("protagonist", "또 첫째 날이야… 반복됐다는 건 기억나."),
-      storyLine("protagonist", "그런데 손님들의 얼굴과 대화는 벌써 흐릿해지고 있어."),
-      storyLine("protagonist", "장부에는 지난 일주일이 남아 있어. 이번에는 이 기록을 보고 준비하자.")
+      storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌지만, 확인한 기록은 영업일지에 남아 있다."),
+      storyLine("protagonist", "달빛 조각은 사라졌지만 기록은 남아 있어."),
+      storyLine("protagonist", "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야."),
+      storyLine("protagonist", "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼.")
     ]
   },
 
@@ -401,7 +401,7 @@ const STORY_SCENES = {
       none: [storyLine("protagonist", "아직 이 날의 기록이 없어. 오늘은 내가 판단해서 골라야 해.")],
       clue: [storyLine("protagonist", "이 날 손님은 ‘[영업일지 단서]’라고 했어. 그 말에 맞는 음식을 준비해 보자.")],
       confirmed: [storyLine("protagonist", "찾던 음식은 [음식명]이야. 이번에는 기억을 되찾게 해 줘야 해.")],
-      shard: [storyLine("protagonist", "이 손님의 달빛 조각은 이미 식탁에 돌아왔어. 그래도 다시 올 테니 오늘 평가는 새로 기록될 거야.")]
+      shard: [storyLine("protagonist", "지난 회차에 이 손님의 달빛 조각을 얻었다는 기록이 있어. 하지만 조각은 사라졌으니 이번 회차에 다시 얻어야 해.")]
     },
     lines: [storyNarration("다은은 영업일지에 실제로 적힌 범위만 확인한다.")]
   },
@@ -803,7 +803,7 @@ const STORY_SCENES = {
       {
         prompt: "누구의 길을 밝힐까?",
         choices: [
-          { text: "내 길을 밝힌다", nextSceneId: "END-01" },
+          { text: "내 문을 밝힌다", nextSceneId: "END-01" },
           { text: "손님들의 길을 밝힌다", nextSceneId: "END-02" }
         ]
       }
@@ -827,8 +827,8 @@ const STORY_SCENES = {
       {
         prompt: "어떤 밤을 남길까?",
         choices: [
-          { text: "달빛을 식탁에 붙잡아 둔다", nextSceneId: "END-03" },
-          { text: "모두의 길을 하나로 잇는다", nextSceneId: "END-04" }
+          { text: "이 밤을 그대로 붙잡는다", nextSceneId: "END-03" },
+          { text: "내일을 모두에게 돌려준다", nextSceneId: "END-04" }
         ]
       }
     ]

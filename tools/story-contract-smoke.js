@@ -21,6 +21,7 @@ function saveGame(){}
 function showToast(){}
 function stationById(){return null;}
 function startMini(){}
+function resetDay(){}
 function resetStoryStage(){}
 function clearStoryCinematic(){}
 function applyStoryCinematic(){return false;}
@@ -75,13 +76,23 @@ assert(new Set(GAMEPLAY_JOURNAL_PAGE_DEFS.map(page=>page.guestId||page.id)).size
   "진행용 영업일지에 중복 손님 페이지가 있으면 안 됩니다.");
 
 state.story=createStoryState();
+assert(state.story.schemaVersion===4,"스토리 상태는 회차 결과 분리 스키마를 사용해야 합니다.");
 same(Object.keys(state.story.guestState),expectedGameplayJournalGuestIds,
   "새 진행 상태는 잠긴 페이지를 포함한 손님 여덟 명의 상태를 가져야 합니다.");
+same(Object.keys(state.story.guestResults),expectedGameplayJournalGuestIds,
+  "현재 회차 손님 결과도 여덟 명의 고정 맵이어야 합니다.");
 assert(expectedGameplayJournalGuestIds.every(id=>{
   const guest=state.story.guestState[id];
   return guest&&!guest.clueFound&&!guest.shardOwned&&!guest.memoryUnlocked
-    &&guest.currentTier==null&&guest.currentScore==null&&guest.revealedStoryLevel===0;
+    &&guest.currentTier==null&&guest.currentScore==null&&guest.revealedStoryLevel===0
+    &&!guest.previouslyObtainedPartial&&!guest.previouslyObtainedFull
+    &&guest.previousLoopTier==null&&guest.seenStoryScenes.length===0;
 }),"새 진행용 손님 페이지는 단서·이야기·조각·최근 평가가 잠겨 있어야 합니다.");
+assert(expectedGameplayJournalGuestIds.every(id=>{
+  const result=state.story.guestResults[id];
+  return result&&!result.visited&&result.evaluationTier==null&&result.evaluationScore==null
+    &&result.fragmentState==="none"&&result.fragmentName==null&&result.seenStoryScenes.length===0;
+}),"새 회차의 방문·평가·조각 결과는 모두 비어 있어야 합니다.");
 assert(storyDisplayName("protagonist")==="김다은"
   &&storyDisplayName("rainyChild")==="비에 젖은 아이"
   &&storyDisplayName("facelessDaeun")==="얼굴 없는 손님",
@@ -128,6 +139,20 @@ same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
   "영업일지 상태별 안내 종류");
 Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&lines.length>0,
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
+assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("영업 기록만")&&line.text.includes("달빛 조각은 사라집니다")),
+  "프롤로그는 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
+assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("각각 하나로 세지만")
+  &&line.text.includes("일곱 명의 조각이 모두 완전해야")
+  &&line.text.includes("마지막 예약 손님은 기억을 완전히 되찾았을 때만")),
+  "프롤로그는 현재 회차 조각 계산과 마지막 예약 손님의 완전 조각 조건을 알려야 합니다.");
+same(l01.lines.slice(-3).map(line=>line.text),[
+  "달빛 조각은 사라졌지만 기록은 남아 있어.",
+  "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
+  "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼."
+],"회귀 후 첫째 날의 영업일지 안내 대사");
+assert(l02.journalVariants.shard[0].text.includes("지난 회차")
+  &&l02.journalVariants.shard[0].text.includes("이번 회차에 다시 얻어야"),
+  "과거 조각 기록은 남아도 이번 회차에 조각을 다시 얻어야 합니다.");
 
 same(STORY_EVENT_SCHEDULE.newGame[1],
   ["SCN-P01","SCN-P02","SCN-P03","SCN-P04"],"프롤로그 진입 일정");
@@ -192,6 +217,9 @@ same(STORY_SPECIAL_GUEST_BY_DAY,{
 const g8=STORY_SCENES["SCN-G8-A"];
 assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===5,
   "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 5건 뒤 등장해야 합니다.");
+assert(GAMEPLAY_JOURNAL_PAGE_DEFS.find(page=>page.guestId==="facelessDaeun").appearanceCondition
+  .includes("현재 회차 기본 손님 7명의 완전한 달빛 조각"),
+  "G8 진행 일지는 현재 회차 기본 완전 조각 7개 조건을 명확히 표시해야 합니다.");
 assert(STORY_SCENES["SCN-G8-완벽"].character==="anotherDaeun"
   &&STORY_SCENES["SCN-G8-완벽"].finalShard,
   "G8 완벽에서 또 다른 김다은과 여덟 번째 조각을 공개해야 합니다.");
@@ -207,8 +235,12 @@ assert(STORY_SCENES["SCN-J01"].autoLoop&&STORY_SCENES["SCN-J01"].nextSceneId==="
   "조각 0~3개는 선택지 없이 회귀해야 합니다.");
 same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
   ["END-01","END-02"],"조각 4~7개 엔딩 선택");
+same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.text),
+  ["내 문을 밝힌다","손님들의 길을 밝힌다"],"조각 4~7개 선택지 문구");
 same(STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
   ["END-03","END-04"],"조각 8개 엔딩 선택");
+same(STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices.map(choice=>choice.text),
+  ["이 밤을 그대로 붙잡는다","내일을 모두에게 돌려준다"],"조각 8개 선택지 문구");
 assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requiredFlag,
   "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
 
@@ -228,6 +260,16 @@ assert(trueEndingRuntimeSource.includes("unlockTrueEndingEpilogues")
   &&trueEndingRuntimeSource.indexOf("unlockTrueEndingEpilogues")
     <trueEndingRuntimeSource.indexOf("clearAutoSaveForTrueEnding"),
   "진엔딩은 영구 후일담을 먼저 해금한 뒤 진행 자동 저장을 삭제해야 합니다.");
+const completeSceneRuntimeSource=String(completeStoryScene);
+const finishSessionRuntimeSource=String(finishStorySession);
+assert(completeSceneRuntimeSource.includes("conclusionQueued")
+  &&completeSceneRuntimeSource.includes("if(!conclusionQueued)saveGame(true)")
+  &&finishSessionRuntimeSource.includes("if(!conclusionAction)saveGame()"),
+  "회귀·엔딩 결론 직전의 완료된 Day 7 상태를 중간 자동 저장하면 안 됩니다.");
+assert(String(runStoryConclusion).includes("beginNextStoryLoop")
+  &&String(runStoryConclusion).includes("restoreFinalChoiceCheckpoint")
+  &&String(runStoryConclusion).includes("finishTrueEnding"),
+  "회귀·END-03 체크포인트·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
   assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");
@@ -243,10 +285,31 @@ Object.values(STORY_SCENES).forEach(scene=>{
   });
 });
 
+const repeatArrival=STORY_SCENES["SCN-G1-A"];
+state.story.seenScenes[repeatArrival.id]=true;
+storySession={scene:repeatArrival,suspended:false};
+assert(!storySceneHasRequiredInteraction(repeatArrival)&&storySceneCanSkip(repeatArrival),
+  "이미 본 특별 손님 등장 대화는 specialGuest 표시만으로 SKIP을 막으면 안 됩니다.");
+assert(storySceneHasRequiredInteraction(STORY_SCENES["SCN-J02"]),
+  "엔딩 선택지가 있는 장면은 SKIP으로 필수 선택을 건너뛰면 안 됩니다.");
+assert(String(skipCurrentStoryScene).includes("completeStoryScene"),
+  "SKIP은 장면 완료 경로를 사용해 후속 주문 흐름을 유지해야 합니다.");
+storySession=null;
+state.phase=GAME_PHASES.OPEN;
+state.orders=[{
+  id:1,slot:0,customerType:"story",guestId:"rainyChild",
+  storySceneId:repeatArrival.id,deferUntilArrival:true,missingMenu:false
+}];
+markStorySceneCompleted(repeatArrival);
+assert(resumeDeferredStoryOrderScene()===false&&state.orders.length===1
+  &&state.orders[0].storySceneId===repeatArrival.id,
+  "등장 대화를 완료하거나 SKIP해도 주문은 남아 기존 조리 미니게임으로 이어져야 합니다.");
+state.orders=[];
+
 const storyText=JSON.stringify(STORY_SCENES);
 assert(!storyText.includes("박기철")&&!storyText.includes("한 달만 가게")&&!storyText.includes("사표 아직 수리"),
   "기존 박기철·가게 인수·복귀 제안 이야기가 남으면 안 됩니다.");
-assert(storyText.includes("여덟 개의 달빛 조각")
+assert(storyText.includes("완전한 달빛 조각 여덟 개")
   &&storyText.includes("마지막 예약 손님: 김다은")
   &&storyText.includes("오늘의 메뉴는 내일 정합니다"),
   "달빛 조각 목표와 마지막 예약 손님, 진엔딩 문구가 필요합니다.");
@@ -267,30 +330,188 @@ assert(state.story.pendingNightGuests.length===1
 
 const rainy=getStoryGuestState("rainyChild");
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
-assert(rainy.clueFound&&!rainy.shardOwned&&!rainy.memoryUnlocked,
+assert(rainy.clueFound&&!rainy.shardOwned&&!rainy.memoryUnlocked
+  &&getStoryGuestResult("rainyChild").visited
+  &&getStoryGuestResult("rainyChild").fragmentState==="none",
   "음식 미준비 B분기는 진행용 페이지에 단서만 기록해야 합니다.");
 assert(storyLinesForScene(STORY_SCENES["SCN-L02"])[0].text.includes("팬 위에서 둥글게"),
   "회귀 영업일지에는 실제로 얻은 단서를 동적으로 넣어야 합니다.");
-recordStorySceneOutcome(STORY_SCENES["SCN-G1-완벽"]);
-assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="great"
-  &&rainy.revealedStoryLevel===3,
-  "최초 완벽은 진행용 이야기와 달빛 조각을 열고 최근 평가를 완벽으로 기록해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
-assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="warm"
-  &&rainy.revealedStoryLevel===3,
-  "재방문 최근 평가는 낮아져도 기존 조각과 해금 이야기는 유지해야 합니다.");
+getStoryGuestResult("rainyChild").evaluationScore=73;
+const rainyResult=getStoryGuestResult("rainyChild");
+assert(rainyResult.evaluationTier==="warm"&&rainyResult.fragmentState==="partial"
+  &&rainyResult.fragmentName==="첫 빗방울"&&!rainy.previouslyObtainedPartial
+  &&!rainy.previouslyObtainedFull&&!rainy.shardOwned,
+  "G1~G7 맛있다는 이번 회차 부분 조각만 만들고 과거 기록을 즉시 오염시키면 안 됩니다.");
 
-STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestState(id).shardOwned=true;});
+recordStorySceneOutcome(STORY_SCENES["SCN-G2-완벽"]);
+getStoryGuestResult("lanternGuest").evaluationScore=91;
+state.story.completed.keepAcrossLoop=true;
+state.story.seenScenes.keepAcrossLoop=true;
+archiveCurrentStoryLoopResults();
+const lantern=getStoryGuestState("lanternGuest");
+assert(rainy.previousLoopTier==="warm"&&rainy.previousLoopScore===73
+  &&rainy.previousLoopFragmentState==="partial"
+  &&rainy.previouslyObtainedPartial&&!rainy.previouslyObtainedFull,
+  "부분 조각은 회귀 직전에 직전 회차 기록과 부분 획득 이력으로 병합되어야 합니다.");
+assert(lantern.previousLoopTier==="great"&&lantern.previousLoopScore===91
+  &&lantern.previousLoopFragmentState==="full"
+  &&!lantern.previouslyObtainedPartial&&lantern.previouslyObtainedFull,
+  "완전 조각 이력은 부분 조각 이력과 독립적으로 병합되어야 합니다.");
+assert(STORY_GUEST_IDS.every(id=>{
+  const result=getStoryGuestResult(id);
+  return !result.visited&&result.evaluationTier==null&&result.evaluationScore==null
+    &&result.fragmentState==="none"&&result.fragmentName==null&&result.seenStoryScenes.length===0;
+}),"회귀 병합 뒤 현재 회차의 방문·평가·조각·본 장면은 모두 초기화되어야 합니다.");
+assert(state.story.completed.keepAcrossLoop&&state.story.seenScenes.keepAcrossLoop,
+  "회귀 병합은 completed와 전역 seenScenes 기록을 지우면 안 됩니다.");
+assert(rainy.seenStoryScenes.includes("SCN-G1-B")&&rainy.seenStoryScenes.includes("SCN-G1-맛있다")
+  &&lantern.seenStoryScenes.includes("SCN-G2-완벽"),
+  "현재 회차에 본 손님 장면은 과거 손님 기록으로 중복 없이 병합되어야 합니다.");
+
+const rainyPage=getGameplayJournalPages().find(page=>page.guestId==="rainyChild");
+assert(rainyPage.previousLoopEvaluation==="맛있다"
+  &&rainyPage.previouslyObtainedPartial==="획득 기록 있음"
+  &&rainyPage.previouslyObtainedFull==="없음"
+  &&rainyPage.currentLoopVisited==="미방문"
+  &&rainyPage.currentLoopEvaluation==="미평가"
+  &&rainyPage.currentFragmentState==="미획득"
+  &&rainyPage.currentFragmentName==="???"
+  &&rainyPage.seenStoryScenes.includes(STORY_SCENES["SCN-G1-맛있다"].title),
+  "진행용 영업일지는 과거 기록과 현재 회차 필드를 분리해 반환해야 합니다.");
+
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
+archiveCurrentStoryLoopResults();
+assert(rainy.previousLoopTier==="warm"&&rainy.previousLoopScore===73
+  &&rainy.clueFound&&rainy.previousLoopVisited,
+  "음식 미준비 회차는 단서와 방문만 남기고 과거 실제 평가를 지우면 안 됩니다.");
+
+state.story=createStoryState();
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
+assert(storyFragmentCounts().count===1&&storyFragmentCounts().partial===1,
+  "한 손님의 부분 조각은 현재 회차 조각 슬롯 하나만 차지해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-완벽"]);
+assert(storyFragmentCounts().count===1&&storyFragmentCounts().partial===0
+  &&storyFragmentCounts().full===1,
+  "같은 손님의 부분 조각이 완전 조각으로 바뀌어도 중복 계산하면 안 됩니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-아쉽다"]);
+assert(getStoryGuestResult("rainyChild").evaluationTier==="soft"
+  &&getStoryGuestResult("rainyChild").fragmentState==="full"
+  &&storyFragmentCounts().count===1&&storyFragmentCounts().full===1
+  &&getStoryGuestState("rainyChild").revealedStoryLevel===3,
+  "동일 회차 재평가가 낮아져도 이미 얻은 완전 조각과 공개 이야기는 유지해야 합니다.");
+
+// 구 구조의 누적 조각은 과거 기록으로만 이관하고 새 회차 조각으로
+// 자동 지급하면 안 됩니다.
+const legacyStory=createStoryState();
+legacyStory.schemaVersion=3;
+delete legacyStory.guestResults;
+legacyStory.guestState.rainyChild.shardOwned=true;
+legacyStory.guestState.rainyChild.currentTier="great";
+legacyStory.guestState.rainyChild.currentScore=88;
+const migratedStory=normalizeStoryState(legacyStory);
+assert(migratedStory.schemaVersion===4
+  &&migratedStory.guestState.rainyChild.previouslyObtainedFull
+  &&!migratedStory.guestState.rainyChild.shardOwned
+  &&migratedStory.guestState.rainyChild.currentTier==null
+  &&migratedStory.guestResults.rainyChild.fragmentState==="none"
+  &&migratedStory.guestResults.rainyChild.evaluationTier==null,
+  "구 저장의 누적 완벽 기록이 새 회차 평가나 조각으로 이관되면 안 됩니다.");
+const legacyWarmStory=createStoryState();
+legacyWarmStory.schemaVersion=3;
+delete legacyWarmStory.guestResults;
+legacyWarmStory.guestState.rainyChild.currentTier="warm";
+legacyWarmStory.guestState.rainyChild.currentScore=72;
+const migratedWarmStory=normalizeStoryState(legacyWarmStory);
+assert(migratedWarmStory.guestState.rainyChild.previousLoopTier==="warm"
+  &&!migratedWarmStory.guestState.rainyChild.previouslyObtainedPartial
+  &&migratedWarmStory.guestState.rainyChild.previousLoopFragmentState==="none"
+  &&migratedWarmStory.guestResults.rainyChild.fragmentState==="none",
+  "부분 조각 제도 이전의 맛있다 평가는 허위 부분 조각 이력으로 추론하면 안 됩니다.");
+const invalidG8Story=createStoryState();
+invalidG8Story.guestResults.facelessDaeun.fragmentState="partial";
+invalidG8Story.guestResults.facelessDaeun.fragmentName="김다은의 내일";
+const normalizedInvalidG8=normalizeStoryState(invalidG8Story);
+assert(normalizedInvalidG8.guestResults.facelessDaeun.fragmentState==="none"
+  &&normalizedInvalidG8.guestResults.facelessDaeun.fragmentName==null,
+  "손상된 저장의 G8 부분 조각은 존재하지 않는 상태이므로 미획득으로 교정해야 합니다.");
+
+// G8과 7일차 엔딩은 과거 기록이 아니라 이번 회차 조각만 봅니다.
+state.story=createStoryState();
+STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestState(id).previouslyObtainedFull=true;});
 state.day=7;
 state.selectedMenus=["oden","tofu","kimchi","skewer","tteokbokki"];
+assert(!storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A")
+  &&storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J01",
+  "과거 기본 조각 7개만으로 G8 또는 중간 엔딩이 열리면 안 됩니다.");
+
+STORY_GUEST_IDS.slice(0,6).forEach(id=>{getStoryGuestResult(id).fragmentState="full";});
+getStoryGuestResult("schoolDoll").fragmentState="partial";
+same(storyFragmentCounts({baseOnly:true}),{count:7,partial:1,full:6},
+  "현재 회차 기본 손님의 부분·완전 조각 계산");
+assert(!storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A")
+  &&storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
+  "기본 조각이 일곱 개여도 완전 조각이 아니면 G8은 등장하지 않아야 합니다.");
+assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:5}),
+  "과거 조각 또는 현재 부분 조각을 G8 실제 등장 준비 조건에 쓰면 안 됩니다.");
+
+getStoryGuestResult("schoolDoll").fragmentState="full";
+state.generalServed=5;
+same(storyFragmentCounts({baseOnly:true}),{count:7,partial:0,full:7},
+  "기본 손님 7명의 완전 조각 계산");
+assert(storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A"),
+  "이번 회차 기본 완전 조각 7개를 모아야 마지막 예약 손님이 등장해야 합니다.");
+assert(storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:5}),
+  "현재 회차 기본 완전 조각 7개와 등장 시점을 만족하면 G8 계획이 준비되어야 합니다.");
 prepareStoryNight();
 assert(state.story.pendingNightGuests.some(plan=>plan.sceneId==="SCN-G8-A"),
-  "기본 조각 7개를 모으면 7일차 마지막 예약 손님 계획을 만들어야 합니다.");
+  "기본 완전 조각 7개를 모으면 7일차 마지막 예약 손님 계획을 준비해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G8-맛있다"]);
+assert(getStoryGuestResult("facelessDaeun").fragmentState==="none"
+  &&storyFragmentCounts().count===7
+  &&storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
+  "G8 맛있다는 조각을 주지 않으며 일곱 조각 엔딩 판정을 유지해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G8-완벽"]);
+same(storyFragmentCounts(),{count:8,partial:0,full:8},
+  "G8 완벽을 포함한 현재 회차 완전 조각 여덟 개 계산");
+assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J03"
+  &&storySceneAvailable(STORY_SCENES["SCN-J03"])
+  &&!storySceneAvailable(STORY_SCENES["SCN-J02"]),
+  "현재 회차 완전 조각 여덟 개일 때만 최종 엔딩 선택 판정으로 가야 합니다.");
+
+state.story=createStoryState();
+STORY_GUEST_IDS.slice(0,3).forEach(id=>{getStoryGuestResult(id).fragmentState="partial";});
+assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J01",
+  "현재 회차 부분·완전 조각 합계 3개는 자동 회귀 판정이어야 합니다.");
+getStoryGuestResult("crowCourier").fragmentState="partial";
 assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
-  "일곱 조각일 때는 4~7개 중간 엔딩 판정으로 가야 합니다.");
-getStoryGuestState("facelessDaeun").shardOwned=true;
-assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J03",
-  "여덟 조각일 때는 최종 엔딩 선택 판정으로 가야 합니다.");
+  "현재 회차 부분·완전 조각 합계 4개는 중간 엔딩 판정이어야 합니다.");
+
+state.story=createStoryState();
+state.day=7;
+state.story.completed.persistedScene=true;
+state.story.seenScenes.persistedScene=true;
+state.story.storyCookResults.current={score:65,tier:"warm",day:7,dishId:"kimchi"};
+const loopResult=getStoryGuestResult("rainyChild");
+loopResult.visited=true;
+loopResult.evaluationTier="warm";
+loopResult.evaluationScore=65;
+loopResult.fragmentState="partial";
+loopResult.fragmentName="첫 빗방울";
+loopResult.seenStoryScenes=["SCN-G1-A","SCN-G1-맛있다"];
+const realQueueStoryMoments=queueStoryMoments;
+queueStoryMoments=()=>true;
+beginNextStoryLoop();
+queueStoryMoments=realQueueStoryMoments;
+assert(state.story.loop===2&&state.day===1
+  &&state.story.guestState.rainyChild.previousLoopTier==="warm"
+  &&state.story.guestState.rainyChild.previousLoopScore===65
+  &&state.story.guestState.rainyChild.previouslyObtainedPartial
+  &&getStoryGuestResult("rainyChild").fragmentState==="none"
+  &&getStoryGuestResult("rainyChild").evaluationTier==null
+  &&Object.keys(state.story.storyCookResults).length===0
+  &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
+  "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 
 console.log("STORY_CONTRACT_OK 55");
 `;
