@@ -24,6 +24,9 @@
   <link rel="stylesheet" href="css/results.css" />
   <link rel="stylesheet" href="css/responsive.css" />
   <link rel="stylesheet" href="css/cursor.css" /><!-- 고양이 마우스 포인터. 화면별 cursor 선언을 덮어야 하므로 CSS 중 맨 뒤입니다 -->
+  <!-- 고양이 마우스 ON/OFF. 다른 스크립트와 달리 여기 있어야 합니다 —
+       </body> 앞에 두면 꺼 놓아도 화면이 그려지는 동안 고양이가 잠깐 보입니다 -->
+  <script src="cursor-setting.js"></script>
 </head>
 <body>
   <div id="appRoot" class="app-root">
@@ -145,7 +148,6 @@
                     <div class="fridge-panel fridge-menu-panel">
                       <h3 class="fridge-col-title starred">오늘의 요리</h3>
                       <div id="ingredientDishGallery" class="fridge-dish-list"></div>
-                      <p id="ingredientPantryNote" class="fridge-pantry-note"></p>
                     </div>
                   </aside>
 
@@ -153,6 +155,8 @@
                   <div class="fridge-play">
                     <div class="fridge-cabinet">
                       <div id="ingredientGrid" class="fridge-slots" aria-label="냉장고 24칸"></div>
+                      <!-- 냉기. 재료 위로 옅게 흐릅니다(ingredient-select.js 가 자리를 뿌립니다) -->
+                      <div id="fridgeColdAir" class="fridge-cold-air" aria-hidden="true"></div>
                     </div>
                   </div>
 
@@ -161,7 +165,7 @@
                     <div class="fridge-panel fridge-count-card">
                       <h3 class="fridge-col-title">완료 개수</h3>
                       <p id="ingredientTotalProgress" class="fridge-count"><b>0</b> / 0</p>
-                      <p id="ingredientTimer" class="fridge-time"><span>걸린 시간</span><b>00:00</b></p>
+                      <p id="ingredientTimer" class="fridge-time"><span>걸린 시간</span><b>0.0초</b></p>
                     </div>
                     <div class="fridge-panel fridge-goal-card">
                       <h3 class="fridge-col-title">찾아야 할 재료</h3>
@@ -288,6 +292,21 @@
             >ON</button>
           </div>
           <input id="sfxVolume" type="range" min="0" max="100" value="75" />
+        </div>
+        <!-- 고양이 마우스 포인터 켜기/끄기. 값 처리는 cursor-setting.js 입니다.
+             음량 행과 같은 .volume-row 를 씁니다 — 슬라이더 없이 라벨 + 토글
+             두 칸만 채우면 되고, 같은 화면에 나란히 서므로 모양이 맞아야 합니다. -->
+        <div id="catCursorRow" class="volume-row">
+          <span>고양이 마우스</span>
+          <div class="volume-state-controls">
+            <button
+              id="catCursorToggle"
+              class="audio-toggle-button"
+              type="button"
+              aria-pressed="true"
+              aria-label="고양이 마우스 켜짐. 누르면 끄기"
+            >ON</button>
+          </div>
         </div>
         <div id="saveLoadActions" class="save-load-actions" hidden>
           <button id="manualSaveButton" class="save-action-button" type="button">저장하기</button>

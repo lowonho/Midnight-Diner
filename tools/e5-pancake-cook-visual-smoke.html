@@ -57,30 +57,45 @@
   <script>
     "use strict";
     /* 보려는 것 : 굽는 김치전 그림 5장이 팬 **안쪽**에 제 크기로 들어가는가,
-       익힘 단계가 게이지(marker)를 따라 갈아 끼워지는가, 연기 두 기둥이
-       김치전 위에서 피어오르는가.
+       익힘 단계가 갈아 끼워지는가, 연기 두 기둥이 김치전 위에서 피어오르는가.
 
-       ?phase=cook|flip     단계 (기본 cook)
-       ?marker=0..1         익힘 게이지 위치 → 익힘 단계가 여기서 나옵니다
-       ?side=0|1            앞면(0) / 뒷면(1)
-       ?step=0..4           뒷면일 때 앞면이 다다랐던 단계(하한). 안 주면 marker 로만 정합니다 */
+       ⚠️ 예전에는 `?marker`(익힘 게이지 위치)로 익힘 단계를 정했습니다. 게이지가
+          없어지고 **몇 번째 장인지를 unit.cookStep 이 직접** 들고 있게 바뀌어서,
+          이제 ?step 하나가 그 자리를 대신합니다.
+
+       ?step=0..4    익힘 단계 (0 반죽 · 1 살짝 · 2 잘 익음 · 3 살짝 탐 · 4 탐)
+       ?side=0|1     앞면(0) / 뒷면(1)
+       ?cue=cook|flip  신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음) */
     const params = new URLSearchParams(location.search);
-    const phase  = params.get("phase") || "cook";
-    const marker = Math.max(0, Math.min(1, Number(params.get("marker") ?? .76)));
+    const step   = params.has("step") ? Number(params.get("step")) : 2;
     const side   = params.get("side") === "1" ? 1 : 0;
-    const step   = params.has("step") ? Number(params.get("step")) : 0;
+    const cue    = params.get("cue") || "";
 
     loadDayPrepAssets().then(() => {
+      /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
+         적으면 판 구조가 바뀔 때 하네스만 조용히 옛 모양으로 남습니다.
+         김치전은 자루가 하나뿐이라 그 한 칸(units[0])만 손봅니다. */
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
-        data:{ phase, side, marker, dir:1, speed:.21, hits:[], dishStyle:"pancake",
-               flipErrors:0, cookErrors:0, timeLimit:26, cookStep:step,
-               flipCharge:phase === "flip" ? 55 : 0, charging:false }
+        data:createTwoSideData("pancake",{timeLimit:32})
       };
+      const unit = state.mini.data.units[0];
+      unit.cookStep = step;
+      unit.flips = side;
+      unit.stepIndex = cue === "flip" ? 1 : 0;
+      unit.phase = cue ? "cue" : "wait";
+      unit.cueTimer = cue ? TWO_SIDE_CUE[cue].window : 1;
       dom.miniTitle.textContent = "김치전 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.pancake.subtitle;
       renderTwoSideCook();
       updateTwoSideCookVisual(state.mini.data);
+      // 신호 불빛은 openTwoSideCue 가 켜는 클래스입니다. 헤드리스에는 시간이 안 흐르니
+      // 같은 클래스를 여기서 직접 세워 둡니다 (실제 화면과 같은 모습입니다).
+      if(cue){
+        const target = twoSideTargetElement(state.mini.data, unit);
+        target?.style.setProperty("--cue-left", "1");
+        target?.classList.add("cue-on", `cue-${cue}`);
+      }
       /* 뒤집개 커서는 포인터를 따라다니는 DOM 한 겹입니다. 헤드리스에는 포인터가
          없으니 화구 한가운데에 세워 둡니다 — 실제로 마우스를 올렸을 때와 같은
          자리·같은 크기입니다. ?press=1 이면 누른 자세(살짝 눕는)로 찍습니다. */
@@ -137,7 +152,7 @@
           top:+(foodRect.top - panRect.top).toFixed(1),
           bottom:+(panRect.bottom - foodRect.bottom).toFixed(1)
         },
-        cookStep:state.mini.data.cookStep,
+        cookStep:state.mini.data.units[0].cookStep,
         // 켜져 있는 그림 = 지금 단계까지. 맨 뒤가 보이는 장입니다.
         on:shown.map(i => i.getAttribute("src").split("/").pop()),
         /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(day-prep-minigames.js 의

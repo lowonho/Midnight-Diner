@@ -116,12 +116,29 @@
    — 칸 가운데에 그냥 두면 나무 테두리에 너무 가깝게 붙어 보입니다. */
 .sk-free-rule { grid-column:3; grid-row:2; max-width:calc(180 * var(--upx)); margin-right:calc(40 * var(--upx)); line-height:1.5; word-break:keep-all; }
 .sk-free-rule b { color:#ffe08d; }
-/* 드래그해서 놓을 수 있는 자리. 여기 테두리(.order-drop-ready)가 곧 안내선이라
-   폭·높이를 꼬치보다 넉넉히 잡되, 위 '○번 꼬치' 글줄과 붙지 않게 띄웁니다.
-   (원래 430 x 칸 전체였는데 테두리가 글자에 닿아 보였습니다)
+/* 드래그해서 놓을 수 있는 자리.
    가로는 칸 전체(300)를 쓰면 꼬치(180)보다 너무 넓어 보여, 꼬치에 좌우
-   10 씩만 붙인 190 으로 잡습니다. 테두리는 outline-offset 5 만큼 더 벌어집니다. */
+   10 씩만 붙인 190 으로 잡습니다. 세로는 위 '○번 꼬치' 글줄과 붙지 않게 띄웁니다. */
 .sk-active-rack { grid-column:2; grid-row:2; width:min(100%,calc(190 * var(--upx))); height:calc(100% - 22 * var(--upx)); min-height:0; display:grid; place-items:center; border-radius:calc(16 * var(--upx)); transition:filter .15s,outline .15s; }
+
+/* 놓을 자리 표시에서 공용 노란 **네모 테두리**(.order-drop-ready 의 outline)를 뺍니다.
+   꼬치는 세로로 길쭉한데 상자는 네모라, 테두리가 꼬치 둘레가 아니라 허공에 네모를
+   하나 더 그린 것처럼 보였습니다. 대신 E10 멸치 머리 떼기와 같은 방식으로
+   **그림 실루엣을 따라가는 빛번짐**을 씁니다.
+   (사연은 css/minigame/e10-anchovy.css 의 .anchovy-head.has-prep-asset 주석 참고.
+    E2 새우 그릇 · E8 반죽 볼도 같은 이유로 outline 을 끄고 빛번짐을 씁니다)
+
+   ⚠️ box-shadow 로 바꾸면 안 됩니다. box-shadow 는 **상자**를 따라 그려져서
+      결국 같은 네모가 다시 생깁니다. 반드시 filter:drop-shadow 여야 합니다.
+   ⚠️ .sk-rack 하나에 몰아 걸지 말고 꼬챙이와 조각에 따로 겁니다. 부모에 걸면
+      빈 칸의 점선 네모(.sk-slot.empty 배경)까지 같이 빛나 네모가 또 도드라집니다. */
+.sk-active-rack.order-drop-ready { outline:0; filter:none; }
+.sk-active-rack.order-drop-ready .sk-rod,
+.sk-active-rack.order-drop-ready .sk-piece {
+  filter:drop-shadow(0 0 calc(6 * var(--upx)) rgba(255,224,141,.95)) drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,196,104,.55));
+}
+/* 지금 꽂을 칸도 같은 빛으로 한 번 더 짚어 줍니다(평소의 은은한 반짝임보다 세게). */
+.sk-active-rack.order-drop-ready .sk-slot.next { animation:none; filter:drop-shadow(0 0 calc(7 * var(--upx)) rgba(255,240,196,.9)); }
 .sk-active-rack .sk-rack { width:calc(180 * var(--upx)); height:100%; min-height:calc(350 * var(--upx)); }
 .sk-single-board.complete .sk-active-rack { filter:brightness(1.15); }
 /* 5개를 다 꽂은 꼬치를 다음 꼬치로 넘어가기 전에 잠깐 보여줄 때 */

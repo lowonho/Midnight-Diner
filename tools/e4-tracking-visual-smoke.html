@@ -4,19 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>E4 tracking visual smoke</title>
-  <link rel="stylesheet" href="../css/base.css">
-  <link rel="stylesheet" href="../css/components.css">
-  <link rel="stylesheet" href="../css/minigame-parts.css">
-  <link rel="stylesheet" href="../css/minigames.css">
-  <link rel="stylesheet" href="../css/day-prep-minigames.css">
-  <link rel="stylesheet" href="../css/minigame-frame.css">
+  <!-- ⚠️ 에셋 경로(DAY_PREP_ASSET_PATHS)가 index.html 기준이라 base 가 필요합니다.
+       그래서 아래 css·js 경로는 전부 tools/ 가 아니라 루트 기준으로 적습니다. -->
+  <base href="../">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
 </head>
 <body>
-  <div id="appRoot" class="app-root"><div id="miniFrameMount"></div></div>
-  <script src="../ui-mini-frame.js"></script>
-  <script src="../game-data.js"></script>
-  <script src="../day4-prep-data.js"></script>
-  <script src="../mini-engine.js"></script>
+  <!-- ⚠️ .app-screen 은 기본이 display:none 입니다 — .active 가 없으면 화면이 통째로 빕니다.
+       미니게임 프레임은 .game-frame(16:9) 안에서만 제자리를 잡습니다. -->
+  <div id="appRoot" class="app-root">
+    <main class="app-screen game-screen active">
+      <div class="game-app"><div class="game-frame"><div id="miniFrameMount"></div></div></div>
+    </main>
+  </div>
+  <script src="ui-mini-frame.js"></script>
+  <script src="game-data.js"></script>
+  <script src="day4-prep-data.js"></script>
+  <script src="mini-engine.js"></script>
   <script>
     "use strict";
     const state={day:4,phase:GAME_PHASES.PREP,selectedMenus:["tteokbokki"],prepProgress:{},mini:null,kimchiPrep:{}};
@@ -31,24 +41,47 @@
     function shuffle(items){return [...items];}
     function finishMini(){}
   </script>
-  <script src="../day.js"></script>
-  <script src="../prep.js"></script>
-  <script src="../day-prep-minigames.js"></script>
-  <script src="../engine-e4-gauge-hold.js"></script>
+  <script src="day.js"></script>
+  <script src="prep.js"></script>
+  <script src="day-prep-minigames.js"></script>
+  <script src="engine-e4-gauge-hold.js"></script>
   <script>
     const params=new URLSearchParams(location.search),dishId=params.get("dish")==="tteokbokki"?"tteokbokki":"oden";
     const mini={engine:"heat",context:{mode:"cook",dishId},complete:false,data:{}};
     state.mini=mini;
-    MINI_ENGINES.heat.setup(mini,{set(title,description){dom.miniTitle.textContent=title;dom.miniDescription.textContent=description;}});
+    /* ⚠️ 반드시 loadDayPrepAssets() 를 먼저 기다려야 합니다.
+       hasDayPrepAsset() 은 **다 받아 놓은 목록**을 보기 때문에, 안 기다리고 setup 하면
+       화구도 냄비도 전부 임시 CSS 도형으로 그려집니다. 화면은 멀쩡해 보이는데
+       크기를 재면 진짜 그림이 아니라 도형을 잰 것이 됩니다. */
+    loadDayPrepAssets().then(run);
+    function run(){
+    // ⚠️ set 의 세 번째 인자(제한 시간)를 mini.time 에 꼭 받아 두세요. 진짜 게임에서는
+    //    game.js 가 이 값을 깎으며 카운트다운을 돌립니다. 안 받으면 우측 카드의
+    //    '남은 시간' 이 처음 값에서 멈춰 있어 흐르는지 확인할 수 없습니다.
+    MINI_ENGINES.heat.setup(mini,{set(title,description,time){dom.miniTitle.textContent=title;dom.miniDescription.textContent=description;mini.time=time;}});
     dom.miniStation.textContent="누르면 상승 · 떼면 하강";
     dom.miniOverlay.classList.add("open");
-    let previous=performance.now();
-    function frame(now){
-      MINI_ENGINES.heat.update(mini,Math.min(.033,(now-previous)/1000));previous=now;
-      if(!mini.complete)requestAnimationFrame(frame);
+    /* ?steps=N 을 붙이면 60fps 로 N 프레임을 **그 자리에서** 돌린 화면이 나옵니다.
+       ⚠️ 헤드리스 캡처는 이쪽을 쓰세요. --virtual-time-budget 으로는 requestAnimationFrame
+          이 몇 번밖에 안 돌아서, 몇 초를 주든 늘 시작 직후 화면만 찍힙니다.
+          (적정 구간이 좁아지는 연출은 2.4초 뒤부터라 steps=200 이상이어야 보입니다)
+       ?hold=1 이면 스페이스바를 누르고 있는 상태로 돌립니다. */
+    const steps=Number(params.get("steps"))||0;
+    if(steps>0){
+      if(params.get("hold")==="1")MINI_ENGINES.heat.key(mini," ",{repeat:false,code:"Space"});
+      for(let i=0;i<steps&&!mini.complete;i++){mini.time=Math.max(0,mini.time-1/60);MINI_ENGINES.heat.update(mini,1/60);}
+      document.body.dataset.simSeconds=(steps/60).toFixed(2);
+    }else{
+      let previous=performance.now();
+      function frame(now){
+        const dt=Math.min(.033,(now-previous)/1000);previous=now;
+        mini.time=Math.max(0,mini.time-dt);MINI_ENGINES.heat.update(mini,dt);
+        if(!mini.complete)requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
     }
-    requestAnimationFrame(frame);
     document.body.dataset.ready="true";
+    }
   </script>
 </body>
 </html>

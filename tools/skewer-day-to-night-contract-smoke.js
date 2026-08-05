@@ -52,9 +52,18 @@ const files=["game-data.js","engine-e5-two-side-cook.js","engine-e8-order-place.
 const context=vm.createContext(sandbox);
 files.forEach(file=>vm.runInContext(read(file),context,{filename:file}));
 const api=vm.runInContext(
-  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,twoSideSkewerCardMarkup,TWO_SIDE_VIEW,twoSideIngredientMarkup,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
+  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,twoSideSkewerCardMarkup,TWO_SIDE_VIEW,twoSideIngredientMarkup,createTwoSideData,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
   context
 );
+
+/* 밤 굽기 화면의 한 판 상태. **엔진과 같은 함수로** 만들고 자루만 손봅니다
+   (손으로 베껴 적으면 판 구조가 바뀔 때 이 검사만 옛 모양으로 남습니다).
+   꼬치는 플레이어가 하나씩 올리므로, 화면을 보려면 먼저 다 올려 둬야 합니다. */
+const cookData=(cookStep=0)=>{
+  const data=api.createTwoSideData("skewer",{});
+  data.units.forEach(unit=>{unit.placed=true;unit.cookStep=cookStep;});
+  return data;
+};
 
 // 1) 꽂기 완료 → 배치가 남는가 (engine-e8 의 placeSkewerPiece 가 마지막에 부르는 함수)
 const assembled=[
@@ -84,7 +93,7 @@ assert(same(partial[0],assembled[0])&&same(partial[2],[...api.SKEWER_COOK_FALLBA
 /* 4) 화면에 쌓이는 순서. 꽂기는 **아래에서 위로** 채우므로 마크업은 뒤집혀야 합니다
       (E8 의 skewerRackMarkup 과 같은 규칙). 첫 꼬치 닭-파-닭-파-닭 을 예로 봅니다. */
 sandbox.state.skewerPrep={patterns:assembled};
-const markup=api.charcoalSkewerMarkup({phase:"cook",flippedSkewers:0,skewerPatterns:api.skewerCookPatterns()});
+const markup=api.charcoalSkewerMarkup(cookData());
 const racks=markup.split('class="grill-skewer').slice(1);
 assert(racks.length===api.SKEWER_BATCH_SIZE,`화로에 꼬치가 ${api.SKEWER_BATCH_SIZE}개가 아닙니다.`);
 racks.forEach((rack,index)=>{
@@ -109,10 +118,12 @@ const rawFrames=framesOf(firstPiece(markup));
 assert(rawFrames.length===5,`조각에 익힘 단계 그림이 5장이 아닙니다 (${rawFrames.length}장).`);
 assert(rawFrames[0].key==="skewerChicken","익힘 첫 장이 낮에 꽂은 조각(skewerChicken)이 아닙니다.");
 assert(same(rawFrames.map(frame=>frame.on),[true,false,false,false,false]),
-  "게이지를 안 준 화면이 안 익은 첫 장으로 서지 않습니다.");
-// 게이지를 태울 만큼 올리면 마지막 장까지 다 켜집니다 (아래 장을 끄지 않는 것이 규칙입니다)
-const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(
-  {phase:"cook",marker:.99,flippedSkewers:0,skewerPatterns:api.skewerCookPatterns()})));
+  "익힘 단계를 안 준 화면이 안 익은 첫 장으로 서지 않습니다.");
+/* 익힘 단계를 끝까지 올리면 마지막 장까지 다 켜집니다 (아래 장을 끄지 않는 것이 규칙입니다).
+   ⚠️ 예전에는 여기에 `marker:.99`(익힘 게이지 눈금)를 넘겼습니다. 게이지가 없어지고
+      **몇 번째 장인지를 unit.cookStep 이 자루마다 따로 들고** 있게 바뀌었습니다
+      (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS 주석 참고). */
+const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(cookData(4))));
 assert(burnt.every(frame=>frame.on),"다 태운 화면에서 익힘 단계 5장이 다 켜지지 않았습니다.");
 assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 아닙니다: ${burnt[4].key}`);
 
@@ -121,7 +132,9 @@ assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 �
       ⚠️ 이 검사가 있는 이유 : 카드를 만드는 함수 이름이 E8 의 같은 이름 함수와
          겹쳐 **게임에서만** 조용히 E8 것이 불렸던 적이 있습니다(닭 조각 3개가 나옴).
          위 파일 읽는 순서(E5 → E8)와 짝이 되는 검사입니다. */
-const card=api.twoSideIngredientMarkup(api.TWO_SIDE_VIEW.skewer.ingredients[0]);
+/* ⚠️ 아직 아무것도 안 올린 판(units 전부 placed:false)으로 봅니다. 카드는 **안 올린
+      자루만** 그리므로, 위 cookData(다 올린 판)를 넘기면 카드가 비어 나옵니다. */
+const card=api.twoSideIngredientMarkup(api.TWO_SIDE_VIEW.skewer.ingredients[0],api.createTwoSideData("skewer",{}));
 assert(card.includes('class="ts-ing-skewers"'),
   `재료 카드가 꼬치 쌓기를 안 씁니다 (다른 파일의 같은 이름 함수에 덮였는지 보세요): ${card.slice(0,160)}`);
 const cardRacks=card.split('class="grill-skewer').slice(1);

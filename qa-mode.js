@@ -55,19 +55,12 @@ let qaStorySelectedSceneId=null;
 let qaStorySelectedLine=0;
 let qaStoryReturnContext=null;
 const qaStoryJournalStates={};
-let qaIngredientAllMenus=false;
-
-function qaIngredientMenuSelectionRules(dayData){
-  if(!QA_MODE_ENABLED||!qaIngredientAllMenus)return null;
-  const allMenus=MENU_DATA.filter(menu=>menu.isImplemented).map(menu=>menu.id);
-  return {...dayData,requiredMenus:[],optionalMenus:allMenus,minSelectedMenus:1,maxSelectedMenus:allMenus.length,isSpecialDay:false,specialMenu:null,ignoreStoryMenuLimit:true,qaAllMenus:true};
-}
-
-function qaFinishIngredientMenuSelection(){qaIngredientAllMenus=false;}
+/* ⚠️ 예전에는 QA 에서만 메뉴를 1~8개까지 자유롭게 고를 수 있었습니다
+   (qaIngredientMenuSelectionRules + qaIngredientAllMenus). 실제 플레이 규칙(그날 5개 고정)과
+   달라서 테스트 의미가 없어 2026-08-06 에 걷어냈습니다. QA 도 그날 규칙을 그대로 씁니다. */
 
 function qaBeginSession(message="임시 QA 세션을 시작했습니다."){
   if(!titleGameReady)return;
-  qaIngredientAllMenus=false;
   startGame();qaRefreshPanel(message);
 }
 
@@ -179,7 +172,6 @@ function qaMenuNames(ids){
 }
 
 function qaCancelTransientState({preserveStoryReturn=false}={}){
-  qaIngredientAllMenus=false;
   if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   else{
     if(typeof storyTypingTimer!=="undefined"&&storyTypingTimer)clearTimeout(storyTypingTimer);
@@ -262,7 +254,6 @@ function qaOpenIngredientSelect(){
   if(!QA_MODE_ENABLED)return false;
   if(!qaEnsureSession())return false;
   qaCancelTransientState();
-  qaIngredientAllMenus=true;
   state.phase=GAME_PHASES.MENU_SELECT;state.phaseTime=null;state.paused=false;
   state.menuSelectionDraft=[];
   state.ingredientSelection=null;
@@ -270,7 +261,7 @@ function qaOpenIngredientSelect(){
   dom.menuSelectOverlay.classList.add("open");
   updateUI(true);
   syncPhaserObjects();
-  qaRefreshPanel("전체 요리 중 테스트할 메뉴를 고른 뒤 냉장고 재료 선택으로 이어집니다.");
+  qaRefreshPanel("오늘 규칙대로 메뉴를 고른 뒤 냉장고 재료 찾기로 이어집니다.");
   return true;
 }
 

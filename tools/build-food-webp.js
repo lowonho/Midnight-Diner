@@ -13,11 +13,16 @@
    (WebP → WebP 재인코딩 금지. 세대 손실이 누적됩니다.)
 
    [대상]
-     assets/food/prop/*.png   메뉴 그림 (264x152 낱장)
+     assets/food/prop/*.png   메뉴 그림 (그림에 딱 맞게 잘린 낱장)
      assets/food/*.png        연출 스프라이트시트 (김·반짝임)
 
    캔버스 크기는 건드리지 않습니다. 리사이즈·크롭이 들어가면
    food-props.js 의 규격/프레임 계산과 어긋납니다.
+
+   ⚠️ 2026-08-06 메뉴 그림 24장의 **투명 여백을 잘라냈습니다**(원래 전부 264x152).
+      이제 장마다 크기가 다릅니다(129x136 ~ 244x136). 화면에 그리는 크기는
+      food-props.js 가 **옛 캔버스 264x152 를 자(尺)로 삼아** 계산하므로 그대로입니다
+      — 그쪽 FOOD_PROP_SIZE 주석을 함께 보세요.
    ============================================================ */
 
 const fs = require("fs");
@@ -34,7 +39,9 @@ const EFFORT = 6;   // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 작
    원본이 24KB뿐이라 무손실로 뽑아도 부담이 없어 그렇게 합니다.
    김 시트는 부드러운 그라데이션이라 손실이 잘 먹습니다. */
 const JOBS = [
-  { dir:PROP_DIR, expect:{width:264,height:152},              quality:90                 },
+  // 메뉴 그림은 여백을 잘라내 장마다 크기가 다릅니다. 대신 옛 캔버스(264x152)를
+  // 넘지는 않아야 합니다 — 넘으면 화면에서 다른 그림보다 커집니다.
+  { dir:PROP_DIR, expectMax:{width:264,height:152},           quality:90                 },
   { dir:FOOD_DIR, file:"fx_steam_loop.png",      frames:8,    quality:90                 },
   { dir:FOOD_DIR, file:"fx_perfect_sparkle.png", frames:6,    lossless:true              }
 ];
@@ -70,6 +77,7 @@ async function convert(){
     // 규격 확인. 낱장은 캔버스 크기, 시트는 프레임 나누어떨어짐을 봅니다.
     let warn="";
     if(job.expect&&(meta.width!==job.expect.width||meta.height!==job.expect.height))warn="  ← 규격 다름";
+    if(job.expectMax&&(meta.width>job.expectMax.width||meta.height>job.expectMax.height))warn=`  ← 기준 캔버스(${job.expectMax.width}x${job.expectMax.height})보다 큽니다`;
     if(job.frames&&meta.width%job.frames!==0)warn=`  ← ${job.frames}프레임으로 나누어떨어지지 않음`;
 
     console.log(name.padEnd(30), `${meta.width}x${meta.height}`.padStart(10),

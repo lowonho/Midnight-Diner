@@ -59,6 +59,10 @@
 .bt-ing-card.next { border-color: var(--mg-card-active); box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); animation: sk-next-pulse 1.3s ease-in-out infinite; }
 .bt-ing-card.added { opacity: .42; }
 .bt-ing-card.added .bt-ing-name::after { content: "✓"; color: #a8c46a; }
+/* 넣은 재료 카드. **기울이지 않습니다** — 예전에는 붓는 시늉으로 카드를 통째로
+   돌리고 옆으로 밀어냈지만(batter-pour 의 rotate/translateX) 기우는 움직임이
+   산만해 뺐습니다. 지금은 자리에서 그대로 흐려지고, 다시 그릴 때 .added(0.42)로
+   이어집니다. */
 .bt-ing-card.pouring { animation: batter-pour .4s ease forwards; }
 .bt-ing-art { position: relative; display: grid; place-items: center; }
 .bt-ing-art i { position: relative; display: block; width: calc(74 * var(--upx)); height: calc(74 * var(--upx)); }
@@ -100,6 +104,58 @@
    ⚠️ 꼬치(.sk-active-rack)·불리기(.soaking-bowl)는 테두리를 그대로 씁니다 —
       거기는 놓을 자리가 동그랗지 않아 테두리가 실제로 도움이 됩니다. */
 .bt-bowl-wrap.order-drop-ready { outline: 0; }
+
+/* ── 재료 넣기(E8) 전용 크기 ───────────────────────────────
+   젓기(E9)는 **같은 .bt-board 를 갈아 끼우는** 구조라, 여기 규칙이 그쪽까지
+   걸리면 진행도 고리가 볼과 어긋납니다. E8 볼에만 붙는 data-order-target 으로
+   두 화면을 가릅니다 (E9 는 .whisk-work-area 라 안 걸립니다).
+
+   [세로 자리를 이렇게 나눈 이유 — 실측]
+   가운데 칸 안쪽(나무 쟁반 여백 위 46 · 아래 49 + 테두리 6 을 뺀 자리)은 506 쯤입니다.
+   예전에는 고리(468) + 사이 10 + 글줄 26.4 = 504.4 로 이미 꽉 차서,
+   '다음 재료 · OO' 줄이 쟁반에 그려진 액자 선(아래에서 53)에 3 까지 붙었습니다.
+   E8 은 진행도 고리를 안 쓰므로 고리 자리를 줄여 볼과 글줄에 나눠 줍니다.
+     볼 자리 432 + 사이 10 + 글줄 26.4 + 글줄 아래 18 = 486.4  (남는 20 은 위아래로)
+   ⚠️ 볼 그림은 가로가 먼저 차는 비율(1 : 0.86)이라 460 이면 세로가 396 입니다.
+      볼 자리(432)와의 차이 36 이 곧 그림 위아래 여백 18 이고, 여기에 사이 10 을
+      더한 28 이 볼과 글줄 사이입니다. 볼을 더 키우면 이 28 을 먹습니다 —
+      글줄이 다시 볼 밑에 달라붙으니 460 보다 키우지 마세요. */
+.bt-bowl-wrap[data-order-target="batter"] {
+  --bowl: calc(460 * var(--upx));
+  width: calc(460 * var(--upx));
+  height: calc(432 * var(--upx));
+}
+/* 글줄을 액자 선에서 띄웁니다. 가운데 정렬이라 아래 여백을 주면 글줄만이 아니라
+   볼까지 절반(9)씩 함께 올라갑니다 — 위쪽 여백이 넉넉해 그래도 됩니다. */
+.bt-board:has(.bt-bowl-wrap[data-order-target="batter"]) .bt-progress { margin-bottom: calc(18 * var(--upx)); }
+
+/* 맨 처음 한 번만 나오는 "끌어다 놓으세요" 점선 — 두부김치 플레이팅(.os-drag-hint)과
+   같은 표시입니다. 재료를 하나라도 넣으면 engine-e8 이 안 그립니다.
+   자리는 쟁반 안쪽 왼끝(48)에서 볼 왼끝(가운데 - 230) 조금 앞까지입니다. */
+.bt-drag-hint {
+  position: absolute;
+  left: calc(48 * var(--upx));
+  right: calc(50% + 238 * var(--upx));
+  top: 45%;                          /* 볼 그림의 세로 한가운데 (아래 여백이 3 넓어 절반보다 살짝 위입니다) */
+  height: calc(4 * var(--upx));
+  background: repeating-linear-gradient(90deg,#ffdc98 0 calc(15 * var(--upx)),transparent calc(15 * var(--upx)) calc(27 * var(--upx)));
+  filter: drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.55));
+  transform: rotate(-11deg);
+  animation: bt-hint-blink 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.bt-drag-hint::after {              /* 볼 쪽을 가리키는 화살촉 */
+  content: "";
+  position: absolute;
+  right: calc(-10 * var(--upx));
+  top: 50%;
+  border-top: calc(11 * var(--upx)) solid transparent;
+  border-bottom: calc(11 * var(--upx)) solid transparent;
+  border-left: calc(21 * var(--upx)) solid #ffdc98;
+  transform: translateY(-50%);
+}
+@keyframes bt-hint-blink { 50% { opacity: .35; } }
+
 .bt-bowl-wrap.receive-flour .bt-batter { animation: batter-receive-flour .42s ease; }
 .bt-bowl-wrap.receive-water .bt-batter { animation: batter-receive-water .42s ease; }
 .bt-bowl-wrap.receive-kimchi .bt-batter { animation: batter-receive-kimchi .42s ease; }
@@ -312,7 +368,8 @@
 /* 참고 모양이 무엇인지 한 줄. E8(재료 3가지)과 E9(고르게 섞인 반죽)를 가릅니다. */
 .bt-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-weight: 700; text-align: center; }
 
-@keyframes batter-pour { 0% { transform:rotate(0); } 60% { transform:translateX(calc(42 * var(--upx))) rotate(38deg); } 100% { opacity:.25; transform:translateX(calc(58 * var(--upx))) translateY(calc(24 * var(--upx))) rotate(52deg); } }
+/* ⚠️ transform 을 쓰지 않습니다. 여기에 rotate 를 되살리면 재료 카드가 다시 기웁니다. */
+@keyframes batter-pour { 60% { opacity:.6; } 100% { opacity:.25; } }
 
 /* 반죽 : 원을 그리라는 안내 고리가 천천히 한 바퀴 돕니다 */
 @keyframes bt-stir-hint { to { transform:rotate(360deg); } }
@@ -321,6 +378,10 @@
 
 @media (max-width:600px) {
   .batter-prep-scene { --bowl: calc(290 * var(--upx)); --ring: calc(340 * var(--upx)); }
+  /* 위 E8 전용 크기(460 x 432)를 고리와 같은 비율(340 ÷ 468 = 0.727)로 줄입니다 */
+  .bt-bowl-wrap[data-order-target="batter"] { --bowl: calc(334 * var(--upx)); width: calc(334 * var(--upx)); height: calc(314 * var(--upx)); }
+  .bt-board:has(.bt-bowl-wrap[data-order-target="batter"]) .bt-progress { margin-bottom: calc(13 * var(--upx)); }
+  .bt-drag-hint { left: calc(34 * var(--upx)); right: calc(50% + 173 * var(--upx)); }
   .bt-ing-art i { width: calc(52 * var(--upx)); height: calc(52 * var(--upx)); }
   .bt-ing-card.water .bt-ing-art i { width: calc(42 * var(--upx)); }
   .bt-ing-asset { max-height: calc(84 * var(--upx)); }

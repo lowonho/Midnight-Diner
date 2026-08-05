@@ -33,7 +33,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientPantryNote","ingredientGrid","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -737,6 +737,9 @@ window.addEventListener("keydown",e=>{
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
     const engine=miniEngine(state.mini);
+    // noKeyboard : 마우스 전용 게임입니다. 엔진 key 도, Space 기본 동작(miniAction)도
+    // 부르지 않습니다 — 화면에 키 안내가 없는데 키가 먹으면 숨은 조작이 됩니다.
+    if(engine?.noKeyboard)return;
     if(!engine?.key?.(state.mini,k,e)&&e.code==="Space")miniAction();
     return;
   }
@@ -748,7 +751,10 @@ window.addEventListener("keydown",e=>{
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
 window.addEventListener("keyup",e=>{
-  if(state.mini)miniEngine(state.mini)?.keyup?.(state.mini,e.key.toLowerCase(),e);
+  if(!state.mini)return;
+  const engine=miniEngine(state.mini);
+  if(engine?.noKeyboard)return;                 // 마우스 전용 게임 (위 keydown 과 같은 이유)
+  engine?.keyup?.(state.mini,e.key.toLowerCase(),e);
 });
 function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
 function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.setProperty(UI_VAR.knobX,`${px}px`);dom.joystickKnob.style.setProperty(UI_VAR.knobY,`${py}px`);state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}

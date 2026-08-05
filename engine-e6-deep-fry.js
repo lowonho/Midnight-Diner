@@ -247,7 +247,15 @@ registerMiniEngine("fry", {
     });
   },
 
-  // Space / ACTION 버튼 : 마우스 없이도 진행할 수 있는 길입니다.
+  // 이 화면에는 키 안내가 없습니다 — 키도 받지 않습니다 (mini-engine.js 참고).
+  // ⚠️ 아래 action 은 그대로 삽니다. 이 게임의 조작은 드래그·클릭이고, action 은
+  //    휴대용 화면의 큰 ACTION 버튼(화면에 보이는 버튼)이 부르는 길입니다.
+  //    예전에는 여기로 Space 도 들어왔고, 꾹 누를 때 연타로 들어가는 것을 막으려고
+  //    `key(m,k,e){ return e?.code==="Space" && e.repeat; }` 한 줄이 있었습니다 —
+  //    Space 가 아예 안 들어오므로 그 줄은 함께 뺐습니다.
+  noKeyboard: true,
+
+  // ACTION 버튼 : 마우스로 끌지 않고도 진행할 수 있는 길입니다.
   //   건질 게 있으면 가장 오래 익은 것부터 건지고, 없으면 재료를 하나 넣습니다.
   action(m) {
     const data = fryData(m);
@@ -259,11 +267,6 @@ registerMiniEngine("fry", {
       return;
     }
     dropFryPiece();
-  },
-
-  // 꾹 누르고 있을 때 연타로 들어가지 않게 막습니다.
-  key(m, k, e) {
-    return e?.code === "Space" && e.repeat;
   }
 });
 

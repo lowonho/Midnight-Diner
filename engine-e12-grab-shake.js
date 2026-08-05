@@ -16,18 +16,13 @@
 registerDayPrepSetup("mandoline",taskId=>setupMandoline(taskId));
 registerDayPrepSetup("potatoMandoline",taskId=>setupMandoline(taskId));
 
-registerDayPrepEngine("mandoline",{
-  key(m,k,e){
-    if(!k.startsWith("arrow"))return false;
-    const direction=k.replace("arrow","");
-    if(!m.data.directions.includes(direction)){
-      rejectAlternateInput(m,`${MANDOLINE_ARROWS[m.data.expected]} 방향 차례입니다. 좌우 키를 번갈아 누르세요.`,"#mandolineScene");
-      return true;
-    }
-    mandolineInput(direction,e.repeat);
-    return true;
-  }
-});
+/* ⚠️ 여기 있던 **키보드 조작(← →)을 뺐습니다.** 재료를 잡고 미는 드래그와
+   같은 한 번을 키로도 넣을 수 있었는데, 화면 안내는 "잡고 미세요" 하나뿐이라
+   키는 안내 없는 숨은 조작이었습니다. noKeyboard 를 붙이면 game.js 가 키를
+   통째로 무시합니다 (mini-engine.js 의 등록 항목 설명 참고).
+   되살리려면 아래 자리에 key(m,k,e) 를 되돌리고 mandolineInput(direction,e.repeat) 를
+   부르면 됩니다 — 판정 쪽은 방향 문자열만 받으므로 그대로 씁니다. */
+registerDayPrepEngine("mandoline",{noKeyboard:true});
 
 // 채칼은 화면 기준 왼쪽 위에서 오른쪽 아래로 약 33도 기울어져 있습니다.
 // 판의 짧은 변 22%를 한쪽 끝으로 삼아 전체 왕복 폭을 44%로 만듭니다.

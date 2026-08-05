@@ -69,23 +69,54 @@
    ------------------------------------------------------------
    [끄는 법]
    ------------------------------------------------------------
-   index.html 에서 이 파일 한 줄을 빼면 대부분 원래대로 돌아갑니다.
-   ⚠️ 딱 한 곳, minigame-frame.css 의 E1 썰기 규칙이 위 `--cursor-cat-default`
-      를 참조합니다. 이 파일을 뺄 때 그 줄도 `cursor: default !important` 로
-      같이 되돌리세요. 안 그러면 그 규칙만 값이 사라져 손 그림을 상속받습니다.
+   플레이어가 끄는 길 : 설정 화면의 "고양이 마우스" ON/OFF.
+   cursor-setting.js 가 <html> 에 `.cat-cursor-off` 를 붙였다 뗍니다.
+   기능을 통째로 들어내려면 그 파일과 index.html 의 설정 행을 지우세요.
+
+   ⚠️ index.html 에서 이 CSS 파일만 빼면 minigame-frame.css 의 E1 썰기
+      규칙이 참조하는 `--cursor-cat-default` 가 없어져, 그 규칙만 값이
+      사라져서 손 그림을 상속받습니다. 그때는 그 줄도
+      `cursor: default !important` 로 같이 되돌리세요.
+      (평소에 끄고 켜는 것은 위 설정 토글로 하면 되고, 이쪽은 기능
+       자체를 들어낼 때의 이야기입니다)
    ============================================================ */
 
+/* ------------------------------------------------------------
+   켜고 끄기 : 변수 네 개만 갈아 끼웁니다
+   ------------------------------------------------------------
+   아래 규칙들은 전부 `cursor: var(--cursor-cat-…)` 한 가지 모양입니다.
+   그림 주소도 예비 키워드도 전부 변수 안에 들어 있어서, 끌 때는 변수를
+   맨 키워드로 바꾸기만 하면 규칙을 하나도 안 건드리고 원래 커서로 돌아갑니다.
+
+   [왜 이렇게 했는가] 끄는 규칙을 따로 쓰면 `!important` 끼리 특정도로
+   겨루게 됩니다. 이 파일 규칙이 (0,3,0) + !important 라 그걸 이기려면
+   더 긴 선택자를 또 써야 하고, 나중에 어느 한쪽만 손대도 조용히 뒤집힙니다.
+   변수 교체는 특정도가 개입할 여지가 없습니다.
+
+   덤으로 minigame-frame.css 의 E1 썰기 규칙도 같은 변수를 보므로
+   저쪽을 따로 챙기지 않아도 같이 꺼지고 같이 켜집니다.
+
+   `.cat-cursor-off` 는 cursor-setting.js 가 <html> 에 붙였다 뗍니다.
+   ------------------------------------------------------------ */
 :root {
-  --cursor-cat-default: url("../assets/UI/Common/ui_cursor_cat_default_48.webp") 0 0;
-  --cursor-cat-click:   url("../assets/UI/Common/ui_cursor_cat_click_48.webp")   0 0;
-  --cursor-cat-drag:    url("../assets/UI/Common/ui_cursor_cat_drag_48.webp")    0 0;
-  --cursor-cat-text:    url("../assets/UI/Common/ui_cursor_cat_text_48.webp")    0 0;
+  --cursor-cat-default: url("../assets/UI/Common/ui_cursor_cat_default_48.webp") 0 0, default;
+  --cursor-cat-click:   url("../assets/UI/Common/ui_cursor_cat_click_48.webp")   0 0, pointer;
+  --cursor-cat-drag:    url("../assets/UI/Common/ui_cursor_cat_drag_48.webp")    0 0, grab;
+  --cursor-cat-text:    url("../assets/UI/Common/ui_cursor_cat_text_48.webp")    0 0, text;
+}
+
+/* 끈 상태 = 그림을 빼고 원래 키워드만 남깁니다. */
+:root.cat-cursor-off {
+  --cursor-cat-default: default;
+  --cursor-cat-click:   pointer;
+  --cursor-cat-drag:    grab;
+  --cursor-cat-text:    text;
 }
 
 /* 기본값. cursor 는 상속되는 속성이라 이 한 줄이 화면 전체를 덮습니다.
    아래 규칙들은 "여기서 벗어나는 자리"만 다시 지정합니다. */
 body {
-  cursor: var(--cursor-cat-default), default;
+  cursor: var(--cursor-cat-default);
 }
 
 /* [오버레이 안쪽을 일부러 되돌리지 않습니다]
@@ -120,7 +151,7 @@ body {
   input[type="button"],
   input[type="submit"]
 ):not(:disabled):not(.mini-overlay *) {
-  cursor: var(--cursor-cat-click), pointer !important;
+  cursor: var(--cursor-cat-click) !important;
 }
 
 /* 끌어서 쓰는 것 = 이동 십자 그림.
@@ -133,7 +164,7 @@ body {
   .joystick,
   .joystick-knob
 ):not(:disabled):not(.mini-overlay *) {
-  cursor: var(--cursor-cat-drag), grab !important;
+  cursor: var(--cursor-cat-drag) !important;
 }
 
 /* 글자 입력칸 = I빔 그림.
@@ -147,5 +178,5 @@ body {
   input:not([type]),
   [contenteditable="true"]
 ):not(.mini-overlay *) {
-  cursor: var(--cursor-cat-text), text !important;
+  cursor: var(--cursor-cat-text) !important;
 }

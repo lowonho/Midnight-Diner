@@ -27,6 +27,9 @@ registerDayPrepSetup("anchovy",()=>setupAnchovyPrep());
 // 그 좌표는 css/day-prep-minigames.css 의 .anchovy.v01 ~ .v04 변수에 있습니다.
 const ANCHOVY_VARIANTS=Object.freeze(["01","02","03","04"]);
 
+// 시간이 끝났을 때 TIME OVER 판을 보여주는 시간. 이 뒤에는 다시 시도 없이 마감합니다.
+const ANCHOVY_TIMEOUT_END_MS=1200;
+
 // 포인터로 머리를 잡아 흔드는 게임이라 키 처리는 없습니다.
 registerDayPrepEngine("anchovy",{
   update(m,dt){updateAnchovyTimer(m,dt);}
@@ -252,10 +255,15 @@ function timeoutAnchovy(m){
     grip.wrapper.classList.remove("grabbing","tug-pulse");
     grip.wrapper.style.removeProperty("--tug-x");grip.wrapper.style.removeProperty("--tug-y");grip.wrapper.style.removeProperty("--tug-turn");
   }
-  const area=dom.miniContent.querySelector("#anchovyWorkArea");if(!area)return;
-  area.classList.add("time-over");
-  area.querySelectorAll("button").forEach(button=>button.disabled=true);
-  area.insertAdjacentHTML("beforeend",`<div class="anchovy-timeout"><strong>TIME OVER</strong><span>${m.data.cleaned} / ${m.data.total} 손질</span><button type="button" id="anchovyRetry">다시 시도</button></div>`);
-  area.querySelector("#anchovyRetry").addEventListener("click",setupAnchovyPrep);
-  dom.miniFeedback.textContent="시간이 끝났습니다. 다시 도전해보세요!";audio.bad();
+  const area=dom.miniContent.querySelector("#anchovyWorkArea");
+  if(area){
+    area.classList.add("time-over");
+    area.querySelectorAll("button").forEach(button=>button.disabled=true);
+    area.insertAdjacentHTML("beforeend",`<div class="anchovy-timeout"><strong>TIME OVER</strong><span>${m.data.cleaned} / ${m.data.total} 손질</span></div>`);
+  }
+  dom.miniFeedback.textContent="시간이 끝났습니다. 손질을 여기서 마칩니다.";audio.bad();
+  // 다시 시도 없이 그대로 끝냅니다. TIME OVER 판을 잠깐 보여준 뒤 태스크를 마감해
+  // 다음 준비 작업(또는 준비 화면 닫기)으로 넘어갑니다.
+  // timedOut 이 켜져 있으므로 finishDayPrepTask 의 판정은 perfect 가 아닌 good 입니다.
+  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("cleanAnchovy","멸치 손질 시간 종료");},ANCHOVY_TIMEOUT_END_MS);
 }

@@ -471,6 +471,12 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   ])),
   // 김치전 굽기 화면 전용 마우스 포인터(고양이 발 뒤집개). 파일이 없으면 기본 포인터입니다.
   cookSpatulaCursor:"assets/minigame/E5/prop_spatula_cat.webp",
+  /* 닭꼬치 양념 붓. **아직 원화가 없습니다** — 파일이 없으면 임시 CSS 도형
+     (나무 손잡이 + 검은 솔)이 대신 나옵니다. 여기 경로에 파일만 넣으면
+     도형이 꺼지고 그림이 보입니다 (engine-e5-two-side-cook.js 의 sauceBrushMarkup ·
+     css 의 .ts-sauce-brush). 손잡이가 오른쪽 위로 가고 솔이 왼쪽 아래를 향하는
+     구도로 그려 주세요 — 화면 오른쪽 아래에서 들어와 꼬치를 쓸고 나갑니다. */
+  cookSauceBrush:"assets/minigame/E5/yakitori/prop_sauce_brush.webp",
   /* E8 떡 · 우동면 불려두기.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
 
@@ -696,6 +702,9 @@ function registerDayPrepEngine(modes,engine){
     update:engine.update,
     action:engine.action,
     keyup:engine.keyup,
+    // 마우스 전용 표시는 그대로 넘겨야 합니다 — game.js 가 보는 것은 이 wrapped 쪽입니다
+    // (여기서 빠뜨리면 엔진에 붙여 놔도 키가 그대로 먹습니다). mini-engine.js 참고.
+    noKeyboard:engine.noKeyboard,
     key(m,k,e){
       if(k==="escape"){closeDayPrepMini();return true;}
       return engine.key?engine.key(m,k,e):false;

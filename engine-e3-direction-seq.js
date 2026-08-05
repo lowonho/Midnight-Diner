@@ -236,13 +236,17 @@ const FRY_SPATULA_ASSETS=Object.freeze({clean:"frySpatulaClean",stirring:"frySpa
 
 function frySpatulaHasArt(){return Object.values(FRY_SPATULA_ASSETS).every(hasDayPrepAsset);}
 
-/* 주걱을 커서로 내보낼지, 예전처럼 팬에 붙여 둘지.
-   ⚠️ **포인터를 올려놓을 수 있는 장치에서만** 커서로 씁니다. 손가락으로 하는
-      화면에서는 대는 순간까지 주걱이 아예 안 보이고, 대고 나면 손 밑에 깔립니다.
-      거기서는 팬에 붙은 주걱이 그대로 맞습니다 (그림 세 장도 그대로 씁니다). */
+/* 주걱을 커서로 내보낼지, 팬에 붙여 둘지.
+   ⚠️ **지금은 언제나 팬에 붙입니다.** 볶음우동(철판 볶기)과 같이 주걱을 **김치와 팬
+      사이에** 끼워 두기로 했습니다 — 날이 김치 더미에 파묻혀야 퍼 올리는 것처럼
+      보입니다(css/minigame/e3-kimchi-fry.css 의 .kf-wood-spatula 주석).
+      포인터를 따라다니는 주걱은 화면 맨 위(z-index 70)에 떠 있어서 그 층에 못 들어갑니다.
+   되돌리려면 이 함수만 예전 조건으로 돌리면 됩니다 — 아래 커서 장치
+   (mountFrySpatulaCursor 아래 한 묶음)는 그대로 남겨 두었습니다.
+     if(!frySpatulaHasArt())return false;
+     return window.matchMedia?window.matchMedia("(hover: hover)").matches:true; */
 function frySpatulaAsCursor(){
-  if(!frySpatulaHasArt())return false;
-  return window.matchMedia?window.matchMedia("(hover: hover)").matches:true;
+  return false;
 }
 function frySpatulaFramesMarkup(){
   return Object.entries(FRY_SPATULA_ASSETS)

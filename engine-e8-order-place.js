@@ -23,17 +23,13 @@ registerDayPrepSetup("udonSoak",()=>setupUdonSoak());
 /* 반죽·꼬치는 포인터 클릭·드래그로만 조작합니다.
    불리기의 물 붓기만 키보드로도 되도록 아래 세 키를 받습니다
    (누르고 있으면 계속 부어지므로 keyup 까지 짝으로 봅니다). */
-const SOAK_POUR_KEYS=Object.freeze([" ","enter","arrowdown"]);
-registerDayPrepEngine("orderPlace",{
-  key(m,k,e){
-    if(!isSoakMini(m)||!SOAK_POUR_KEYS.includes(k))return false;
-    if(!e?.repeat)startSoakPour();
-    return true;                         // true 를 돌려주면 Space 기본 동작(miniAction)이 안 걸립니다
-  },
-  keyup(m,k){
-    if(isSoakMini(m)&&SOAK_POUR_KEYS.includes(k))stopSoakPour();
-  }
-});
+/* ⚠️ 여기 있던 **키보드 물 붓기(Space · Enter · ↓ 꾹 누르기)를 뺐습니다.**
+   물병을 누르고 있는 것과 같은 조작이었는데, 화면 어디에도 키 안내가 없어서
+   아는 사람만 쓰는 숨은 조작이었습니다. 이제 물병을 누르고 있는 길 하나입니다
+   (bindSoakPitcherPointer). noKeyboard 는 mini-engine.js 의 등록 항목 설명 참고.
+   되살리려면 key/keyup 을 되돌리고 startSoakPour / stopSoakPour 를 부르면 됩니다 —
+   그 두 함수는 그대로 있습니다. */
+registerDayPrepEngine("orderPlace",{noKeyboard:true});
 
 /* ---- E8 공통 포인터 배치 -----------------------------------
    짧게 누르면 자동 배치, 누른 채 움직이면 재료 그림이 포인터를 따라갑니다.
@@ -232,9 +228,14 @@ function renderKimchiBatterIngredients(){
   // 볼 그림은 지금까지 넣은 재료 조합으로 고릅니다 (placements[0] 이 넣은 순서 그대로입니다).
   const added=data.placements[0]||[];
   dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
+  /* 맨 처음(아직 아무것도 안 넣은 화면)에만 "볼까지 끌어다 놓으세요" 점선을 그립니다.
+     두부김치 플레이팅(engine-e11 의 .os-drag-hint)과 같은 표시입니다 —
+     이 게임은 클릭 자동 배치가 없어서(dragOnly) 끌어야 하는 것을 알려 줘야 합니다.
+     자리는 absolute(도마 .bt-board 기준)라 여기 순서는 그리는 순서일 뿐입니다. */
   dom.miniContent.innerHTML=batterSceneMarkup(`
       <div class="bt-bowl-wrap ${data.lastPlaced?`receive-${data.lastPlaced}`:""} ${data.holding?"filled":""}" data-order-target="batter">${batterBowlMarkup(`step-${data.step}`,{assetKey:batterBowlAssetKey(added)})}</div>
-      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"재료 준비 완료! <b>이제 저어 주세요</b>"}</p>`,
+      <p class="bt-progress">${current?`다음 재료 · <b>${current.label}</b>`:"재료 준비 완료! <b>이제 저어 주세요</b>"}</p>
+      ${data.step?"":`<i class="bt-drag-hint" aria-hidden="true"></i>`}`,
     data.step,{guide:"filled"});
   bindOrderPlacementPointers({
     sources:dom.miniContent.querySelectorAll("[data-batter-ingredient]"),

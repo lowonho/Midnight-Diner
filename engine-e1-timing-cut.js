@@ -11,6 +11,8 @@
 
      timing    하단 조준선이 초록 판정 구간에 들어올 때 Space.
                낮 준비의 모든 칼질. 닭고기만 절단선에서 빠르게 2연타.
+               같은 타이밍에 도마 위 점선을 따라 그어도 썰립니다
+               (attachCutDragInput — 판정은 Space 와 완전히 같습니다).
      chop      밤 조리용. 두부는 timing 과 같은 초록 구간 방식이고,
                "정밀 손질"은 노란 중심에 가까울수록 점수가 높은 방식입니다.
 
@@ -52,7 +54,14 @@ const CUT_FEEL_CONFIG=Object.freeze({
   pathRecoveryMs:340,
   completeDelayMs:620,
   startCountdownSeconds:3,
-  startSignalMs:450
+  startSignalMs:450,
+  /* 점선 드래그 썰기 ------------------------------------------
+     한 획으로 인정할 길이(재료 그림 세로/가로의 비율)와, 점선에서 벗어나도
+     봐 주는 폭(재료 좌표 %)입니다.
+     ⚠️ 허용 폭은 절단선 간격보다 좁아야 합니다. 가장 촘촘한 양배추가 7.5 씩
+        떨어져 있어서, 6 이면 옆 선 위를 그어도 이번 선으로 인정되지 않습니다. */
+  dragTravelRatio:.34,
+  dragLineTolerance:6
 });
 
 /* ---- 공통 판정 규칙 ----------------------------------------
@@ -228,13 +237,36 @@ function cutImpactFxMarkup(){
 
 // 도마 아래 타이밍 바. 삼각 표시가 바 위아래로 튀어나와야 해서
 // 바(넘침 잘라냄) 와 표시를 형제로 두고 바깥 상자에 얹습니다.
+// 빛 이펙트(.cut-timing-flash)도 바 밖으로 번져야 해서 같은 형제 자리입니다.
 function cutTimingBarMarkup(zoneLeft,zoneWidth,marker,extraClass=""){
   const perfectWidth=zoneWidth*CUT_FEEL_CONFIG.perfectZoneRatio;
   const perfectLeft=zoneLeft+(zoneWidth-perfectWidth)/2;
   return `<div class="cut-timing${extraClass?` ${extraClass}`:""}">
       <div class="prep-timing-bar"><i class="prep-success-zone" style="left:${zoneLeft*100}%;width:${zoneWidth*100}%"></i><i class="prep-perfect-zone" style="left:${perfectLeft*100}%;width:${perfectWidth*100}%"></i></div>
       <i id="dayPrepMarker" class="prep-timing-marker" style="left:${marker*100}%"></i>
+      <i class="cut-timing-flash" aria-hidden="true"></i>
     </div>`;
+}
+
+/* ---- 하단 타이밍 바 빛 이펙트 -------------------------------
+   칠 때마다 조준선이 서 있던 자리에서 빛이 한 번 터집니다.
+   그림 파일은 안 씁니다 — css/minigame/e1-cut.css 의 .cut-timing-flash 가
+   그라디언트 두 겹(가운데 섬광 + 둥근 무리)으로 그립니다.
+   색은 판정에 따릅니다(PERFECT 금색 · GOOD 초록 · MISS/EARLY 붉은색).
+
+   자리는 지금 마커가 서 있는 곳입니다. 마커는 친 자리에 그대로 멈추므로
+   (조준선을 절단선으로 끌어다 붙이던 처리는 뺐습니다 · advanceTimingKnife 위 메모)
+   빛과 조준선은 늘 같은 자리입니다. */
+function flashCutTimingBar(grade){
+  const timing=dom.miniContent.querySelector(".cut-timing");
+  const flash=timing?.querySelector(".cut-timing-flash");
+  const marker=timing?.querySelector("#dayPrepMarker");
+  if(!flash||!marker)return;
+  flash.style.left=marker.style.left||"50%";
+  // 연달아 같은 애니메이션을 다시 틀려면 클래스를 뗀 뒤 리플로우를 한 번 냅니다.
+  flash.className="cut-timing-flash";
+  void flash.offsetWidth;
+  flash.className=`cut-timing-flash show ${grade}`;
 }
 
 /* ============================================================
@@ -285,10 +317,10 @@ function setupTimingCut(taskId){
     title:config.title,
     onComplete:()=>finishDayPrepTask(taskId,`${PREP_TASKS[taskId].label} 완료`),
     description:config.requiresDoubleTap
-      ?"하단 조준선이 초록 판정 구간에 들어올 때 Space를 빠르게 두 번 눌러 질긴 고기를 써세요."
+      ?"하단 조준선이 초록 판정 구간에 들어올 때 Space를 빠르게 두 번(또는 점선을 두 번 긋기) 눌러 질긴 고기를 써세요."
       :config.horizontalLastCut
-      ?`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
-      :`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르세요. 총 ${config.total}번 썹니다.`
+      ?`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르거나 점선을 따라 그으세요. 세로 ${config.total-1}번을 썬 뒤 마지막에 가로로 1번 썹니다.`
+      :`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르거나 점선을 따라 그으세요. 총 ${config.total}번 썹니다.`
   });
 }
 
@@ -346,13 +378,86 @@ function renderTimingCut(){
       </div>
       <div class="cut-footer">${data.requiresDoubleTap?'<div class="tough-cut-hint" id="toughCutHint"><span>SPACE 1</span><span>SPACE 2</span></div>':""}
         <button class="mini-action cut-action" id="dayPrepAction" type="button" ${countdownActive?"disabled":""}>Space · ${data.requiresDoubleTap?"빠르게 2번":"썰기"}</button></div>
+      <!-- 도마 아래 조작 안내. 버튼과 Space 는 눈에 보이지만 "점선을 그어도 된다"는
+           아무 표시가 없어서 아무도 모릅니다. 지금 차례가 세로냐 가로냐에 맞춰
+           긋는 방향까지 적습니다. -->
+      <p class="cut-drag-hint">${horizontalReady?"가로선을 타이밍 맞춰 좌우로 ↔ 드래그해도 썰려요":"점선을 타이밍 맞춰 위아래로 ↕ 드래그해도 썰려요"}${data.requiresDoubleTap?" (질긴 고기는 두 번)":""}</p>
       <span class="cut-judgement" id="cutJudgement" aria-live="polite"></span>
       ${countdownActive?`<div class="cut-start-countdown" id="cutStartCountdown" aria-live="assertive"><strong>${data.countdownStep}</strong></div>`:""}`;
   // 하단 바의 초록 구간과 조준선을 실제 판정 좌표에 맞춥니다.
   const footer=cutTimingBarMarkup(0,0,0,"cut-path-timing");
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.successes,total:data.total,footer});
   dom.miniContent.querySelector("#dayPrepAction").addEventListener("click",timingCutAction);
+  // 하단 타이밍 바도 썰기 버튼처럼 눌러서 칠 수 있습니다 — 눈이 가 있는 곳이
+  // 조준선이라, 칠 때 손이 거기서 멀리 갈 이유가 없습니다.
+  dom.miniContent.querySelector(".cut-timing")?.addEventListener("click",timingCutAction);
+  attachCutDragInput();
   syncTimingKnife(data);
+}
+
+/* ---- 점선 드래그 썰기 ---------------------------------------
+   Space·썰기 버튼 말고 "다음 절단선(점선)을 따라 긋는" 조작도 받습니다.
+   판정은 그대로 하단 조준선 타이밍(cutPathGrade)이라, 아무 때나 그어도
+   초록 구간 밖이면 EARLY/MISS 입니다. 드래그는 "언제 썰까"를 대신 말할
+   뿐이고, 어디를 써는지는 지금 차례인 절단선 하나로 정해져 있습니다.
+
+   인정 조건 — 세로 썰기는 점선 옆(±6%)에서 위아래로, 가로 썰기는 가로선
+   근처에서 좌우로, 재료 그림 짧은 쪽의 34% 이상 그어야 합니다.
+
+   ⚠️ 재료 도형(.prep-work-object)은 pointer-events:none 이라 획을 못 받습니다.
+      도마(.cut-board)가 받고, 좌표만 재료 상자 기준 % 로 환산합니다.
+      (절단선 %도 재료 상자 기준이라 그래야 맞물립니다) */
+function attachCutDragInput(){
+  const board=dom.miniContent.querySelector(".cut-board");
+  if(!board)return;
+  let stroke=null;
+  const endStroke=event=>{if(stroke&&stroke.pointerId===event.pointerId)stroke=null;};
+  board.addEventListener("pointerdown",event=>{
+    if(event.button>0)return;
+    // 썰기 버튼은 click 이 따로 받습니다 — 여기서도 세면 한 번에 두 번 썹니다.
+    if(event.target.closest?.(".mini-action"))return;
+    const rect=dom.miniContent.querySelector("#prepWorkObject")?.getBoundingClientRect();
+    if(!rect?.width||!rect.height)return;
+    /* ⚠️ 재료 그림은 <img> 라, 그 위에서 끌면 브라우저가 "그림 끌어내기"를
+       시작하면서 pointercancel 을 던집니다 — 획이 중간에 끊깁니다.
+       여기서 기본 동작을 막아야 획이 끝까지 옵니다(글자 끌기 선택도 같이). */
+    event.preventDefault();
+    stroke={pointerId:event.pointerId,rect,startX:event.clientX,startY:event.clientY,fired:false};
+    // 획 도중에 포인터가 도마 밖으로 나가도 끝까지 따라옵니다.
+    if(board.setPointerCapture)try{board.setPointerCapture(event.pointerId);}catch{}
+  });
+  board.addEventListener("pointermove",event=>{
+    if(!stroke||stroke.pointerId!==event.pointerId||stroke.fired)return;
+    if(!cutDragCompletesStroke(stroke,event))return;
+    // 한 획은 한 번만. 닭고기 2연타는 손을 뗐다가 한 번 더 그어야 합니다.
+    stroke.fired=true;
+    timingCutAction();
+  });
+  board.addEventListener("pointerup",endStroke);
+  board.addEventListener("pointercancel",endStroke);
+}
+
+// 지금까지 그은 자국이 "이번 절단선을 썬 한 획"인가
+function cutDragCompletesStroke(stroke,event){
+  const m=state.mini;
+  if(!m||m.complete)return false;
+  const data=m.data;
+  if(data.mode!=="timing"||data.inputLocked||data.phase==="countdown"||data.phase==="complete")return false;
+  const rect=stroke.rect;
+  const moveX=event.clientX-stroke.startX,moveY=event.clientY-stroke.startY;
+  const target=timingCutTarget(data);
+  const along=target.axis==="x"?moveY:moveX;   // 절단선을 따라 긋는 방향
+  const across=target.axis==="x"?moveX:moveY;  // 선을 가로지르는 방향
+  const reach=(target.axis==="x"?rect.height:rect.width)*CUT_FEEL_CONFIG.dragTravelRatio;
+  if(Math.abs(along)<Math.abs(across)||Math.abs(along)<reach)return false;
+  const toPercent=client=>target.axis==="x"
+    ?(client-rect.left)/rect.width*100
+    :(client-rect.top)/rect.height*100;
+  const from=toPercent(target.axis==="x"?stroke.startX:stroke.startY);
+  const to=toPercent(target.axis==="x"?event.clientX:event.clientY);
+  // 선을 타고 넘었으면(부호가 갈리면) 그대로 인정, 아니면 옆에 붙었는지 봅니다.
+  if((from-target.value)*(to-target.value)<=0)return true;
+  return Math.min(Math.abs(from-target.value),Math.abs(to-target.value))<=CUT_FEEL_CONFIG.dragLineTolerance;
 }
 
 function advanceTimingCutCountdown(m,dt){
@@ -475,11 +580,14 @@ function timingKnifeIsEarly(data){
     :target.current<target.value-data.hitTolerance;
 }
 
-function snapTimingKnifeToTarget(data){
-  const target=timingCutTarget(data);
-  if(target.axis==="x")data.knifeX=target.value;
-  else data.knifeY=target.value;
-}
+/* ⚠️ 여기 있던 snapTimingKnifeToTarget 은 뺐습니다.
+   칠 때마다 조준선을 절단선 정중앙으로 끌어다 붙이던 함수인데, 그러면
+   **친 자리에서 조준선이 순간이동**합니다(허용치만큼 · 무 기준 화면에서 40px 남짓).
+   빛 이펙트는 실제로 친 자리에서 터지므로 둘이 갈라져 보이기도 했습니다.
+   이제 조준선은 친 자리에 그대로 멈췄다가 거기서 다시 출발합니다.
+   대신 다음 박자 길이가 "얼마나 이르게/늦게 쳤는지" 만큼 늘거나 줄어듭니다 —
+   박자를 다시 고르게 만들려면 그 한 박자만 travelSpeed 를 비례로 맞추면 됩니다.
+   (칼 그림은 원래 knifeX 를 안 봅니다 — syncTimingKnife 가 늘 절단선에 세웁니다) */
 
 // The timing playhead advances once from the previous cut to the next. The
 // knife artwork itself stays on timingCutTarget(data) until the impact.
@@ -520,6 +628,7 @@ function timingCutAction(){
   const grade=cutPathGrade(data);
   if(grade==="miss"){
     if(timingKnifeIsEarly(data)){
+      flashCutTimingBar("early");
       const earlyJudgement=dom.miniContent.querySelector("#cutJudgement");
       if(earlyJudgement){earlyJudgement.textContent="EARLY";earlyJudgement.className="cut-judgement show miss";}
       dom.miniFeedback.textContent="하단 조준선이 아직 초록 판정 구간에 닿지 않았어요.";
@@ -536,12 +645,10 @@ function timingCutAction(){
   }
   if(data.requiresDoubleTap){
     data.tapStep=1;data.tapWindow=CUT_FEEL_CONFIG.doubleTapWindow;data.pendingGrade=grade;
+    flashCutTimingBar(grade);
     playCutIngredientSfx(data,1);
-    /* 첫 타도 두 번째 타처럼 절단선 위에서 긋도록 칼을 선에 붙입니다.
-       판정은 위에서 이미 pendingGrade 로 잡아 두었고 두 번째 타는 그 값을 쓰므로,
-       여기서 칼을 옮겨도 점수·타이밍은 그대로입니다. 안 붙이면 두 획이 서로 다른
-       X 에서 시작해 칼이 옆으로 미끄러지는 것처럼 보입니다. */
-    snapTimingKnifeToTarget(data);
+    /* 두 획 모두 절단선 위에서 긋습니다 — 칼 그림 자리는 syncTimingKnife 가
+       늘 절단선(timingCutTarget)에 세우므로, 조준선을 옮기지 않아도 그대로입니다. */
     syncTimingKnife(data);
     const work=dom.miniContent.querySelector("#prepWorkObject");
     work?.classList.add("tough-first-hit");
@@ -558,7 +665,8 @@ function completeTimingCut(m,grade="good",missMessage=""){
   const data=m.data;
   data.inputLocked=true;data.phase="impact";
   const cutIndex=data.successes;
-  snapTimingKnifeToTarget(data);
+  // 조준선은 친 자리에 그대로 멈춥니다. 빛도 같은 자리에서 터집니다.
+  flashCutTimingBar(grade);
   syncTimingKnife(data);
   if(grade==="miss"){
     data.mistakes=(data.mistakes||0)+1;
@@ -613,7 +721,7 @@ function setupTteokbokkiCut(taskId){
     assetStageMax:item.progressSprites.length-1,
     horizontalLastCut:!!item.horizontalLastCut,
     title:`떡볶이 · ${item.displayName} 썰기`,
-    description:`하단 조준선이 초록 판정 구간에 들어올 때 Space를 눌러 ${item.displayName}를 써세요.`,
+    description:`하단 조준선이 초록 판정 구간에 들어올 때 Space를 누르거나 점선을 따라 그어 ${item.displayName}를 써세요.`,
     onComplete:()=>finishDayPrepTask(taskId,`떡볶이용 ${item.displayName} 손질 완료`)
   });
 }
@@ -656,10 +764,14 @@ function renderNightChop(m){
   const footer=cutTimingBarMarkup(data.zoneStarts[data.cuts]??data.zoneStarts[data.zoneStarts.length-1],data.zoneWidth,data.marker);
   dom.miniContent.innerHTML=cutScreenMarkup(data,{board,done:data.cuts,total:data.total,footer});
   dom.miniContent.querySelector("#miniAction").addEventListener("click",miniAction);
+  // 낮 준비와 같이 하단 바도 눌러서 칠 수 있습니다.
+  dom.miniContent.querySelector(".cut-timing")?.addEventListener("click",miniAction);
 }
 
 function showNightChopImpact(m,cutIndex,grade){
   const data=m.data;
+  // 조준선이 아직 친 자리에 있을 때 빛을 터뜨립니다 (moveNightChopTarget 이 0 으로 되돌리기 전).
+  flashCutTimingBar(grade);
   const work=dom.miniContent.querySelector(data.tofuStyle?"#tofuCookObject":"#storyChopObject");
   const board=dom.miniContent.querySelector(".cut-board");
   const judgement=dom.miniContent.querySelector("#cutJudgement");
@@ -760,6 +872,7 @@ function tofuChopAction(m){
   const data=m.data;if(data.finishing)return;
   const cutIndex=data.cuts,zoneStart=data.zoneStarts[cutIndex];
   if(!isInsideCutZone(data.marker,zoneStart,data.zoneWidth)){
+    flashCutTimingBar("miss");
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 초록 구간에서 다시 썰어주세요.";audio.bad();return;
   }
   const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);

@@ -24,7 +24,8 @@ const E13_FRIDGE_FIND=Object.freeze({
   rows:3,          // 선반 3단
   half:4,          // 한쪽 문 안에 4칸
   columns:8,       // 4 | 4
-  slotCount:24     // rows x columns
+  slotCount:24,    // rows x columns
+  missPenalty:3    // 엉뚱한 재료를 누르면 걸린 시간에 더해지는 초
 });
 
 /* 칸 번호(0~23) → 격자 자리.
@@ -105,20 +106,21 @@ function e13Complete(progress){
 
 /* 칸 하나를 누른 결과.
      found   오늘 필요한 재료였다 (칸이 비고 개수가 오릅니다)
-     wrong   재료는 있는데 오늘 쓰지 않는다
+     wrong   재료는 있는데 오늘 쓰지 않는다 → **걸린 시간에 3초가 붙습니다**
      empty   이미 비어 있는 칸이다
-   실패나 감점은 없습니다. wrong 은 안내 문구용입니다. */
+   실패(게임 오버)는 없습니다. 벌칙은 기록에 붙는 3초뿐입니다. */
 function e13Pick(progress,slotIndex){
-  if(!progress||!Number.isInteger(slotIndex)||slotIndex<0||slotIndex>=E13_FRIDGE_FIND.slotCount)return {result:"empty",id:null,complete:false};
+  if(!progress||!Number.isInteger(slotIndex)||slotIndex<0||slotIndex>=E13_FRIDGE_FIND.slotCount)return {result:"empty",id:null,complete:false,penalty:0};
   const id=progress.slots[slotIndex];
-  if(!id)return {result:"empty",id:null,complete:e13Complete(progress)};
+  if(!id)return {result:"empty",id:null,complete:e13Complete(progress),penalty:0};
   if(!progress.required.includes(id)||progress.found.includes(id)){
     progress.misses+=1;
-    return {result:"wrong",id,complete:e13Complete(progress)};
+    progress.elapsed+=E13_FRIDGE_FIND.missPenalty;
+    return {result:"wrong",id,complete:e13Complete(progress),penalty:E13_FRIDGE_FIND.missPenalty};
   }
   progress.slots[slotIndex]=null;
   progress.found.push(id);
-  return {result:"found",id,complete:e13Complete(progress)};
+  return {result:"found",id,complete:e13Complete(progress),penalty:0};
 }
 
 /* 걸린 시간. 화면이 0.1초마다 불러 줍니다(제한시간이 아니라 기록입니다). */
@@ -128,8 +130,8 @@ function e13Tick(progress,seconds){
   return true;
 }
 
-/* 00:00 표기. 60분을 넘길 일은 없지만 넘겨도 분이 계속 늘어납니다. */
+/* 걸린 시간 표기. E10 멸치의 '남은 시간'과 같은 결로 **초 단위**입니다(12.3초).
+   한 판이 길어야 1~2분이라 분을 따로 떼면 오히려 읽기 번거롭습니다. */
 function e13TimeText(elapsed=0){
-  const total=Math.floor(Math.max(0,elapsed));
-  return `${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;
+  return `${Math.max(0,elapsed).toFixed(1)}초`;
 }

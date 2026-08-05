@@ -165,7 +165,7 @@ function setupMandoline(taskId,stageGrades=[]){
   setDayPrepData(createAlternateFeelState({mode:"mandoline",...task,successInputs:0,expected:task.directions[0],stageGrades:[...stageGrades]}));
   dom.miniTitle.textContent=`${task.label} 채썰기`;
   dom.miniStation.textContent=`${task.label}${koObjectParticle(task.label)} 직접 잡고 채칼 방향으로 크게 왕복해 주세요!`;
-  dom.miniDescription.textContent="재료를 잡아 왼쪽 위와 오른쪽 아래로 끝까지 왕복하세요. 방향키도 사용할 수 있습니다.";
+  dom.miniDescription.textContent="재료를 잡아 왼쪽 위와 오른쪽 아래로 끝까지 왕복하세요. 오른쪽 ◀ ▶ 버튼을 번갈아 눌러도 됩니다.";
   renderMandoline();
 }
 
@@ -300,7 +300,7 @@ function mandolineInput(direction,repeat=false,pointerDriven=false){
   const data=m.data;
   const result=acceptAlternateInput(data,direction,repeat);
   if(result.ignored)return false;
-  if(!result.accepted)return rejectAlternateInput(m,`${MANDOLINE_ARROWS[data.expected]} 방향 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#mandolineScene");
+  if(!result.accepted)return rejectAlternateInput(m,`${MANDOLINE_ARROWS[data.expected]} 방향 차례입니다. 반대쪽으로도 끝까지 밀어 주세요.`,"#mandolineScene");
   data.successInputs++;playAlternateSuccess(data.successInputs>=data.totalInputs);
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 넘어갑니다)
   renderMandoline();
@@ -426,12 +426,15 @@ function playFryPrepShake(selector,key,keys){
    실패나 되돌아감은 없습니다.
    ============================================================ */
 
-registerDayPrepEngine("potatoStarch",{
-  key(m,k,e){
-    if(/^[a-z]$/.test(k)){potatoStarchInput(k,e.repeat);return true;}
-    return false;
-  }
-});
+/* ⚠️ 여기 있던 **키보드 조작(랜덤 알파벳 두 개 번갈아 치기)을 뺐습니다.**
+   봉투를 잡고 흔드는 드래그와 같은 한 번이었는데, 두 가지가 있으면 안내를
+   두 줄로 적어야 하고 화면에도 뜻 없는 글자 버튼 두 개가 올라갔습니다.
+   이제 흔드는 방법은 드래그 하나입니다 (noKeyboard → mini-engine.js 참고).
+   ⚠️ 안쪽 판정은 그대로 "두 개를 번갈아" 모형입니다 — data.keys 한 쌍이 여전히
+      왼쪽/오른쪽 차례를 나타내고, 드래그가 그 차례의 값을 넣어 줍니다
+      (bindFriesBagDrag 의 potatoStarchInput 호출부). 키를 되살리려면 여기에
+      key(m,k,e) 를 되돌리기만 하면 됩니다. */
+registerDayPrepEngine("potatoStarch",{noKeyboard:true});
 
 function setupPotatoStarchShake(){
   const config=DAY4_PREP_CONFIG.potatoStarch;if(!state.mini)return;
@@ -439,7 +442,7 @@ function setupPotatoStarchShake(){
   setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
   dom.miniStation.textContent="봉투를 잡고 흔들어 튀김가루를 골고루 묻혀주세요!";
-  dom.miniDescription.textContent=`봉투를 잡고 좌우·대각선으로 크게 흔드세요. ${pair[0].toUpperCase()} / ${pair[1].toUpperCase()}를 번갈아 눌러도 됩니다.`;
+  dom.miniDescription.textContent="봉투를 잡고 좌우·대각선으로 크게 흔드세요. 한 번 잡은 채 왕복할수록 가루가 골고루 묻습니다.";
   renderPotatoStarchShake();
 }
 
@@ -453,7 +456,7 @@ function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
   const data=m.data;
   const result=acceptAlternateInput(data,key,repeat);
   if(result.ignored)return false;
-  if(!result.accepted)return rejectAlternateInput(m,`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#friesBagScene");
+  if(!result.accepted)return rejectAlternateInput(m,"같은 쪽으로만 밀고 있어요. 반대쪽으로도 크게 흔들어 주세요.","#friesBagScene");
   data.presses++;
   const completed=data.presses>=data.total;
   audio.play?.("fries_starch_bag_shake",{owner:m,random:true});
@@ -461,8 +464,9 @@ function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 닫힙니다)
   renderPotatoStarchShake();
   setFriesShakeTilt(data,tilt);
+  // 봉투가 기우는 쪽은 지금 차례(data.keys 의 앞/뒤)가 정합니다 — 키를 없앤 뒤에도
+  // 이 한 쌍은 "왼쪽 차례 / 오른쪽 차례" 를 나타내는 안쪽 값으로 그대로 씁니다.
   playFryPrepShake("#friesBagScene",key,data.keys);
-  dom.miniContent.querySelector(`[data-fry-prep-key="${key}"]`)?.classList.add("pressed");
   if(completed){
     const grade=alternateCompletionGrade(data);
     data.completionGrade=grade;
@@ -565,13 +569,14 @@ function renderPotatoStarchShake(){
     done:data.presses>=data.total?1:0,
     total:1,
     percent,
-    keys:data.keys,
-    expectedIndex:data.expectedIndex,
-    keyLink:"→",
+    // controlMarkup:"" → 조작 카드에서 **키 버튼 줄을 통째로 뺍니다.**
+    // 예전에는 여기에 랜덤 알파벳 두 개(A / D 같은)가 키캡으로 올라갔고 키보드와
+    // 짝이었습니다. 키보드를 뺀 지금은 눌러도 뜻이 없는 글자라 함께 지웠습니다.
+    controlMarkup:"",
     controlName:"봉투를 잡고<br />크게 흔들기",
-    controlDesc:`${data.keys[0].toUpperCase()} / ${data.keys[1].toUpperCase()}를 번갈아<br />눌러도 됩니다`,
+    controlDesc:"좌우로 크게 왕복할수록<br />가루가 잘 묻습니다",
     phase:data.phase
-  },key=>potatoStarchInput(key,false));
+  });
   bindFriesBagDrag();
   updateFriesBagDragPose(data);
 }

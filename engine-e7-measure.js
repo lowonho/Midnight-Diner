@@ -47,15 +47,13 @@
 registerDayPrepSetup("yakisobaSauce",()=>setupYakisobaSauce());
 registerDayPrepSetup("tteokbokkiSauce",()=>setupSauceRecipe("tteokbokki"));
 
-registerDayPrepEngine("sauceMeasure",{
-  key(m,k,e){
-    if(e?.repeat&&["arrowleft","arrowright","arrowdown"," ","enter"].includes(k))return true;
-    if(k==="arrowleft"){moveSauceCursor(-1);return true;}
-    if(k==="arrowright"){moveSauceCursor(1);return true;}
-    if(k==="arrowdown"||k===" "||k==="enter"){pourSelectedSauce();return true;}
-    return false;
-  }
-});
+/* ⚠️ 여기 있던 **키보드 조작(← → 로 소스통 고르기 · ↓/Space/Enter 로 붓기)을 뺐습니다.**
+   소스통을 바로 클릭하는 길이 이미 있어서(아래 renderYakisobaSauce 의 data-sauce-id
+   버튼) 같은 일을 두 벌로 하고 있었습니다. 이제 "넣을 차례인 소스통을 클릭" 하나입니다.
+   오른쪽 조작 카드의 ◀ ▶ ▼ 버튼 세 개도 같은 이유로 함께 뺐습니다.
+   ⚠️ 키 전용이던 moveSauceCursor / pourSelectedSauce 도 함께 뺐습니다 —
+      소스통을 누르면 addYakisobaSauce 로 곧장 들어갑니다(아래 그 함수 위 주석 참고). */
+registerDayPrepEngine("sauceMeasure",{noKeyboard:true});
 
 /* 레시피 + 재료 id → 소스통 에셋 키 (day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 와 같은 이름).
    ⚠️ 재료 id 하나로는 부족합니다 — **간장은 두 레시피에 다 나오는데 납품 그림이
@@ -132,7 +130,7 @@ function setupSauceRecipe(recipeId){
     sauces:recipe.ingredients.map(item=>({...item,amount:0}))
   });
   dom.miniTitle.textContent=recipeId==="tteokbokki"?"떡볶이 양념장 만들기":"볶음우동 소스 만들기";
-  dom.miniDescription.textContent=`←→로 소스통을 고르고 ↓로 부어주세요. ${recipe.ingredients.map(item=>item.label).join(" → ")} 순서로 넣어야 합니다!`;
+  dom.miniDescription.textContent=`화살표가 가리키는 소스통을 클릭해 부어주세요. ${recipe.ingredients.map(item=>item.label).join(" → ")} 순서로 넣어야 합니다!`;
   renderYakisobaSauce();
 }
 
@@ -207,12 +205,14 @@ function sauceGoalMarkup(recipeId,item,selected,order,turn){
     </div>`;
 }
 
-// 오른쪽 조작 카드 한 줄 : [키] [키] … + 설명
-function sauceControlRow(keys,caption,disabled){
+/* 오른쪽 조작 카드 한 줄 : [그림] + 설명
+   ⚠️ 예전에는 여기가 **키캡 줄**이었습니다 — ◀ ▶ 로 소스통을 고르고 ▼ 로 붓는
+      버튼 세 개였고 키보드 ← → ↓ 와 짝이었습니다. 소스통을 바로 클릭하는 길이
+      있는데 같은 일을 두 벌로 하고 있어서, 키보드와 함께 걷어냈습니다.
+      (되살리려면 sauce-key 버튼과 아래 렌더의 클릭 연결을 같이 되돌리세요) */
+function sauceControlRow(icon,caption){
   return `<div class="sc-control-row">
-      <span class="sc-keys">${keys.map((entry,index)=>
-        `${index?'<em aria-hidden="true">→</em>':""}<button type="button" class="sc-key" data-sauce-key="${entry.action}" ${disabled?"disabled":""} aria-label="${entry.label}">${entry.glyph}</button>`
-      ).join("")}</span>
+      <span class="sc-control-icon ${icon}" aria-hidden="true"></span>
       <p>${caption}</p>
     </div>`;
 }
@@ -266,12 +266,10 @@ function renderYakisobaSauce(){
         </div>
         <div class="sc-panel sc-control">
           <h3 class="sc-col-title">조작</h3>
-          ${sauceControlRow([{action:"left",glyph:"◀",label:"왼쪽 소스통"},{action:"right",glyph:"▶",label:"오른쪽 소스통"}],"좌우로<br />소스통 고르기",locked)}
-          ${sauceControlRow([{action:"pour",glyph:"▼",label:"붓기"}],
-            sauceStatus(current)==="exact"?`${current.label}<br /><b>넣기 완료</b>`
-              :data.cursor===turn?`${current.label}<br /><b>한 번에 넣기</b>`
-              :`${turnItem?turnItem.label:""}<br /><b>먼저 넣어주세요</b>`,
-            locked||sauceStatus(current)==="exact"||data.cursor!==turn)}
+          ${sauceControlRow("click","화살표가 가리키는<br />소스통을 클릭")}
+          ${sauceControlRow("pour",
+            exact===total?"<b>다 넣었습니다</b>"
+              :`${turnItem?turnItem.label:""}<br /><b>한 번에 들어갑니다</b>`)}
         </div>
       </aside>
     </div>`;
@@ -284,12 +282,6 @@ function renderYakisobaSauce(){
     data.shownFill=fill;
   }
   dom.miniContent.querySelectorAll("[data-sauce-id]").forEach(button=>button.addEventListener("click",()=>addYakisobaSauce(button.dataset.sauceId)));
-  dom.miniContent.querySelectorAll("[data-sauce-key]").forEach(button=>button.addEventListener("click",()=>{
-    const action=button.dataset.sauceKey;
-    if(action==="left")moveSauceCursor(-1);
-    else if(action==="right")moveSauceCursor(1);
-    else if(action==="pour")pourSelectedSauce();
-  }));
 }
 
 /* 병 그림이 **실제로 그려진** 상자. object-fit:contain 이라 상자보다 납작한 통
@@ -405,17 +397,11 @@ function selectSauce(index){
   dom.miniFeedback.textContent=`${sauce.label} 소스통 선택 · 한 번에 넣어주세요`;
 }
 
-function moveSauceCursor(delta){
-  const m=activeSauceMeasure();if(!m)return;
-  const total=m.data.sauces.length;
-  selectSauce((m.data.cursor+delta+total)%total);
-}
-
-function pourSelectedSauce(){
-  const m=activeSauceMeasure();if(!m)return;
-  addYakisobaSauce(m.data.sauces[m.data.cursor].id);
-}
-
+/* ⚠️ 여기 있던 moveSauceCursor(delta) 와 pourSelectedSauce() 를 뺐습니다.
+   "커서를 좌우로 옮기고 → 고른 것을 붓는다" 는 키보드(← → ↓)와 조작 카드 키 버튼
+   전용 길이었습니다. 소스통을 직접 클릭하면 addYakisobaSauce 로 바로 들어가므로
+   커서를 옮길 일이 없어졌습니다. 위 selectSauce 는 남깁니다 — 클릭한 소스통을
+   "지금 고른 것"으로 표시하는 데 계속 쓰입니다. */
 function addYakisobaSauce(id){
   const m=activeSauceMeasure();if(!m)return;
   const index=m.data.sauces.findIndex(item=>item.id===id);if(index<0)return;
