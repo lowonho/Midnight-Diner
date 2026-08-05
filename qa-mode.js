@@ -342,7 +342,6 @@ function qaPlayPrepMini(taskId){
   if(!task){qaRefreshPanel(`준비 작업을 찾지 못했습니다: ${taskId}`);return false;}
   if(!qaEnsureSession())return false;
   qaCancelTransientState();
-  if(task.minDay)state.day=DayManager.setDay(task.minDay);
   state.phase=GAME_PHASES.PREP;state.paused=false;
   qaSeedPrepContext(task);
   updateUI(true);syncPhaserObjects();
@@ -831,7 +830,7 @@ function qaMiniListMarkup(){
       <strong>${menu.displayName}</strong>
       ${tasks.map(task=>qaMiniButtonMarkup(
         "data-qa-prep",task.id,task.label,
-        `${task.miniGame}${task.minDay?` · Day ${task.minDay}부터`:""}`
+        task.miniGame
       )).join("")}
     </div>`).join("");
   const cookMarkup=`
@@ -932,7 +931,7 @@ function qaBuildPanel(){
       <div data-qa-view="mini" hidden>
         <input data-qa-search class="qa-mini-search" type="search" placeholder="메뉴·게임 이름으로 찾기" />
         <div class="qa-mini-list">${qaMiniListMarkup()}</div>
-        <small class="qa-mini-hint">Day 전용 작업은 그 날짜로 자동 이동합니다. 나머지는 지금 날짜 규칙을 따릅니다(Day 4+ 는 빠른 칼질).</small>
+        <small class="qa-mini-hint">모든 낮 준비 미니게임은 현재 선택한 날짜에서 실행됩니다.</small>
       </div>
       <div data-qa-view="story" hidden>
         <div class="qa-story-heading">

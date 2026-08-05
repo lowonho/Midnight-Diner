@@ -599,14 +599,14 @@ function startSoakGame(configId,config){
 }
 
 function setupTteokSoak(){
-  if(Number(state.day)<4||!state.mini)return;
+  if(!state.mini)return;
   dom.miniTitle.textContent="떡볶이 · 떡 불려두기";
   dom.miniDescription.textContent="떡을 볼에 담고, 옆의 물병을 기울여 진행도가 꽉 찰 때까지 물을 부어주세요!";
   startSoakGame("tteokSoak",{taskId:DAY4_PREP_CONFIG.soak.taskId,menuId:"tteokbokki",ingredientKey:"tteok",ingredientLabel:"떡"});
 }
 
 function setupUdonSoak(){
-  if(Number(state.day)<3||!state.mini)return;
+  if(!state.mini)return;
   dom.miniTitle.textContent="볶음우동 · 우동면 불려두기";
   dom.miniDescription.textContent="우동면을 볼에 담고, 옆의 물병을 기울여 진행도가 꽉 찰 때까지 물을 부어주세요!";
   startSoakGame("udonSoak",{taskId:"soakUdon",menuId:"yakisoba",ingredientKey:"udon",ingredientLabel:"우동면"});

@@ -119,7 +119,6 @@ const SAUCE_SLOTS=Object.freeze(["at-left","at-right","at-bottom"]);
 const SAUCE_POUR_DURATION=680;
 
 function setupYakisobaSauce(){
-  if(Number(state.day)<3)return;
   setupSauceRecipe("yakisoba");
 }
 

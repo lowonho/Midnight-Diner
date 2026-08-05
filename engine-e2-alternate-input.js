@@ -96,11 +96,11 @@ function koObjectParticle(word){
 // 작업 하나의 설정을 한 모양으로 맞춰 돌려줍니다. 모르는 작업이면 null.
 function mandolineTask(taskId){
   const yakisoba=DAY3_MANDOLINE_CONFIG[taskId];
-  if(yakisoba)return {taskId,chain:"yakisoba",day:3,
+  if(yakisoba)return {taskId,chain:"yakisoba",
     ingredient:yakisoba.ingredient,label:yakisoba.label,
     axis:"x",directions:["left","right"],totalInputs:yakisoba.cycles*2};
   const fries=DAY4_PREP_CONFIG.potatoMandoline;
-  if(fries&&taskId===fries.taskId)return {taskId,chain:"fries",day:4,
+  if(fries&&taskId===fries.taskId)return {taskId,chain:"fries",
     ingredient:fries.ingredient,label:fries.label,
     axis:"x",directions:[...fries.directions],totalInputs:fries.totalInputs};
   return null;
@@ -161,7 +161,7 @@ function mandolineCardAssetKey(ingredient){
 
 function setupMandoline(taskId,stageGrades=[]){
   const task=mandolineTask(taskId);
-  if(!task||!state.mini||Number(state.day)<task.day)return;
+  if(!task||!state.mini)return;
   setDayPrepData(createAlternateFeelState({mode:"mandoline",...task,successInputs:0,expected:task.directions[0],stageGrades:[...stageGrades]}));
   dom.miniTitle.textContent=`${task.label} 채썰기`;
   dom.miniStation.textContent=`${task.label}${koObjectParticle(task.label)} 직접 잡고 채칼 방향으로 크게 왕복해 주세요!`;
@@ -434,7 +434,7 @@ registerDayPrepEngine("potatoStarch",{
 });
 
 function setupPotatoStarchShake(){
-  const config=DAY4_PREP_CONFIG.potatoStarch;if(Number(state.day)<4||!state.mini)return;
+  const config=DAY4_PREP_CONFIG.potatoStarch;if(!state.mini)return;
   const pair=BREADCRUMB_KEY_PAIRS[Math.floor(Math.random()*BREADCRUMB_KEY_PAIRS.length)];
   setDayPrepData(createAlternateFeelState({mode:"potatoStarch",taskId:config.taskId,keys:[...pair],expectedIndex:0,presses:0,total:config.requiredPresses}));
   dom.miniTitle.textContent="감자튀김 준비";
@@ -754,7 +754,7 @@ function shrimpCoatPlayable(m){
 
 function setupShrimpCoat(taskId){
   const item=SHRIMP_COAT_STEPS[0];
-  if(Number(state.day)<3||taskId!==SHRIMP_COAT_TASK_ID||!item)return;
+  if(taskId!==SHRIMP_COAT_TASK_ID||!item)return;
   const data={mode:"shrimpCoat",taskId,step:0,sequence:SHRIMP_COAT_STEPS,successes:0,total:item.shrimpCount,
     board:null,drag:null,stageGrades:[],justCompleted:-1,inputLocked:false,transitioning:false,phase:"pick"};
   setDayPrepData(data);

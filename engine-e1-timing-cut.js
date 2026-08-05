@@ -601,7 +601,7 @@ function completeTimingCut(m,grade="good",missMessage=""){
 // 재료별 횟수와 스프라이트는 day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE 에 있습니다.
 function setupTteokbokkiCut(taskId){
   const item=TTEOKBOKKI_CUT_SEQUENCE.find(entry=>entry.taskId===taskId);
-  if(Number(state.day)<4||!item)return;
+  if(!item)return;
   startCuttingMinigame({
     taskId,
     ingredient:item.ingredientId,

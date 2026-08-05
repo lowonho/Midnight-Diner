@@ -538,7 +538,6 @@ function setDayPrepData(data){
 /* ---- 열기 · 닫기 ------------------------------------------ */
 
 function startDayPrepMini(task){
-  if(task.minDay&&Number(state.day)<Number(task.minDay)){showToast(`이 준비 작업은 Day ${task.minDay}부터 이용할 수 있습니다.`,true);return;}
   state.mini={
     type:`day-prep-${task.id}`,
     engine:"dayPrep",          // 각 setup 이 setDayPrepData 로 실제 엔진 이름을 채웁니다

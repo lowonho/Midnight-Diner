@@ -20,7 +20,12 @@ const STORY_CINEMATIC_BEATS=Object.freeze({
   rainRun:Object.freeze({from:.28,to:.78,duration:3200,rain:true,fade:false}),
   enter:Object.freeze({from:.78,to:.90,duration:1100,rain:true,fade:true})
 });
-const STORY_CINEMATIC_WALK_ANIM="story-pr01-walk-right";
+// 프롤로그도 실제 플레이어와 같은 김다은 스프라이트를 사용합니다.
+// 퇴근길에는 종이박스를 들고 있으므로 맨손 시트가 아니라 carry 걷기 시트의
+// 측면 모션을 재사용하고, 박스 그림만 그 위에 겹칩니다.
+const STORY_CINEMATIC_WALK_TEXTURE="chef_walk_carry";
+const STORY_CINEMATIC_WALK_ANIM="chef_walk_carry_side";
+const STORY_CINEMATIC_WALK_FIRST_FRAME=16;
 let storyCinematicRuntime=null;
 
 function storyCinematicConfig(line){
@@ -77,13 +82,12 @@ function createStoryCinematicRain(scene,root,width,height){
 }
 
 function ensureStoryCinematicWalkAnimation(scene){
-  if(scene.anims.exists(STORY_CINEMATIC_WALK_ANIM))return;
-  scene.anims.create({
-    key:STORY_CINEMATIC_WALK_ANIM,
-    frames:scene.anims.generateFrameNumbers("chef",{start:8,end:11}),
-    frameRate:7,
-    repeat:-1
-  });
+  // createPlayer()에서 이미 등록되지만, 저장 복원이나 QA 진입처럼 호출 순서가
+  // 달라져도 같은 플레이어 에셋을 사용할 수 있게 한 번 더 보장합니다.
+  if(!scene.textures.exists(STORY_CINEMATIC_WALK_TEXTURE)
+    &&typeof registerChefTextures==="function")registerChefTextures(scene);
+  if(!scene.anims.exists(STORY_CINEMATIC_WALK_ANIM)
+    &&typeof registerChefAnims==="function")registerChefAnims(scene);
 }
 
 function createPrologueExteriorCinematic(scene){
@@ -101,9 +105,9 @@ function createPrologueExteriorCinematic(scene){
 
   const rain=createStoryCinematicRain(scene,root,width,height);
   ensureStoryCinematicWalkAnimation(scene);
-  const sprite=scene.add.sprite(0,0,"chef",8)
+  const sprite=scene.add.sprite(0,0,STORY_CINEMATIC_WALK_TEXTURE,STORY_CINEMATIC_WALK_FIRST_FRAME)
     .setOrigin(.5,1)
-    .setScale(4)
+    .setScale(typeof chefAnimScale==="function"?chefAnimScale(STORY_CINEMATIC_WALK_ANIM):.865)
     .setFlipX(true);
   const box=scene.add.rectangle(50,-105,72,55,0xb67b48)
     .setStrokeStyle(5,0x694326,1);
@@ -124,7 +128,7 @@ function setStoryCinematicWalking(runtime,moving){
   if(moving)runtime.sprite.play(STORY_CINEMATIC_WALK_ANIM,true);
   else{
     runtime.sprite.stop();
-    runtime.sprite.setFrame(8);
+    runtime.sprite.setFrame(STORY_CINEMATIC_WALK_FIRST_FRAME);
   }
 }
 
@@ -155,7 +159,10 @@ function moveStoryCinematicCharacter(runtime,fromX,toX,duration,{rain=false,fade
 
 function applyStoryCinematic(line){
   const config=storyCinematicConfig(line);
-  if(!config){clearStoryCinematic();return false;}
+  // 대사에 새 beat가 없다는 것은 장면이 끝났다는 뜻이 아닙니다. 같은 장면의
+  // 속말·대사 동안 현재 배경과 이동 tween을 그대로 유지하고, 실제 장면 전환 때
+  // resetStoryStage()가 clearStoryCinematic()을 호출해 정리합니다.
+  if(!config)return !!storyCinematicRuntime;
   const scene=storyCinematicScene();
   if(!scene)return false;
   const runtime=storyCinematicRuntime?.scene===scene
