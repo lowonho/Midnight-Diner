@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SFX_LEVEL_AUDIT_RUNNING</title>
+<pre id="output">분석 중…</pre>
+<script type="module">
+try{
+  const output=document.querySelector("#output");
+  const gameSource=await fetch("../game.js").then(response=>response.text());
+  const paths=[...new Set([...gameSource.matchAll(/["'](assets\/sfx\/[^"']+\.mp3)["']/gi)].map(match=>match[1]))];
+  const context=new AudioContext();
+  const db=value=>value>0?20*Math.log10(value):-Infinity;
+  const round=value=>Number.isFinite(value)?Number(value.toFixed(1)):null;
+  const rows=[];
+
+  for(const path of paths){
+    const encoded=await fetch(`../${path}`).then(response=>response.arrayBuffer());
+    const buffer=await context.decodeAudioData(encoded);
+    const blockSize=Math.max(1,Math.round(buffer.sampleRate*.05));
+    const blockEnergy=[];
+    let peak=0,totalSquares=0,totalSamples=0;
+
+    for(let start=0;start<buffer.length;start+=blockSize){
+      const end=Math.min(buffer.length,start+blockSize);
+      let squares=0,samples=0;
+      for(let channel=0;channel<buffer.numberOfChannels;channel++){
+        const data=buffer.getChannelData(channel);
+        for(let index=start;index<end;index++){
+          const absolute=Math.abs(data[index]);
+          if(absolute>peak)peak=absolute;
+          squares+=data[index]*data[index];samples++;
+        }
+      }
+      blockEnergy.push({squares,samples,rms:Math.sqrt(squares/Math.max(1,samples))});
+      totalSquares+=squares;totalSamples+=samples;
+    }
+
+    const active=blockEnergy.filter(block=>db(block.rms)>-50);
+    const activeSquares=active.reduce((sum,block)=>sum+block.squares,0);
+    const activeSamples=active.reduce((sum,block)=>sum+block.samples,0);
+    const sorted=active.map(block=>block.rms).sort((a,b)=>a-b);
+    const p90=sorted.length?sorted[Math.min(sorted.length-1,Math.floor(sorted.length*.9))]:0;
+    rows.push({
+      name:path.split("/").pop(),
+      duration:Number(buffer.duration.toFixed(2)),
+      peakDb:round(db(peak)),
+      rmsDb:round(db(Math.sqrt(totalSquares/Math.max(1,totalSamples)))),
+      activeRmsDb:round(db(Math.sqrt(activeSquares/Math.max(1,activeSamples)))),
+      p90BlockDb:round(db(p90))
+    });
+  }
+
+  await context.close();
+  document.title="SFX_LEVEL_AUDIT_OK";
+  document.body.firstChild.textContent=`SFX_LEVEL_AUDIT_OK ${rows.length}\n${JSON.stringify(rows,null,2)}`;
+}catch(error){
+  document.title="SFX_LEVEL_AUDIT_FAIL";
+  document.body.firstChild.textContent=`SFX_LEVEL_AUDIT_FAIL\n${error.stack||error}`;
+}
+</script>

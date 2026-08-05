@@ -400,7 +400,7 @@ function activeSauceMeasure(){
 function selectSauce(index){
   const m=activeSauceMeasure();if(!m)return;
   const sauce=m.data.sauces[index];if(!sauce||index===m.data.cursor)return;
-  m.data.cursor=index;audio.click();
+  m.data.cursor=index;audio.uiClick();
   renderYakisobaSauce();
   dom.miniFeedback.textContent=`${sauce.label} 소스통 선택 · 한 번에 넣어주세요`;
 }

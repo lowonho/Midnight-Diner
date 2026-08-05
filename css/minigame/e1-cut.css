@@ -443,7 +443,7 @@
   background:repeating-linear-gradient(90deg,#fff3bd 0 calc(8 * var(--upx)),transparent calc(8 * var(--upx)) calc(14 * var(--upx)));
   filter:drop-shadow(0 0 calc(4 * var(--upx)) rgba(75,35,14,.95));
 }
-.cut-board .prep-work-object.cabbage-shape { width:min(88%,calc(620 * var(--upx))); height:calc(300 * var(--upx)); }
+.cut-board .prep-work-object.cabbage-shape { width:min(63.36%,calc(446.4 * var(--upx))); height:calc(216 * var(--upx)); }
 .cut-board .prep-work-object.chicken-shape { width:min(94%,calc(760 * var(--upx))); height:calc(190 * var(--upx)); }
 .cut-board .prep-work-object.kimchi-shape { width:min(94%,calc(760 * var(--upx))); height:calc(230 * var(--upx)); }
 .cut-board .prep-work-object.fishCake-shape { width:min(60%,calc(288 * var(--upx))); height:calc(204 * var(--upx)); }
@@ -460,25 +460,20 @@
      · 폭(--cut-obj-w)만 재료마다 잡으면 높이는 비율이 따라옵니다.
      · 도마 안쪽은 765 x 458 입니다. 세로로 큰 양배추만 높이에 걸려 폭이
        작습니다. max-height 로 한 번 더 막아 둡니다.
-   ⚠️ 폭을 더 키우지 마세요. 칼은 첫 절단선보다 한 칸 오른쪽(그림 폭의 최대
-      101% — engine-e1-timing-cut.js 의 startXCeiling)에서 출발하는데, 그
-      자리가 도마 밖이면 카운트다운 3초 동안 칼이 잘려 보입니다.
-      칼 폭이 69 이므로 들어갈 수 있는 최대 폭은
-      `(765 - 69 - 382.5) / (1.01 - 0.5) ≈ 614` 입니다
-      (재료가 가운데 정렬이라 폭을 키우면 왼쪽 여백도 같이 줄어듭니다).
-      실제로 걸리는지는 tools/e1-cut-screen-visual-smoke.html 의
-      ?start=1 이 `knifeClipped.right` 로 알려 줍니다. */
+   칼 그림은 다음 절단선 위에 머물고 하단 조준선만 출발 위치에서 움직입니다.
+   재료 폭을 바꿀 때는 tools/e1-cut-screen-visual-smoke.html 의
+   `objectClipped` · `knifeClipped.right` 로 도마 밖 잘림을 확인합니다. */
 .cut-board .prep-work-object.has-prep-asset {
   width: min(100%, calc(var(--cut-obj-w,620) * var(--upx)));
   height: auto;
   max-height: 100%;
   aspect-ratio: var(--ing-ar);
 }
-.cut-board .prep-work-object.radish-shape.has-prep-asset     { --cut-obj-w: 650; }
-.cut-board .prep-work-object.greenOnion-shape.has-prep-asset { --cut-obj-w: 650; }
+.cut-board .prep-work-object.radish-shape.has-prep-asset     { --cut-obj-w: 747.5; }
+.cut-board .prep-work-object.greenOnion-shape.has-prep-asset { --cut-obj-w: 695.5; }
 .cut-board .prep-work-object.chicken-shape.has-prep-asset    { --cut-obj-w: 650; }
 .cut-board .prep-work-object.kimchi-shape.has-prep-asset     { --cut-obj-w: 640; }
-.cut-board .prep-work-object.cabbage-shape.has-prep-asset    { --cut-obj-w: 560; }
+.cut-board .prep-work-object.cabbage-shape.has-prep-asset    { --cut-obj-w: 403.2; }
 .cut-board .prep-work-object.tofu-shape.has-prep-asset       { --cut-obj-w: 450; }
 .cut-board .prep-work-object.fishCake-shape.has-prep-asset   { --cut-obj-w: 350; }
 /* 빠른 칼질(rapidCut)은 원래 자기 도마를 직접 그렸습니다. 이제 바깥 도마 위에
@@ -912,8 +907,8 @@
 }
 /* 세로 칼 : 왼쪽으로 5도 기울여 들었다가, 세우면서 위에서 아래로 크게 긋습니다.
    칼 크기가 고정이라 날(333)이 재료보다 짧을 수 있는데, 이 획이 그만큼을
-   지나가면서 덮습니다. -84 ~ +96 (합 180) 이면 가장 큰 양배추(427, 위아래
-   47 씩 모자람)도 넉넉히 훑습니다.
+   지나가면서 덮습니다. -84 ~ +96 (합 180) 이면 양배추(307)도 넉넉히
+   훑습니다.
    ⚠️ -84 보다 더 들면 칼끝이 도마 위로 잘립니다. 칼 상자 위쪽은 늘 도마
       안쪽 62.5 자리에 있고(날 한가운데를 재료 한가운데에 맞추므로), 도마
       안쪽 여백이 22 뿐입니다.
