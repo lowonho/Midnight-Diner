@@ -126,7 +126,9 @@ function freshState(day=1,phase=GAME_PHASES.PREP){
     discardLoss:0,
     nightCustomerTarget:0,
     spawnedCustomers:0,
+    generalSpawnedCustomers:0,
     served:0,
+    generalServed:0,
     satisfactionTotal:0,
     fiveStar:0,
     audio:{master:0.8,bgm:0.7,sfx:0.9},
@@ -152,18 +154,44 @@ function freshState(day=1,phase=GAME_PHASES.PREP){
 }
 
 function applySlotMarker(marker,index){
+  const guestId=STORY_GUEST_IDS[0];
   state.day=index+1;
   state.money=1000+index;
   state.story=createStoryState();
   state.story.choices["choice-"+marker]=index;
   state.story.flags["flag-"+marker]=true;
-  state.story.guestState.gicheol.affinity=10+index;
+  state.story.guestState[guestId].affinity=10+index;
   state.story.completed["scene-"+marker]=true;
   state.story.storyCookResults["result-"+marker]={
     score:70+index,tier:index%2?"great":"soft",day:index+1,dishId:"kimchi"
   };
   nextOrderId=100+index;
 }
+
+// 시나리오 전면 개편 배포에서는 과거 자동·수동 네 칸을 한 번만 비웁니다.
+const legacyBases=[...LEGACY_SAVE_KEYS,SAVE_KEY];
+legacyBases.forEach(base=>{
+  localStorage.setItem(base,"legacy-auto");
+  MANUAL_SAVE_SLOTS.forEach(slotId=>localStorage.setItem(base+"."+slotId,"legacy-manual"));
+});
+localStorage.setItem(SAVE_SCHEMA_KEY,String(SAVE_VERSION-1));
+localStorage.setItem(JOURNAL_KEY,JSON.stringify({
+  version:JOURNAL_VERSION,updatedAt:1,guests:{rain_child:{id:"rain_child",label:"비에 젖은 아이"}},fragments:{},endings:{}
+}));
+initializeSaveSystem();
+legacyBases.forEach(base=>{
+  assert(localStorage.getItem(base)===null,"구 저장의 자동 저장 키를 초기화해야 합니다.");
+  MANUAL_SAVE_SLOTS.forEach(slotId=>assert(localStorage.getItem(base+"."+slotId)===null,
+    "구 저장의 "+slotId+" 키를 초기화해야 합니다."));
+});
+assert(localStorage.getItem(SAVE_SCHEMA_KEY)===String(SAVE_VERSION),
+  "저장 초기화 완료 버전을 기록해야 합니다.");
+assert(readJournalData().guests.rain_child?.label==="비에 젖은 아이",
+  "저장 슬롯 초기화가 영업일지 메타 기록을 삭제하면 안 됩니다.");
+localStorage.setItem(saveKeyForSlot("auto"),"new-version-data");
+assert(migrateSaveStorage()===false&&rawSlot("auto")==="new-version-data",
+  "완료된 저장 마이그레이션을 다시 실행해 새 저장을 지우면 안 됩니다.");
+localStorage.removeItem(saveKeyForSlot("auto"));
 
 same(
   SAVE_SLOT_DEFS.map(slot=>({id:slot.id,label:slot.label,manual:slot.manual})),
@@ -193,16 +221,33 @@ slotMarkers.forEach(([slotId,marker,index])=>{
 
 slotMarkers.forEach(([slotId,marker,index])=>{
   const saved=readSaveData(slotId);
+  const guestId=STORY_GUEST_IDS[0];
   assert(saved&&saved.nextOrderId===100+index,slotId+"의 nextOrderId가 독립적으로 저장되어야 합니다.");
   same(saved.state.story.choices,{["choice-"+marker]:index},slotId+" 선택지 격리");
   same(saved.state.story.flags,{["flag-"+marker]:true},slotId+" 플래그 격리");
-  assert(saved.state.story.guestState.gicheol.affinity===10+index,slotId+" 호감도 격리");
+  assert(saved.state.story.guestState[guestId].affinity===10+index,slotId+" 손님 상태 격리");
   same(saved.state.story.completed,{["scene-"+marker]:true},slotId+" 완료 장면 격리");
   assert(saved.state.story.storyCookResults["result-"+marker].score===70+index,slotId+" 조리 결과 격리");
 });
 same(readAllSaveSlots().map(slot=>slot.id),["auto","manual1","manual2","manual3"],
   "전체 슬롯 조회도 표시 순서를 보존해야 합니다.");
 assert(hasAnySaveData(),"한 슬롯이라도 있으면 이어하기 저장이 존재해야 합니다.");
+
+assert(recordJournalGuest("crow_delivery",{label:"까마귀 배달부",day:4})?.label==="까마귀 배달부",
+  "스토리에서 특별 손님을 영업일지에 기록할 수 있어야 합니다.");
+assert(recordJournalFragment("fragment-04",{label:"네 번째 달빛 조각",day:4})?.day===4,
+  "스토리에서 받은 달빛 조각을 영업일지에 기록할 수 있어야 합니다.");
+assert(recordJournalEnding("true-ending",{label:"진엔딩"})?.label==="진엔딩",
+  "스토리에서 확인한 엔딩을 영업일지에 기록할 수 있어야 합니다.");
+const journalSnapshot=readJournalData();
+assert(journalSnapshot.guests.crow_delivery&&journalSnapshot.fragments["fragment-04"]
+  &&journalSnapshot.endings["true-ending"],
+  "손님·조각·엔딩 기록은 같은 영업일지에 누적되어야 합니다.");
+assert(window.MoonlightTableSave.readJournal===readJournalData
+  &&window.MoonlightTableSave.recordGuest===recordJournalGuest
+  &&window.MoonlightTableSave.recordFragment===recordJournalFragment
+  &&window.MoonlightTableSave.recordEnding===recordJournalEnding,
+  "story.js가 사용할 영업일지 helper API를 공개해야 합니다.");
 
 const manualBeforeAuto=MANUAL_SAVE_SLOTS.map(rawSlot);
 const autoBefore=rawSlot("auto");
@@ -261,7 +306,7 @@ MANUAL_SAVE_SLOTS.forEach(slotId=>{
 
 const manualsBeforeClear=MANUAL_SAVE_SLOTS.map(rawSlot);
 autosaveElapsed=4.5;
-assert(clearSaveData("auto"),"자동 저장 삭제는 성공을 반환해야 합니다.");
+assert(clearAutoSaveForTrueEnding(),"진엔딩 자동 저장 삭제는 성공을 반환해야 합니다.");
 assert(rawSlot("auto")===null,"자동 저장 삭제는 자동 저장만 지워야 합니다.");
 same(MANUAL_SAVE_SLOTS.map(rawSlot),manualsBeforeClear,
   "자동 저장 삭제 뒤에도 수동 저장 3개는 유지되어야 합니다.");
@@ -282,7 +327,7 @@ state.mini={kind:"test"};
 assert(!saveGame(true)&&!saveManualGame("manual1"),"미니게임 중에는 자동/수동 저장을 거부해야 합니다.");
 assert(rawSlot("auto")===autoBeforeRejectedSave,"거부된 미니게임 저장은 기존 자동 저장을 덮어쓰면 안 됩니다.");
 state.mini=null;
-state.story.activeStoryCook={sceneId:"PR-01",dishId:"tofu"};
+state.story.activeStoryCook={sceneId:"SCN-P01",dishId:"tofu"};
 assert(!saveGame(true)&&!saveManualGame("manual1"),"직접 스토리 조리 중에는 자동/수동 저장을 거부해야 합니다.");
 assert(rawSlot("auto")===autoBeforeRejectedSave,"거부된 직접 조리 저장은 기존 자동 저장을 덮어쓰면 안 됩니다.");
 state.story.activeStoryCook=null;
@@ -294,83 +339,82 @@ restoreStoryCheckpoint=function(checkpoint){
   return actualRestoreStoryCheckpoint(checkpoint);
 };
 
-freshState(2,GAME_PHASES.OPEN);
-assert(playStoryScenes(["G-02"]),"G-02 대화를 시작할 수 있어야 합니다.");
-const g02ChoiceLineIndex=storySession.lines.findIndex(line=>
-  Array.isArray(line.choices)&&line.choices.some(choice=>Number(choice.affinity)>0)
+const choiceScene=Object.values(STORY_SCENES).find(scene=>
+  scene.lines.some(line=>Array.isArray(line.choices)&&line.choices.length>=2)
 );
-assert(g02ChoiceLineIndex>=0,"G-02 일반 선택지를 찾아야 합니다.");
-storySession.lineIndex=g02ChoiceLineIndex;
+assert(!!choiceScene,"분기 저장을 검증할 선택지 장면이 있어야 합니다.");
+freshState(choiceScene.day||7,GAME_PHASES.OPEN);
+delete state.generalServed;
+delete state.generalSpawnedCustomers;
+state.story.loop=Math.max(1,Number(choiceScene.minLoop)||1);
+STORY_GUEST_IDS.slice(0,Number(choiceScene.shardRange?.[0])||0)
+  .forEach(id=>{state.story.guestState[id].shardOwned=true;});
+(choiceScene.requiredFlags||[]).forEach(flag=>{state.story.flags[flag]=true;});
+assert(playStoryScenes([choiceScene.id]),choiceScene.id+" 대화를 시작할 수 있어야 합니다.");
+const choiceLineIndex=storySession.lines.findIndex(line=>Array.isArray(line.choices)&&line.choices.length>=2);
+assert(choiceLineIndex>=0,"분기 장면에서 선택지를 찾아야 합니다.");
+storySession.lineIndex=choiceLineIndex;
 showStoryLine();
-const g02BaseLineCount=storySession.lines.length;
-const g02Choice=storySession.lines[g02ChoiceLineIndex].choices[0];
-const g02Reply=g02Choice.reply;
+const choiceBaseLineCount=storySession.lines.length;
 assert(saveManualGame("manual1"),"선택 전 대화 체크포인트를 수동 저장할 수 있어야 합니다.");
 const beforeChoiceSave=readSaveData("manual1");
-assert(beforeChoiceSave.storyCheckpoint.lineIndex===g02ChoiceLineIndex,
+assert(beforeChoiceSave.storyCheckpoint.lineIndex===choiceLineIndex,
   "선택 전 체크포인트는 선택지 줄에서 재개해야 합니다.");
-assert(beforeChoiceSave.state.story.choices["G-02"]===undefined,
+assert(beforeChoiceSave.state.story.choices[choiceScene.id]===undefined,
   "선택 전 저장에 미래 선택이 들어가면 안 됩니다.");
 
-chooseStoryOption(g02Choice,0);
-assert(state.story.choices["G-02"]===0,"선택 직후 선택 인덱스를 기록해야 합니다.");
-assert(state.story.guestState.gicheol.affinity===1,"일반 선택지 호감도는 한 번만 적용되어야 합니다.");
-assert(storySession.lines.filter(line=>line.text===g02Reply).length===1,
-  "일반 선택지 답변 줄은 한 번만 삽입되어야 합니다.");
+// 실제 선택 처리 방식이 엔딩 전환으로 바뀌어도, 세이브 계약은 선택 인덱스와
+// 그 순간의 대화 체크포인트를 그대로 보존해야 합니다.
+state.story.choices[choiceScene.id]=0;
+storySession.lineIndex=choiceLineIndex;
 assert(saveManualGame("manual2"),"선택 후 수정된 대화 체크포인트를 수동 저장할 수 있어야 합니다.");
 const afterChoiceSave=readSaveData("manual2");
-assert(afterChoiceSave.storyCheckpoint.lines.length===g02BaseLineCount+1,
-  "선택 후 체크포인트에 삽입된 답변 줄이 포함되어야 합니다.");
+assert(afterChoiceSave.state.story.choices[choiceScene.id]===0,
+  "선택 후 체크포인트에 고른 분기가 포함되어야 합니다.");
 
-state.story.guestState.gicheol.affinity=99;
-storySession.lines.splice(g02ChoiceLineIndex+1,0,{speaker:"gicheol",text:g02Reply});
+state.story.choices[choiceScene.id]=1;
 restoreGameState(afterChoiceSave);
-assert(state.story.choices["G-02"]===0&&state.story.guestState.gicheol.affinity===1,
-  "선택 후 저장 복원은 선택과 호감도를 정확히 되돌려야 합니다.");
-assert(storySession.lines.length===g02BaseLineCount+1
-  &&storySession.lines.filter(line=>line.text===g02Reply).length===1,
-  "선택 후 복원은 삽입 답변을 중복 생성하면 안 됩니다.");
+assert(state.story.choices[choiceScene.id]===0,
+  "선택 후 저장 복원은 선택한 분기를 정확히 되돌려야 합니다.");
+assert(state.generalServed===0,"구 저장에 없는 일반 손님 제공 수는 0으로 정규화해야 합니다.");
+assert(state.generalSpawnedCustomers===0,"구 저장에 없는 일반 손님 생성 수는 0으로 정규화해야 합니다.");
+assert(storySession.lines.length===choiceBaseLineCount&&storySession.lineIndex===choiceLineIndex,
+  "선택 후 복원은 저장 당시 대사 배열과 위치를 되돌려야 합니다.");
 restoreGameState(afterChoiceSave);
-assert(state.story.guestState.gicheol.affinity===1
-  &&storySession.lines.filter(line=>line.text===g02Reply).length===1,
-  "같은 체크포인트를 반복 복원해도 호감도와 답변이 중복되면 안 됩니다.");
+assert(state.story.choices[choiceScene.id]===0&&storySession.lines.length===choiceBaseLineCount,
+  "같은 체크포인트를 반복 복원해도 선택과 대사가 중복되면 안 됩니다.");
 
 restoreGameState(beforeChoiceSave);
-assert(state.story.choices["G-02"]===undefined
-  &&state.story.guestState.gicheol.affinity===0,
+assert(state.story.choices[choiceScene.id]===undefined,
   "선택 전 저장을 불러오면 다른 선택지를 고를 수 있는 상태로 돌아가야 합니다.");
-assert(storySession.lineIndex===g02ChoiceLineIndex
-  &&storySession.lines.length===g02BaseLineCount
-  &&storySession.lines.filter(line=>line.text===g02Reply).length===0,
+assert(storySession.lineIndex===choiceLineIndex
+  &&storySession.lines.length===choiceBaseLineCount,
   "선택 전 복원은 선택지 줄과 원본 대사 배열을 복원해야 합니다.");
 
 freshState(1,GAME_PHASES.PREP);
-assert(playStoryScenes(["PR-01","PR-02"]),"연속 프롤로그 장면을 시작할 수 있어야 합니다.");
+assert(playStoryScenes(["SCN-P01","SCN-P02"]),"연속 프롤로그 장면을 시작할 수 있어야 합니다.");
 completeStoryScene();
 const sceneBoundarySave=readSaveData("auto");
-assert(sceneBoundarySave?.state.story.completed["PR-01"]===true,
+assert(sceneBoundarySave?.state.story.completed["SCN-P01"]===true,
   "장면 완료 직후 자동 저장에 완료 플래그가 반영되어야 합니다.");
-assert(sceneBoundarySave?.storyCheckpoint?.sceneId==="PR-02",
+assert(sceneBoundarySave?.storyCheckpoint?.sceneId==="SCN-P02",
   "장면 완료 직후 자동 저장은 다음 장면의 재개 위치를 가리켜야 합니다.");
 
-freshState(5,GAME_PHASES.OPEN);
+const orderScene=Object.values(STORY_SCENES).find(scene=>scene.specialGuest&&scene.guestOrder);
+assert(!!orderScene,"특별 손님 주문 저장을 검증할 장면이 있어야 합니다.");
+freshState(orderScene.day,GAME_PHASES.OPEN);
 state.orders=[{
-  id:777,slot:0,dishId:"kimchi",storyDishId:"kimchi",
-  customerType:"story",guestId:"gicheol",storySceneId:"G-03",
+  id:777,slot:0,dishId:orderScene.dishId,storyDishId:orderScene.dishId,
+  customerType:"story",guestId:orderScene.character,storySceneId:orderScene.id,
   storyArrival:"early",deferUntilArrival:true,guestOrder:true,
   specialRecipe:false,repeatVisit:true,satisfaction:0
 }];
 nextOrderId=778;
-assert(playStoryScenes(["G-03"]),"G-03 대화를 시작할 수 있어야 합니다.");
-const g03ChoiceLineIndex=storySession.lines.findIndex(line=>
-  Array.isArray(line.choices)&&line.choices.some(choice=>choice.orderCook)
-);
-storySession.lineIndex=g03ChoiceLineIndex;
-showStoryLine();
-const specialChoice=storySession.lines[g03ChoiceLineIndex].choices[0];
-chooseStoryOption(specialChoice,0);
+assert(playStoryScenes([orderScene.id]),orderScene.id+" 대화를 시작할 수 있어야 합니다.");
+assert(suspendStoryForOrderCook(orderScene,{special:true,thresholds:STORY_SCORE_THRESHOLDS},{lineIndex:0}),
+  "특별 손님 주문 대화를 조리 대기 상태로 전환할 수 있어야 합니다.");
 assert(storyCookingIsActive()&&activeStoryCookOrderId()===777,
-  "주문 조리 선택 뒤 대화가 suspended 상태가 되어야 합니다.");
+  "주문 조리 시작 뒤 대화가 suspended 상태가 되어야 합니다.");
 assert(saveManualGame("manual3"),"suspended orderCook 상태는 수동 저장할 수 있어야 합니다.");
 const suspendedSave=readSaveData("manual3");
 assert(suspendedSave.storyCheckpoint.suspended
@@ -388,7 +432,7 @@ assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 
-console.log("SAVE_SLOTS_CONTRACT_OK 58");
+console.log("SAVE_SLOTS_CONTRACT_OK 83");
 `;
 
 const context={

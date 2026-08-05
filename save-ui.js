@@ -180,8 +180,9 @@ function createSaveSlotItem(slot){
 function saveSlotSummary(data){
   const saved=data?.state||{};
   const day=Number.isFinite(saved.day)?saved.day:"-";
-  const popularity=Number.isFinite(saved.popularity)?saved.popularity:0;
-  return `DAY ${day} · ${saveSlotPhaseLabel(saved.phase)} · 인기도 ${popularity}`;
+  const loop=Math.max(1,Math.floor(Number(saved.story?.loop)||1));
+  const shards=Object.values(saved.story?.guestState||{}).filter(guest=>guest?.shardOwned).length;
+  return `DAY ${day} · ${saveSlotPhaseLabel(saved.phase)} · 루프 ${loop} · 달빛 조각 ${shards}/8`;
 }
 
 function saveSlotPhaseLabel(phase){
@@ -190,7 +191,7 @@ function saveSlotPhaseLabel(phase){
   if(phase===phases.MENU_SELECT||phase==="menuSelect")return "메뉴 선택";
   if(phase===phases.PREP||phase==="day")return "낮 준비";
   if(phase===phases.OPEN||phase==="night")return "밤 영업";
-  if(phase===phases.RESULT||phase==="result")return "영업 정산";
+  if(phase===phases.RESULT||phase==="result")return "영업 마감";
   return "진행 중";
 }
 

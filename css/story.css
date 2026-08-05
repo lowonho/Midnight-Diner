@@ -25,8 +25,33 @@
 }
 .story-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
 
+.story-skip {
+  position: absolute;
+  z-index: 25;
+  top: calc(22 * var(--upx));
+  right: calc(28 * var(--upx));
+  min-width: calc(78 * var(--upx));
+  min-height: calc(36 * var(--upx));
+  padding: calc(7 * var(--upx)) calc(14 * var(--upx));
+  border: 1px solid rgba(235,190,111,.72);
+  border-radius: calc(18 * var(--upx));
+  background: rgba(27,15,10,.88);
+  color: #f1cc88;
+  font-size: calc(12 * var(--upx));
+  font-weight: 800;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+.story-skip:hover,
+.story-skip:focus-visible {
+  border-color: #ffe09a;
+  background: rgba(76,43,23,.96);
+  outline: none;
+}
+.story-skip[hidden] { display: none; }
+
 /* 스토리 대화 중에는 Phaser 장면과 자막 UI만 남깁니다.
-   사장이 조리를 알려주는 줄(.show-game-ui)은 튜토리얼 HUD를 볼 수 있도록 예외입니다.
+   조리 안내 줄(.show-game-ui)은 튜토리얼 HUD를 볼 수 있도록 예외입니다.
    각 UI의 open/show 상태 자체는 건드리지 않아 대화가 끝나면 원래 상태로 복귀합니다. */
 .game-frame:has(> #storyOverlay.open:not(.show-game-ui)) > :not(#gameCanvas):not(#storyOverlay) {
   opacity: 0 !important;

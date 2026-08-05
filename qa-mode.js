@@ -24,13 +24,25 @@ const QA_STORY_MOMENT_ORDER=Object.freeze({
   newGame:0,
   dayStart:1,
   nightStart:2,
-  nightEnd:3
+  specialGuest:3,
+  specialGuestMissing:4,
+  specialGuestResult:5,
+  nightEnd:6,
+  nightJudgement:7,
+  ending:8,
+  epilogue:9
 });
 const QA_STORY_MOMENT_LABELS=Object.freeze({
   newGame:"프롤로그",
   dayStart:"낮 시작",
   nightStart:"밤 영업",
-  nightEnd:"마감"
+  specialGuest:"특별 손님",
+  specialGuestMissing:"음식 미준비",
+  specialGuestResult:"조리 결과",
+  nightEnd:"마감",
+  nightJudgement:"일곱째 밤 판정",
+  ending:"엔딩",
+  epilogue:"에필로그"
 });
 const QA_STORY_KIND_LABELS=Object.freeze({
   sound:"음향",
@@ -42,6 +54,7 @@ let qaStorySelectedDay=0;
 let qaStorySelectedSceneId=null;
 let qaStorySelectedLine=0;
 let qaStoryReturnContext=null;
+const qaStoryJournalStates={};
 let qaIngredientAllMenus=false;
 
 function qaIngredientMenuSelectionRules(dayData){
@@ -375,25 +388,53 @@ function qaAbortMini(){
    qaPreview 세션에서 원본 대사를 앞뒤로 확인합니다.
    ============================================================ */
 
-function qaStoryDayForScene(scene){
+function qaStoryDayForScene(scene,contextDay=qaStorySelectedDay){
   if(!scene)return 0;
-  return scene.moment==="newGame"?0:Math.max(1,Math.min(DayManager.maxDay,Number(scene.day)||1));
+  if(scene.moment==="newGame")return 0;
+  const explicitDay=Number(scene.day);
+  if(Number.isFinite(explicitDay)&&explicitDay>0){
+    return Math.max(1,Math.min(DayManager.maxDay,Math.floor(explicitDay)));
+  }
+  const selectedDay=Number(contextDay)||Number(state?.day)||1;
+  return Math.max(1,Math.min(DayManager.maxDay,Math.floor(selectedDay)));
 }
 
 function qaStoryDayLabel(day){
   return Number(day)===0?"프롤로그 · 0일차":`${Number(day)}일차`;
 }
 
+function qaStoryJournalState(scene){
+  if(!scene?.dynamicJournalHint)return null;
+  const keys=Object.keys(scene.journalVariants||{});
+  const saved=qaStoryJournalStates[scene.id];
+  return keys.includes(saved)?saved:(keys[0]||null);
+}
+
+function qaStoryLinesForScene(scene){
+  const lines=[...(scene?.lines||[])];
+  const journalState=qaStoryJournalState(scene);
+  if(journalState)lines.push(...(scene.journalVariants[journalState]||[]));
+  return lines;
+}
+
+function qaStoryContextDays(scene){
+  if(scene?.moment==="newGame")return [0];
+  const explicitDay=Number(scene?.day);
+  if(Number.isFinite(explicitDay)&&explicitDay>0)return [qaStoryDayForScene(scene)];
+  return Array.from({length:DayManager.maxDay},(_,index)=>index+1);
+}
+
 function qaStorySceneList(){
   return Object.values(STORY_SCENES)
-    .map((scene,sourceIndex)=>({
+    .flatMap((scene,sourceIndex)=>qaStoryContextDays(scene).map(day=>({
+      key:`${scene.id}@${day}`,
       id:scene.id,
       scene,
-      day:qaStoryDayForScene(scene),
+      day,
       moment:scene.moment,
       sourceIndex,
-      lines:(scene.lines||[]).map((line,index)=>({index,line}))
-    }))
+      lines:qaStoryLinesForScene(scene).map((line,index)=>({index,line}))
+    })))
     .sort((a,b)=>{
       const dayDifference=a.day-b.day;
       if(dayDifference)return dayDifference;
@@ -407,8 +448,8 @@ function qaStoryScenesForDay(day){
   return qaStorySceneList().filter(entry=>entry.day===Number(day));
 }
 
-function qaStoryClampLineIndex(scene,index){
-  const last=Math.max(0,(scene?.lines?.length||1)-1);
+function qaStoryClampLineIndex(scene,index,lines=qaStoryLinesForScene(scene)){
+  const last=Math.max(0,(lines?.length||1)-1);
   const parsed=Math.floor(Number(index));
   return Math.max(0,Math.min(last,Number.isFinite(parsed)?parsed:0));
 }
@@ -423,7 +464,12 @@ function qaStoryLineSpeaker(line){
   return QA_STORY_KIND_LABELS[line?.kind]||"";
 }
 
-function qaStoryBranchEntries(line){
+function qaStoryBranchEntries(scene,line){
+  // 이전 QA 보조 호출처럼 line 하나만 넘긴 경우도 계속 지원합니다.
+  if(line===undefined&&scene&&!Array.isArray(scene.lines)){
+    line=scene;
+    scene=null;
+  }
   const branches=[];
   const addReplies=(replies,prefix)=>{
     Object.entries(replies||{}).forEach(([tier,text])=>{
@@ -431,15 +477,49 @@ function qaStoryBranchEntries(line){
       if(value)branches.push({label:`${prefix} · ${tier}`,text:String(value)});
     });
   };
-  (line?.choices||[]).forEach((choice,index)=>{
-    branches.push({label:`선택 ${index+1}`,text:String(choice.text||"")});
+  const choiceLines=scene
+    ?(scene.lines||[]).filter(item=>Array.isArray(item.choices))
+    :line?.choices?[line]:[];
+  choiceLines.forEach(choiceLine=>(choiceLine.choices||[]).forEach((choice,index)=>{
+    branches.push({
+      label:`선택 ${index+1}`,
+      text:String(choice.text||""),
+      sceneId:choice.nextSceneId||null
+    });
     if(choice.reply)branches.push({
       label:`선택 ${index+1} 응답 · ${STORY_CHARACTERS[choice.speaker]?.name||choice.speaker||"주인공"}`,
       text:String(choice.reply)
     });
     addReplies(choice.orderCook?.replies,`선택 ${index+1} 조리 반응`);
-  });
+  }));
   addReplies(line?.orderCook?.replies,"조리 반응");
+
+  if(scene?.dynamicJournalHint){
+    const labels={none:"기록 없음",clue:"음식 단서",confirmed:"음식 확정",shard:"조각 획득"};
+    Object.entries(scene.journalVariants||{}).forEach(([journalState,lines])=>{
+      branches.push({
+        label:`영업일지 · ${labels[journalState]||journalState}`,
+        text:lines.map(qaStoryLineTextValue).filter(Boolean).join(" / "),
+        sceneId:scene.id,
+        journalState
+      });
+    });
+  }
+  if(scene?.missingMenuSceneId){
+    branches.push({
+      label:"음식 미준비",
+      text:`${scene.missingMenuSceneId} · ${STORY_SCENES[scene.missingMenuSceneId]?.title||""}`,
+      sceneId:scene.missingMenuSceneId
+    });
+  }
+  const tierLabels={soft:"아쉽다",warm:"맛있다",great:"완벽"};
+  Object.entries(scene?.resultSceneIds||{}).forEach(([tier,sceneId])=>{
+    branches.push({
+      label:`조리 결과 · ${tierLabels[tier]||tier}`,
+      text:`${sceneId} · ${STORY_SCENES[sceneId]?.title||""}`,
+      sceneId
+    });
+  });
   return branches;
 }
 
@@ -461,13 +541,14 @@ function qaCreateStorySceneButton(entry,panel){
   const title=document.createElement("strong");
   title.textContent=`${entry.id} · ${entry.scene.title}`;
   const meta=document.createElement("small");
-  meta.textContent=`${QA_STORY_MOMENT_LABELS[entry.moment]||entry.moment} · 대사 ${entry.lines.length}개`;
+  const journalState=qaStoryJournalState(entry.scene);
+  meta.textContent=`${QA_STORY_MOMENT_LABELS[entry.moment]||entry.moment} · 대사 ${entry.lines.length}개${journalState?` · 영업일지 ${journalState}`:""}`;
   button.append(title,meta);
   button.addEventListener("click",()=>{
     qaStorySelectedSceneId=entry.id;
     qaStorySelectedLine=0;
     qaRenderStoryBrowser(panel);
-    qaOpenStoryScene(entry.id,0);
+    qaOpenStoryScene(entry.id,0,{contextDay:entry.day});
   });
   return button;
 }
@@ -490,14 +571,14 @@ function qaCreateStoryLineButton(entry,lineEntry,panel){
   text.textContent=qaStoryLineTextValue(line).replace(/\s+/g," ").trim()||"(표시 문구 없음)";
   button.append(number,speaker,text);
   button.title=qaStoryLineTextValue(line);
-  button.addEventListener("click",()=>qaOpenStoryScene(entry.id,index));
+  button.addEventListener("click",()=>qaOpenStoryScene(entry.id,index,{contextDay:entry.day}));
   return button;
 }
 
-function qaRenderStoryBranches(panel,line){
+function qaRenderStoryBranches(panel,scene,line){
   const wrap=panel?.querySelector("[data-qa-story-branches]");
   if(!wrap)return;
-  const entries=qaStoryBranchEntries(line);
+  const entries=qaStoryBranchEntries(scene,line);
   wrap.replaceChildren();
   wrap.hidden=!entries.length;
   entries.forEach(entry=>{
@@ -507,16 +588,33 @@ function qaRenderStoryBranches(panel,line){
     label.textContent=entry.label;
     text.textContent=entry.text;
     row.append(label,text);
+    if(entry.sceneId){
+      row.classList.add("qa-story-branch-link");
+      row.tabIndex=0;
+      row.setAttribute("role","button");
+      const open=()=>{
+        if(entry.journalState)qaStoryJournalStates[entry.sceneId]=entry.journalState;
+        qaOpenStoryScene(entry.sceneId,0,{contextDay:qaStorySelectedDay,journalState:entry.journalState});
+      };
+      row.addEventListener("click",open);
+      row.addEventListener("keydown",event=>{
+        if(event.key!=="Enter"&&event.key!==" ")return;
+        event.preventDefault();open();
+      });
+    }
     wrap.append(row);
   });
 }
 
 function qaUpdateStoryControls(panel=qaStoryPanel()){
   if(!panel)return;
-  const entry=qaStorySceneList().find(item=>item.id===qaStorySelectedSceneId);
+  const entry=qaStorySceneList().find(item=>
+    item.id===qaStorySelectedSceneId&&item.day===qaStorySelectedDay
+  );
   const active=qaStoryPreviewIsActive()&&storySession.scene?.id===entry?.id;
   const total=entry?.lines.length||0;
-  const index=entry?qaStoryClampLineIndex(entry.scene,qaStorySelectedLine):0;
+  const previewLines=entry?.lines.map(item=>item.line)||[];
+  const index=entry?qaStoryClampLineIndex(entry.scene,qaStorySelectedLine,previewLines):0;
   const prev=panel.querySelector("[data-qa-story-prev]");
   const next=panel.querySelector("[data-qa-story-next]");
   const position=panel.querySelector("[data-qa-story-position]");
@@ -546,13 +644,14 @@ function qaRenderStoryBrowser(panel=qaStoryPanel()){
   sceneList?.replaceChildren(...scenes.map(entry=>qaCreateStorySceneButton(entry,panel)));
 
   const selected=scenes.find(entry=>entry.id===qaStorySelectedSceneId)||null;
-  if(selected)qaStorySelectedLine=qaStoryClampLineIndex(selected.scene,qaStorySelectedLine);
+  const selectedLines=selected?.lines.map(item=>item.line)||[];
+  if(selected)qaStorySelectedLine=qaStoryClampLineIndex(selected.scene,qaStorySelectedLine,selectedLines);
   const lineList=panel.querySelector("[data-qa-story-lines]");
   lineList?.replaceChildren(...(selected?.lines||[]).map(lineEntry=>
     qaCreateStoryLineButton(selected,lineEntry,panel)
   ));
-  const selectedLine=selected?.scene.lines?.[qaStorySelectedLine]||null;
-  qaRenderStoryBranches(panel,selectedLine);
+  const selectedLine=selected?.lines?.[qaStorySelectedLine]?.line||null;
+  qaRenderStoryBranches(panel,selected?.scene||null,selectedLine);
   qaUpdateStoryControls(panel);
   lineList?.querySelector(".qa-story-line.active")?.scrollIntoView?.({block:"nearest"});
 }
@@ -570,27 +669,15 @@ function qaSelectStoryDay(day){
 
 function qaSeedStoryPreviewState(sceneId,lineIndex){
   state.story=createStoryState();
-  const entries=qaStorySceneList();
-  const currentIndex=entries.findIndex(entry=>entry.id===sceneId);
-  entries.forEach((entry,index)=>{
-    if(index>currentIndex)return;
-    const lineLimit=index<currentIndex?entry.lines.length:lineIndex;
-    entry.lines.slice(0,lineLimit).forEach(({line})=>{
-      if(line.reveal)getStoryGuestState(line.reveal).nameRevealed=true;
-    });
-    if(index<currentIndex&&entry.scene.character&&STORY_GUEST_IDS.includes(entry.scene.character)){
-      const guest=getStoryGuestState(entry.scene.character);
-      guest.affinity+=Number(entry.scene.affinity)||0;
-      if(entry.scene.regular)guest.regular=true;
-    }
-  });
+  // 새 특별 손님 이름은 모두 서술형 확정 이름입니다. 실제 진행 플래그를
+  // 재현하거나 변경하지 않고 빈 임시 이야기 상태만 사용합니다.
   updateRelationshipUI();
 }
 
 function qaShowStoryLineAt(lineIndex){
   if(!qaStoryPreviewIsActive())return false;
   const scene=storySession.scene;
-  const target=qaStoryClampLineIndex(scene,lineIndex);
+  const target=qaStoryClampLineIndex(scene,lineIndex,storySession.lines);
   clearStoryTyping();
   clearStorySceneIntro();
   if(typeof storyRevealTimer!=="undefined"&&storyRevealTimer){
@@ -605,7 +692,7 @@ function qaShowStoryLineAt(lineIndex){
     if(line?.speaker)ensureStoryActor(line.speaker);
   }
   storySession.lineIndex=target;
-  qaStorySelectedDay=qaStoryDayForScene(scene);
+  qaStorySelectedDay=qaStoryDayForScene(scene,storySession.qaContextDay);
   qaStorySelectedSceneId=scene.id;
   qaStorySelectedLine=target;
   document.getElementById("storyOverlay")?.classList.add("open");
@@ -626,11 +713,18 @@ function qaShowStoryLineAt(lineIndex){
   return true;
 }
 
-function qaOpenStoryScene(sceneId,lineIndex=0){
+function qaOpenStoryScene(sceneId,lineIndex=0,options={}){
   if(!QA_MODE_ENABLED)return false;
   const scene=STORY_SCENES[sceneId];
   if(!scene)return false;
   if(!qaEnsureSession())return false;
+
+  const journalState=options?.journalState;
+  if(journalState&&scene.journalVariants?.[journalState]){
+    qaStoryJournalStates[scene.id]=journalState;
+  }
+  const contextDay=qaStoryDayForScene(scene,options?.contextDay??qaStorySelectedDay);
+  const previewLines=qaStoryLinesForScene(scene);
 
   if(!qaStoryPreviewIsActive()){
     qaStoryReturnContext={
@@ -642,7 +736,7 @@ function qaOpenStoryScene(sceneId,lineIndex=0){
     };
   }
   qaCancelTransientState({preserveStoryReturn:true});
-  state.day=DayManager.setDay(Number(scene.day)||1);
+  state.day=DayManager.setDay(contextDay||1);
   state.phase=scene.timeOfDay==="night"?GAME_PHASES.OPEN:GAME_PHASES.PREP;
   state.phaseTime=state.phase===GAME_PHASES.OPEN
     ?(typeof NIGHT_DURATION==="number"?NIGHT_DURATION:0)
@@ -656,10 +750,11 @@ function qaOpenStoryScene(sceneId,lineIndex=0){
 
   storySession={
     qaPreview:true,
+    qaContextDay:contextDay,
     queue:[sceneId],
     queueIndex:0,
     scene,
-    lines:JSON.parse(JSON.stringify(scene.lines||[])),
+    lines:JSON.parse(JSON.stringify(previewLines)),
     lineIndex:0,
     actors:[],
     wasPaused:true,
@@ -672,7 +767,7 @@ function qaOpenStoryScene(sceneId,lineIndex=0){
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"
     ?"PROLOGUE · DAY 0"
-    :`DAY ${scene.day}`;
+    :`DAY ${contextDay}`;
   document.getElementById("storyOverlay").classList.add("open");
   return qaShowStoryLineAt(lineIndex);
 }

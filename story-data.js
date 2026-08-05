@@ -1,557 +1,837 @@
 "use strict";
 
-// 제1장 제작 범위는 프롤로그와 Day 1~7입니다.
-// 고유 인물은 김다은, 사장, 박기철, 팀장만 사용합니다.
-// TODO(audio-assets): kind가 "sound"인 줄은 임시 화면용 음향 지시문입니다.
-// 대응하는 사운드 에셋을 연결할 때 해당 지시문이 대화로 출력되지 않도록 제거합니다.
+// 달빛식탁은 7일 단위로 반복되는 판타지 요리 이야기입니다.
+// 이 파일은 플레이어에게 보이는 대사·내레이션과 장면 분기 계약만 담당합니다.
+// 조리 미니게임의 구성과 메뉴 ID는 game-data.js의 기존 정의를 그대로 사용합니다.
 const STORY_CHARACTERS = {
-  protagonist: { name: "김다은", role: "식당 운영자", portraitRow: null, alwaysKnown: true },
-  owner: { name: "사장", role: "기존 식당 사장", portraitRow: null, alwaysKnown: true },
-  manager: { name: "팀장", role: "식품회사 팀장", portraitRow: null, alwaysKnown: true },
-  gicheol: { name: "박기철", role: "택시 기사", portraitRow: 0, alwaysKnown: false }
+  protagonist: { name: "김다은", role: "주인공", portraitRow: null, alwaysKnown: true },
+  recalledBoss: { name: "상사(회상)", role: "퇴사한 회사의 상사", portraitRow: null, alwaysKnown: true },
+  journal: { name: "영업일지", role: "달빛식탁의 장부", portraitRow: null, alwaysKnown: true },
+  moonlightTable: { name: "달빛식탁", role: "달빛식탁의 목소리", portraitRow: null, alwaysKnown: true },
+  rainyChild: { name: "비에 젖은 아이", role: "첫째 날 특별 손님", portraitRow: 0, alwaysKnown: true },
+  lanternGuest: { name: "등불 손님", role: "둘째 날 특별 손님", portraitRow: 1, alwaysKnown: true },
+  leftShadow: { name: "왼쪽 그림자", role: "셋째 날 특별 손님", portraitRow: 2, alwaysKnown: true },
+  rightShadow: { name: "오른쪽 그림자", role: "셋째 날 특별 손님", portraitRow: 2, alwaysKnown: true },
+  twinShadows: { name: "두 그림자", role: "셋째 날 특별 손님", portraitRow: 2, alwaysKnown: true },
+  crowCourier: { name: "까마귀 배달부", role: "넷째 날 특별 손님", portraitRow: 3, alwaysKnown: true },
+  starBeast: { name: "작은 짐승", role: "다섯째 날 특별 손님", portraitRow: 4, alwaysKnown: true },
+  seawaterGuest: { name: "바닷물 손님", role: "여섯째 날 특별 손님", portraitRow: 5, alwaysKnown: true },
+  schoolDoll: { name: "교복 인형", role: "일곱째 날 특별 손님", portraitRow: 6, alwaysKnown: true },
+  facelessDaeun: { name: "얼굴 없는 손님", role: "마지막 예약 손님", portraitRow: 7, alwaysKnown: true },
+  anotherDaeun: { name: "또 다른 김다은", role: "김다은이 포기한 내일", portraitRow: 7, alwaysKnown: true },
+  letter: { name: "편지", role: "김다은이 남긴 편지", portraitRow: null, alwaysKnown: true },
+  menuBack: { name: "메뉴판 뒷면", role: "에필로그 문구", portraitRow: null, alwaysKnown: true }
 };
 
-// 첫 주 일반 손님 말풍선 풀. 고유 이름이나 확대 대화 화면 없이 사용합니다.
+// 일반 손님은 확대 대화 없이 기존 말풍선 시스템으로만 반응합니다.
 const GENERAL_GUEST_BUBBLES = {
   arrival: [
-    "아직 하세요?",
+    "오늘 가능한 메뉴로 부탁할게요.",
     "혼자인데 조용한 자리 있을까요?",
-    "오늘 가능한 것 중 따뜻한 걸로 주세요.",
-    "많이 맵지 않게 해주실 수 있어요?",
-    "급하지 않아요. 천천히 주세요.",
-    "추천보다 오늘 자신 있는 걸로 주세요."
-  ],
-  waiting: [
+    "따뜻한 음식 하나 주세요.",
     "급하지 않아요. 천천히 주세요."
   ],
-  great: [
-    "잘 먹었습니다.",
-    "별점 5개 남길게요~",
-    "맛있었습니다.",
-    "다음에는 다른 것도 먹어볼게요.",
-    "또 올게요."
-  ],
-  warm: [
-    "잘 먹었습니다.",
-    "맛있었습니다.",
-    "다음에는 다른 것도 먹어볼게요.",
-    "또 올게요."
-  ],
-  soft: [
-    "맛이 좀 아쉽네요.",
-    "별점 2개짜리 음식이었어요.",
-    "만족스럽지는 않네요."
-  ],
-  departure: [
-    "잘 먹었습니다.",
-    "별점 5개 남길게요~",
-    "맛있었습니다.",
-    "다음에는 다른 것도 먹어볼게요.",
-    "또 올게요."
-  ]
+  waiting: ["급하지 않아요. 천천히 주세요."],
+  great: ["정말 맛있어요.", "잘 먹었습니다. 또 올게요."],
+  warm: ["잘 먹었습니다.", "따뜻하게 잘 먹고 갑니다."],
+  soft: ["조금 아쉽지만 잘 먹었습니다.", "다음에는 더 맛있으면 좋겠어요."],
+  departure: ["잘 먹었습니다.", "다음에 또 올게요."]
 };
 
 const REGULAR_GUEST_BUBBLES = {};
 
+const STORY_MENU_RULES = Object.freeze({
+  dishIds: Object.freeze(["oden", "tofu", "kimchi", "skewer", "yakisoba", "shrimpTempura", "tteokbokki", "fries"]),
+  selectCount: 5,
+  requiredMenus: Object.freeze([]),
+  allMenusAvailableFromDayOne: true
+});
+
+const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
+  1: 3,
+  2: 4,
+  3: 5,
+  4: 6,
+  5: 4,
+  6: 7,
+  7: 5
+});
+
+// 기존 미니게임 점수를 이야기 평가 세 단계로 변환하는 기준입니다.
+const STORY_SCORE_THRESHOLDS = Object.freeze({ warm: 50, great: 80 });
+
+const storyNarration = text => ({ kind: "direction", text });
+const storyLine = (speaker, text, extra = {}) => ({ speaker, text, ...extra });
+const storyCaption = (speakerLabel, text, extra = {}) => ({ speakerLabel, text, ...extra });
+
+function createSpecialGuestArc(config) {
+  const prefix = `SCN-G${config.number}`;
+  const resultIds = Object.freeze({
+    soft: `${prefix}-아쉽다`,
+    warm: `${prefix}-맛있다`,
+    great: `${prefix}-완벽`
+  });
+  const arrivalId = `${prefix}-A`;
+  const missingId = `${prefix}-B`;
+  const common = {
+    day: config.day,
+    timeOfDay: "night",
+    character: config.character,
+    dishId: config.dishId,
+    shardId: config.shardId,
+    shardName: config.shardName,
+    repeatEachLoop: true
+  };
+  const resultScene = (tier, label, lines) => ({
+    id: resultIds[tier],
+    title: `${config.title} · ${label}`,
+    moment: "specialGuestResult",
+    sceneType: "specialGuestResult",
+    sourceSceneId: arrivalId,
+    resultTier: tier,
+    preservesUnlockedMemory: true,
+    grantsShard: tier === "great",
+    uniqueShard: tier === "great",
+    finalShard: tier === "great" && !!config.finalShard,
+    ...common,
+    character: tier === "great" && config.greatCharacter
+      ? config.greatCharacter
+      : config.character,
+    lines
+  });
+
+  return {
+    [arrivalId]: {
+      id: arrivalId,
+      title: `${config.title} · 등장`,
+      moment: "specialGuest",
+      sceneType: "specialGuestArrival",
+      specialGuest: true,
+      guestOrder: true,
+      specialCook: true,
+      deferUntilArrival: true,
+      arrival: config.arrival,
+      triggerTiming: config.triggerTiming,
+      triggerAfterGeneral: config.triggerAfterGeneral,
+      triggerOnNightEnd: !!config.triggerOnNightEnd,
+      requiredBaseShards: config.requiredBaseShards || 0,
+      missingMenuSceneId: missingId,
+      resultSceneIds: resultIds,
+      thresholds: STORY_SCORE_THRESHOLDS,
+      ...common,
+      lines: config.arrivalLines
+    },
+    [missingId]: {
+      id: missingId,
+      title: `${config.title} · 음식 미준비`,
+      moment: "specialGuestMissing",
+      sceneType: "specialGuestMissing",
+      sourceSceneId: arrivalId,
+      missingMenu: true,
+      journalClue: config.journalClue,
+      ...common,
+      lines: config.missingLines
+    },
+    [resultIds.soft]: resultScene("soft", "아쉽다", config.softLines),
+    [resultIds.warm]: resultScene("warm", "맛있다", config.warmLines),
+    [resultIds.great]: resultScene("great", "완벽", config.greatLines)
+  };
+}
+
 const STORY_SCENES = {
-  "PR-01": {
-    id: "PR-01",
-    title: "비를 피한 곳",
+  "SCN-P01": {
+    id: "SCN-P01",
+    title: "퇴사한 밤 - 퇴근길",
     day: 1,
     moment: "newGame",
-    character: "gicheol",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
+    sceneType: "prologue",
     timeOfDay: "night",
+    character: "protagonist",
+    nextSceneId: "SCN-P02",
     lines: [
       {
-        kind: "direction",
-        text: "늦게까지 업무를 정리한 김다은은 회사 출입증을 반납하고\n종이박스 하나를 안은 채 건물을 나온다.",
+        ...storyNarration("몇 달째 줄어든 인원으로 신제품 일정을 버티던 김다은은 두 사람 몫의 일정과 보고서를 떠안았다.\n퇴근 직전의 수정 지시와 주말 연락이 반복되었고, 원가를 맞추면 상품성이 없다는 평가가, 맛을 살리면 원가가 높다는 지적이 돌아왔다.\n마지막 메뉴도 수차례 수정 끝에 처음 의도와 전혀 다른 상품이 되었다."),
         cinematic: { id: "pr01Exterior", beat: "exit" }
       },
-      {
-        speaker: "protagonist",
-        text: "(한숨을 쉬며) 끝났네.",
-        cinematic: { id: "pr01Exterior", beat: "pause" }
-      },
-      {
-        kind: "direction",
-        text: "굵은 비가 갑자기 떨어진다. 우산이 없는 다은은 골목의 작은 식당으로 뛰어든다.\n늦은 시간인데도 가게 안은 많은 손님으로 붐빈다.",
-        cinematic: { id: "pr01Exterior", beat: "rainRun" }
-      },
-      {
-        kind: "sound",
-        text: "빗소리, 오래된 문종, 겹쳐 들리는 짧은 주문.",
-        cinematic: { id: "pr01Exterior", beat: "enter" }
-      },
-      { kind: "direction", text: "바쁜 와중에 사장은 다은이 들어오는 것을 보고 말한다." },
-      { speaker: "owner", text: "마지막 날이라서 그런지 손님이 많아…\n지금 주문하면 오래 걸리는데 괜찮나?" },
-      { speaker: "protagonist", text: "아, 저는 잠깐 비만 피하려고..." },
-      { speaker: "owner", text: "그럼 저기 빈자리에서 조금 쉬다 가게.\n혹시 주문하고 싶다면 주문하고." },
-      { kind: "bubble", speakerLabel: "손님 1", text: "사장님! 여기 어묵탕 주세요." },
-      { kind: "bubble", speakerLabel: "손님 2", text: "여기는 김치전 주세요!" },
-      { kind: "direction", text: "식당 구석에 자리 잡은 다은은 잠시 한숨을 돌렸다.\n비를 맞아 놀란 가슴이 진정되자 사장이 혼자 분주히 돌아다니며 주문을 받고 손님과 안부도 전하며 음식을 준비하는 모습이 눈에 들어왔다." },
-      { kind: "direction", text: "식품 개발을 할 때는 레시피를 적어가며 대화 없이 조리만 하던 것과는 사뭇 다른 모습이다.\n사장이 너무 바빠 주문이 계속 밀리고 있지만 손님은 계속 밀려들어왔다." },
-      { kind: "direction", text: "퇴사를 해서 그런지 아니면 가게 분위기에 휩쓸렸는지 다은은 용기를 내어 사장에게 말을 건다." },
-      { speaker: "protagonist", text: "사장님 비를 피하게 해주셔서 감사한데\n혹시 도와드릴 게 있을까요?" },
-      { speaker: "owner", text: "마음만은 고맙다고 하고 싶지만…" },
-      { kind: "direction", text: "사장은 굳은 표정으로 잠시 고민하다 다은의 손을 본다." },
-      { speaker: "owner", text: "손을 보니 요리 좀 해본 사람 같네. 맞나?" },
-      { kind: "direction", text: "8년 동안 식품 개발을 하며 많은 요리를 해 온 다은의 손에 굳은살이 이리저리 배겨있었다." },
-      { speaker: "protagonist", text: "식품 개발을 좀 해봤지만…\n가게 주방에서 조리해본 적은 없어요." },
-      { speaker: "owner", text: "그럼 레시피를 알려주겠네.\n바쁜 건 맞지만 다치지 않도록 천천히 해.", showGameUI: true },
-      { kind: "direction", text: "사장이 앞치마를 건네고 다은은 바로 앞치마를 맨다.", showGameUI: true },
-      { speaker: "owner", text: "두부김치는 두부를 일정한 크기로 썰고\n접시에 담으면 되네.", showGameUI: true, cook: { dishId: "tofu", tutorial: true, resultKey: "pr01_tofu", startStation: "fridge" } },
-      { speaker: "owner", text: "어묵탕은 국물이 맑게 우러나도록\n적당한 불로 끓이면 되네.", showGameUI: true, cook: { dishId: "oden", tutorial: true, resultKey: "pr01_oden" } },
-      { speaker: "owner", text: "닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\n뒷면도 타지 않게 구우면 되네.", showGameUI: true, cook: { dishId: "skewer", tutorial: true, resultKey: "pr01_skewer" } },
-      { speaker: "owner", text: "새우튀김은 튀김옷이 노릇해졌을 때 건져서\n바스켓을 가볍게 털어 기름을 빼면 되네.", showGameUI: true, cook: { dishId: "shrimpTempura", tutorial: true, resultKey: "pr01_shrimp_tempura" } },
-      { speaker: "owner", text: "볶음우동은 면과 채소, 소스를 철판에 올리고\n뒤집개로 골고루 볶으면 되네.", showGameUI: true, cook: { dishId: "yakisoba", tutorial: true, resultKey: "pr01_yakisoba" } },
-      { kind: "direction", text: "한참 요리를 하다 보니 손님들도 대부분 식사를 마친 후 사장에게 작별 인사를 하고 나간다.\n빗줄기가 서서히 잦아들 때 택시 기사 한 명이 문을 열고 들어온다." },
-      { speaker: "gicheol", text: "사장님, 오늘 마지막 영업이라 하셔서. 늦게라도 왔습니다~" },
-      { kind: "direction", text: "반갑게 인사를 마친 택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다." },
-      { speaker: "gicheol", text: "어? 마지막 영업날이라 하셨는데 알바생을 들이셨네요??" },
-      { speaker: "owner", text: "비 피하겠다고 들어온 손님인데 가게가 바쁜 걸 보고 도와주겠다고 해서…\n초면인데 큰 도움을 줬어." },
-      { speaker: "gicheol", text: "어유 사장님이 도움이 됐다고 하실 정도면 꽤나 실력자신데요?\n저도 한 번 맛봐도 되겠습니까? 늘 먹던 김치전 주세요~" },
-      { speaker: "owner", text: "김치전은 반죽을 팬에 고르게 펴고\n앞면이 노릇해지면 뒤집어 뒷면까지 익히면 되네.", showGameUI: true, cook: { dishId: "kimchi", tutorial: true, resultKey: "pr01_kimchi" } },
-      { kind: "direction", text: "사장은 김치전을 부치는 다은을 말없이 바라본다.\n김치전이 완성되자 접시를 마지막 손님에게 내어 준다." },
-      { speaker: "owner", text: "여기 주문한 김치전이네." },
-      { kind: "direction", text: "김치전을 맛본 손님은 놀란 표정을 짓는다." },
-      { speaker: "gicheol", text: "맛이 꽤나 좋은데요? 사장님 레시피대로 해도 이 맛을 내는 사람 없었는데?\n사장님이 요리하신 김치전 주신거 아니죠?" },
-      { speaker: "owner", text: "젊은 친구의 실력이 생각보다 대단해." },
-      { speaker: "gicheol", text: "사장님! 이런 알바생 있으면 영업 더 하셔도 되는 거 아니에요?" },
-      { speaker: "owner", text: "아가씨, 처음으로 주방에서 일해본 느낌이 어떤가?" },
-      { kind: "direction", text: "다은은 조금 머뭇거리다 대답한다." },
-      { speaker: "protagonist", text: "제가 만든 음식을 맛있게 드셔주시는 분들을 보는 게\n생각보다 즐겁네요." },
-      { speaker: "owner", text: "그런가…" },
-      { kind: "direction", text: "사장은 마음을 굳힌 듯 다은에게 말한다." }
+      { ...storyLine("recalledBoss", "맛은 나쁘지 않아. 그런데 이걸 사람들이 사서 먹을까?"), cinematic: { id: "pr01Exterior", beat: "pause" } },
+      storyCaption("김다은(속말)", "또 처음부터 바꾸라고 하겠지."),
+      storyCaption("김다은(속말)", "더 버티면 내가 좋아했던 음식까지 싫어하게 될 것 같아."),
+      storyLine("protagonist", "…그만하자. 도저히 이 회사생활은 더 못 버티겠어.")
     ]
   },
 
-  "PR-02": {
-    id: "PR-02",
-    title: "손님의 마음",
+  "SCN-P02": {
+    id: "SCN-P02",
+    title: "비가 내리는 퇴근길",
     day: 1,
     moment: "newGame",
-    character: "gicheol",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
+    sceneType: "prologue",
     timeOfDay: "night",
+    character: "protagonist",
+    nextSceneId: "SCN-P03",
+    interactionTarget: "restaurantDoor",
+    lines: [
+      {
+        ...storyNarration("퇴사 뒤의 계획은 없었지만 회사로 돌아갈 생각도 없었다.\n휴대전화에는 팀장과 동료들이 보낸 메시지와 부재중 전화가 몇 개 쌓여 있었다. 다은은 알림만 확인하고 화면을 끈다.\n그 순간 비가 내리기 시작한다."),
+        cinematic: { id: "pr01Exterior", beat: "rainRun" }
+      },
+      storyLine("protagonist", "내일이 와도 달라질 게 없는데."),
+      storyLine("protagonist", "그냥 내일 같은 건 오지 않았으면 좋겠다."),
+      { ...storyLine("protagonist", "…저 식당, 아까부터 있었나?"), cinematic: { id: "pr01Exterior", beat: "enter" } }
+    ]
+  },
+
+  "SCN-P03": {
+    id: "SCN-P03",
+    title: "달빛식탁에 갇히다",
+    day: 1,
+    moment: "newGame",
+    sceneType: "prologueInteraction",
+    timeOfDay: "night",
+    character: "protagonist",
+    interactionTarget: "journal",
+    nextSceneId: "SCN-P04",
+    lines: [
+      storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
+      storyLine("protagonist", "아무도 없나…?"),
+      storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?"),
+      storyLine("protagonist", "이 문은 밖으로 나가는 문이 아니야.", { repeatInteraction: "exitDoor" })
+    ]
+  },
+
+  "SCN-P04": {
+    id: "SCN-P04",
+    title: "영업일지의 규칙",
+    day: 1,
+    moment: "newGame",
+    sceneType: "prologueInteraction",
+    timeOfDay: "night",
+    character: "journal",
     completesPrologue: true,
+    opensMenuSelection: true,
     lines: [
-      { speaker: "owner", text: "자네, 내 식당을 한 번 맡아주지 않겠나?" },
-      { speaker: "protagonist", text: "저, 저는 음식점 운영을 해본 적이 없어요…" },
-      { speaker: "owner", text: "실력은 충분하고, 임대료나 재료비는 내가 내주지. 나도 손님을 두고 떠나는 게 영 마음에 걸려서 말이야. 내가 지금 건강해 보여도 꽤나 몸이 상했거든. 의사가 최소 한 달은 쉬라고 해서 말이네." },
-      { kind: "direction", text: "다은은 잠깐 고민한다." },
-      { speaker: "protagonist", text: "해볼게요. 딱 한 달만 해보겠습니다." },
-      { speaker: "owner", text: "좋아. 그렇다면 식당 운영에 대해서는 여기 영업 일지를 참고하게. 나도 가게를 운영하다 헷갈리면 이걸 찾아보거든. 자네도 여기에 이어서 써도 좋을 것 같네." },
-      { kind: "direction", text: "다은은 손때 묻은 영업 일지를 넘겨받고 식당 운영에 대해 간단히 배운 뒤 집으로 돌아간다." }
+      storyNarration("장부의 빈 페이지 위로 글자가 한 줄씩 나타난다.\n달빛식탁의 출입문은 현실로 나가는 문이 아니며, 손님들이 돌려주는 달빛 조각이 모여야 현실의 아침으로 이어지는 새벽문이 열린다."),
+      storyLine("journal", "손님에게 기억하는 음식을 대접하십시오."),
+      storyLine("journal", "손님이 그 음식으로 기억을 완전히 되찾으면 식사값으로 달빛 조각을 돌려받을 수 있습니다."),
+      storyLine("journal", "여덟 개의 달빛 조각이 식탁에 모이면 현실의 아침으로 이어지는 새벽문이 열립니다."),
+      storyLine("journal", "일곱 번째 밤의 영업이 끝날 때 새벽문이 열리지 않았다면 시간은 첫째 날 낮으로 돌아갑니다."),
+      storyLine("journal", "회귀한 뒤에도 완료된 영업 기록과 달빛 조각은 이 장부에 남습니다."),
+      storyLine("journal", "마지막 예약 손님: 김다은."),
+      storyLine("journal", "방문 시각: 일곱째 밤 영업 종료 후."),
+      storyLine("journal", "예약 조건: 식탁의 일곱 자리에 달빛이 돌아온 때."),
+      storyLine("protagonist", "마지막 예약 손님이 나라고…? 지금은 이유를 알 수 없어."),
+      storyLine("protagonist", "우선 손님들을 만나고 이 장부의 기록부터 확인해 보자.")
     ]
   },
 
-  "C1-01": {
-    id: "C1-01",
-    title: "1일차 · 첫날의 기준",
+  "SCN-L01": {
+    id: "SCN-L01",
+    title: "회귀 후 첫째 날 - 영업일지 확인",
     day: 1,
     moment: "dayStart",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
+    sceneType: "loopJournal",
     timeOfDay: "day",
+    character: "protagonist",
+    minLoop: 2,
+    repeatEachLoop: true,
+    autoOpenJournal: true,
     lines: [
-      { kind: "direction", text: "사장이 떠난 주방. 다은은 영업 일지를 천천히 살펴본다." },
-      { speaker: "protagonist", text: "어젯밤 일이 꿈만 같네." },
-      { speaker: "protagonist", text: "일단 여러 메뉴를 준비하는 건 어려울 것 같으니, 영업 일지에 있는 레시피 중 두 개씩 늘려보자." },
-      { kind: "direction", text: "다은은 영업 일지를 편다." },
-      { speaker: "protagonist", text: "일단 해볼게… 어묵탕과 두부김치. 어렵지 않은 메뉴네?" },
-      { kind: "system", text: "인기도 0 · 예상 손님 수 적음" }
+      storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌고, 완성된 기록만 영업일지에 남아 있다."),
+      storyLine("protagonist", "또 첫째 날이야… 반복됐다는 건 기억나."),
+      storyLine("protagonist", "그런데 손님들의 얼굴과 대화는 벌써 흐릿해지고 있어."),
+      storyLine("protagonist", "장부에는 지난 일주일이 남아 있어. 이번에는 이 기록을 보고 준비하자.")
     ]
   },
 
-  "C1-01-JOURNAL": {
-    id: "C1-01-JOURNAL",
-    title: "1일차 · 마감 일지",
+  "SCN-L02": {
+    id: "SCN-L02",
+    title: "메뉴 선택 전 영업일지 참고",
+    day: null,
+    moment: "dayStart",
+    sceneType: "dynamicJournalHint",
+    timeOfDay: "day",
+    character: "protagonist",
+    minLoop: 2,
+    repeatEachLoop: true,
+    dynamicJournalHint: true,
+    journalVariants: {
+      none: [storyLine("protagonist", "아직 이 날의 기록이 없어. 오늘은 내가 판단해서 골라야 해.")],
+      clue: [storyLine("protagonist", "이 날 손님은 ‘[영업일지 단서]’라고 했어. 그 말에 맞는 음식을 준비해 보자.")],
+      confirmed: [storyLine("protagonist", "찾던 음식은 [음식명]이야. 이번에는 기억을 되찾게 해 줘야 해.")],
+      shard: [storyLine("protagonist", "이 손님의 달빛 조각은 이미 식탁에 돌아왔어. 그래도 다시 올 테니 오늘 평가는 새로 기록될 거야.")]
+    },
+    lines: [storyNarration("다은은 영업일지에 실제로 적힌 범위만 확인한다.")]
+  },
+
+  "SCN-D01": {
+    id: "SCN-D01",
+    title: "밤 영업 시작",
+    day: null,
+    moment: "nightStart",
+    sceneType: "dailyOpening",
+    timeOfDay: "night",
+    character: "protagonist",
+    repeatEachDay: true,
+    lines: [
+      storyNarration("간판이 켜지고 달빛식탁의 밤 영업이 시작된다.\n일반 손님은 오늘 선택한 다섯 메뉴 안에서만 주문한다."),
+      storyLine("protagonist", "준비는 끝났어. 오늘 영업을 시작하자.")
+    ]
+  },
+
+  ...createSpecialGuestArc({
+    number: 1,
     day: 1,
-    moment: "nightEnd",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    lines: [
-      { kind: "journal", text: "0월 0일 토요일. 식당 운영 1일차. 어제 바빴던 것과는 다르게 손님은 많지 않아 실수 없이 식당을 운영할 수 있었다. 얼떨결에 이어받은 가게, 한 달 동안 내가 할 수 있을까…" },
-      { kind: "journal", text: "일지 구석에 ‘손님에게 친절하게’라는 메모가 남겨져 있다." }
-    ]
-  },
-
-  "G-02": {
-    id: "G-02",
-    title: "입담이 좋아도 자식과의 대화는 어려운 사람",
-    day: 2,
-    moment: "nightStart",
-    character: "gicheol",
-    affinity: 1,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    guestOrder: true,
+    title: "비에 젖은 아이",
+    character: "rainyChild",
     dishId: "kimchi",
-    arrival: "late",
-    deferUntilArrival: true,
-    lines: [
-      { kind: "direction", text: "장사가 거의 끝나갈 무렵 택시 기사가 문을 열고 들어오며 반갑게 인사한다." },
-      { speaker: "gicheol", text: "장사 잘되나 감시하러 왔습니다." },
-      { kind: "direction", text: "재치 있는 인사와 유일한 구면의 손님이라 다은도 반갑게 맞이한다." },
-      { speaker: "protagonist", text: "하루 만에 단골 행세하시는 거예요?" },
-      { speaker: "gicheol", text: "첫 손님이면 창립 멤버 아닙니까? 직급으로 치면 이사쯤 되겠네요." },
-      { speaker: "protagonist", text: "이사님, 오늘은 뭘 드시겠어요?" },
-      { speaker: "gicheol", text: "그 호칭은 부담스럽고요. 아! 저희 통성명도 하지 않았군요! 박기철이라고 합니다. 택시 기사를 하고 있죠.", reveal: "gicheol" },
-      { speaker: "protagonist", text: "그렇다면 박 기사님, 오늘의 식사는 어떻게 하실 건가요?" },
-      {
-        speaker: "gicheol",
-        text: "오늘은… 오! 오늘도 김치전이 준비되어 있군요? 오늘도 김치전 주시죠!",
-        orderCook: {
-          special: false,
-          thresholds: { great: 80, warm: 60 },
-          replies: {
-            great: "전 사장님이 해주신 맛이랑 똑같네요. 앞으로도 자주 오겠습니다!",
-            warm: "맛이 조금 아쉽지만 잘 먹었습니다!",
-            soft: "맛은 비슷하게 나네요. 앞으로를 기대하겠습니다."
-          }
-        }
-      },
-      { kind: "direction", text: "식사가 끝나갈 무렵 기철이 휴대전화를 켠다. 화목해 보이는 가족 사진을 물끄러미 바라보다 메신저 창까지 열었던 기철은 한참 고민한 뒤 화면을 끈다." },
-      { speaker: "protagonist", text: "연락할 일 있으신가요?" },
-      { speaker: "gicheol", text: "꼭 해야 하는 일은 아닌데… 딸에게 연락하려고 했습니다… 사춘기 지나면서 사이가 서먹해져, 이제는 문자 하나 보내기 어렵네요." },
-      { speaker: "protagonist", text: "무슨 말을 하고 싶으신데요?" },
-      { speaker: "gicheol", text: "그냥 안부요. 그런데 딸과 무슨 얘기를 해야 할지 모르겠어서요. 평소 집에서도 얼굴 보기 힘든데 곧 생일이 가까워져서, 이번 기회에 선물을 하며 다시 친해져 보려는데 어떻게 말을 붙여야 할지 모르겠습니다." },
-      {
-        prompt: "기철이 딸에게 말을 붙일 방법을 함께 생각한다.",
-        choices: [
-          {
-            text: "안부 한 줄을 먼저 보내 보세요. ‘요즘 잘 지내니’ 같은 말로요.",
-            reply: "기철이 ‘잘 지내니. 오늘 네 생각이 났다.’라고 쓰고 전송 버튼을 누른다.",
-            speaker: "gicheol",
-            affinity: 1
-          },
-          {
-            text: "아내분께 여쭤보는 게 어떠신가요?",
-            reply: "기철이 아내에게 연락한다. “나름 잘 지내고 있답니다. 저한테 서운한 것도 없다네요. 이제 제가 직접 물어봐야겠죠.”",
-            speaker: "gicheol",
-            affinity: 1
-          },
-          {
-            text: "용돈 앞에는 장사 없습니다.",
-            reply: "기철이 잠깐 웃는다. “생각해보니 돈을 싫어할 일은 없겠네요. 갑자기 잘해준다고 이상하게 생각하지는 않겠죠?”",
-            speaker: "gicheol",
-            affinity: 1
-          }
-        ]
-      },
-      { speaker: "protagonist", text: "다음번에는 좋은 소식 들고 오세요~" },
-      { speaker: "gicheol", text: "밥 먹으러 와서 숙제를 받아 가네요." },
-      { speaker: "protagonist", text: "안 해도 혼내지는 않아요." },
-      { speaker: "gicheol", text: "그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다. 김치전은 덤이고요." },
-      { kind: "direction", text: "기철은 계산대에서 자기 이름과 연락처를 영수증에 또박또박 쓴다." },
-      { speaker: "gicheol", text: "혹시 택시 타실 일 있으면 연락주세요. 싸게 모시겠습니다." },
-      { speaker: "protagonist", text: "조심히 들어가세요~" },
-      { kind: "journal", text: "0월 0일 일요일. 식당 운영 2일차. 박기철. 택시 기사. 입담은 좋지만, 딸과의 대화는 어려워 고민하는 좋은 아빠다. 나도 아버지께 연락 한 번 해야겠다." }
-    ]
-  },
-
-  "C1-D3-JOURNAL": {
-    id: "C1-D3-JOURNAL",
-    title: "3일차 · 마감 일지",
-    day: 3,
-    moment: "nightEnd",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    lines: [
-      { kind: "journal", text: "0월 0일 월요일. 식당 운영 3일차. 손님들이 맛있게 먹고 가는 모습을 보니 힘이 난다. 문득 음식을 하면서 든 생각. 사장님은 어디서 요리를 하셨길래 이렇게 맛있는 레시피를 가지고 계셨을까? 사장님의 정체가 궁금해지는 하루였다." }
-    ]
-  },
-
-  "C1-02": {
-    id: "C1-02",
-    title: "숫자로 남지 않는 것",
-    day: 4,
-    moment: "nightEnd",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    lines: [
-      { kind: "direction", text: "3일차까지의 짧은 기억이 스쳐 지나간다. 4일차 마감 후 준비 음식 일부가 남고, 다은이 수량과 비용을 기록한 뒤 폐기한다." },
-      { kind: "system", text: "오늘 남은 준비 음식은 마감 후 폐기했습니다. 폐기된 준비 음식은 재활용할 수 없습니다." },
-      { speaker: "protagonist", text: "더 많이 준비하면 손님을 놓치지 않을 줄 알았는데." },
-      { kind: "direction", text: "쓰레기통으로 향하던 중 식탁 아래에서 접힌 냅킨을 발견한다." },
-      { kind: "system", text: "‘늦은 시간에 따뜻하게 먹었습니다. 다음에 또 올게요.’" },
-      { speaker: "protagonist", text: "내일은 음식을 얼마나 준비해야 하려나…" },
-      {
-        prompt: "5일차 운영 방식을 정한다.",
-        choices: [
-          {
-            text: "내일은 준비량을 조금 줄인다.",
-            reply: "폐기 예상량이 줄고 품절 가능성이 조금 높아진다.",
-            speaker: "protagonist",
-            flag: "day5_reduce_portions",
-            notice: "Day 5에는 각 메뉴를 2인분씩 준비합니다."
-          },
-          {
-            text: "손님 수보다 메뉴 폭을 줄인다.",
-            reply: "내일 선택할 수 있는 메뉴의 가짓수가 3개로 제한된다.",
-            speaker: "protagonist",
-            flag: "day5_limit_menus",
-            notice: "Day 5에는 최대 3개 메뉴만 선택할 수 있습니다."
-          }
-        ]
-      },
-      { kind: "journal", text: "0월 0일 화요일. 식당 운영 4일차. 버린 음식은 분명 손해다. 그렇다고 오늘 남은 것이 손해뿐인 것은 아니었다." }
-    ]
-  },
-
-  "G-03": {
-    id: "G-03",
-    title: "다음번이 있는 식사",
-    day: 5,
-    moment: "nightStart",
-    character: "gicheol",
-    affinity: 2,
-    regular: true,
-    specialCook: true,
-    timeOfDay: "night",
-    guestOrder: true,
-    dishId: "kimchi",
+    shardId: "first_raindrop",
+    shardName: "첫 빗방울",
     arrival: "early",
-    lines: [
-      { kind: "direction", text: "기철이 평소보다 일찍 들어와 휴대전화를 내민다. 딸과 나눈 간단한 안부 인사가 담겨 있다." },
-      { speaker: "gicheol", text: "답은 왔는데 여기서 또 막혔습니다. 잘 지낸다는데, 이제 무슨 말을 하죠?" },
-      { speaker: "protagonist", text: "같이 먹었던 것 중 기억나는 음식은 있어요?" },
-      { speaker: "gicheol", text: "김치전을 늘상 같이 먹었는데 애는 바삭한 쪽, 저는 쫄깃한 쪽만 골랐어요. 서로 왜 그 부분을 먹는지 이해하지 못했죠." },
-      { speaker: "protagonist", text: "그럼 오늘은 바삭한 김치전 만들어 드릴게요. 서로의 취향을 이해하면 조금 더 대화가 쉬워지지 않을까요?" },
-      { kind: "system", text: "특별 조리 제안: 조금 더 어려운 방법을 시도할까요? 결과가 아쉬워도 이야기는 이어집니다." },
-      {
-        prompt: "박기철의 김치전을 어떻게 조리할까?",
-        choices: [
-          {
-            text: "특별 조리를 준비한다.",
-            notice: "불 조절과 두 가지 식감의 완성 타이밍을 따로 맞추는 상급 조리를 시작합니다.",
-            orderCook: {
-              special: true,
-              thresholds: { great: 80 },
-              replies: {
-                great: "한쪽만 먹으면 아쉽고, 번갈아 먹으니 딱 맞네요. 우리 둘이 식탁에서 이걸로 얼마나 싸웠는지.",
-                soft: "바삭한 쪽이 조금 더 갔네요. 그 애는 오히려 이쪽이 좋다고 했을 겁니다. 다음에 직접 물어보죠."
-              }
-            }
-          },
-          {
-            text: "평소대로 조리한다.",
-            notice: "평소 방식으로 김치전을 조리하고 대화를 이어갑니다.",
-            orderCook: {
-              special: false,
-              thresholds: { great: 80 },
-              replies: {
-                great: "한쪽만 먹으면 아쉽고, 번갈아 먹으니 딱 맞네요. 우리 둘이 식탁에서 이걸로 얼마나 싸웠는지.",
-                soft: "바삭한 쪽이 조금 더 갔네요. 그 애는 오히려 이쪽이 좋다고 했을 겁니다. 다음에 직접 물어보죠."
-              }
-            }
-          }
-        ]
-      },
-      { kind: "direction", text: "기철이 접시 사진을 찍고 ‘김치전 먹다 보니 네 생각이 났다. 이번 주말에 같이 밥 먹을래? 너도 성인이 됐으니 술 한잔하자.’라고 쓴다. 손가락이 전송 버튼 위에서 잠시 멈춘다." },
-      { speaker: "protagonist", text: "오늘 안 보내도 돼요." },
-      { speaker: "gicheol", text: "아니요. 밥은 식기 전에 먹어야 하고, 어떤 말은 더 식기 전에 보내야 합니다." },
-      { kind: "sound", text: "메시지 전송음." },
-      { kind: "direction", text: "잠시 뒤 답장이 도착한다. 이번 일요일 저녁에 가능하다는 내용이다. 기철이 화면을 두 번 확인하고 휴대전화를 가슴 쪽으로 당긴다." },
-      { speaker: "gicheol", text: "다음번이 생겼네." },
-      { speaker: "protagonist", text: "약속 장소는 미리 정하세요. 어디로 갈지 헤매지 마시고." },
-      { speaker: "gicheol", text: "새 사장님 잔소리는 먼저 있던 사장님보다 많으시네요." },
-      { kind: "system", text: "박기철이 첫 단골이 되었습니다." },
-      { kind: "system", text: "손님 기록이 열렸습니다." },
-      { kind: "journal", text: "0월 0일 수요일. 식당 운영 5일차. 화해는 끝난 장면이 아니라 다음 약속이었다. 기철 씨는 오늘 혼자 식사했지만, 나갈 때는 두 사람이 먹을 시간을 확인하고 있었다." }
+    triggerTiming: "after",
+    triggerAfterGeneral: 1,
+    journalClue: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다.",
+    arrivalLines: [
+      storyNarration("첫 번째 일반 손님이 나가자 빗소리가 갑자기 가까워진다.\n문이 열린 흔적은 없지만 젖은 우비를 입은 아이가 창가 자리에 앉아 있다."),
+      storyLine("rainyChild", "비 오는 날 먹는 거 있어요?"),
+      storyLine("protagonist", "어떤 음식인데?"),
+      storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.")
+    ],
+    missingLines: [
+      storyNarration("오늘 메뉴에 김치전이 없다. 아이는 다른 음식으로 바꾸지 않고 기억나는 특징을 더 말한 뒤 돌아간다."),
+      storyLine("protagonist", "오늘 준비한 메뉴에는 없는 것 같아."),
+      storyLine("rainyChild", "그럼 다음 비가 올 때 다시 올게요."),
+      storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
+      { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
+    ],
+    softLines: [
+      storyNarration("아이는 김치전이 맞다는 사실만 확인한다. 기억은 열리지 않는다."),
+      storyLine("rainyChild", "이 음식은 맞는 것 같은데… 비 오는 날 들었던 소리와는 조금 달라요."),
+      storyLine("protagonist", "김치전은 맞는 거네. 다음에 다시 오면 더 잘 만들어 볼게.")
+    ],
+    warmLines: [
+      storyNarration("아이는 누군가와 비를 기다리며 김치전을 나누어 먹던 기억과, 비가 그치면 그 사람도 떠날 것 같았다는 두려움을 떠올린다."),
+      storyLine("rainyChild", "맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요."),
+      storyLine("protagonist", "비가 그쳐도 같이 먹었던 일까지 없어지는 건 아니잖아.")
+    ],
+    greatLines: [
+      storyNarration("아이는 모두가 떠날까 두려워 달빛 한 조각을 빗속에 붙잡아 두었다고 고백한다."),
+      storyLine("rainyChild", "이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요."),
+      storyLine("protagonist", "그 빛은 이제 식탁에 두자. 비가 그쳐도 네 기억은 남아.")
     ]
-  },
+  }),
 
-  "C1-03": {
-    id: "C1-03",
-    title: "익숙해진 손",
+  ...createSpecialGuestArc({
+    number: 2,
+    day: 2,
+    title: "등불을 머리에 인 손님",
+    character: "lanternGuest",
+    dishId: "oden",
+    shardId: "remaining_warmth",
+    shardName: "남은 온기",
+    arrival: "early",
+    triggerTiming: "before",
+    triggerAfterGeneral: 0,
+    journalClue: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다.",
+    arrivalLines: [
+      storyNarration("간판이 켜지자 문밖의 불빛이 길게 늘어난다.\n머리 대신 낡은 종이등을 단 손님이 그날의 첫 손님으로 들어온다."),
+      storyLine("lanternGuest", "손끝이 따뜻해지는 국물이 있습니까?"),
+      storyLine("protagonist", "무슨 국물인지 기억나요?"),
+      storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.")
+    ],
+    missingLines: [
+      storyNarration("어묵탕이 준비되지 않았다. 손님은 빈 테이블에 두 손을 얹었다가 조용히 돌아선다."),
+      storyLine("lanternGuest", "오늘은 제 손을 녹여 줄 그릇이 없군요."),
+      storyLine("protagonist", "다음에는 그 국물을 준비해 볼게요."),
+      { kind: "journal", text: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다." }
+    ],
+    softLines: [
+      storyNarration("따뜻한 음식은 맞지만 기억의 온기에는 닿지 않는다."),
+      storyLine("lanternGuest", "따뜻하군요. 하지만 길을 떠나기 전 받았던 온기에는 아직 닿지 못했습니다."),
+      storyLine("protagonist", "찾던 음식은 맞네요. 다음에 다시 만들어 드릴게요.")
+    ],
+    warmLines: [
+      storyNarration("손님은 밤길을 걷는 사람들을 집으로 돌려보내던 존재였음을 떠올리지만 자신의 귀환지는 기억하지 못한다."),
+      storyLine("lanternGuest", "이 국물로 많은 사람을 돌려보냈습니다. 그런데 제 길만 기억나지 않는군요."),
+      storyLine("protagonist", "계속 남의 길만 비추느라 자기 길은 못 찾았던 거군요.")
+    ],
+    greatLines: [
+      storyNarration("모두를 보내고 혼자 남는 것이 두려워 등불 안에 달빛 조각을 붙잡았다고 고백한다."),
+      storyLine("lanternGuest", "모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요."),
+      storyLine("protagonist", "돌아갈 곳이 정해져 있지 않아도, 이제부터 찾을 수 있어요.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 3,
+    day: 3,
+    title: "둘이 붙은 그림자",
+    character: "twinShadows",
+    dishId: "tofu",
+    shardId: "two_half_names",
+    shardName: "반쪽 이름 두 개",
+    arrival: "early",
+    triggerTiming: "after",
+    triggerAfterGeneral: 2,
+    journalClue: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다.",
+    arrivalLines: [
+      storyNarration("두 번째 일반 손님이 나가고 두 자리가 동시에 비는 순간, 한 사람처럼 보이는 손님이 그 사이에 앉는다.\n바닥에는 그림자가 두 개다."),
+      storyLine("leftShadow", "흰 것이 먼저였어."),
+      storyLine("rightShadow", "아니야. 붉은 것이 옆에 있었어."),
+      storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.")
+    ],
+    missingLines: [
+      storyNarration("두부김치가 없다. 두 그림자는 서로 탓하다가 같은 음식을 찾고 있었다는 사실만 남긴다."),
+      storyLine("leftShadow", "오늘은 내가 찾는 쪽이 없나 봐."),
+      storyLine("rightShadow", "아니, 우리 둘 다 찾는 음식이 없는 거야."),
+      storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어."),
+      storyLine("protagonist", "둘이 같은 음식을 찾고 있다는 건 알겠어."),
+      { kind: "journal", text: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다." }
+    ],
+    softLines: [
+      storyNarration("음식이 맞다는 사실만 확인하며 두 그림자의 기억은 열리지 않는다."),
+      storyLine("leftShadow", "둘이 함께 있는 음식은 맞아."),
+      storyLine("rightShadow", "하지만 아직 우리를 하나로 떠올리게 하진 못해."),
+      storyLine("protagonist", "둘 다 같은 음식을 기억하는 건 맞네. 다음에 다시 해 볼게.")
+    ],
+    warmLines: [
+      storyNarration("두 그림자가 한 사람의 서로 다른 선택이며 하나는 떠나고 다른 하나는 남고 싶어 한다는 사실이 드러난다."),
+      storyLine("leftShadow", "나는 떠나고 싶었어."),
+      storyLine("rightShadow", "나는 남고 싶었어."),
+      storyLine("protagonist", "떠나고 싶은 마음도, 남고 싶은 마음도 둘 다 네 마음이잖아.")
+    ],
+    greatLines: [
+      storyNarration("선택하지 않은 가능성도 자신의 일부임을 받아들인다."),
+      storyLine("twinShadows", "선택하지 않은 우리도 사라지는 건 아니었어."),
+      storyLine("protagonist", "하나를 고른다고 다른 쪽이 없던 일이 되는 건 아니야.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 4,
+    day: 4,
+    title: "까마귀 우편배달부",
+    character: "crowCourier",
+    dishId: "skewer",
+    shardId: "undelivered_letter",
+    shardName: "배달되지 못한 편지",
+    arrival: "late",
+    triggerTiming: "after",
+    triggerAfterGeneral: 3,
+    journalClue: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다.",
+    arrivalLines: [
+      storyNarration("주방이 가장 분주해지기 시작하는 순간 문이 급하게 열리고 검은 외투를 입은 배달부가 들어온다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
+      storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다."),
+      storyLine("protagonist", "어떤 모양이었죠?"),
+      storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.")
+    ],
+    missingLines: [
+      storyNarration("닭꼬치가 없어 배달부는 다시 길을 나설 수밖에 없다고 말한다."),
+      storyLine("crowCourier", "오늘은 배달을 계속 미뤄야겠군요."),
+      storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다."),
+      storyLine("protagonist", "다음에 오면 그 음식을 준비해 둘게요."),
+      { kind: "journal", text: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다." }
+    ],
+    softLines: [
+      storyNarration("음식이 맞다는 사실만 확인하고 편지를 들고 다시 길을 나선다."),
+      storyLine("crowCourier", "음식은 맞습니다. 하지만 아직 발걸음을 떼기엔 부족하군요."),
+      storyLine("protagonist", "찾던 음식은 맞네요. 그래도 아직 편지를 놓기는 어려운가 봐요.")
+    ],
+    warmLines: [
+      storyNarration("편지를 전하면 누군가 떠날까 두려워 마지막 편지를 숨겨 왔다는 사실을 말한다."),
+      storyLine("crowCourier", "이 편지를 전하면 누군가 떠날 것 같았습니다. 그래서 계속 미뤘지요."),
+      storyLine("protagonist", "전하지 않으면 기다리는 사람도 계속 그 자리에 있어요.")
+    ],
+    greatLines: [
+      storyNarration("배달하지 않은 것이 상대의 내일까지 멈추게 했음을 인정한다."),
+      storyLine("crowCourier", "제가 미룬 건 배달이 아니라 그 사람의 내일이었습니다."),
+      storyLine("protagonist", "이제는 그 사람이 직접 다음을 정할 수 있게 전해 주세요.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 5,
+    day: 5,
+    title: "별을 먹는 작은 짐승",
+    character: "starBeast",
+    dishId: "fries",
+    shardId: "golden_salt",
+    shardName: "금빛 소금",
+    arrival: "late",
+    triggerTiming: "after",
+    triggerAfterGeneral: 3,
+    journalClue: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다.",
+    arrivalLines: [
+      storyNarration("식당 조명이 잠시 어두워진다.\n테이블 아래에서 작은 짐승이 기어 나와 가장 그늘진 자리에 웅크린다. 몸 안에는 삼킨 별빛이 움직인다."),
+      storyLine("starBeast", "손으로 집어 먹는 노란 거 있어?"),
+      storyLine("protagonist", "더 기억나는 건?"),
+      storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.")
+    ],
+    missingLines: [
+      storyNarration("감자튀김이 없어 짐승은 몸 안의 빛을 꺼내지 않겠다고 말한다."),
+      storyLine("starBeast", "오늘은 빛을 꺼내지 않을래."),
+      storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데."),
+      storyLine("protagonist", "다음에는 그걸 준비해 볼게."),
+      { kind: "journal", text: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다." }
+    ],
+    softLines: [
+      storyNarration("노란 음식이 맞다는 사실만 확인한다. 몸 안의 별빛은 그대로다."),
+      storyLine("starBeast", "노란 건 맞아. 그런데 내 안의 별은 아직 나오기 싫대."),
+      storyLine("protagonist", "찾던 음식은 맞구나. 다음에 다시 와도 돼.")
+    ],
+    warmLines: [
+      storyNarration("새벽을 알리는 가장 밝은 별을 삼켰고, 밝아지면 모두가 자신을 볼까 두려웠다고 털어놓는다."),
+      storyLine("starBeast", "밝아지면 모두가 날 볼까 봐 가장 밝은 별을 먹었어."),
+      storyLine("protagonist", "보이는 게 무서워서 숨고 싶었던 거구나.")
+    ],
+    greatLines: [
+      storyNarration("두려웠던 것은 아침이 아니라 빛 속에서 자신을 바라보는 시선이었다고 고백한다."),
+      storyLine("starBeast", "무서웠던 건 아침이 아니라 빛 속의 눈들이었어. 이제 별을 돌려줄게."),
+      storyLine("protagonist", "별을 돌려줘도 괜찮아. 밝은 곳에 있어도 네가 사라지는 건 아니야.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 6,
     day: 6,
-    moment: "nightStart",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    lines: [
-      { kind: "direction", text: "낮 준비를 마치고 ‘영업준비 완료’를 누르자, 다은은 자연스럽게 주방을 둘러본다." },
-      { speaker: "protagonist", text: "생각보다 가게에 익숙해진 것 같네." }
-    ]
-  },
-
-  "C1-03-JOURNAL": {
-    id: "C1-03-JOURNAL",
-    title: "6일차 · 마감 일지",
-    day: 6,
-    moment: "nightEnd",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "night",
-    lines: [
-      { kind: "journal", text: "0월 0일 목요일. 식당 운영 6일차. 손이 먼저 움직인 순간이 있었다. 아직 내 가게라고 부르지는 못했지만, 남의 주방처럼 느껴지지도 않았다." }
-    ]
-  },
-
-  "C1-04A": {
-    id: "C1-04A",
-    title: "돌아갈 수 있는 자리 · 낮",
-    day: 7,
-    moment: "dayStart",
-    character: "manager",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
-    timeOfDay: "day",
-    lines: [
-      { kind: "direction", text: "낮 준비 전 팀장에게 메시지가 온다." },
-      { kind: "system", text: "‘다은 씨, 잠깐 보는 거 가능할까? 회사 관련해서 전달할 말이 있어. 가능하면 만나서 얘기하고 싶은데.’" },
-      { kind: "direction", text: "다은은 잠시 망설이다 ‘팀장님, 제가 지금 식당을 하고 있어서요. 만나려면 찾아오셔야 할 것 같아요.’라고 답하고 식당 위치와 영업 시간을 보낸다." },
-      { speaker: "protagonist", text: "갑자기 팀장님이 연락하시다니 무슨 일이지?" },
-      { kind: "direction", text: "혼란스러워하던 다은은 이내 생각을 접고 다시 영업 준비를 시작한다." },
-      { speaker: "protagonist", text: "에휴, 복잡하니까 오늘 메뉴에는 볶음우동을 넣어야겠다. 음식 볶으면서 복잡한 생각을 날려버려야겠어!" }
-    ]
-  },
-
-  "C1-04B": {
-    id: "C1-04B",
-    title: "돌아갈 수 있는 자리 · 마지막 손님",
-    day: 7,
-    moment: "nightStart",
-    character: "manager",
-    affinity: 0,
-    regular: false,
-    specialCook: true,
-    timeOfDay: "night",
-    guestOrder: true,
-    dishId: "yakisoba",
+    title: "바닷물로 된 손님",
+    character: "seawaterGuest",
+    dishId: "shrimpTempura",
+    shardId: "eastern_scale",
+    shardName: "동쪽의 비늘",
     arrival: "last",
-    deferUntilArrival: true,
+    triggerTiming: "after",
+    triggerAfterGeneral: 7,
+    journalClue: "여섯째 날의 손님은 바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진, 휘어진 모양의 음식을 찾았다.",
+    arrivalLines: [
+      storyNarration("마지막 일반 손님이 나가자 문 아래로 얕은 물결이 밀려 들어온다.\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."),
+      storyLine("seawaterGuest", "바다에서 온 음식이 있습니까?"),
+      storyLine("protagonist", "국물 요리인가요?"),
+      storyLine("seawaterGuest", "아닙니다. 물속이 아니라 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 휘어 있었지요.")
+    ],
+    missingLines: [
+      storyNarration("새우튀김이 없어 손님은 바다의 이름을 떠올리지 못한 채 돌아간다."),
+      storyLine("seawaterGuest", "오늘은 바다의 이름을 떠올리지 못하겠군요."),
+      storyLine("seawaterGuest", "휘어진 껍질과 바삭한 조각만 기억합니다."),
+      storyLine("protagonist", "다음에는 그 음식을 준비해 둘게요."),
+      { kind: "journal", text: "여섯째 날의 손님은 바다에서 왔지만 뜨거운 기름을 지나 겉이 바삭해진, 휘어진 모양의 음식을 찾았다." }
+    ],
+    softLines: [
+      storyNarration("음식은 맞지만 손님의 이름은 떠오르지 않는다."),
+      storyLine("seawaterGuest", "찾던 음식은 맞습니다. 하지만 제 이름은 아직 떠오르지 않는군요."),
+      storyLine("protagonist", "다음에 다시 오면 조금 더 기억날지도 몰라요.")
+    ],
+    warmLines: [
+      storyNarration("새벽이 오면 동쪽 바다로 돌아가야 하지만 육지의 사람들이 자신의 이름을 잊을까 두려워한다."),
+      storyLine("seawaterGuest", "동쪽으로 돌아가면 이곳에서 불리던 이름을 잃을까 두렵습니다."),
+      storyLine("protagonist", "돌아간다고 여기서 있었던 일까지 없어지지는 않아요.")
+    ],
+    greatLines: [
+      storyNarration("멈춘 이름을 남기는 대신 변해 가는 자신으로 돌아가기로 결심한다."),
+      storyLine("seawaterGuest", "멈춘 이름을 남기는 대신, 변해 가는 나로 돌아가겠습니다."),
+      storyLine("protagonist", "내가 기억할게요. 이름이 달라져도 여기 왔던 당신을요.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 7,
+    day: 7,
+    title: "멈춰버린 교복 인형",
+    character: "schoolDoll",
+    dishId: "tteokbokki",
+    shardId: "stopped_minute_hand",
+    shardName: "멈춘 분침",
+    arrival: "early",
+    triggerTiming: "before",
+    triggerAfterGeneral: 0,
+    journalClue: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다.",
+    arrivalLines: [
+      storyNarration("영업 준비 완료를 누르는 순간 벽시계가 4시 44분에서 멈추고 멀리서 학교 종소리가 울린다.\n문 앞에는 교복을 입은 소녀가 서 있다. 가까이 보면 피부는 나무와 천으로 만들어져 있다."),
+      storyLine("schoolDoll", "학교 끝나고 먹던 게 있어요?"),
+      storyLine("protagonist", "무슨 음식인데?"),
+      storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.")
+    ],
+    missingLines: [
+      storyNarration("떡볶이가 준비되지 않았다. 인형은 오늘도 시간이 4시 44분에서 끝난다고 말한다."),
+      storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
+      storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
+      storyLine("protagonist", "다음에는 그 음식을 준비해 볼게."),
+      { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
+    ],
+    softLines: [
+      storyNarration("음식은 맞지만 인형의 시계는 움직이지 않는다."),
+      storyLine("schoolDoll", "그때 먹던 음식은 맞는데… 시계가 움직이지 않아요."),
+      storyLine("protagonist", "음식은 찾았는데, 아직 다음으로 갈 마음은 안 난 거구나.")
+    ],
+    warmLines: [
+      storyNarration("졸업 이후 무엇을 할지 몰라 가장 행복했던 방과 후 시간에 자신을 멈췄다고 말한다."),
+      storyLine("schoolDoll", "졸업하면 뭘 해야 할지 몰랐어요. 그래서 방과 후를 멈췄어요."),
+      storyLine("protagonist", "모르는 채로 가도 돼. 나도 아직 뭘 할지 모르니까.")
+    ],
+    greatLines: [
+      storyNarration("틀리지 않으려고 멈추면 맞을 기회도 없다는 사실을 받아들인다."),
+      storyLine("schoolDoll", "틀리지 않으려고 멈추면, 맞을 기회도 없었네요."),
+      storyLine("protagonist", "맞아. 멈춰 있으면 다음 선택은 생기지 않아. 우리 둘 다 가 보자.")
+    ]
+  }),
+
+  ...createSpecialGuestArc({
+    number: 8,
+    day: 7,
+    title: "최종 예약 손님 - 얼굴 없는 김다은",
+    character: "facelessDaeun",
+    greatCharacter: "anotherDaeun",
+    dishId: "yakisoba",
+    shardId: "daeuns_tomorrow",
+    shardName: "김다은의 내일",
+    finalShard: true,
+    arrival: "last",
+    triggerTiming: "after",
+    triggerAfterGeneral: 5,
+    triggerOnNightEnd: true,
+    requiredBaseShards: 7,
+    journalClue: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다.",
+    arrivalLines: [
+      storyNarration("식당의 모든 조명이 꺼진 뒤 주방 위 조명 하나만 다시 켜진다.\n카운터에는 김다은과 같은 옷을 입었지만 얼굴이 없는 손님이 앉아 있다. 장부의 「마지막 예약 손님: 김다은」 문구가 다시 빛난다."),
+      storyLine("facelessDaeun", "볶음우동 하나 부탁해."),
+      storyLine("protagonist", "당신은 누구야?"),
+      storyLine("facelessDaeun", "네가 오지 않게 만든 사람."),
+      storyLine("protagonist", "장부에 적혀 있던 마지막 예약 손님… 그게 당신이었어?")
+    ],
+    missingLines: [
+      storyNarration("얼굴 없는 손님은 자신이 올 자리가 또 준비되지 않았다고 말하고 사라진다.\n다은이 과거 야근 중 만들었던 음식에 관한 단서가 남는다."),
+      storyLine("facelessDaeun", "오늘도 내가 올 자리는 준비하지 않았네."),
+      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지."),
+      storyLine("protagonist", "이 글씨… 내 필체야. 내가 만들었던 음식이라는 거야?"),
+      { kind: "journal", text: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다." }
+    ],
+    softLines: [
+      storyNarration("볶음우동이 맞다는 사실은 확인하지만 얼굴은 생기지 않는다."),
+      storyLine("facelessDaeun", "이 음식은 맞아. 그런데 아직 네가 만들었던 맛은 아니야."),
+      storyLine("protagonist", "이 음식이 맞다는 건 기억나. 다시 만들어 볼게.")
+    ],
+    warmLines: [
+      storyNarration("다은이 입사 초기에 야근하던 동료들과 볶음우동을 나누고, 먹는 사람의 표정을 직접 보며 기뻐했던 기억이 열린다."),
+      storyLine("facelessDaeun", "입사한 첫해, 이걸 동료들과 나눠 먹었어. 그때는 누가 맛있어하는지 직접 보고 있었지."),
+      storyLine("protagonist", "그때의 나는 결과보다 먹는 사람을 먼저 보고 있었네.")
+    ],
+    greatLines: [
+      storyNarration("손님에게 다은의 얼굴이 생기고 자신이 다은이 포기한 내일이라고 밝힌다.\n손님들이 조각을 붙잡았지만 새벽으로 가는 길을 닫은 것은 다은의 소원이었다."),
+      storyLine("anotherDaeun", "나는 네가 포기한 내일이야."),
+      storyLine("anotherDaeun", "손님들이 달빛을 붙잡았고, 네가 그 빛이 새벽으로 가는 길을 닫았어."),
+      storyLine("protagonist", "내가 닫은 문이면 내가 다시 열 수 있어. 내일을 없애지 않고 마주할게."),
+      storyLine("anotherDaeun", "아직 무엇을 할지 몰라도, 내일은 올 수 있어."),
+      storyLine("letter", "내일이 두렵더라도 오늘을 영원히 반복하고 싶지는 않다. 아직 무엇을 할지는 모르겠지만, 아침이 오면 그때 다시 생각하자.")
+    ]
+  }),
+
+  "SCN-J01": {
+    id: "SCN-J01",
+    title: "달빛 조각 0~3개 - 자동 회귀",
+    day: 7,
+    moment: "nightJudgement",
+    sceneType: "endingJudgement",
+    timeOfDay: "night",
+    character: "journal",
+    shardRange: [0, 3],
+    autoLoop: true,
+    nextSceneId: "SCN-L01",
     lines: [
-      { kind: "sound", text: "마지막 일반 손님이 나간 뒤 문종이 울린다." },
-      { kind: "direction", text: "마감 팻말을 뒤집으려던 순간 정장을 입은 팀장이 들어온다. 다은은 손에 든 행주를 내려놓지 못한 채 멈춘다." },
-      { speaker: "protagonist", text: "팀장님?" },
-      { speaker: "manager", text: "갑자기 연락하고 찾아와서 미안해. 네가 힘들어하던 것도 잘 알고 있었고." },
-      { speaker: "protagonist", text: "아뇨. 팀장님은 잘해주셨잖아요. 그냥 제 능력 부족인 거죠." },
-      { speaker: "manager", text: "다은 씨 능력은 충분해. 문제는 회사가 돈을 벌어야 하는 집단이라는 거지…" },
-      { speaker: "manager", text: "그래서 이 식당은 다은 씨 거야?" },
-      { speaker: "protagonist", text: "제 거라고 하기에는 애매해요. 한 달만 가게를 해보라고 빌려주신 거라서." },
-      { speaker: "manager", text: "한 달 빌린 거라도 사장은 사장이지. 지금부터 팀장이 아니라 손님으로 있어도 될까?" },
-      { speaker: "protagonist", text: "주문은 뭘로 하시겠습니까, 손님?" },
-      {
-        speaker: "manager",
-        text: "식당하더니 능청스러워졌네. 메뉴가… 오? 볶음우동이 있네? 철판에서 맛있게 볶아줘.",
-        orderCook: {
-          special: true,
-          thresholds: { great: 60 },
-          replies: {
-            great: "괜찮네요. 잘 먹었어요.",
-            soft: "맛은 그럭저럭이네요."
-          }
-        }
-      },
-      { kind: "direction", text: "팀장이 음식을 천천히 먹는 동안 다은은 가게를 정리하고 팀장의 맞은편에 앉는다." },
-      { speaker: "manager", text: "좋은 대접도 받았으니 이제 할 일을 해야겠지…" },
-      { speaker: "manager", text: "내가 굳이 얼굴을 보자고 한 이유는…" },
-      { speaker: "manager", text: "네 사표 아직 수리 안 됐어. 이번 달 안이라면 복귀할 수 있는 거야. 한 달 쉬고 다시 복귀하는 거지." },
-      { speaker: "protagonist", text: "제가 필요한가요?" },
-      { speaker: "manager", text: "필요하지. 그렇지만 싫단 사람을 붙잡으러 온 건 아니야. 요리할 때 네 표정이 즐거워 보였거든." },
-      {
-        prompt: "팀장의 말을 들은 다은이 답한다.",
-        choices: [
-          {
-            text: "돌아갈 수 있다는 말에 놀랐다고 솔직히 말한다.",
-            reply: "너같이 능력 있는 사람 흔치 않아.",
-            speaker: "manager"
-          },
-          {
-            text: "가게가 생각보다 할 만했다고 말한다.",
-            reply: "할 만한 일과 계속하고 싶은 일은 같을 때도, 다를 때도 있어.",
-            speaker: "manager"
-          },
-          {
-            text: "아직 아무것도 모르겠다고 말한다.",
-            reply: "모르는 채로 일주일을 해낸 것도 정보야. 결론은 아니지만.",
-            speaker: "manager"
-          }
-        ]
-      },
-      { speaker: "manager", text: "돌아오는 게 실패도 아니고, 남는 게 용기라는 뜻도 아니야. 네가 어디서 뭘 해보고 싶은지만 생각해." },
-      { speaker: "protagonist", text: "언제까지 답을 드리면 돼요?" },
-      { speaker: "manager", text: "이번 달 내로. 서두르라는 말은 하지 않을게." },
-      { kind: "direction", text: "팀장이 계산을 마치고 인사한다." },
-      { speaker: "manager", text: "다음에 오면 그때는 정말 손님으로 올게." },
-      { speaker: "protagonist", text: "오늘도 손님 아니었어요?" },
-      { speaker: "manager", text: "절반쯤은? 반쯤은 팀장으로서 얘기도 했으니까." },
-      { kind: "direction", text: "팀장이 나간다. 문이 닫힌 뒤에도 다은은 한동안 멍하니 바라본다." }
+      storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 새벽문까지 닿지 못한다."),
+      storyLine("journal", "아직 하나의 길도 만들 수 없습니다."),
+      storyLine("journal", "영업은 첫째 날로 돌아갑니다."),
+      storyLine("protagonist", "또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자.")
     ]
   },
 
-  "C1-END": {
-    id: "C1-END",
-    title: "식당 불은 아직 켜져 있다",
+  "SCN-J02": {
+    id: "SCN-J02",
+    title: "달빛 조각 4~7개 - 한 갈래의 달빛",
     day: 7,
-    moment: "nightEnd",
-    character: "protagonist",
-    affinity: 0,
-    regular: false,
-    specialCook: false,
+    moment: "nightJudgement",
+    sceneType: "endingJudgement",
     timeOfDay: "night",
-    ending: true,
+    character: "journal",
+    shardRange: [4, 7],
     lines: [
-      { kind: "direction", text: "다은이 마지막 그릇을 씻고 정산을 끝낸다." },
-      { kind: "system", text: "DAY 7 · 영업 종료" },
-      { speaker: "protagonist", text: "일주일. 나름 할 만했다." },
-      { kind: "direction", text: "다은은 회사 상자를 본다. 아직 정리하지 않은 사원 수첩이 안에 있다. 시선을 돌리면 오늘 쓸 영업 일지가 보인다." },
-      { speaker: "protagonist", text: "힘들기만 했다면 돌아갔을 텐데." },
-      { speaker: "protagonist", text: "할 만하다는 것과 계속하고 싶다는 건 같은 말일까." },
-      { speaker: "protagonist", text: "나는 돌아갈 곳이 있어서 흔들리는 걸까. 돌아오고 싶은 곳이 생겨서 흔들리는 걸까." },
-      { kind: "direction", text: "다은은 출입문의 ‘영업 중’ 팻말은 뒤집지만 주방 불은 끄지 않는다. 빈 홀 뒤로 빗소리 없는 골목이 보인다." },
-      { kind: "journal", text: "0월 0일 금요일. 식당 운영 7일차. 첫 주가 끝났다. 돌아갈 문이 아직 열려 있다는 말을 들었다. 그런데 오늘 처음으로, 내일도 이 문을 열고 싶은지 생각했다." },
-      { kind: "system", text: "제1장 끝 · 식당 불은 아직 켜져 있다" },
-      { kind: "system", text: "프롤로그 + 제1장 데모를 완료했습니다." }
+      storyNarration("모인 달빛은 한 사람이 지나갈 수 있는 좁은 길 하나만 만들 수 있다.\n다은은 자신의 길을 밝힐지 손님들의 길을 밝힐지 선택해야 한다."),
+      storyLine("journal", "한 갈래의 길을 비출 수 있습니다."),
+      storyLine("journal", "누구의 길을 밝히시겠습니까?"),
+      storyLine("protagonist", "모두를 보낼 만큼의 빛은 없어. 그래도 지금 한 길은 선택할 수 있어."),
+      {
+        prompt: "누구의 길을 밝힐까?",
+        choices: [
+          { text: "내 길을 밝힌다", nextSceneId: "END-01" },
+          { text: "손님들의 길을 밝힌다", nextSceneId: "END-02" }
+        ]
+      }
+    ]
+  },
+
+  "SCN-J03": {
+    id: "SCN-J03",
+    title: "달빛 조각 8개 - 완성된 달빛식탁",
+    day: 7,
+    moment: "nightJudgement",
+    sceneType: "endingJudgement",
+    timeOfDay: "night",
+    character: "journal",
+    shardRange: [8, 8],
+    lines: [
+      storyNarration("여덟 조각이 식탁 위에서 하나의 달빛 길로 이어진다.\n기억을 되찾은 손님들이 각자의 자리에 나타나 마지막 선택을 기다린다."),
+      storyLine("journal", "여덟 개의 달빛이 모두 모였습니다."),
+      storyLine("journal", "달빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?"),
+      storyLine("protagonist", "이제 내가 어떤 밤을 남길지 결정해야 해."),
+      {
+        prompt: "어떤 밤을 남길까?",
+        choices: [
+          { text: "달빛을 식탁에 붙잡아 둔다", nextSceneId: "END-03" },
+          { text: "모두의 길을 하나로 잇는다", nextSceneId: "END-04" }
+        ]
+      }
+    ]
+  },
+
+  "END-01": {
+    id: "END-01",
+    title: "엔딩 - 혼자 맞은 아침",
+    day: 7,
+    moment: "ending",
+    sceneType: "ending",
+    timeOfDay: "night",
+    character: "protagonist",
+    ending: true,
+    endingId: "alone_morning",
+    endingTitle: "혼자 맞은 아침",
+    continuePolicy: "nextLoop",
+    lines: [
+      storyNarration("다은은 모은 달빛으로 한 사람이 지나갈 수 있는 새벽문을 만들고 혼자 현실로 돌아간다.\n조각을 돌려받지 못한 손님들은 식당에 남는다."),
+      storyLine("protagonist", "나는 나왔지만… 그 밤은 아직 끝나지 않았어.")
+    ]
+  },
+
+  "END-02": {
+    id: "END-02",
+    title: "엔딩 - 손님들의 새벽",
+    day: 7,
+    moment: "ending",
+    sceneType: "ending",
+    timeOfDay: "night",
+    character: "protagonist",
+    ending: true,
+    endingId: "guests_dawn",
+    endingTitle: "손님들의 새벽",
+    continuePolicy: "nextLoop",
+    lines: [
+      storyNarration("다은은 가진 달빛 조각을 원래 주인들에게 돌려준다.\n기억을 되찾은 손님들은 각자의 아침으로 떠나지만, 다은은 자신의 길을 밝힐 달빛을 쓰지 않고 식당에 남는다."),
+      storyLine("protagonist", "오늘의 식사는 여기까지입니다. 이제 돌아가세요."),
+      storyCaption("김다은(속말)", "남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게.")
+    ]
+  },
+
+  "END-03": {
+    id: "END-03",
+    title: "엔딩 - 영원히 영업 중",
+    day: 7,
+    moment: "ending",
+    sceneType: "ending",
+    timeOfDay: "night",
+    character: "protagonist",
+    ending: true,
+    endingId: "open_forever",
+    endingTitle: "영원히 영업 중",
+    continuePolicy: "finalChoiceCheckpoint",
+    lines: [
+      storyNarration("다은은 달빛을 어느 길에도 비추지 않고 식당을 유지한다.\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다."),
+      storyLine("protagonist", "어서 오세요."),
+      storyLine("protagonist", "오늘도 새벽은 오지 않습니다.")
+    ]
+  },
+
+  "END-04": {
+    id: "END-04",
+    title: "진엔딩 - 함께 오는 아침",
+    day: 7,
+    moment: "ending",
+    sceneType: "ending",
+    timeOfDay: "night",
+    character: "moonlightTable",
+    ending: true,
+    trueEnding: true,
+    endingId: "morning_together",
+    endingTitle: "함께 오는 아침",
+    continuePolicy: "clearRunKeepMeta",
+    nextSceneId: "SCN-EPI01",
+    lines: [
+      storyNarration("다은은 달빛을 독점하거나 포기하지 않고 식탁 위에 돌려놓는다.\n손님들도 붙잡았던 밤을 스스로 놓는다. 여덟 조각은 모두의 길을 잇는 하나의 새벽문이 된다."),
+      storyLine("moonlightTable", "내일 무엇을 할지 정했습니까?"),
+      storyLine("protagonist", "아니요. 아직 뭘 할지는 모르겠어요."),
+      storyLine("protagonist", "그래도 내일 가서 생각할게요.")
+    ]
+  },
+
+  "SCN-EPI01": {
+    id: "SCN-EPI01",
+    title: "비가 그친 아침",
+    day: 7,
+    moment: "epilogue",
+    sceneType: "epilogue",
+    timeOfDay: "day",
+    character: "protagonist",
+    ending: true,
+    trueEndingEpilogue: true,
+    endingStill: "morningAlley",
+    disableContinue: true,
+    clearProgressSaves: true,
+    keepTitleJournal: true,
+    lines: [
+      storyNarration("다은이 새벽문을 통과하면 비가 그친 현실의 아침 골목으로 이어진다.\n휴대전화에는 퇴사한 밤 동료들이 보낸 메시지가 그대로 남아 있다.\n다은에게 필요한 것은 퇴사를 되돌리는 일이 아니라 정하지 못한 다음 날을 두려워하지 않는 일이었다."),
+      storyCaption("김다은(메시지)", "걱정해 줘서 고마워. 나는 괜찮아. 나중에 만나서 이야기할게."),
+      storyCaption("김다은(속말)", "회사를 그만둔 건 후회하지 않아."),
+      storyCaption("김다은(속말)", "다음에 뭘 할지는… 오늘부터 생각하면 돼."),
+      storyLine("menuBack", "오늘의 메뉴는 내일 정합니다.")
     ]
   }
 };
 
+// 정적 진입 장면만 이 일정에 둡니다. 특별 손님과 결과·엔딩 장면은
+// 아래 STORY_SPECIAL_GUEST_BY_DAY 및 각 장면의 분기 메타데이터로 실행합니다.
 const STORY_EVENT_SCHEDULE = {
   newGame: {
-    1: ["PR-01", "PR-02"]
+    1: ["SCN-P01", "SCN-P02", "SCN-P03", "SCN-P04"]
   },
   dayStart: {
-    1: ["C1-01"],
-    7: ["C1-04A"]
+    1: ["SCN-L01", "SCN-L02"],
+    2: ["SCN-L02"],
+    3: ["SCN-L02"],
+    4: ["SCN-L02"],
+    5: ["SCN-L02"],
+    6: ["SCN-L02"],
+    7: ["SCN-L02"]
   },
   nightStart: {
-    2: ["G-02"],
-    5: ["G-03"],
-    6: ["C1-03"],
-    7: ["C1-04B"]
+    1: ["SCN-D01"],
+    2: ["SCN-D01"],
+    3: ["SCN-D01"],
+    4: ["SCN-D01"],
+    5: ["SCN-D01"],
+    6: ["SCN-D01"],
+    7: ["SCN-D01"]
   },
-  nightEnd: {
-    1: ["C1-01-JOURNAL"],
-    3: ["C1-D3-JOURNAL"],
-    4: ["C1-02"],
-    6: ["C1-03-JOURNAL"],
-    7: ["C1-END"]
-  }
+  nightEnd: {}
 };
 
-const STORY_SPECIAL_GUEST_BY_DAY = {};
+const STORY_SPECIAL_GUEST_BY_DAY = Object.freeze({
+  1: Object.freeze(["SCN-G1-A"]),
+  2: Object.freeze(["SCN-G2-A"]),
+  3: Object.freeze(["SCN-G3-A"]),
+  4: Object.freeze(["SCN-G4-A"]),
+  5: Object.freeze(["SCN-G5-A"]),
+  6: Object.freeze(["SCN-G6-A"]),
+  7: Object.freeze(["SCN-G7-A", "SCN-G8-A"])
+});
+
+const STORY_ENDING_RULES = Object.freeze({
+  low: Object.freeze({ minShards: 0, maxShards: 3, judgementSceneId: "SCN-J01" }),
+  middle: Object.freeze({ minShards: 4, maxShards: 7, judgementSceneId: "SCN-J02" }),
+  complete: Object.freeze({ minShards: 8, maxShards: 8, judgementSceneId: "SCN-J03" })
+});

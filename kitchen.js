@@ -269,26 +269,11 @@ function blockPlayerAtStations(player){
 }
 
 
-/* 지금 뚜껑이 열려 있는가.
-   - 음식을 폐기하면(night.js 가 state.discardedCount 를 올립니다)
-     TRASH_OPEN_MS 동안 열렸다 닫힙니다.
-   폐기 시점을 night.js 에서 알려 주는 대신 카운터 변화를 여기서 읽습니다.
-   게임 로직 파일을 건드리지 않고 연출만 이 파일 안에서 끝내려는 것입니다. */
-
-// 뚜껑이 열려 있는 시간. 음식을 폐기하는 순간 이 시간만큼 열렸다 닫힙니다.
-const TRASH_OPEN_MS = 420;
-
-let trashOpenUntil = 0;
-let trashDiscardSeen = null;
-
 function trashIsOpen(){
-  const discarded=state.discardedCount||0;
-  // 첫 프레임(null)은 기준만 잡습니다. 이어하기로 값을 불러온 직후에
-  // 열림 연출이 한 번 튀는 것을 막습니다.
-  if(trashDiscardSeen!==null&&discarded>trashDiscardSeen) trashOpenUntil=performance.now()+TRASH_OPEN_MS;
-  trashDiscardSeen=discarded;
+  // 폐기 시스템은 사용하지 않습니다. 향후 쓰레기통 전용 미니게임을
+  // 다시 연결할 경우에만 해당 미니게임 동안 뚜껑 연출을 표시합니다.
   if(state.mini?.stationId==="trash")return true;
-  return performance.now()<trashOpenUntil;
+  return false;
 }
 
 
@@ -329,7 +314,7 @@ function nearestStation(preferredId=null){
 
      낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
      프롤로그 조리 사장이 지정한 현재 조리 단계 집기만
-     밤 · 들고 감  쓰레기통에 폐기할 때만
+     밤 · 들고 감  주방 집기와 추가 상호작용 없음
      밤          현재 조리 단계 집기만
      미니게임 중   그 집기만 (프롬프트는 숨지만 사용 중이므로 계속 강조)
 
@@ -341,11 +326,7 @@ function stationUsable(s,near){
   if(state.paused||near?.id!==s.id)return false;
   if(state.story?.activeStoryCook)return s.id===currentRequirement();
   if(state.phase!=="night")return false;
-  if(state.carrying){
-    if(s.id!=="trash")return false;
-    const dish=dishById(state.carrying.dishId);
-    return !!dish&&state.inventory[dish.id]?.count>0;
-  }
+  if(state.carrying)return false;
   return s.id===currentRequirement();
 }
 

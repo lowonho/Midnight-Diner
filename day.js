@@ -21,18 +21,7 @@ function getCurrentDayData(){
 }
 
 function maxSelectedMenusForDay(dayData){
-  const configuredMax=Math.max(1,Math.floor(Number(dayData.maxSelectedMenus)||1));
-  if(dayData.ignoreStoryMenuLimit)return configuredMax;
-  return Number(state.day)===5&&state.story?.flags?.day5_limit_menus
-    ?Math.min(configuredMax,3)
-    :configuredMax;
-}
-
-function prepYieldForDay(dish){
-  const configuredYield=Math.max(1,Math.floor(Number(dish.prepYield)||3));
-  return Number(state.day)===5&&state.story?.flags?.day5_reduce_portions
-    ?Math.max(1,Math.min(configuredYield,2))
-    :configuredYield;
+  return Math.max(1,Math.floor(Number(dayData.maxSelectedMenus)||1));
 }
 
 function selectedDishes(){
@@ -53,7 +42,15 @@ function nextPrepTaskForDish(menuId){
 }
 
 function prepTaskAvailableToday(task){
-  return !!task&&(!task.minDay||Number(state.day)>=Number(task.minDay));
+  // 모든 메뉴가 Day 1부터 열리므로 메뉴에 연결된 준비 작업도 첫날부터 사용합니다.
+  return !!task;
+}
+
+function dishPreparedForService(dishId){
+  const dish=dishById(dishId);
+  if(!dish||!dish.isImplemented||!state.selectedMenus?.includes(dish.id))return false;
+  const tasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(task=>task?.isImplemented);
+  return tasks.length>0&&tasks.every(task=>state.prepProgress?.[task.id]);
 }
 
 function selectedPrepTasksForChecklist(){
@@ -97,7 +94,7 @@ function setSelectedMenus(menuIds){
   state.selectedMenus=unique;
   state.prepProgress=createDayPrepProgress();
   state.kimchiPrep=createKimchiPrepProgress();
-  state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0}]));
+  state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
   buildMenuCards();updateUI(true);saveGame();
   return true;
 }
@@ -109,12 +106,12 @@ function resetDay(first=false) {
   state.selectedMenus=[...dayData.requiredMenus];state.menuSelectionDraft=[...dayData.requiredMenus];
   normalizeDayPrepState();
   state.selectedDishId=state.selectedMenus[0]||DISHES[0].id;
-  state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0}]));
+  state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
   state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();
   state.ingredientSelection=state.phase===GAME_PHASES.INGREDIENT_SELECT?createIngredientSelectionState(state.selectedMenus):null;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
-  state.served=0;state.satisfactionTotal=0;state.fiveStar=0;
+  state.served=0;state.generalServed=0;state.generalSpawnedCustomers=0;state.satisfactionTotal=0;state.fiveStar=0;
   state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.discardedCount=0;state.discardLoss=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
   state.mini=null;resetPlayerPosition();state.joyX=0;state.joyY=0;   // 시작 좌표는 player.js PLAYER_START
   dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
@@ -151,7 +148,6 @@ function prepComplete(){
 function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
-  if(task.minDay&&Number(state.day)<Number(task.minDay)){showToast(`이 준비 작업은 Day ${task.minDay}부터 이용할 수 있습니다.`,true);return;}
   if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
   const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!state.prepProgress[item.id]);
   if(dependency){showToast(`먼저 ${dependency.label} 작업을 완료하세요.`,true);return;}
@@ -171,12 +167,11 @@ function completeDayPrepTask(taskId){
   selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented&&prepTaskAvailableToday(item));
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
-      // 기존 영업·주문·정산 호환용 내부 준비 수량이며 준비 화면에는 노출하지 않습니다.
-      const prepYield=prepYieldForDay(dish);
-      state.inventory[dish.id]={count:prepYield,quality:100};
+      // count는 구버전 세이브 호환용 준비 표시일 뿐 밤 영업에서 소모하지 않습니다.
+      state.inventory[dish.id]={count:1,quality:100,prepared:true};
     }
   });
-  if([3,4].includes(Number(state.day))&&prepComplete())showToast(`Day ${state.day} 준비 완료 · 영업을 시작할 수 있습니다.`);
+  if(prepComplete())showToast("오늘의 메뉴 준비 완료 · 영업을 시작할 수 있습니다.");
   updateUI(true);saveGame();
 }
 
@@ -185,19 +180,7 @@ function renderPrepChecklist(){
   const signature=`prep|${state.selectedMenus.join(",")}|${tasks.map(task=>Number(!!state.prepProgress[task.id])).join("")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
-  const day3Progress=Number(state.day)===3?(()=>{
-    const yakisoba=tasks.filter(task=>task.menuId==="yakisoba"),shrimp=tasks.filter(task=>task.menuId==="shrimpTempura");
-    const count=items=>items.filter(task=>state.prepProgress[task.id]).length;
-    return `<div class="day3-prep-progress"><strong>Day 3 준비 진행도</strong><span>볶음우동 <b>${count(yakisoba)}/${yakisoba.length}</b></span><span>새우튀김 <b>${count(shrimp)}/${shrimp.length}</b></span><span class="overall">전체 준비 <b>${count(tasks)}/${tasks.length}</b></span></div>`;
-  })():"";
-  const day4Progress=Number(state.day)===4?(()=>{
-    // 분모는 task 목록에서 세서, 준비 작업을 쪼개도 숫자가 알아서 맞습니다.
-    const day4Tasks=tasks.filter(task=>task.day4Order),count=day4Tasks.filter(task=>state.prepProgress[task.id]).length;
-    const tteokbokki=day4Tasks.filter(task=>task.menuId==="tteokbokki"),fries=day4Tasks.filter(task=>task.menuId==="fries");
-    const done=items=>items.filter(task=>state.prepProgress[task.id]).length;
-    return `<div class="day3-prep-progress day4-prep-progress"><strong>Day 4 준비 체크리스트</strong><span>떡볶이 <b>${done(tteokbokki)}/${tteokbokki.length}</b></span><span>감자튀김 <b>${done(fries)}/${fries.length}</b></span><span class="overall">필수 준비 <b>${count}/${day4Tasks.length}</b></span></div>`;
-  })():"";
-  dom.inventoryList.innerHTML=`<div class="prep-checklist">${day3Progress}${day4Progress}${tasks.map((task,index)=>{
+  dom.inventoryList.innerHTML=`<div class="prep-checklist">${tasks.map((task,index)=>{
     const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];
     return `<div class="prep-task-row ${done?"done":task.isImplemented?"":"disabled"}"><span>${index+1}</span><strong>${dish?.name||task.menuId}</strong><div>${done?"☑":task.isImplemented?"☐":"–"} ${task.label}</div></div>`;
   }).join("")}<div class="prep-total">준비 완료 ${actionable.filter(task=>state.prepProgress[task.id]).length} / ${actionable.length}</div></div>`;
@@ -232,7 +215,9 @@ function renderMenuSelection(){
     ?`냉장고에서 확인할 요리를 자유롭게 선택하세요. 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개까지 고를 수 있습니다.`
     :dayData.isSpecialDay
       ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${maxSelectedMenus}개를 선택하세요.`
-      :`필수 메뉴를 포함해 최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
+      :dayData.minSelectedMenus===maxSelectedMenus
+        ?`해금된 여덟 가지 메뉴 중 오늘 준비할 메뉴 ${maxSelectedMenus}개를 선택하세요.`
+        :`최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
   const signature=`${dayData.qaAllMenus?"qa-all":"day"}|${state.day}|${state.menuSelectionDraft.join(",")}`;
   if(dom.menuSelectGrid.dataset.signature!==signature){
     dom.menuSelectGrid.dataset.signature=signature;

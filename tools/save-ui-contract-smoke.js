@@ -7,7 +7,11 @@ const vm=require("node:vm");
 const root=path.resolve(__dirname,"..");
 const indexSource=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
+const saveSource=fs.readFileSync(path.join(root,"save.js"),"utf8");
+const titleSource=fs.readFileSync(path.join(root,"title.js"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
+const hudCssSource=fs.readFileSync(path.join(root,"css","hud.css"),"utf8");
+const settingsCssSource=fs.readFileSync(path.join(root,"css","settings.css"),"utf8");
 const saveSlotsCssSource=fs.readFileSync(path.join(root,"css","save-slots.css"),"utf8");
 const packageData=JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8"));
 let contractChecks=0;
@@ -27,7 +31,14 @@ function assert(condition,message){
   "saveSlotDescription",
   "saveSlotStatus",
   "saveSlotList",
-  "saveSlotClose"
+  "saveSlotClose",
+  "journalButton",
+  "journalOverlay",
+  "journalClose",
+  "journalGuestList",
+  "journalFragmentList",
+  "journalEndingList",
+  "storySkipButton"
 ].forEach(id=>{
   assert(
     new RegExp(`\\bid=(["'])${id}\\1`).test(indexSource),
@@ -57,6 +68,28 @@ assert(!indexSource.includes("심야식당"),
   "실제 게임 화면에 이전 게임명 심야식당이 남아 있으면 안 됩니다.");
 assert(packageData.description.startsWith("달빛식탁 Phaser 프로토타입"),
   "프로젝트 설명에도 새 게임명을 사용해야 합니다.");
+
+assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
+  "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
+assert(/\.story-skip\[hidden\]\s*\{\s*display\s*:\s*none/.test(storyCssSource),
+  "숨긴 SKIP 버튼을 대화 CSS가 다시 표시하면 안 됩니다.");
+assert(titleSource.includes("function openJournal()")
+  &&titleSource.includes("function closeJournal()")
+  &&titleSource.includes("function refreshJournalUI("),
+  "타이틀에서 영업일지를 열고 닫고 다시 그릴 수 있어야 합니다.");
+assert(settingsCssSource.includes(".journal-sections")
+  &&settingsCssSource.includes(".journal-entry"),
+  "손님·조각·엔딩을 보여 줄 영업일지 레이아웃이 있어야 합니다.");
+assert(saveSource.includes('const SAVE_VERSION=4;')
+  &&saveSource.includes("function migrateSaveStorage()"),
+  "새 시나리오는 저장 버전을 올리고 일회성 저장 초기화를 제공해야 합니다.");
+assert(saveSource.includes("window.MoonlightTableSave=Object.freeze")
+  &&saveSource.includes("clearAutoSaveForTrueEnding"),
+  "스토리에서 영업일지 기록과 진엔딩 자동 저장 삭제 helper를 호출할 수 있어야 합니다.");
+assert((indexSource.match(/class="[^"]*retired-economy-ui[^"]*"/g)||[]).length>=5,
+  "인기도·매출·폐기 HUD와 영업 결과 요소를 비노출 대상으로 표시해야 합니다.");
+assert(/\.retired-economy-ui\s*\{\s*display\s*:\s*none\s*!important/.test(hudCssSource),
+  "폐기된 경제 UI는 게임 화면에 나타나지 않아야 합니다.");
 
 const storyUiOnlyRule=storyCssSource.match(
   /\.game-frame:has\(>\s*#storyOverlay\.open:not\(\.show-game-ui\)\)\s*>\s*:not\(#gameCanvas\):not\(#storyOverlay\)\s*\{([^}]+)\}/
@@ -307,7 +340,7 @@ let slots=[
     id:"auto",label:"자동 저장",manual:false,
     data:{
       savedAt,
-      state:{day:2,phase:"night",popularity:7},
+      state:{day:2,phase:"night",story:{loop:2,guestState:{rainyChild:{shardOwned:true}}}},
       storyCheckpoint:{sceneId:"G-02"}
     }
   },
@@ -315,7 +348,7 @@ let slots=[
     id:"manual1",label:"수동 저장 1",manual:true,
     data:{
       savedAt,
-      state:{day:7,phase:"day",popularity:13},
+      state:{day:7,phase:"day",story:{loop:3,guestState:{rainyChild:{shardOwned:true},lanternGuest:{shardOwned:true}}}},
       storyCheckpoint:{sceneId:"C1-04B"}
     }
   },
@@ -409,15 +442,15 @@ check(!card("auto").disabled,"저장 데이터가 있는 자동 저장 슬롯은
 check(!card("manual1").disabled,"저장 데이터가 있는 수동 저장 슬롯은 불러올 수 있어야 합니다.");
 check(card("manual2").disabled&&card("manual3").disabled,"빈 슬롯은 불러오기 모드에서 비활성화되어야 합니다.");
 check(
-  card("auto").textContent.includes("DAY 2 · 밤 영업 · 인기도 7"),
-  "자동 저장 카드에 DAY, 진행 단계, 인기도 요약이 보여야 합니다."
+  card("auto").textContent.includes("DAY 2 · 밤 영업 · 루프 2 · 달빛 조각 1/8"),
+  "자동 저장 카드에 DAY, 진행 단계, 루프와 달빛 조각 요약이 보여야 합니다."
 );
 check(
   card("auto").textContent.includes("이야기 · 입담이 좋아도 자식과의 대화는 어려운 사람"),
   "자동 저장 카드에 현재 장면 제목이 보여야 합니다."
 );
 check(
-  card("manual1").textContent.includes("DAY 7 · 낮 준비 · 인기도 13")
+  card("manual1").textContent.includes("DAY 7 · 낮 준비 · 루프 3 · 달빛 조각 2/8")
   &&card("manual1").textContent.includes("이야기 · 돌아갈 자리와 남을 자리"),
   "수동 저장 카드에도 진행 요약과 장면 제목이 보여야 합니다."
 );

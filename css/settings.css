@@ -23,3 +23,91 @@
   color: #d9b77c;
   cursor: pointer;
 }
+
+.title-meta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(22 * var(--upx));
+}
+.title-meta-actions .text-button { margin-top: calc(11 * var(--upx)); }
+
+.journal-window {
+  width: min(calc(900 * var(--upx)),94%);
+  max-height: min(calc(650 * var(--upx)),90vh);
+  padding: calc(24 * var(--upx));
+  overflow: auto;
+}
+.journal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(16 * var(--upx));
+  padding-bottom: calc(12 * var(--upx));
+  border-bottom: 1px solid rgba(224,163,77,.4);
+}
+.journal-heading h2 {
+  margin: 0;
+  color: #ffe09a;
+  font-size: calc(28 * var(--upx));
+}
+.journal-close {
+  width: calc(42 * var(--upx));
+  height: calc(42 * var(--upx));
+  border: 1px solid #8c592f;
+  border-radius: 50%;
+  background: #160d09;
+  color: #e8bf79;
+  font-size: calc(25 * var(--upx));
+  line-height: 1;
+  cursor: pointer;
+}
+.journal-description {
+  margin: calc(14 * var(--upx)) 0 calc(18 * var(--upx));
+  color: #c9ae85;
+  font-size: calc(13 * var(--upx));
+  line-height: 1.55;
+}
+.journal-sections {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: calc(14 * var(--upx));
+}
+.journal-sections > section {
+  min-width: 0;
+  padding: calc(13 * var(--upx));
+  border: 1px solid #5d3923;
+  border-radius: calc(7 * var(--upx));
+  background: rgba(15,9,7,.68);
+}
+.journal-sections h3 {
+  margin: 0 0 calc(10 * var(--upx));
+  color: #efc77b;
+  font-size: calc(16 * var(--upx));
+}
+.journal-list { display: grid; gap: calc(7 * var(--upx)); }
+.journal-entry {
+  display: grid;
+  gap: calc(3 * var(--upx));
+  padding: calc(8 * var(--upx));
+  border-radius: calc(5 * var(--upx));
+  background: #160d09;
+}
+.journal-entry strong {
+  overflow: hidden;
+  color: #ffe09a;
+  font-size: calc(12 * var(--upx));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.journal-entry small { color: #a98b67; font-size: calc(10 * var(--upx)); }
+.journal-empty {
+  margin: 0;
+  color: #8f765b;
+  font-size: calc(11 * var(--upx));
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .journal-sections { grid-template-columns: 1fr; }
+}

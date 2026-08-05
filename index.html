@@ -46,7 +46,10 @@
         <button id="startButton" class="gold-button title-start" type="button">새 게임</button>
         <button id="continueButton" class="gold-button title-start title-continue" type="button" disabled>이어하기</button>
         <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
-        <button id="titleSettingsButton" class="text-button" type="button">설정</button>
+        <div class="title-meta-actions">
+          <button id="journalButton" class="text-button" type="button">영업일지</button>
+          <button id="titleSettingsButton" class="text-button" type="button">설정</button>
+        </div>
       </div>
     </section>
 
@@ -66,8 +69,8 @@
               <div class="stat-day"><span>DAY</span><strong id="dayText">1</strong></div>
               <div class="stat-time"><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
               <div class="stat-satisfaction"><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
-              <div><span>인기도</span><strong id="popularityText">0</strong></div>
-              <div class="stat-money"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
+              <div class="retired-economy-ui" aria-hidden="true"><span>인기도</span><strong id="popularityText">0</strong></div>
+              <div class="stat-money retired-economy-ui" aria-hidden="true"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
               <button id="codexButton" class="square-button" type="button" aria-label="도감 열기">📖</button>
               <button id="settingsButton" class="square-button" type="button" aria-label="설정 열기">⚙</button>
             </div>
@@ -89,8 +92,8 @@
             </div>
             <div id="objectiveBody" class="objective-body"></div>
             <div class="relationship-box">
-              <div class="relationship-heading"><span>인연 기록</span><small>이름을 알게 된 손님</small></div>
-              <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 이름을 아는 손님이 없습니다.</span></div>
+              <div class="relationship-heading"><span>영업 기록</span><small>특별 손님과 달빛 조각</small></div>
+              <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span></div>
             </div>
             <div class="controls-help">
               <div><kbd>WASD</kbd><span>이동</span></div>
@@ -170,9 +173,10 @@
           </div>
 
           <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySceneTitle">
+            <button id="storySkipButton" class="story-skip" type="button" hidden>SKIP</button>
             <div id="storySceneMeta" class="story-scene-meta">
               <span id="storyDayLabel">DAY 1</span>
-              <strong id="storySceneTitle">비를 피한 곳</strong>
+              <strong id="storySceneTitle">퇴사한 밤 - 퇴근길</strong>
             </div>
             <div id="storyStage" class="story-stage" aria-hidden="true"></div>
             <div class="story-dialogue-box">
@@ -197,14 +201,14 @@
           <section id="resultOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
             <div class="result-window wood-panel">
               <p class="eyebrow">영업 종료</p>
-              <h2 id="resultTitle">오늘의 정산</h2>
+              <h2 id="resultTitle">오늘의 영업 기록</h2>
               <div class="result-grid">
                 <div><span>서빙한 손님</span><strong id="servedResult">0</strong></div>
                 <div><span>평균 만족도</span><strong id="satisfactionResult">0점</strong></div>
                 <div><span>별 5개 접시</span><strong id="fiveStarResult">0</strong></div>
-                <div><span>인기도 변화</span><strong id="popularityResult">-</strong></div>
-                <div><span>폐기·남은 재고 손실</span><strong id="wasteResult">0원</strong></div>
-                <div><span>오늘 순이익</span><strong id="revenueResult">0원</strong></div>
+                <div class="retired-economy-ui" aria-hidden="true"><span>인기도 변화</span><strong id="popularityResult">-</strong></div>
+                <div class="retired-economy-ui" aria-hidden="true"><span>폐기·남은 재고 손실</span><strong id="wasteResult">0원</strong></div>
+                <div class="retired-economy-ui" aria-hidden="true"><span>오늘 순이익</span><strong id="revenueResult">0원</strong></div>
               </div>
               <div id="resultComment" class="result-comment"></div>
               <button id="nextDayButton" class="gold-button big" type="button">다음 날 준비</button>
@@ -237,6 +241,40 @@
         </div>
         <button id="resumeButton" class="gold-button big" type="button">게임으로 돌아가기</button>
         <button id="returnTitleButton" class="dark-button" type="button">타이틀 화면으로</button>
+      </div>
+    </section>
+
+    <section
+      id="journalOverlay"
+      class="global-overlay journal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="journalTitle"
+      aria-hidden="true"
+    >
+      <div class="journal-window wood-panel">
+        <div class="journal-heading">
+          <div>
+            <p class="eyebrow">MOONLIGHT LOG</p>
+            <h2 id="journalTitle">영업일지</h2>
+          </div>
+          <button id="journalClose" class="journal-close" type="button" aria-label="영업일지 닫기">×</button>
+        </div>
+        <p class="journal-description">시간을 거듭하며 만난 손님과 받은 달빛 조각, 확인한 결말이 남습니다.</p>
+        <div class="journal-sections">
+          <section aria-labelledby="journalGuestTitle">
+            <h3 id="journalGuestTitle">손님</h3>
+            <div id="journalGuestList" class="journal-list"></div>
+          </section>
+          <section aria-labelledby="journalFragmentTitle">
+            <h3 id="journalFragmentTitle">달빛 조각</h3>
+            <div id="journalFragmentList" class="journal-list"></div>
+          </section>
+          <section aria-labelledby="journalEndingTitle">
+            <h3 id="journalEndingTitle">엔딩</h3>
+            <div id="journalEndingList" class="journal-list"></div>
+          </section>
+        </div>
       </div>
     </section>
 

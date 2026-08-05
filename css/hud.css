@@ -135,11 +135,11 @@
 .menu-tag { left: calc(4 * var(--upx)); }
 .order-count { right: calc(4 * var(--upx)); background: #5b3420; }
 
-/* 칸 순서: DAY · 남은시간 · 만족도 · 인기도 · 보유금 · 도감 · 설정 */
+/* 경제 시스템을 제외한 칸 순서: DAY · 진행 · 만족도 · 도감 · 설정 */
 .hud-stats {
   height: 60%;
   display: grid;
-  grid-template-columns: .6fr .95fr 1.2fr .75fr 1.15fr .45fr .45fr;
+  grid-template-columns: .7fr 1fr 1.25fr .5fr .5fr;
   gap: calc(3 * var(--upx));
 }
 .hud-stats > div {
@@ -193,8 +193,8 @@
   display: none;
   pointer-events: none;
 }
-/* 낮에는 남은시간·만족도 칸이 숨겨져 DAY · 인기도 · 보유금 · 도감 · 설정 5칸입니다. */
-.phase-prep .hud-stats { grid-template-columns: .75fr .75fr 1.2fr .5fr .5fr; }
+/* 낮에는 진행·만족도 칸도 숨겨져 DAY · 도감 · 설정 3칸입니다. */
+.phase-prep .hud-stats { grid-template-columns: 1fr .65fr .65fr; }
 .phase-prep .right-hud { min-height: 24%; }
 .phase-open .left-hud { min-height: 28%; }
 
@@ -375,3 +375,8 @@
   font-size: calc(10 * var(--upx));
 }
 .controls-help div { display: flex; align-items: center; gap: calc(4 * var(--upx)); }
+
+/* 새 시나리오에서는 매출·인기도·폐기 계산을 플레이 정보로 사용하지 않습니다.
+   기존 JS가 전환되는 동안 참조할 DOM은 남겨 두되 화면과 접근성 트리에서 숨깁니다. */
+.retired-economy-ui { display: none !important; }
+.result-window .result-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }

@@ -9,7 +9,7 @@
    서로 다른 작업인데, 원래는 buildMenuCards 한 함수 안에 섞여 있었습니다.
 
    [값을 받는 문구는 함수입니다]
-   `Day 3 준비 완료 · 영업 시작` 처럼 값이 끼는 문구는 함수로 두었습니다.
+   값이 끼는 문구는 함수로 두었습니다.
    game.js 는 숫자만 넘기고 문장은 여기서 만듭니다.
 
    [로드 순서]
@@ -32,6 +32,7 @@ const UI_TEXT = Object.freeze({
   phaseNameFallback: "영업 준비",
 
   timeLabelPrep: "준비",
+  timeLabelOpen: "영업",
   timeLabelOther: "남은 시간",
   timeNoLimit: "제한 없음",
   blank: "-",
@@ -41,20 +42,18 @@ const UI_TEXT = Object.freeze({
   percent: value => `${value}%`,
 
   /* ── 좌측 HUD ─────────────────────────────────────── */
-  // 목록에 없는 단계는 result("정산")로 떨어집니다. (원래 동작 그대로)
+  // 목록에 없는 단계는 result("마감")로 떨어집니다.
   phaseBadge: Object.freeze({
     [GAME_PHASES.MENU_SELECT]:"선택",
     [GAME_PHASES.INGREDIENT_SELECT]:"재료",
     [GAME_PHASES.PREP]:"준비",
     [GAME_PHASES.OPEN]:"영업 중",
-    [GAME_PHASES.RESULT]:"정산"
+    [GAME_PHASES.RESULT]:"마감"
   }),
   leftTitlePrep: "오늘의 준비",
   leftTitleOther: "현재 주문",
 
   phaseButton: "영업 시작",
-  // Day 3·4 처럼 준비가 다 끝났을 때만 쓰는 긴 문구
-  phaseButtonReady: day => `Day ${day} 준비 완료 · 영업 시작`,
 
   /* ── 설정 / 일시정지 ──────────────────────────────── */
   pauseFromTitle: "소리 설정을 변경할 수 있습니다.",
@@ -78,7 +77,7 @@ const UI_TEXT = Object.freeze({
     stationTooFar: "사용할 집기 가까이 이동하세요.",
     wrongStep: label => `지금은 ${label} 단계입니다.`,
     orderSelect: "주문 선택",
-    prepDone: name => `${name} 3인분 준비 완료!`,
+    prepDone: name => `${name} 준비 완료!`,
     prepNext: label => `다음 단계: ${label}`,
     cookDone: name => `${name} 완성! 주문한 손님에게 가져다주세요.`,
     cookNext: label => `다음 조리: ${label}`,
@@ -89,7 +88,6 @@ const UI_TEXT = Object.freeze({
      화면에는 키캡 'E' 만 보입니다. 아래 문구는 aria-label 로만 들어가서
      스크린리더가 읽습니다. (css/interaction.css 가 글자를 그리지 않습니다) */
   prompt: Object.freeze({
-    discard: name => `E · ${name} 폐기`,
     serve: seat => `E · ${seat}번 손님에게 서빙`,
     prepObject: label => `E · ${label}`,
     station: label => `E · ${label} 사용`
@@ -97,7 +95,7 @@ const UI_TEXT = Object.freeze({
 
   /* ── 화면에 튀어오르는 글자 (fx.js spawnPopup) ────── */
   popup: Object.freeze({
-    prepGain: (name,quality) => `${name} +3 · 품질 ${quality}`,
+    prepGain: (name,quality) => `${name} 준비 완료 · 품질 ${quality}`,
     cookDone: "완성!"
   })
 });

@@ -1,8 +1,11 @@
 "use strict";
 
 // 대본 데이터와 게임 로직을 분리하는 스토리 실행기입니다.
-// 자기소개 대사의 출력이 끝난 뒤에만 nameRevealed를 바꿉니다.
-const STORY_GUEST_IDS=["gicheol"];
+// 특별 손님의 묘사형 호칭은 가명이나 미공개 이름이 아니라 실제 표시명입니다.
+const STORY_GUEST_IDS=[
+  "rainyChild","lanternGuest","twinShadows","crowCourier",
+  "starBeast","seawaterGuest","schoolDoll","facelessDaeun"
+];
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
@@ -13,22 +16,41 @@ const STORY_SCENE_INTRO_DURATION=1700;
 const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
 
 function createStoryGuestState(){
-  return {nameRevealed:false,affinity:0,arcStep:0,regular:false,visits:0,lastVisitDay:0};
+  return {
+    nameRevealed:true,
+    affinity:0,
+    arcStep:0,
+    regular:false,
+    visits:0,
+    lastVisitDay:0,
+    clueFound:false,
+    foodConfirmed:false,
+    memoryUnlocked:false,
+    shardOwned:false,
+    currentTier:null,
+    currentScore:null
+  };
 }
 
 function createStoryState(){
   return {
-    schemaVersion:2,
+    schemaVersion:3,
+    loop:1,
     prologueComplete:false,
     completed:{},
+    seenScenes:{},
     choices:{},
     guestState:Object.fromEntries(STORY_GUEST_IDS.map(id=>[id,createStoryGuestState()])),
     flags:{},
     pendingNightGuests:[],
     specialServedDays:{},
+    specialHandledDays:{},
     storyCookResults:{},
     activeStoryCook:null,
+    pendingResultSceneId:null,
     endingSeen:false,
+    endingsSeen:{},
+    judgmentComplete:false,
     legacyImported:false
   };
 }
@@ -36,9 +58,11 @@ function createStoryState(){
 function normalizeStoryState(raw){
   const base=createStoryState();
   if(!raw||typeof raw!=="object")return base;
-  base.schemaVersion=2;
+  base.schemaVersion=3;
+  base.loop=Math.max(1,Math.floor(Number(raw.loop)||1));
   base.prologueComplete=!!raw.prologueComplete;
   base.completed={...(raw.completed||{})};
+  base.seenScenes={...(raw.seenScenes||raw.completed||{})};
   base.choices={...(raw.choices||{})};
   base.flags={...(raw.flags||{})};
   base.pendingNightGuests=Array.isArray(raw.pendingNightGuests)
@@ -59,15 +83,28 @@ function normalizeStoryState(raw){
       deferUntilArrival:false,guestOrder:true,special:true,repeat:false
     }]:[];
   base.specialServedDays={...(raw.specialServedDays||{})};
+  base.specialHandledDays={...(raw.specialHandledDays||{})};
   base.storyCookResults={...(raw.storyCookResults||{})};
   base.activeStoryCook=null;
+  base.pendingResultSceneId=typeof raw.pendingResultSceneId==="string"&&STORY_SCENES[raw.pendingResultSceneId]
+    ?raw.pendingResultSceneId:null;
   base.endingSeen=!!raw.endingSeen;
+  base.endingsSeen={...(raw.endingsSeen||{})};
+  base.judgmentComplete=!!raw.judgmentComplete;
   base.legacyImported=!!raw.legacyImported;
   STORY_GUEST_IDS.forEach(id=>{
     const saved=raw.guestState?.[id]||{};
     base.guestState[id]={...createStoryGuestState(),...saved};
     base.guestState[id].nameRevealed=!!base.guestState[id].nameRevealed;
     base.guestState[id].regular=!!base.guestState[id].regular;
+    base.guestState[id].clueFound=!!base.guestState[id].clueFound;
+    base.guestState[id].foodConfirmed=!!base.guestState[id].foodConfirmed;
+    base.guestState[id].memoryUnlocked=!!base.guestState[id].memoryUnlocked;
+    base.guestState[id].shardOwned=!!base.guestState[id].shardOwned;
+    base.guestState[id].currentTier=["soft","warm","great"].includes(base.guestState[id].currentTier)
+      ?base.guestState[id].currentTier:null;
+    base.guestState[id].currentScore=Number.isFinite(base.guestState[id].currentScore)
+      ?clamp(base.guestState[id].currentScore,0,100):null;
     ["affinity","arcStep","visits","lastVisitDay"].forEach(key=>{
       if(!Number.isFinite(base.guestState[id][key]))base.guestState[id][key]=0;
     });
@@ -79,6 +116,74 @@ function getStoryGuestState(id){
   if(!state.story)state.story=createStoryState();
   if(!state.story.guestState[id])state.story.guestState[id]=createStoryGuestState();
   return state.story.guestState[id];
+}
+
+function storySceneProgressKey(sceneOrId){
+  const scene=typeof sceneOrId==="string"?STORY_SCENES[sceneOrId]:sceneOrId;
+  if(!scene)return typeof sceneOrId==="string"?sceneOrId:"";
+  const loop=Math.max(1,Number(state.story?.loop)||1);
+  if(scene.dynamicJournalHint||scene.repeatDaily||scene.repeatEachDay)return `${scene.id}@loop${loop}@day${state.day}`;
+  if(scene.repeatEachLoop||["endingJudgement","ending","epilogue"].includes(scene.sceneType))return `${scene.id}@loop${loop}`;
+  return scene.id;
+}
+
+function storySceneCompleted(sceneOrId){
+  const key=storySceneProgressKey(sceneOrId);
+  return !!(key&&state.story?.completed?.[key]);
+}
+
+function markStorySceneCompleted(scene){
+  const key=storySceneProgressKey(scene);
+  if(key)state.story.completed[key]=true;
+  state.story.seenScenes[scene.id]=true;
+}
+
+function storyShardCount({baseOnly=false}={}){
+  const ids=baseOnly?STORY_GUEST_IDS.slice(0,7):STORY_GUEST_IDS;
+  return ids.reduce((count,id)=>count+(getStoryGuestState(id).shardOwned?1:0),0);
+}
+
+function storyGuestArrivalScenes(){
+  return Object.values(STORY_SCENES).filter(scene=>scene?.specialGuest===true&&/^SCN-G\d+-A$/.test(scene.id));
+}
+
+function storyGuestArrivalForDay(day=state.day,{includeFinal=true}={}){
+  return storyGuestArrivalScenes().filter(scene=>{
+    if(Number(scene.day)!==Number(day))return false;
+    if(scene.id==="SCN-G8-A")return includeFinal&&storyShardCount({baseOnly:true})===7;
+    return true;
+  });
+}
+
+function storyPrimaryGuestForDay(day=state.day){
+  return storyGuestArrivalForDay(day,{includeFinal:false})[0]||null;
+}
+
+function recordStoryJournalGuest(guestId,scene=null){
+  const character=STORY_CHARACTERS[guestId];
+  const api=window.MoonlightTableSave;
+  if(!character||!api?.recordGuest)return null;
+  return api.recordGuest(guestId,{
+    label:character.name,
+    day:Number(scene?.day)||Number(state.day)||1,
+    note:getStoryGuestState(guestId).memoryUnlocked?"기억 회복":"만남 기록"
+  });
+}
+
+function recordStoryJournalShard(scene,guestId){
+  const api=window.MoonlightTableSave;
+  if(!api?.recordFragment||!scene?.shardId)return null;
+  return api.recordFragment(scene.shardId,{
+    label:scene.shardName||scene.shardId,
+    day:Number(scene.day)||Number(state.day)||1,
+    guestId
+  });
+}
+
+function recordStoryJournalEnding(scene){
+  const api=window.MoonlightTableSave;
+  if(!api?.recordEnding||!scene?.id)return null;
+  return api.recordEnding(scene.id,{label:scene.title||scene.id,note:`루프 ${state.story?.loop||1}`});
 }
 
 function isCharacterNameRevealed(id){
@@ -102,6 +207,11 @@ function storySpeakerLabel(line){
 
 function storySceneCardText(scene){
   return scene?`${scene.id} · ${scene.title}`:"";
+}
+
+function storySceneDayLabel(scene){
+  if(scene?.moment==="newGame")return "PROLOGUE";
+  return `DAY ${Number(scene?.day)||Number(state.day)||1}`;
 }
 
 function setStoryGameUiVisible(visible){
@@ -161,23 +271,26 @@ function revealCharacterName(id,showNotice=true){
 function storyRelationLabel(id){
   const guest=state.story?.guestState?.[id];
   if(!guest)return "";
-  if(guest.regular)return "단골";
-  if(guest.affinity>=4)return "마음을 나눔";
-  if(guest.affinity>=2)return "낯익은 손님";
-  return "첫인사";
+  if(guest.shardOwned)return "달빛 조각 회수";
+  if(guest.foodConfirmed)return "음식 확인";
+  if(guest.clueFound)return "단서 기록";
+  return "첫 만남";
 }
 
 function updateRelationshipUI(){
   const list=document.getElementById("relationshipList");
   if(!list||!state.story)return;
-  const known=STORY_GUEST_IDS.filter(id=>isCharacterNameRevealed(id));
+  const known=STORY_GUEST_IDS.filter(id=>{
+    const guest=state.story.guestState[id];
+    return guest&&(guest.visits>0||guest.clueFound||guest.foodConfirmed||guest.shardOwned);
+  });
   if(!known.length){
-    list.innerHTML='<span class="relationship-empty">아직 이름을 아는 손님이 없습니다.</span>';
+    list.innerHTML='<span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span>';
     return;
   }
   list.innerHTML=known.map(id=>{
     const guest=getStoryGuestState(id);
-    return `<div class="relationship-row"><strong>${STORY_CHARACTERS[id].name}</strong><span>${guest.regular?"단골":`인연 ${guest.affinity}`}</span></div>`;
+    return `<div class="relationship-row"><strong>${STORY_CHARACTERS[id].name}</strong><span>${storyRelationLabel(id)}</span></div>`;
   }).join("");
 }
 
@@ -186,6 +299,38 @@ function initializeStoryUI(){
   storyUiInitialized=true;
   document.getElementById("storyNextButton").addEventListener("click",storyAdvance);
   document.getElementById("storyText").addEventListener("click",storyAdvance);
+  document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
+}
+
+function storySceneHasRequiredInteraction(scene){
+  return !!scene?.specialGuest||!!scene?.lines?.some(line=>
+    line?.cook||line?.orderCook||line?.choices?.some(choice=>choice?.orderCook||choice?.nextSceneId)
+  );
+}
+
+function storySceneCanSkip(scene=storySession?.scene){
+  return !!(
+    scene
+    &&!storySession?.qaPreview
+    &&state.story?.seenScenes?.[scene.id]
+    &&!storySession?.suspended
+    &&!storySceneHasRequiredInteraction(scene)
+  );
+}
+
+function updateStorySkipButton(){
+  const button=document.getElementById("storySkipButton");
+  if(!button)return;
+  button.hidden=!storySceneCanSkip();
+}
+
+function skipCurrentStoryScene(){
+  if(!storySceneCanSkip())return false;
+  clearStoryTyping();
+  clearStorySceneIntro();
+  audio?.click?.();
+  completeStoryScene();
+  return true;
 }
 
 function storyIsActive(){return !!storySession;}
@@ -198,6 +343,13 @@ function activeStoryCookStep(){
 }
 
 function storySceneIdsForMoment(moment,day=state.day){
+  if(moment==="nightEnd"&&Number(day)===7){
+    const shards=storyShardCount();
+    const rule=Object.values(STORY_ENDING_RULES||{}).find(item=>
+      shards>=item.minShards&&shards<=item.maxShards
+    );
+    return rule?.judgementSceneId?[rule.judgementSceneId]:[];
+  }
   return [...(STORY_EVENT_SCHEDULE[moment]?.[day]||[])];
 }
 
@@ -211,16 +363,49 @@ function queueStoryMoments(moments,onComplete=null){
 
 function resumeDeferredStoryOrderScene(){
   if(storyIsActive()||state.phase!==GAME_PHASES.OPEN)return false;
+  // 미준비 분기 도중 저장·불러오기를 했을 때 체크포인트 콜백은 일반 재개
+  // 함수로 복원됩니다. 두 장면이 이미 끝난 방문 객체를 여기서 정리해
+  // 조리할 수 없는 손님이 좌석에 영구히 남는 것을 방지합니다.
+  const completedMissingVisit=state.orders.find(item=>{
+    if(item.customerType!=="story"||!item.missingMenu||!item.storySceneId)return false;
+    const arrival=STORY_SCENES[item.storySceneId];
+    return !!arrival
+      &&storySceneCompleted(arrival)
+      &&storySceneCompleted(arrival.missingMenuSceneId);
+  });
+  if(completedMissingVisit)return finishMissingStoryVisit(completedMissingVisit);
   const order=state.orders.find(item=>{
     const scene=STORY_SCENES[item.storySceneId];
-    return item.customerType==="story"&&item.deferUntilArrival&&scene&&!state.story.completed[scene.id];
+    return item.customerType==="story"&&item.deferUntilArrival&&scene&&!storySceneCompleted(scene);
   });
   if(!order)return false;
+  const scene=STORY_SCENES[order.storySceneId];
+  if(order.missingMenu){
+    const queue=[scene.id,scene.missingMenuSceneId].filter(Boolean);
+    return playStoryScenes(queue,()=>finishMissingStoryVisit(order));
+  }
   return playStoryScenes([order.storySceneId],resumeDeferredStoryOrderScene);
+}
+
+function finishMissingStoryVisit(order){
+  if(!order)return false;
+  const stillPresent=state.orders.some(item=>item.id===order.id);
+  if(stillPresent){
+    state.orders=state.orders.filter(item=>item.id!==order.id);
+    if(state.selectedOrderId===order.id)state.selectedOrderId=state.orders[0]?.id||null;
+    state.departures.push({
+      slot:order.slot,variant:order.variant,guestId:order.guestId||null,
+      bubble:"다음 밤에 다시 올게요.",life:2.6,stars:0,satisfaction:null,storyMystic:true
+    });
+  }
+  processStoryNightTrigger();
+  updateUI(true);saveGame();
+  return true;
 }
 
 function resumeStoryForCurrentPhase(){
   if(storyIsActive()||state.screen!=="game")return;
+  if(state.story?.pendingResultSceneId){playPendingStoryResult();return;}
   if(state.day===1&&!state.story?.prologueComplete){queueStoryMoments(["newGame","dayStart"]);return;}
   if([GAME_PHASES.MENU_SELECT,GAME_PHASES.INGREDIENT_SELECT,GAME_PHASES.PREP].includes(state.phase))queueStoryMoments(["dayStart"]);
   else if(state.phase===GAME_PHASES.OPEN)queueStoryMoments(["nightStart"],resumeDeferredStoryOrderScene);
@@ -242,7 +427,7 @@ function normalizeStoryCheckpoint(checkpoint){
   if(!checkpoint.queue.every(id=>typeof id==="string"&&!!STORY_SCENES[id]))return null;
   if(!Number.isInteger(checkpoint.queueIndex)||checkpoint.queueIndex<0||checkpoint.queueIndex>=checkpoint.queue.length)return null;
   if(typeof checkpoint.sceneId!=="string"||checkpoint.queue[checkpoint.queueIndex]!==checkpoint.sceneId)return null;
-  if(!STORY_SCENES[checkpoint.sceneId]||state.story?.completed?.[checkpoint.sceneId])return null;
+  if(!STORY_SCENES[checkpoint.sceneId]||storySceneCompleted(checkpoint.sceneId))return null;
   if(!Array.isArray(checkpoint.lines)||!checkpoint.lines.length)return null;
   if(!checkpoint.lines.every(line=>isStoryCheckpointRecord(line)&&(typeof line.text==="string"||typeof line.prompt==="string")))return null;
   if(!Number.isInteger(checkpoint.lineIndex)||checkpoint.lineIndex<0||checkpoint.lineIndex>=checkpoint.lines.length)return null;
@@ -273,7 +458,9 @@ function normalizeStoryCheckpoint(checkpoint){
     waitingForCook:checkpoint.waitingForCook,
     suspended:checkpoint.suspended,
     pendingCook,
-    wasPaused:checkpoint.wasPaused
+    wasPaused:checkpoint.wasPaused,
+    openJournalAfterFinish:!!checkpoint.openJournalAfterFinish,
+    openMenuAfterFinish:!!checkpoint.openMenuAfterFinish
   });
   return isStoryCheckpointRecord(cloned)?cloned:null;
 }
@@ -281,7 +468,7 @@ function normalizeStoryCheckpoint(checkpoint){
 function captureStoryCheckpoint(){
   if(!storySession||state.story?.activeStoryCook)return null;
   const sceneId=storySession.scene?.id;
-  if(!sceneId||state.story?.completed?.[sceneId])return null;
+  if(!sceneId||storySceneCompleted(sceneId))return null;
   return normalizeStoryCheckpoint({
     version:STORY_CHECKPOINT_VERSION,
     queue:storySession.queue,
@@ -293,7 +480,9 @@ function captureStoryCheckpoint(){
     waitingForCook:!!storySession.waitingForCook,
     suspended:!!storySession.suspended,
     pendingCook:storySession.pendingCook||null,
-    wasPaused:!!storySession.wasPaused
+    wasPaused:!!storySession.wasPaused,
+    openJournalAfterFinish:!!storySession.openJournalAfterFinish,
+    openMenuAfterFinish:!!storySession.openMenuAfterFinish
   });
 }
 
@@ -312,6 +501,8 @@ function clearStoryRuntime(){
   if(overlay)overlay.classList.remove("open");
   if(stage)stage.innerHTML="";
   if(nextButton)nextButton.disabled=false;
+  const skipButton=document.getElementById("storySkipButton");
+  if(skipButton)skipButton.hidden=true;
   if(state.story)state.story.activeStoryCook=null;
   storySession=null;
   return hadRuntime;
@@ -344,11 +535,13 @@ function restoreStoryCheckpoint(checkpoint){
     onComplete:state.phase===GAME_PHASES.OPEN?resumeDeferredStoryOrderScene:null,
     waitingForCook:restored.waitingForCook,
     suspended:restored.suspended,
-    pendingCook:restored.pendingCook
+    pendingCook:restored.pendingCook,
+    openJournalAfterFinish:!!restored.openJournalAfterFinish,
+    openMenuAfterFinish:!!restored.openMenuAfterFinish
   };
 
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
-  document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
+  document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
   restored.actorIds.forEach(ensureStoryActor);
 
   if(restored.suspended){
@@ -372,9 +565,64 @@ function storyTimeOfDayOverride(){
   return scene&&["day","night"].includes(scene.timeOfDay)?scene.timeOfDay:null;
 }
 
+function playPendingStoryResult(){
+  const sceneId=state.story?.pendingResultSceneId;
+  if(!sceneId||!STORY_SCENES[sceneId]||storyIsActive())return false;
+  return playStoryScenes([sceneId],()=>{
+    state.story.pendingResultSceneId=null;
+    processStoryNightTrigger();
+  });
+}
+
+function storySceneAvailable(scene){
+  if(!scene)return false;
+  const loop=Math.max(1,Number(state.story?.loop)||1);
+  if(Number.isFinite(scene.minLoop)&&loop<scene.minLoop)return false;
+  if(Number.isFinite(scene.maxLoop)&&loop>scene.maxLoop)return false;
+  if(Array.isArray(scene.shardRange)){
+    const count=storyShardCount();
+    if(count<Number(scene.shardRange[0])||count>Number(scene.shardRange[1]))return false;
+  }
+  if(Number.isFinite(scene.requiredBaseShards)&&storyShardCount({baseOnly:true})<scene.requiredBaseShards)return false;
+  if(Array.isArray(scene.requiredFlags)&&scene.requiredFlags.some(flag=>!state.story?.flags?.[flag]))return false;
+  return true;
+}
+
+function storyJournalStatusForDay(day=state.day){
+  const arrival=storyPrimaryGuestForDay(day);
+  if(!arrival)return {status:"none",arrival:null,guest:null};
+  const guest=getStoryGuestState(arrival.character);
+  const status=guest.shardOwned?"shard":guest.foodConfirmed?"confirmed":guest.clueFound?"clue":"none";
+  return {status,arrival,guest};
+}
+
+function storyLinesForScene(scene){
+  let source=scene.lines||[];
+  let replacements={};
+  if(scene.dynamicJournalHint&&scene.journalVariants){
+    const {status,arrival}=storyJournalStatusForDay();
+    source=scene.journalVariants[status]||scene.journalVariants.none||source;
+    const missing=arrival?STORY_SCENES[arrival.missingMenuSceneId]:null;
+    const dish=arrival?dishById(arrival.dishId):null;
+    replacements={
+      "[영업일지 단서]":missing?.journalClue||"아직 알아내지 못한 단서",
+      "[음식명]":dish?.name||dish?.displayName||"아직 모르는 음식"
+    };
+  }
+  return source.map(line=>{
+    const copy={...line,choices:line.choices?.map(choice=>({...choice}))};
+    if(typeof copy.text==="string")Object.entries(replacements).forEach(([token,value])=>{copy.text=copy.text.split(token).join(value);});
+    if(typeof copy.prompt==="string")Object.entries(replacements).forEach(([token,value])=>{copy.prompt=copy.prompt.split(token).join(value);});
+    return copy;
+  });
+}
+
 function playStoryScenes(sceneIds,onComplete=null){
   if(storyIsActive())return false;
-  const queue=sceneIds.filter(id=>STORY_SCENES[id]&&!state.story.completed[id]);
+  const queue=sceneIds.filter(id=>{
+    const scene=STORY_SCENES[id];
+    return scene&&storySceneAvailable(scene)&&!storySceneCompleted(scene);
+  });
   if(!queue.length){if(onComplete)onComplete();return false;}
   storySession={queue,queueIndex:0,scene:null,lines:[],lineIndex:0,actors:[],wasPaused:state.paused,onComplete};
   state.paused=true;
@@ -385,17 +633,18 @@ function playStoryScenes(sceneIds,onComplete=null){
 
 function beginNextStoryScene(){
   if(!storySession)return;
-  while(storySession.queueIndex<storySession.queue.length&&state.story.completed[storySession.queue[storySession.queueIndex]])storySession.queueIndex++;
+  while(storySession.queueIndex<storySession.queue.length&&storySceneCompleted(storySession.queue[storySession.queueIndex]))storySession.queueIndex++;
   if(storySession.queueIndex>=storySession.queue.length){finishStorySession();return;}
   const id=storySession.queue[storySession.queueIndex];
   const scene=STORY_SCENES[id];
   storySession.scene=scene;
-  storySession.lines=scene.lines.map(line=>({...line,choices:line.choices?.map(choice=>({...choice}))}));
+  storySession.lines=storyLinesForScene(scene);
   storySession.lineIndex=0;
   resetStoryStage();
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
-  document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"?"PROLOGUE":`DAY ${scene.day}`;
+  document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
+  updateStorySkipButton();
   showStorySceneIntro();
 }
 
@@ -429,6 +678,7 @@ function showStoryLine(){
   speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId);
+  updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
   setStoryNextButton(false);
   next.style.display=line.choices?"none":"block";
@@ -454,6 +704,7 @@ function finishStoryTyping(){
   typing.complete=true;
   typing.index=typing.fullText.length;
   document.getElementById("storyText").textContent=typing.fullText;
+  if(typing.line.setsFlag)state.story.flags[typing.line.setsFlag]=true;
   if(typing.line.reveal&&!typing.revealApplied){
     typing.revealApplied=true;
     revealCharacterName(typing.line.reveal,true);
@@ -468,6 +719,10 @@ function renderStoryChoices(line){
   line.choices.forEach((choice,index)=>{
     const button=document.createElement("button");
     button.type="button";button.className="story-choice";button.textContent=choice.text;
+    if(choice.requiredFlag&&!state.story?.flags?.[choice.requiredFlag]){
+      button.disabled=true;
+      button.title="아직 필요한 기록을 얻지 못했습니다.";
+    }
     button.addEventListener("click",()=>chooseStoryOption(choice,index));
     wrap.appendChild(button);
   });
@@ -483,6 +738,10 @@ function chooseStoryOption(choice,index){
       :true;
   }
   const scene=storySession.scene;
+  if(choice.requiredFlag&&!state.story?.flags?.[choice.requiredFlag]){
+    showToast("아직 이 선택에 필요한 기록을 얻지 못했습니다.",true);
+    return false;
+  }
   state.story.choices[scene.id]=index;
   if(choice.flag)state.story.flags[choice.flag]=true;
   if(choice.notice)showToast(choice.notice);
@@ -492,6 +751,14 @@ function chooseStoryOption(choice,index){
       choice:{...choice},choiceIndex:index,lineIndex:storySession.lineIndex
     });
     return;
+  }
+  if(choice.nextSceneId&&STORY_SCENES[choice.nextSceneId]){
+    const insertAt=storySession.queueIndex+1;
+    if(storySession.queue[insertAt]!==choice.nextSceneId)storySession.queue.splice(insertAt,0,choice.nextSceneId);
+    storySession.lineIndex=storySession.lines.length;
+    audio?.click();
+    completeStoryScene();
+    return true;
   }
   if(choice.affinity&&scene.character&&STORY_GUEST_IDS.includes(scene.character))getStoryGuestState(scene.character).affinity+=choice.affinity;
   const reply={speaker:choice.speaker||scene.character||"protagonist",text:choice.reply||"고개를 끄덕였다."};
@@ -601,17 +868,76 @@ function setStoryPortrait(speakerId){
   });
 }
 
+function storyGuestIdForScene(scene){
+  const source=scene?.sourceSceneId?STORY_SCENES[scene.sourceSceneId]:null;
+  const id=source?.character||scene?.character||null;
+  if(id==="anotherDaeun")return "facelessDaeun";
+  return STORY_GUEST_IDS.includes(id)?id:null;
+}
+
+function recordStorySceneOutcome(scene){
+  const guestId=storyGuestIdForScene(scene);
+  if(scene.specialGuest&&guestId){
+    const guest=getStoryGuestState(guestId);
+    guest.visits++;
+    guest.lastVisitDay=state.day;
+    recordStoryJournalGuest(guestId,scene);
+  }
+  if(scene.missingMenu&&guestId){
+    const guest=getStoryGuestState(guestId);
+    guest.clueFound=true;
+    state.story.specialHandledDays[guestId]=state.story.loop;
+    recordStoryJournalGuest(guestId,scene);
+  }
+  if(scene.resultTier&&guestId){
+    const guest=getStoryGuestState(guestId);
+    guest.foodConfirmed=true;
+    guest.currentTier=scene.resultTier;
+    if(scene.resultTier==="great"&&scene.grantsShard){
+      guest.memoryUnlocked=true;
+      if(!guest.shardOwned){
+        guest.shardOwned=true;
+        recordStoryJournalShard(scene,guestId);
+        showToast(`달빛 조각 「${scene.shardName||scene.shardId}」을 받았습니다.`);
+      }
+    }
+    state.story.specialHandledDays[guestId]=state.story.loop;
+    state.story.pendingResultSceneId=null;
+    recordStoryJournalGuest(guestId,scene);
+  }
+  if(scene.endingId){
+    state.story.endingsSeen[scene.endingId]=true;
+    recordStoryJournalEnding({...scene,id:scene.endingId,title:scene.endingTitle||scene.title});
+  }
+}
+
+function queueStoryConclusion(scene){
+  if(!storySession||!scene)return;
+  if(scene.autoLoop)storySession.conclusionAction={type:"nextLoop",toTitle:false};
+  else if(scene.continuePolicy==="nextLoop")storySession.conclusionAction={type:"nextLoop",toTitle:true};
+  else if(scene.continuePolicy==="finalChoiceCheckpoint")storySession.conclusionAction={type:"finalChoiceCheckpoint"};
+  else if(scene.trueEndingEpilogue)storySession.conclusionAction={type:"trueEnding"};
+}
+
 function completeStoryScene(){
   if(!storySession)return;
   const scene=storySession.scene;
-  state.story.completed[scene.id]=true;
+  markStorySceneCompleted(scene);
   if(scene.completesPrologue)state.story.prologueComplete=true;
   if(scene.ending)state.story.endingSeen=true;
+  if(scene.autoOpenJournal)storySession.openJournalAfterFinish=true;
+  if(scene.opensMenuSelection)storySession.openMenuAfterFinish=true;
+  recordStorySceneOutcome(scene);
+  queueStoryConclusion(scene);
   if(scene.character&&STORY_GUEST_IDS.includes(scene.character)){
     const guest=getStoryGuestState(scene.character);
     guest.affinity+=Number(scene.affinity)||0;
     guest.arcStep=Math.max(guest.arcStep,Number((scene.id.match(/-(\d\d)$/)||[])[1])||0);
     if(scene.regular)guest.regular=true;
+  }
+  if(scene.nextSceneId&&!scene.autoLoop&&STORY_SCENES[scene.nextSceneId]){
+    const insertAt=storySession.queueIndex+1;
+    if(storySession.queue[insertAt]!==scene.nextSceneId)storySession.queue.splice(insertAt,0,scene.nextSceneId);
   }
   updateRelationshipUI();
   storySession.queueIndex++;
@@ -625,7 +951,7 @@ function storyCookingTier(score,thresholds=null){
   const custom=thresholds&&typeof thresholds==="object"?thresholds:null;
   const great=Number.isFinite(custom?.great)?custom.great:80;
   const hasWarm=custom?Object.prototype.hasOwnProperty.call(custom,"warm"):true;
-  const warm=hasWarm&&Number.isFinite(custom?.warm)?custom.warm:custom?null:60;
+  const warm=hasWarm&&Number.isFinite(custom?.warm)?custom.warm:custom?null:50;
   if(score>=great)return "great";
   if(warm!=null&&score>=warm)return "warm";
   return "soft";
@@ -814,6 +1140,62 @@ function finishSuspendedStoryCook(order,satisfaction){
   return true;
 }
 
+function showTitleAfterStory({save=true}={}){
+  if(save)saveGame(true);
+  audio.stopAllFiles?.();
+  clearStoryRuntime();
+  state.screen="title";state.paused=true;state.mini=null;
+  clearIngredientHintTimer?.();
+  dom.settingsOverlay.classList.remove("open");
+  dom.resultOverlay.classList.remove("open");
+  dom.miniOverlay.classList.remove("open");
+  dom.menuSelectOverlay.classList.remove("open");
+  dom.ingredientSelectOverlay?.classList.remove("open");
+  dom.gameScreen.classList.remove("active");
+  dom.titleScreen.classList.add("active");
+  showGameHud(false);audio.stopBgm();
+  updateContinueButton();
+}
+
+function beginNextStoryLoop({toTitle=false}={}){
+  state.story.loop=Math.max(1,Number(state.story.loop)||1)+1;
+  state.story.pendingNightGuests=[];
+  state.story.specialHandledDays={};
+  state.story.activeStoryCook=null;
+  state.story.pendingResultSceneId=null;
+  state.story.judgmentComplete=false;
+  state.story.endingSeen=false;
+  state.day=DayManager.setDay(1);
+  state.paused=false;
+  resetDay(false);
+  saveGame();
+  if(toTitle){showTitleAfterStory({save:false});return;}
+  queueStoryMoments(["dayStart"]);
+}
+
+function restoreFinalChoiceCheckpoint(){
+  const judgement=STORY_SCENES["SCN-J03"];
+  const ending=STORY_SCENES["END-03"];
+  delete state.story.completed[storySceneProgressKey(judgement)];
+  delete state.story.completed[storySceneProgressKey(ending)];
+  delete state.story.choices["SCN-J03"];
+  state.story.endingSeen=false;
+  state.story.judgmentComplete=false;
+  showTitleAfterStory({save:true});
+}
+
+function finishTrueEnding(){
+  window.MoonlightTableSave?.clearAutoSaveForTrueEnding?.();
+  showTitleAfterStory({save:false});
+}
+
+function runStoryConclusion(action){
+  if(!action)return;
+  if(action.type==="nextLoop")beginNextStoryLoop({toTitle:!!action.toTitle});
+  else if(action.type==="finalChoiceCheckpoint")restoreFinalChoiceCheckpoint();
+  else if(action.type==="trueEnding")finishTrueEnding();
+}
+
 function finishStorySession(){
   if(!storySession)return;
   clearStoryTyping();
@@ -825,6 +1207,9 @@ function finishStorySession(){
   resetStoryStage();
   const complete=storySession.onComplete;
   const wasPaused=storySession.wasPaused;
+  const conclusionAction=storySession.conclusionAction||null;
+  const openJournalAfterFinish=!!storySession.openJournalAfterFinish;
+  const openMenuAfterFinish=!!storySession.openMenuAfterFinish;
   storySession=null;
   state.paused=state.phase==="result"?true:wasPaused;
   if(state.phase===GAME_PHASES.RESULT){
@@ -836,49 +1221,81 @@ function finishStorySession(){
   }
   updateRelationshipUI();
   updateUI(true);
+  if(openMenuAfterFinish&&state.phase===GAME_PHASES.MENU_SELECT)dom.menuSelectOverlay.classList.add("open");
   saveGame();
   if(complete)complete();
+  if(openJournalAfterFinish&&!conclusionAction&&typeof openJournal==="function")setTimeout(openJournal,0);
+  if(state.story?.pendingResultSceneId&&!conclusionAction)setTimeout(playPendingStoryResult,0);
+  if(conclusionAction)setTimeout(()=>runStoryConclusion(conclusionAction),0);
 }
 
 function prepareStoryNight(){
   if(!state.story)state.story=createStoryState();
-  const plans=storySceneIdsForMoment("nightStart")
+  const sceneIds=STORY_SPECIAL_GUEST_BY_DAY?.[state.day]||[];
+  const plans=sceneIds
     .map(id=>STORY_SCENES[id])
-    .filter(scene=>
-      scene?.guestOrder===true
-      &&!state.story.completed[scene.id]
-      &&scene.character
-      &&STORY_CHARACTERS[scene.character]
-      &&scene.character!=="protagonist"
-    )
-    .map(scene=>({
-      guestId:scene.character,
-      sceneId:scene.id,
-      dishId:typeof scene.dishId==="string"?scene.dishId:null,
-      arrival:["early","late","last"].includes(scene.arrival)?scene.arrival:"early",
-      deferUntilArrival:!!scene.deferUntilArrival,
-      guestOrder:true,
-      special:false,
-      repeat:false
-    }));
-
-  if(!plans.length){
-    const regulars=STORY_GUEST_IDS.filter(id=>{
-      const guest=state.story.guestState[id];
-      return guest?.regular&&guest.lastVisitDay<state.day&&isCharacterNameRevealed(id);
+    .filter(scene=>scene&&!storySceneCompleted(scene))
+    .map(scene=>{
+      const menuSelected=state.selectedMenus.includes(scene.dishId);
+      return {
+        guestId:scene.character,
+        sceneId:scene.id,
+        dishId:scene.dishId,
+        arrival:["early","late","last"].includes(scene.arrival)?scene.arrival:"early",
+        deferUntilArrival:true,
+        guestOrder:menuSelected,
+        menuSelected,
+        missingMenu:!menuSelected,
+        special:true,
+        repeat:true,
+        triggerTiming:scene.triggerTiming==="before"?"before":"after",
+        triggerAfterGeneral:Math.max(0,Number(scene.triggerAfterGeneral)||0),
+        triggerOnNightEnd:!!scene.triggerOnNightEnd,
+        requiredBaseShards:Math.max(0,Number(scene.requiredBaseShards)||0),
+        ready:false
+      };
     });
-    const returnChance=state.day>DayManager.maxDay
-      ?0.82
-      :clamp(.42+state.popularity*.003,0,.68);
-    if(regulars.length&&Math.random()<returnChance){
-      const guestId=regulars[Math.floor(Math.random()*regulars.length)];
-      plans.push({
-        guestId,sceneId:null,dishId:null,arrival:"early",deferUntilArrival:false,
-        guestOrder:true,special:false,repeat:true
-      });
-    }
-  }
   state.story.pendingNightGuests=plans;
+}
+
+function storyNightPlanReady(plan){
+  if(!plan||plan.ready)return !!plan?.ready;
+  if((Number(plan.requiredBaseShards)||0)>storyShardCount({baseOnly:true}))return false;
+  const served=Math.max(0,Number(state.generalServed)||0);
+  if(plan.triggerTiming==="before")return served===0;
+  return served>=Math.max(0,Number(plan.triggerAfterGeneral)||0);
+}
+
+function processStoryNightTrigger(){
+  if(state.phase!==GAME_PHASES.OPEN||storyIsActive()||state.story?.pendingResultSceneId)return false;
+  const hasActiveStoryVisit=state.orders.some(order=>order.customerType==="story"||order.storySceneId);
+  if(hasActiveStoryVisit){resumeDeferredStoryOrderScene();return false;}
+  const plans=state.story?.pendingNightGuests||[];
+  const served=Math.max(0,Number(state.generalServed)||0);
+  plans.slice().forEach(candidate=>{
+    const impossibleFinalGuest=candidate.triggerOnNightEnd
+      &&served>=Math.max(0,Number(candidate.triggerAfterGeneral)||0)
+      &&(Number(candidate.requiredBaseShards)||0)>storyShardCount({baseOnly:true});
+    if(impossibleFinalGuest){
+      const index=plans.indexOf(candidate);
+      if(index>=0)plans.splice(index,1);
+    }
+  });
+  const plan=plans.find(candidate=>storyNightPlanReady(candidate));
+  if(!plan)return false;
+  // "손님이 나가자"라는 대본과 화면이 어긋나지 않도록 일반 손님의
+  // 퇴장 페이드가 끝난 뒤에 다음 특별 손님을 등장시킵니다.
+  if(plan.triggerTiming==="after"&&state.departures.some(item=>!item.guestId))return false;
+  plan.ready=true;
+  const occupied=new Set(state.orders.map(order=>order.slot));
+  state.departures.forEach(item=>occupied.add(item.slot));
+  state.respawns.forEach(item=>occupied.add(item.slot));
+  const freeSlot=CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
+  if(freeSlot<0)return false;
+  state.respawns=state.respawns.filter(respawn=>respawn.slot!==freeSlot);
+  const spawned=spawnOrder(freeSlot,{forceStory:true,storyPlan:plan});
+  if(spawned)resumeDeferredStoryOrderScene();
+  return spawned;
 }
 
 function decorateStoryOrder(order,plan=null){
@@ -896,8 +1313,13 @@ function decorateStoryOrder(order,plan=null){
   order.storyArrival=["early","late","last"].includes(plan.arrival)?plan.arrival:"early";
   order.deferUntilArrival=!!plan.deferUntilArrival;
   order.guestOrder=plan.guestOrder!==false;
-  if(order.storyDishId)order.dishId=order.storyDishId;
-  order.variant=character?.portraitRow??order.variant;
+  order.menuSelected=plan.menuSelected!==false;
+  order.missingMenu=!!plan.missingMenu;
+  order.storyMystic=true;
+  if(order.guestOrder&&order.storyDishId)order.dishId=order.storyDishId;
+  order.variant=Number.isFinite(character?.portraitRow)
+    ?clamp(character.portraitRow,0,5)
+    :order.variant;
   order.bubble=plan.repeat
     ?REGULAR_GUEST_BUBBLES[plan.guestId]||"오늘도 잘 부탁드려요."
     :plan.special?"오늘은 조금 특별하게 부탁드릴게요.":"오늘 먹고 싶은 걸 말씀드릴게요.";
@@ -919,6 +1341,9 @@ function normalizeStoryOrder(order){
     :["early","late","last"].includes(scene?.arrival)?scene.arrival:null;
   order.deferUntilArrival=!!(order.deferUntilArrival||scene?.deferUntilArrival);
   order.guestOrder=order.guestOrder!==false&&(order.customerType==="story"||scene?.guestOrder===true);
+  order.menuSelected=order.menuSelected!==false;
+  order.missingMenu=!!order.missingMenu;
+  order.storyMystic=!!(order.storyMystic||order.customerType==="story");
   if(!Number.isFinite(order.bubbleTime))order.bubbleTime=0;
   if(!Number.isFinite(order.waitingTime))order.waitingTime=0;
   order.waitingBubbleShown=!!order.waitingBubbleShown;
@@ -932,15 +1357,33 @@ function storyOrderLabel(order){
 function applyStoryCookingResult(order,satisfaction){
   if(!order?.guestId)return null;
   const pending=storySession?.pendingCook;
-  const thresholds=pending?.orderId===order.id?pending.config?.thresholds:null;
+  const scene=STORY_SCENES[order.storySceneId]||null;
+  const thresholds=pending?.orderId===order.id?pending.config?.thresholds:scene?.thresholds;
   const tier=storyCookingTier(satisfaction,thresholds);
   if(STORY_GUEST_IDS.includes(order.guestId)){
     const guest=getStoryGuestState(order.guestId);
     if(!order.storySceneId&&tier==="great")guest.affinity++;
     if(guest.lastVisitDay!==state.day){guest.visits++;guest.lastVisitDay=state.day;}
   }
-  if(order.storySceneId)state.story.storyCookResults[order.storySceneId]={score:satisfaction,tier,day:state.day};
-  return {tier,text:pickGeneralGuestBubble(tier),name:storyDisplayName(order.guestId),special:order.specialRecipe};
+  if(order.storySceneId){
+    state.story.storyCookResults[order.storySceneId]={score:satisfaction,tier,day:state.day,dishId:order.dishId};
+    const guestId=storyGuestIdForScene(scene)||order.guestId;
+    const guest=getStoryGuestState(guestId);
+    guest.currentScore=satisfaction;
+    guest.currentTier=tier;
+    const resultSceneId=scene?.resultSceneIds?.[tier]||null;
+    if(resultSceneId){
+      state.story.pendingResultSceneId=resultSceneId;
+      setTimeout(playPendingStoryResult,0);
+    }
+  }
+  return {
+    tier,
+    text:pickGeneralGuestBubble(tier),
+    name:storyDisplayName(order.guestId),
+    special:order.specialRecipe,
+    resultSceneId:state.story.pendingResultSceneId
+  };
 }
 
 function pickGeneralGuestBubble(type){
@@ -958,16 +1401,29 @@ function runStoryQaFromQuery(){
   const qaScene=STORY_SCENES[sceneId];
   state.story=createStoryState();
   normalizeDayPrepState();
-  state.screen="game";state.phase=qaScene.moment==="nightEnd"?"result":qaScene.moment==="nightStart"?"night":"day";
+  const qaResult=["nightJudgement","ending","epilogue"].includes(qaScene.moment);
+  const qaNight=qaScene.moment!=="newGame"&&qaScene.timeOfDay==="night";
+  state.screen="game";
+  state.phase=qaResult?GAME_PHASES.RESULT:qaNight?GAME_PHASES.OPEN:GAME_PHASES.PREP;
   state.day=qaScene.day||1;state.paused=false;
   openGameScreen();buildMenuCards();updateUI(true);syncPhaserObjects();
   if(params.get("qa-order")==="1"&&state.phase==="night"){
-    state.phaseTime=NIGHT_DURATION;state.orders=[];state.respawns=[];state.spawnedCustomers=0;state.nightCustomerTarget=4;
+    state.phaseTime=null;state.orders=[];state.respawns=[];state.spawnedCustomers=0;state.nightCustomerTarget=4;
     const qaDish=dishById(qaScene.dishId)||dishById("kimchi")||DISHES[0];
     state.selectedMenus=[qaDish.id];
-    state.inventory[qaDish.id]={count:4,quality:85};
+    (qaDish.prepTasks||[]).forEach(taskId=>{state.prepProgress[taskId]=true;});
+    state.inventory[qaDish.id]={count:1,quality:85,prepared:true};
     if(qaScene.character&&STORY_GUEST_IDS.includes(qaScene.character))revealCharacterName(qaScene.character,false);
-    prepareStoryNight();spawnOrder(0,{forceStory:true});
+    prepareStoryNight();
+    const qaPlan=state.story.pendingNightGuests.find(plan=>
+      plan.sceneId===(qaScene.specialGuest?qaScene.id:qaScene.sourceSceneId)
+    )||state.story.pendingNightGuests[0];
+    if(qaPlan){
+      qaPlan.ready=true;
+      spawningInitialNightOrders=true;
+      try{spawnOrder(0,{forceStory:true,storyPlan:qaPlan});}
+      finally{spawningInitialNightOrders=false;}
+    }
     updateUI(true);
   }
   playStoryScenes([sceneId]);

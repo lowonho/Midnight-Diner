@@ -1,72 +1,36 @@
 "use strict";
 
-const fs=require("node:fs");
-const path=require("node:path");
-const vm=require("node:vm");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
 
-const root=path.resolve(__dirname,"..");
-const files=["game-data.js","story-data.js","story-cinematic.js","story.js","day.js","night.js","save.js"];
-const sources=files.map(file=>fs.readFileSync(path.join(root,file),"utf8"));
+const root = path.resolve(__dirname, "..");
+const files = ["game-data.js", "story-data.js", "story.js"];
+const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
 
-const bootstrap=`
-var state={
-  day:1,
-  phase:"day",
-  screen:"game",
-  story:null,
-  selectedMenus:[],
-  menuSelectionDraft:[],
-  prepProgress:{},
-  kimchiPrep:{},
-  inventory:{},
-  orders:[],
-  departures:[],
-  respawns:[],
-  spawnedCustomers:0,
-  nightCustomerTarget:0,
-  selectedOrderId:null,
-  popularity:0,
-  player:{x:620,y:448,facing:"down",moving:false}
-};
-var nextOrderId=1;
-const localStorageData=new Map();
-const localStorage={
-  getItem:key=>localStorageData.has(key)?localStorageData.get(key):null,
-  setItem:(key,value)=>localStorageData.set(key,String(value)),
-  removeItem:key=>localStorageData.delete(key)
-};
-const window={QA_MODE:null,addEventListener(){}};
-const storyOverlayElement={classList:{add(){},remove(){},toggle(){}}};
+const bootstrap = `
+var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
+const window={QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={
   addEventListener(){},
-  getElementById(id){return id==="storyOverlay"?storyOverlayElement:null;}
+  getElementById(){return null;}
 };
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
-function buildMenuCards(){}
 function updateUI(){}
 function saveGame(){}
-const storyToastMessages=[];
-function showToast(text){storyToastMessages.push(text);}
-const launchedStoryMinis=[];
-function startMini(type,stationId,context){launchedStoryMinis.push({type,stationId,context});}
-const testStations={
-  board:{id:"board",label:"도마"},
-  fridge:{id:"fridge",label:"냉장고",ix:290,iy:427,facing:"up"},
-  pot:{id:"pot",label:"냄비"},
-  pan:{id:"pan",label:"후라이팬"},
-  grill:{id:"grill",label:"직화구이"},
-  fryer:{id:"fryer",label:"튀김기"},
-  griddle:{id:"griddle",label:"철판"}
-};
-function stationById(id){return testStations[id]||null;}
+function showToast(){}
+function stationById(){return null;}
+function startMini(){}
+function resetStoryStage(){}
+function clearStoryCinematic(){}
+function applyStoryCinematic(){return false;}
 `;
 
-const test=`
+const test = `
 const DISHES=MENU_DATA.map(menu=>({
   ...menu,
   name:menu.displayName,
   prepTasks:[...menu.requiredPrepTasks],
-  prep:[...(menu.prep||[])],
   cook:[...(menu.cook||[])]
 }));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
@@ -78,349 +42,240 @@ const same=(actual,expected,message)=>{
   assert(JSON.stringify(actual)===JSON.stringify(expected),
     message+"\\nactual: "+JSON.stringify(actual)+"\\nexpected: "+JSON.stringify(expected));
 };
-const tierReply=(cook,score)=>cook.replies[storyCookingTier(score,cook.thresholds)];
 
-assert(STORY_CHARACTERS.protagonist.name==="김다은","주인공의 확정 이름은 김다은이어야 합니다.");
+const expectedCharacterIds=[
+  "protagonist","recalledBoss","journal","moonlightTable",
+  "rainyChild","lanternGuest","leftShadow","rightShadow","twinShadows",
+  "crowCourier","starBeast","seawaterGuest","schoolDoll",
+  "facelessDaeun","anotherDaeun","letter","menuBack"
+];
+same(Object.keys(STORY_CHARACTERS),expectedCharacterIds,"새 시나리오 화자 목록");
+assert(STORY_CHARACTERS.protagonist.name==="김다은","주인공 이름은 김다은이어야 합니다.");
+assert(STORY_CHARACTERS.rainyChild.name==="비에 젖은 아이"
+  &&STORY_CHARACTERS.facelessDaeun.name==="얼굴 없는 손님"
+  &&STORY_CHARACTERS.anotherDaeun.name==="또 다른 김다은",
+  "서술형 특별 손님 이름과 또 다른 김다은 이름표를 정의해야 합니다.");
+assert(expectedCharacterIds.every(id=>STORY_CHARACTERS[id].alwaysKnown===true),
+  "새 시나리오의 모든 서술형 이름은 처음부터 표시되어야 합니다.");
+assert(!("owner" in STORY_CHARACTERS)&&!("manager" in STORY_CHARACTERS)&&!("gicheol" in STORY_CHARACTERS),
+  "기존 사장·팀장·박기철 캐릭터 정의가 남으면 안 됩니다.");
+
 state.story=createStoryState();
-assert(storyDisplayName(null)==="","화자가 없는 연출 줄에는 '이야기' 이름표를 표시하지 않아야 합니다.");
-assert(storyDisplayName("protagonist")==="김다은","대화 이름표에는 김다은이 표시되어야 합니다.");
-assert(storyDisplayName("gicheol")==="???","박기철은 자기소개 전까지 이름이 숨겨져야 합니다.");
+assert(storyDisplayName("protagonist")==="김다은"
+  &&storyDisplayName("rainyChild")==="비에 젖은 아이"
+  &&storyDisplayName("facelessDaeun")==="얼굴 없는 손님",
+  "새 화자는 이름 공개 플래그 없이 확정 이름으로 표시되어야 합니다.");
 
-const qaStoryStepDeltas=[];
-const qaStoryChoices=[];
-function qaStoryStep(delta){qaStoryStepDeltas.push(delta);return true;}
-function qaStoryPreviewChoice(choice,index){qaStoryChoices.push({choice,index});return true;}
-const qaProgressBefore=JSON.stringify(state.story);
-storySession={
-  qaPreview:true,
-  scene:STORY_SCENES["C1-02"],
-  lines:STORY_SCENES["C1-02"].lines.map(line=>({...line})),
-  lineIndex:0
-};
-assert(storyAdvance()===true&&qaStoryStepDeltas[0]===1,
-  "QA 스토리 미리보기의 다음 버튼은 일반 장면 진행 대신 한 줄 이동을 호출해야 합니다.");
-const qaChoice=STORY_SCENES["C1-02"].lines.find(line=>line.choices).choices[1];
-assert(chooseStoryOption(qaChoice,1)===true
-  &&qaStoryChoices[0].choice===qaChoice
-  &&qaStoryChoices[0].index===1,
-  "QA 스토리 미리보기의 선택지는 실제 분기 처리 대신 미리보기 핸들러를 호출해야 합니다.");
-assert(JSON.stringify(state.story)===qaProgressBefore,
-  "QA 대사 이동과 선택지 확인은 스토리 진행도에 영향을 주면 안 됩니다.");
-storySession=null;
-assert(runStoryQaFromQuery()===false,
-  "qa=1 저장 방지 모드가 아니면 URL 스토리 QA를 실행하면 안 됩니다.");
+same(STORY_MENU_RULES.dishIds,
+  ["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteokbokki","fries"],
+  "기존 음식 8종 ID");
+assert(STORY_MENU_RULES.selectCount===5
+  &&STORY_MENU_RULES.requiredMenus.length===0
+  &&STORY_MENU_RULES.allMenusAvailableFromDayOne,
+  "첫째 날부터 음식 8종 중 정확히 5종을 자유 선택해야 합니다.");
+STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 메뉴 ID: "+id));
+same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
+  "날짜별 일반 주문 수");
+same(STORY_SCORE_THRESHOLDS,{warm:50,great:80},"스토리 평가 점수 기준");
+assert(storyCookingTier(49,STORY_SCORE_THRESHOLDS)==="soft"
+  &&storyCookingTier(50,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(79,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(80,STORY_SCORE_THRESHOLDS)==="great",
+  "아쉽다/맛있다/완벽은 50점과 80점을 경계로 나뉘어야 합니다.");
 
-same(Object.keys(STORY_CHARACTERS),["protagonist","owner","manager","gicheol"],"제1장 고유 인물 목록");
-assert(Object.keys(STORY_SCENES).length===13,"프롤로그+제1장 장면은 13개여야 합니다.");
-assert(DayManager.maxDay===7,"데모 마지막 날은 Day 7이어야 합니다.");
+assert(Object.keys(STORY_SCENES).length===55,"새 시나리오는 총 55개 장면이어야 합니다.");
+const requiredStaticScenes=[
+  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-L01","SCN-L02","SCN-D01",
+  "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
+];
+requiredStaticScenes.forEach(id=>assert(STORY_SCENES[id]?.id===id,"필수 장면 누락: "+id));
+assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
+  "영업일지 규칙 확인 뒤 프롤로그가 끝나야 합니다.");
+assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
+  &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
+  "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
+assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="SCN-P01 · 퇴사한 밤 - 퇴근길",
+  "장면 카드는 새 문서의 장면 코드와 제목을 표시해야 합니다.");
 
-const expectedSchedule={
-  newGame:{1:["PR-01","PR-02"]},
-  dayStart:{1:["C1-01"],7:["C1-04A"]},
-  nightStart:{2:["G-02"],5:["G-03"],6:["C1-03"],7:["C1-04B"]},
-  nightEnd:{1:["C1-01-JOURNAL"],3:["C1-D3-JOURNAL"],4:["C1-02"],6:["C1-03-JOURNAL"],7:["C1-END"]}
-};
-same(STORY_EVENT_SCHEDULE,expectedSchedule,"7일 스토리 스케줄");
-const scheduled=Object.values(STORY_EVENT_SCHEDULE)
-  .flatMap(days=>Object.values(days).flat());
-same([...scheduled].sort(),Object.keys(STORY_SCENES).sort(),"모든 장면은 정확히 한 번 스케줄되어야 합니다.");
-assert(new Set(scheduled).size===scheduled.length,"장면이 중복 스케줄되면 안 됩니다.");
-assert(!Object.values(STORY_SCENES).some(scene=>
-  scene.lines.some(line=>line.kind==="gameplay")),
-  "게임플레이 구현 규칙은 플레이어에게 출력되는 스토리 줄에 포함하면 안 됩니다.");
-assert(STORY_SCENES["PR-02"].completesPrologue===true,"PR-02가 프롤로그를 끝내야 합니다.");
-assert(STORY_SCENES["C1-END"].ending===true,"C1-END가 제1장 엔딩이어야 합니다.");
-assert(storySceneCardText(STORY_SCENES["PR-01"])==="PR-01 · 비를 피한 곳",
-  "장면 시작 카드는 장면 코드와 제목을 함께 표시해야 합니다.");
+const l01=STORY_SCENES["SCN-L01"];
+const l02=STORY_SCENES["SCN-L02"];
+assert(l01.minLoop===2&&l01.repeatEachLoop&&l01.autoOpenJournal,
+  "2회차 첫째 날에는 영업일지를 자동으로 열어야 합니다.");
+assert(l02.minLoop===2&&l02.repeatEachLoop&&l02.dynamicJournalHint,
+  "2회차 이후 날짜별 동적 영업일지 안내를 사용해야 합니다.");
+same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
+  "영업일지 상태별 안내 종류");
+Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&lines.length>0,
+  "영업일지 상태별 대사는 lines 배열이어야 합니다."));
 
-const revealed=[];
-Object.values(STORY_SCENES).forEach(scene=>scene.lines.forEach((line,index)=>{
-  if(line.reveal)revealed.push({scene:scene.id,index,reveal:line.reveal,text:line.text});
-}));
-assert(revealed.length===1&&revealed[0].scene==="G-02"&&revealed[0].reveal==="gicheol",
-  "박기철의 자기소개 대사에서만 이름을 공개해야 합니다.");
-assert(revealed[0].text.includes("박기철이라고 합니다"),"이름 공개 대사에 자기소개가 있어야 합니다.");
-assert(!Object.values(STORY_SCENES).some(scene=>scene.lines.some(line=>
-  line.kind==="direction"&&line.text?.includes("이름표")&&line.text.includes("???")
-)),"이름 공개 규칙을 플레이어에게 출력되는 연출문에 넣으면 안 됩니다.");
-const gicheolEntranceCaption=STORY_SCENES["PR-01"].lines.find(line=>
-  line.text==="반갑게 인사를 마친 택시 기사는 주방에서 일하는 다은을 보고 놀라 사장에게 말을 건다."
-);
-assert(gicheolEntranceCaption?.kind==="direction"
-  &&storySpeakerLabel(gicheolEntranceCaption)==="",
-  "박기철 등장 상황은 자막으로 출력하되 인물 이름표는 표시하지 않아야 합니다.");
+same(STORY_EVENT_SCHEDULE.newGame[1],
+  ["SCN-P01","SCN-P02","SCN-P03","SCN-P04"],"프롤로그 진입 일정");
+for(let day=1;day<=7;day++){
+  assert(STORY_EVENT_SCHEDULE.nightStart[day][0]==="SCN-D01",
+    "매일 영업 준비 완료 뒤 밤 영업 시작 장면을 실행해야 합니다.");
+}
+assert(STORY_EVENT_SCHEDULE.dayStart[1].includes("SCN-L01"),
+  "회귀 후 첫째 날 장면이 일정에 등록되어야 합니다.");
 
-const prologueCookSequence=STORY_SCENES["PR-01"].lines
-  .filter(line=>line.cook)
-  .map(line=>line.cook.dishId);
-same(prologueCookSequence,["tofu","oden","skewer","shrimpTempura","yakisoba","kimchi"],"PR-01 조리 순서");
-const prologueTutorialLines=STORY_SCENES["PR-01"].lines.filter(line=>line.cook?.tutorial);
-same(
-  Object.fromEntries(prologueTutorialLines.map(line=>[
-    line.cook.dishId,
-    dishById(line.cook.dishId).cook.map(step=>[step.station,step.game])
-  ])),
-  {
-    tofu:[["board","chop"],["fridge","plateKimchi"]],
-    oden:[["pot","heat"]],
-    skewer:[["grill","twoSideCook"]],
-    shrimpTempura:[["fryer","fry"]],
-    yakisoba:[["griddle","stir"]],
-    kimchi:[["pan","twoSideCook"]]
-  },
-  "프롤로그 음식별 조리기구와 미니게임 연결"
-);
-assert(prologueTutorialLines.every(line=>line.showGameUI===true),
-  "사장이 조리를 안내하는 모든 튜토리얼 줄에서는 게임 UI를 보여야 합니다.");
-assert(prologueTutorialLines.every(line=>
-  line.speaker==="owner"&&storySpeakerLabel(line)==="사장"),
-  "프롤로그 조리 시작 안내는 설명문이 아니라 사장의 대사로 표시되어야 합니다.");
-same(
-  Object.fromEntries(prologueTutorialLines.map(line=>[line.cook.dishId,line.text])),
-  {
-    tofu:"두부김치는 두부를 일정한 크기로 썰고\\n접시에 담으면 되네.",
-    oden:"어묵탕은 국물이 맑게 우러나도록\\n적당한 불로 끓이면 되네.",
-    skewer:"닭꼬치는 앞면이 노릇하게 익으면 꼬치를 하나씩 뒤집고\\n뒷면도 타지 않게 구우면 되네.",
-    shrimpTempura:"새우튀김은 튀김옷이 노릇해졌을 때 건져서\\n바스켓을 가볍게 털어 기름을 빼면 되네.",
-    yakisoba:"볶음우동은 면과 채소, 소스를 철판에 올리고\\n뒤집개로 골고루 볶으면 되네.",
-    kimchi:"김치전은 반죽을 팬에 고르게 펴고\\n앞면이 노릇해지면 뒤집어 뒷면까지 익히면 되네."
-  },
-  "프롤로그 음식별 사장 조리 안내 대사"
-);
-assert(!STORY_SCENES["PR-01"].lines.some(line=>
-  line.text?.includes("사장의 안내에 따라")),
-  "프롤로그 조리 안내에 포괄적인 설명문이 남아 있으면 안 됩니다.");
+const guestContracts=[
+  [1,1,"rainyChild","kimchi","first_raindrop","첫 빗방울","after",1],
+  [2,2,"lanternGuest","oden","remaining_warmth","남은 온기","before",0],
+  [3,3,"twinShadows","tofu","two_half_names","반쪽 이름 두 개","after",2],
+  [4,4,"crowCourier","skewer","undelivered_letter","배달되지 못한 편지","after",3],
+  [5,5,"starBeast","fries","golden_salt","금빛 소금","after",3],
+  [6,6,"seawaterGuest","shrimpTempura","eastern_scale","동쪽의 비늘","after",7],
+  [7,7,"schoolDoll","tteokbokki","stopped_minute_hand","멈춘 분침","before",0],
+  [8,7,"facelessDaeun","yakisoba","daeuns_tomorrow","김다은의 내일","after",5]
+];
 
-const pr01=STORY_SCENES["PR-01"];
-const tofuTutorial=prologueTutorialLines.find(line=>line.cook.dishId==="tofu");
-state.story=createStoryState();
-state.paused=true;
-storySession={scene:pr01,lineIndex:pr01.lines.indexOf(tofuTutorial),waitingForCook:false,suspended:false};
-launchedStoryMinis.length=0;storyToastMessages.length=0;
-assert(startStoryCookChallenge(pr01,tofuTutorial.cook,{lineIndex:storySession.lineIndex})===true,
-  "프롤로그 조리 도전을 시작할 수 있어야 합니다.");
-assert(state.paused===false&&activeStoryCookStep()?.station==="board"
-  &&launchedStoryMinis.length===0&&storyToastMessages.at(-1).includes("도마")
-  &&state.player.x===testStations.fridge.ix&&state.player.y===testStations.fridge.iy,
-  "두부김치는 냉장고 쪽에서 이동 조작으로 돌아가 도마 상호작용을 기다려야 합니다.");
-assert(launchStoryCookStep("pot")===false&&launchedStoryMinis.length===0,
-  "현재 단계와 다른 조리기구에서는 프롤로그 미니게임이 시작되면 안 됩니다.");
-assert(launchStoryCookStep("board")===true
-  &&launchedStoryMinis.length===1
-  &&launchedStoryMinis[0].type==="chop",
-  "도마에서 상호작용했을 때만 두부 썰기 미니게임을 시작해야 합니다.");
-const originalSetTimeout=setTimeout;
-const scheduledStoryTimers=[];
-setTimeout=(callback,delay)=>{scheduledStoryTimers.push({callback,delay});return scheduledStoryTimers.length;};
-completeStoryCookStep(85);
-setTimeout=originalSetTimeout;
-assert(activeStoryCookStep()?.station==="fridge"
-  &&launchedStoryMinis.length===1
-  &&scheduledStoryTimers.length===0
-  &&storyToastMessages.at(-1).includes("냉장고"),
-  "두부 썰기 완료 뒤 다음 기구로 이동할 때 두 번째 미니게임을 예약하거나 자동 시작하면 안 됩니다.");
-state.story.activeStoryCook=null;storySession=null;state.paused=false;
-
-const recipeGuideIndex=STORY_SCENES["PR-01"].lines.findIndex(line=>line.text?.includes("레시피를 알려주겠네"));
-assert(recipeGuideIndex>=0&&STORY_SCENES["PR-01"].lines[recipeGuideIndex].showGameUI===true,
-  "사장이 레시피 안내를 시작하는 대사부터 게임 UI가 보여야 합니다.");
-assert(STORY_SCENES["PR-01"].lines[recipeGuideIndex-1].showGameUI!==true,
-  "레시피 안내 전 일반 대화에서는 다른 게임 UI를 계속 숨겨야 합니다.");
-const prologueOpening=STORY_SCENES["PR-01"].lines.slice(0,6);
-same(prologueOpening.slice(0,4).map(line=>line.cinematic?.beat),
-  ["exit","pause","rainRun","enter"],
-  "PR-01 외부 연출은 회사 퇴장·정지·빗속 이동·식당 입장 순서여야 합니다.");
-same(storyCinematicBeatPlan(prologueOpening[0]),
-  {from:.08,to:.28,duration:2400,rain:false,fade:false},
-  "회사 퇴장 연출은 주인공을 화면 왼쪽에서 안쪽으로 자동 이동시켜야 합니다.");
-same(storyCinematicBeatPlan(prologueOpening[1]),
-  {at:.28,rain:false},
-  "주인공 독백에서는 이동을 멈춰야 합니다.");
-same(storyCinematicBeatPlan(prologueOpening[2]),
-  {from:.28,to:.78,duration:3200,rain:true,fade:false},
-  "비가 시작되면 주인공이 식당 방향으로 자동 이동해야 합니다.");
-same(storyCinematicBeatPlan(prologueOpening[3]),
-  {from:.78,to:.90,duration:1100,rain:true,fade:true},
-  "식당 입장 연출에서는 주인공이 오른쪽으로 이동하며 사라져야 합니다.");
-assert(prologueOpening[0].text.includes("회사 출입증")&&prologueOpening[0].text.includes("종이박스"),
-  "첫 자동 이동 연출에는 회사 퇴장과 종이박스 설정이 남아 있어야 합니다.");
-assert(prologueOpening[4].kind==="direction"
-  &&prologueOpening[4].text==="바쁜 와중에 사장은 다은이 들어오는 것을 보고 말한다.",
-  "식당에 들어온 뒤 사장의 첫 대사 전에 요청한 연출 문장이 있어야 합니다.");
-assert(!Object.values(STORY_SCENES).some(scene=>
-  scene.lines.some(line=>line.text?.includes("얘기한다"))),
-  "스토리 연출 문구에 '얘기한다' 표현이 남아 있으면 안 됩니다.");
-assert(prologueOpening[5].speaker==="owner",
-  "추가 연출 문장 바로 다음에 사장의 첫 대사가 이어져야 합니다.");
-const generalOrders=STORY_SCENES["PR-01"].lines.filter(line=>line.kind==="bubble");
-same(generalOrders.map(storySpeakerLabel),["손님 1","손님 2"],
-  "프롤로그 일반 손님의 주문에는 순서대로 손님 1, 손님 2 이름표가 표시되어야 합니다.");
-assert(generalOrders.every(line=>!line.speaker),
-  "일반 손님 이름표는 고유 인물이나 초상을 만들지 않는 표시 전용 값이어야 합니다.");
-const prologueLines=STORY_SCENES["PR-01"].lines;
-const reflectionCaptionIndex=prologueLines.findIndex(line=>
-  line.text==="식품 개발을 할 때는 레시피를 적어가며 대화 없이 조리만 하던 것과는 사뭇 다른 모습이다.\\n사장이 너무 바빠 주문이 계속 밀리고 있지만 손님은 계속 밀려들어왔다."
-);
-assert(reflectionCaptionIndex>=0
-  &&prologueLines[reflectionCaptionIndex].kind==="direction"
-  &&storySpeakerLabel(prologueLines[reflectionCaptionIndex])==="",
-  "식품 개발 시절과 바쁜 식당을 대비하는 원문 자막을 이름표 없이 출력해야 합니다.");
-assert(prologueLines[reflectionCaptionIndex+1]?.text
-  ==="퇴사를 해서 그런지 아니면 가게 분위기에 휩쓸렸는지 다은은 용기를 내어 사장에게 말을 건다."
-  &&prologueLines[reflectionCaptionIndex+2]?.speaker==="protagonist",
-  "다은이 용기를 내는 자막 뒤에 주인공 대사가 이어져야 합니다.");
-const handQuestionIndex=prologueLines.findIndex(line=>
-  line.speaker==="owner"&&line.text==="손을 보니 요리 좀 해본 사람 같네. 맞나?"
-);
-assert(prologueLines[handQuestionIndex+1]?.text
-  ==="8년 동안 식품 개발을 하며 많은 요리를 해 온 다은의 손에 굳은살이 이리저리 배겨있었다.",
-  "손을 본 사장의 질문 다음 자막은 원문대로 '배겨있었다'로 출력해야 합니다.");
-assert(!STORY_SCENES["PR-02"].lines.some(line=>line.cook),
-  "PR-02는 가게를 맡기는 제안부터 시작하고 조리는 PR-01에서 끝나야 합니다.");
-
-const g02=STORY_SCENES["G-02"];
-assert(g02.day===2&&g02.dishId==="kimchi"&&g02.arrival==="late"&&g02.deferUntilArrival,
-  "G-02는 Day 2 후반 김치전 주문이어야 합니다.");
-assert(g02.lines.some(line=>line.text==="그게 더 무서운 선생님인데, 수요일에 검사받으러 오겠습니다. 김치전은 덤이고요."),
-  "G-02 재방문 예고 대사");
-const g02CookLine=g02.lines.find(line=>line.orderCook);
-assert(g02CookLine.speaker==="gicheol",
-  "G-02 조리는 구현 설명문이 아니라 박기철의 주문 대사에서 시작해야 합니다.");
-const g02Cook=g02CookLine.orderCook;
-assert(storyCookingTier(59,g02Cook.thresholds)==="soft"
-  &&storyCookingTier(60,g02Cook.thresholds)==="warm"
-  &&storyCookingTier(79,g02Cook.thresholds)==="warm"
-  &&storyCookingTier(80,g02Cook.thresholds)==="great","G-02 60/80점 경계");
-state.nightCustomerTarget=2;
-assert(storyArrivalThreshold({arrival:"late"})===1,
-  "손님이 적은 날에도 late 이야기 손님은 첫 손님 뒤에 등장해야 합니다.");
-
-const g03=STORY_SCENES["G-03"];
-assert(g03.day===5&&g03.dishId==="kimchi"&&g03.arrival==="early"&&g03.regular,
-  "G-03는 Day 5 김치전 단골 장면이어야 합니다.");
-const g03Choices=g03.lines.find(line=>line.choices?.some(choice=>choice.orderCook)).choices;
-same(g03Choices.map(choice=>choice.orderCook.special),[true,false],"G-03 특별/평소 조리 선택");
-g03Choices.forEach(choice=>{
-  assert(storyCookingTier(79,choice.orderCook.thresholds)==="soft"
-    &&storyCookingTier(80,choice.orderCook.thresholds)==="great","G-03 맛있게 완성 기준은 80점입니다.");
+guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,afterGeneral])=>{
+  const prefix="SCN-G"+number;
+  const arrival=STORY_SCENES[prefix+"-A"];
+  const missing=STORY_SCENES[prefix+"-B"];
+  const soft=STORY_SCENES[prefix+"-아쉽다"];
+  const warm=STORY_SCENES[prefix+"-맛있다"];
+  const great=STORY_SCENES[prefix+"-완벽"];
+  assert(arrival?.specialGuest&&arrival.sceneType==="specialGuestArrival",
+    prefix+" 등장 장면 계약");
+  assert(arrival.day===day&&arrival.character===character&&arrival.dishId===dishId,
+    prefix+" 날짜·손님·음식 연결");
+  assert(arrival.shardId===shardId&&arrival.shardName===shardName,
+    prefix+" 달빛 조각 연결");
+  assert(arrival.triggerTiming===timing&&arrival.triggerAfterGeneral===afterGeneral,
+    prefix+" 일반 주문 기준 등장 시점");
+  assert(arrival.missingMenuSceneId===prefix+"-B",
+    prefix+" 미준비 분기 연결");
+  same(arrival.resultSceneIds,
+    {soft:prefix+"-아쉽다",warm:prefix+"-맛있다",great:prefix+"-완벽"},
+    prefix+" 평가 장면 연결");
+  same(arrival.thresholds,{warm:50,great:80},prefix+" 평가 기준");
+  assert(arrival.repeatEachLoop&&arrival.guestOrder&&arrival.specialCook,
+    prefix+" 회차별 재방문과 기존 조리 연결");
+  assert(missing?.missingMenu&&missing.journalClue&&missing.resultTier==null,
+    prefix+" 미준비 단서 분기");
+  assert(soft?.resultTier==="soft"&&!soft.grantsShard,
+    prefix+" 아쉽다 결과");
+  assert(warm?.resultTier==="warm"&&!warm.grantsShard,
+    prefix+" 맛있다 결과");
+  assert(great?.resultTier==="great"&&great.grantsShard&&great.uniqueShard,
+    prefix+" 최초 완벽 달빛 조각 결과");
+  assert([soft,warm,great].every(scene=>scene.preservesUnlockedMemory),
+    prefix+" 재평가가 기존 기억과 조각을 회수하면 안 됩니다.");
 });
-storySession={
-  pendingCook:{orderId:35,config:{thresholds:{great:80}}},
-  suspended:true
-};
-const g03BubbleResult=applyStoryCookingResult({id:35,guestId:"gicheol",storySceneId:"G-03"},70);
-assert(g03BubbleResult.tier==="soft",
-  "G-03 60~79점 퇴장 말풍선도 80점 단일 경계를 따라야 합니다.");
-storySession=null;
-assert(DAY_DATA[5].requiredMenus.includes("kimchi")&&DAY_DATA[5].specialMenu==="kimchi",
-  "Day 5 김치전은 필수 특별 메뉴여야 합니다.");
 
-const managerScene=STORY_SCENES["C1-04B"];
-assert(managerScene.day===7&&managerScene.dishId==="yakisoba"
-  &&managerScene.arrival==="last"&&managerScene.deferUntilArrival,
-  "팀장은 Day 7의 마지막 볶음우동 손님이어야 합니다.");
-const managerCookLine=managerScene.lines.find(line=>line.orderCook);
-assert(managerCookLine.speaker==="manager",
-  "팀장 조리는 구현 설명문이 아니라 팀장의 주문 대사에서 시작해야 합니다.");
-const managerCook=managerCookLine.orderCook;
-assert(tierReply(managerCook,59)==="맛은 그럭저럭이네요.","팀장 59점 반응");
-assert(tierReply(managerCook,60)==="괜찮네요. 잘 먹었어요.","팀장 60점 반응");
-assert(tierReply(managerCook,79)==="괜찮네요. 잘 먹었어요.","팀장 79점 반응");
-assert(tierReply(managerCook,80)==="괜찮네요. 잘 먹었어요.","팀장 80점 반응");
+same(STORY_SPECIAL_GUEST_BY_DAY,{
+  1:["SCN-G1-A"],2:["SCN-G2-A"],3:["SCN-G3-A"],4:["SCN-G4-A"],
+  5:["SCN-G5-A"],6:["SCN-G6-A"],7:["SCN-G7-A","SCN-G8-A"]
+},"날짜별 특별 손님 일정");
 
-const day4Choice=STORY_SCENES["C1-02"].lines.find(line=>line.choices);
-same(day4Choice.choices.map(choice=>choice.flag),["day5_reduce_portions","day5_limit_menus"],"Day 4 선택 플래그");
-assert(day4Choice.choices.every(choice=>choice.notice),"Day 4 선택 결과는 안내 토스트가 있어야 합니다.");
+const g8=STORY_SCENES["SCN-G8-A"];
+assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===5,
+  "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 5건 뒤 등장해야 합니다.");
+assert(STORY_SCENES["SCN-G8-완벽"].character==="anotherDaeun"
+  &&STORY_SCENES["SCN-G8-완벽"].finalShard,
+  "G8 완벽에서 또 다른 김다은과 여덟 번째 조각을 공개해야 합니다.");
+assert(!JSON.stringify(STORY_SCENES).includes("undelivered_letter_read"),
+  "배달되지 못한 편지는 별도 읽기 플래그를 요구하면 안 됩니다.");
 
-state.day=5;
+same(STORY_ENDING_RULES,{
+  low:{minShards:0,maxShards:3,judgementSceneId:"SCN-J01"},
+  middle:{minShards:4,maxShards:7,judgementSceneId:"SCN-J02"},
+  complete:{minShards:8,maxShards:8,judgementSceneId:"SCN-J03"}
+},"달빛 조각 수에 따른 판정 장면");
+assert(STORY_SCENES["SCN-J01"].autoLoop&&STORY_SCENES["SCN-J01"].nextSceneId==="SCN-L01",
+  "조각 0~3개는 선택지 없이 회귀해야 합니다.");
+same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
+  ["END-01","END-02"],"조각 4~7개 엔딩 선택");
+same(STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
+  ["END-03","END-04"],"조각 8개 엔딩 선택");
+assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requiredFlag,
+  "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
+
+same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
+  ["nextLoop","nextLoop","finalChoiceCheckpoint","clearRunKeepMeta"],
+  "엔딩별 이어하기 정책");
+assert(STORY_SCENES["END-04"].trueEnding
+  &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01",
+  "함께 오는 아침에서 진엔딩 에필로그로 이어져야 합니다.");
+assert(STORY_SCENES["SCN-EPI01"].disableContinue
+  &&STORY_SCENES["SCN-EPI01"].clearProgressSaves
+  &&STORY_SCENES["SCN-EPI01"].keepTitleJournal,
+  "진엔딩 뒤 진행 저장은 초기화하고 타이틀 영업일지는 유지해야 합니다.");
+
+Object.values(STORY_SCENES).forEach(scene=>{
+  assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");
+  scene.lines.forEach((line,index)=>{
+    assert(typeof line.text==="string"||typeof line.prompt==="string",
+      scene.id+" "+index+"번 줄에 text 또는 prompt가 필요합니다.");
+    if(line.speaker)assert(!!STORY_CHARACTERS[line.speaker],
+      scene.id+"의 알 수 없는 화자: "+line.speaker);
+    assert(line.kind!=="gameplay",scene.id+"에 플레이어용 게임플레이 지시가 노출되면 안 됩니다.");
+    assert(!line.cook&&!line.orderCook,
+      scene.id+" 데이터가 기존 미니게임 단계를 재정의하면 안 됩니다.");
+    assert(!line.reveal,"서술형 손님 이름에 reveal 규칙을 사용하면 안 됩니다.");
+  });
+});
+
+const storyText=JSON.stringify(STORY_SCENES);
+assert(!storyText.includes("박기철")&&!storyText.includes("한 달만 가게")&&!storyText.includes("사표 아직 수리"),
+  "기존 박기철·가게 인수·복귀 제안 이야기가 남으면 안 됩니다.");
+assert(storyText.includes("여덟 개의 달빛 조각")
+  &&storyText.includes("마지막 예약 손님: 김다은")
+  &&storyText.includes("오늘의 메뉴는 내일 정합니다"),
+  "달빛 조각 목표와 마지막 예약 손님, 진엔딩 문구가 필요합니다.");
+
+// 실행기 통합 규칙: 회차·날짜별 재생, 미준비 방문, 재평가 영속성과
+// 7일차 조각 판정이 데이터 선언과 실제 함수에서 같은지 확인합니다.
 state.story=createStoryState();
-state.story.flags.day5_reduce_portions=true;
-assert(prepYieldForDay(dishById("kimchi"))===2&&prepYieldForDay(dishById("skewer"))===2,
-  "Day 5 수량 감소는 기본 3인분을 2인분으로 줄여야 합니다.");
-assert(prepYieldForDay({prepYield:1})===1,"원래 1인분인 메뉴는 1인분을 유지해야 합니다.");
-state.day=4;
-assert(prepYieldForDay(dishById("kimchi"))===3,"Day 4에는 Day 5 수량 감소가 적용되면 안 됩니다.");
-state.day=6;
-assert(prepYieldForDay(dishById("kimchi"))===3,"Day 6에는 Day 5 수량 감소가 적용되면 안 됩니다.");
+state.selectedMenus=["oden","tofu","skewer","yakisoba","fries"];
+state.day=1;
+assert(storySceneProgressKey(STORY_SCENES["SCN-D01"]).includes("day1"),
+  "매일 영업 시작 장면은 날짜별 완료 키를 사용해야 합니다.");
+prepareStoryNight();
+assert(state.story.pendingNightGuests.length===1
+  &&state.story.pendingNightGuests[0].sceneId==="SCN-G1-A"
+  &&state.story.pendingNightGuests[0].missingMenu
+  &&state.story.pendingNightGuests[0].guestOrder===false,
+  "기억 음식 미선택 시 영업을 막지 않고 B분기 방문으로 준비해야 합니다.");
 
-state.day=5;
-state.story=createStoryState();
-state.story.flags.day5_limit_menus=true;
-state.selectedMenus=["kimchi","oden","tofu","skewer","yakisoba"];
-state.menuSelectionDraft=["kimchi","oden","tofu","skewer","yakisoba"];
-state.prepProgress={};
-state.kimchiPrep={};
-normalizeDayPrepState();
-assert(state.selectedMenus.length===3&&state.menuSelectionDraft.length===3,
-  "Day 5 메뉴 제한은 저장된 선택도 3개로 정규화해야 합니다.");
-assert(!setSelectedMenus(["kimchi","oden","tofu","skewer"]),"Day 5에는 메뉴 4개를 선택할 수 없습니다.");
-assert(setSelectedMenus(["kimchi","oden","tofu"]),"Day 5에는 김치전을 포함한 메뉴 3개를 선택할 수 있습니다.");
-state.day=6;
-assert(maxSelectedMenusForDay(DAY_DATA[6])===5,"Day 6 메뉴 제한은 다시 5개여야 합니다.");
+const rainy=getStoryGuestState("rainyChild");
+rainy.clueFound=true;
+assert(storyLinesForScene(STORY_SCENES["SCN-L02"])[0].text.includes("팬 위에서 둥글게"),
+  "회귀 영업일지에는 실제로 얻은 단서를 동적으로 넣어야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-완벽"]);
+assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="great",
+  "최초 완벽은 기억과 달빛 조각을 영구 해금해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
+assert(rainy.shardOwned&&rainy.memoryUnlocked&&rainy.currentTier==="warm",
+  "재방문 평가는 낮아져도 기존 조각과 해금 기억은 유지해야 합니다.");
 
+STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestState(id).shardOwned=true;});
 state.day=7;
-state.phase=GAME_PHASES.OPEN;
-state.story=createStoryState();
-const lastPlan={
-  guestId:"manager",sceneId:"C1-04B",dishId:"yakisoba",
-  arrival:"last",deferUntilArrival:true,guestOrder:true,special:false,repeat:false
-};
-state.story.pendingNightGuests=[lastPlan];
-state.nightCustomerTarget=4;
-state.spawnedCustomers=3;
-state.orders=[{id:50,slot:0,customerType:"general",storySceneId:null}];
-state.departures=[];
-assert(storyPlansForSpawn(false).length===0&&waitingForLastStoryGuest(),
-  "일반 손님 주문이 남아 있으면 팀장이 등장하면 안 됩니다.");
-assert(spawnOrder(1,{forceStory:true})===false,
-  "영업 종료 강제 처리도 일반 손님보다 팀장을 먼저 등장시키면 안 됩니다.");
-state.orders=[];
-state.departures=[{guestId:null,life:1}];
-assert(storyPlansForSpawn(true).length===0,
-  "마지막 일반 손님의 퇴장 연출이 끝나기 전 팀장이 등장하면 안 됩니다.");
-state.respawns=[];
-assert(processOrderRespawn({slot:1,forceStory:true})===false,
-  "퇴장 연출 중인 강제 등장 시도는 실패해야 합니다.");
-assert(state.respawns.length===1&&state.respawns[0].forceStory&&state.respawns[0].time===.2,
-  "실패한 마지막 이야기 손님 등장은 0.2초 뒤 재시도해야 합니다.");
-state.departures=[];
-assert(storyPlansForSpawn(false)[0]===lastPlan,
-  "모든 일반 손님이 떠난 뒤에는 팀장이 등장 가능해야 합니다.");
-state.selectedMenus=["yakisoba"];
-state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:100}]));
-state.inventory.yakisoba.count=1;
-const managerRetry=state.respawns.shift();
-spawningInitialNightOrders=true;
-assert(processOrderRespawn(managerRetry)===true,
-  "퇴장 연출이 끝난 뒤 재시도하면 팀장이 즉시 등장해야 합니다.");
-spawningInitialNightOrders=false;
-assert(state.orders.length===1&&state.orders[0].storySceneId==="C1-04B"
-  &&state.orders[0].dishId==="yakisoba","재시도된 팀장 주문은 C1-04B 볶음우동이어야 합니다.");
+state.selectedMenus=["oden","tofu","kimchi","skewer","tteokbokki"];
+prepareStoryNight();
+assert(state.story.pendingNightGuests.some(plan=>plan.sceneId==="SCN-G8-A"),
+  "기본 조각 7개를 모으면 7일차 마지막 예약 손님 계획을 만들어야 합니다.");
+assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
+  "일곱 조각일 때는 4~7개 중간 엔딩 판정으로 가야 합니다.");
+getStoryGuestState("facelessDaeun").shardOwned=true;
+assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J03",
+  "여덟 조각일 때는 최종 엔딩 선택 판정으로 가야 합니다.");
 
-assert(SAVE_VERSION===3,"구버전 저장 초기화를 위해 저장 버전은 3이어야 합니다.");
-const saveState={phase:GAME_PHASES.PREP,day:1,inventory:{oden:{count:1,quality:100}}};
-localStorage.setItem(SAVE_KEY,JSON.stringify({version:2,state:saveState}));
-assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"v2 저장은 삭제되어야 합니다.");
-localStorage.setItem(SAVE_KEY,"{broken");
-assert(readSaveData()===null&&localStorage.getItem(SAVE_KEY)===null,"손상된 저장은 삭제되어야 합니다.");
-localStorage.setItem(SAVE_KEY,JSON.stringify({version:3,state:saveState}));
-assert(readSaveData()?.version===3&&localStorage.getItem(SAVE_KEY)!==null,"정상 v3 저장은 유지되어야 합니다.");
-
-console.log("STORY_CONTRACT_OK 88");
+console.log("STORY_CONTRACT_OK 55");
 `;
 
-const context={
-  console:{
-    log:message=>process.stdout.write(`${message}\n`),
-    warn(){}
+const context = {
+  console: {
+    log: message => process.stdout.write(String(message)+"\n"),
+    warn() {}
   },
-  Map,
   Math,
   Date,
   JSON,
   Object,
   Array,
   Set,
+  Map,
   Number,
   String,
   Boolean,
@@ -431,7 +286,7 @@ const context={
 };
 
 vm.runInNewContext(
-  [bootstrap,...sources,test].join("\n;\n"),
+  [bootstrap, ...sources, test].join("\n;\n"),
   context,
-  {filename:"story-contract-smoke.bundle.js"}
+  { filename: "story-contract-smoke.bundle.js" }
 );

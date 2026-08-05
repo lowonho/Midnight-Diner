@@ -70,20 +70,28 @@ function drawCustomers(){
   state.orders.forEach(order=>{
     const x=CUSTOMER_SEATS[order.slot];
     const entered=1-Math.pow(1-order.entered,3);
-    const y=lerp(CUSTOMER_ENTER_Y,CUSTOMER_SEAT_Y,entered);
-    drawCustomerSprite(order.variant,x,y,Math.floor(t*2+order.id)%4,1);
+    const storyEntrance=order.customerType==="story";
+    const y=storyEntrance
+      ?lerp(CUSTOMER_ENTER_Y+45,CUSTOMER_SEAT_Y,entered)
+      :lerp(CUSTOMER_ENTER_Y,CUSTOMER_SEAT_Y,entered);
+    const entryAlpha=storyEntrance?entered:1;
+    drawCustomerSprite(order.variant,x,y,Math.floor(t*2+order.id)%4,entryAlpha);
 
-    const selected=state.selectedOrderId===order.id;
+    ctx.save();ctx.globalAlpha=entryAlpha;
+    const visitorOnly=storyEntrance&&order.guestOrder===false;
+    const selected=!visitorOnly&&state.selectedOrderId===order.id;
     const H=CUSTOMER_HUD;
-    ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
-    roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
-    ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
-    roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
-    // 주문 표시라 아직 조리 전입니다. 등급은 기본(normal) 그림을 씁니다.
-    // 반짝임은 요리사가 손에 들었을 때만 나옵니다. (player.js syncCarriedFoodFx)
-    drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
-    ctx.fillStyle="#3b2518";ctx.beginPath();
-    ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
+    if(!visitorOnly){
+      ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
+      roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
+      ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
+      roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
+      // 주문 표시라 아직 조리 전입니다. 등급은 기본(normal) 그림을 씁니다.
+      // 반짝임은 요리사가 손에 들었을 때만 나옵니다. (player.js syncCarriedFoodFx)
+      drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
+      ctx.fillStyle="#3b2518";ctx.beginPath();
+      ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
+    }
 
     if(selected){
       ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
@@ -93,7 +101,8 @@ function drawCustomers(){
     ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,y+H.labelY);
     ctx.textAlign="left";
 
-    if(order.bubble&&order.bubbleTime>0&&entered>.85)drawCustomerSpeech(order.bubble,x,y+H.speechY);
+    ctx.restore();
+    if(order.bubble&&order.bubbleTime>0&&entered>.85)drawCustomerSpeech(order.bubble,x,y+H.speechY,entryAlpha);
   });
 
   state.departures.forEach((item,index)=>{

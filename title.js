@@ -2,6 +2,7 @@
 
 // 타이틀 화면과 새 게임/이어하기 화면 전환을 전담합니다.
 let titleGameReady=false;
+let journalReturnFocus=null;
 
 function initializeTitleScreen(){
   dom.startButton.disabled=true;
@@ -11,11 +12,107 @@ function initializeTitleScreen(){
   dom.continueButton.addEventListener("click",continueGame);
   dom.titleSettingsButton.addEventListener("click",()=>openSettings("title"));
   dom.returnTitleButton.addEventListener("click",returnTitle);
+  initializeJournalUI();
   updateContinueButton();
 }
 
+function journalElements(){
+  return {
+    overlay:document.getElementById("journalOverlay"),
+    openButton:document.getElementById("journalButton"),
+    closeButton:document.getElementById("journalClose"),
+    guestList:document.getElementById("journalGuestList"),
+    fragmentList:document.getElementById("journalFragmentList"),
+    endingList:document.getElementById("journalEndingList")
+  };
+}
+
+function journalEntryLabel(entry){
+  return entry.label||entry.name||entry.title||entry.id;
+}
+
+function journalEntryNote(entry){
+  if(entry.note)return String(entry.note);
+  if(Number.isFinite(Number(entry.day)))return `DAY ${Number(entry.day)}`;
+  return "기록됨";
+}
+
+function renderJournalCollection(container,collection,emptyMessage){
+  if(!container)return;
+  const entries=Object.values(collection||{}).sort((a,b)=>
+    Number(a.firstRecordedAt||0)-Number(b.firstRecordedAt||0)
+  );
+  if(!entries.length){
+    const empty=document.createElement("p");
+    empty.className="journal-empty";
+    empty.textContent=emptyMessage;
+    container.replaceChildren(empty);
+    return;
+  }
+  container.replaceChildren(...entries.map(entry=>{
+    const item=document.createElement("article");
+    item.className="journal-entry";
+    const label=document.createElement("strong");
+    label.textContent=journalEntryLabel(entry);
+    const note=document.createElement("small");
+    note.textContent=journalEntryNote(entry);
+    item.append(label,note);
+    return item;
+  }));
+}
+
+function refreshJournalUI(data=readJournalData()){
+  const elements=journalElements();
+  renderJournalCollection(elements.guestList,data.guests,"아직 만난 특별 손님이 없습니다.");
+  renderJournalCollection(elements.fragmentList,data.fragments,"아직 받은 달빛 조각이 없습니다.");
+  renderJournalCollection(elements.endingList,data.endings,"아직 확인한 엔딩이 없습니다.");
+}
+
+function openJournal(){
+  const elements=journalElements();
+  if(!elements.overlay)return false;
+  journalReturnFocus=typeof document.activeElement?.focus==="function"
+    ?document.activeElement
+    :elements.openButton;
+  refreshJournalUI();
+  elements.overlay.classList.add("open");
+  elements.overlay.setAttribute("aria-hidden","false");
+  elements.closeButton?.focus();
+  return true;
+}
+
+function closeJournal(){
+  const elements=journalElements();
+  if(!elements.overlay?.classList.contains("open"))return false;
+  elements.overlay.classList.remove("open");
+  elements.overlay.setAttribute("aria-hidden","true");
+  journalReturnFocus?.focus?.();
+  journalReturnFocus=null;
+  return true;
+}
+
+function initializeJournalUI(){
+  const elements=journalElements();
+  if(!elements.overlay||elements.overlay.dataset.initialized==="true")return;
+  elements.overlay.dataset.initialized="true";
+  elements.openButton?.addEventListener("click",openJournal);
+  elements.closeButton?.addEventListener("click",closeJournal);
+  elements.overlay.addEventListener("click",event=>{
+    if(event.target===elements.overlay)closeJournal();
+  });
+  document.addEventListener("keydown",event=>{
+    if(event.key!=="Escape"||!elements.overlay.classList.contains("open"))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeJournal();
+  });
+  refreshJournalUI();
+}
+
+window.refreshJournalUI=refreshJournalUI;
+
 function savePhaseLabel(phase){
-  return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 정산";
+  return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 마감";
 }
 
 function updateContinueButton(){

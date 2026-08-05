@@ -1,8 +1,12 @@
 "use strict";
 
 // 브라우저 저장소와 게임 상태 직렬화/복원을 전담합니다.
-const SAVE_KEY="midnightDiner.save.v1";
-const SAVE_VERSION=3;
+const SAVE_KEY="moonlightTable.save.v2";
+const SAVE_VERSION=4;
+const SAVE_SCHEMA_KEY="moonlightTable.save.schema";
+const LEGACY_SAVE_KEYS=Object.freeze(["midnightDiner.save.v1"]);
+const JOURNAL_KEY="moonlightTable.journal.v1";
+const JOURNAL_VERSION=1;
 const AUTO_SAVE_SLOT="auto";
 const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
 const SAVE_SLOT_DEFS=Object.freeze([
@@ -14,11 +18,32 @@ let saveSystemInitialized=false;
 
 function initializeSaveSystem(){
   if(saveSystemInitialized)return;
+  migrateSaveStorage();
   saveSystemInitialized=true;
   window.addEventListener("pagehide",()=>saveGame(true));
   document.addEventListener("visibilitychange",()=>{
     if(document.visibilityState==="hidden")saveGame(true);
   });
+}
+
+// 새 시나리오와 호환되지 않는 과거 자동·수동 저장 네 칸을 최초 실행 때 한 번만
+// 정리합니다. 영업일지는 슬롯과 별도 키를 사용하므로 이 마이그레이션의 영향을
+// 받지 않습니다.
+function migrateSaveStorage(){
+  try{
+    if(localStorage.getItem(SAVE_SCHEMA_KEY)===String(SAVE_VERSION))return false;
+    const bases=new Set([...LEGACY_SAVE_KEYS,SAVE_KEY]);
+    bases.forEach(base=>{
+      localStorage.removeItem(base);
+      MANUAL_SAVE_SLOTS.forEach(slotId=>localStorage.removeItem(`${base}.${slotId}`));
+    });
+    localStorage.setItem(SAVE_SCHEMA_KEY,String(SAVE_VERSION));
+    autosaveElapsed=0;
+    return true;
+  }catch(error){
+    console.warn("저장 데이터 초기화를 완료하지 못했습니다.",error);
+    return false;
+  }
 }
 
 function saveKeyForSlot(slotId=AUTO_SAVE_SLOT){
@@ -120,6 +145,99 @@ function clearAllSaveData(){
   return cleared;
 }
 
+// 진엔딩에서는 반복 플레이용 수동 저장을 남기고, 이어하기의 기본 지점인
+// 자동 저장만 비웁니다. story.js는 진엔딩 기록을 남긴 뒤 이 함수를 호출합니다.
+function clearAutoSaveForTrueEnding(){
+  return clearSaveData(AUTO_SAVE_SLOT);
+}
+
+function createJournalData(){
+  return {
+    version:JOURNAL_VERSION,
+    updatedAt:0,
+    guests:{},
+    fragments:{},
+    endings:{}
+  };
+}
+
+function normalizeJournalCollection(value){
+  if(!value||typeof value!=="object"||Array.isArray(value))return {};
+  return Object.fromEntries(Object.entries(value)
+    .filter(([id,entry])=>id&&entry&&typeof entry==="object"&&!Array.isArray(entry))
+    .map(([id,entry])=>[id,{...entry,id}]));
+}
+
+function normalizeJournalData(raw){
+  const base=createJournalData();
+  if(!raw||typeof raw!=="object"||raw.version!==JOURNAL_VERSION)return base;
+  base.updatedAt=Number.isFinite(Number(raw.updatedAt))?Number(raw.updatedAt):0;
+  base.guests=normalizeJournalCollection(raw.guests);
+  base.fragments=normalizeJournalCollection(raw.fragments);
+  base.endings=normalizeJournalCollection(raw.endings);
+  return base;
+}
+
+function readJournalData(){
+  try{
+    const raw=localStorage.getItem(JOURNAL_KEY);
+    if(!raw)return createJournalData();
+    return normalizeJournalData(JSON.parse(raw));
+  }catch(error){
+    console.warn("영업일지를 읽지 못했습니다.",error);
+    return createJournalData();
+  }
+}
+
+function writeJournalData(data){
+  try{
+    const normalized=normalizeJournalData({...data,version:JOURNAL_VERSION});
+    normalized.updatedAt=Date.now();
+    localStorage.setItem(JOURNAL_KEY,JSON.stringify(normalized));
+    if(typeof window.refreshJournalUI==="function")window.refreshJournalUI(normalized);
+    return normalized;
+  }catch(error){
+    console.warn("영업일지를 저장하지 못했습니다.",error);
+    return null;
+  }
+}
+
+function recordJournalEntry(collection,id,details={}){
+  if(!["guests","fragments","endings"].includes(collection)||typeof id!=="string"||!id.trim())return null;
+  const journal=readJournalData();
+  const entryId=id.trim();
+  const previous=journal[collection][entryId]||{};
+  journal[collection][entryId]={
+    ...previous,
+    ...(details&&typeof details==="object"?details:{}),
+    id:entryId,
+    firstRecordedAt:previous.firstRecordedAt||Date.now(),
+    lastRecordedAt:Date.now()
+  };
+  return writeJournalData(journal)?.[collection]?.[entryId]||null;
+}
+
+function recordJournalGuest(id,details={}){
+  return recordJournalEntry("guests",id,details);
+}
+
+function recordJournalFragment(id,details={}){
+  return recordJournalEntry("fragments",id,details);
+}
+
+function recordJournalEnding(id,details={}){
+  return recordJournalEntry("endings",id,details);
+}
+
+// 스토리 쪽에서 전역 변수 결합 없이 호출할 수 있는 안정적인 연결점입니다.
+window.MoonlightTableSave=Object.freeze({
+  readJournal:readJournalData,
+  recordGuest:recordJournalGuest,
+  recordFragment:recordJournalFragment,
+  recordEnding:recordJournalEnding,
+  clearAutoSaveForTrueEnding
+});
+
 function restoreGameState(data){
   if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   const saved=data.state;
@@ -130,7 +248,7 @@ function restoreGameState(data){
   const numericDefaults={
     day:1,money:0,popularity:0,popularityBeforeResult:0,popularityDelta:0,
     dailyRevenue:0,wasteLoss:0,leftoverCount:0,discardedCount:0,discardLoss:0,nightCustomerTarget:0,
-    spawnedCustomers:0,served:0,satisfactionTotal:0,fiveStar:0
+    spawnedCustomers:0,generalSpawnedCustomers:0,served:0,generalServed:0,satisfactionTotal:0,fiveStar:0
   };
   Object.entries(numericDefaults).forEach(([key,fallback])=>{
     if(!Number.isFinite(state[key]))state[key]=fallback;

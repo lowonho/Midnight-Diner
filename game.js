@@ -86,12 +86,14 @@ const state = {
   prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   selectedOrderId:null,
-  inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0, quality:0}])),
+  inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0,prepared:false}])),
   prepRun:null,
   orders:[],
   respawns:[],
   carrying:null,
   served:0,
+  generalServed:0,
+  generalSpawnedCustomers:0,
   satisfactionTotal:0,
   fiveStar:0,
   departures:[],
@@ -102,6 +104,11 @@ const state = {
   story:createStoryState(),
   audio:{ master:.70, bgm:.45, sfx:.75 }
 };
+
+function hideRetiredEconomyUi(){
+  [dom.popularityText,dom.moneyText,dom.popularityResult,dom.wasteResult,dom.revenueResult]
+    .forEach(element=>{if(element?.parentElement)element.parentElement.hidden=true;});
+}
 
 function dishById(id) { return DISHES.find(d => d.id === id); }
 function stationById(id) { return STATIONS[id]||FRONT_STATIONS[id]||null; }
@@ -354,7 +361,7 @@ function buildMenuCards() {
     name:dish.name,
     iconUrl:foodPropUrl(dish.id),
     required:getCurrentDayData().requiredMenus.includes(dish.id),
-    orderCount:state.phase==="night"?state.orders.filter(order=>order.dishId===dish.id).length:0
+    orderCount:state.phase==="night"?state.orders.filter(order=>isCookableOrder(order)&&order.dishId===dish.id).length:0
   })));
 }
 
@@ -410,11 +417,6 @@ function interact() {
   const required=currentRequirement();
   const station=nearestStation(required);
   if(state.phase==="night" && state.carrying) {
-    if(station?.id==="trash"){
-      state.player.facing=station.facing;
-      discardCarriedDish();
-      return;
-    }
     tryDeliver();
     return;
   }
@@ -481,14 +483,14 @@ function completeMiniContext(m,score) {
     const dish=dishById(run.dishId);
     if(run.stepIndex>=dish.prep.length){
       const q=Math.round(run.scores.reduce((a,b)=>a+b,0)/run.scores.length);const inv=state.inventory[dish.id];
-      const newCount=inv.count+3;inv.quality=Math.round((inv.quality*inv.count+q*3)/newCount);inv.count=newCount;state.prepRun=null;
+      inv.quality=q;inv.count=1;inv.prepared=true;state.prepRun=null;
       spawnPopup(state.player.x,state.player.y-70,UI_TEXT.popup.prepGain(dish.name,q));showToast(UI_TEXT.toast.prepDone(dish.name));
     }else showToast(UI_TEXT.toast.prepNext(STATIONS[dish.prep[run.stepIndex]].label));
   }else if(m.context.mode==="cook"){
     const order=state.orders.find(o=>o.id===m.context.orderId);if(!order)return;order.cookScores.push(score);order.cookStep++;
     const dish=dishById(order.dishId);
     if(order.cookStep>=dish.cook.length){
-      state.inventory[dish.id].count--;state.carrying={orderId:order.id,dishId:dish.id,cookScore:Math.round(order.cookScores.reduce((a,b)=>a+b,0)/order.cookScores.length)};
+      state.carrying={orderId:order.id,dishId:dish.id,cookScore:Math.round(order.cookScores.reduce((a,b)=>a+b,0)/order.cookScores.length)};
       showToast(UI_TEXT.toast.cookDone(dish.name));spawnPopup(state.player.x,state.player.y-75,UI_TEXT.popup.cookDone);
     }else showToast(UI_TEXT.toast.cookNext(stationById(dish.cook[order.cookStep].station)?.label||dish.cook[order.cookStep].station));
   }
@@ -502,20 +504,20 @@ function update(dt) {
     // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
     // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
     // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
-    else updatePrompt();
+    else{
+      if(state.phase==="night")updateNightOrderEntrances(dt,true);
+      updatePrompt();
+    }
     if(state.screen==="game"&&storyDialogueIsActive())updateAutosave(dt);
     return;
   }
   if(state.phase==="night"){
-    if(!storyCookingIsActive())state.phaseTime-=dt;
-    if(state.phaseTime<=0){
-      state.phaseTime=0;
-      if(tryEndNight("timeout"))return;
-    }
-    state.orders.forEach(order=>order.entered=clamp(order.entered+dt*2.1,0,1));
+    updateNightOrderEntrances(dt);
     state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(processOrderRespawn);
+    if(typeof processStoryNightTrigger==="function")processStoryNightTrigger();
+    ensureNightOrders();
     const noActiveOrders=state.orders.length===0&&!state.carrying&&state.respawns.length===0;
-    if(noActiveOrders&&(state.spawnedCustomers>=state.nightCustomerTarget||!hasOrderableStock())){
+    if(noActiveOrders&&state.generalServed>=nightGeneralOrderTarget()){
       if(tryEndNight("complete"))return;
     }
   }
@@ -557,9 +559,12 @@ function updateUI(force=false) {
   dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isPrep||isIngredientSelect);
   dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
-  dom.dayText.textContent=state.day;dom.timeLabel.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeLabelPrep:UI_TEXT.timeLabelOther;dom.timeText.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeNoLimit:isOpen?formatTime(state.phaseTime):UI_TEXT.blank;dom.moneyText.textContent=UI_TEXT.money(state.money);dom.popularityText.textContent=state.popularity;dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
+  dom.dayText.textContent=state.day;
+  dom.timeLabel.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
+  dom.timeText.textContent=(isPrep||isIngredientSelect||isOpen)?UI_TEXT.timeNoLimit:UI_TEXT.blank;
+  dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isPrep?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
-  dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=[3,4].includes(Number(state.day))&&prepComplete()?UI_TEXT.phaseButtonReady(state.day):UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
+  dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
@@ -586,12 +591,7 @@ function updatePrompt(){
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
-    const station=nearestStation();
-    const dish=dishById(state.carrying.dishId);
-    if(station?.id==="trash"&&dish&&state.inventory[dish.id]?.count>0){
-      text=UI_TEXT.prompt.discard(dish.name);
-      x=station.ix;y=station.y+station.h+60;
-    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }
@@ -742,6 +742,7 @@ function bootPhaser(){
   return new Phaser.Game(stageGameConfig(DinerScene));
 }
 
+hideRetiredEconomyUi();
 initializeStoryUI();
 initializeSaveSystem();
 initializeTitleScreen();
