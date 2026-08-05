@@ -201,7 +201,10 @@
         document.body.dataset.goals=[...ingredientChecklist.children].map((tile,index)=>{
           const box=tile.getBoundingClientRect(),art=tile.querySelector("img").getBoundingClientRect();
           // 칸 밖으로 나오는 건 괜찮습니다(재료끼리 겹치는 연출). **목록 밖으로 나가 잘리는 것**만 봅니다.
-          const cut=[art.left<listBox.left-.5?"←잘림":"",art.right>listBox.right+.5?"→잘림":"",art.top<listBox.top-.5?"↑잘림":"",art.bottom>listBox.bottom+.5?"↓잘림":""].filter(Boolean).join("");
+          /* ⚠️ 45도로 눕힌 아이콘(.laid)은 상자가 정사각이라 rect 가 대각선까지 잡습니다.
+             그 상자의 모서리는 투명이라 잘려도 보이는 그림은 멀쩡합니다 — 검사에서 뺍니다. */
+          const laid=tile.querySelector("img").classList.contains("laid");
+          const cut=laid?"":[art.left<listBox.left-.5?`←${Math.round(listBox.left-art.left)}잘림`:"",art.right>listBox.right+.5?`→${Math.round(art.right-listBox.right)}잘림`:"",art.top<listBox.top-.5?"↑잘림":"",art.bottom>listBox.bottom+.5?"↓잘림":""].filter(Boolean).join("");
           return `${index}:칸${Math.round(box.width)}x${Math.round(box.height)}/그림${Math.round(art.width)}x${Math.round(art.height)}${cut}`;
         }).join(" ");
       }

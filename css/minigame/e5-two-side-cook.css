@@ -145,7 +145,7 @@
    그림자는 바로 아래 석쇠에 지므로 짧게 깔립니다 (원래 3 → 2).
    ⚠️ 상자는 **자리만** 잡습니다. 조각 쌓기는 안쪽 .gs-pieces 가 맡습니다 —
       꼬챙이 그림(.gs-rod)이 상자 전체에 절대배치로 깔려야 해서 둘을 나눴습니다. */
-.grill-skewer { position: relative; min-height:calc(310 * var(--upx)); width:calc(34 * var(--upx)); justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom:calc(38 * var(--upx)); transform: rotate(-2deg); filter:drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
+.grill-skewer { --gs-tilt: -2deg; position: relative; min-height:calc(310 * var(--upx)); width:calc(34 * var(--upx)); justify-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom:calc(38 * var(--upx)); transform: rotate(var(--gs-tilt)); filter:drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
 .gs-pieces { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--upx)); }
 
 /* ── 화로의 꼬치 자리 세 칸 (engine-e5 의 grillSlotMarkup) ────
@@ -154,7 +154,10 @@
    ⚠️ 그래서 짝수 칸 기울임(원래 .grill-skewer:nth-child(even))도 자리 쪽에서 셉니다 —
       자루는 이제 늘 자리의 첫째 자식이라 nth-child 가 안 먹습니다. */
 .gs-slot { position: relative; justify-self: center; display: flex; align-items: center; justify-content: center; min-height: calc(310 * var(--upx)); }
-.gs-slot:nth-child(even) .grill-skewer { transform: rotate(1deg); }
+/* 자루가 놓인 기울기. **--gs-tilt 하나로만** 씁니다 — 뒤집기·내려놓기 연출이
+   transform 을 통째로 갈아 끼우기 때문에, 기울기를 따로 적어 두면 연출이 시작·끝날 때
+   기울기가 사라졌다 되돌아오며 **팔딱 튑니다.** (실제로 그랬습니다) */
+.gs-slot:nth-child(even) .grill-skewer { --gs-tilt: 1deg; }
 
 /* 아직 안 올린 자리 — "여기에 올려 주세요" 점선 한 칸.
    두부김치 플레이팅·김치전 반죽의 점선 안내와 같은 색·같은 깜빡임입니다. */
@@ -175,15 +178,22 @@
 .skewer-cook .cook-food.order-drop-ready .gs-slot-mark { border-color: #ffe6b4; background: rgba(255,206,120,.2); }
 @keyframes gs-slot-blink { 50% { opacity: .4; } }
 
-/* 막 올려놓은 자루가 한 번 내려앉습니다 */
-.grill-skewer.landing { animation: gs-skewer-landing .34s cubic-bezier(.2,.8,.3,1) both; }
+/* 막 올려놓은 자루는 **자리에서 그대로 스며들 듯 나타납니다.**
+   ⚠️ 내려앉는(위에서 툭 떨어지는) 움직임을 넣지 마세요 — 닭꼬치가 움직여도 되는 것은
+      뒤집기와 양념 두 가지뿐입니다. */
+.grill-skewer.landing { animation: gs-skewer-landing .3s ease both; }
+/* 자리는 그대로 두고 **밝기와 진하기만** 다룹니다 (움직임 없음) */
 @keyframes gs-skewer-landing {
-  0%   { opacity:.35; transform: translateY(calc(-46 * var(--upx))) rotate(-6deg) scale(.94); }
-  70%  { opacity:1; transform: translateY(calc(4 * var(--upx))) rotate(-2deg) scale(1.02); }
-  100% { opacity:1; }
+  from { opacity:0; filter:drop-shadow(0 0 calc(16 * var(--upx)) rgba(255,214,132,.9)); }
+  to   { opacity:1; }
 }
-/* 다 구운 자루 — 은은한 금빛으로 "이건 끝났다"만 알립니다 */
-.grill-skewer.unit-done { filter: drop-shadow(0 0 calc(9 * var(--upx)) rgba(255,208,120,.75)) drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
+/* 다 구운 자루 — 은은한 금빛으로 "이건 끝났다"만 알립니다.
+   ⚠️ 빛만 오갑니다. 크기·자리를 건드리면 다시 팔딱거립니다. */
+.grill-skewer.unit-done { animation: gs-done-glow 1.1s ease-in-out infinite alternate; }
+@keyframes gs-done-glow {
+  from { filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(255,208,120,.7)) drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
+  to   { filter: drop-shadow(0 0 calc(20 * var(--upx)) rgba(255,222,150,.95)) drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
+}
 .grill-skewer.current { filter: drop-shadow(0 0 calc(7 * var(--upx)) #ffe08d); }
 .grill-skewer.flipped { filter: brightness(.76) saturate(1.15); }
 .grill-skewer.turning { animation: skewer-single-flip .3s ease-in-out; }
@@ -262,8 +272,12 @@
 .charcoal-flame.flame-one { top: calc(34 * var(--upx)); }
 .charcoal-flame.flame-two { bottom: calc(30 * var(--upx)); width: calc(250 * var(--upx)); height: calc(84 * var(--upx)); animation-delay: -.38s; }
 .two-side-pan.side-1 .cook-food { filter:none; }
-.two-side-pan.cook-setting .cook-food { transform:scale(1.005); }
-.two-side-pan.cook-golden .cook-food { transform:scale(1.012); }
+/* ⚠️ **김치전(.pancake-cook)에만** 겁니다. 예전에는 `.two-side-pan` 이라 닭꼬치 화로에도
+   걸렸는데, 화로의 .cook-food 는 **꼬치 세 자루를 담은 상자**입니다. 그래서 익힘 단계가
+   한 칸 올라갈 때마다(굽기 성공·예고) 세 자루가 통째로 커졌다 작아지며 **팔딱 튀었습니다.**
+   닭꼬치가 움직여도 되는 것은 뒤집기(.turning)와 양념(붓) 둘뿐입니다. */
+.pancake-cook.cook-setting .cook-food { transform:scale(1.005); }
+.pancake-cook.cook-golden .cook-food { transform:scale(1.012); }
 .pancake-cook.cook-ready .cook-food { box-shadow:inset 0 0 0 calc(4 * var(--upx)) rgba(104,48,24,.3),0 0 calc(18 * var(--upx)) rgba(255,185,77,.42); }
 .pancake-cook.cook-over .cook-food::after { opacity:.82; }
 .pancake-cook.cook-over .cook-food { box-shadow:inset 0 0 calc(18 * var(--upx)) rgba(36,14,9,.72),0 0 calc(12 * var(--upx)) rgba(120,45,24,.35); }
@@ -303,14 +317,52 @@
       **조리물 실루엣**을 따라 빛나야 합니다. 김치전 완성 표시와 같은 이유입니다. */
 .cue-preheat { --cue-left:1; }
 .pancake-cook.cue-on .cook-food,
-.grill-skewer.cue-on { animation:ts-cue-pulse .42s ease-in-out infinite alternate; }
+.grill-skewer.cue-on { animation:ts-cue-pulse .5s ease-in-out infinite alternate; }
 .pancake-cook.cue-cook .cook-food,
-.grill-skewer.cue-cook { --cue-glow:rgba(255,206,104,.95); }
+.grill-skewer.cue-cook { --cue-glow:#ffce68; }
 .pancake-cook.cue-flip .cook-food,
-.grill-skewer.cue-flip { --cue-glow:rgba(240,245,255,.95); }
-.grill-skewer.cue-sauce { --cue-glow:rgba(255,132,74,.95); }
+.grill-skewer.cue-flip { --cue-glow:#f2f7ff; }
+.grill-skewer.cue-sauce { --cue-glow:#ff8b4a; }
 /* 신호가 뜨는 동안에는 다른 빛(완성·잘 익음)이 겹치지 않게 이 규칙이 이깁니다 */
 .pancake-cook.cue-on .cook-food.has-asset { box-shadow:none; }
+
+/* ── 신호 표시등 (자루/김치전 뒤에 깔리는 빛무리) ──────────────
+   불빛만으로는 숯불 위에서 잘 안 보여서, **뒤에 둥근 빛무리 한 겹**을 더 깝니다.
+   남은 시간(--cue-left)은 이 빛무리의 진하기·크기로 보여 줍니다.
+   ⚠️ --cue-left 를 **@keyframes 안에 넣지 마세요.** 그 값은 매 프레임 다시 들어오는데,
+      애니메이션 키프레임이 그 값을 참조하면 프레임마다 애니메이션이 다시 계산되어
+      빛이 잘게 떨립니다(예전 ts-cue-pulse 가 그랬습니다). 여기처럼 애니메이션 밖의
+      보통 속성으로 받아야 부드럽게 사그라듭니다. */
+.ts-cue-halo {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: calc(150 * var(--upx));
+  height: calc(300 * var(--upx));
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%,var(--cue-glow,#ffce68) 0 8%,color-mix(in srgb,var(--cue-glow,#ffce68) 55%,transparent) 34%,transparent 72%);
+  opacity: 0;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+/* ⚠️ 빛무리는 **크기를 바꾸지 않습니다**(예전엔 scale 로 커졌다 작아졌습니다).
+   자루 뒤에서 커졌다 작아지면 자루가 들썩이는 것처럼 보입니다 — 진하기만 오갑니다. */
+.cue-on > .ts-cue-halo { opacity: calc(.35 + .5 * var(--cue-left,1)); animation: ts-cue-halo .5s ease-in-out infinite alternate; }
+/* 신호 직전 예고(살짝 익는 순간)에도 옅게 켜 둡니다 — "곧 온다"가 눈에 보입니다 */
+.cue-preheat > .ts-cue-halo { opacity: .3; }
+@keyframes ts-cue-halo { to { filter: brightness(1.45); } }
+/* ⚠️ 구르는 연출이 신호 불빛에 지지 않게 **여기서 다시** 겁니다. `.grill-skewer.turning` 과
+   `.grill-skewer.cue-on` 은 특정도가 같아 파일에서 뒤에 오는 쪽(불빛)이 animation 을
+   가져갑니다. 실제로는 뒤집자마자 불빛이 꺼지지만, 한 프레임이라도 겹치면 구르기가
+   통째로 사라집니다 — 꼬치가 움직여도 되는 두 가지 중 하나라 확실히 이겨야 합니다. */
+.grill-skewer.turning.turning { animation: skewer-single-flip .3s ease-in-out; }
+/* 김치전은 팬 안의 조리물이 넓어서 빛무리도 둥글고 넓게 깝니다.
+   ⚠️ z-index 는 **1** 입니다(꼬치의 -1 과 다릅니다). 꼬치의 빛무리는 자루 안에 들어
+      있어서 -1 이면 자루 뒤·화로 앞에 놓이지만, 김치전 빛무리는 팬 상자의 바로 아래
+      자식이라 -1 로 두면 **팬 그림(z-index 0) 뒤로 숨어 아무것도 안 보입니다.**
+      1 이면 팬 위·김치전(z-index 2) 아래에 깔립니다. */
+.pancake-cook .ts-cue-halo { z-index: 1; width: calc(430 * var(--upx)); height: calc(300 * var(--upx)); }
 
 /* ── 양념 붓 (닭꼬치 전용) ───────────────────────────────────
    그 자루 안에 잠깐 붙었다 사라집니다 (engine-e5 의 applyTwoSideSauce).
@@ -370,7 +422,15 @@
 /* ⚠️ 꼬치가 세로로 서 있으므로 막대를 축으로 구르는 것은 rotateX 가 아니라
    **rotateY** 입니다 (예전 가로 꼬치일 때 쓰던 rotateX 를 그대로 두면
    꼬치가 구르지 않고 앞뒤로 꺾입니다). 살짝 드는 것도 옆으로 뺍니다. */
-@keyframes skewer-single-flip { 0% { transform:translateX(0) rotateY(0); } 50% { transform:translateX(calc(-18 * var(--upx))) rotateY(90deg) scale(.94); } 100% { transform:translateX(0) rotateY(180deg); } }
+/* 구르는 연출. ⚠️ **모든 칸에 기본 기울기(--gs-tilt)를 그대로 얹습니다.** 예전에는
+   0% 가 `rotateY(0)` 뿐이라, 구르기 시작하는 순간 -2도가 사라져 자루가 똑바로 섰다가
+   끝나면서 다시 -2도로 돌아왔습니다 — 이게 "뒤집는 것도 아닌데 팔딱거린다" 였습니다.
+   좌우로 밀던 translateX 도 뺐습니다(그 자리에서 굴러야 옆 자루와 안 겹칩니다). */
+@keyframes skewer-single-flip {
+  0%   { transform:rotate(var(--gs-tilt)) rotateY(0); }
+  50%  { transform:rotate(var(--gs-tilt)) rotateY(90deg) scale(.96); }
+  100% { transform:rotate(var(--gs-tilt)) rotateY(180deg); }
+}
 /* 팬을 한 번 튀겨 올립니다 (드래그로 뒤집는 순간).
    ⚠️ 여기 있던 pan-ready · rebound-arrow-pull · rebound-fail 은 뺐습니다 —
       반동 뒤집기(↑꾹→↓) 부품과 짝이던 것들입니다.
@@ -381,11 +441,13 @@
   22% { transform:translateY(calc(-26 * var(--upx))) rotate(-2deg); }
   55% { transform:translateY(calc(-14 * var(--upx))) rotate(1.5deg); }
 }
-/* 신호 불빛. --cue-left(남은 시간 1 → 0)를 번짐 크기에 곱해서, 시간이 갈수록
-   빛이 옅어집니다 — "이제 곧 놓친다"가 눈에 보입니다. */
+/* 신호 불빛. 실루엣을 따라 **두 겹**으로 번지게 해서 숯불 위에서도 눈에 띕니다.
+   ⚠️ 예전에는 여기 keyframes 안에서 --cue-left(남은 시간)를 곱해 번짐 크기를 줄였습니다.
+      그 값이 매 프레임 다시 들어오는 바람에 애니메이션이 프레임마다 다시 계산되어
+      빛이 잘게 떨렸습니다. 사그라드는 것은 위 .ts-cue-halo 가 맡습니다. */
 @keyframes ts-cue-pulse {
-  from { filter:drop-shadow(0 0 calc((4 + 8 * var(--cue-left,1)) * var(--upx)) var(--cue-glow,#ffce68)); }
-  to { filter:drop-shadow(0 0 calc((10 + 20 * var(--cue-left,1)) * var(--upx)) var(--cue-glow,#ffce68)) brightness(1.06); }
+  from { filter:drop-shadow(0 0 calc(9 * var(--upx)) var(--cue-glow,#ffce68)) drop-shadow(0 0 calc(18 * var(--upx)) var(--cue-glow,#ffce68)) brightness(1.05); }
+  to   { filter:drop-shadow(0 0 calc(20 * var(--upx)) var(--cue-glow,#ffce68)) drop-shadow(0 0 calc(40 * var(--upx)) var(--cue-glow,#ffce68)) brightness(1.2); }
 }
 /* 붓이 오른쪽 아래에서 들어와 꼬치를 위아래로 두 번 쓸고 빠집니다 */
 @keyframes ts-brush-sweep {
@@ -534,6 +596,12 @@
   transform: none;
 }
 
+/* 조각 그림이 없을 때(임시 도형 <b>/<em>)는 화로 크기(26 x 34)라 카드 안에서 넘칩니다.
+   카드 자루 키 196 에서 손잡이 자리 24 를 뺀 172 안에 다섯 조각이 들어가게 줄입니다. */
+.ts-ing-skewers.no-art .grill-skewer b,
+.ts-ing-skewers.no-art .grill-skewer em { width: calc(20 * var(--upx)); height: calc(26 * var(--upx)); }
+.ts-ing-skewers.no-art .grill-skewer em { height: calc(22 * var(--upx)); }
+
 /* 카드의 꼬치 한 자루 = 화로로 끌어다 놓는 손잡이입니다 (engine-e5 의 twoSideSkewerCardMarkup).
    ⚠️ touch-action:none 이 있어야 손가락으로 끌 때 화면이 같이 스크롤되지 않습니다
       (낮 준비의 재료 카드 .bt-ing-card 와 같은 까닭입니다). */
@@ -602,21 +670,77 @@
 .ts-time-left.warning b { color: #ff725f; animation: ts-time-warning .7s ease-in-out infinite alternate; }
 @keyframes ts-time-warning { to { opacity: .45; } }
 
-.ts-ref { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
-.ts-ref-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
-/* 견본 꼬치도 카드 크기로 줄입니다 (위 재료 카드와 같은 값). --cook-progress 를
-   못박는 까닭도 같습니다 — 카드 안에는 화로가 없어 익힘 필터가 무효가 됩니다. */
-.ts-ref-skewer { --cook-progress: .5; display: flex; align-items: flex-end; justify-content: center; }
-.ts-ref-skewer .grill-skewer {
-  --gs-piece-w: calc(52 * var(--upx));
-  --gs-piece-h: calc(46 * var(--upx));
-  --gs-piece-overlap: calc(-9 * var(--upx));
-  min-height: 0;
-  height: calc(214 * var(--upx));
-  width: calc(56 * var(--upx));
+/* ── 완성 담기 칸 (engine-e5 의 twoSideServeMarkup) ───────────
+   튀김처럼 **다 구운 꼬치를 여기로 끌어다 담습니다.** 원래 이 자리는 '참고 모양'
+   (잘 구워진 꼬치 견본)이었는데 담는 자리로 통째로 바꿨습니다.
+   ⚠️ 접시는 **임시 CSS 도형**입니다(.ts-serve-dish). 원화가 들어오면 그 자리에
+      .has-asset 갈래를 만들고 이 도형만 끄면 됩니다 — 담긴 꼬치(.ts-served)는
+      접시와 별개라 그대로 씁니다. */
+.ts-serve { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
+.ts-serve-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
+.ts-serve-plate {
+  --cook-progress: .5;          /* 카드 안에는 화로가 없어 익힘 필터가 무효가 됩니다 (재료 카드와 같은 까닭) */
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: calc(180 * var(--upx));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: calc(2 * var(--upx));
   padding-bottom: calc(26 * var(--upx));
-  transform: none;
 }
+/* 임시 접시 — 위에서 비스듬히 본 타원 한 장 */
+.ts-serve-dish {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  bottom: calc(6 * var(--upx));
+  width: calc(190 * var(--upx));
+  height: calc(58 * var(--upx));
+  border: calc(3 * var(--upx)) solid #cbb089;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 34%,#f6ecd8 0 42%,#d9c6a4 76%,#b39a74 100%);
+  box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
+  transform: translateX(-50%);
+}
+/* 비어 있을 때의 "여기에 담으세요" 점선 (화로의 빈 자리 표시와 같은 결) */
+.ts-serve-mark {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: calc(14 * var(--upx));
+  width: calc(150 * var(--upx));
+  height: calc(140 * var(--upx));
+  border: calc(3 * var(--upx)) dashed rgba(255,220,152,.5);
+  border-radius: calc(12 * var(--upx));
+  transform: translateX(-50%);
+  animation: gs-slot-blink 1.7s ease-in-out infinite;
+  pointer-events: none;
+}
+.ts-serve-plate.filled .ts-serve-mark { display: none; }
+/* 끌어온 꼬치가 접시 위에 왔을 때 (E8 공통 .order-drop-ready) */
+.ts-serve-plate.order-drop-ready { outline: 0; }
+.ts-serve-plate.order-drop-ready .ts-serve-dish { filter: brightness(1.2); box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 0 calc(18 * var(--upx)) #ffe08d; }
+
+.ts-serve-stack { position: relative; z-index: 2; display: flex; align-items: flex-end; justify-content: center; gap: calc(1 * var(--upx)); }
+.ts-served .grill-skewer {
+  --gs-piece-w: calc(44 * var(--upx));
+  --gs-piece-h: calc(38 * var(--upx));
+  --gs-piece-overlap: calc(-8 * var(--upx));
+  --gs-tilt: 0deg;
+  min-height: 0;
+  height: calc(172 * var(--upx));
+  width: calc(46 * var(--upx));
+  padding-bottom: calc(20 * var(--upx));
+}
+/* 담기는 순간. **자리는 그대로**이고 진하기만 살아납니다 (움직임 없음) */
+.ts-served.landing { animation: ts-served-in .32s ease both; }
+@keyframes ts-served-in { from { opacity:0; filter:drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,214,132,.9)); } to { opacity:1; } }
+
+/* 다 구워서 이제 옮길 수 있는 자루 — 끌 수 있다는 것을 손모양과 금빛으로 알립니다 */
+.grill-skewer.ready-to-serve { cursor: grab; touch-action: none; }
+.grill-skewer.ready-to-serve.order-source-dragging { opacity: .34; }
 
 /* 시간 종료 판 — 멸치 손질의 .anchovy-timeout 과 같은 자리·같은 뜻입니다 */
 .ts-board.time-over > *:not(.ts-timeout) { filter: grayscale(.35) brightness(.62); }
@@ -921,7 +1045,8 @@
   /* 신호는 **깜빡임만** 멈추고 켜진 채로 둡니다 — 움직임을 줄이더라도
      "지금 이걸 누르라"는 것은 계속 보여야 게임이 됩니다. */
   .pancake-cook.cue-on .cook-food,
-  .grill-skewer.cue-on { animation:none; filter:drop-shadow(0 0 calc(14 * var(--upx)) var(--cue-glow,#ffce68)); }
+  .grill-skewer.cue-on { animation:none; filter:drop-shadow(0 0 calc(14 * var(--upx)) var(--cue-glow,#ffce68)) drop-shadow(0 0 calc(30 * var(--upx)) var(--cue-glow,#ffce68)); }
+  .cue-on > .ts-cue-halo { animation:none; }
   .ts-now.on { animation:none; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); }
   .ts-sauce-brush { animation:none; opacity:1; }
   /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */

@@ -229,8 +229,8 @@
   position: absolute;
   left: 50%;
   top: calc(50% + var(--art-drop,0%));
-  width: calc(105cqh * var(--art-size,1));
-  height: calc(88cqw * var(--art-size,1));
+  width: calc(95cqh * var(--art-size,1));
+  height: calc(84cqw * var(--art-size,1));
   object-position: 50% 50%;
   transform: translate(-50%,-50%) rotate(var(--art-turn,-45deg));
 }
@@ -367,10 +367,12 @@
   gap: calc(7 * var(--upx));
   align-content: stretch;
   min-height: 0;
-  /* 아이콘이 칸보다 커서 가장자리 칸은 목록 밖으로 조금 나옵니다.
-     그만큼 안쪽 여백을 두어 **잘리지 않게** 합니다 — 겹치는 건 되지만 잘리면 안 됩니다.
-     (overflow:hidden 은 재료가 아주 많은 날의 안전장치로 남겨 둡니다) */
-  padding: calc(9 * var(--upx));
+  /* ⚠️ 아이콘이 자기 칸 **가로 폭 안**에 들어오게 잡아 두었습니다(아래 .fridge-goal-art).
+     칸 밖으로 나가게 두면 넓은 그림이 든 열만 바깥으로 붙어서 목록이 한쪽으로
+     쏠려 보입니다 — 어느 재료가 어느 칸에 오느냐에 따라 매번 달라져서 더 나쁩니다.
+     세로로는 넘쳐도 됩니다(줄끼리 겹치는 건 괜찮습니다).
+     여백은 좌우 대칭으로 얇게만 둡니다. overflow:hidden 은 안전장치입니다. */
+  padding: calc(10 * var(--upx));
   overflow: hidden;
 }
 /* ⚠️ 여기 아이콘은 **눕히지도 키우지도 않습니다**(.laid · --art-size 는 .fridge-art 전용).
@@ -389,7 +391,7 @@
   height: min(100%,calc(112 * var(--upx)));
   min-height: 0;
   container-type: size;        /* 아래 아이콘이 칸 크기를 재는 기준(요리 카드와 같은 이유) */
-  padding: calc(3 * var(--upx));
+  padding: calc(1 * var(--upx));
 }
 /* 재료가 하나뿐인 날에만 두 칸을 걸쳐 가운데에 세웁니다.
    ⚠️ 홀수면 언제나 가운데로 보냈더니(예전 :last-child:nth-child(odd)) 마지막 줄만
@@ -411,12 +413,29 @@
    [기울기] 재료마다 몇 도씩 다르게 눕혀 아무렇게나 놓아 둔 느낌을 냅니다
    (--goal-turn 은 ingredient-select.js 가 재료 이름에서 뽑습니다 — 다시 그려도 안 흔들립니다). */
 .fridge-goal-art {
-  width: min(130cqh,118cqw);
-  height: min(130cqh,118cqw);
+  /* 세 한도 중 가장 작은 값입니다.
+       126cqh  칸 높이 — 위아래로는 이만큼까지만
+       140cqw  칸 폭   — 옆 재료와 **겹치라고** 일부러 칸보다 크게 잡습니다
+       96upx   재료가 적은 날 혼자 커지지 않게 막는 절대 상한
+     세 값 모두 회전한 상자(최대 1.1배)까지 목록 안쪽 여백(13) 안에 들어오는 크기입니다
+     — 겹치는 건 되지만 **잘리면 안 됩니다**. */
+  width: min(126cqh,100cqw,calc(96 * var(--upx)));
+  height: min(126cqh,100cqw,calc(96 * var(--upx)));
   object-fit: contain;
   transform: rotate(var(--goal-turn,0deg));
   filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.5));
   transition: filter .18s ease, opacity .18s ease;
+}
+/* 무 · 통김치 · 대파 · 닭고기 · 멸치는 여기서도 **냉장고에 넣은 것처럼** 45도로 눕힙니다.
+   눕히면 정사각 자리 안에서 대각선만 쓰게 되어 작아 보이므로 조금 키웁니다.
+   기우는 방향(--goal-lean)은 냉장고와 같은 값입니다 — 무·대파·멸치는 잎과 머리가 위로,
+   김치·닭고기는 반대. 거기에 재료마다 다른 잔각도(--goal-turn)를 더합니다.
+   ⚠️ 눕힌 그림은 상자의 대각선만 쓰기 때문에, 상자가 칸보다 커도 **보이는 그림**은
+      칸 밖으로 거의 안 나갑니다(4:1 그림이면 상자의 0.88배). 그래서 더 키워도 안 잘립니다. */
+.fridge-goal-art.laid {
+  width: min(140cqh,115cqw,calc(110 * var(--upx)));
+  height: min(140cqh,115cqw,calc(110 * var(--upx)));
+  transform: rotate(calc(var(--goal-lean,0deg) + var(--goal-turn,0deg)));
 }
 .fridge-goal.done .fridge-goal-art { filter: grayscale(1) brightness(.62); opacity: .55; }
 

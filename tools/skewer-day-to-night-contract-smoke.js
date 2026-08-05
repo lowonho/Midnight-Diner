@@ -61,7 +61,8 @@ const api=vm.runInContext(
    꼬치는 플레이어가 하나씩 올리므로, 화면을 보려면 먼저 다 올려 둬야 합니다. */
 const cookData=(cookStep=0)=>{
   const data=api.createTwoSideData("skewer",{});
-  data.units.forEach(unit=>{unit.placed=true;unit.cookStep=cookStep;});
+  // slot 은 **화로의 몇 번째 자리**입니다 (자루 번호와 별개). 안 채우면 화로가 빈 채로 그려집니다.
+  data.units.forEach((unit,seat)=>{unit.placed=true;unit.slot=seat;unit.cookStep=cookStep;});
   return data;
 };
 
@@ -135,7 +136,8 @@ assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 �
 /* ⚠️ 아직 아무것도 안 올린 판(units 전부 placed:false)으로 봅니다. 카드는 **안 올린
       자루만** 그리므로, 위 cookData(다 올린 판)를 넘기면 카드가 비어 나옵니다. */
 const card=api.twoSideIngredientMarkup(api.TWO_SIDE_VIEW.skewer.ingredients[0],api.createTwoSideData("skewer",{}));
-assert(card.includes('class="ts-ing-skewers"'),
+// ⚠️ 닫는 따옴표까지 넣어 찾지 마세요 — 그림이 없을 때 붙는 no-art 자리 때문에 클래스가 한 칸 더 깁니다
+assert(card.includes('class="ts-ing-skewers'),
   `재료 카드가 꼬치 쌓기를 안 씁니다 (다른 파일의 같은 이름 함수에 덮였는지 보세요): ${card.slice(0,160)}`);
 const cardRacks=card.split('class="grill-skewer').slice(1);
 assert(cardRacks.length===api.SKEWER_BATCH_SIZE,`재료 카드의 꼬치가 ${api.SKEWER_BATCH_SIZE}자루가 아닙니다 (${cardRacks.length}자루).`);

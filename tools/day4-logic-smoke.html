@@ -393,8 +393,11 @@ try{
   openTwoSideCue(pancakeMini,pancakeUnit);
   MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
   assert(pancakeUnit.cookStep===burnBefore+1,"E5 missing the final cook is what burns it");
+  // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
-  assert(twoSideCookGrade(graded([{done:true}]))==="perfect"&&twoSideCookGrade({...graded([{done:true}]),flipErrors:1})==="good"&&twoSideCookGrade(graded([{done:false}]))==="good","E5 PERFECT and GOOD grading");
+  assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
+    &&twoSideCookGrade({...graded([{done:true,served:true}]),flipErrors:1})==="good"
+    &&twoSideCookGrade(graded([{done:true,served:false}]))==="good","E5 PERFECT and GOOD grading");
   const skewerCookMini={engine:"twoSideCook",context:{mode:"cook",dishId:"skewer"},complete:false,data:{}};state.mini=skewerCookMini;
   MINI_ENGINES.twoSideCook.setup(skewerCookMini,{set:(title,description,time)=>{skewerCookMini.time=time;},dish:dishById("skewer")});
   /* 시작할 때 화로는 **비어 있습니다** — 자리 3칸만 서 있고 꼬치는 재료 칸에 있습니다.
@@ -402,22 +405,35 @@ try{
   assert(TWO_SIDE_VIEW.skewer.total===SKEWER_BATCH_SIZE&&dom.miniContent.querySelectorAll(".gs-slot.empty").length===3&&!dom.miniContent.querySelector(".cook-food .grill-skewer"),"E5 the grill starts empty and shows three slots");
   assert(dom.miniContent.querySelectorAll("[data-ts-place]").length===SKEWER_BATCH_SIZE,"E5 every skewer waits in the ingredient card as a drag source");
   assert(new Set(skewerCookMini.data.units.map(unit=>unit.speed)).size===SKEWER_BATCH_SIZE,"E5 each skewer cooks at its own pace");
-  // 2번 자루만 올립니다 — 그 자루만 시계가 돌고, 나머지 둘은 그대로 기다립니다
-  placeTwoSideUnit(skewerCookMini,1);
+  /* 2번 자루만 올립니다 — 그 자루만 시계가 돌고, 나머지 둘은 그대로 기다립니다.
+     ⚠️ 자리는 **놓은 자리**이지 자루 번호가 아닙니다. 2번 자루를 첫 칸에 놓으면
+        첫 칸에 서야 합니다(예전에는 자루 번호대로 오른쪽으로 날아갔습니다). */
+  placeTwoSideUnit(skewerCookMini,1,0);
   const skewerUnit=skewerCookMini.data.units[1];
-  assert(skewerUnit.placed&&!skewerCookMini.data.units[0].placed&&dom.miniContent.querySelector(".gs-slot.slot-2 .grill-skewer.skewer-2")&&dom.miniContent.querySelectorAll("[data-ts-place]").length===2,"E5 dragging one skewer onto the grill starts only that skewer");
-  // 익힘도 자루마다 따로입니다 — 한 자루를 구워도 옆 자루는 그대로여야 합니다
+  assert(skewerUnit.placed&&skewerUnit.slot===0&&!skewerCookMini.data.units[0].placed
+    &&dom.miniContent.querySelector(".gs-slot.slot-1 .grill-skewer.skewer-2")
+    &&dom.miniContent.querySelectorAll("[data-ts-place]").length===2,"E5 a skewer lands in the seat you dropped it on");
+  /* 익힘도 자루마다 따로입니다 — 한 자루를 구워도 옆 자루는 그대로여야 합니다.
+     ⚠️ 여기서는 **값만** 봅니다. 이 하네스는 그림을 안 받아 두어(hasDayPrepAsset 이
+        false) 익힘 그림 다섯 장이 아예 안 깔립니다. 그림이 자루별로 갈아 끼워지는지는
+        tools/e5-skewer-cook-visual-smoke.html 이 진짜 에셋으로 봅니다. */
   placeTwoSideUnit(skewerCookMini,0);
   raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0],2);
-  assert(skewerCookMini.data.units[0].cookStep===2&&skewerUnit.cookStep===0
-    &&dom.miniContent.querySelectorAll(".grill-skewer.skewer-1 .gs-piece-asset.on").length>dom.miniContent.querySelectorAll(".grill-skewer.skewer-2 .gs-piece-asset.on").length,"E5 doneness is per skewer, not shared");
+  assert(skewerCookMini.data.units[0].cookStep===2&&skewerUnit.cookStep===0,"E5 doneness is per skewer, not shared");
   // 양념 신호 : 그 자루를 클릭하면 붓이 들어오고 자루에 윤기가 남습니다
   skewerUnit.stepIndex=3;                                // 자루 한 벌의 네 번째 할 일 = 양념
   openTwoSideCue(skewerCookMini,skewerUnit);
   assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 sauce cue lights the skewer being finished");
   pressTwoSideCue(skewerCookMini,1);
   assert(skewerUnit.done&&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 clicking the sauce cue brings in the basting brush and finishes that skewer");
-  finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.units.forEach(unit=>{unit.done=true;});
+  /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
+     담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
+  assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");
+  serveTwoSideUnit(skewerCookMini,1);
+  assert(skewerUnit.served&&skewerUnit.slot===null&&twoSideDone(skewerCookMini.data)===1
+    &&dom.miniContent.querySelectorAll(".ts-serve-stack .ts-served").length===1
+    &&dom.miniContent.querySelector(".ts-serve-plate.filled"),"E5 dragging a finished skewer to the plate counts it and frees the grill seat");
+  finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.units.forEach(unit=>{unit.done=true;unit.served=true;});
   finishTwoSideCook(skewerCookMini);
   assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
 

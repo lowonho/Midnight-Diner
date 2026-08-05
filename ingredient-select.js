@@ -369,9 +369,21 @@ function finishIngredientSelection(){
    기우는 방향은 재료가 정합니다(`lean`). 무·대파·멸치는 잎과 머리가 위로 가야 하고
    (원화 왼쪽이 위 = +1), 김치는 밑동이 아래로 가야 합니다(-1).
    안 정해 두면 칸 번호에서 아무 방향이나 뽑습니다. */
-function ingredientSlotPose(slotIndex,id="",item={}){
+/* 냉장고 벽·가운데 기둥에 붙은 열(1 · 4 · 6 · 9)은 재료를 안쪽으로 밀어 넣습니다.
+   재료가 칸보다 크게 그려지는데(실물 크기 비 · 45도 눕히기), 바깥 열에서는 그 넘치는
+   만큼이 **벽 밖으로** 나가 문짝 위에 떠 보입니다. 값은 칸 폭의 %입니다. */
+const FRIDGE_EDGE_NUDGE=Object.freeze({1:16,4:-16,6:16,9:-16});
+
+function ingredientSlotPose(slotIndex,id="",item={},column=0){
   const seed=(slotIndex*7919+[...id].reduce((sum,char)=>sum+char.charCodeAt(0),0)*131)%1000;
   const direction=item.lean||(seed%2?1:-1);
+  const nudge=FRIDGE_EDGE_NUDGE[column];
+  if(nudge!==undefined)return {
+    lean:item.long?(38+(seed%15))*direction:0,
+    drop:item.long?(item.drop??11):0,
+    shift:nudge,
+    scale:.9+((seed>>6)%13)/100
+  };
   return {
     lean:item.long?(38+(seed%15))*direction:0,   // 38~52도 (정면 재료는 0)
     drop:item.long?(item.drop??11):0,            // 눕힌 재료를 선반 쪽으로 더 내리는 양(칸 높이 %)
@@ -384,7 +396,7 @@ function ingredientSlotMarkup(id,index){
   const {row,column,side}=e13SlotCell(index);
   const place=`grid-row:${row};grid-column:${column}`;
   if(!id)return `<span class="fridge-slot empty" style="${place}" data-slot="${index}" aria-hidden="true"></span>`;
-  const item=ingredientInfo(id),pose=ingredientSlotPose(index,id,item);
+  const item=ingredientInfo(id),pose=ingredientSlotPose(index,id,item,column);
   return `<button class="fridge-slot" style="${place};--slot-shift:${pose.shift}%;--slot-scale:${pose.scale};--art-turn:${pose.lean}deg;--art-drop:${pose.drop}%;--art-size:${item.size||1}" data-slot="${index}" data-side="${side}" type="button" aria-label="${item.label}">
       ${ingredientArt(item)}
       <small>${item.label}</small>
@@ -435,9 +447,12 @@ function renderIngredientSelection(){
   dom.ingredientChecklist.style.setProperty("--goal-columns",required.length>6?3:2);
   dom.ingredientChecklist.innerHTML=required.map(id=>{
     const item=ingredientInfo(id),done=found.has(id);
-    // 재료 이름에서 뽑은 -9~9도. 값이 고정이라 하나 찾을 때마다 아이콘이 튀지 않습니다.
-    const turn=([...id].reduce((sum,char)=>sum+char.charCodeAt(0),0)%19)-9;
-    return `<div class="fridge-goal ${done?"done":""}" style="--goal-turn:${turn}deg" role="img" aria-label="${item.label}${done?" (찾음)":""}" title="${item.label}">${ingredientArt(item,"fridge-goal-art")}</div>`;
+    // 재료 이름에서 뽑은 -6~6도. 값이 고정이라 하나 찾을 때마다 아이콘이 튀지 않습니다.
+    // ⚠️ 더 기울이면 회전한 그림의 상자가 커져서 가장자리 아이콘이 목록 밖으로 잘립니다.
+    const turn=([...id].reduce((sum,char)=>sum+char.charCodeAt(0),0)%13)-6;
+    // 길쭉한 재료는 여기서도 냉장고처럼 45도로 눕힙니다(방향은 냉장고와 같은 lean).
+    const lean=item.long?45*(item.lean||1):0;
+    return `<div class="fridge-goal ${done?"done":""}" style="--goal-turn:${turn}deg;--goal-lean:${lean}deg" role="img" aria-label="${item.label}${done?" (찾음)":""}" title="${item.label}">${ingredientArt(item,"fridge-goal-art")}</div>`;
   }).join("");
 
   // (좌 패널 아래에 있던 '냉장고 밖에 준비됨' 줄은 뺐습니다 — 플레이에 쓸 일이 없는 정보입니다.

@@ -197,8 +197,13 @@ function drawTwoSideSpeeds(count){
 
 function createTwoSideUnits(dishStyle){
   const config=TWO_SIDE_COOK_CONFIG[dishStyle],speeds=drawTwoSideSpeeds(config.units),onPan=dishStyle!=="skewer";
+  /* slot : 화로의 **몇 번째 자리**에 놓였는가. 자루 번호(index)와 **다릅니다** —
+     번호는 낮에 꽂은 그 꼬치가 누구인지(배치·그림)이고, 자리는 화면 어디에 놓였는지입니다.
+     둘을 묶어 두면 3번 꼬치를 왼쪽에 놓아도 오른쪽 끝으로 날아갑니다. */
+  /* served : 다 구운 뒤 **완성 칸(접시)으로 옮겼는가**. 튀김처럼 마지막에 옮겨야 한 개입니다.
+     김치전은 옮기는 단계가 없어서 처음부터 true 로 둡니다 (판정이 두 요리를 함께 봅니다). */
   return Array.from({length:config.units},(_,index)=>({
-    index, placed:onPan, done:false,
+    index, placed:onPan, slot:onPan?index:null, done:false, served:onPan,
     steps:buildTwoSideUnitSteps(dishStyle), stepIndex:0,
     phase:onPan?"wait":"idle", cueTimer:0, preheated:false,
     cookStep:0, renderedCookStep:-1, flips:0, speed:speeds[index]
@@ -306,10 +311,11 @@ function twoSideMini(){
   return m&&m.engine==="twoSideCook"&&!m.complete?m:null;
 }
 
-/* 진행도. 김치전은 "몇 번 구웠나", 닭꼬치는 "몇 자루를 끝냈나" 입니다. */
+/* 진행도. 김치전은 "몇 번 구웠나", 닭꼬치는 **"몇 자루를 완성 칸에 담았나"** 입니다.
+   ⚠️ 다 구운 것(done)이 아니라 옮긴 것(served)을 셉니다 — 튀김처럼 담아야 한 개입니다. */
 function twoSideDone(data){
   if(data.dishStyle!=="skewer")return data.cooked||0;
-  return twoSideUnits(data).filter(unit=>unit.done).length;
+  return twoSideUnits(data).filter(unit=>unit.served).length;
 }
 
 // 화로에 아직 안 올린 꼬치 (재료 카드에 남아 있는 자루)
@@ -317,8 +323,13 @@ function twoSideWaitingUnits(data){
   return twoSideUnits(data).filter(unit=>!unit.placed);
 }
 
+// 다 구웠지만 아직 완성 칸으로 안 옮긴 자루 (화로 위에서 끌어가기를 기다립니다)
+function twoSideServableUnits(data){
+  return twoSideUnits(data).filter(unit=>unit.done&&!unit.served);
+}
+
 function twoSideAllDone(data){
-  return twoSideUnits(data).every(unit=>unit.done);
+  return twoSideUnits(data).every(unit=>unit.done&&unit.served);
 }
 
 registerMiniEngine("twoSideCook", {
@@ -337,7 +348,10 @@ registerMiniEngine("twoSideCook", {
     // skewerPatterns : 낮에 꽂아 둔 꼬치 3개의 배치. 한 판 동안 바뀌지 않으므로
     //                  여기서 한 번만 읽어 둡니다 (매 렌더마다 다시 읽으면 낭비입니다).
     m.data = createTwoSideData(dishStyle,{timeLimit:m.time});
-    audio.loop?.(isSkewer?"charcoal_grill":"pan_sizzle",m,isSkewer ? 1.8 : .6);
+    /* 굽는 소리는 **올린 것이 있을 때만** 깝니다. 김치전은 처음부터 팬 위에 있지만,
+       닭꼬치는 화로가 비어 있는 채로 시작하므로 첫 자루를 올릴 때 켭니다
+       (placeTwoSideUnit). 빈 화로에서 고기 굽는 소리가 나던 것을 고친 것입니다. */
+    if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기·양념 · 드래그 : 굴려 뒤집기":"클릭 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
@@ -541,7 +555,9 @@ function advanceTwoSideStep(m,unit){
 }
 
 /* 자루 하나를 다 구웠습니다. 마지막 연출(뒤집기·양념)이 보이도록 조금 두었다가
-   완성 표시를 붙이고, **모든 자루가 끝났을 때만** 판을 마칩니다. */
+   완성 표시를 붙입니다.
+   닭꼬치는 여기서 끝이 아니라 **완성 칸으로 옮겨야** 한 개입니다(튀김과 같습니다) —
+   그래서 자루를 끌 수 있게 만들어 두고, 판을 마치는 것은 다 옮겼을 때입니다. */
 function finishTwoSideUnit(m,unit){
   const data=m.data;
   if(unit.done)return;
@@ -551,9 +567,63 @@ function finishTwoSideUnit(m,unit){
   updateTwoSideHint(data);
   setTimeout(()=>{
     if(state.mini!==m||m.complete)return;
-    twoSideTargetElement(data,unit)?.classList.add("unit-done");
+    const element=twoSideTargetElement(data,unit);
+    element?.classList.add("unit-done");
+    if(data.dishStyle==="skewer"&&!unit.served){
+      // 이제부터 이 자루는 완성 칸으로 끌어다 놓을 수 있습니다
+      element?.classList.add("ready-to-serve");
+      element?.setAttribute("data-ts-serve",String(unit.index));
+      bindTwoSideServePointers();
+      audio.play?.("ui_click",{owner:m,gain:.6});
+      dom.miniFeedback.textContent=`${unit.index+1}번 꼬치 완성! 완성 칸으로 옮겨주세요.`;
+      updateTwoSideHint(data);
+    }
     if(twoSideAllDone(data))finishTwoSideCook(m);
   },520);
+}
+
+/* 다 구운 자루를 오른쪽 완성 칸(접시)으로 옮깁니다.
+   재료 카드 → 화로 와 **같은 창구**(bindOrderPlacementPointers)를 씁니다.
+   ⚠️ 화면을 다시 그릴 때마다 다시 겁니다 — 자루가 하나씩 완성될 때마다 끌 수 있는
+      대상이 늘어나기 때문입니다. 이미 걸린 것에 또 걸어도 같은 동작이라 괜찮습니다. */
+function bindTwoSideServePointers(){
+  const sources=dom.miniContent?.querySelectorAll("[data-ts-serve]");
+  if(!sources?.length||typeof bindOrderPlacementPointers!=="function")return;
+  bindOrderPlacementPointers({
+    sources,
+    targetSelector:'[data-order-target="serve"]',
+    itemFromSource:source=>source.dataset.tsServe,
+    ghostSelector:".gs-pieces",
+    dragOnly:true,
+    onPlace:item=>serveTwoSideUnit(twoSideMini(),Number(item)),
+    onMiss:()=>{dom.miniFeedback.textContent="다 구운 꼬치는 오른쪽 완성 칸에 담아주세요.";}
+  });
+}
+
+function serveTwoSideUnit(m,index){
+  if(!m)return;
+  const data=m.data,unit=twoSideUnit(data,index);
+  if(!unit||!unit.done||unit.served||data.timedOut)return;
+  unit.served=true;
+  // 화로의 그 자리를 다시 비웁니다 (아직 안 올린 꼬치가 있으면 그 자리에 올릴 수 있습니다)
+  const slot=dom.miniContent?.querySelector(`.gs-slot.slot-${unit.slot+1}`);
+  if(slot){
+    slot.classList.add("empty");
+    slot.innerHTML=`<i class="gs-slot-mark" aria-hidden="true"></i>`;
+  }
+  unit.slot=null;
+  // 완성 칸에 한 자루 쌓습니다
+  const stack=dom.miniContent?.querySelector(".ts-serve-stack");
+  if(stack){
+    stack.insertAdjacentHTML("beforeend",twoSideServedSkewerMarkup(data,unit));
+    stack.querySelector(".ts-served:last-child")?.classList.add("landing");
+  }
+  dom.miniContent?.querySelector(".ts-serve-plate")?.classList.add("filled");
+  audio.play?.("plate_set",{owner:m,gain:.9})||audio.play?.("ui_click",{owner:m,gain:.7});
+  dom.miniFeedback.textContent=`${index+1}번 꼬치를 담았습니다!`;
+  updateTwoSideProgress(data);
+  updateTwoSideHint(data);
+  if(twoSideAllDone(data))setTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},420);
 }
 
 /* "치이익" — 굽는 소리를 한 모금만 크게 겹칩니다.
@@ -657,6 +727,11 @@ function bindTwoSideCookPointer(){
   board.addEventListener("pointerdown",event=>{
     if(!twoSideMini())return;
     if(event.pointerType==="mouse"&&event.button!==0)return;
+    /* ⚠️ **다 구워서 담을 수 있는 자루에서 시작한 드래그는 건드리지 않습니다.**
+       도마는 여기서 포인터를 잡아채는데(setPointerCapture), 자루도 같은 눌림에서
+       자기 포인터를 잡습니다. 도마 쪽이 나중에 잡아서 늘 이기는 바람에 자루의
+       드래그가 통째로 죽고 **완성 칸으로 옮길 수가 없었습니다.** */
+    if(event.target instanceof Element&&event.target.closest("[data-ts-serve]"))return;
     event.preventDefault();
     drag={id:event.pointerId,x:event.clientX,y:event.clientY,at:performance.now(),
           moved:false,spent:false,unit:twoSidePointerUnit(event)};
@@ -700,25 +775,64 @@ function bindTwoSideCookPointer(){
    ------------------------------------------------------------ */
 function bindTwoSidePlacementPointers(){
   const sources=dom.miniContent?.querySelectorAll("[data-ts-place]");
-  if(!sources?.length||typeof bindOrderPlacementPointers!=="function")return;
+  if(!sources?.length)return;
+  /* ⚠️ 조용히 지나가지 않고 알립니다. 이 창구가 없으면 꼬치를 올릴 수가 없어서
+     **게임이 통째로 막힙니다** — 그런데 화면은 멀쩡해 보여서 원인 찾기가 오래 걸립니다.
+     (실제로 점검 하네스가 engine-e8-order-place.js 를 안 읽어 이렇게 막혔습니다) */
+  if(typeof bindOrderPlacementPointers!=="function"){
+    console.error("[E5] bindOrderPlacementPointers 가 없습니다 — engine-e8-order-place.js 를 같이 읽어야 꼬치를 올릴 수 있습니다.");
+    return;
+  }
+  /* 손을 뗀 **자리**를 기억해 둡니다. bindOrderPlacementPointers 는 놓은 상자만
+     넘겨 주고 좌표는 안 넘겨 주는데, 어느 칸에 놓았는지는 좌표로만 알 수 있습니다.
+     document 의 잡기 단계(capture)에 걸어 두면 소스의 pointerup 보다 **먼저** 돕니다. */
+  if(!twoSidePlaceListening){
+    twoSidePlaceListening=true;
+    ["pointermove","pointerup"].forEach(type=>document.addEventListener(type,event=>{
+      twoSideDropPoint={x:event.clientX,y:event.clientY};
+    },true));
+  }
   bindOrderPlacementPointers({
     sources,
     targetSelector:'[data-order-target="grill"]',
     itemFromSource:source=>source.dataset.tsPlace,
     ghostSelector:".grill-skewer",
     dragOnly:true,
-    onPlace:(item)=>placeTwoSideUnit(twoSideMini(),Number(item)),
+    onPlace:(item)=>placeTwoSideUnit(twoSideMini(),Number(item),nearestEmptyTwoSideSlot()),
     onMiss:()=>{dom.miniFeedback.textContent="꼬치를 화로 위에 올려주세요.";}
   });
 }
 
-/* 꼬치 한 자루를 화로에 올립니다. 그 순간부터 **그 자루만** 자기 시계로 익습니다. */
-function placeTwoSideUnit(m,index){
+let twoSideDropPoint=null;          // 마지막 포인터 자리 (어느 칸에 놓았는지 가릅니다)
+let twoSidePlaceListening=false;
+
+/* 손을 뗀 자리에서 **가장 가까운 빈 칸**을 고릅니다. 칸 사이 틈이나 화로 가장자리에
+   놓아도 눈에 보이는 그 자리로 올라가게 하려는 것입니다 (칸만 받으면 틈에서 놓쳤습니다). */
+function nearestEmptyTwoSideSlot(){
+  const slots=[...(dom.miniContent?.querySelectorAll(".gs-slot.empty")||[])];
+  if(!slots.length)return null;
+  const x=twoSideDropPoint?.x;
+  if(!Number.isFinite(x))return Number(slots[0].dataset.orderSlot);
+  const near=slots.reduce((best,slot)=>{
+    const rect=slot.getBoundingClientRect(),gap=Math.abs(rect.left+rect.width/2-x);
+    return !best||gap<best.gap?{slot,gap}:best;
+  },null);
+  return Number(near.slot.dataset.orderSlot);
+}
+
+/* 꼬치 한 자루를 화로의 slotIndex 자리에 올립니다.
+   그 순간부터 **그 자루만** 자기 시계로 익습니다. */
+function placeTwoSideUnit(m,index,slotIndex=null){
   if(!m)return;
   const data=m.data,unit=twoSideUnit(data,index);
   if(!unit||unit.placed||data.timedOut)return;
-  unit.placed=true;
-  const slot=dom.miniContent?.querySelector(`.gs-slot.slot-${index+1}`);
+  const taken=new Set(twoSideUnits(data).filter(one=>one.placed).map(one=>one.slot));
+  // 자리를 안 주거나 이미 찬 자리를 주면 남은 빈 자리 가운데 첫 칸으로 갑니다
+  let seat=Number.isInteger(slotIndex)&&!taken.has(slotIndex)?slotIndex
+    :twoSideUnits(data).map((_,position)=>position).find(position=>!taken.has(position));
+  if(!Number.isInteger(seat))return;
+  unit.placed=true;unit.slot=seat;
+  const slot=dom.miniContent?.querySelector(`.gs-slot.slot-${seat+1}`);
   if(slot){
     slot.classList.remove("empty");
     slot.innerHTML=grillSkewerMarkup(data.skewerPatterns[index],index,data);
@@ -730,6 +844,8 @@ function placeTwoSideUnit(m,index){
   const amount=dom.miniContent?.querySelector("#tsIngLeft");
   if(amount)amount.textContent=`×${left}`;
   dom.miniContent?.querySelector(".ts-ing-card.skewerRaw")?.classList.toggle("empty",!left);
+  // 첫 자루가 올라간 순간부터 숯불 소리를 깝니다 (빈 화로에서는 안 납니다)
+  if(twoSideUnits(data).filter(one=>one.placed).length===1)audio.loop?.("charcoal_grill",m,1.8);
   audio.play?.("skewer_pierce",{owner:m,gain:.8});
   dom.miniFeedback.textContent=`${index+1}번 꼬치를 화로에 올렸습니다!`;
   updateTwoSideCookVisual(data,unit);
@@ -773,7 +889,8 @@ const TWO_SIDE_NOW_TEXT=Object.freeze({
     waitCook:"숯불이 오르기를 기다리는 중…", cueCook:"지금! 불빛이 켜진 꼬치를 클릭",
     waitFlip:"곧 뒤집기 신호가 옵니다", cueFlip:"지금! 옆으로 굴리듯 드래그",
     waitSauce:"곧 양념 신호가 옵니다", cueSauce:"지금! 꼬치를 클릭해 양념 바르기",
-    place:"재료 칸의 꼬치를 화로로 끌어다 올리세요", done:"완성!"
+    place:"재료 칸의 꼬치를 화로로 끌어다 올리세요",
+    serve:"다 구운 꼬치를 완성 칸으로 옮기세요!", done:"완성!"
   })
 });
 
@@ -782,6 +899,8 @@ function updateTwoSideHint(data){
   if(!now)return;
   const text=TWO_SIDE_NOW_TEXT[data.dishStyle];
   if(twoSideAllDone(data)){now.textContent=text.done;now.className="ts-now done";return;}
+  // 담을 것이 있으면 그것부터 알립니다 — 담아야 한 개로 세어집니다
+  if(twoSideServableUnits(data).length){now.textContent=text.serve||"";now.className="ts-now on";return;}
   // 켜진 신호가 먼저입니다. 없으면 기다리는 자루, 그것도 없으면 "올려 주세요".
   const live=twoSideUnits(data).filter(unit=>unit.placed&&!unit.done);
   const unit=live.find(one=>one.phase==="cue")||live[0]||null;
@@ -843,19 +962,23 @@ function grillSkewerMarkup(pattern, index, data) {
   const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step)).join("");
   const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
   const flipped = (unit?.flips || 0) % 2 === 1;
+  // .ts-cue-halo : 신호가 켜졌을 때 자루 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
   return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
-      ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
+      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
     </span>`;
 }
 
-/* 화로의 자리 세 칸. 아직 안 올린 자리는 비워 두고 점선으로 "여기에 올려 주세요"만
+/* 화로의 자리 세 칸. 아직 아무도 안 놓인 자리는 점선으로 "여기에 올려 주세요"만
    그립니다 (두부김치 플레이팅·김치전 반죽의 점선 안내와 같은 결).
    ⚠️ 칸은 처음부터 세 개 다 만들어 둡니다. 자루를 올릴 때 칸 안쪽만 갈아 끼우면
-      되므로 화면을 통째로 다시 그리지 않아도 됩니다 (renderTwoSideCook 주석 참고). */
-function grillSlotMarkup(pattern, index, data) {
-  const unit = twoSideUnit(data, index);
-  if (unit && !unit.placed) return `<span class="gs-slot slot-${index + 1} empty" aria-label="${index + 1}번 꼬치 자리"><i class="gs-slot-mark" aria-hidden="true"></i></span>`;
-  return `<span class="gs-slot slot-${index + 1}">${grillSkewerMarkup(pattern, index, data)}</span>`;
+      되므로 화면을 통째로 다시 그리지 않아도 됩니다 (renderTwoSideCook 주석 참고).
+   ⚠️ **자리 번호(slotIndex)와 자루 번호는 다릅니다.** 어느 자리에 무엇이 놓였는지는
+      unit.slot 이 들고 있습니다 — 3번 꼬치를 왼쪽 자리에 놓을 수 있어야 해서입니다. */
+function grillSlotMarkup(slotIndex, data) {
+  const unit = twoSideUnits(data).find(one => one.slot === slotIndex);
+  if (!unit) return `<span class="gs-slot slot-${slotIndex + 1} empty" data-order-slot="${slotIndex}" aria-label="${slotIndex + 1}번 자리 · 비어 있음"><i class="gs-slot-mark" aria-hidden="true"></i></span>`;
+  const patterns = data?.skewerPatterns || skewerCookPatterns();
+  return `<span class="gs-slot slot-${slotIndex + 1}" data-order-slot="${slotIndex}">${grillSkewerMarkup(patterns[unit.index], unit.index, data)}</span>`;
 }
 
 /* ── 숯불 화로 그림 5장 ──────────────────────────────────────
@@ -893,7 +1016,7 @@ function charcoalBedShapeMarkup(){
 function charcoalSkewerMarkup(data) {
   const hasGrillArt = hasCharcoalGrillArt();
   const patterns = data?.skewerPatterns || skewerCookPatterns();
-  const slots = patterns.map((pattern, index) => grillSlotMarkup(pattern, index, data)).join("");
+  const slots = patterns.map((_, slotIndex) => grillSlotMarkup(slotIndex, data)).join("");
   const bed = hasGrillArt ? charcoalGrillArtMarkup() : charcoalBedShapeMarkup();
   // 열기 두 겹도 그림에 들어 있습니다 (위 주석 참고)
   const flames = hasGrillArt ? "" : `<i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
@@ -942,11 +1065,11 @@ const TWO_SIDE_VIEW = Object.freeze({
     ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: SKEWER_BATCH_SIZE, asset: "cookSkewerRaw", art: "skewer" }],
     total: SKEWER_BATCH_SIZE,                            // 실제 준비 배치와 같은 꼬치 3개
     countLabel: "완성 개수",
-    /* 오른쪽 칸을 멸치 손질(engine-e10)과 같은 두 장으로 씁니다 —
-       [완성 개수 + 남은 시간] · [참고 모양]. 꼬치를 원할 때 올리는 방식이 되면서
-       "남은 시간 안에 몇 개를 끝냈나" 가 이 게임의 전부라 그쪽 얼개가 맞습니다.
+    /* 오른쪽 칸은 [완성 개수 + 남은 시간] · [완성 담기] 두 장입니다.
+       카드 크기와 '남은 시간' 줄은 멸치 손질(engine-e10)과 같은 규격이고,
+       아래 칸은 튀김(engine-e6)처럼 **다 구운 꼬치를 담는 접시**입니다.
        김치전은 한 줄로 진행하므로 예전 [진행도 + 조작] 그대로입니다. */
-    sidePanel: "count-ref",
+    sidePanel: "count-serve",
     guide: [
       { icon: "drag-side", name: "꼬치를 화로로 드래그", desc: "올린 꼬치부터 익습니다" },
       { icon: "click", name: "불빛이 켜지면 클릭", desc: "치이익 — 그 꼬치가 익습니다" },
@@ -963,8 +1086,10 @@ const TWO_SIDE_VIEW = Object.freeze({
    꽂았으면 카드에도 닭 다섯 개입니다.
    ⚠️ 익힘 단계는 올리지 않습니다(cookArt 자리에 false). 재료 칸은 "구우러 온
       재료"를 보여 주는 자리라, 굽는 동안에도 꽂아 둔 그대로여야 합니다.
-   ⚠️ 조각 그림이 없으면 빈 문자열을 돌려줍니다 — 그러면 예전 임시 도형
-      (.ts-ing-card.skewerRaw .ts-ing-art i)이 그대로 보입니다.
+   ⚠️ 조각 그림이 없어도 **빈 문자열을 돌려주지 않습니다.** 예전에는 그림이 없으면
+      카드 그림 한 장(임시 도형)으로 떨어졌는데, 지금은 이 자루 하나하나가
+      화로로 끌어다 놓는 손잡이라 없으면 **게임을 시작할 수가 없습니다.**
+      그림이 없을 때는 조각만 임시 도형(<b>/<em>)으로 바뀝니다.
    ⚠️ 이름 앞에 twoSide 를 붙인 이유 : 이 게임들은 모듈이 아니라 **전역 스크립트**라
       파일이 달라도 같은 이름이면 나중에 읽는 파일이 앞의 것을 덮어씁니다.
       낮 '닭꼬치 꽂기'(engine-e8-order-place.js)에도 재료 카드 그림을 만드는
@@ -972,29 +1097,29 @@ const TWO_SIDE_VIEW = Object.freeze({
       읽어서 이름이 겹치면 **여기 것이 조용히 사라집니다**(E8 함수가 ingredient 를
       undefined 로 받아 닭 조각 3개를 그립니다). 실제로 한 번 그랬습니다. */
 function twoSideSkewerCardMarkup(data) {
-  if (!Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset)) return "";
+  const hasArt = Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset);
   const hasRodArt = hasDayPrepAsset("skewerStick");
   const patterns = data?.skewerPatterns || skewerCookPatterns();
   /* data-ts-place : 화로로 끌어다 올릴 때 "몇 번 자루인가" 를 이 값으로 읽습니다
      (bindTwoSidePlacementPointers). 이미 올린 자루는 카드에서 빠집니다. */
   const skewers = patterns.map((pattern, index) => {
     if (twoSideUnit(data, index)?.placed) return "";
-    const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, true, false, 0)).join("");
+    const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, false, 0)).join("");
     const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
     return `<button type="button" class="ts-ing-pick" data-ts-place="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
-        <span class="grill-skewer has-pieces ${hasRodArt ? "has-rod-art" : ""}">
+        <span class="grill-skewer ${hasArt ? "has-pieces" : ""} ${hasRodArt ? "has-rod-art" : ""}">
           ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
         </span>
       </button>`;
   }).join("");
-  return `<span class="ts-ing-skewers" aria-label="낮에 꽂아 둔 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span>`;
+  return `<span class="ts-ing-skewers ${hasArt ? "" : "no-art"}" aria-label="낮에 꽂아 둔 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span>`;
 }
 
 // 왼쪽 재료 카드 한 장. art:"skewer" 인 재료만 위 꼬치 쌓기를 쓰고, 나머지는 그림 한 장입니다.
 function twoSideIngredientMarkup(item, data) {
   const isSkewer = item.art === "skewer";
-  const asset = (isSkewer ? twoSideSkewerCardMarkup(data) : "")
-    || dayPrepAssetMarkup(item.asset, "ts-ing-asset", item.label);
+  const asset = isSkewer ? twoSideSkewerCardMarkup(data)
+    : dayPrepAssetMarkup(item.asset, "ts-ing-asset", item.label);
   // 닭꼬치는 올린 만큼 카드에서 줄어듭니다 (#tsIngLeft 는 placeTwoSideUnit 이 고쳐 씁니다)
   const left = isSkewer && data ? twoSideWaitingUnits(data).length : item.count;
   return `<div class="ts-ing-card ${item.id} ${isSkewer && !left ? "empty" : ""}">
@@ -1003,14 +1128,30 @@ function twoSideIngredientMarkup(item, data) {
     </div>`;
 }
 
-/* 오른쪽 '참고 모양' — 잘 구워진 꼬치 한 자루(익힘 2단계)입니다.
-   멸치 손질의 참고 모양 카드와 같은 자리·같은 뜻입니다: "이렇게 되면 완성". */
-function twoSideRefMarkup(data) {
-  const pattern = (data?.skewerPatterns || skewerCookPatterns())[0] || SKEWER_COOK_FALLBACK;
+/* ── 오른쪽 '완성 담기' 칸 ───────────────────────────────────
+   튀김(engine-e6)처럼 **다 구운 꼬치를 여기로 끌어다 담아야** 한 개로 셉니다.
+   원래 이 자리는 '참고 모양'(잘 구워진 꼬치 견본)이었는데, 담는 자리가 필요해져
+   통째로 바꿨습니다.
+   ⚠️ 접시는 아직 원화가 없어 **임시 CSS 도형**입니다 (css 의 .ts-serve-plate).
+      그림이 들어오면 거기에 .has-asset 갈래를 하나 만들면 됩니다 —
+      담긴 꼬치(.ts-served)는 접시 그림과 무관하게 그대로 쓸 수 있습니다. */
+function twoSideServeMarkup(data) {
+  const served = twoSideUnits(data).filter(unit => unit.served);
+  return `<div class="ts-serve-plate ${served.length ? "filled" : ""}" data-order-target="serve" aria-label="다 구운 꼬치를 담는 접시">
+      <i class="ts-serve-dish" aria-hidden="true"></i>
+      <span class="ts-serve-stack">${served.map(unit => twoSideServedSkewerMarkup(data, unit)).join("")}</span>
+      <i class="ts-serve-mark" aria-hidden="true"></i>
+    </div>`;
+}
+
+// 접시에 담긴 꼬치 한 자루. 화로 위와 같은 그림이고 크기만 접시에 맞춥니다.
+function twoSideServedSkewerMarkup(data, unit) {
+  const pattern = (data?.skewerPatterns || skewerCookPatterns())[unit.index] || SKEWER_COOK_FALLBACK;
   const hasArt = Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset);
-  const cookArt = hasArt && !!data && skewerCookArtOn(data);
-  const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, 2)).join("");
-  return `<span class="ts-ref-skewer" aria-label="잘 구워진 닭꼬치">
+  const cookArt = hasArt && skewerCookArtOn(data);
+  const step = cookArt ? cookArtStep(unit, SKEWER_COOK_STEPS) : 0;
+  const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step)).join("");
+  return `<span class="ts-served" aria-label="${unit.index + 1}번 꼬치 완성">
       <span class="grill-skewer ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} sauced">
         ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
       </span>
@@ -1033,7 +1174,8 @@ function twoSideGuideMarkup(view) {
    손잡이까지 들어 있어서 자리 잡는 규칙도 같습니다 — css/minigames.css 의 .two-side-pan 참고. */
 function pancakePanShell(inner, extraClass = "", id = "") {
   const asset = dayPrepAssetMarkup("fryingPan", "two-side-pan-asset", "후라이팬");
-  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}>${asset}${inner}</div>`;
+  // .ts-cue-halo : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}</div>`;
 }
 
 /* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다
@@ -1042,6 +1184,7 @@ function pancakeCookFoodMarkup(data){
   const hasArt=PANCAKE_COOK_STEPS.every(step=>hasDayPrepAsset(step.key)),unit=twoSideUnit(data,0);
   const step=hasArt?cookArtStep(unit,PANCAKE_COOK_STEPS):0;
   if(hasArt&&unit)unit.renderedCookStep=step;
+  // 신호 빛무리는 팬(.pancake-cook)에 붙습니다 — 아래 pancakePanShell 이 넣어 줍니다
   const frames=hasArt?PANCAKE_COOK_STEPS.map((frame,index)=>dayPrepAssetMarkup(
     frame.key,`pancake-food-asset${index<=step?" on":""}`,index===step?"굽는 김치전":""
   )).join(""):"";
@@ -1073,21 +1216,22 @@ function twoSideStageMarkup(data, extraClass = "") {
 }
 
 /* 오른쪽 칸. 두 얼개가 있습니다.
-     기본        [진행도 + 남은 시간 띠] · [조작 안내]        — 김치전
-     count-ref   [완성 개수 + 남은 시간 초] · [참고 모양]     — 닭꼬치 (멸치 손질과 같은 얼개)
+     기본         [진행도 + 남은 시간 띠] · [조작 안내]        — 김치전
+     count-serve  [완성 개수 + 남은 시간 초] · [완성 담기]     — 닭꼬치
+                  (카드 크기·남은 시간 줄은 멸치 손질과 같은 규격입니다)
    닭꼬치는 자루 3개가 따로 도는지라 "지금 할 일" 한 줄로 안내가 안 됩니다.
    대신 남은 시간을 초로 크게 보여 주고, 조작은 아래 TIP 띠가 맡습니다. */
 function twoSideSideMarkup(view, data, { done, total, timePercent }) {
   const time = `<p class="ts-time-left" id="tsTime"><span>남은 시간</span><b>${(data.timeLimit||0).toFixed(1)}초</b></p>`;
-  if (view.sidePanel === "count-ref") {
+  if (view.sidePanel === "count-serve") {
     return `<div class="ts-panel ts-count ts-count-big">
           <h3 class="ts-col-title">${view.countLabel}</h3>
           <strong><b id="tsDone">${done}</b> / ${total}</strong>
           ${time}
         </div>
-        <div class="ts-panel ts-ref">
-          <h3 class="ts-col-title">참고 모양</h3>
-          <div class="ts-ref-figure">${twoSideRefMarkup(data)}</div>
+        <div class="ts-panel ts-serve">
+          <h3 class="ts-col-title">완성 담기</h3>
+          <div class="ts-serve-figure">${twoSideServeMarkup(data)}</div>
           <p class="ts-now" id="tsNow"></p>
         </div>`;
   }
@@ -1144,6 +1288,7 @@ function renderTwoSideCook() {
   mountMinigameSmoke(dom.miniContent);
   bindTwoSideCookPointer();
   bindTwoSidePlacementPointers();
+  bindTwoSideServePointers();   // 이미 다 구운 자루가 있는 화면(하네스·다시 그리기)을 위해
   updateTwoSideCookVisual(data);
   updateTwoSideHint(data);
 }
@@ -1237,8 +1382,13 @@ function trackTwoSideSpatula(event){
   if(!twoSideSpatula)return;
   const scene=dom.miniContent?.querySelector(".ts-scene.has-spatula");
   if(!scene){removeTwoSideSpatula();return;}          // 미니게임이 끝났습니다
-  const over=event.target instanceof Element&&scene.contains(event.target)
-    &&!!event.target.closest(TWO_SIDE_SPATULA_ZONE);
+  /* 화구 위인지는 **자리로** 봅니다(elementFromPoint). event.target 으로 보면 안 됩니다 —
+     누르는 순간 도마(.ts-board)가 포인터를 잡아채서(setPointerCapture) 그 뒤로는
+     event.target 이 전부 도마가 되고, 도마는 화구(.ts-cooktop)의 **바깥 상자**라
+     closest 가 빈손으로 돌아옵니다. 그래서 **클릭만 하면 뒤집개가 사라졌습니다.**
+     (뒤집개 그림 자체는 pointer-events:none 이라 이 검사에 안 걸립니다) */
+  const point=document.elementFromPoint(event.clientX,event.clientY);
+  const over=point instanceof Element&&scene.contains(point)&&!!point.closest(TWO_SIDE_SPATULA_ZONE);
   twoSideSpatula.classList.toggle("show",over);
   if(!over)return;
   twoSideSpatula.style.left=`${event.clientX}px`;
