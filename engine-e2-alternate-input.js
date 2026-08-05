@@ -456,7 +456,7 @@ function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
   if(!result.accepted)return rejectAlternateInput(m,`${data.keys[data.expectedIndex].toUpperCase()} 차례입니다. 같은 키를 연속으로 누르지 마세요.`,"#friesBagScene");
   data.presses++;
   const completed=data.presses>=data.total;
-  playAlternateSuccess(completed);
+  audio.play?.("fries_starch_bag_shake",{owner:m,random:true});
   if(completed){data.transitioning=true;data.inputLocked=true;data.phase="complete";}
   // 마지막 한 번도 화면에 반영한 뒤에 완료 처리합니다 (100% 가 보이고 닫힙니다)
   renderPotatoStarchShake();

@@ -120,6 +120,12 @@ const BATTER_INGREDIENTS=Object.freeze([
   {id:"kimchi",label:"김치",asset:"batterKimchi"}
 ]);
 
+const BATTER_INGREDIENT_SFX=Object.freeze({
+  flour:"pour_pancake_flour",
+  water:"pour_water",
+  kimchi:"drop_pancake_kimchi"
+});
+
 /* 볼 안을 그리는 그림은 **넣은 재료 조합마다 한 장**입니다.
    키는 넣은 순서 그대로 이어 붙인 것입니다. 납품 파일 이름이 순서를 담고 있어서
    (08 kimchi_flour ↔ 11 flour_kimchi — 재료는 같고 쌓인 순서만 다릅니다) 그대로 따랐습니다.
@@ -247,7 +253,7 @@ function addBatterIngredient(ingredientId,button,target){
   if(!result.accepted){m.data.mistakes++;dom.miniFeedback.textContent=`먼저 ${expected.label}을(를) 넣으세요.`;audio.bad();pulseOrderTarget(target);return;}
   m.data.lastPlaced=ingredientId;
   button.classList.add("pouring");button.disabled=true;
-  if(ingredientId==="water")audio.play?.("pour_water",{owner:m});else audio.click();
+  audio.play?.(BATTER_INGREDIENT_SFX[ingredientId],{owner:m});
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   const filled=m.data.step>=m.data.ingredients.length;
   setTimeout(()=>{
@@ -765,7 +771,7 @@ function addTteokSoakItem(item,target){
   if(item!==data.ingredientKey||data.added[item])return;
   const result=placeOrderedItem(data,item);
   if(!result.accepted){data.mistakes++;audio.bad();pulseOrderTarget(target);return;}
-  data.added[item]=true;audio.click();
+  data.added[item]=true;audio.play?.("soak_ingredient_drop",{owner:m});
   dom.miniFeedback.textContent=`${data.ingredientLabel}을 볼에 담았습니다. 이제 물병을 기울여 물을 부어주세요!`;
   renderTteokSoak();
 }
