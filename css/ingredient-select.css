@@ -130,25 +130,35 @@
   background: url("../assets/minigame/E13/fix_fridge_open_empty_lit_24slot.png") center / 100% 100% no-repeat;
 }
 
-/* 24칸이 앉는 자리. 아래 % 는 냉장고 그림에서 **선반 안쪽**을 실측한 값입니다.
-     좌 칸 가로 10.25% ~ 47.25% · 우 칸 52% ~ 89.1% · 가운데 기둥 4.75%
-     선반 세로 7.6% ~ 75.5% (3단이 고르게 나눠 갖습니다. 아래는 야채칸이라 안 씁니다)
-   ⚠️ 그림을 새로 받으면 이 다섯 값을 다시 재야 합니다. */
+/* ── 24칸 자리 ────────────────────────────────────────────────
+   아래 값은 냉장고 그림(3215x2001)의 기둥·선반을 **밝기 경계로 실측**한 것입니다.
+   그림 폭·높이에 대한 % 라, 그림을 얼마로 늘려 깔든 칸이 같이 따라갑니다.
+
+     세로 기둥 x   11.04 · 23.08 · 32.32 · 40.37 · 48.37 ┃ 51.70 · 59.97 · 68.09 · 77.08 · 89.89 (%)
+     선반     y   8.85 → 31.63 / 33.88 → 53.77 / 56.07 → 79.46 (%)
+
+   ⚠️ **칸 폭이 고르지 않습니다.** 냉장고가 정면 원근으로 그려져 있어 바깥쪽 칸이
+      넓고 가운데로 갈수록 좁습니다(왼쪽 12.04 → 8.00). 균등 격자(1fr)로 두면
+      한 줄을 지날수록 재료가 기둥 쪽으로 밀려 어긋납니다 — 실측값을 그대로 씁니다.
+   ⚠️ 격자에 **선반 두께(2행·4행)와 가운데 기둥(5열)이 빈 줄로 들어 있습니다.**
+      칸은 engine-e13-fridge-find.js 의 e13SlotCell 이 준 자리에 직접 앉습니다.
+   ⚠️ 그림을 새로 받으면 위 숫자를 다시 재세요(밝기 경계 검출로 뽑았습니다). */
 .fridge-slots {
   position: absolute;
-  top: 7.6%;
-  right: 10.9%;
-  bottom: 24.5%;
-  left: 10.25%;
+  top: 8.85%;
+  right: 10.11%;
+  bottom: 20.54%;
+  left: 11.04%;
   display: grid;
-  /* 5번째 열이 가운데 기둥입니다. 칸은 grid-column 을 직접 박아 앉습니다
-     (engine-e13-fridge-find.js 의 e13SlotCell). */
-  grid-template-columns: repeat(4,1fr) 6.02% repeat(4,1fr);
-  grid-template-rows: repeat(3,1fr);
-  column-gap: calc(2 * var(--upx));
+  grid-template-columns: 15.27% 11.72% 10.21% 10.15% 4.22% 10.49% 10.30% 11.40% 16.25%;
+  grid-template-rows: 32.26% 3.19% 28.17% 3.26% 33.12%;
 }
 .fridge-slot {
   position: relative;
+  /* 세워 놓는 재료가 칸의 **높이**를 기준으로 크기를 잡습니다(아래 .standing 의 cqh/cqw).
+     그래서 칸 자체가 크기 컨테이너여야 합니다. 칸 크기는 위 격자가 정하므로
+     내용물이 크기를 되밀 일이 없어 안전합니다. */
+  container-type: size;
   display: grid;
   /* 아래 정렬입니다 — 재료는 선반 위에 "놓여" 있어야 합니다.
      가운데 정렬로 두면 납작한 재료(어묵 · 다시마)가 칸 한가운데에 떠 보입니다. */
@@ -166,10 +176,37 @@
 .fridge-slot.empty { pointer-events: none; }
 .fridge-art {
   width: 96%;
-  height: 94%;
+  height: 92%;
   object-fit: contain;
   object-position: 50% 100%;   /* 그림 안에서도 아래를 기준으로 앉힙니다 */
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(6 * var(--upx)) rgba(0,0,0,.55));
+}
+
+/* ── 세워 놓는 재료 ───────────────────────────────────────────
+   무 · 대파 · 통김치 · 닭고기 · 멸치처럼 **원화가 눕혀 그려진** 재료입니다
+   (가로:세로가 2 이상). 그대로 두면 좁은 칸(72 x 130)에서 손톱만 하게 줄어듭니다.
+   냉장고에 세워 넣은 것처럼 90도 돌려 칸 높이를 씁니다.
+   ingredient-select.js 의 재료 표에 `standing:true` 를 주면 붙습니다.
+
+   [상자를 가로·세로 바꿔 잡는 방법]
+   돌리기(transform)는 **레이아웃 상자를 안 바꿉니다.** 그래서 돌리기 전 상자를
+   미리 뒤집어 잡아야 그림이 칸 안에 딱 맞습니다. 칸을 크기 컨테이너로 두고
+   (위 .fridge-slot) 돌리기 전 가로에 칸 **높이**(cqh), 세로에 칸 **폭**(cqw)을 줍니다.
+   ⚠️ % 로는 안 됩니다 — 가로 % 는 언제나 부모 **폭** 기준이라 칸이 높아져도
+      그림이 길어지지 않습니다.
+   ⚠️ 이때만 아래 정렬을 풀고 가운데에 둡니다. 돌린 그림은 상자 밖으로 나가는데,
+      아래 정렬로 두면 그 절반이 선반 아래로 삐져나옵니다.
+
+   [도는 방향] 원화의 **왼쪽이 위로** 갑니다(rotate 90deg = 시계 방향).
+   무·대파는 잎이, 멸치는 머리가 왼쪽에 그려져 있어 이 방향이라야 바로 섭니다. */
+.fridge-art.standing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92cqh;
+  height: 92cqw;
+  object-position: 50% 50%;
+  transform: translate(-50%,-50%) rotate(90deg);
 }
 .fridge-art-emoji { display: grid; place-items: center; font-size: calc(46 * var(--upx)); }
 /* 이름표는 평소엔 숨어 있다가 손을 올리면 뜹니다.
@@ -259,6 +296,8 @@
   min-height: 0;
   overflow: auto;
 }
+/* ⚠️ 여기 아이콘은 **세우지 않습니다**(.standing 규칙이 .fridge-art 에만 걸립니다).
+   목록은 "무엇을 찾는지" 보여 주는 자리라 원화가 그려진 방향 그대로가 알아보기 쉽습니다. */
 .fridge-goal {
   position: relative;
   display: grid;
@@ -334,19 +373,25 @@
 .ic-kelp::before { left: 10%; top: 24%; width: 80%; height: 54%; border-radius: calc(4 * var(--upx)); background: repeating-linear-gradient(#2f4a33 0 14%,#24382a 14% 22%,#38583c 22% 30%); }
 .ic-kelp::after { left: 10%; top: 24%; width: 80%; height: 54%; border-radius: calc(4 * var(--upx)); background: linear-gradient(105deg,rgba(255,255,255,.16),transparent 55%); }
 
-/* 고등어 — 등푸른 몸통 + 꼬리 */
-.ic-mackerel::before { left: 6%; top: 30%; width: 72%; height: 42%; border-radius: 50% 44% 44% 50%; background: linear-gradient(#4f6f86 0 44%,#9fb2bd 45%,#e6ebee); }
-.ic-mackerel::after { right: 8%; top: 34%; width: 22%; height: 34%; background: #4f6f86; clip-path: polygon(0 50%,100% 0,100% 100%); }
+/* 고등어 — 등푸른 몸통(등 무늬) + 꼬리. 세워서 넣습니다(아래 .ic-mackerel 은 상자만 세로) */
+.ic-mackerel::before { left: 6%; top: 26%; width: 74%; height: 48%; border-radius: 46% 40% 40% 46%; background:
+  repeating-linear-gradient(102deg,rgba(20,40,58,.5) 0 4%,transparent 4% 13%) top/100% 46% no-repeat,
+  linear-gradient(#3f6076 0 44%,#a9bcc6 46%,#eef2f4); }
+.ic-mackerel::after { right: 4%; top: 30%; width: 24%; height: 40%; background: #40627a; clip-path: polygon(0 50%,100% 0,100% 100%); }
 
 /* 옥수수 — 노란 알 + 초록 껍질 */
 .ic-corn::before { left: 26%; top: 8%; width: 48%; height: 78%; border-radius: 46% 46% 40% 40%; background: repeating-linear-gradient(90deg,#f2c74a 0 18%,#dcae32 18% 26%); }
 .ic-corn::after { left: 12%; top: 30%; width: 76%; height: 62%; border-radius: 40% 40% 50% 50%; background: linear-gradient(#5f8f3f,#3f6b2c); clip-path: polygon(0 100%,18% 0,32% 100%,50% 8%,68% 100%,82% 0,100% 100%); }
 
-/* 소고기 — 붉은 살 + 마블링 */
-.ic-beef::before { left: 10%; top: 20%; width: 80%; height: 62%; border-radius: calc(10 * var(--upx)); background: radial-gradient(circle at 35% 32%,#b5453c,#8d2d27 70%,#6d1f1b); }
-.ic-beef::after { left: 16%; top: 28%; width: 68%; height: 46%; background:
-  linear-gradient(28deg,transparent 44%,rgba(255,235,225,.6) 46% 50%,transparent 52%),
-  linear-gradient(-14deg,transparent 60%,rgba(255,235,225,.45) 62% 66%,transparent 68%); }
+/* 소고기 — 붉은 살 세 덩이 + 옅은 마블링
+   ⚠️ 마블링을 사선 두 줄로 그었더니 큰 X 가 되어 **깨진 그림처럼** 보였습니다.
+      결은 한 방향으로만, 짧게 여러 줄 넣습니다. */
+.ic-beef::before { left: 12%; top: 26%; width: 76%; height: 52%; border-radius: calc(9 * var(--upx)); background:
+  repeating-linear-gradient(74deg,rgba(255,236,228,.34) 0 3%,transparent 3% 11%),
+  radial-gradient(circle at 35% 30%,#b5453c,#8d2d27 68%,#6d1f1b); }
+.ic-beef::after { left: 26%; top: 14%; width: 50%; height: 30%; border-radius: calc(7 * var(--upx)); background:
+  repeating-linear-gradient(74deg,rgba(255,236,228,.3) 0 3%,transparent 3% 12%),
+  radial-gradient(circle at 40% 35%,#c05149,#93322b 72%); }
 
 /* 청경채 — 흰 줄기 + 넓은 잎 */
 .ic-bokchoy::before { left: 32%; top: 40%; width: 36%; height: 54%; border-radius: 30% 30% 45% 45%; background: linear-gradient(#f2f3e4,#cdd2b4); }

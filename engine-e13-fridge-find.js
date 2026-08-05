@@ -28,11 +28,14 @@ const E13_FRIDGE_FIND=Object.freeze({
 });
 
 /* 칸 번호(0~23) → 격자 자리.
-   가운데 기둥이 5번째 열이라 오른쪽 칸은 열 번호를 하나 건너뜁니다.
-   (마크업에서 grid-column 을 직접 박는 데 씁니다) */
+   격자에는 **선반 두께와 가운데 기둥이 빈 줄로 들어 있습니다**(냉장고 그림의
+   실측 자리를 그대로 쓰기 때문입니다 — css/ingredient-select.css 의 .fridge-slots).
+     열  1~4 왼쪽 칸 · 5 가운데 기둥 · 6~9 오른쪽 칸
+     행  1 첫째 단 · 2 선반 · 3 둘째 단 · 4 선반 · 5 셋째 단
+   그래서 행은 2칸씩, 오른쪽 열은 한 칸 건너뜁니다. */
 function e13SlotCell(index){
   const row=Math.floor(index/E13_FRIDGE_FIND.columns),column=index%E13_FRIDGE_FIND.columns;
-  return {row:row+1,column:column<E13_FRIDGE_FIND.half?column+1:column+2,side:column<E13_FRIDGE_FIND.half?"left":"right"};
+  return {row:row*2+1,column:column<E13_FRIDGE_FIND.half?column+1:column+2,side:column<E13_FRIDGE_FIND.half?"left":"right"};
 }
 
 /* 24칸을 채웁니다.

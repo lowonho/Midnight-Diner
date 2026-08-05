@@ -32,10 +32,11 @@ try{
   assert(progress.slots.some(id=>fillers.includes(id)),"fillers pad the rest");
   assert(new Set(progress.slots).size>required.length,"slots are not only the required ingredients");
 
-  // 칸 자리: 5번째 열은 가운데 기둥이라 건너뜁니다.
+  // 칸 자리: 5번째 열은 가운데 기둥, 짝수 행은 선반이라 둘 다 건너뜁니다.
   assert(e13SlotCell(0).column===1&&e13SlotCell(0).row===1&&e13SlotCell(0).side==="left","first slot sits top-left");
   assert(e13SlotCell(4).column===6&&e13SlotCell(4).side==="right","fifth slot skips the middle pillar");
-  assert(e13SlotCell(23).column===9&&e13SlotCell(23).row===3,"last slot sits bottom-right");
+  assert(e13SlotCell(8).row===3,"second shelf row skips the shelf itself");
+  assert(e13SlotCell(23).column===9&&e13SlotCell(23).row===5,"last slot sits bottom-right");
   assert(new Set(Array.from({length:24},(_,index)=>{const cell=e13SlotCell(index);return `${cell.row}:${cell.column}`})).size===24,"every slot has its own cell");
 
   // 필요한 재료를 누르면 칸이 비고, 아닌 것은 안내만

@@ -17,18 +17,29 @@
    `css` 키만 갖습니다. 그림 대신 css/ingredient-select.css 의 임시 도형
    (.fridge-art-css.ic-*)이 그려집니다. 나중에 원화가 들어오면 그 항목에
    `asset` 을 적어 주기만 하면 됩니다 — 도형은 자동으로 안 쓰입니다.
+
+   [고르는 기준 두 가지]
+   1. **손질 전 모습만 씁니다.** 냉장고는 요리를 시작하기 전이라, 우리 조리
+      과정에서 이미 썰린 그림(E11 두부 5쪽 · E11 썬 김치 · E8 깍둑 닭 정육 ·
+      E3 썬 모둠채소)은 넣지 않습니다. 통두부(E1) · 통김치(E1)처럼 통짜 그림이
+      있으면 그쪽을 씁니다.
+   2. **눕혀 그린 원화는 세웁니다.** 가로:세로가 2 이상이면 `standing:true` 를
+      주어 냉장고 안에서 90도 세웁니다(css 의 .fridge-art.standing).
+      좁고 높은 칸(72 x 130)에 눕힌 채로 넣으면 손톱만 해집니다.
+      두부는 세우면 판이 서 버려서 예외로 눕혀 둡니다.
    ============================================================ */
 
 const FRIDGE_INGREDIENTS=Object.freeze({
   fishCake:{id:"fishCake",label:"어묵",icon:"🍢",asset:"assets/minigame/E1/fish-cake-0.png"},
-  radish:{id:"radish",label:"무",icon:"🥕",asset:"assets/minigame/E1/radish-0.png"},
-  greenOnion:{id:"greenOnion",label:"대파",icon:"🌿",asset:"assets/minigame/E1/green-onion-0.png"},
-  anchovy:{id:"anchovy",label:"멸치",icon:"🐟",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp"},
-  tofu:{id:"tofu",label:"두부",icon:"⬜",asset:"assets/minigame/E11/food_tofu_kimchi_ingredient_tofu.webp"},
-  kimchi:{id:"kimchi",label:"김치",icon:"🥬",asset:"assets/minigame/E11/food_tofu_kimchi_ingredient_kimchi.webp"},
+  radish:{id:"radish",label:"무",icon:"🥕",asset:"assets/minigame/E1/radish-0.png",standing:true},
+  greenOnion:{id:"greenOnion",label:"대파",icon:"🌿",asset:"assets/minigame/E1/green-onion-0.png",standing:true},
+  anchovy:{id:"anchovy",label:"멸치",icon:"🐟",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp",standing:true},
+  // 두부·김치는 E11(두부김치) 그림이 이미 썰린 모습이라 E1 썰기 게임의 통짜 그림을 씁니다.
+  tofu:{id:"tofu",label:"두부",icon:"⬜",asset:"assets/minigame/E1/tofu-0.png"},
+  kimchi:{id:"kimchi",label:"김치",icon:"🥬",asset:"assets/minigame/E1/kimchi-0.png",standing:true},
   flour:{id:"flour",label:"밀가루",icon:"🌾",asset:"assets/minigame/E8/02_food_pancake_flour_panel.webp"},
   water:{id:"water",label:"물",icon:"💧",asset:"assets/minigame/E8/03_food_water_cup_panel.webp"},
-  chicken:{id:"chicken",label:"닭고기",icon:"🍗",asset:"assets/minigame/E1/chicken-0.png"},
+  chicken:{id:"chicken",label:"닭고기",icon:"🍗",asset:"assets/minigame/E1/chicken-0.png",standing:true},
   udon:{id:"udon",label:"우동면",icon:"🍜",asset:"assets/minigame/E3/food_udon_noodles.webp"},
   cabbage:{id:"cabbage",label:"양배추",icon:"🥬",asset:"assets/minigame/E2/food_cabbage_ingredient.webp"},
   carrot:{id:"carrot",label:"당근",icon:"🥕",asset:"assets/minigame/E2/food_carrot_ingredient.webp"},
@@ -51,9 +62,8 @@ const FRIDGE_EXTRAS=Object.freeze({
   potatoRaw:{id:"potatoRaw",label:"감자",asset:"assets/minigame/E2/food_potato_whole_01.webp"},
   carrotRaw:{id:"carrotRaw",label:"당근",asset:"assets/minigame/E2/food_carrot_whole_01.webp"},
   cabbageRaw:{id:"cabbageRaw",label:"양배추",asset:"assets/minigame/E2/food_cabbage_whole_01.webp"},
-  anchovyBox:{id:"anchovyBox",label:"멸치",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp"},
-  udonVeg:{id:"udonVeg",label:"모둠 채소",asset:"assets/minigame/E3/food_udon_vegetables.webp"},
-  chickenSkewerPack:{id:"chickenSkewerPack",label:"닭 정육",asset:"assets/minigame/E8/food_skewer_chicken_group.webp"},
+  anchovyBox:{id:"anchovyBox",label:"멸치",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp",standing:true},
+  // ⚠️ E3 모둠채소(썬 것) · E8 닭 정육(깍둑 썬 것)은 손질 뒤 그림이라 뺐습니다.
   onion:{id:"onion",label:"양파",css:"onion"},
   eggBasket:{id:"eggBasket",label:"계란",css:"egg"},
   sausage:{id:"sausage",label:"소시지",css:"sausage"},
@@ -94,9 +104,12 @@ let ingredientFinishId=null;
 function ingredientRecipe(menuId){return FRIDGE_RECIPES[menuId]||[];}
 function ingredientInfo(id){return FRIDGE_INGREDIENTS[id]||FRIDGE_EXTRAS[id]||{id,label:id,icon:"·"};}
 
-/* 재료 한 칸의 그림. 원화가 있으면 그림, 없으면 임시 CSS 도형입니다. */
+/* 재료 한 칸의 그림. 원화가 있으면 그림, 없으면 임시 CSS 도형입니다.
+   `standing` 은 냉장고 칸(.fridge-art)에서만 먹습니다 — 오른쪽 '찾아야 할 재료'
+   목록은 className 이 달라 그림 방향 그대로 나옵니다(css 참고). */
 function ingredientArt(item,className="fridge-art"){
-  if(item.asset)return `<img class="${className}" src="${new URL(item.asset,INGREDIENT_ASSET_BASE).href}" alt="" draggable="false" />`;
+  const stand=item.standing?" standing":"";
+  if(item.asset)return `<img class="${className}${stand}" src="${new URL(item.asset,INGREDIENT_ASSET_BASE).href}" alt="" draggable="false" />`;
   if(item.css)return `<span class="${className} fridge-art-css ic-${item.css}" aria-hidden="true"></span>`;
   return `<span class="${className} fridge-art-emoji" aria-hidden="true">${item.icon||"·"}</span>`;
 }
