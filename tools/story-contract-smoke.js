@@ -190,12 +190,16 @@ Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&l
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
 assert(Object.values(l02.journalVariants).flat().every(line=>line.speakerLabel==="김다은(속말)"&&!line.speaker),
   "회귀 기록을 아는 다은의 반응은 손님에게 아는 척하는 대사가 아니라 속말이어야 합니다.");
-assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("기록은 남지만")&&line.text.includes("모은 조각은 사라집니다")),
-  "프롤로그는 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
-assert(STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("달빛 조각을 모아")
-  &&line.text.includes("현실로 이어지는 문"))
-  &&!STORY_SCENES["SCN-P04"].lines.some(line=>line.text?.includes("완전한 조각")),
-  "프롤로그는 세부 등급을 선공개하지 않고 조각을 모아 문을 여는 목표만 알려야 합니다.");
+assert(STORY_SCENES["SCN-P04"].autoOpenJournal===true
+  &&STORY_SCENES["SCN-P04"].opensMenuSelection===true,
+  "프롤로그에서 영업일지를 직접 펼친 뒤 첫 메뉴를 선택해야 합니다.");
+assert(!STORY_SCENES["SCN-P04"].lines.some(line=>line.speaker==="journal"),
+  "영업일지 규칙은 장부가 말하는 대사로 출력하면 안 됩니다.");
+assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("영업 기록은 남지만")&&rule.includes("모은 조각은 사라진다")),
+  "영업일지 첫 장은 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
+assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("달빛 조각을 모아")&&rule.includes("문을 연다"))
+  &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
+  "영업일지 첫 장은 세부 등급을 선공개하지 않고 조각을 모아 문을 여는 목표만 알려야 합니다.");
 same(l01.lines.slice(-3).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",

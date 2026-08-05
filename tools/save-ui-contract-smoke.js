@@ -58,6 +58,10 @@ function assert(condition,message){
 });
 assert(!/\bid=(["'])(?:journalGuestList|journalFragmentList|journalEndingList)\1/.test(indexSource),
   "이전 가변 목록 UI가 남아 타이틀 고정 13페이지와 중복되면 안 됩니다.");
+assert(indexSource.includes('class="journal-page-leaf journal-page-left"')
+  &&indexSource.includes('class="journal-page-leaf journal-page-right"')
+  &&indexSource.includes('aria-label="펼쳐진 영업일지"'),
+  "영업일지는 화면 중앙에서 좌우 두 장으로 펼쳐지는 책 구조여야 합니다.");
 
 const scriptOrder=[...indexSource.matchAll(/<script\b[^>]*\bsrc=(["'])([^"']+)\1[^>]*>/gi)]
   .map(match=>match[2]);
@@ -118,6 +122,11 @@ assert(settingsCssSource.includes(".audio-toggle-button.is-off")
   &&settingsCssSource.includes(".settings-overlay.audio-muted")
   &&settingsCssSource.includes(".volume-row.is-muted"),
   "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
+assert(settingsCssSource.includes("--journal-book-image")
+  &&/\.journal-page\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/.test(settingsCssSource)
+  &&settingsCssSource.includes(".journal-page::before")
+  &&settingsCssSource.includes(".journal-page-right"),
+  "영업일지는 향후 책 에셋을 적용할 수 있는 중앙 펼침책 레이아웃이어야 합니다.");
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
@@ -191,10 +200,11 @@ assert(settingsCssSource.includes(".journal-page-tab")
 assert(settingsCssSource.includes(".journal-page-portrait.journal-page-icon")
   &&titleSource.includes('classList.toggle("journal-page-icon",isGameplayRecord)'),
   "날짜별 기록은 미래 손님 실루엣 대신 중립적인 날짜 아이콘을 표시해야 합니다.");
+const journalScrollRule=settingsCssSource.match(/\.journal-page-right\s*\{([^}]+)\}/);
 const journalBodyRule=settingsCssSource.match(/\.journal-page p\s*\{([^}]+)\}/);
-assert(journalBodyRule
-  &&/max-height\s*:/.test(journalBodyRule[1])
-  &&/overflow\s*:\s*auto/.test(journalBodyRule[1])
+assert(journalScrollRule
+  &&/overflow-y\s*:\s*auto/.test(journalScrollRule[1])
+  &&journalBodyRule
   &&/overflow-wrap\s*:\s*anywhere/.test(journalBodyRule[1])
   &&/white-space\s*:\s*pre-line/.test(journalBodyRule[1]),
   "긴 영업일지 본문은 문서 영역 안에서 스크롤되고 자동 줄바꿈되어야 합니다.");

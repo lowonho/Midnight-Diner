@@ -280,9 +280,10 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="journalTitle"
+      aria-describedby="journalDescription"
       aria-hidden="true"
     >
-      <div class="journal-window wood-panel">
+      <div class="journal-window">
         <div class="journal-heading">
           <div>
             <p id="journalModeLabel" class="eyebrow">COLLECTION</p>
@@ -291,17 +292,21 @@
           <button id="journalClose" class="journal-close" type="button" aria-label="영업일지 닫기">×</button>
         </div>
         <p id="journalDescription" class="journal-description">특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.</p>
-        <div class="journal-book">
+        <div class="journal-book" role="group" aria-label="펼쳐진 영업일지">
           <button id="journalPrevious" class="journal-page-arrow" type="button" aria-label="이전 영업일지 페이지">‹</button>
-          <article id="journalPage" class="journal-page" aria-live="polite">
-            <div class="journal-page-topline">
-              <span id="journalPageKind">특별 손님</span>
-              <strong id="journalPageProgress">1 / 13</strong>
-            </div>
-            <div id="journalPagePortrait" class="journal-page-portrait" aria-hidden="true">?</div>
-            <h3 id="journalPageTitle">잠긴 기록</h3>
-            <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
-            <small id="journalPageMeta"></small>
+          <article id="journalPage" class="journal-page" aria-live="polite" aria-labelledby="journalPageTitle">
+            <section class="journal-page-leaf journal-page-left" aria-label="영업일지 표제">
+              <div class="journal-page-topline">
+                <span id="journalPageKind">특별 손님</span>
+                <strong id="journalPageProgress">1 / 13</strong>
+              </div>
+              <div id="journalPagePortrait" class="journal-page-portrait" aria-hidden="true">?</div>
+              <h3 id="journalPageTitle">잠긴 기록</h3>
+              <small id="journalPageMeta"></small>
+            </section>
+            <section class="journal-page-leaf journal-page-right" role="region" aria-label="영업일지 기록 내용" tabindex="0">
+              <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
+            </section>
           </article>
           <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
