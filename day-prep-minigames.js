@@ -388,8 +388,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
   cookPancakeBatter:"assets/minigame/E5/food_kimchi_batter_bowl_mixed_oblique.webp",
   cookSkewerRaw:"assets/prep/two-side/skewer-raw.png",
-  // 닭꼬치는 아직 한 장만 있어서 익힘 단계의 색·그을음을 CSS 로 합성합니다.
-  cookSkewerFood:"assets/prep/two-side/skewer.png",
+  /* ⚠️ 여기 있던 `cookSkewerFood`(화로 위 꼬치 한 자루가 통째로 그려진 그림 한 장)는
+     뺐습니다. 밤 굽기는 낮에 꽂은 배치 그대로 구워야 해서, 한 장짜리 그림 대신
+     위 E8 조각(skewerChicken · skewerGreenOnion)과 꼬챙이(skewerStick)를
+     한 개씩 쌓습니다 — engine-e5-two-side-cook.js 의 grillSkewerMarkup. */
   /* 굽는 김치전 5장 — **익힘 단계마다 한 장**입니다. 색을 CSS 필터로 만들지 않고
      그림을 갈아 끼웁니다 (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS).
      키 순서가 곧 익는 순서라 코드가 이 표를 순서대로 훑습니다. */

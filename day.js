@@ -10,6 +10,15 @@ function createKimchiPrepProgress(){
   return {cuttingComplete:false,fryingComplete:false};
 }
 
+/* 낮 '닭꼬치 꽂기'(engine-e8)에서 **실제로 꽂은** 꼬치 배치입니다.
+   밤 '닭꼬치 굽기'(engine-e5)가 이 배치 그대로 구워야 해서 낮→밤으로 넘깁니다.
+   patterns : 꼬치 하나당 5칸짜리 배열 3개 (["chicken","greenOnion",...]).
+   ⚠️ 꽂기를 건너뛰고 들어오는 길이 있습니다(QA 모드가 준비를 완료로 찍는 경우).
+      그때는 여기가 비어 있고, engine-e5 가 기본 배치(닭·파 번갈아)로 대신합니다. */
+function createSkewerPrepProgress(){
+  return {patterns:[]};
+}
+
 function isPrepPhase(){
   return state.phase===GAME_PHASES.PREP;
 }
@@ -84,6 +93,7 @@ function normalizeDayPrepState(){
   if(legacyShrimpComplete)state.prepProgress.coatShrimp=true;
   if(legacyTteokCut){state.prepProgress.cutTteokbokkiCabbage=true;state.prepProgress.cutTteokbokkiGreenOnion=true;state.prepProgress.cutTteokbokkiFishCake=true;}
   state.kimchiPrep={...createKimchiPrepProgress(),...(state.kimchiPrep||{})};
+  state.skewerPrep={...createSkewerPrepProgress(),...(state.skewerPrep||{})};
 }
 
 function setSelectedMenus(menuIds){
@@ -94,6 +104,7 @@ function setSelectedMenus(menuIds){
   state.selectedMenus=unique;
   state.prepProgress=createDayPrepProgress();
   state.kimchiPrep=createKimchiPrepProgress();
+  state.skewerPrep=createSkewerPrepProgress();
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
   buildMenuCards();updateUI(true);saveGame();
   return true;
@@ -107,7 +118,7 @@ function resetDay(first=false) {
   normalizeDayPrepState();
   state.selectedDishId=state.selectedMenus[0]||DISHES[0].id;
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
-  state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();
+  state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();state.skewerPrep=createSkewerPrepProgress();
   state.ingredientSelection=state.phase===GAME_PHASES.INGREDIENT_SELECT?createIngredientSelectionState(state.selectedMenus):null;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}

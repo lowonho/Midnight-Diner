@@ -59,21 +59,28 @@
     /* 보려는 것 : 숯불 화로가 **정면 탑뷰**(바로 위에서 내려다보는 각)로 보이는가,
        꼬치 3개가 석쇠 위에 나란히 놓이고 손잡이가 한쪽으로 삐져나오는가.
 
+       그리고 **낮에 꽂은 배치 그대로** 구워지는가 (state.skewerPrep.patterns).
+
        ?phase=cook|skewerFlip     단계 (기본 cook)
        ?marker=0..1               익힘 게이지 위치
        ?flipped=0..3              뒤집어 놓은 꼬치 개수
-       ?side=0|1                  앞면(0) / 뒷면(1) */
+       ?side=0|1                  앞면(0) / 뒷면(1)
+       ?patterns=cgcgc,ccggc,...  낮에 꽂은 배치 (c 닭고기 · g 대파). 없으면 꽂기를
+                                  건너뛴 것으로 보고 engine-e5 의 기본 배치가 나옵니다. */
     const params = new URLSearchParams(location.search);
     const phase   = params.get("phase") || "cook";
     const marker  = Math.max(0, Math.min(1, Number(params.get("marker") ?? .76)));
     const flipped = Math.max(0, Math.min(SKEWER_BATCH_SIZE, Number(params.get("flipped")) || 0));
     const side    = params.get("side") === "1" ? 1 : 0;
+    const patterns = (params.get("patterns") || "").split(",").filter(Boolean)
+      .map(word => [...word].map(letter => letter === "g" ? "greenOnion" : "chicken"));
+    if (patterns.length) state.skewerPrep = { patterns };
 
     loadDayPrepAssets().then(() => {
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
         data:{ phase, side, marker, dir:1, speed:.23, hits:[], dishStyle:"skewer",
-               flipErrors:0, cookErrors:0, timeLimit:26,
+               flipErrors:0, cookErrors:0, timeLimit:26, skewerPatterns:skewerCookPatterns(),
                flippedSkewers:flipped, flipStep:0, flipWindow:0 }
       };
       dom.miniTitle.textContent = "닭꼬치 굽기";
@@ -97,9 +104,21 @@
           left:+(boardRect.left - grillRect.left).toFixed(1),
           right:+(grillRect.right - boardRect.right).toFixed(1)
         },
+        // 숯불 바닥이 칸 가로를 얼마나 채우는가 (1 에 가까울수록 꽉 찬 것)
+        grillFill:+(grillRect.width / boardRect.width).toFixed(3),
+        coals:document.querySelectorAll(".charcoal-bed > i").length,
         skewers:[...document.querySelectorAll(".grill-skewer")].map(s => {
           const r = rect(s);
+          const pieces = [...s.querySelectorAll(".gs-piece")];
+          const stack = rect(s.querySelector(".gs-pieces"));
+          const rod = rect(s.querySelector(".gs-rod"));
           return { box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
+                   // 낮에 꽂은 순서 그대로인지 (아래→위 순서로 되돌려 읽습니다)
+                   pattern:pieces.map(p => p.classList.contains("greenOnion") ? "g" : "c").reverse().join(""),
+                   stack:stack ? `${stack.width.toFixed(1)}x${stack.height.toFixed(1)}` : "없음",
+                   rodW:rod ? +rod.width.toFixed(1) : 0,
+                   // 조각이 상자(손잡이 자리 제외) 안에 들어가는지 (음수 = 넘침)
+                   stackRoom:stack ? +(r.bottom - stack.bottom).toFixed(1) : 0,
                    // 꼬치가 화로 안에 있는지 (음수 = 밖으로 나감)
                    inLeft:+(r.left - grillRect.left).toFixed(1),
                    inRight:+(grillRect.right - r.right).toFixed(1),

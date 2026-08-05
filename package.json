@@ -12,6 +12,7 @@
     "test:save-ui": "node tools/save-ui-contract-smoke.js",
     "test:story-cinematic": "node tools/story-cinematic-contract-smoke.js",
     "test:prep-days": "node tools/prep-all-days-contract-smoke.js",
+    "test:skewer-handoff": "node tools/skewer-day-to-night-contract-smoke.js",
     "build:counter": "node tools/build-counter-webp.js",
     "build:food": "node tools/build-food-webp.js",
     "verify:food": "node tools/build-food-webp.js --verify",

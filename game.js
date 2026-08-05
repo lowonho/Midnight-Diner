@@ -88,6 +88,7 @@ const state = {
   ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
+  skewerPrep:createSkewerPrepProgress(),   // 낮에 꽂은 꼬치 배치 → 밤 굽기가 그대로 씁니다 (day.js)
   selectedOrderId:null,
   inventory:Object.fromEntries(DISHES.map(d => [d.id,{count:0,quality:0,prepared:false}])),
   prepRun:null,

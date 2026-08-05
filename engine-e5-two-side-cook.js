@@ -27,10 +27,31 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
     // 김치전은 익힘 단계마다 그림이 따로 있습니다 — 아래 PANCAKE_COOK_STEPS
   }),
   skewer:Object.freeze({
-    sideSpeeds:Object.freeze([.23,.26]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76,
-    foodAsset:"cookSkewerFood"
+    sideSpeeds:Object.freeze([.23,.26]),goodStart:.67,goodEnd:.85,perfectStart:.725,perfectEnd:.795,perfectCenter:.76
+    // ⚠️ 예전에 있던 `foodAsset:"cookSkewerFood"`(꼬치 한 자루가 통째로 그려진 그림 한 장)은
+    //    뺐습니다. 지금은 낮에 꽂은 배치대로 **조각을 한 개씩** 쌓습니다 — 아래 grillSkewerMarkup.
   })
 });
+
+/* ── 화로에 올라가는 꼬치 3개 ────────────────────────────────
+   낮 '닭꼬치 꽂기'(engine-e8)에서 실제로 꽂은 배치를 그대로 굽습니다.
+   조각·꼬챙이 그림도 그 게임과 **같은 파일**(assets/minigame/E8/)입니다 —
+   day-prep-minigames.js 의 skewerChicken · skewerGreenOnion · skewerStick.
+
+   배치는 state.skewerPrep.patterns (day.js) 에 낮이 남겨 둡니다.
+   ⚠️ 꽂기를 건너뛰고 밤으로 오는 길이 있습니다(QA 모드가 준비를 완료로 찍는 경우).
+      그때는 배치가 비어 있으므로 아래 기본 배치로 대신합니다. */
+const SKEWER_COOK_FALLBACK=Object.freeze(["chicken","greenOnion","chicken","greenOnion","chicken"]);
+
+function skewerCookPatterns(){
+  const saved=Array.isArray(state.skewerPrep?.patterns)?state.skewerPrep.patterns:[];
+  return Array.from({length:SKEWER_BATCH_SIZE},(_,index)=>{
+    const pattern=saved[index];
+    if(!Array.isArray(pattern)||!pattern.length)return [...SKEWER_COOK_FALLBACK];
+    // 모르는 재료가 섞여 있어도(옛 세이브 등) 화면이 비지 않게 닭고기로 봅니다.
+    return pattern.map(ingredient=>ingredient==="greenOnion"?"greenOnion":"chicken");
+  });
+}
 
 /* ── 굽는 김치전 그림 5장 ────────────────────────────────────
    색을 CSS 필터로 만들지 않고 **그림을 갈아 끼웁니다**. 경계값은 판정 구간
@@ -126,7 +147,10 @@ registerMiniEngine("twoSideCook", {
       isSkewer ? "앞면이 익으면 꼬치마다 ← →를 빠르게 눌러 하나씩 뒤집으세요." : "양면을 충분히 익히고, 1면 뒤에는 팬 뒤집기 타이밍도 맞추세요.",
       26
     );
-    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: config.sideSpeeds[0], hits: [], dishStyle, flipErrors: 0, cookErrors:0, timeLimit: m.time };
+    // skewerPatterns : 낮에 꽂아 둔 꼬치 3개의 배치. 한 판 동안 바뀌지 않으므로
+    //                  여기서 한 번만 읽어 둡니다 (매 렌더마다 다시 읽으면 낭비입니다).
+    m.data = { phase: "cook", side: 0, marker: 0, dir: 1, speed: config.sideSpeeds[0], hits: [], dishStyle, flipErrors: 0, cookErrors:0, timeLimit: m.time,
+      skewerPatterns: isSkewer ? skewerCookPatterns() : null };
     audio.loop?.(isSkewer?"charcoal_grill":"pan_sizzle",m,isSkewer ? .58 : .6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
@@ -182,17 +206,43 @@ registerMiniEngine("twoSideCook", {
   }
 });
 
+/* 조각 한 개. E8 '꽂기'와 같은 그림을 씁니다.
+   그림이 없으면 예전 임시 도형으로 되돌아갑니다 — 닭고기 <b> · 대파 <em> 이고,
+   익힘 색은 css 의 .grill-skewer b/em 규칙이 --cook-progress 로 입힙니다.
+   ⚠️ 두 종류가 다 있을 때만 그림을 씁니다(hasArt). 한쪽만 그림이면 크기·겹침
+      규칙(.has-pieces)이 임시 도형에도 걸려 조각이 서로 파고듭니다. */
+function grillSkewerPieceMarkup(ingredient, hasArt) {
+  if (!hasArt) return ingredient === "greenOnion" ? "<em></em>" : "<b></b>";
+  return `<span class="gs-piece ${ingredient}">${dayPrepAssetMarkup(SKEWER_ASSET_KEY[ingredient], "gs-piece-asset", SKEWER_LABEL[ingredient])}</span>`;
+}
+
+/* 꼬챙이. E8 과 같은 그림(skewerStick)이고, 손잡이까지 한 장에 들어 있어서
+   그림이 있으면 css 임시 손잡이(.grill-skewer::after)는 끕니다. */
+function grillSkewerRodMarkup() {
+  const asset = dayPrepAssetMarkup("skewerStick", "gs-rod-asset");
+  return asset ? `<i class="gs-rod" aria-hidden="true">${asset}</i>` : `<i class="skewer-rod" aria-hidden="true"></i>`;
+}
+
+/* 꼬치 한 자루 = 꼬챙이 + 낮에 꽂은 순서 그대로의 조각 5개.
+   조각은 **아래에서 위로** 꽂았으므로 화면에는 뒤집어 쌓습니다 (E8 의 skewerRackMarkup 과 같습니다). */
+function grillSkewerMarkup(pattern, index, data) {
+  const flipped = data?.flippedSkewers || 0;
+  const hasArt = Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset);
+  const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt)).join("");
+  const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
+  return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${index < flipped && data?.phase !== "cook" ? "flipped" : ""} ${data?.phase === "skewerFlip" && index === flipped ? "current" : ""}" aria-label="${index + 1}번 꼬치 · ${label}">
+      ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
+    </span>`;
+}
+
 function charcoalSkewerMarkup(data) {
   /* 숯덩이 개수. 화로를 정면 탑뷰(바로 위에서 내려다보는 각)로 바꾸면서
      숯이 화로 **안쪽 전체**를 채우게 되어 9개로는 바닥이 비어 보입니다.
-     넘치는 만큼은 .charcoal-bed 의 overflow:hidden 이 잘라 냅니다. */
-  const coals = Array.from({ length: 40 }, () => "<i></i>").join("");
-  const flipped = data?.flippedSkewers || 0;
-  const skewers = Array.from({ length: SKEWER_BATCH_SIZE }, (_, index) => {
-    const asset=dayPrepAssetMarkup(TWO_SIDE_COOK_CONFIG.skewer.foodAsset,"grill-skewer-asset","굽는 닭꼬치");
-    const food=asset||`<i class="skewer-rod"></i><b></b><em></em><b></b><em></em><b></b>`;
-    return `<span class="grill-skewer skewer-${index + 1} ${asset?"has-asset":""} ${index < flipped && data?.phase !== "cook" ? "flipped" : ""} ${data?.phase === "skewerFlip" && index === flipped ? "current" : ""}">${food}</span>`;
-  }).join("");
+     ⚠️ 화로를 플레이 칸 가로로 넓히면서(790 x 336) 40개로는 다시 아래가 비었습니다.
+        넉넉히 깔고 넘치는 만큼은 .charcoal-bed 의 overflow:hidden 이 잘라 냅니다. */
+  const coals = Array.from({ length: 126 }, () => "<i></i>").join("");
+  const patterns = data?.skewerPatterns || skewerCookPatterns();
+  const skewers = patterns.map((pattern, index) => grillSkewerMarkup(pattern, index, data)).join("");
   return `<span class="charcoal-bed" aria-hidden="true">${coals}</span><span class="grill-grate" aria-hidden="true"></span><span class="cook-food" aria-label="숯불에 굽는 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span><i class="charcoal-flame flame-one"></i><i class="charcoal-flame flame-two"></i>`;
 }
 
