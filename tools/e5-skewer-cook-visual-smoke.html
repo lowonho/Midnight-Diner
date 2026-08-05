@@ -106,6 +106,31 @@
         },
         // 숯불 바닥이 칸 가로를 얼마나 채우는가 (1 에 가까울수록 꽉 찬 것)
         grillFill:+(grillRect.width / boardRect.width).toFixed(3),
+        /* 왼쪽 재료 카드. **낮에 꽂은 배치 그대로**여야 합니다 — 화로 위 꼬치와 같은
+           그림·같은 쌓기를 쓰되 익힘 단계만 빼고 올립니다 (engine-e5 의
+           skewerIngredientArtMarkup). pattern 이 아래 skewers 와 같아야 맞습니다. */
+        ingCard:(() => {
+          const wrap = document.querySelector(".ts-ing-skewers");
+          if (!wrap) return { art:false };
+          const card = rect(document.querySelector(".ts-ing-card.skewerRaw"));
+          const wrapRect = rect(wrap);
+          return { art:true,
+            card:box(document.querySelector(".ts-ing-card.skewerRaw")),
+            stack:box(wrap),
+            // 카드 밖으로 넘치면 안 됩니다 (음수 = 여유)
+            spill:{ top:+(card.top - wrapRect.top).toFixed(1), bottom:+(wrapRect.bottom - card.bottom).toFixed(1),
+                    left:+(card.left - wrapRect.left).toFixed(1), right:+(wrapRect.right - card.right).toFixed(1) },
+            skewers:[...wrap.querySelectorAll(".grill-skewer")].map(s => {
+              const rod = rect(s.querySelector(".gs-rod"));
+              const stack = rect(s.querySelector(".gs-pieces"));
+              return { pattern:[...s.querySelectorAll(".gs-piece")].map(p => p.classList.contains("greenOnion") ? "g" : "c").reverse().join(""),
+                       box:box(s), rodW:rod ? +rod.width.toFixed(1) : 0,
+                       // 꼬챙이가 조각 아래로 보이는 길이 (0 이면 손잡이가 안 보입니다)
+                       rodBelow:rod && stack ? +(rod.bottom - stack.bottom).toFixed(1) : 0,
+                       // 익힘 그림이 섞여 들어오면 안 됩니다 (재료 칸은 늘 안 익은 상태)
+                       cookFrames:s.querySelectorAll(".gs-piece.has-cook-art").length };
+            }) };
+        })(),
         /* 화로 그림 5장(assets/minigame/E5/yakitori/fix_charcoal_grill_fire_*).
            art:false 면 그림을 못 찾아 예전 CSS 화로(숯덩이 126개)로 떨어진 것입니다. */
         grillArt:(() => {
@@ -134,7 +159,9 @@
                    piece:`${box.width.toFixed(1)}x${box.height.toFixed(1)}`,
                    drawn:art ? `${art.width.toFixed(1)}x${art.height.toFixed(1)}` : "없음" };
         })(),
-        skewers:[...document.querySelectorAll(".grill-skewer")].map(s => {
+        /* ⚠️ `.cook-food` 안으로 좁혀서 셉니다. 왼쪽 재료 카드에도 같은 클래스로
+           꼬치 3자루가 서 있어서(ingCard) 그냥 세면 그쪽이 먼저 잡힙니다. */
+        skewers:[...document.querySelectorAll(".cook-food .grill-skewer")].map(s => {
           const r = rect(s);
           const pieces = [...s.querySelectorAll(".gs-piece")];
           const stack = rect(s.querySelector(".gs-pieces"));

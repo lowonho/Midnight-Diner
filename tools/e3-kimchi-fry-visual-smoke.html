@@ -129,8 +129,39 @@
         cursor.style.top = `${r.top + r.height / 2}px`;
         cursor.classList.add("show");
       }
+      /* 연기는 한 모금 피우고 **쉽니다**. 그냥 찍으면 쉬는 참(한 바퀴의 37%)에
+         걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+         기둥끼리 조금씩 어긋나게 두어 세 자리가 다 보이게 합니다. */
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        smokeSeek(column, .08 + index * .05);
+      });
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기 기둥 하나를 "한 바퀴의 u 지점" 으로 돌려 세웁니다.
+
+       ⚠️ 여기가 함정입니다. 다섯 장은 **같은 시각에 시작해서**(startTime 이 같아
+          currentTime 도 같이 움직입니다) `animation-delay` 로만 어긋나 있습니다.
+          그래서 currentTime 에 0 을 넣으면 u=0 이 아니라 **아직 지연 구간**이고,
+          다섯 장이 전부 아직 시작을 안 해서 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다.
+       ⚠️ 그리고 첫 장의 지연 + 한 바퀴 = 첫 장의 `animationiteration` 이 울리는
+          바로 그 시각입니다 (자리를 새로 뽑는 순간 — 아래 puff 검사가 쓰는 값). */
+    function smokeFrameOne(column){
+      const anim = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+      if(!anim) return null;
+      const timing = anim.effect.getTiming();
+      return { delay:timing.delay, cycle:timing.duration };
+    }
+    function smokeSeek(column, u){
+      const base = smokeFrameOne(column); if(!base) return null;
+      const at = base.delay + u * base.cycle;
+      column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+        const anim = frame.getAnimations()[0];
+        if(anim){ anim.pause(); anim.currentTime = at; }
+      });
+      return at;
+    }
 
     function measure(){
       const rect = el => el.getBoundingClientRect();
@@ -200,6 +231,62 @@
             opacity:+(+getComputedStyle(col).opacity).toFixed(2),
             shown:shown([...col.querySelectorAll(".mg-smoke-frame")]) };
         }),
+        /* 자리는 모금마다 새로 뽑습니다. 한 판 찍어서는 "운 좋게 안 잘린 자리"
+           하나만 보는 셈이라, **진짜 뽑기 함수를 400번 돌려** 최악을 봅니다.
+             rootRange   뽑힌 뿌리 자리의 최소·최대 (김치 7~73% 안이어야 합니다)
+             topMax      상자 윗변이 올라간 최대 (팬 세로 % — 천장을 넘으면 잘립니다)
+             distinct    서로 다른 자리가 몇 개나 나왔는가 (1 이면 안 움직인 것) */
+        placement:(() => {
+          const column = document.querySelector(".frying-pan .mg-smoke");
+          if(!column) return null;
+          const zone = minigameSmokeZone(column);
+          const roots = [], tops = [], seen = new Set();
+          for(let i = 0; i < 400; i++){
+            placeMinigameSmoke(column, zone);
+            const w = parseFloat(column.style.width), b = parseFloat(column.style.bottom);
+            const root = parseFloat(column.style.left) + w / 2;
+            roots.push(root); tops.push(b + w * zone.aspect);
+            seen.add(`${column.style.left}|${column.style.bottom}`);
+          }
+          return { zone:{ x:zone.x, y:zone.y, w:zone.w, top:zone.top, aspect:+zone.aspect.toFixed(3) },
+            rootRange:[+Math.min(...roots).toFixed(1), +Math.max(...roots).toFixed(1)],
+            topMax:+Math.max(...tops).toFixed(1), ceiling:zone.top,
+            clipped:tops.filter(t => t > zone.top + .01).length,
+            distinct:seen.size };
+        })(),
+        /* 한 바퀴 동안 어느 장이 켜지는지. **다 꺼져 있는 쉬는 참**이 있어야
+           그때 자리를 옮겨도 순간이동으로 안 보입니다.
+             restSamples  100 중 다 꺼져 있던 횟수 (쉬는 참의 길이)
+             maxLit       한꺼번에 켜진 장의 최대 (2 = 넘어갈 때 겹치는 두 장)
+             litRuns      켜진 구간이 몇 덩어리인가 (1 이어야 안 툭툭 튑니다)
+             atMoveMoment **자리를 새로 뽑는 그 순간**의 다섯 장 불투명도.
+                          전부 0 이어야 옮겨도 안 보입니다. */
+        puff:(() => {
+          const column = document.querySelector(".frying-pan .mg-smoke");
+          if(!column) return null;
+          const base = smokeFrameOne(column); if(!base) return { error:"no animation" };
+          const frames = [...column.querySelectorAll(".mg-smoke-frame")];
+          const anims = frames.map(f => f.getAnimations()[0]).filter(Boolean);
+          if(anims.length !== 5) return { error:`animations ${anims.length}` };
+          // ⚠️ 훑고 나면 **원래 시각으로 돌려놓습니다.** 안 그러면 이 검사가
+          //    캡처용으로 세워 둔 자세를 밀어내서 화면이 빈 채로 찍힙니다.
+          const saved = anims.map(a => a.currentTime);
+          const opacities = u => { smokeSeek(column, u);
+            return frames.map(f => +(+getComputedStyle(f).opacity).toFixed(3)); };
+          const lit = [];
+          for(let k = 0; k < 100; k++) lit.push(opacities(k / 100).filter(o => o > .01).length);
+          // 첫 장의 animationiteration 이 울리는 시각 = 한 바퀴를 꽉 채운 그 지점
+          const atMoveMoment = opacities(1);
+          anims.forEach((a, i) => { a.currentTime = saved[i]; });
+          /* ⚠️ 한 바퀴는 **고리**입니다. 쉬는 참이 끝과 처음에 걸쳐 있으므로
+                문자열을 그냥 보면 안 되고, 켜진 구간이 몇 덩어리인지를 고리로
+                세어야 합니다 (1 덩어리면 이어진 것입니다). */
+          const on = lit.map(n => n > 0);
+          const runs = on.filter((v, i) => v && !on[(i + on.length - 1) % on.length]).length;
+          return { cycleMs:base.cycle, restSamples:lit.filter(n => n === 0).length,
+            maxLit:Math.max(...lit), atMoveMoment,
+            litRuns:runs, litRun:runs === 1 ? "이어짐" : "끊김" };
+        })(),
         // 그림이 있는데도 예전 CSS 김이 남아 있으면 안 됩니다
         steamShape:document.querySelectorAll(".kf-steam").length,
         // 주걱·김치가 판 밖으로 새어 나가는지 (음수면 칸 안, 양수면 넘침)

@@ -270,39 +270,26 @@
 .skewer-flip-controls button:active { transform:translateY(2px); background:linear-gradient(#fff0af,#cf8740); }
 .two-side-pan.rebound-fail { animation:rebound-fail .35s ease; }
 /* ── 김치전 위로 피어오르는 연기 ─────────────────────────────
-   그림 5장이 한 바퀴 도는 **연속 그림**입니다 (01 작은 김 → 03 길게 오른 기둥 →
-   05 흩어지는 조각). 스프라이트 시트가 아니라 낱장이라, 다섯 장을 겹쳐 두고
-   자기 차례에만 한 장씩 켭니다 — 시작 시각만 20% 씩 미루면 됩니다.
+   ⚠️ 여기 있던 `.ts-smoke` 한 벌(그림 돌리는 규칙 · 기둥 두 개의 고정 자리)은
+      **통째로 뺐습니다.** 김치 볶기·볶음우동이 같은 그림을 쓰게 되면서 똑같은
+      규칙이 두 벌이 되었고, 자리도 두 벌을 따로 고쳐야 했습니다. 이제 셋 다
+      css/minigame-parts.css 의 `.mg-smoke` 한 벌을 씁니다.
+      되살릴 일은 없겠지만, 예전 이름을 찾으신다면 그쪽을 보세요.
 
-   [빠르기] `--ts-smoke-cycle` 한 곳만 고치면 됩니다. 한 바퀴 시간이고
-   장당 그 1/5 씩 보입니다 (1.6s → 장당 0.32s). 시작 시각을 초가 아니라
-   **한 바퀴의 비율**로 적어 두어서, 여기만 바꿔도 다섯 장이 같이 따라옵니다.
+   기둥은 정해진 자리에 박혀 있지 않습니다 — 한 모금이 사그라들 때마다 다음
+   모금을 어디에서 피울지 새로 뽑습니다 (day-prep-minigames.js 의
+   placeMinigameSmoke). 그래서 이 화면이 정하는 것은 **뽑을 범위와 진하기**뿐이고,
+   범위 기본값(팬 상자 기준 %)은 공용 쪽에 있습니다. 김치전 팬 상자
+   (710 x 308.4)가 그 기본값의 기준이라 여기서 덮어쓸 범위는 없습니다.
 
-   ⚠️ 다섯 장 모두 1024 **정사각** 캔버스에 아래 가운데를 기준으로 그려져 있습니다.
-      상자를 정사각(aspect-ratio:1)으로 두어야 장이 넘어갈 때 연기 뿌리가
-      제자리에 붙어 있습니다. 그림 경계에 맞춰 상자를 좁히면 안 됩니다.
-   ⚠️ 자리는 팬 상자(710 x 308.4) 기준 % 입니다. 상자 아래 가운데가 연기 뿌리라
-      bottom 은 "김치전 위 어디에서 피어오르는가" 가 됩니다. 위로는 팬 밖으로
-      나가는 것이 정상입니다 (.two-side-pan 은 overflow 를 자르지 않습니다).
+   ⚠️ 위로는 팬 밖으로 나가는 것이 정상이지만, 플레이 칸(.ts-board)이 잘라 냅니다.
+      팬 바닥이 칸 바닥에서 142(--ts-pan-drop) 이고 칸이 457 이라 팬 위로 쓸 수
+      있는 높이는 315 — 팬 세로(308.4)의 102% 이고, 그게 공용 기본값입니다.
+      팬을 키우거나(--ts-pan-w) 내리면(--ts-pan-drop) 이 값을 다시 잡아야 합니다.
    반투명입니다 — 김치전 색이 비쳐 보여야 익힘 단계를 가리지 않습니다.
-   많이 익을수록(--cook-progress) 조금 더 진해집니다. */
-.ts-smoke { --ts-smoke-cycle:1.6s; position:absolute; z-index:4; width:27%; aspect-ratio:1; opacity:calc(.26 + var(--cook-progress) * .3); pointer-events:none; }
-/* ⚠️ bottom 을 더 올리면(예: 42%) 상자 윗변이 플레이 칸(.ts-board) 위로 나가
-   overflow:hidden 에 잘립니다. 40% 가 딱 맞닿는 자리입니다. */
-.ts-smoke.smoke-one { left:13%; bottom:40%; }
-/* 두 번째 기둥은 조금 작고, 한 바퀴의 반대쪽에서 시작해 둘이 같이 뜨지 않습니다 */
-.ts-smoke.smoke-two { left:38%; bottom:53%; width:21%; --ts-smoke-offset:-.5; }
-/* 시작 시각은 **한 바퀴의 비율**입니다 (-.2 = 한 바퀴의 20% 앞당기기).
-   초로 적으면 위 --ts-smoke-cycle 을 고칠 때마다 다섯 줄을 같이 고쳐야 합니다. */
-.ts-smoke-frame { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0;
-  animation:ts-smoke-frame var(--ts-smoke-cycle) linear infinite;
-  animation-delay:calc((var(--ts-smoke-offset,0) + var(--ts-smoke-frame,0)) * var(--ts-smoke-cycle)); }
-.ts-smoke-frame.frame-2 { --ts-smoke-frame:-.2; }
-.ts-smoke-frame.frame-3 { --ts-smoke-frame:-.4; }
-.ts-smoke-frame.frame-4 { --ts-smoke-frame:-.6; }
-.ts-smoke-frame.frame-5 { --ts-smoke-frame:-.8; }
-/* 한 장이 켜져 있는 20% 앞뒤로 5% 씩 겹칩니다 — 딱 끊어 바꾸면 연기가 툭툭 튑니다 */
-@keyframes ts-smoke-frame { 0% { opacity:0; } 5%,20% { opacity:1; } 25%,100% { opacity:0; } }
+   많이 익을수록(--cook-progress) 조금 더 진해집니다. 이 이어지는 진하기가
+   김치 볶기·볶음우동의 단계별 진하기(.26 → .56)와 같은 구간입니다. */
+.two-side-pan .mg-smoke { z-index:4; opacity:calc(.26 + var(--cook-progress) * .3); }
 .cook-steam { position:absolute; z-index:3; top:calc(4 * var(--upx)); width:calc(20 * var(--upx)); height:calc(44 * var(--upx)); border-left:calc(4 * var(--upx)) solid rgba(245,237,215,.58); border-radius:50%; filter:opacity(calc(.12 + var(--cook-progress) * .88)); animation:serving-oden-steam 1.3s ease-in-out infinite; }
 .two-side-pan.cook-over .cook-steam { border-left-color:rgba(116,105,99,.82); filter:opacity(1); }
 .cook-steam.steam-one { left:calc(105 * var(--upx)); }
@@ -371,8 +358,11 @@
   gap: calc(6 * var(--upx));
 }
 .ts-ing-art { position: relative; min-height: 0; display: grid; place-items: center; }
-.ts-ing-art i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
-.ts-ing-art.has-asset i { display: none; }
+/* ⚠️ **바로 아래 <i> 만** 잡습니다(자식 선택자). 이 두 줄은 그림이 없을 때 쓰는
+   임시 도형 한 개를 위한 것인데, 그냥 `i` 로 두면 카드 안에 그려 넣는 다른 <i> 까지
+   같이 걸립니다 — 닭꼬치 재료 카드의 꼬챙이(.gs-rod)가 통째로 사라졌던 이유입니다. */
+.ts-ing-art > i { position: relative; display: block; height: 100%; max-height: calc(150 * var(--upx)); width: auto; aspect-ratio: 5 / 4; }
+.ts-ing-art.has-asset > i { display: none; }
 /* ⚠️ 원래 max-height 가 150 이었습니다. 그림칸이 210 x 225 라 정사각 그림이
    150 에서 먼저 막혀 카드(226 x 280) 안에서 작아 보였습니다. 210 으로 올려
    **가로가 먼저 막게** 했습니다 (E10 재료 카드와 같은 방식).
@@ -383,12 +373,16 @@
 .ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
 /* 재료 그림 (임시 도형) — 김치전 반죽 한 그릇 */
-.ts-ing-card.pancakeBatter .ts-ing-art i {
+/* ⚠️ 아래 겉모습 규칙들도 **바로 아래 <i> 만** 잡아야 합니다(위 364줄과 같은 이유).
+   그냥 `i` 로 두면 닭꼬치 카드에 그려 넣는 꼬챙이(.gs-rod 도 <i> 입니다)까지 걸려,
+   꼬챙이마다 회색 타원 배경(#6f6a62)이 깔려 **꼬치 주위에 허연 얼룩**으로 보입니다.
+   `display:none` 쪽만 자식 선택자로 고쳐 놓으면 이 겉모습만 남아 더 헷갈립니다. */
+.ts-ing-card.pancakeBatter .ts-ing-art > i {
   border-radius: calc(8 * var(--upx)) calc(8 * var(--upx)) 46% 46%;
   background: linear-gradient(#8a5a2c,#5d3a19);
   box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(48,26,10,.5);
 }
-.ts-ing-card.pancakeBatter .ts-ing-art i::after {
+.ts-ing-card.pancakeBatter .ts-ing-art > i::after {
   content: "";
   position: absolute;
   left: 9%;
@@ -402,12 +396,12 @@
     repeating-linear-gradient(112deg,#d2743c 0 calc(9 * var(--upx)),#b8532e calc(10 * var(--upx)) calc(14 * var(--upx)));
 }
 /* 재료 그림 (임시 도형) — 접시에 담긴 생 닭꼬치 */
-.ts-ing-card.skewerRaw .ts-ing-art i {
+.ts-ing-card.skewerRaw .ts-ing-art > i {
   border-radius: 44% 44% 50% 50%;
   background: linear-gradient(#6f6a62,#3d3934);
   box-shadow: inset 0 calc(-8 * var(--upx)) calc(11 * var(--upx)) rgba(20,16,12,.55);
 }
-.ts-ing-card.skewerRaw .ts-ing-art i::after {
+.ts-ing-card.skewerRaw .ts-ing-art > i::after {
   content: "";
   position: absolute;
   left: 10%;
@@ -419,6 +413,32 @@
     repeating-linear-gradient(96deg,#e8bd9e 0 calc(11 * var(--upx)),#cf9a7c calc(12 * var(--upx)) calc(17 * var(--upx)),#8fa855 calc(18 * var(--upx)) calc(21 * var(--upx))),
     #c9a06f;
   box-shadow: inset 0 0 0 2px rgba(90,54,30,.35);
+}
+/* ── 재료 카드에 올라가는 '낮에 꽂아 둔 닭꼬치' 3자루 ──────────
+   화로 위 꼬치와 **같은 클래스**(.grill-skewer / .gs-piece / .gs-rod)를 씁니다.
+   화로 쪽 크기는 전부 `.ts-board` 를 앞에 단 규칙이라 여기까지 따라오지 않고,
+   기본 크기(62 x 54)만 걸립니다. 카드가 작으니 여기서 한 번 더 줄입니다.
+     쌓인 키 = 5 x 42 + 10 x (-8) = 130   (min-height 196 · 손잡이 자리 24 포함)
+     가로   = 3 x 52 + 간격 6 x 2 = 168  ≤ 카드 안쪽 210
+   ⚠️ --cook-progress 를 0 으로 못박습니다. 이 값은 화로(.two-side-pan)가 갖고
+      있어서 카드 안에서는 정의되지 않는데, 그러면 .gs-piece-asset 의 익힘 필터가
+      통째로 무효가 되어 화로의 안 익은 조각과 색이 미묘하게 달라집니다.
+   ⚠️ 기울임(.grill-skewer 의 rotate)도 끕니다. 화로 위에서는 세 자루가 조금씩
+      기울어 놓인 것이 자연스럽지만, 카드에서는 그냥 삐뚤어 보입니다. */
+.ts-ing-skewers { --cook-progress: 0; display: flex; align-items: flex-end; justify-content: center; gap: calc(6 * var(--upx)); }
+.ts-ing-skewers .grill-skewer {
+  --gs-piece-w: calc(48 * var(--upx));
+  --gs-piece-h: calc(42 * var(--upx));
+  --gs-piece-overlap: calc(-8 * var(--upx));
+  /* ⚠️ min-height 를 **0 으로 풀고** height 로 못박습니다. 기본 규칙의
+     min-height(310)는 화로 위 크기라, 안 풀면 카드에서도 310 으로 서서 카드 밖으로
+     넘칩니다(min-height 가 height 를 이깁니다). 그리고 키가 정해져 있어야
+     꼬챙이 그림(.gs-rod-asset 의 `height:100%`)이 기댈 곳이 생깁니다. */
+  min-height: 0;
+  height: calc(196 * var(--upx));
+  width: calc(52 * var(--upx));
+  padding-bottom: calc(24 * var(--upx));
+  transform: none;
 }
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
@@ -546,14 +566,22 @@
 .ts-board .skewer-cook .cook-food { inset: 8.6% 5.3% calc(-36 * var(--upx)) 5.3%; align-items: stretch; grid-template-columns: repeat(3,calc(190 * var(--upx))); }
 /* 꼬치는 늘어난 자리를 그대로 채웁니다(위 align-items:stretch). min-height 는
    그림이 없을 때의 최소 키로만 남습니다.
-   ⚠️ padding-bottom 36 이 손잡이가 화로 밖으로 나오는 자리이고, 위 cook-food 의
-      `bottom: -36` 과 **같은 값이어야** 합니다. 하나만 고치면 손잡이가 잘리거나
-      화로 안에 갇힙니다.
-   ⚠️ 44 → 36 으로 줄인 이유 : 화로 키(409.8) + 손잡이 44 = 453.8 이 칸(457)에
-      3.2 밖에 안 남아, 꼬치가 ±2도 기울어 있는 만큼(약 2) 아슬아슬했습니다.
-      36 이면 445.8 로 11 남습니다.
+
+   [padding-bottom = 조각이 **깔리면 안 되는** 아래쪽 자리]
+   상자는 석쇠 창 위끝에서 시작해 화로 **밖 손잡이 자리**까지 늘어나 있고,
+   조각 묶음은 그 안에서 세로 가운데(justify-content:center)에 놓입니다.
+   그래서 이 값이 곧 "조각을 얼마나 위로 올릴까" 입니다.
+     67 = 석쇠 창 아래끝 ~ 화로 아래끝 31 + 화로 밖 손잡이 36
+   ⚠️ 예전에는 손잡이 몫 36 만 주었습니다. 그러면 화로 아래 테두리 31 이 계산에서
+      빠져 **조각 묶음이 통째로 15 쯤 내려앉아**, 창 위에는 빈 석쇠가 남고 아래
+      조각은 화로 테두리에 걸쳐 보였습니다. (위 cook-food 의 `bottom:-36` 과 같은
+      값이어야 한다고 적어 두었던 것도 그래서 틀렸습니다 — 꼬챙이는 상자 전체에
+      절대배치로 깔려서(.gs-rod 의 inset-block:0) padding 을 타지 않습니다.
+      손잡이 길이를 정하는 것은 cook-food 의 bottom 하나뿐입니다.)
+   ⚠️ 손잡이 몫 44 → 36 으로 줄인 이유 : 화로 키(410.5) + 손잡이 44 = 454.5 가
+      칸(457)에 2.5 밖에 안 남아, 꼬치가 ±2도 기울어 있는 만큼 아슬아슬했습니다.
    폭은 조각 그림(108)이 들어가야 해서 54 → 120 입니다. */
-.ts-board .grill-skewer { min-height: calc(356 * var(--upx)); width: calc(120 * var(--upx)); padding-bottom: calc(36 * var(--upx)); }
+.ts-board .grill-skewer { min-height: calc(356 * var(--upx)); width: calc(120 * var(--upx)); padding-bottom: calc(67 * var(--upx)); }
 /* 조각 그림 크기. E8 꽂기 화면(120 x 105)의 0.9 배입니다 — 쌓인 키가
    5 * 94.5 - 10 * 17.5 = 297.5 라, 손잡이를 뺀 자리(356 - 44 = 312) 안에 들어갑니다.
    ⚠️ 그림 캔버스 비율 512 : 448 을 지켜야 조각이 눌리지 않습니다 (108 / 1.1428 = 94.5). */
@@ -732,9 +760,8 @@
   /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */
   .cg-frame { animation:none; }
   .cg-frame.frame-1 { opacity:1; }
-  /* 연기는 멈추되 사라지지는 않게 — 가운데 장(03) 한 장만 세워 둡니다 */
-  .ts-smoke-frame { animation:none; }
-  .ts-smoke-frame.frame-3 { opacity:1; }
+  /* 연기(.mg-smoke-frame)를 멈추는 것은 공용 쪽에 있습니다 —
+     css/minigame-parts.css 의 같은 @media 구역 */
   .e5-result.show { animation:none; opacity:1; transform:translate(-50%,-50%) scale(1); }
 }
 
@@ -751,7 +778,9 @@
      ⚠️ 세로는 반드시 그림 비율(1.6693)로 따라옵니다. 눈대중으로 박으면 화로가 눌립니다.
         위·좌·우 석쇠 창 자리는 % 라 따로 고칠 것이 없습니다. */
   .ts-board .two-side-pan.skewer-cook { width: calc(460 * var(--upx)); height: calc(276 * var(--upx)); }
-  .ts-board .grill-skewer { min-height: calc(280 * var(--upx)); width: calc(84 * var(--upx)); padding-bottom: calc(34 * var(--upx)); }
+  /* padding-bottom = 석쇠 창 아래끝 ~ 화로 아래끝(276 의 7.6% = 21) + 손잡이 34.
+     뜻은 넓은 화면(67)과 같습니다 — 위 `.ts-board .grill-skewer` 주석 참고. */
+  .ts-board .grill-skewer { min-height: calc(280 * var(--upx)); width: calc(84 * var(--upx)); padding-bottom: calc(55 * var(--upx)); }
   .ts-board .skewer-cook .cook-food { bottom: calc(-34 * var(--upx)); grid-template-columns: repeat(3,calc(126 * var(--upx))); }
   /* 쌓인 키 = 5 * 66.5 - 10 * 12.5 = 207.5  ≤  280 - 34 (=246) */
   .ts-board .grill-skewer { --gs-piece-w: calc(76 * var(--upx)); --gs-piece-h: calc(66.5 * var(--upx)); --gs-piece-overlap: calc(-12.5 * var(--upx)); }

@@ -386,10 +386,16 @@
 }
 
 /* E1 썰기 화면은 키보드 타이밍에 집중해야 하므로 커다란 손 그림을 쓰지 않습니다.
-   오버레이가 닫히거나 다른 미니게임으로 바뀌면 :has 조건도 바로 풀립니다. */
+   오버레이가 닫히거나 다른 미니게임으로 바뀌면 :has 조건도 바로 풀립니다.
+
+   ⚠️ 여기에 `cursor: default` 를 적으면 안 됩니다. 그 키워드는 "고양이 포인터"가
+      아니라 **OS 기본 화살표**라서, 손 그림을 끈 자리에 윈도우 커서가 그대로
+      튀어나옵니다. 손 그림을 쓰지 않는다는 것이지 게임 밖 포인터로 돌아가겠다는
+      뜻이 아니므로, 다른 화면과 같은 고양이 기본 포인터를 그대로 씁니다.
+      값은 css/cursor.css 가 :root 에 정의합니다. */
 .mini-overlay.open:has(.cut-screen) .mini-stage,
 .mini-overlay.open:has(.cut-screen) .mini-stage * {
-  cursor: default !important;
+  cursor: var(--cursor-cat-default), default !important;
 }
 
 /* ── 좁은 화면 보정 : 글자만 조금 줄입니다(패널 비율은 그대로) ── */

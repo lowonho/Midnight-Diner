@@ -351,21 +351,24 @@
 .kf-spatula-cursor[data-spatula="stirring"] .kf-wood-spatula-asset.spatula-stirring,
 .kf-spatula-cursor[data-spatula="rested"]   .kf-wood-spatula-asset.spatula-rested { opacity: 1; }
 /* ── 팬 위로 피어오르는 연기 ─────────────────────────────────
-   김치전(E5)과 **같은 그림 5장**입니다. 도는 방식(다섯 장을 겹쳐 두고 차례로
-   한 장씩)은 공용으로 빠져 있고 — css/minigame-parts.css 의 .mg-smoke —
-   여기서는 **팬 위 어디에서 얼마만큼 피어오를지**만 정합니다.
+   김치전(E5) · 볶음우동과 **같은 그림 5장**입니다. 한 모금이 피었다 사그라드는
+   방식은 공용으로 빠져 있고 — css/minigame-parts.css 의 .mg-smoke — 여기서는
+   **김치 위 어디에서 얼마만큼 피어오를 수 있는지, 그 범위**만 정합니다.
+   기둥이 정해진 자리에 박혀 있지 않고, 한 모금이 끝날 때마다 이 범위 안에서
+   새 자리를 뽑습니다 (day-prep-minigames.js 의 placeMinigameSmoke).
 
-   ⚠️ 자리는 팬 상자(820 x 356.2) 기준 % 입니다. 상자 아래 가운데가 연기 뿌리라
-      bottom 은 "김치 위 어디에서 피어오르는가" 가 됩니다.
-   ⚠️ 위로는 팬 밖으로 나가지만 **플레이 칸(.kf-board, 높이 503)에서 잘립니다**
-      (칸이 overflow:hidden 입니다 — 위 .kf-board 참고). 상자 윗변이
-        142(팬 바닥) + bottom% x 356.2 + width% x 820
-      이라, 지금 값은 475 · 469 로 503 아래에 들어옵니다. 키우려면 이 셈을 다시 하세요.
-   ⚠️ 가로는 김치가 담긴 자리(팬 상자의 7% ~ 73% — .frying-kimchi 의 inset) 안에
-      뿌리가 오게 잡았습니다. 뿌리는 상자 가운데라 left + width/2 로 봅니다. */
-.frying-pan .mg-smoke.smoke-one { left: 15%; bottom: 36%; width: 25%; }
-/* 두 번째 기둥은 조금 작고, 한 바퀴의 반대쪽에서 시작해 둘이 같이 뜨지 않습니다 */
-.frying-pan .mg-smoke.smoke-two { left: 40%; bottom: 48%; width: 19%; --mg-smoke-offset: -.5; }
+   **뽑는 범위 자체는 공용 기본값을 그대로 씁니다** (css/minigame-parts.css 의
+   .mg-smoke). 김치가 담긴 자리(팬 상자의 7% ~ 73% — .frying-kimchi 의 inset)가
+   김치전의 반죽 자리와 같은 값이라, 세 화면 중 둘은 손댈 것이 없습니다.
+   여기서 덮어쓰는 것은 **잘리는 천장 하나**뿐입니다.
+
+   ⚠️ 위로는 팬 밖으로 나가는데, 플레이 칸(.kf-board)이 overflow:hidden 이라
+      거기서 잘립니다 (위 .kf-board 참고). 팬 바닥이 칸 바닥에서 142 이고 칸이
+      503 이니, 팬 위로 쓸 수 있는 높이는 361 — 팬 세로(356.2)의 101% 입니다.
+      상자 윗변이 이 선을 넘지 않게 자리를 뽑는 것은 코드가 합니다
+      (day-prep-minigames.js 의 placeMinigameSmoke). 값 하나만 맞으면 됩니다.
+   ⚠️ 팬을 키우거나(--kf-pan-w) 내리면(--kf-pan-drop) 이 101 도 다시 잡아야 합니다. */
+.frying-pan .mg-smoke { --mg-smoke-zone-top: 101; }
 /* 많이 볶을수록 진해집니다 (아래 .kf-steam 의 단계와 같은 흐름입니다) */
 .kf-board.cook-stage-1 .mg-smoke { opacity: .42; }
 .kf-board.cook-stage-2 .mg-smoke,.kf-board.cook-stage-3 .mg-smoke { opacity: .56; }

@@ -92,8 +92,28 @@
         cursor.classList.add("show");
         if(params.get("press") === "1") cursor.classList.add("pressed");
       }
+      parkSmoke();
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기는 한 모금 피우고 **쉽니다**(한 바퀴의 약 37%). 그냥 찍으면 그 쉬는 참에
+       걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+       ⚠️ 다섯 장은 같은 시각에 시작해서(currentTime 이 같이 움직입니다)
+          `animation-delay` 로만 어긋나 있습니다. 그래서 currentTime 에 0 을 넣으면
+          한 바퀴의 0 지점이 아니라 **아직 지연 구간**이라 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다. */
+    function parkSmoke(){
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        const first = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+        if(!first) return;
+        const { delay, duration } = first.effect.getTiming();
+        const at = delay + (.08 + index * .05) * duration;
+        column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+          const anim = frame.getAnimations()[0];
+          if(anim){ anim.pause(); anim.currentTime = at; }
+        });
+      });
+    }
 
     function measure(){
       const rect = el => el && el.getBoundingClientRect();
@@ -120,10 +140,15 @@
         cookStep:state.mini.data.cookStep,
         // 켜져 있는 그림 = 지금 단계까지. 맨 뒤가 보이는 장입니다.
         on:shown.map(i => i.getAttribute("src").split("/").pop()),
-        smoke:[...document.querySelectorAll(".ts-smoke")].map(s => {
+        /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(day-prep-minigames.js 의
+           placeMinigameSmoke) 여기 값은 "이번에 뽑힌 한 자리" 입니다 — 매번 달라지는
+           것이 정상입니다. 봐야 할 것은 자리가 아니라 **뿌리가 김치전 위에 있는지**와
+           **칸 안에 남는지**입니다. 뽑기 자체가 범위를 지키는지는 김치 볶기 스모크가
+           400번 돌려 확인합니다 (tools/e3-kimchi-fry-visual-smoke.html 의 placement). */
+        smoke:[...document.querySelectorAll(".mg-smoke")].map(s => {
           const r = rect(s);
           return { box:`${r.width.toFixed(1)}x${r.height.toFixed(1)}`,
-                   frames:s.querySelectorAll(".ts-smoke-frame").length,
+                   frames:s.querySelectorAll(".mg-smoke-frame").length,
                    // 연기 뿌리(상자 아래 가운데)가 김치전 위에 있는지
                    rootX:+(r.left + r.width / 2 - foodRect.left).toFixed(1),
                    rootY:+(r.bottom - foodRect.top).toFixed(1),

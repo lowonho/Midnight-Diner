@@ -6,23 +6,66 @@
   <title>INGREDIENT_SELECT_PENDING</title>
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/minigame-parts.css" />
+  <link rel="stylesheet" href="../css/minigame-frame.css" />
   <link rel="stylesheet" href="../css/ingredient-select.css" />
   <style>
-    body{margin:0;background:#100a06}.game-frame{position:relative;width:100vw;height:100vh;overflow:hidden}
+    /* 본 게임의 .game-frame 과 같은 값입니다(16:9 + border 2px).
+       ⚠️ 100vw x 100vh 로 두면 세로가 16:9 가 아니라 3열 실측 세로가 어긋납니다. */
+    body{margin:0;display:grid;place-items:center;min-height:100vh;background:#100a06}
+    .game-frame{position:relative;width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));aspect-ratio:16/9;border:2px solid #5d3920;background:#17100d;overflow:hidden}
     #testResult{position:fixed;z-index:100;left:8px;bottom:8px;padding:6px 10px;background:#111;color:#fff;font:14px monospace}
   </style>
 </head>
 <body>
   <main class="game-frame">
     <section id="menuSelectOverlay" class="overlay"></section>
-    <section id="ingredientSelectOverlay" class="overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
-      <div class="ingredient-select-window wood-panel">
-        <header class="ingredient-select-header"><div><p class="eyebrow">OPEN THE FRIDGE</p><h2 id="ingredientSelectTitle">필요한 재료를 꺼내주세요!</h2><p>같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p></div><span id="ingredientDishProgress" class="ingredient-dish-progress"></span></header>
-        <div class="ingredient-select-layout">
-          <aside class="ingredient-recipe-card"><span>오늘의 메뉴</span><h3 id="ingredientDishName"></h3><div id="ingredientDishGallery" class="ingredient-dish-gallery"></div><strong>냉장고에서 찾을 재료</strong><div id="ingredientChecklist" class="ingredient-checklist"></div><p id="ingredientPantryNote" class="ingredient-pantry-note"></p></aside>
-          <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div><div class="ingredient-puzzle-controls"><button id="ingredientUndo" type="button">↶ 되돌리기</button><button id="ingredientHint" type="button">✦ 힌트</button><button id="ingredientShuffle" type="button">⟳ 선반 섞기</button></div><p id="ingredientSelectFeedback" class="ingredient-select-feedback"></p></section>
-          <aside class="ingredient-basket-card"><span>장바구니</span><div id="ingredientBasket" class="ingredient-basket"></div><strong id="ingredientTotalProgress" class="ingredient-total-progress"></strong><button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button><small>시간 제한과 실패는 없어요.<br />막히면 되돌리거나 선반을 섞어보세요.</small></aside>
+    <!-- index.html 의 #ingredientSelectOverlay 와 같은 구조입니다(공용 프레임 · 하단 띠 없는 3열) -->
+    <section id="ingredientSelectOverlay" class="overlay mini-overlay ingredient-select-overlay" role="dialog" aria-modal="true" aria-labelledby="ingredientSelectTitle">
+      <div class="mini-window" aria-hidden="true"></div>
+      <div class="mini-stage">
+        <div class="mini-content">
+          <div class="fridge-scene">
+            <aside class="fridge-col">
+              <div class="fridge-panel fridge-ing-panel">
+                <h3 class="fridge-col-title starred">오늘의 메뉴</h3>
+                <p id="ingredientDishName" class="fridge-dish-name"></p>
+                <div id="ingredientDishGallery" class="ingredient-dish-gallery"></div>
+                <h3 class="fridge-col-title">찾을 재료</h3>
+                <div id="ingredientChecklist" class="ingredient-checklist"></div>
+                <p id="ingredientPantryNote" class="ingredient-pantry-note"></p>
+              </div>
+            </aside>
+            <div class="fridge-play">
+              <section class="ingredient-fridge"><div class="ingredient-fridge-light"></div><div id="ingredientGrid" class="ingredient-grid"></div></section>
+              <div class="ingredient-puzzle-controls"><button id="ingredientUndo" type="button">↶ 되돌리기</button><button id="ingredientHint" type="button">✦ 힌트</button><button id="ingredientShuffle" type="button">⟳ 선반 섞기</button></div>
+            </div>
+            <aside class="fridge-col">
+              <div class="fridge-panel fridge-count">
+                <h3 class="fridge-col-title">진행도</h3>
+                <strong id="ingredientTotalProgress" class="ingredient-total-progress"></strong>
+                <span id="ingredientDishProgress" class="ingredient-dish-progress"></span>
+              </div>
+              <div class="fridge-panel fridge-basket">
+                <h3 class="fridge-col-title">장바구니</h3>
+                <div id="ingredientBasket" class="ingredient-basket"></div>
+                <button id="ingredientSelectContinue" class="gold-button ingredient-continue" type="button" disabled>재료 준비 시작</button>
+              </div>
+            </aside>
+          </div>
         </div>
+      </div>
+      <div class="mini-tip">
+        <span class="mini-tip-label" aria-hidden="true">TIP</span>
+        <div class="mini-tip-body">
+          <p class="mini-description">같은 재료 3개를 한 칸에 모으면 장바구니에 담겨요.</p>
+          <p id="ingredientSelectFeedback" class="mini-feedback" role="status" aria-live="polite"></p>
+        </div>
+        <span class="mini-tip-hint">시간 제한 없음</span>
+      </div>
+      <div class="mini-title-panel">
+        <p class="mini-station">필요한 재료를 꺼내 장바구니에 담아주세요!</p>
+        <h2 id="ingredientSelectTitle">냉장고 재료 꺼내기</h2>
       </div>
     </section>
   </main>
@@ -79,7 +122,17 @@
         startIngredientSelection();
         assert(state.phase===GAME_PHASES.PREP,"menu without refrigerated ingredients skips fridge");
         document.title="INGREDIENT_SELECT_OK";testResult.textContent="INGREDIENT_SELECT_OK";
-      }else{document.title="INGREDIENT_SELECT_VISUAL";testResult.hidden=true;}
+      }else{
+        document.title="INGREDIENT_SELECT_VISUAL";testResult.hidden=true;
+        /* 3열 실측값을 body 에 심어 둡니다 — --dump-dom 으로 읽습니다.
+           기준은 1360.2 x 613.2 (좌 250 + 18 + 가운데 824.2 + 18 + 우 250). */
+        const rect=element=>{const box=element.getBoundingClientRect();return `${box.width.toFixed(1)}x${box.height.toFixed(1)}`};
+        const scene=document.querySelector(".fridge-scene");
+        document.body.dataset.scene=rect(scene);
+        document.body.dataset.cols=[...scene.children].map(rect).join(" | ");
+        document.body.dataset.rows=String(getComputedStyle(scene).gridTemplateRows);
+        document.body.dataset.strip=String(!!scene.querySelector(".mg-strip"));
+      }
     }catch(error){document.title="INGREDIENT_SELECT_FAIL";testResult.textContent=`INGREDIENT_SELECT_FAIL ${error.stack||error}`;}
   </script>
 </body>

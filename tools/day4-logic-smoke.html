@@ -207,6 +207,9 @@ try{
   // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.directions.every(way=>DAY_PREP_ASSET_PATHS[fryKimchiStirAssetKey(way)])&&DAY_PREP_ASSET_PATHS.fryKimchiBase&&["frySpatulaClean","frySpatulaStirring","frySpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 kimchi has one flipped frame per direction plus three spatula states");
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
+  // 볶음우동도 김치 볶기와 같은 한 벌입니다 — 방향마다 볶은 면 한 장 + 뒤집개 3자세.
+  // 뒤집개는 두 자루지만 **한 장을 좌우로 뒤집어 나눠 쓰므로** 그림은 3장 그대로입니다.
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.every(way=>DAY_PREP_ASSET_PATHS[stirUdonPoseAssetKey(way)])&&DAY_PREP_ASSET_PATHS.stirUdonBase&&["stirSpatulaClean","stirSpatulaStirring","stirSpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 yakisoba has one flipped frame per direction plus three spatula states");
   const e3RepeatSequence=randomFryDirections(["left","right"],10,()=>0);
   assert(e3RepeatSequence.some((direction,index)=>index>0&&direction===e3RepeatSequence[index-1])&&e3RepeatSequence.every((direction,index)=>index<2||direction!==e3RepeatSequence[index-1]||direction!==e3RepeatSequence[index-2]),"E3 sequence allows doubles but not triples");
   assert(directionCompletionGrade({errors:0})==="perfect"&&directionCompletionGrade({errors:1})==="good","E3 grade only counts direction errors");
@@ -279,8 +282,12 @@ try{
   const stirMini={engine:"stir",complete:false,data:{}};state.mini=stirMini;
   MINI_ENGINES.stir.setup(stirMini,{set:()=>{}});
   assert(typeof MINI_ENGINES.stir.key==="undefined"&&stirMini.data.index===0,"E3 yakisoba arrow keys are not registered as game input");
+  // 볶기 전에는 두 자루 다 깨끗한 장입니다 (김치 볶기의 나무 주걱과 같은 세 자세)
+  assert([...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="clean"),"E3 yakisoba spatulas start clean");
   const stirDirection=stirMini.data.arrows[0];slideE3Surface(dom.miniContent.querySelector(".yk-scene"),stirDirection,32);
   assert(stirMini.data.index===1&&stirMini.data.errors===0&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba accepts only one full sweep per drag");
+  // 한 획을 볶고 손을 뗐으면 두 자루 다 면이 묻은 장으로 바뀝니다 (한쪽만 바뀌면 짝이 안 맞습니다)
+  assert(stirMini.data.stirred&&[...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="rested"),"E3 yakisoba both spatulas pick up noodles after a sweep");
   while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);
   assert(stirMini.data.phase==="complete"&&stirMini.data.inputLocked&&dom.miniContent.querySelector("#e3Result.perfect"),"E3 full sequence grade and delayed completion state");
   state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
@@ -334,14 +341,16 @@ try{
   MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
   // 하단 공용 띠(.mg-strip)를 쓰지 않는 화면입니다 — 띠가 다시 생기면 3열 세로가 613.2 에서 잘립니다
   assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen: five raw items, oil pot, rack, and no bottom strip");
-  dropFryPiece();dropFryPiece();dropFryPiece();
-  assert(fryMini.data.pot.length===FRY_COOK.potLimit&&fryMini.data.raw===2&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===3,"E6 oil pot holds three at a time");
+  for(let i=0;i<5;i++)dropFryPiece();
+  assert(FRY_COOK.potLimit===5&&FRY_POT_SEATS.length===FRY_COOK.potLimit&&fryMini.data.pot.length===5&&fryMini.data.raw===0&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===5,"E6 oil pot holds the whole batch of five at a time");
+  // 기본 자리는 전부 기름 안(FRY_POT_RADIUS)에 있어야 합니다 — 넘으면 쇠테에 걸칩니다
+  assert(FRY_POT_SEATS.every(seat=>Math.hypot(seat.x-50,seat.y-50)<=FRY_POT_RADIUS),"E6 every default pot seat sits inside the oil");
   for(let frame=0;frame<120;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="under"),"E6 pieces start undercooked");
   for(let frame=0;frame<180;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="cooked"),"E6 pieces turn cooked while they sit in the oil");
   liftFryPiece(fryMini.data.pot[0].id);
-  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&fryMini.data.pot.length===2&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 lifting a cooked piece moves it to the rack");
+  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&fryMini.data.pot.length===4&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 lifting a cooked piece moves it to the rack");
   // 남겨 두면 탑니다. 탄 것도 망에 올라가야 진행이 막히지 않습니다.
   for(let frame=0;frame<360;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&liftFryPiece(fryMini.data.pot[0].id)&&fryMini.data.done[1].stage==="burnt","E6 pieces burn if left in the oil and can still be lifted");

@@ -109,8 +109,28 @@
         if(scrape && target && work.contains(target)){ a.pause(); try { a.currentTime = 120; } catch(e){} }
         else if(!target || !work.contains(target)) try { a.finish(); } catch(e){}
       });
+      parkSmoke();
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
+
+    /* 연기는 한 모금 피우고 **쉽니다**(한 바퀴의 약 37%). 그냥 찍으면 그 쉬는 참에
+       걸려 캡처가 비는 일이 잦아서, 기둥마다 잘 보이는 순간에 세워 둡니다.
+       ⚠️ 다섯 장은 같은 시각에 시작해서(currentTime 이 같이 움직입니다)
+          `animation-delay` 로만 어긋나 있습니다. 그래서 currentTime 에 0 을 넣으면
+          한 바퀴의 0 지점이 아니라 **아직 지연 구간**이라 화면이 텅 빕니다.
+          첫 장의 지연을 더해 줘야 그 기둥의 진짜 u 지점이 됩니다. */
+    function parkSmoke(){
+      document.querySelectorAll(".mg-smoke").forEach((column, index) => {
+        const first = column.querySelector(".mg-smoke-frame.frame-1")?.getAnimations()[0];
+        if(!first) return;
+        const { delay, duration } = first.effect.getTiming();
+        const at = delay + (.08 + index * .05) * duration;
+        column.querySelectorAll(".mg-smoke-frame").forEach(frame => {
+          const anim = frame.getAnimations()[0];
+          if(anim){ anim.pause(); anim.currentTime = at; }
+        });
+      });
+    }
 
     function measure(){
       const rect = el => el.getBoundingClientRect();
@@ -124,6 +144,10 @@
       const griddle = document.getElementById("stirPlate");
       const food = document.getElementById("stirFood");
       const boardRect = rect(board), plateRect = rect(griddle);
+      /* ⚠️ 실제로 잘리는 선은 플레이 칸(.yk-board)이 아니라 **그 바깥 .mini-stage**
+         입니다 (css/minigame-frame.css 의 overflow:hidden). 칸 위로 삐져나가도
+         이 선까지는 그대로 보이므로, 뒤집개 손잡이는 여기로 재야 합니다. */
+      const stageRect = rect(document.querySelector(".mini-stage"));
       // 1920 프레임 기준 px 로 되돌리는 배율
       const s = boardRect.width / parseFloat(getComputedStyle(board).width);
       // 철판 그림 왼쪽 위를 0 으로 놓고 잽니다 — 면·연기 자리는 전부 철판 기준입니다
@@ -138,7 +162,29 @@
         boardClass:board.className,
         board:box(board),
         griddle:{ box:box(griddle), drawn:drawn(document.querySelector(".yk-griddle-asset")) },
-        food:{ box:box(food), at:atPlate(food), asset:food.classList.contains("has-prep-asset") },
+        food:{ box:box(food), at:atPlate(food), asset:food.classList.contains("has-prep-asset"),
+               shown:shown([...food.querySelectorAll(".yk-food-asset")]) },
+        /* 철판 뒤집개 두 자루. 임시 도형이 아니라 납품 그림을 쓰고 있는지(asset),
+           지금 어느 자세인지(pose/shown), 그리고 **날 한가운데가 어디에 오는지**를 봅니다.
+           날 자리는 회전축(transform-origin)이 곧 그 지점이라 거기서 되짚습니다.
+           overTop 이 양수면 플레이 칸 위로 손잡이가 삐져나간다는 뜻입니다. */
+        spatulas:[...document.querySelectorAll(".yk-spatula")].map(tool => {
+          const r = rect(tool), at = atPlate(tool), style = getComputedStyle(tool);
+          const [ox,oy] = style.transformOrigin.split(" ").map(parseFloat);
+          return { which:tool.classList.contains("spatula-left") ? "left" : "right",
+            box:box(tool), at, pose:tool.dataset.spatula || null,
+            asset:tool.classList.contains("has-prep-asset"),
+            tilt:style.getPropertyValue("--yk-spatula-tilt").trim() || null,
+            // 날 중심 (철판 그림 왼쪽 위 기준)
+            bladeX:+(at.l + ox / s).toFixed(1), bladeY:+(at.t + oy / s).toFixed(1),
+            overTop:+((boardRect.top - r.top) / s).toFixed(1),
+            /* 잘리는 선 위로 얼마나 나갔는지. **양수가 정상입니다** — 날이 면 위로
+               나오려면 손잡이는 잘릴 수밖에 없습니다(css 의 [세로 top -180] 참고).
+               볼 것은 이 값이 아니라 **날이 철판 뒷턱(bladeY 기준 위쪽)을 벗어나
+               나무 바닥에 뜨지 않는가** 입니다. */
+            cut:+((stageRect.top - r.top) / s).toFixed(1),
+            shown:shown([...tool.querySelectorAll(".yk-spatula-asset")]) };
+        }),
         /* 연기 기둥 셋. 상자는 정사각(w == h)이어야 하고, 뿌리(아래 가운데)가
            면이 깔린 자리(철판 기준 가로 13% ~ 87%) 안에 있어야 합니다.
            overTop 이 양수면 철판 칸 위로 삐져나간다는 뜻입니다. */
@@ -155,7 +201,9 @@
         steamShape:document.querySelectorAll(".yk-steam").length,
         // 임시 CSS 도형이 남아 보이면 안 됩니다
         fallback:{ griddleShape:!griddle.classList.contains("has-asset"),
-                   foodShape:!food.classList.contains("has-prep-asset") }
+                   foodShape:!food.classList.contains("has-prep-asset"),
+                   spatulaShape:[...document.querySelectorAll(".yk-spatula")]
+                     .some(tool => !tool.classList.contains("has-prep-asset")) }
       });
       document.body.dataset.ready = "true";
     }

@@ -808,6 +808,7 @@ Promise.all([
   loadFoodPropAssets(),
   loadStageAssets(),
   loadCounterAssets(),
+  loadSignageAssets(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);

@@ -21,7 +21,9 @@
     "build:chef": "node tools/build-chef-sprites.js",
     "verify:chef": "node tools/build-chef-sprites.js --verify",
     "build:minigame-art": "node tools/build-minigame-art-webp.js",
-    "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify"
+    "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify",
+    "build:ui-common": "node tools/build-ui-common-webp.js",
+    "verify:ui-common": "node tools/build-ui-common-webp.js --verify"
   },
   "repository": {
     "type": "git",

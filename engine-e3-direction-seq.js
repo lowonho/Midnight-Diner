@@ -380,7 +380,7 @@ function renderKimchiFry(){
         <div class="frying-pan ${hasDayPrepAsset("fryingPan")?"has-prep-asset":""}">
           ${dayPrepAssetMarkup("fryingPan","frying-pan-asset","후라이팬")}
           <i class="frying-kimchi ${fryKimchiHasArt()?"has-prep-asset":""}">${fryKimchiFramesMarkup()}</i>
-          ${minigameSmokeMarkup(["one","two"])||`<i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>`}
+          ${minigameSmokeMarkup(3)||`<i class="kf-steam steam-one"></i><i class="kf-steam steam-two"></i>`}
           ${spatulaAsCursor?"":`<i class="kf-wood-spatula ${frySpatulaHasArt()?"has-prep-asset":""}" data-spatula="${frySpatulaState(data,false)}">${frySpatulaFramesMarkup()}</i>`}
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
@@ -401,6 +401,9 @@ function renderKimchiFry(){
         ${data.sequence.map((direction,index)=>`<span class="kf-chip ${directionSequenceClasses(index,data.successes)}" data-sequence-index="${index}">${directionArrowMarkup(direction,"kf-chip-asset")}</span>`).join("")}
       </div>
     </div>`;
+  // 연기 기둥의 첫 자리를 잡습니다 (day-prep-minigames.js 의 mountMinigameSmoke).
+  // 이걸 빼면 기둥이 공용 기본 자리에 겹쳐 서서 한 줄로만 보입니다.
+  mountMinigameSmoke(dom.miniContent);
   bindDirectionSlide({
     surfaceSelector:".kf-scene",
     gestureScaleSelector:"#fryWorkArea",
@@ -459,7 +462,7 @@ function kimchiFryInput(direction,repeat=false){
 /* ============================================================
    2. 볶음우동 조리 (밤 조리 · 철판 볶기)
 
-   화면 구성 (그림은 전부 CSS 임시 도형입니다. 에셋이 들어오면 교체)
+   화면 구성 (그림은 assets/minigame/E3 의 납품 에셋입니다)
      왼쪽   재료 카드 — 우동 ×1 · 소스 ×1 · 손질 야채 ×1 (보여주기만 합니다)
      가운데 불 위의 철판 + 볶이는 면
      오른쪽 진행도 + 다음 순서 화살표
@@ -487,6 +490,60 @@ const STIR_INGREDIENTS=Object.freeze([
   Object.freeze({id:"veggie",label:"손질 야채",count:1,asset:"stirIngVeggie"})
 ]);
 
+/* ---- 볶음우동 그림 두 벌 ----------------------------------
+   **김치 볶기와 같은 규칙입니다** (위 "김치 볶기 그림 두 벌" 참고) — 철판 위의 면과
+   뒤집개는 둘 다 한 자리에 겹쳐 두고 갈아 끼우는 연속 그림이고, 어느 장이 보이는지는
+   전부 CSS 가 정합니다. 자바스크립트는 `.yk-board` 의 scrape-○ 클래스(이미 있던 것)와
+   뒤집개의 data-spatula 만 바꿉니다.
+
+   ⚠️ 김치 볶기와 **다른 점 두 가지**입니다.
+     · 뒤집개가 **두 자루**입니다 (임시 도형 시절과 같은 좌우 한 쌍). 한 장을 좌우로
+       뒤집어 나눠 쓰므로 그림은 그대로 3장입니다 — css 의 .spatula-left 참고.
+     · 뒤집개를 **마우스 포인터로 내보내지 않습니다.** 김치 볶기의 나무 주걱은
+       포인터를 따라다니지만(mountFrySpatulaCursor), 여기는 철판 위에 늘 놓여
+       있는 두 자루가 화면의 일부입니다.
+   (파일 경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고) */
+
+// 방향 → 그 방향으로 볶은 면 그림 키. 방향 문자열이 그대로 키가 됩니다.
+function stirUdonPoseAssetKey(direction){
+  return direction?`stirUdon${direction[0].toUpperCase()}${direction.slice(1)}`:"";
+}
+
+/* 철판 위에 겹쳐 깔 면 그림. 평소 모습 1장 + 방향 4장입니다.
+   순서에 쓰는 방향(STIR_DIRECTIONS)과 상관없이 넷을 다 깔아 둡니다. */
+const STIR_UDON_POSES=Object.freeze(["left","up","right","down"]);
+const STIR_SCRAPE_CLASSES=Object.freeze(STIR_UDON_POSES.map(pose=>`scrape-${pose}`));
+
+function stirUdonHasArt(){return hasDayPrepAsset("stirUdonBase");}
+function stirUdonFramesMarkup(){
+  return [["stirUdonBase","base"],...STIR_UDON_POSES.map(pose=>[stirUdonPoseAssetKey(pose),pose])]
+    .map(([key,pose])=>dayPrepAssetMarkup(key,`yk-food-asset udon-${pose}`,pose==="base"?"볶이는 우동":""))
+    .join("");
+}
+
+/* 철판 뒤집개(너구리 손잡이) 3장. 김치 볶기의 나무 주걱과 상태 이름이 같습니다.
+     clean     한 번도 안 볶은 깨끗한 뒤집개
+     stirring  볶는 중 — 손을 대고 있는 동안
+     rested    한 번 볶고 손을 뗀 상태
+   ⚠️ 세 장이 다 있어야 has-prep-asset 을 붙입니다 (김치 볶기와 같은 이유 —
+      한 장이라도 없으면 상태가 바뀔 때 뒤집개가 사라집니다). */
+const STIR_SPATULA_ASSETS=Object.freeze({clean:"stirSpatulaClean",stirring:"stirSpatulaStirring",rested:"stirSpatulaRested"});
+
+function stirSpatulaHasArt(){return Object.values(STIR_SPATULA_ASSETS).every(hasDayPrepAsset);}
+function stirSpatulaFramesMarkup(side){
+  return Object.entries(STIR_SPATULA_ASSETS)
+    .map(([pose,key])=>dayPrepAssetMarkup(key,`yk-spatula-asset spatula-${pose}`,pose==="clean"?`${side} 철판 뒤집개`:""))
+    .join("");
+}
+function stirSpatulaState(data,dragging){
+  return dragging?"stirring":(data.stirred?"rested":"clean");
+}
+// 두 자루가 늘 같은 자세입니다 — 한쪽만 면이 묻어 있으면 짝이 안 맞아 보입니다.
+function setStirSpatulaState(data,dragging){
+  const pose=stirSpatulaState(data,dragging);
+  dom.miniContent.querySelectorAll(".yk-spatula").forEach(tool=>{tool.dataset.spatula=pose;});
+}
+
 registerMiniEngine("stir",{
   setup(m,{set}){
     set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
@@ -499,6 +556,8 @@ registerMiniEngine("stir",{
       phase:"ready",
       inputLocked:false,
       transitioning:false,
+      // 한 번이라도 볶았는지. 뒤집개 그림이 깨끗한 장 → 면이 묻은 장으로 바뀝니다.
+      stirred:false,
       drag:null
     };
     audio.loop?.("griddle_sizzle",m,.62);
@@ -533,18 +592,17 @@ function renderStirScene(){
         ${minigameBurnerMarkup("griddle")}
         <div class="yk-griddle ${hasDayPrepAsset("stirGriddle")?"has-asset":""}" id="stirPlate">
           ${dayPrepAssetMarkup("stirGriddle","yk-griddle-asset","철판")}
-          ${minigameSmokeMarkup(["one","two","three"])||`<i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i><i class="yk-steam steam-three"></i>`}
-          <div class="yk-food ${hasDayPrepAsset("stirNoodles")?"has-prep-asset":""}" id="stirFood">
+          ${minigameSmokeMarkup(3)||`<i class="yk-steam steam-one"></i><i class="yk-steam steam-two"></i>`}
+          <div class="yk-food ${stirUdonHasArt()?"has-prep-asset":""}" id="stirFood">
             <span class="yk-food-fallback" aria-hidden="true">
               ${noodleStrands}
               <b class="yk-garnish cabbage garnish-one"></b><b class="yk-garnish cabbage garnish-two"></b>
               <b class="yk-garnish carrot garnish-one"></b><b class="yk-garnish carrot garnish-two"></b>
               <b class="yk-garnish onion garnish-one"></b><b class="yk-garnish onion garnish-two"></b>
             </span>
-            ${dayPrepAssetMarkup("stirNoodles","yk-food-asset","볶이는 우동")}
+            ${stirUdonFramesMarkup()}
           </div>
-          <i class="yk-spatula spatula-left ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","왼쪽 철판 뒤집개")}</i>
-          <i class="yk-spatula spatula-right ${hasDayPrepAsset("stirTeppanSpatula")?"has-prep-asset":""}">${dayPrepAssetMarkup("stirTeppanSpatula","yk-spatula-asset","오른쪽 철판 뒤집개")}</i>
+          ${["left","right"].map(side=>`<i class="yk-spatula spatula-${side} ${stirSpatulaHasArt()?"has-prep-asset":""}" data-spatula="${stirSpatulaState(data,false)}">${stirSpatulaFramesMarkup(side==="left"?"왼쪽":"오른쪽")}</i>`).join("")}
         </div>
         <span class="e3-result" id="e3Result" aria-live="polite"></span>
       </div>
@@ -564,11 +622,16 @@ function renderStirScene(){
         ${data.arrows.map((direction,index)=>`<span class="yk-chip ${directionSequenceClasses(index,data.index)}" data-stir-index="${index}">${directionArrowMarkup(direction,"yk-chip-asset")}</span>`).join("")}
       </div>
     </div>`;
+  // 연기 기둥의 첫 자리를 잡습니다 (위 renderKimchiFry 와 같습니다)
+  mountMinigameSmoke(dom.miniContent);
   bindDirectionSlide({
     surfaceSelector:".yk-scene",
     gestureScaleSelector:"#stirPlate",
     isActive:m=>m?.engine==="stir"&&m.data.configId==="yakisoba",
-    onDirection:direction=>stirInput(direction)
+    onDirection:direction=>stirInput(direction),
+    // 뒤집개는 손을 대는 순간부터 볶는 장으로 바뀝니다 (김치 볶기와 같습니다)
+    onDragStart:data=>setStirSpatulaState(data,true),
+    onDragEnd:data=>setStirSpatulaState(data,false)
   });
 }
 
@@ -576,6 +639,8 @@ function stirInput(direction,repeat=false){
   const m=state.mini;if(!m||m.engine!=="stir"||m.complete)return;
   if(repeat)return false;
   const data=m.data;
+  // 한 획을 밀었으면 방향이 틀렸어도 뒤집개에는 면이 묻습니다 (김치 볶기와 같습니다)
+  data.stirred=true;
   const current=dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`);
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"arrows",indexKey:"index",
@@ -598,8 +663,9 @@ function stirInput(direction,repeat=false){
       if(nextArrow)nextArrow.innerHTML=directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset");
       const work=dom.miniContent.querySelector("#stirWorkArea");
       if(work){
+        // scrape-○ 는 철판 위의 면을 그 방향으로 볶은 장으로 바꿉니다 (240ms 뒤 base 로 돌아옵니다)
         const actionClass=`scrape-${direction}`,stage=`cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}`;
-        work.classList.remove("scrape-left","scrape-right","scrape-up","scrape-down","cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
+        work.classList.remove(...STIR_SCRAPE_CLASSES,"cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
         setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },

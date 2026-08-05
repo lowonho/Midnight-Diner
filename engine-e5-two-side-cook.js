@@ -314,8 +314,12 @@ function grillSkewerMarkup(pattern, index, data) {
 /* ── 숯불 화로 그림 5장 ──────────────────────────────────────
    화로 몸통 · 벌건 숯 · 석쇠 살까지 **한 장에 다 그려져 있습니다**. 다섯 장은
    숯이 달아올랐다 사그라드는 연속 그림이라 한 자리에 겹쳐 두고 CSS 가 차례로
-   한 장씩 켭니다 (김치전 연기 .ts-smoke-frame 과 같은 방식 — 자바스크립트
-   타이머가 없으므로 미니게임이 닫혀도 뒷정리할 것이 없습니다).
+   한 장씩 켭니다 (자바스크립트 타이머가 없으므로 미니게임이 닫혀도 뒷정리할
+   것이 없습니다).
+   ⚠️ 연기(.mg-smoke-frame)와 헷갈리기 쉬운데 **넘기는 방식이 반대**입니다.
+      화로는 쉬지 않고 돌면서 딱 끊어 바꾸고(겹치면 화로가 껌뻑입니다),
+      연기는 한 모금 피우고 쉬면서 겹쳐 넘깁니다(끊으면 연기가 툭툭 튑니다).
+      까닭은 css/minigame/e5-two-side-cook.css 의 .cg-frame 구역에 적어 뒀습니다.
 
    그림이 다 있으면 예전 CSS 화로(.charcoal-bed 숯덩이 126개 · .grill-grate 살 ·
    .charcoal-flame 열기 두 겹)는 **통째로 끕니다** — 그림에 이미 다 들어 있어서
@@ -391,7 +395,9 @@ const TWO_SIDE_VIEW = Object.freeze({
   }),
   skewer: Object.freeze({
     subtitle: "녹색 타이밍에 맞춰 닭꼬치를 뒤집어주세요!",
-    ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: SKEWER_BATCH_SIZE, asset: "cookSkewerRaw" }],
+    // art:"skewer" → 그림 한 장이 아니라 낮에 꽂아 둔 배치를 그대로 쌓습니다
+    // (twoSideSkewerCardMarkup). cookSkewerRaw 는 그 그림들이 없을 때의 마지막 대비책입니다.
+    ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: SKEWER_BATCH_SIZE, asset: "cookSkewerRaw", art: "skewer" }],
     total: SKEWER_BATCH_SIZE,                   // 실제 준비 배치와 같은 꼬치 3개
     keyLayout: "row",                           // 키 두 개를 가로로 (← → )
     keyLink: "→",
@@ -403,9 +409,38 @@ const TWO_SIDE_VIEW = Object.freeze({
   })
 });
 
-// 왼쪽 재료 카드 한 장
+/* ── 재료 카드에 올라가는 '낮에 꽂아 둔 닭꼬치' ─────────────────
+   그림 한 장이 아니라 **화로 위 꼬치와 같은 방식으로 쌓아** 그립니다
+   (grillSkewerMarkup 과 같은 조각·꼬챙이 그림 · 같은 겹침 규칙). 그래야
+   재료 칸에 "내가 낮에 꽂은 그 배치"가 그대로 올라옵니다 — 닭 다섯 개를
+   꽂았으면 카드에도 닭 다섯 개입니다.
+   ⚠️ 익힘 단계는 올리지 않습니다(cookArt 자리에 false). 재료 칸은 "구우러 온
+      재료"를 보여 주는 자리라, 굽는 동안에도 꽂아 둔 그대로여야 합니다.
+   ⚠️ 조각 그림이 없으면 빈 문자열을 돌려줍니다 — 그러면 예전 임시 도형
+      (.ts-ing-card.skewerRaw .ts-ing-art i)이 그대로 보입니다.
+   ⚠️ 이름 앞에 twoSide 를 붙인 이유 : 이 게임들은 모듈이 아니라 **전역 스크립트**라
+      파일이 달라도 같은 이름이면 나중에 읽는 파일이 앞의 것을 덮어씁니다.
+      낮 '닭꼬치 꽂기'(engine-e8-order-place.js)에도 재료 카드 그림을 만드는
+      skewerIngredientArtMarkup(ingredient) 이 있고, index.html 이 E5 → E8 순으로
+      읽어서 이름이 겹치면 **여기 것이 조용히 사라집니다**(E8 함수가 ingredient 를
+      undefined 로 받아 닭 조각 3개를 그립니다). 실제로 한 번 그랬습니다. */
+function twoSideSkewerCardMarkup() {
+  if (!Object.values(SKEWER_ASSET_KEY).every(hasDayPrepAsset)) return "";
+  const hasRodArt = hasDayPrepAsset("skewerStick");
+  const skewers = skewerCookPatterns().map((pattern, index) => {
+    const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, true, false, 0)).join("");
+    const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
+    return `<span class="grill-skewer has-pieces ${hasRodArt ? "has-rod-art" : ""}" aria-label="${index + 1}번 꼬치 · ${label}">
+        ${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
+      </span>`;
+  }).join("");
+  return `<span class="ts-ing-skewers" aria-label="낮에 꽂아 둔 닭꼬치 ${SKEWER_BATCH_SIZE}개">${skewers}</span>`;
+}
+
+// 왼쪽 재료 카드 한 장. art:"skewer" 인 재료만 위 꼬치 쌓기를 쓰고, 나머지는 그림 한 장입니다.
 function twoSideIngredientMarkup(item) {
-  const asset = dayPrepAssetMarkup(item.asset, "ts-ing-asset", item.label);
+  const asset = (item.art === "skewer" ? twoSideSkewerCardMarkup() : "")
+    || dayPrepAssetMarkup(item.asset, "ts-ing-asset", item.label);
   return `<div class="ts-ing-card ${item.id}">
       <div class="ts-ing-art ${asset ? "has-asset" : ""}"><i></i>${asset}</div>
       <p class="ts-ing-name">${item.label} <b>×${item.count}</b></p>
@@ -442,16 +477,14 @@ function pancakeCookFoodMarkup(data){
   return `<i class="cook-food ${hasArt?"has-asset":""}">${frames}<span class="cook-bubbles" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span></i>`;
 }
 
-/* 김치전 위로 피어오르는 연기. 그림 5장이 한 바퀴 도는 연속 그림이라
-   **다섯 장을 겹쳐 두고 CSS 가 차례로 한 장씩만 켭니다**
-   (css 의 @keyframes ts-smoke-frame — 자바스크립트는 프레임을 돌리지 않습니다).
-   기둥 두 개가 서로 다른 자리·크기·박자로 오릅니다. 그림이 없으면
-   예전 CSS 김(.cook-steam) 두 줄이 그대로 보입니다. */
+/* 김치전 위로 피어오르는 연기. 김치 볶기·볶음우동과 **같은 공용 조각**입니다
+   (day-prep-minigames.js 의 minigameSmokeMarkup). 기둥 셋이 서로 다른 박자로
+   한 모금씩 피우고, 자리는 모금마다 김치전 위에서 새로 뽑습니다.
+   ⚠️ 그리고 나서 반드시 mountMinigameSmoke 를 불러야 첫 자리가 잡힙니다 —
+      renderTwoSideCook 이 화면을 그린 직후에 한 번 부릅니다.
+   그림이 없으면 예전 CSS 김(.cook-steam) 두 줄이 그대로 보입니다. */
 function pancakeSmokeMarkup(){
-  const keys=["01","02","03","04","05"].map(no=>`cookSmoke${no}`);
-  if(!keys.every(hasDayPrepAsset))return `<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>`;
-  const frames=keys.map((key,index)=>dayPrepAssetMarkup(key,`ts-smoke-frame frame-${index+1}`)).join("");
-  return ["one","two"].map(which=>`<span class="ts-smoke smoke-${which}" aria-hidden="true">${frames}</span>`).join("");
+  return minigameSmokeMarkup(3)||`<i class="cook-steam steam-one"></i><i class="cook-steam steam-two"></i>`;
 }
 
 // 가운데 조리 도구. 김치전은 불 위의 팬, 닭꼬치는 숯불 화로입니다.
@@ -553,6 +586,10 @@ function renderTwoSideCook() {
     sceneClass: hasSpatula ? "has-spatula" : ""
   });
   if (hasSpatula) mountTwoSideSpatula();
+  /* 연기 기둥의 첫 자리를 잡습니다. 화면을 다시 그릴 때마다(뒤집기 · 뒷면 익히기)
+     기둥이 새로 만들어지므로 여기서 매번 불러야 합니다. 닭꼬치 화면에는 기둥이
+     없어서 그냥 지나갑니다. */
+  mountMinigameSmoke(dom.miniContent);
   dom.miniContent.querySelector("#miniAction")?.addEventListener("click", miniAction);
   dom.miniContent.querySelector("#skewerFlipLeft")?.addEventListener("click", () => skewerFlipInput("left"));
   dom.miniContent.querySelector("#skewerFlipRight")?.addEventListener("click", () => skewerFlipInput("right"));

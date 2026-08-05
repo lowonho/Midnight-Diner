@@ -44,11 +44,15 @@ const sandbox={
 };
 sandbox.globalThis=sandbox;
 
-const files=["game-data.js","engine-e8-order-place.js","engine-e5-two-side-cook.js"];
+/* ⚠️ **index.html 과 같은 순서로 읽습니다 (E5 → E8).** 이 게임들은 모듈이 아니라
+   전역 스크립트라, 두 파일에 같은 이름의 함수가 있으면 나중에 읽는 쪽이 앞의 것을
+   덮어씁니다. 순서를 뒤집어 읽으면 그 덮어쓰기가 여기서는 안 보이고 게임에서만
+   터집니다 — 실제로 E5 재료 카드가 E8 함수에 먹힌 적이 있습니다(아래 6번). */
+const files=["game-data.js","engine-e5-two-side-cook.js","engine-e8-order-place.js"];
 const context=vm.createContext(sandbox);
 files.forEach(file=>vm.runInContext(read(file),context,{filename:file}));
 const api=vm.runInContext(
-  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
+  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,twoSideSkewerCardMarkup,TWO_SIDE_VIEW,twoSideIngredientMarkup,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
   context
 );
 
@@ -112,4 +116,21 @@ const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(
 assert(burnt.every(frame=>frame.on),"다 태운 화면에서 익힘 단계 5장이 다 켜지지 않았습니다.");
 assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 아닙니다: ${burnt[4].key}`);
 
-console.log(`SKEWER_DAY_TO_NIGHT_CONTRACT_OK ${api.SKEWER_BATCH_SIZE} skewers x ${api.SKEWER_SLOT_COUNT} slots · 익힘 ${rawFrames.length}단계`);
+/* 6) 왼쪽 재료 카드도 **낮에 꽂은 그 배치**여야 합니다. 화로 위 꼬치와 같은 그림·
+      같은 쌓기를 쓰되 익힘 단계만 빼고 올립니다.
+      ⚠️ 이 검사가 있는 이유 : 카드를 만드는 함수 이름이 E8 의 같은 이름 함수와
+         겹쳐 **게임에서만** 조용히 E8 것이 불렸던 적이 있습니다(닭 조각 3개가 나옴).
+         위 파일 읽는 순서(E5 → E8)와 짝이 되는 검사입니다. */
+const card=api.twoSideIngredientMarkup(api.TWO_SIDE_VIEW.skewer.ingredients[0]);
+assert(card.includes('class="ts-ing-skewers"'),
+  `재료 카드가 꼬치 쌓기를 안 씁니다 (다른 파일의 같은 이름 함수에 덮였는지 보세요): ${card.slice(0,160)}`);
+const cardRacks=card.split('class="grill-skewer').slice(1);
+assert(cardRacks.length===api.SKEWER_BATCH_SIZE,`재료 카드의 꼬치가 ${api.SKEWER_BATCH_SIZE}자루가 아닙니다 (${cardRacks.length}자루).`);
+cardRacks.forEach((rack,index)=>{
+  const stacked=[...rack.matchAll(/class="gs-piece(?: has-cook-art)? (chicken|greenOnion)"/g)].map(match=>match[1]);
+  assert(same(stacked,[...assembled[index]].reverse()),`재료 카드 ${index+1}번 꼬치가 꽂은 순서와 다릅니다: ${stacked.join(",")}`);
+});
+// 재료 칸은 늘 안 익은 상태입니다 (익힘 5장이 섞이면 카드가 구워집니다)
+assert(!card.includes("has-cook-art"),"재료 카드에 익힘 단계 그림이 섞여 들어갔습니다.");
+
+console.log(`SKEWER_DAY_TO_NIGHT_CONTRACT_OK ${api.SKEWER_BATCH_SIZE} skewers x ${api.SKEWER_SLOT_COUNT} slots · 익힘 ${rawFrames.length}단계 · 재료 카드 ${cardRacks.length}자루`);
