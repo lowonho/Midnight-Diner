@@ -158,16 +158,18 @@ assert(titleSource.includes('if(event.target===elements.overlay)closeJournal()')
   &&titleSource.includes("closeJournal();"),
   "배경 클릭과 ESC로 닫아도 같은 영업일지 상태 복원 경로를 사용해야 합니다.");
 assert(titleSource.includes('typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[]'),
-  "게임 내 영업일지는 현재 세이브에 종속된 8장 생성 함수를 사용해야 합니다.");
-assert(titleSource.includes("첫 장에는 영업 규칙이, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."),
-  "진행용 영업일지는 방문 전 미래 손님 정보를 보여주지 않는다고 안내해야 합니다.");
+  "게임 내 영업일지는 현재 세이브에 종속된 생성 함수를 사용해야 합니다.");
+assert(titleSource.includes("첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."),
+  "진행용 영업일지는 규칙·음식 레시피·직접 만난 뒤의 날짜 기록을 안내해야 합니다.");
 assert(titleSource.includes('page.pageType==="rules"')
+  &&titleSource.includes('page.pageType==="recipe"')
   &&titleSource.includes('page.pageType==="day"')
   &&titleSource.includes("기록 없음")
+  &&titleSource.includes("gameplayJournalRecipeNote(page)")
   &&titleSource.includes("page.entries.map(gameplayJournalEntryNote)"),
-  "진행용 영업일지는 주의사항 1장과 방문 뒤 채워지는 날짜별 기록을 구분해야 합니다.");
+  "진행용 영업일지는 주의사항·음식별 레시피·방문 뒤 채워지는 날짜별 기록을 구분해야 합니다.");
 [
-  "주의사항","과거 영업 기록","현재 회차"
+  "주의사항","재료","영업 전 준비","주문 후 조리","과거 영업 기록","현재 회차"
 ].forEach(label=>assert(titleSource.includes(`journalSection("${label}"`),
   `진행용 영업일지에 '[${label}]' 구역이 있어야 합니다.`));
 [

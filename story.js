@@ -334,47 +334,69 @@ function gameplayJournalGuestRecord(definition){
 }
 
 // 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
-// 첫 장은 규칙, 나머지 일곱 장은 날짜별 기록입니다. 아직 만나지 않은 미래
-// 손님의 이름·등장 조건·정답 음식은 날짜 페이지에 미리 노출하지 않습니다.
+// 첫 장은 규칙, 다음 여덟 장은 음식별 레시피, 마지막 일곱 장은 날짜별
+// 기록입니다. 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
 function getGameplayJournalPages(){
   const definitionsByGuest=Object.fromEntries(
     GAMEPLAY_JOURNAL_PAGE_DEFS.map(definition=>[definition.guestId,definition])
   );
-  const menuNames=STORY_MENU_RULES.dishIds
-    .map(id=>MENU_DATA.find(menu=>menu.id===id)?.displayName)
-    .filter(Boolean);
-  const menuRule=`매일 ${menuNames.join(" · ")} 중 다섯 가지를 골라 준비하고, 찾아온 손님이 기억하는 음식을 대접한다.`;
+  const menusById=Object.fromEntries(MENU_DATA.map(menu=>[menu.id,menu]));
+  const recipesByDish=Object.fromEntries(STORY_JOURNAL_RECIPES.map(recipe=>[recipe.dishId,recipe]));
+  const menuNames=STORY_MENU_RULES.dishIds.map(id=>menusById[id]?.displayName).filter(Boolean);
+  const menuRule="매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.";
+  const total=1+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
   const rulesPage={
     id:"gameplay-rules",
     pageType:"rules",
     index:0,
     number:1,
-    total:8,
+    total,
     title:"영업일지 주의사항",
     label:"주의사항",
     dayLabel:"주의사항",
     unlocked:true,
     locked:false,
     rules:[
-      "식당의 문으로는 지금 나갈 수 없다.",
       menuRule,
-      "대접을 마치고 받은 달빛 조각을 모아 문을 연다.",
-      "일곱 번째 밤까지 문을 열지 못하면 첫째 날로 돌아간다. 영업 기록은 남지만 모은 조각은 사라진다."
+      "손님에게 항상 친절하게 대한다.",
+      "내일로 가는 문은 달빛 조각으로만 열 수 있다."
     ],
     menuRule,
     menuNames
   };
+  const recipePages=STORY_MENU_RULES.dishIds.map((dishId,index)=>{
+    const menu=menusById[dishId];
+    const recipe=recipesByDish[dishId];
+    return {
+      id:`gameplay-recipe-${dishId}`,
+      pageType:"recipe",
+      index:index+1,
+      number:index+2,
+      total,
+      recipeNumber:index+1,
+      dishId,
+      dishName:menu?.displayName||dishId,
+      title:`${menu?.displayName||dishId} 레시피`,
+      label:`${menu?.displayName||dishId} 레시피`,
+      unlocked:true,
+      locked:false,
+      ingredients:[...(recipe?.ingredients||[])],
+      prepSteps:[...(recipe?.prepSteps||[])],
+      cookSteps:[...(recipe?.cookSteps||[])]
+    };
+  });
   const dayPages=GAMEPLAY_JOURNAL_DAY_GUEST_IDS.map((guestIds,index)=>{
     const day=index+1;
+    const pageIndex=1+recipePages.length+index;
     const entries=guestIds
       .map(guestId=>gameplayJournalGuestRecord(definitionsByGuest[guestId]))
       .filter(Boolean);
     return {
       id:`gameplay-day-${day}`,
       pageType:"day",
-      index:day,
-      number:day+1,
-      total:8,
+      index:pageIndex,
+      number:pageIndex+1,
+      total,
       day,
       dayLabel:`${day}일차`,
       title:`${day}일차 기록`,
@@ -385,7 +407,7 @@ function getGameplayJournalPages(){
       entries
     };
   });
-  return [rulesPage,...dayPages];
+  return [rulesPage,...recipePages,...dayPages];
 }
 
 window.getGameplayJournalPages=getGameplayJournalPages;

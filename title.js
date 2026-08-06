@@ -61,7 +61,10 @@ function gameplayJournalPages(){
 }
 
 function journalPageKindLabel(page){
-  if(journalMode==="gameplay")return page.dayLabel?`현재 진행 · ${page.dayLabel}`:"현재 진행";
+  if(journalMode==="gameplay"){
+    if(page.pageType==="recipe")return "현재 진행 · 음식 레시피";
+    return page.dayLabel?`현재 진행 · ${page.dayLabel}`:"현재 진행";
+  }
   return page.kind==="ending"?"엔딩":"특별 손님";
 }
 
@@ -74,6 +77,16 @@ function journalField(label,value){
 
 function journalSection(title,fields){
   return [`[${title}]`,...fields].join("\n");
+}
+
+function gameplayJournalRecipeNote(page){
+  const prepSteps=(page.prepSteps||[]).map((step,index)=>`${index+1}. ${step}`);
+  const cookSteps=(page.cookSteps||[]).map((step,index)=>`${index+1}. ${step}`);
+  return [
+    journalSection("재료",[(page.ingredients||[]).join(" · ")||"기록 없음"]),
+    journalSection("영업 전 준비",prepSteps.length?prepSteps:["기록 없음"]),
+    journalSection("주문 후 조리",cookSteps.length?cookSteps:["기록 없음"])
+  ].join("\n\n");
 }
 
 function firstJournalValue(page,keys,fallback="???"){
@@ -118,6 +131,9 @@ function gameplayJournalEntryNote(entry){
 function journalPageNote(page){
   if(journalMode==="gameplay"&&page.pageType==="rules"){
     return journalSection("주의사항",(page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`));
+  }
+  if(journalMode==="gameplay"&&page.pageType==="recipe"){
+    return gameplayJournalRecipeNote(page);
   }
   if(journalMode==="gameplay"&&page.pageType==="day"){
     if(!page.recorded||!page.entries?.length){
@@ -208,7 +224,8 @@ function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
-    if(page.pageType==="rules")return "준비 메뉴 · 여덟 가지 중 매일 다섯 가지";
+    if(page.pageType==="rules")return "주의사항 3개 · 음식 레시피 8장";
+    if(page.pageType==="recipe")return `재료 ${(page.ingredients||[]).length}가지 · 준비 ${(page.prepSteps||[]).length}단계 · 조리 ${(page.cookSteps||[]).length}단계`;
     if(page.pageType==="day")return page.recorded?`방문 기록 · ${page.entries.length}건`:"기록 없음";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
     if(page.currentLoopEvaluation&&page.currentLoopEvaluation!=="미평가"){
@@ -277,7 +294,7 @@ function renderJournalPage({acknowledge=false}={}){
   }
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
-    :isGameplayRecord?page.pageType==="rules"?"!":String(page.day||"·")
+    :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
       :page.kind==="ending"?"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.textContent=journalPageNote(page);
@@ -304,7 +321,7 @@ function refreshJournalUI(){
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
   elements.description.textContent=journalMode==="gameplay"
-    ?"첫 장에는 영업 규칙이, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
+    ?"첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
     :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
   renderJournalPage();
 }
