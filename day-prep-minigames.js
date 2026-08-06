@@ -489,6 +489,9 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   cookArrowSkewerFlip:"assets/minigame/E5/ui_drag_arrow_skewer_flip_horizontal.webp",
   cookArrowSkewerSauce:"assets/minigame/E5/ui_drag_arrow_skewer_sauce_vertical.webp",
   cookArrowPancakeFlip:"assets/minigame/E5/ui_drag_arrow_kimchi_pancake_flip_up.webp",
+  /* 굽기 신호 때 조리물 위에 겹치는 **누르는 손**. 닭꼬치(한 번 클릭)와 김치전(꾹 누르기)이
+     같은 그림을 씁니다. 파일이 없으면 css 의 임시 손 모양(인라인 SVG)이 나옵니다. */
+  cookGesturePress:"assets/minigame/E5/ui_gesture_press_hold_no_pressure_lines.webp",
   /* E8 떡 · 우동면 불려두기.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
 

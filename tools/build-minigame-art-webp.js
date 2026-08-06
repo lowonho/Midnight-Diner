@@ -476,6 +476,11 @@ const FILES = [
   { file:"E5/ui_drag_arrow_skewer_flip_horizontal.png", size:[252, 98], css:".ts-drag-arrow .for-flip 126x49.2 (꼬치)" },
   { file:"E5/ui_drag_arrow_skewer_sauce_vertical.png",  size:[128,280], css:".ts-drag-arrow .for-sauce 63.9x140 (꼬치)" },
   { file:"E5/ui_drag_arrow_kimchi_pancake_flip_up.png", size:[186,340], css:".ts-drag-arrow .for-flip 93x170 (김치전)" },
+  /* [누르기 손] 굽기 신호 때 조리물 위에 겹치는 손 모양입니다. 손끝에 닿는 자리(접촉 원)까지
+     한 장에 들어 있어서, 화면에서는 **그 손끝이 조리물 한가운데**에 오도록 자리를 잡습니다
+     (css 의 .ts-tap-img · 그림 안에서 손끝은 가로 53% · 세로 86% 지점입니다).
+     [크기] 화면 120 x 183.8 의 2배율. */
+  { file:"E5/ui_gesture_press_hold_no_pressure_lines.png", size:[240,368], css:".ts-tap-img 120x183.8" },
   /* ---- E5 닭꼬치 굽기 : 데리야끼 양념 2종 --------------------------
      [글레이즈 2장] 양념을 바른 뒤 **조각 그림 위에 반투명으로 덮는 한 겹**입니다
      (css 의 .grill-skewer.sauced .gs-piece-glaze). 조각을 갈아 끼우는 것이 아니라

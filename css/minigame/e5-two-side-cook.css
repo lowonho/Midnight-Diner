@@ -361,11 +361,21 @@
    보였습니다. 세기는 한 값으로 고정하고, "얼마 안 남았다"는 아래 빛무리의
    진하기(--cue-left)로만 알립니다 — 그건 서서히 옅어지는 것이라 깜빡임이 아닙니다.
    조리물이 움직여도 되는 것은 뒤집기(.turning / .flipping)와 양념 붓 둘뿐입니다. */
+/* ⚠️ **음식 색은 건드리지 않습니다.** drop-shadow 만 씁니다 — 그건 조리물 실루엣
+   *뒤에* 그려지는 빛이라 그림 자체는 손대지 않습니다. 여기 있던 brightness(1.14) 는
+   그림을 통째로 밝혀서, 신호가 켜질 때마다 익힘 색이 한 단계 밝아 보였습니다.
+   빛이 약해 보이면 번짐을 한 겹 더 얹거나 아래 빛무리를 키우세요 —
+   brightness / saturate / sepia 처럼 **그림 색을 바꾸는 것은 넣지 마세요.** */
+/* ⚠️ `.has-asset` 갈래를 **꼭 같이 적어야 합니다.** 위쪽 `.pancake-cook.cook-ready
+   .cook-food.has-asset` / `.cook-over ...` 가 클래스 4개라, 여기 세 개짜리보다 세서
+   익힘이 어느 단계냐에 따라 **신호 불빛이 통째로 안 보였습니다**(실측으로 잡았습니다 —
+   김치전 바깥 밝기차가 0 이었습니다). 같은 4개로 맞추면 파일에서 뒤인 이 규칙이 이깁니다. */
 .pancake-cook.cue-on .cook-food,
+.pancake-cook.cue-on .cook-food.has-asset,
 .grill-skewer.cue-on {
-  filter:drop-shadow(0 0 calc(18 * var(--upx)) var(--cue-glow,#ffce68))
-         drop-shadow(0 0 calc(36 * var(--upx)) var(--cue-glow,#ffce68))
-         brightness(1.14);
+  filter:drop-shadow(0 0 calc(10 * var(--upx)) var(--cue-glow,#ffce68))
+         drop-shadow(0 0 calc(24 * var(--upx)) var(--cue-glow,#ffce68))
+         drop-shadow(0 0 calc(46 * var(--upx)) var(--cue-glow,#ffce68));
 }
 .pancake-cook.cue-cook .cook-food,
 .grill-skewer.cue-cook { --cue-glow:#ffce68; }
@@ -560,6 +570,31 @@
   pointer-events: none;
 }
 .cue-cook > .ts-tap-hint { display: block; }
+/* ── 원화 손 (E5/ui_gesture_press_hold_no_pressure_lines) ─────
+   그림 안에서 **손끝(닿는 자리)은 가로 53% · 세로 86%** 지점입니다. 그 점이 조리물
+   한가운데에 오도록 상자를 밀어 놓습니다 — 그래야 "여기를 누르라"가 정확히 가리킵니다.
+   접촉 원까지 그림에 들어 있어서 임시 손(::before)과 물결(::after)은 끕니다. */
+.ts-tap-hint.has-asset::before,
+.ts-tap-hint.has-asset::after { display: none; }
+.ts-tap-hint .ts-tap-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  width: calc(120 * var(--upx));
+  height: auto;
+  max-width: none;
+  filter: drop-shadow(0 0 calc(12 * var(--upx)) rgba(255,150,40,.75))
+          drop-shadow(0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(20,7,3,.7));
+  transform: translate(calc(-63.6 * var(--upx)),calc(-166 * var(--upx)));
+  animation: ts-tap-img-press .8s ease-in-out infinite;
+  pointer-events: none;
+}
+/* 지그시 눌렀다 떼는 결. 손끝 자리를 축으로 아주 조금만 오르내립니다. */
+@keyframes ts-tap-img-press {
+  0%,100% { transform: translate(calc(-63.6 * var(--upx)),calc(-172 * var(--upx))); }
+  45%     { transform: translate(calc(-63.6 * var(--upx)),calc(-152 * var(--upx))); }
+}
 /* 손 — 검지를 세운 모양. 손끝이 상자 한가운데(=조리물 한가운데)에 옵니다. */
 .ts-tap-hint::before {
   content: "";
@@ -1412,6 +1447,7 @@
   /* 누르기 손가락도 마찬가지 — 손은 세워 두고 물결만 한 겹 남깁니다 */
   .ts-tap-hint::before { animation:none; transform:translate(calc(-30 * var(--upx)),calc(-5 * var(--upx))); }
   .ts-tap-hint::after { animation:none; opacity:.7; scale:.75; }
+  .ts-tap-hint .ts-tap-img { animation:none; }
   .ts-now.on { animation:none; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); }
   .ts-sauce-brush { animation:none; opacity:1; }
   /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */

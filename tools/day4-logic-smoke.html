@@ -411,9 +411,14 @@ try{
   openTwoSideCue(pancakeMini,pancakeUnit);
   const missedAt=pancakeUnit.stepIndex,bottom=twoSideCookingSide(pancakeUnit);
   MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
-  assert(pancakeUnit.stepIndex===missedAt&&pancakeMini.data.cookErrors===1
+  assert(pancakeMini.data.cookErrors===1
     &&pancakeUnit.sides[bottom].burn===1&&pancakeUnit.sides[1-bottom].burn===0
     &&pancakeUnit.phase==="wait","E5 a missed cue burns only the side that was on the heat");
+  /* 놓친 차례는 **다시 오지 않습니다** — 같은 자리에서 맴돌면 판이 늘어지기만 합니다.
+     굽기 횟수(cooked)는 안 올라가므로 놓친 만큼 진행도가 모자랍니다. */
+  assert(pancakeUnit.stepIndex===missedAt+1,"E5 a missed cue moves on to the next step instead of repeating it");
+  assert(pancakeMini.data.cooked===1,"E5 a missed cook cue does not count toward the progress");
+  assert(TWO_SIDE_CUE.retryWait===undefined,"E5 has no retry wait any more (nothing repeats)");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
   assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"

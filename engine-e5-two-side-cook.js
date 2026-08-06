@@ -84,7 +84,8 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
      wait    신호가 뜨기까지 기다리는 시간 (최소~최대에서 매번 새로 뽑습니다)
      window  신호가 켜져 있는 시간. 이 안에 답해야 성공입니다
      preheat 익힘 신호 전에 "살짝 익은 그림"으로 미리 바뀌는 시각 (신호까지 남은 초)
-     retryWait 놓쳤을 때 같은 신호가 다시 오기까지
+   ⚠️ 여기 있던 retryWait 은 **뺐습니다.** 놓친 신호를 다시 주지 않기 때문입니다 —
+      지나간 차례는 지나간 대로 두고 다음으로 넘어갑니다 (missTwoSideCue 참고).
    ⚠️ preheat(1.5) 는 cook 의 wait 최소값(1.4)보다 큽니다. 일부러 그렇습니다 —
       기다림이 짧게 뽑히면 예고 그림과 신호가 거의 붙어서 나옵니다(빠른 판).
    ⚠️ window 를 넓혔습니다 (굽기 .9 → 1.9 · 뒤집기 1.6 → 2.6 · 양념 1.4 → 2.4).
@@ -94,8 +95,7 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
 const TWO_SIDE_CUE=Object.freeze({
   cook: Object.freeze({wait:Object.freeze([1.4,2.6]), window:1.9, preheat:1.5}),
   flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.6, preheat:0}),
-  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0}),
-  retryWait:Object.freeze([1,1.8])
+  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0})
 });
 
 /* ── "튕기듯" 을 재는 기준 ───────────────────────────────────
@@ -488,15 +488,15 @@ function tickTwoSideUnit(m,unit,dt){
    흐름은 한 줄이고, **자루마다 따로** 돕니다.
      armTwoSideCue(기다림 시작) → openTwoSideCue(신호 켬)
         → pressTwoSideCue / flickTwoSideCue(답함) → advanceTwoSideStep(다음 할 일)
-        → 답 못 하면 missTwoSideCue → 다시 armTwoSideCue(같은 할 일)
+        → 답 못 하면 missTwoSideCue → **다음 할 일로** (같은 신호를 다시 주지 않습니다)
    ⚠️ 아래 함수들은 전부 **자루 하나(unit)** 를 받습니다. 예전에는 판 전체가
       한 줄로 진행해서 인자가 없었습니다.
    ============================================================ */
 
-function armTwoSideCue(m,unit,retry=false){
+function armTwoSideCue(m,unit){
   const data=m.data,step=twoSideStep(unit);
   if(!step){finishTwoSideUnit(m,unit);return;}
-  const range=retry?TWO_SIDE_CUE.retryWait:TWO_SIDE_CUE[step.kind].wait;
+  const range=TWO_SIDE_CUE[step.kind].wait;
   unit.phase="wait";
   // 자루마다 다른 speed 를 곱합니다 — 3자루가 같은 박자로 재촉하지 않게 하는 곳입니다.
   unit.cueTimer=(range[0]+Math.random()*(range[1]-range[0]))*(unit.speed||1);
@@ -665,11 +665,17 @@ function missTwoSideCue(m,unit){
   const burnt=twoSideSideStage(unit.sides[twoSideCookingSide(unit)])>=3;
   dom.miniFeedback.textContent=burnt
     ?`${twoSideCookingSide(unit)?"뒷":"앞"}면이 탔습니다! 닿아 있던 면이 그을렸어요.`
-    :{cook:"불빛을 놓쳤어요. 곧 다시 신호가 옵니다.",
-      flip:"뒤집을 때를 놓쳤어요. 곧 다시 신호가 옵니다.",
-      sauce:"양념 바를 때를 놓쳤어요. 곧 다시 신호가 옵니다."}[step.kind];
+    :{cook:"불빛을 놓쳤어요. 다음 차례로 넘어갑니다.",
+      flip:"뒤집지 못했어요 — 그 면이 계속 불에 닿습니다.",
+      sauce:"양념 바를 때를 놓쳤어요. 다음 차례로 넘어갑니다."}[step.kind];
   audio.bad();
-  armTwoSideCue(m,unit,true);
+  /* ⚠️ **같은 할 일을 다시 시키지 않습니다.** 예전에는 놓치면 그 신호가 다시 왔는데,
+     잘하는 사람과 못하는 사람이 같은 자리에서 계속 맴돌아 판이 늘어지기만 했습니다.
+     지나간 차례는 지나간 대로 두고 다음으로 넘어갑니다 — 대신 그 대가로 아래 면이
+     한 칸 탔고(위 burnTwoSideCookStep), 굽기 횟수도 안 올라갑니다.
+     ⚠️ 뒤집기를 놓치면 flips 가 안 올라가므로 **그 면이 계속 불에 닿습니다.**
+        다음 굽기가 같은 면을 또 익히고, 놓치면 또 탑니다 — 벌은 그것으로 충분합니다. */
+  advanceTwoSideStep(m,unit);
 }
 
 function advanceTwoSideStep(m,unit){
@@ -1108,6 +1114,13 @@ function grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step) {
       css 가 자루에 붙은 cue-flip / cue-sauce 로 가릅니다 — 신호가 바뀔 때마다
       화면을 다시 그리지 않기 때문입니다.
    그림이 없으면 has-asset 이 안 붙고, css 의 임시 화살표 도형이 대신 나옵니다. */
+/* 굽기 신호 때 조리물 위에 겹치는 "여기를 누르세요" 손. 두 요리가 같은 그림입니다.
+   그림이 없으면 has-asset 이 안 붙고 css 의 임시 손 모양이 대신 나옵니다. */
+function twoSideTapHintMarkup(){
+  const hand=dayPrepAssetMarkup("cookGesturePress","ts-tap-img");
+  return `<i class="ts-tap-hint ${hand?"has-asset":""}" aria-hidden="true">${hand}</i>`;
+}
+
 function twoSideDragArrowMarkup(dishStyle){
   if(dishStyle!=="skewer"){
     const up=dayPrepAssetMarkup("cookArrowPancakeFlip","ts-arrow-img for-flip");
@@ -1145,7 +1158,7 @@ function grillSkewerMarkup(pattern, index, data) {
   //   늘 넣어 두고 보이고 안 보이고는 css 가 신호 클래스로 가립니다 —
   //   뒤집기(cue-flip)는 옆으로 ↔, 양념(cue-sauce)은 위아래로 ↕ 입니다.
   return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
-      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>${twoSideDragArrowMarkup("skewer")}<i class="ts-tap-hint" aria-hidden="true"></i>
+      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>${twoSideDragArrowMarkup("skewer")}${twoSideTapHintMarkup()}
     </span>`;
 }
 
@@ -1360,7 +1373,7 @@ function pancakePanShell(inner, extraClass = "", id = "") {
   // .ts-cue-halo   : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
   // .ts-drag-arrow : 뒤집기 신호 때 김치전 위에 겹치는 방향 화살표.
   //   김치전은 "위로 튕기듯" 한 방향이라 머리가 하나인 ↑ (arrow-once) 입니다.
-  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}${twoSideDragArrowMarkup("pancake")}<i class="ts-tap-hint" aria-hidden="true"></i><i class="ts-hold-ring" aria-hidden="true"></i></div>`;
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}${twoSideDragArrowMarkup("pancake")}${twoSideTapHintMarkup()}<i class="ts-hold-ring" aria-hidden="true"></i></div>`;
 }
 
 /* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다
