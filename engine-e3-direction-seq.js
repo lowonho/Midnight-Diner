@@ -186,7 +186,7 @@ function lockDirectionInput(m,targetSelector,message){
   const work=dom.miniContent.querySelector(targetSelector);
   work?.classList.add("input-wrong");
   dom.miniFeedback.textContent=message;
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.inputLocked=false;work?.classList.remove("input-wrong");
   },E3_FEEL_CONFIG.wrongLockMs);
@@ -199,7 +199,7 @@ function completeDirectionSequence(m,{workSelector,feedback,onDone}){
   dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
   showDirectionGrade(grade);
   dom.miniFeedback.textContent=feedback(grade);
-  setTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
+  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
 
 /* ---- 김치 볶기 그림 두 벌 ----------------------------------
@@ -332,7 +332,7 @@ function trackFrySpatulaCursor(event){
 function shakeFrySpatulaCursor(){
   const root=frySpatulaCursor;if(!root)return;
   root.classList.remove("wrong");void root.offsetWidth;root.classList.add("wrong");
-  setTimeout(()=>root.classList.remove("wrong"),E3_FEEL_CONFIG.wrongLockMs);
+  miniSetTimeout(()=>root.classList.remove("wrong"),E3_FEEL_CONFIG.wrongLockMs);
 }
 
 function setupKimchiFry(taskId="fryTofuKimchi"){
@@ -430,7 +430,7 @@ function kimchiFryInput(direction,repeat=false){
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"sequence",indexKey:"successes",
     onWrong(){
-      if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");setTimeout(()=>current.classList.remove("wrong"),260);}
+      if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");miniSetTimeout(()=>current.classList.remove("wrong"),260);}
       lockDirectionInput(m,"#fryWorkArea",`${FRY_DIRECTION_ARROWS[data.sequence[data.successes]]} 방향입니다. 나무 주걱을 그 방향으로 움직이세요.`);
       shakeFrySpatulaCursor();
     },
@@ -452,7 +452,7 @@ function kimchiFryInput(direction,repeat=false){
         // stir-○ 는 팬 안의 김치를 그 방향으로 뒤집은 장으로 바꿉니다 (240ms 뒤 base 로 돌아옵니다)
         const actionClass=`stir-${direction}`,stage=`cook-stage-${directionVisualStage(data.successes,data.total)}`;
         work.classList.remove(...FRY_STIR_CLASSES,"cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
-        setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
+        miniSetTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },
     onComplete(){completeDirectionSequence(m,{
@@ -649,7 +649,7 @@ function stirInput(direction,repeat=false){
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"arrows",indexKey:"index",
     onWrong(){
-      if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");setTimeout(()=>current.classList.remove("wrong"),260);}
+      if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");miniSetTimeout(()=>current.classList.remove("wrong"),260);}
       lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요.`);
     },
     onCorrect(){
@@ -670,7 +670,7 @@ function stirInput(direction,repeat=false){
         // scrape-○ 는 철판 위의 면을 그 방향으로 볶은 장으로 바꿉니다 (240ms 뒤 base 로 돌아옵니다)
         const actionClass=`scrape-${direction}`,stage=`cook-stage-${directionVisualStage(data.index,STIR_TOTAL)}`;
         work.classList.remove(...STIR_SCRAPE_CLASSES,"cook-stage-0","cook-stage-1","cook-stage-2","cook-stage-3");void work.offsetWidth;work.classList.add(actionClass,stage);
-        setTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
+        miniSetTimeout(()=>work.classList.remove(actionClass),E3_FEEL_CONFIG.actionMs);
       }
     },
     onComplete(){completeDirectionSequence(m,{

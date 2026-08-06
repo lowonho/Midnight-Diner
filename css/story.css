@@ -111,6 +111,27 @@
   visibility: visible;
   transition: opacity .2s ease,visibility .2s ease;
 }
+
+/* 달빛 조각 전달 전용 레이어입니다. 지금은 빈 화면만 사용하고,
+   추후 --fragment-art에 정식 조각 에셋을 연결합니다. */
+.story-fragment-handoff {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background-color: rgba(8,6,12,.96);
+  background-image: var(--fragment-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .22s ease,visibility .22s ease;
+  pointer-events: none;
+}
+.story-fragment-handoff.show {
+  opacity: 1;
+  visibility: visible;
+}
 .story-overlay.scene-intro .story-stage,
 .story-overlay.scene-intro .story-dialogue-box,
 .story-overlay.story-cinematic-active .story-stage {

@@ -296,23 +296,39 @@ function createSpecialGuestArc(config) {
     shardName: config.shardName,
     repeatEachLoop: true
   };
-  const resultScene = (tier, label, lines) => ({
-    id: resultIds[tier],
-    title: `${config.title} · ${label}`,
-    moment: "specialGuestResult",
-    sceneType: "specialGuestResult",
-    sourceSceneId: arrivalId,
-    resultTier: tier,
-    preservesUnlockedMemory: true,
-    grantsShard: tier === "great",
-    uniqueShard: tier === "great",
-    finalShard: tier === "great" && !!config.finalShard,
-    ...common,
-    character: tier === "great" && config.greatCharacter
-      ? config.greatCharacter
-      : config.character,
-    lines
-  });
+  const resultScene = (tier, label, lines) => {
+    const fragmentState = tier === "great"
+      ? "full"
+      : tier === "warm" && !config.finalShard ? "partial" : "none";
+    const fragmentHandoffLines = fragmentState === "none" ? [] : [{
+      ...storyNarration(fragmentState === "full"
+        ? "손님은 떠나기 전, 환하게 빛나는 달빛 조각을 다은에게 건넨다."
+        : "손님은 떠나기 전, 희미하게 빛나는 달빛 조각을 다은에게 건넨다."),
+      fragmentHandoff: {
+        shardId: config.shardId,
+        shardName: config.shardName,
+        state: fragmentState,
+        asset: null
+      }
+    }];
+    return {
+      id: resultIds[tier],
+      title: `${config.title} · ${label}`,
+      moment: "specialGuestResult",
+      sceneType: "specialGuestResult",
+      sourceSceneId: arrivalId,
+      resultTier: tier,
+      preservesUnlockedMemory: true,
+      grantsShard: tier === "great",
+      uniqueShard: tier === "great",
+      finalShard: tier === "great" && !!config.finalShard,
+      ...common,
+      character: tier === "great" && config.greatCharacter
+        ? config.greatCharacter
+        : config.character,
+      lines: [...lines, ...fragmentHandoffLines]
+    };
+  };
 
   return {
     [arrivalId]: {
@@ -323,6 +339,7 @@ function createSpecialGuestArc(config) {
       specialGuest: true,
       guestOrder: true,
       specialCook: true,
+      requiresDishChoice: true,
       deferUntilArrival: true,
       arrival: config.arrival,
       triggerTiming: config.triggerTiming,
@@ -330,6 +347,7 @@ function createSpecialGuestArc(config) {
       triggerOnNightEnd: !!config.triggerOnNightEnd,
       requiredBaseShards: config.requiredBaseShards || 0,
       missingMenuSceneId: missingId,
+      wrongDishSceneId: missingId,
       resultSceneIds: resultIds,
       thresholds: STORY_SCORE_THRESHOLDS,
       ...common,
@@ -337,11 +355,12 @@ function createSpecialGuestArc(config) {
     },
     [missingId]: {
       id: missingId,
-      title: `${config.title} · 음식 미준비`,
+      title: `${config.title} · 다른 음식`,
       moment: "specialGuestMissing",
       sceneType: "specialGuestMissing",
       sourceSceneId: arrivalId,
       missingMenu: true,
+      wrongDish: true,
       journalClue: config.journalClue,
       ...common,
       lines: config.missingLines
@@ -429,10 +448,11 @@ const STORY_SCENES = {
         ...storyNarration("다은은 다른 출구를 찾기 위해 식당을 둘러본다.\n그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다."),
         openJournalOnAdvance: true
       },
+      storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?"),
       storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네."),
       storyCaption("김다은(속말)", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지."),
-      { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎고, 늦은 밤이었던 골목에 눈 깜짝할 사이 첫째 날의 낮빛이 들어찬다."), timeOfDay: "day" },
-      { ...storyLine("protagonist", "방금까지 한밤중이었는데… 식당이 첫째 날 낮으로 시간을 옮긴 거야?"), timeOfDay: "day" },
+      { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎는다. 햇빛이 들어찬다."), timeOfDay: "day" },
+      { ...storyLine("protagonist", "방금까지 한밤중이었는데… 갑자기 낮이 됐어?"), timeOfDay: "day" },
       { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자."), timeOfDay: "day" }
     ]
   },
@@ -486,7 +506,7 @@ const STORY_SCENES = {
     character: "protagonist",
     repeatEachDay: true,
     lines: [
-      storyNarration("간판이 켜지고 달빛식탁의 밤 영업이 시작된다.\n일반 손님은 오늘 선택한 다섯 메뉴 안에서만 주문한다."),
+      storyNarration("간판이 켜지고 달빛식탁의 밤 영업이 시작된다."),
       storyLine("protagonist", "준비는 끝났어. 오늘 영업을 시작하자.")
     ]
   },
@@ -510,10 +530,10 @@ const STORY_SCENES = {
       storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.")
     ],
     missingLines: [
-      storyNarration("아이가 말한 특징에 맞는 음식은 오늘 준비한 다섯 메뉴에 없다.\n아이는 다른 음식으로 바꾸지 않고 기억나는 특징을 더 말한 뒤 돌아간다."),
-      storyLine("protagonist", "오늘 준비한 메뉴에는 없는 것 같아."),
-      storyLine("rainyChild", "그럼 다음 비가 올 때 다시 올게요."),
+      storyNarration("아이는 다은이 내어 준 음식을 한입 먹고 조용히 고개를 젓는다.\n아이가 찾던 비 오는 날의 음식은 아니었다."),
+      storyLine("rainyChild", "이건 아니에요. 그래도 따뜻하게 만들어 줘서 고마워요."),
       storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
+      storyLine("protagonist", "알겠어. 다음에는 그 소리를 기억하면서 골라 볼게."),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
     softLines: [
@@ -558,9 +578,10 @@ const STORY_SCENES = {
       storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.")
     ],
     missingLines: [
-      storyNarration("손님이 찾는 따뜻한 국물은 오늘 준비한 다섯 메뉴에 없다.\n손님은 빈 테이블에 두 손을 얹었다가 조용히 돌아선다."),
-      storyLine("lanternGuest", "오늘은 제 손을 녹여 줄 그릇이 없군요."),
-      storyLine("protagonist", "다음에는 그 국물을 준비해 볼게요."),
+      storyNarration("손님은 다은이 내어 준 음식을 천천히 맛보지만 종이등의 불빛은 가늘어진다.\n손님이 찾던 온기의 음식은 아니었다."),
+      storyLine("lanternGuest", "정성은 따뜻하지만, 제가 기억하는 그릇은 아니군요."),
+      storyLine("lanternGuest", "나무꼬치에 꿰인 긴 것들이 따뜻한 국물에 잠겨 있었습니다."),
+      storyLine("protagonist", "다음에는 그 모습을 떠올리면서 골라 볼게요."),
       { kind: "journal", text: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다." }
     ],
     softLines: [
@@ -605,11 +626,11 @@ const STORY_SCENES = {
       storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.")
     ],
     missingLines: [
-      storyNarration("두 그림자가 함께 찾는 음식은 오늘 준비한 다섯 메뉴에 없다.\n둘은 서로 탓하다가 같은 음식을 찾고 있었다는 사실만 남긴다."),
-      storyLine("leftShadow", "오늘은 내가 찾는 쪽이 없나 봐."),
-      storyLine("rightShadow", "아니, 우리 둘 다 찾는 음식이 없는 거야."),
+      storyNarration("두 그림자는 다은이 내어 준 음식을 번갈아 맛보고 동시에 고개를 젓는다.\n둘이 함께 찾던 한 접시는 아니었다."),
+      storyLine("leftShadow", "흰 것이 빠졌어."),
+      storyLine("rightShadow", "붉은 것도 함께 있어야 했어."),
       storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어."),
-      storyLine("protagonist", "둘이 같은 음식을 찾고 있다는 건 알겠어."),
+      storyLine("protagonist", "둘이 함께 있던 음식이라는 건 기억해 둘게."),
       { kind: "journal", text: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다." }
     ],
     softLines: [
@@ -656,10 +677,10 @@ const STORY_SCENES = {
       storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.")
     ],
     missingLines: [
-      storyNarration("배달부가 찾는 한 손 음식은 오늘 준비한 다섯 메뉴에 없다.\n배달부는 다시 길을 나설 수밖에 없다고 말한다."),
-      storyLine("crowCourier", "오늘은 배달을 계속 미뤄야겠군요."),
+      storyNarration("배달부는 다은이 내어 준 음식을 살펴본 뒤 가방을 다시 고쳐 멘다.\n길 위에서 먹던 그 음식은 아니었다."),
+      storyLine("crowCourier", "이 음식으로는 멈춘 발걸음이 떠오르지 않는군요."),
       storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다."),
-      storyLine("protagonist", "다음에 오면 그 음식을 준비해 둘게요."),
+      storyLine("protagonist", "불 냄새와 꼬치… 다음에는 그 단서로 골라 볼게요."),
       { kind: "journal", text: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다." }
     ],
     softLines: [
@@ -704,10 +725,10 @@ const STORY_SCENES = {
       storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.")
     ],
     missingLines: [
-      storyNarration("작은 짐승이 찾는 노란 음식은 오늘 준비한 다섯 메뉴에 없다.\n짐승은 몸 안의 빛을 꺼내지 않겠다고 말한다."),
-      storyLine("starBeast", "오늘은 빛을 꺼내지 않을래."),
+      storyNarration("작은 짐승은 다은이 내어 준 음식을 냄새 맡고 한입 베어 물지만 귀를 축 늘어뜨린다.\n몸 안의 별빛도 여전히 웅크려 있다."),
+      storyLine("starBeast", "이것도 맛은 있는데, 내가 찾던 건 아니야."),
       storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데."),
-      storyLine("protagonist", "다음에는 그걸 준비해 볼게."),
+      storyLine("protagonist", "손끝에 소금이 남는 길고 노란 음식… 기억해 둘게."),
       { kind: "journal", text: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다." }
     ],
     softLines: [
@@ -752,10 +773,10 @@ const STORY_SCENES = {
       storyLine("seawaterGuest", "아닙니다. 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 바다 냄새가 나지요.")
     ],
     missingLines: [
-      storyNarration("손님이 찾는 바다 냄새 나는 음식은 오늘 준비한 다섯 메뉴에 없다.\n손님은 바다의 이름을 떠올리지 못한 채 돌아간다."),
-      storyLine("seawaterGuest", "오늘은 바다의 이름을 떠올리지 못하겠군요."),
+      storyNarration("손님은 다은이 내어 준 음식을 맛보지만 몸 안의 물결은 방향을 찾지 못한다.\n손님이 기억하던 바다의 음식은 아니었다."),
+      storyLine("seawaterGuest", "정성은 느껴집니다만, 이 음식에서는 제 바다가 보이지 않는군요."),
       storyLine("seawaterGuest", "바삭한 겉과 그 안에 남은 바다 냄새만 기억합니다."),
-      storyLine("protagonist", "다음에는 그 음식을 준비해 둘게요."),
+      storyLine("protagonist", "뜨거운 기름을 지나 바삭해진 바다의 음식… 기억해 둘게요."),
       { kind: "journal", text: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다." }
     ],
     softLines: [
@@ -800,10 +821,10 @@ const STORY_SCENES = {
       storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.")
     ],
     missingLines: [
-      storyNarration("인형이 찾는 방과 후 음식은 오늘 준비한 다섯 메뉴에 없다.\n인형은 오늘도 시간이 4시 44분에서 끝난다고 말한다."),
+      storyNarration("인형은 다은이 내어 준 음식을 조심스럽게 맛보지만 벽시계는 움직이지 않는다.\n인형이 기다리던 방과 후의 음식은 아니었다."),
       storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
       storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
-      storyLine("protagonist", "다음에는 그 음식을 준비해 볼게."),
+      storyLine("protagonist", "빨갛고 맵고 말랑한 음식… 다음에는 그 기억으로 골라 볼게."),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
     ],
     softLines: [
@@ -847,18 +868,18 @@ const STORY_SCENES = {
     journalClue: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다.",
     arrivalLines: [
       storyNarration("식당의 모든 조명이 꺼진 뒤 주방 위 조명 하나만 다시 켜진다.\n카운터에는 김다은과 같은 옷을 입었지만 얼굴이 없는 손님이 앉아 있다. 장부의 일곱째 날 기록 맨 아래에 「마지막 손님」이라는 문구가 그제야 나타난다."),
-      storyLine("facelessDaeun", "볶음우동 하나 부탁해."),
-      storyNarration("음식 이름을 듣는 순간 오래전 냄새가 스친다.\n입사 첫해 상품 테스트가 끝난 늦은 밤, 남은 우동면을 팬에 볶아 동료들과 나누었던 기억이다."),
+      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶아 나누어 먹던 음식이 있었지."),
+      storyNarration("그 말을 듣는 순간 오래전 냄새가 스친다.\n입사 첫해 상품 테스트가 끝난 늦은 밤, 남은 우동면을 팬에 볶아 동료들과 나누었던 기억이다."),
       storyLine("facelessDaeun", "그때는 잘 팔릴 음식보다, 앞에 앉은 사람들이 맛있게 먹는지가 더 중요했지."),
       storyLine("protagonist", "당신은 누구야?"),
       storyLine("facelessDaeun", "네가 오지 않기를 바랐던 내일에서 왔어."),
       storyLine("protagonist", "내가 바라지 않았던 내일에서…?")
     ],
     missingLines: [
-      storyNarration("얼굴 없는 손님은 자신이 올 자리가 또 준비되지 않았다고 말하고 사라진다.\n다은이 과거 야근 중 만들었던 음식에 관한 단서가 남는다."),
-      storyLine("facelessDaeun", "오늘도 내가 올 자리는 준비하지 않았네."),
+      storyNarration("얼굴 없는 손님은 다은이 내어 준 음식을 한입 먹고 접시를 조용히 밀어 놓는다.\n다은이 과거 늦은 밤 만들었던 음식은 아니었다."),
+      storyLine("facelessDaeun", "이건 그날 우리가 나눠 먹던 음식이 아니야."),
       storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지."),
-      storyLine("protagonist", "이 글씨… 내 필체야. 내가 만들었던 음식이라는 거야?"),
+      storyLine("protagonist", "굵은 면을 팬에 볶은 음식… 내가 만들었던 기억을 찾아야 해."),
       { kind: "journal", text: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다." }
     ],
     softLines: [

@@ -587,7 +587,7 @@ function returnFryGhost(drag) {
     ghost.style.left = `${to.left + to.width / 2}px`;
     ghost.style.top = `${to.top + to.height / 2}px`;
   });
-  setTimeout(() => ghost.remove(), 320);
+  miniSetTimeout(() => ghost.remove(), 320);
 }
 
 function finishFryPointer(event, cancelled = false) {
@@ -599,7 +599,7 @@ function finishFryPointer(event, cancelled = false) {
   document.querySelectorAll("[data-fry-drop].drop-hover").forEach(drop => drop.classList.remove("drop-hover"));
   if (!drag.dragging) return;
   suppressFryClick = true;
-  setTimeout(() => { suppressFryClick = false; }, 0);
+  miniSetTimeout(() => { suppressFryClick = false; }, 0);
   const drop = cancelled ? null : fryDropAt(event.clientX, event.clientY);
   const spot = drop ? { drop, clientX: event.clientX, clientY: event.clientY, drag: true } : null;
   const handled = spot && (drag.source === "raw"
@@ -764,7 +764,7 @@ function liftFryPiece(id, spot = null) {
   renderFry();
   if (!allDone) return true;
   audio.stop?.("deep_fry", m);
-  setTimeout(() => {
+  miniSetTimeout(() => {
     // 집게 커서는 이 화면 전용입니다. 결과 화면까지 따라가면 안 됩니다.
     removeFryCursor();
     if (state.mini !== m || m.complete) return;

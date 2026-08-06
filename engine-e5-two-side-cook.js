@@ -698,7 +698,7 @@ function finishTwoSideUnit(m,unit){
   clearTwoSideCue(data,unit);
   updateTwoSideProgress(data);
   updateTwoSideHint(data);
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     const element=twoSideTargetElement(data,unit);
     element?.classList.add("unit-done");
@@ -756,7 +756,7 @@ function serveTwoSideUnit(m,index){
   dom.miniFeedback.textContent=`${index+1}번 꼬치를 담았습니다!`;
   updateTwoSideProgress(data);
   updateTwoSideHint(data);
-  if(twoSideAllDone(data))setTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},420);
+  if(twoSideAllDone(data))miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},420);
 }
 
 /* "치이익" — 굽는 소리를 한 모금만 크게 겹칩니다.
@@ -767,7 +767,7 @@ function playTwoSideSizzle(m){
   const data=m.data;
   if(data.sizzleSfx)audio.stopFile?.(data.sizzleSfx);
   data.sizzleSfx=audio.play?.(data.dishStyle==="skewer"?"charcoal_grill":"pan_sizzle",{owner:m,gain:1.9})||null;
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(data.sizzleSfx){audio.stopFile?.(data.sizzleSfx);data.sizzleSfx=null;}
   },700);
 }
@@ -785,11 +785,11 @@ function performTwoSideFlip(m,unit){
     audio.play?.("pancake_flip",{owner:m});
     if(pan){
       pan.classList.add("flipping");
-      setTimeout(()=>pan?.classList.remove("flipping"),620);
+      miniSetTimeout(()=>pan?.classList.remove("flipping"),620);
       /* 그림이 넘어가는 것은 연출 한가운데입니다 (팬이 가장 높이 떴을 때).
          이때 **보이는 면이 바뀌므로** 익힘 그림도 같이 갈아 끼웁니다 —
          방금 구운 면이 여기서 드러납니다. */
-      setTimeout(()=>{
+      miniSetTimeout(()=>{
         pan?.classList.remove("side-0","side-1");pan?.classList.add(`side-${side}`);
         updateTwoSideCookVisual(data,unit);
       },300);
@@ -800,7 +800,7 @@ function performTwoSideFlip(m,unit){
   const skewer=dom.miniContent.querySelector(`.grill-skewer.skewer-${unit.index+1}`);
   audio.play?.("skewer_turn",{owner:m});
   skewer?.classList.add("turning");
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     skewer?.classList.remove("turning");
     skewer?.classList.toggle("flipped",unit.flips%2===1);
     updateTwoSideCookVisual(data,unit);   // 굴러서 드러난 면의 익힘으로 갈아 끼웁니다
@@ -830,8 +830,8 @@ function applyTwoSideSauce(m,unit){
   /* 쓸고 지나간 뒤부터 윤기가 돕니다 (연출 한가운데).
      ⚠️ 두 시각은 css 의 붓질 길이와 짝입니다 — 원화는 ts-brush-sweep-long 0.9초,
         임시 도형은 ts-brush-sweep 0.74초입니다. 긴 쪽에 맞춰 둡니다. */
-  setTimeout(()=>{if(state.mini===m)skewer.classList.add("sauced");},430);
-  setTimeout(()=>brush?.remove(),940);
+  miniSetTimeout(()=>{if(state.mini===m)skewer.classList.add("sauced");},430);
+  miniSetTimeout(()=>brush?.remove(),940);
 }
 
 /* ============================================================
@@ -1531,7 +1531,7 @@ function timeoutTwoSideCook(m){
       `<div class="ts-timeout"><strong>TIME OVER</strong><span>${twoSideDone(data)} / ${TWO_SIDE_VIEW[data.dishStyle].total} 완성</span></div>`);
   }
   dom.miniFeedback.textContent="시간이 끝났습니다. 여기까지 구운 것으로 마칩니다.";audio.bad();
-  setTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},TWO_SIDE_TIMEOUT_END_MS);
+  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},TWO_SIDE_TIMEOUT_END_MS);
 }
 
 /* ============================================================

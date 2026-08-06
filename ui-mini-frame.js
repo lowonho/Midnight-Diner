@@ -22,8 +22,8 @@
       오버레이는 전부 z-index:30 이라 DOM 순서가 곧 겹침 순서입니다.
       지금은 storyOverlay 다음 / resultOverlay 앞입니다.
    2. #miniClose 와 #miniPause 의 앞뒤 순서를 바꾸지 마세요.
-      css/minigame-frame.css 의 `#miniClose[hidden] + #miniPause` 가
-      인접 형제 선택자라, 순서가 바뀌면 일시정지 버튼이 사라집니다.
+      두 버튼이 함께 보이는 낮 준비 미니게임에서는 css/minigame-frame.css 가
+      이 순서를 기준으로 설정 버튼을 닫기 버튼 왼쪽에 배치합니다.
    3. id 를 바꾸면 game.js 의 dom 목록도 같이 고쳐야 합니다.
    4. .mini-window / .mini-title-panel 에 .wood-panel 을 다시 붙이지 마세요.
       두 패널은 나무판·금테가 그려진 UI 에셋을 배경으로 깝니다(css/minigame-frame.css).
@@ -60,9 +60,9 @@ const MINI_FRAME_HTML = `
               <h2 id="miniTitle">미니게임</h2>
             </div>
 
-            <!-- 4. 닫기 버튼 / 닫을 수 없는 미니게임이면 일시정지 버튼 -->
+            <!-- 4. 준비 작업 닫기 버튼 / 모든 미니게임에서 쓰는 설정 버튼 -->
             <button id="miniClose" class="mini-icon-button mini-close" type="button" aria-label="미니게임 닫기" title="닫기 (ESC)" hidden>✕</button>
-            <button id="miniPause" class="mini-icon-button mini-pause" type="button" aria-label="일시정지" title="일시정지">❚❚</button>
+            <button id="miniPause" class="mini-icon-button mini-pause" type="button" aria-label="설정 열기" title="설정 열기">❚❚</button>
           </section>`;
 
 // index.html 의 <div id="miniFrameMount"> 자리를 위 마크업으로 통째로 갈아끼웁니다.

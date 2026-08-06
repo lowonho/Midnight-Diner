@@ -482,7 +482,7 @@ function advanceTimingCutCountdown(m,dt){
   if(action)action.disabled=false;
   if(label)label.textContent="시작!";
   overlay?.classList.add("go");
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini===m&&!m.complete)dom.miniContent.querySelector("#cutStartCountdown")?.remove();
   },CUT_FEEL_CONFIG.startSignalMs);
   return true;
@@ -633,7 +633,7 @@ function timingCutAction(){
       if(earlyJudgement){earlyJudgement.textContent="EARLY";earlyJudgement.className="cut-judgement show miss";}
       dom.miniFeedback.textContent="하단 조준선이 아직 초록 판정 구간에 닿지 않았어요.";
       audio.bad();
-      setTimeout(()=>{
+      miniSetTimeout(()=>{
         if(state.mini!==m||m.complete)return;
         const current=dom.miniContent.querySelector("#cutJudgement");
         if(current?.textContent==="EARLY"){current.textContent="";current.className="cut-judgement";}
@@ -693,12 +693,12 @@ function completeTimingCut(m,grade="good",missMessage=""){
     data.phase="complete";board?.classList.add("cut-complete");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
     dom.miniFeedback.textContent=`${cutIngredientLabel(data)} 손질 완료!`;
-    setTimeout(()=>{
+    miniSetTimeout(()=>{
       if(state.mini===m&&!m.complete&&typeof data.onComplete==="function")data.onComplete();
     },CUT_FEEL_CONFIG.completeDelayMs);
     return;
   }
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     if(isHorizontalTimingCut(data))data.knifeY=CUT_FEEL_CONFIG.horizontalStartY;
     data.inputLocked=false;data.phase="ready";renderTimingCut();
@@ -785,7 +785,7 @@ function showNightChopImpact(m,cutIndex,grade){
   board?.classList.add(grade==="perfect"?"cut-perfect":"cut-good");
   if(judgement){judgement.textContent=grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
   updateCutCountCard(data.cuts,data.total);
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m)return;
     work?.classList.remove("slice-hit","slice-good","slice-perfect");
     board?.classList.remove("cut-good","cut-perfect");
@@ -861,7 +861,7 @@ registerMiniEngine("chop",{
     data.marker=0;data.dir=1;data.speed+=.08;
     if(data.cuts>=data.total){
       data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
-      setTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((a,b)=>a+b,0)/data.hits.length));},320);
+      miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((a,b)=>a+b,0)/data.hits.length));},320);
       return;
     }
     moveNightChopTarget(m);
@@ -883,7 +883,7 @@ function tofuChopAction(m){
   if(data.cuts>=data.total){
     data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
     dom.miniFeedback.textContent="두부 썰기 완료!";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));},320);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));},320);
     return;
   }
   data.marker=0;data.dir=1;data.speed+=.05;moveNightChopTarget(m);

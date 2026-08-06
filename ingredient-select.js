@@ -164,14 +164,14 @@ function fridgeColdAirMarkup(){
    ⚠️ renderIngredientSelection 에서 부르면 안 됩니다 — 재료를 하나 찾을 때마다
       무리가 초기화되어 냉기가 순간이동합니다. 시작할 때 한 번 걸고 두면 됩니다. */
 function stopFridgeColdAir(){
-  clearInterval(ingredientColdAirId);ingredientColdAirId=null;
+  miniClearInterval(ingredientColdAirId);ingredientColdAirId=null;
 }
 
 function startFridgeColdAir(){
   if(!dom.fridgeColdAir)return;
   stopFridgeColdAir();
   dom.fridgeColdAir.innerHTML=fridgeColdAirMarkup();
-  ingredientColdAirId=setInterval(()=>{
+  ingredientColdAirId=miniSetInterval(()=>{
     if(state.phase!==GAME_PHASES.INGREDIENT_SELECT||!dom.fridgeColdAir){stopFridgeColdAir();return;}
     dom.fridgeColdAir.innerHTML=fridgeColdAirMarkup();
   },(FRIDGE_COLD_AIR_LIFE+FRIDGE_COLD_AIR_STAGGER+FRIDGE_COLD_AIR_REST)*1000);
@@ -239,8 +239,8 @@ function currentIngredientRoundComplete(){
    화면 전체(renderIngredientSelection)를 다시 그리면 24칸이 매번 새로
    만들어져 클릭이 씹힙니다. */
 function stopIngredientTimer(){
-  clearInterval(ingredientTimerId);ingredientTimerId=null;
-  clearTimeout(ingredientFinishId);ingredientFinishId=null;
+  miniClearInterval(ingredientTimerId);ingredientTimerId=null;
+  miniClearTimeout(ingredientFinishId);ingredientFinishId=null;
   stopFridgeColdAir();
 }
 
@@ -248,8 +248,8 @@ function startIngredientTimer(){
   // ⚠️ 여기서 stopIngredientTimer() 를 부르면 안 됩니다 — 그 함수는 냉기 무리까지
   //    같이 끕니다. 냉기는 판이 열릴 때 한 번 걸리는데, 이 함수가 그 뒤에 불려서
   //    조용히 꺼져 버렸습니다(냉기가 첫 무리에서 멈춰 있던 원인). 시계만 갈아 끕니다.
-  clearInterval(ingredientTimerId);
-  ingredientTimerId=setInterval(()=>{
+  miniClearInterval(ingredientTimerId);
+  ingredientTimerId=miniSetInterval(()=>{
     if(state.phase!==GAME_PHASES.INGREDIENT_SELECT){stopIngredientTimer();return;}
     // 설정창이 열린 동안에는 냉장고의 경과 기록도 함께 멈춥니다.
     if(state.paused)return;
@@ -264,9 +264,17 @@ function updateIngredientTimeText(){
 }
 
 /* ---- 열기 / 닫기 --------------------------------------------- */
+function clearIngredientCompletionBanner(){
+  const cabinet=dom.ingredientGrid?.closest(".fridge-cabinet");
+  cabinet?.querySelector(".fridge-clear")?.remove();
+}
+
 function startIngredientSelection(){
   if(!Array.isArray(state.selectedMenus)||!state.selectedMenus.length)return false;
   stopIngredientTimer();
+  // 완료 안내는 냉장고 DOM 안에 붙는 일회성 요소입니다. 날짜가 넘어가도 같은
+  // 냉장고 DOM을 재사용하므로, 새 판을 열기 전에 전날 안내를 반드시 걷어냅니다.
+  clearIngredientCompletionBanner();
   const required=fridgeIngredientIdsForMenus(state.selectedMenus);
   dom.menuSelectOverlay.classList.remove("open");
   if(!required.length){
@@ -358,7 +366,7 @@ function finishIngredientSelection(){
   if(banner&&!banner.querySelector(".fridge-clear")){
     banner.insertAdjacentHTML("beforeend",`<div class="fridge-clear"><strong>재료 준비 완료</strong><span>걸린 시간 ${e13TimeText(state.ingredientSelection?.elapsed||0)}</span></div>`);
   }
-  ingredientFinishId=setTimeout(continueIngredientSelection,INGREDIENT_FINISH_DELAY);
+  ingredientFinishId=miniSetTimeout(continueIngredientSelection,INGREDIENT_FINISH_DELAY);
 }
 
 /* ---- 그리기 --------------------------------------------------- */

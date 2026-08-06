@@ -210,6 +210,11 @@
   scrollbar-color: #9b7046 rgba(102,68,39,.12);
   scrollbar-width: thin;
 }
+.journal-page.is-gameplay-page .journal-page-right { overflow-y: hidden; }
+.journal-page.is-gameplay-page .journal-page-right p {
+  font-size: calc(12 * var(--upx));
+  line-height: 1.5;
+}
 .journal-page-right:focus-visible {
   outline: calc(2 * var(--upx)) solid rgba(121,82,55,.72);
   outline-offset: calc(-3 * var(--upx));
@@ -299,20 +304,27 @@
   word-break: keep-all;
 }
 .journal-page-tabs {
-  display: grid;
-  grid-template-columns: repeat(var(--journal-page-count,13),minmax(calc(28 * var(--upx)),1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
   gap: calc(5 * var(--upx));
   width: calc(100% - calc(150 * var(--upx)));
   margin: calc(13 * var(--upx)) auto 0;
 }
 .journal-page-tab {
   position: relative;
+  flex: 0 1 auto;
+  min-width: calc(48 * var(--upx));
   min-height: calc(30 * var(--upx));
+  padding: calc(4 * var(--upx)) calc(7 * var(--upx));
   border: 1px solid #704323;
   border-radius: calc(4 * var(--upx));
   background: #180e0a;
   color: #b28e62;
   font-size: calc(10 * var(--upx));
+  line-height: 1.15;
+  white-space: nowrap;
   cursor: pointer;
 }
 .journal-page-tab.is-active { border-color: #ffe09a; color: #ffe09a; box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,210,125,.35); }
@@ -344,5 +356,5 @@
   .journal-page-portrait { width: calc(72 * var(--upx)); }
   .journal-page h3 { font-size: calc(19 * var(--upx)); }
   .journal-page p { font-size: calc(12 * var(--upx)); line-height: 1.55; }
-  .journal-page-tabs { grid-template-columns: repeat(7,1fr); }
+  .journal-page-tab { min-width: calc(44 * var(--upx)); font-size: calc(9 * var(--upx)); }
 }

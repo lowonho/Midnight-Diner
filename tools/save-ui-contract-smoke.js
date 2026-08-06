@@ -164,30 +164,29 @@ assert(titleSource.includes("첫 장에는 영업 규칙이, 음식 장에는 �
 assert(titleSource.includes('page.pageType==="rules"')
   &&titleSource.includes('page.pageType==="recipe"')
   &&titleSource.includes('page.pageType==="day"')
-  &&titleSource.includes("기록 없음")
   &&titleSource.includes("gameplayJournalRecipeNote(page)")
   &&titleSource.includes("page.entries.map(gameplayJournalEntryNote)"),
   "진행용 영업일지는 주의사항·음식별 레시피·방문 뒤 채워지는 날짜별 기록을 구분해야 합니다.");
 [
-  "주의사항","재료","영업 전 준비","주문 후 조리","과거 영업 기록","현재 회차"
+  "주의사항","재료","영업 전 준비","주문 후 조리"
 ].forEach(label=>assert(titleSource.includes(`journalSection("${label}"`),
   `진행용 영업일지에 '[${label}]' 구역이 있어야 합니다.`));
-[
-  "음식 단서","확인 음식","최근 평가","공개 이야기",
-  "이전 회차 평가","이전 회차 부분 조각","이전 회차 완전 조각","본 장면",
-  "방문","평가","조각 상태","조각명"
-].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
-  `진행용 영업일지에 '${label}' 필드가 있어야 합니다.`));
-[
-  "previousLoopEvaluation","previouslyObtainedPartial","previouslyObtainedFull","seenStoryScenes",
-  "currentLoopVisited","currentLoopEvaluation","currentFragmentState","currentFragmentName"
-].forEach(field=>assert(titleSource.includes(`"${field}"`),
-  `진행용 영업일지는 '${field}' 값을 표시해야 합니다.`));
+const gameplayEntrySource=titleSource.match(/function gameplayJournalEntryNote\([\s\S]+?\r?\n}\r?\n\r?\nfunction journalPageNote/)?.[0]||"";
+assert(["dishNote","reactionNote","shardNote"].every(field=>gameplayEntrySource.includes(`entry.${field}`))
+  &&!["공개 이야기","이전 회차 평가","과거 영업 기록","현재 회차"].some(label=>gameplayEntrySource.includes(label)),
+  "날짜별 손님 기록은 회차별 시스템 항목 대신 음식·반응·달빛 조각을 자연스럽게 적어야 합니다.");
+const journalNoteSource=titleSource.match(/function journalPageNote\([\s\S]+?\r?\n}\r?\n\r?\nfunction journalPageMeta/)?.[0]||"";
+assert(journalNoteSource.includes('if(!page.recorded||!page.entries?.length)return "";')
+  &&!journalNoteSource.includes("그날 손님을 직접 만난 뒤 얻은 단서와 결과가 여기에 기록됩니다."),
+  "아직 손님을 만나지 않은 날짜 장의 본문은 설명문 없이 비어 있어야 합니다.");
 const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\r?\n}\r?\n\r?\nfunction renderJournalTabs/)?.[0]||"";
 assert(journalMetaSource.includes('journalMode==="gameplay"')
-  &&journalMetaSource.includes('현재 평가 · ${page.currentLoopEvaluation}')
-  &&journalMetaSource.includes('현재 조각 · ${page.currentFragmentState||"미획득"}'),
-  "진행용 영업일지 상단 요약은 과거 조각이 아니라 현재 회차 평가와 조각 상태를 표시해야 합니다.");
+  &&journalMetaSource.includes('page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:""'),
+  "빈 날짜 장의 요약도 비우고, 기록이 생긴 뒤에만 자연스러운 방문 기록을 표시해야 합니다.");
+assert(titleSource.includes("function journalTabLabel(page,index)")
+  &&titleSource.includes("button.textContent=tabLabel")
+  &&!titleSource.includes("button.textContent=String(index+1)"),
+  "영업일지 하단 탭은 페이지 숫자 대신 주의사항·음식·날짜 이름을 표시해야 합니다.");
 [
   "이름","기억의 음식","좋아한 스타일","완성된 이야기","달빛 조각","진엔딩 이후 후일담"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
@@ -204,13 +203,16 @@ assert(settingsCssSource.includes(".journal-page-portrait.journal-page-icon")
   &&titleSource.includes('classList.toggle("journal-page-icon",isGameplayRecord)'),
   "날짜별 기록은 미래 손님 실루엣 대신 중립적인 날짜 아이콘을 표시해야 합니다.");
 const journalScrollRule=settingsCssSource.match(/\.journal-page-right\s*\{([^}]+)\}/);
+const gameplayJournalNoScrollRule=settingsCssSource.match(/\.journal-page\.is-gameplay-page\s+\.journal-page-right\s*\{([^}]+)\}/);
 const journalBodyRule=settingsCssSource.match(/\.journal-page p\s*\{([^}]+)\}/);
 assert(journalScrollRule
   &&/overflow-y\s*:\s*auto/.test(journalScrollRule[1])
+  &&gameplayJournalNoScrollRule
+  &&/overflow-y\s*:\s*hidden/.test(gameplayJournalNoScrollRule[1])
   &&journalBodyRule
   &&/overflow-wrap\s*:\s*anywhere/.test(journalBodyRule[1])
   &&/white-space\s*:\s*pre-line/.test(journalBodyRule[1]),
-  "긴 영업일지 본문은 문서 영역 안에서 스크롤되고 자동 줄바꿈되어야 합니다.");
+  "타이틀 컬렉션은 긴 글을 스크롤하고, 간결한 게임 진행용 영업일지는 스크롤 없이 자동 줄바꿈해야 합니다.");
 assert(saveSource.includes('const SAVE_VERSION=4;')
   &&saveSource.includes("function migrateSaveStorage()"),
   "새 시나리오는 저장 버전을 올리고 일회성 저장 초기화를 제공해야 합니다.");

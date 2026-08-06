@@ -348,7 +348,7 @@ function returnOneShotGhost(drag){
   drag.card.classList.remove("selected");dom.miniContent.querySelector(".os-drop")?.classList.remove("armed");
   const rect=drag.card.getBoundingClientRect();
   drag.ghost.classList.add("returning");drag.ghost.style.left=`${rect.left+rect.width/2}px`;drag.ghost.style.top=`${rect.top+rect.height/2}px`;
-  setTimeout(()=>drag.ghost?.remove(),240);
+  miniSetTimeout(()=>drag.ghost?.remove(),240);
 }
 
 function finishOneShotPointer(event,cancelled=false){
@@ -356,7 +356,7 @@ function finishOneShotPointer(event,cancelled=false){
   oneShotPointer=null;drag.card.classList.remove("dragging");
   document.querySelectorAll(".os-drop.drop-hover").forEach(drop=>drop.classList.remove("drop-hover"));
   if(!drag.dragging)return;
-  suppressOneShotClick=true;setTimeout(()=>{suppressOneShotClick=false;},0);
+  suppressOneShotClick=true;miniSetTimeout(()=>{suppressOneShotClick=false;},0);
   const drop=cancelled?null:oneShotDropAt(event.clientX,event.clientY);
   // 자유 플레이팅은 "어디에 놓았는지" 까지 넘겨야 그 자리에 얹힙니다.
   if(drop){drag.ghost?.remove();placeOneShotItem(drag.id,{drop,clientX:event.clientX,clientY:event.clientY,drag:true});}
@@ -493,7 +493,7 @@ function startOneShotPour(m,data,id,piece){
   const timing=ONE_SHOT_VARIANTS.pour;
   data.selected=null;data.finishing=true;data.activeItem=id;data.actionPhase="pouring";
   dom.miniFeedback.textContent=`${piece.label}을(를) 붓는 중...`;audio.play?.("pour_thin",{owner:m});renderOneShot();
-  setTimeout(()=>settleOneShotPour(m,data,id),timing.pourDuration);
+  miniSetTimeout(()=>settleOneShotPour(m,data,id),timing.pourDuration);
 }
 
 function settleOneShotPour(m,data,id){
@@ -501,7 +501,7 @@ function settleOneShotPour(m,data,id){
   if(!data.placed.includes(id))data.placed.push(id);
   data.actionPhase="returning";
   dom.miniFeedback.textContent=data.doneMessage||"육수가 냄비를 채웁니다.";renderOneShot();
-  setTimeout(()=>completeOneShotPour(m,data),ONE_SHOT_VARIANTS.pour.returnDuration);
+  miniSetTimeout(()=>completeOneShotPour(m,data),ONE_SHOT_VARIANTS.pour.returnDuration);
 }
 
 function completeOneShotPour(m,data){
@@ -511,7 +511,7 @@ function completeOneShotPour(m,data){
 }
 
 function finishOneShotAfter(m,data,delay){
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete||data.doneCalled)return;
     data.doneCalled=true;data.onDone?.(m);
   },delay);

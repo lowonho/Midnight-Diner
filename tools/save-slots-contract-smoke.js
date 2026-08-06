@@ -563,15 +563,18 @@ assert(sceneBoundarySave?.storyCheckpoint?.sceneId==="SCN-P02",
 const orderScene=Object.values(STORY_SCENES).find(scene=>scene.specialGuest&&scene.guestOrder);
 assert(!!orderScene,"특별 손님 주문 저장을 검증할 장면이 있어야 합니다.");
 freshState(orderScene.day,GAME_PHASES.OPEN);
+state.selectedMenus=[orderScene.dishId];
 state.orders=[{
   id:777,slot:0,dishId:orderScene.dishId,storyDishId:orderScene.dishId,
   customerType:"story",guestId:orderScene.character,storySceneId:orderScene.id,
-  storyArrival:"early",deferUntilArrival:true,guestOrder:true,
+  storyArrival:"early",deferUntilArrival:true,guestOrder:false,awaitingDishChoice:true,
   specialRecipe:false,repeatVisit:true,satisfaction:0
 }];
 nextOrderId=778;
 assert(playStoryScenes([orderScene.id]),orderScene.id+" 대화를 시작할 수 있어야 합니다.");
-assert(suspendStoryForOrderCook(orderScene,{special:true,thresholds:STORY_SCORE_THRESHOLDS},{lineIndex:0}),
+assert(suspendStoryForOrderCook(orderScene,{
+  dishId:orderScene.dishId,special:true,thresholds:STORY_SCORE_THRESHOLDS,suppressReply:true
+},{lineIndex:0}),
   "특별 손님 주문 대화를 조리 대기 상태로 전환할 수 있어야 합니다.");
 assert(storyCookingIsActive()&&activeStoryCookOrderId()===777,
   "주문 조리 시작 뒤 대화가 suspended 상태가 되어야 합니다.");
@@ -589,6 +592,9 @@ assert(storyCookingIsActive()&&activeStoryCookOrderId()===777,
   "suspended orderCook을 불러오면 같은 주문 조리 상태로 돌아가야 합니다.");
 assert(state.selectedOrderId===777&&state.orders[0].specialRecipe===true,
   "suspended orderCook 복원은 선택 주문과 특별 조리 여부를 되살려야 합니다.");
+assert(state.orders[0].dishId===orderScene.dishId&&!state.orders[0].awaitingDishChoice
+  &&state.orders[0].guestOrder,
+  "선택한 특별 손님 음식과 조리 가능 상태를 저장·복원해야 합니다.");
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 

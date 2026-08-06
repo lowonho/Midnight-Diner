@@ -27,7 +27,7 @@ registerMiniEngine("collect", {
     const target = shuffle(INGREDIENTS[dish.id]).slice(0, 3);
     m.data = { target, input: [], errors: 0, showing: true };
     dom.miniContent.innerHTML = `<div class="sequence-view">${target.map(x => `<span class="sequence-chip">${x}</span>`).join("")}</div><div class="choice-grid" id="ingredientChoices"></div>`;
-    setTimeout(() => { if (state.mini === m) { m.data.showing = false; dom.miniContent.querySelector(".sequence-view").innerHTML = "<span class='sequence-chip'>순서를 입력하세요</span>"; renderIngredientChoices(); } }, 1400);
+    miniSetTimeout(() => { if (state.mini === m) { m.data.showing = false; dom.miniContent.querySelector(".sequence-view").innerHTML = "<span class='sequence-chip'>순서를 입력하세요</span>"; renderIngredientChoices(); } }, 1400);
   }
 });
 
@@ -39,7 +39,7 @@ function renderIngredientChoices() {
     const b = document.createElement("button"); b.type = "button"; b.className = "choice-button"; b.textContent = name; b.addEventListener("click", () => {
       const expected = m.data.target[m.data.input.length];
       if (name === expected) { m.data.input.push(name); b.classList.add("correct"); b.disabled = true; audio.click(); dom.miniFeedback.textContent = `${m.data.input.length} / ${m.data.target.length}`; if (m.data.input.length === m.data.target.length) finishMini(Math.max(70, 100 - m.data.errors * 15)); }
-      else { m.data.errors++; b.classList.add("wrong"); setTimeout(() => b.classList.remove("wrong"), 250); audio.bad(); dom.miniFeedback.textContent = "순서가 달라요!"; }
+      else { m.data.errors++; b.classList.add("wrong"); miniSetTimeout(() => b.classList.remove("wrong"), 250); audio.bad(); dom.miniFeedback.textContent = "순서가 달라요!"; }
     }); wrap.appendChild(b);
   });
 }

@@ -33,7 +33,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer","ingredientPause",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 
@@ -362,7 +362,7 @@ const UI_CLICK_SELECTOR=[
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
   // 냉장고 칸(.fridge-slot)은 넣지 않습니다 — 찾았을 때/아닐 때 소리를 게임이 직접 냅니다.
   "#menuSelectConfirm",".menu-select-option",".order-row",
-  "#phaseButton","#nextDayButton","#miniClose","#miniPause"
+  "#phaseButton","#nextDayButton","#miniClose","#miniPause","#ingredientPause"
 ].join(",");
 document.addEventListener("click",event=>{
   const control=event.target.closest?.(UI_CLICK_SELECTOR);
@@ -375,11 +375,16 @@ function showGameHud(show) {
 }
 
 function openSettings(from=state.screen) {
-  if(from==="game")saveGame(true);
   const fromTitle=from==="title";
-  // 미니게임 중이거나 이야기 조리 중이면 저장·타이틀 이동을 막습니다.
-  const saveBlocked=!!state.mini||!!state.story?.activeStoryCook;
+  // 공용 조리 미니게임뿐 아니라 독립 오버레이로 도는 냉장고 재료 찾기도
+  // 진행 중 저장·타이틀 이동을 막습니다. 특히 완료 직후의 냉장고 상태를 저장하면
+  // 다음 화면으로 넘기는 지연 콜백은 세이브에 담기지 않아 불러오기에서 멈출 수 있습니다.
+  const saveBlocked=!!state.mini
+    ||!!state.story?.activeStoryCook
+    ||state.phase===GAME_PHASES.INGREDIENT_SELECT;
+  if(from==="game"&&!saveBlocked)saveGame(true);
   state.settingsFrom=from; state.paused=true;
+  pauseMiniAsyncTasks();
   dom.pauseMessage.textContent=fromTitle?UI_TEXT.pauseFromTitle
     :saveBlocked?UI_TEXT.pauseSaveBlocked:UI_TEXT.pauseFromGame;
   dom.saveLoadActions.hidden=from!=="game";
@@ -394,6 +399,7 @@ function closeSettings() {
   // 저장 슬롯 창이 떠 있으면 그것만 닫고 설정창은 남깁니다.
   if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()){closeSaveSlotDialog();return;}
   dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
+  resumeMiniAsyncTasks();
   state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
   if(state.settingsFrom!=="title")audio.resumeLoops();
 }
@@ -538,7 +544,7 @@ function finishMini(score) {
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   audio.result(score);
-  setTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
+  miniSetTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
   state.mini=null;dom.miniOverlay.classList.remove(UI_CLASS.overlayOpen);
@@ -745,8 +751,9 @@ dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
 dom.miniClose.addEventListener("click",closeDayPrepMini);
-// 닫을 수 없는 미니게임(밤 조리)에서는 닫기 대신 일시정지 버튼이 뜹니다.
+// 공용 미니게임과 별도 냉장고 미니게임 모두 같은 설정창으로 일시정지합니다.
 dom.miniPause.addEventListener("click",()=>openSettings("game"));
+dom.ingredientPause.addEventListener("click",()=>openSettings("game"));
 dom.stationPrompt.addEventListener("click",interact);
 dom.masterAudioToggle.addEventListener("click",()=>{
   state.audio.enabled=!audioIsEnabled();
