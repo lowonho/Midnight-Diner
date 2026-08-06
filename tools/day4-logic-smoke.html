@@ -355,14 +355,24 @@ try{
   /* E5 굽기 — 게이지·Space 를 걷어내고 **신호 + 클릭/드래그**로 바뀐 뒤의 검사입니다.
      예전 검사(익힘 게이지 위치로 판정 구간 맞추기 · ↑꾹→↓ 반동 뒤집기)는 그 조작이
      사라져 통째로 갈았습니다. */
-  const stageOf=step=>twoSideCookVisualStage({units:[{cookStep:step}]});
+  const stageOf=stage=>twoSideCookVisualStage({units:[{sides:[twoSideSideFromStage(stage),twoSideSideFromStage(stage)]}]});
   assert(stageOf(0)==="raw"&&stageOf(1)==="setting"&&stageOf(2)==="ready"&&stageOf(4)==="over","E5 doneness step drives the cooking look");
+  /* 한 면의 그림 번호 = 성공(2까지) + 놓침. 잘 구우면 2 에서 멈추고, 거기서 놓쳐야 탑니다.
+     ⚠️ 덜 익은 면을 놓쳤다고 3(살짝 탐)으로 건너뛰면 안 됩니다. */
+  assert(twoSideSideStage({cook:0,burn:0})===0&&twoSideSideStage({cook:2,burn:0})===2
+    &&twoSideSideStage({cook:5,burn:0})===2&&twoSideSideStage({cook:2,burn:1})===3
+    &&twoSideSideStage({cook:2,burn:9})===4&&twoSideSideStage({cook:0,burn:1})===1,"E5 a side cooks to well-done and only burns past that");
   const pancakeSteps=buildTwoSideUnitSteps("pancake"),skewerSteps=buildTwoSideUnitSteps("skewer");
   const kinds=steps=>steps.reduce((count,step)=>({...count,[step.kind]:(count[step.kind]||0)+1}),{});
-  assert(pancakeSteps.length===7&&kinds(pancakeSteps).cook===4&&kinds(pancakeSteps).flip===3&&!kinds(pancakeSteps).sauce,"E5 pancake plan: cook four times with a flip between each");
-  // 할 일 목록은 이제 **자루 하나 몫**입니다 (자루 3개가 같은 목록을 따로 소화합니다)
-  assert(skewerSteps.length===4&&kinds(skewerSteps).cook===2&&kinds(skewerSteps).flip===1&&kinds(skewerSteps).sauce===1,"E5 skewer plan: two cook cycles plus one sauce per skewer");
+  const plan=steps=>steps.map(step=>step.kind).join(">");
+  /* 순서가 곧 "지금 어느 면이 아래인가" 입니다 — 두 요리 다 한 면에 성공 두 번씩입니다.
+     (할 일 목록은 **자루 하나 몫**이고, 자루 3개가 같은 목록을 따로 소화합니다) */
+  assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook>flip>cook","E5 pancake plan: front/back cooked twice each with flips between");
+  assert(plan(skewerSteps)==="cook>flip>cook>flip>sauce>flip>sauce","E5 skewer plan: cook both sides, then sauce both sides");
+  assert(kinds(skewerSteps).flip===3&&kinds(skewerSteps).sauce===2,"E5 skewer plan flips three times and sauces both sides");
   assert(MINI_ENGINES.twoSideCook.noKeyboard===true,"E5 is mouse-only (no keyboard route)");
+  // 진행도 분모는 순서표에서 세어 옵니다 (손으로 적어 두면 순서를 바꿀 때 화면만 어긋납니다)
+  assert(TWO_SIDE_VIEW.pancake.total===kinds(pancakeSteps).cook&&Number.isInteger(TWO_SIDE_VIEW.pancake.total),"E5 pancake progress denominator comes from the step plan");
   const pancakeMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeMini;
   MINI_ENGINES.twoSideCook.setup(pancakeMini,{set:(title,description,time)=>{pancakeMini.time=time;},dish:dishById("kimchi")});
   const pancakeUnit=pancakeMini.data.units[0];
@@ -373,26 +383,28 @@ try{
   pancakeUnit.cueTimer=TWO_SIDE_CUE.cook.window*.6;
   assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook"),"E5 cue lights up the food itself");
   pressTwoSideCue(pancakeMini,0);
-  /* ⚠️ 첫 굽기는 **'잘 익음'(2)까지 안 갑니다.** 뒤에 굽기가 더 남아 있으면 1(살짝 익음)에
-     머물고, 그 자루의 마지막 굽기에서만 2 가 됩니다 (raiseTwoSideCookStep 주석). */
-  assert(pancakeUnit.stepIndex===1&&pancakeUnit.cookStep===1&&pancakeMini.data.hits[0]>=94&&pancakeMini.data.cooked===1,"E5 an early cook cue stays at lightly-cooked");
+  /* ⚠️ 익는 것은 **불에 닿아 있는 아래 면**입니다. 처음에는 앞면(0)이 아래이고
+     보이는 면은 뒷면(1)이라, 굽고 나서도 **화면 색은 그대로**여야 합니다
+     ("아래를 굽는데 왜 윗면 색이 변하냐" 를 고친 자리). */
+  assert(pancakeUnit.stepIndex===1&&twoSideCookingSide(pancakeUnit)===0&&twoSideFacingSide(pancakeUnit)===1,"E5 the side touching the pan is the one that cooks");
+  assert(pancakeUnit.sides[0].cook===1&&pancakeUnit.sides[1].cook===0
+    &&cookArtStep(pancakeUnit,PANCAKE_COOK_STEPS)===0
+    &&pancakeMini.data.hits[0]>=94&&pancakeMini.data.cooked===1,"E5 cooking the bottom side leaves the visible side unchanged");
   // 뒤집기는 클릭이 아니라 드래그입니다 — 클릭은 아무 일도 일으키지 않아야 합니다
   openTwoSideCue(pancakeMini,pancakeUnit);
   assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===1,"E5 a flip cue does not accept a click");
   playedSfx.length=0;flickTwoSideCue(pancakeMini,0);
-  assert(pancakeUnit.stepIndex===2&&pancakeUnit.flips===1&&playedSfx.join(",")==="pancake_flip","E5 flick drag flips the pancake and plays the flip sound");
-  /* 중간 굽기를 놓쳐도 **타지 않습니다** — 점수만 깎이고 같은 일이 다시 옵니다.
-     예전에는 아무 신호나 놓칠 때마다 탔습니다("왜 벌써 태워"의 원인). */
+  // 뒤집으면 방금 구운 면이 드러나며 그때 색이 바뀝니다
+  assert(pancakeUnit.stepIndex===2&&pancakeUnit.flips===1&&playedSfx.join(",")==="pancake_flip"
+    &&twoSideFacingSide(pancakeUnit)===0&&cookArtStep(pancakeUnit,PANCAKE_COOK_STEPS)===1,"E5 flipping reveals the side that was just cooked");
+  /* 놓치면 **그때 불에 닿아 있던 면**이 한 칸 탑니다. 다만 덜 익은 면은 아직
+     '살짝 탐'까지 가지 않습니다 (성공 2 + 놓침 으로 세기 때문입니다). */
   openTwoSideCue(pancakeMini,pancakeUnit);
-  const missedAt=pancakeUnit.stepIndex,burnBefore=pancakeUnit.cookStep;
+  const missedAt=pancakeUnit.stepIndex,bottom=twoSideCookingSide(pancakeUnit);
   MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
-  assert(pancakeUnit.stepIndex===missedAt&&pancakeMini.data.cookErrors===1&&pancakeUnit.cookStep===burnBefore&&pancakeUnit.phase==="wait","E5 a missed mid cue costs points but does not burn");
-  // 마지막 굽기 차례에서 놓치면 그때 탑니다
-  pancakeUnit.stepIndex=pancakeUnit.steps.length-1;
-  assert(!hasLaterCook(pancakeUnit),"E5 the last step of the pancake plan is its final cook");
-  openTwoSideCue(pancakeMini,pancakeUnit);
-  MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
-  assert(pancakeUnit.cookStep===burnBefore+1,"E5 missing the final cook is what burns it");
+  assert(pancakeUnit.stepIndex===missedAt&&pancakeMini.data.cookErrors===1
+    &&pancakeUnit.sides[bottom].burn===1&&pancakeUnit.sides[1-bottom].burn===0
+    &&pancakeUnit.phase==="wait","E5 a missed cue burns only the side that was on the heat");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
   assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
@@ -418,14 +430,18 @@ try{
         false) 익힘 그림 다섯 장이 아예 안 깔립니다. 그림이 자루별로 갈아 끼워지는지는
         tools/e5-skewer-cook-visual-smoke.html 이 진짜 에셋으로 봅니다. */
   placeTwoSideUnit(skewerCookMini,0);
-  raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0],2);
-  assert(skewerCookMini.data.units[0].cookStep===2&&skewerUnit.cookStep===0,"E5 doneness is per skewer, not shared");
-  // 양념 신호 : 그 자루를 클릭하면 붓이 들어오고 자루에 윤기가 남습니다
-  skewerUnit.stepIndex=3;                                // 자루 한 벌의 네 번째 할 일 = 양념
+  raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0]);
+  assert(skewerCookMini.data.units[0].sides[0].cook===1&&skewerUnit.sides[0].cook===0,"E5 doneness is per skewer, not shared");
+  /* 양념 신호 : **위아래 붓질 드래그**로 답합니다 (클릭이 아닙니다).
+     마지막 할 일(7번째)이 뒷면 양념이라, 그것까지 마치면 그 자루가 다 구워집니다. */
+  skewerUnit.stepIndex=skewerUnit.steps.length-1;
   openTwoSideCue(skewerCookMini,skewerUnit);
   assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 sauce cue lights the skewer being finished");
-  pressTwoSideCue(skewerCookMini,1);
-  assert(skewerUnit.done&&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 clicking the sauce cue brings in the basting brush and finishes that skewer");
+  assert(pressTwoSideCue(skewerCookMini,1)===false&&!skewerUnit.done,"E5 a sauce cue does not accept a click");
+  const saucedSide=twoSideCookingSide(skewerUnit),sauceCookBefore=skewerUnit.sides[saucedSide].cook;
+  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true,"E5 a vertical brush drag answers the sauce cue");
+  assert(skewerUnit.done&&skewerUnit.sides[saucedSide].cook===sauceCookBefore+1
+    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 saucing brings in the brush and cooks that side one more step");
   /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
      담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
   assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");

@@ -52,7 +52,7 @@ const files=["game-data.js","engine-e5-two-side-cook.js","engine-e8-order-place.
 const context=vm.createContext(sandbox);
 files.forEach(file=>vm.runInContext(read(file),context,{filename:file}));
 const api=vm.runInContext(
-  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,twoSideSkewerCardMarkup,TWO_SIDE_VIEW,twoSideIngredientMarkup,createTwoSideData,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
+  "({rememberAssembledSkewers,skewerCookPatterns,charcoalSkewerMarkup,twoSideSkewerCardMarkup,TWO_SIDE_VIEW,twoSideIngredientMarkup,createTwoSideData,twoSideSideFromStage,SKEWER_COOK_FALLBACK,SKEWER_SLOT_COUNT,SKEWER_BATCH_SIZE})",
   context
 );
 
@@ -62,7 +62,7 @@ const api=vm.runInContext(
 const cookData=(cookStep=0)=>{
   const data=api.createTwoSideData("skewer",{});
   // slot 은 **화로의 몇 번째 자리**입니다 (자루 번호와 별개). 안 채우면 화로가 빈 채로 그려집니다.
-  data.units.forEach((unit,seat)=>{unit.placed=true;unit.slot=seat;unit.cookStep=cookStep;});
+  data.units.forEach((unit,seat)=>{unit.placed=true;unit.slot=seat;unit.sides=[api.twoSideSideFromStage(cookStep),api.twoSideSideFromStage(cookStep)];});
   return data;
 };
 
@@ -122,7 +122,7 @@ assert(same(rawFrames.map(frame=>frame.on),[true,false,false,false,false]),
   "익힘 단계를 안 준 화면이 안 익은 첫 장으로 서지 않습니다.");
 /* 익힘 단계를 끝까지 올리면 마지막 장까지 다 켜집니다 (아래 장을 끄지 않는 것이 규칙입니다).
    ⚠️ 예전에는 여기에 `marker:.99`(익힘 게이지 눈금)를 넘겼습니다. 게이지가 없어지고
-      **몇 번째 장인지를 unit.cookStep 이 자루마다 따로 들고** 있게 바뀌었습니다
+      **면(앞/뒤)마다 unit.sides 가 자루별로 따로 들고** 있게 바뀌었습니다
       (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS 주석 참고). */
 const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(cookData(4))));
 assert(burnt.every(frame=>frame.on),"다 태운 화면에서 익힘 단계 5장이 다 켜지지 않았습니다.");

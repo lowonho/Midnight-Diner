@@ -60,7 +60,7 @@
        익힘 단계가 갈아 끼워지는가, 연기 두 기둥이 김치전 위에서 피어오르는가.
 
        ⚠️ 예전에는 `?marker`(익힘 게이지 위치)로 익힘 단계를 정했습니다. 게이지가
-          없어지고 **몇 번째 장인지를 unit.cookStep 이 직접** 들고 있게 바뀌어서,
+          없어지고 **면(앞/뒤)마다 unit.sides 가 따로** 들고 있게 바뀌어서,
           이제 ?step 하나가 그 자리를 대신합니다.
 
        ?step=0..4    익힘 단계 (0 반죽 · 1 살짝 · 2 잘 익음 · 3 살짝 탐 · 4 탐)
@@ -80,7 +80,7 @@
         data:createTwoSideData("pancake",{timeLimit:32})
       };
       const unit = state.mini.data.units[0];
-      unit.cookStep = step;
+      unit.sides = [twoSideSideFromStage(step), twoSideSideFromStage(step)];
       unit.flips = side;
       unit.stepIndex = cue === "flip" ? 1 : 0;
       unit.phase = cue ? "cue" : "wait";
@@ -108,6 +108,20 @@
         if(params.get("press") === "1") cursor.classList.add("pressed");
       }
       parkSmoke();
+      /* ?flip=<ms> — 뒤집는 연출을 걸고 그 시각에 **멈춰 세워** 찍습니다.
+         김치전이 팬 위로 얼마나 떠오르는지, 조리 칸 위로 넘어가도 안 잘리는지를
+         보려는 것입니다 (헤드리스는 시간이 안 흘러 그냥 찍으면 늘 시작 자세입니다). */
+      if(params.has("flip")){
+        performTwoSideFlip(state.mini, unit);
+        const at = Number(params.get("flip")) || 0;
+        return new Promise(done => requestAnimationFrame(() => {
+          document.getAnimations().forEach(a => {
+            if(!["two-side-food-flip","pan-toss"].includes(a.animationName)) return;
+            a.pause(); try { a.currentTime = at; } catch(e){}
+          });
+          done();
+        })).then(measure);
+      }
       measure();
     }).catch(error => { document.body.dataset.error = `render: ${error.message}`; });
 
@@ -152,7 +166,7 @@
           top:+(foodRect.top - panRect.top).toFixed(1),
           bottom:+(panRect.bottom - foodRect.bottom).toFixed(1)
         },
-        cookStep:state.mini.data.units[0].cookStep,
+        cookStep:cookArtStep(state.mini.data.units[0], PANCAKE_COOK_STEPS),
         // 켜져 있는 그림 = 지금 단계까지. 맨 뒤가 보이는 장입니다.
         on:shown.map(i => i.getAttribute("src").split("/").pop()),
         /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(day-prep-minigames.js 의

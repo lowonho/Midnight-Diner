@@ -12,10 +12,15 @@
      · 양념 신호(붉은 불빛)  → 꼬치를 **클릭**   → 붓이 들어와 양념을 바릅니다 (닭꼬치만)
 
    [한 판의 구성]  **자루(unit)마다 자기 할 일 목록을 하나씩 소화합니다.**
-     김치전 : 자루 1개(팬 위의 한 장) — 굽기 4번, 사이 사이에 뒤집기 3번
-              cook → flip → cook → flip → cook → flip → cook
-     닭꼬치 : 자루 3개 — 자루마다 cook → flip → cook → sauce
+   불에 닿아 있는 **아래 면**만 익으므로, 순서가 곧 "지금 어느 면이 아래인가" 입니다.
+     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
+     닭꼬치 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 양념 → 뒤집기 → 뒷면 양념
+   두 요리 다 **한 면에 성공 두 번씩**이라 양쪽이 고르게 익습니다 (TWO_SIDE_STEP_PLAN).
    신호를 놓치면 **건너뛰지 않고** 같은 일이 조금 뒤에 다시 옵니다.
+
+   [답하는 손짓]  굽기는 **클릭**, 뒤집기와 양념은 **드래그**입니다.
+     뒤집기  김치전 위로 튕기기 · 닭꼬치 옆으로 굴리기
+     양념    **위아래 붓질** (닭꼬치만)
 
    [닭꼬치는 내가 올리는 것부터 시작합니다]  처음에는 화로가 비어 있고, 왼쪽 재료
    칸의 꼬치 3자루를 **원할 때 하나씩 끌어다** 올립니다. 올린 자루부터 자기 신호가
@@ -23,15 +28,16 @@
    있습니다. 자루마다 신호 간격 배수(unit.speed)가 달라 **익는 속도도 서로 다릅니다.**
    제한시간 안에 끝낸 자루만 완성으로 셉니다 (멸치 손질과 같은 마감입니다).
 
-   [익는 정도]  unit.cookStep 한 칸(0~4)이 그림 5장의 번호이고, **뒤로 안 갑니다.**
+   [익는 정도]  **면마다 따로** 셉니다 (unit.sides = [앞면, 뒷면]).
+   그림 5장의 번호는 `성공 횟수(2까지) + 놓친 횟수` 입니다 (twoSideSideStage).
      0 안 익음   ← 시작
-     1 살짝 익음 ← 익힘 신호가 뜨기 1.5초 전에 여기까지 (곧 신호가 온다는 예고입니다)
-                   그리고 굽는 동안 내내 여기에 머뭅니다
-     2 잘 익음   ← **그 자루의 마지막 굽기**에 제때 클릭
-     3 살짝 탐   ← 그 마지막 굽기를 놓쳤을 때
-     4 탐        ← 다시 온 마지막 굽기를 또 놓쳤을 때
-   가만히 둔다고 저절로 타지 않고, 중간 신호를 놓쳐도 타지 않습니다.
-   **마지막 단계에서 놓친 것만** 탑니다.
+     1 살짝 익음 ← 그 면에 한 번 성공
+     2 잘 익음   ← 그 면에 두 번 성공  (성공만으로는 여기서 멈춥니다 — 잘 구우면 안 탑니다)
+     3 살짝 탐   ← 다 익은 면이 붙어 있는 동안 한 번 놓침
+     4 탐        ← 두 번 놓침
+   ⚠️ **화면에 그리는 것은 '보이는 면'(위) 하나뿐입니다.** 굽는 것은 아래 면이라,
+      구울 때는 화면 색이 그대로이고 **뒤집는 순간** 방금 구운 면이 드러나며 바뀝니다.
+   ⚠️ 가만히 둔다고 저절로 타지 않습니다. 놓친 만큼만 탑니다.
 
    [화면] 두 요리가 같은 3열 화면을 씁니다. 아래 "공통 화면 틀" 구역 참고.
    예전에 있던 하단 게이지 줄(게이지 + 문구 + Space 버튼)이 통째로 빠져서
@@ -40,23 +46,34 @@
    쓰는 곳: 김치전 굽기 · 닭꼬치 굽기 (game-data.js 의 game:"twoSideCook")
    ============================================================ */
 
+/* ── 한 자루가 소화하는 할 일 순서 ───────────────────────────
+   **불에 닿아 있는 면(아래)** 만 익습니다. 그래서 순서가 곧 "지금 어느 면이 아래인가" 입니다.
+   뒤집을 때마다 아래 면이 앞↔뒤로 바뀝니다 (아래 면 = flips % 2).
+
+     닭꼬치 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 양념 → 뒤집기 → 뒷면 양념
+     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
+
+   두 요리 다 **한 면에 성공 두 번씩**이라, 양쪽이 고르게 '잘 익음'까지 갑니다
+   (익힘 셈은 아래 twoSideSideStage 참고).
+   ⚠️ 예전에는 cyclesPerUnit 로 만들어 냈는데, 두 요리의 순서가 서로 달라져
+      규칙으로는 못 만들게 됐습니다. 순서 그대로 적는 것이 읽기도 쉽습니다. */
+const TWO_SIDE_STEP_PLAN=Object.freeze({
+  pancake:Object.freeze(["cook","flip","cook","flip","cook","flip","cook"]),
+  skewer: Object.freeze(["cook","flip","cook","flip","sauce","flip","sauce"])
+});
+
 const TWO_SIDE_COOK_CONFIG=Object.freeze({
   pancake:Object.freeze({
     units:1,                 // 한 판에 굽는 개수 (김치전 1장)
-    cyclesPerUnit:4,         // 개당 [굽기(+뒤집기)] 를 몇 번 되풀이하는가
-    sauce:false,             // 마지막에 양념 바르기가 있는가
     flipAxis:"up",           // 뒤집는 드래그 방향 (up = 위로 튕기기)
-    timeLimit:32
+    timeLimit:42             // 신호 창을 넉넉히 넓히면서 32 → 42
   }),
   skewer:Object.freeze({
     units:SKEWER_BATCH_SIZE, // 낮에 꽂아 둔 꼬치 3자루
-    cyclesPerUnit:2,
-    sauce:true,
     flipAxis:"side",         // side = 좌우 아무 쪽으로나 굴리기
-    /* 45 → 58. 예전에는 3자루가 화로에 다 올라간 채로 한 줄로 진행했지만, 지금은
-       **올리는 것부터 플레이어 몫**이고 자루마다 신호를 따로 기다립니다.
-       세 자루를 겹쳐 구우면 넉넉하고, 한 자루씩 차례로 구우면 빠듯한 값입니다. */
-    timeLimit:58
+    /* 45 → 58 → 72. 올리는 것부터 플레이어 몫인 데다, 자루마다 할 일이 4개에서
+       7개로 늘고 신호 창도 넓어졌습니다. 세 자루를 겹쳐 구우면 넉넉한 값입니다. */
+    timeLimit:72
     // ⚠️ 예전에 있던 `foodAsset:"cookSkewerFood"`(꼬치 한 자루가 통째로 그려진 그림 한 장)은
     //    뺐습니다. 지금은 낮에 꽂은 배치대로 **조각을 한 개씩** 쌓습니다 — 아래 grillSkewerMarkup.
   })
@@ -69,11 +86,15 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
      preheat 익힘 신호 전에 "살짝 익은 그림"으로 미리 바뀌는 시각 (신호까지 남은 초)
      retryWait 놓쳤을 때 같은 신호가 다시 오기까지
    ⚠️ preheat(1.5) 는 cook 의 wait 최소값(1.4)보다 큽니다. 일부러 그렇습니다 —
-      기다림이 짧게 뽑히면 예고 그림과 신호가 거의 붙어서 나옵니다(빠른 판). */
+      기다림이 짧게 뽑히면 예고 그림과 신호가 거의 붙어서 나옵니다(빠른 판).
+   ⚠️ window 를 넓혔습니다 (굽기 .9 → 1.9 · 뒤집기 1.6 → 2.6 · 양념 1.4 → 2.4).
+      점수는 창의 앞쪽 40% 께가 가장 좋은 **비율**이라(twoSideCueScore) 창을 넓혀도
+      만점 자리는 그대로 앞쪽입니다 — 늦게 눌러도 되는 여유만 늘어납니다.
+      대신 제한시간도 같이 늘렸습니다 (위 timeLimit). */
 const TWO_SIDE_CUE=Object.freeze({
-  cook: Object.freeze({wait:Object.freeze([1.4,2.6]), window:.9,  preheat:1.5}),
-  flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:1.6, preheat:0}),
-  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:1.4, preheat:0}),
+  cook: Object.freeze({wait:Object.freeze([1.4,2.6]), window:1.9, preheat:1.5}),
+  flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.6, preheat:0}),
+  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0}),
   retryWait:Object.freeze([1,1.8])
 });
 
@@ -86,7 +107,10 @@ const TWO_SIDE_CUE=Object.freeze({
                같은 손짓이 안 먹습니다.
    ⚠️ 김치전은 **위쪽으로만** 셉니다(팬을 들어 올려 뒤집는 손짓). 닭꼬치는 막대를
       굴리는 손짓이라 좌우 아무 쪽이나 됩니다. */
-const TWO_SIDE_FLICK=Object.freeze({windowMs:320,pancakeDistance:.16,skewerDistance:.09});
+/* sauceDistance : 양념은 **위아래 붓질**입니다. 뒤집기(위로 튕기기)보다 짧게 잡아
+   가볍게 쓸어도 발리게 했습니다 — 뒤집기와 헷갈릴 일은 없습니다. 두 신호는 절대
+   같이 켜지지 않고(자루마다 할 일이 하나씩), 재는 방향도 지금 할 일로 고릅니다. */
+const TWO_SIDE_FLICK=Object.freeze({windowMs:320,pancakeDistance:.16,skewerDistance:.09,sauceDistance:.08});
 
 /* ── 화로에 올라가는 꼬치 3개 ────────────────────────────────
    낮 '닭꼬치 꽂기'(engine-e8)에서 실제로 꽂은 배치를 그대로 굽습니다.
@@ -173,13 +197,7 @@ function skewerCookArtOn(data){
 const TWO_SIDE_UNIT_SPEEDS=Object.freeze([.74,1,1.3]);
 
 function buildTwoSideUnitSteps(dishStyle){
-  const config=TWO_SIDE_COOK_CONFIG[dishStyle],steps=[];
-  for(let cycle=0;cycle<config.cyclesPerUnit;cycle++){
-    steps.push({kind:"cook"});
-    if(cycle<config.cyclesPerUnit-1)steps.push({kind:"flip"});
-    else if(config.sauce)steps.push({kind:"sauce"});
-  }
-  return steps;
+  return TWO_SIDE_STEP_PLAN[dishStyle].map(kind=>({kind}));
 }
 
 /* 자루별 속도를 섞어 나눠 줍니다.
@@ -202,11 +220,16 @@ function createTwoSideUnits(dishStyle){
      둘을 묶어 두면 3번 꼬치를 왼쪽에 놓아도 오른쪽 끝으로 날아갑니다. */
   /* served : 다 구운 뒤 **완성 칸(접시)으로 옮겼는가**. 튀김처럼 마지막에 옮겨야 한 개입니다.
      김치전은 옮기는 단계가 없어서 처음부터 true 로 둡니다 (판정이 두 요리를 함께 봅니다). */
+  /* sides : **앞면(0) · 뒷면(1)** 이 따로 익습니다.
+       cook  그 면에 제때 답한 횟수 (성공)
+       burn  그 면이 불에 닿아 있는 동안 놓친 횟수 (탐)
+     보이는 그림 번호는 twoSideSideStage 가 이 둘로 셉니다. */
   return Array.from({length:config.units},(_,index)=>({
     index, placed:onPan, slot:onPan?index:null, done:false, served:onPan,
     steps:buildTwoSideUnitSteps(dishStyle), stepIndex:0,
     phase:onPan?"wait":"idle", cueTimer:0, preheated:false,
-    cookStep:0, renderedCookStep:-1, flips:0, speed:speeds[index]
+    sides:[{cook:0,burn:0},{cook:0,burn:0}], renderedCookStep:-1,
+    flips:0, speed:speeds[index]
   }));
 }
 
@@ -214,36 +237,54 @@ function twoSideUnits(data){return data.units||[];}
 function twoSideUnit(data,index){return data.units?.[index]||null;}
 function twoSideStep(unit){return unit?.steps?.[unit.stepIndex]||null;}
 
-/* 이 차례 뒤로 굽기가 더 남아 있는가. **탈지 말지를 가르는 한 줄입니다** —
-   남아 있으면 아직 마지막 단계가 아니라서, 놓쳐도 타지 않고 점수만 깎입니다. */
-function hasLaterCook(unit){
-  return unit.steps.slice(unit.stepIndex+1).some(step=>step.kind==="cook");
+/* ── 어느 면이 불에 닿아 있는가 ──────────────────────────────
+   뒤집을 때마다 아래위가 바뀝니다. **아래 면만 익고, 위 면은 그대로입니다.**
+     cookingSide  지금 불에 닿아 있는 면 (0 앞면 · 1 뒷면)
+     facingSide   지금 **보이는** 면 = 그림으로 그리는 면
+   그래서 굽는 동안에는 화면 색이 그대로이고, 뒤집는 순간 방금 구운 면이 드러나며
+   색이 바뀝니다 — "아래를 굽는데 윗면 색이 변하던" 것을 고친 곳입니다. */
+function twoSideCookingSide(unit){return (unit?.flips||0)%2;}
+function twoSideFacingSide(unit){return 1-twoSideCookingSide(unit);}
+
+/* 한 면의 그림 번호(0~4).
+     성공(cook)은 2(잘 익음)까지만 올립니다 — 잘 구우면 절대 타지 않습니다.
+     놓침(burn)은 거기서 한 칸씩 더 올립니다 → 3 살짝 탐 · 4 탐.
+   두 요리 다 한 면에 성공이 두 번씩이라, 제때 답하면 양쪽이 2 에서 멈춥니다.
+   ⚠️ 아직 덜 익은 면(cook 0~1)을 놓치면 3 으로 건너뛰지 않고 1~2 로만 갑니다.
+      "안 익은 것이 갑자기 새까매지는" 일이 없게 하려는 것입니다. */
+function twoSideSideStage(side){
+  if(!side)return 0;
+  return clamp(Math.min(2,side.cook||0)+(side.burn||0),0,PANCAKE_COOK_STEPS.length-1);
 }
 
-/* 지금 보여 줄 그림 번호. 자루가 들고 있는 cookStep 을 그대로 쓰되 장수를 넘지 않게만 자릅니다. */
+/* 위 셈을 거꾸로 — 그림 번호 하나로 면 상태를 만듭니다.
+   점검용 하네스가 "이 면을 3단계로 놓고 찍어 줘" 처럼 쓰기 때문에 엔진 쪽에 둡니다
+   (하네스가 {cook,burn} 을 손으로 맞추면 셈이 바뀔 때 조용히 어긋납니다). */
+function twoSideSideFromStage(stage){
+  const value=clamp(Math.round(stage||0),0,PANCAKE_COOK_STEPS.length-1);
+  return {cook:Math.min(2,value),burn:Math.max(0,value-2)};
+}
+
+/* 지금 화면에 보이는 면의 그림 번호. 그림 장수를 넘지 않게만 자릅니다. */
 function cookArtStep(unit,steps){
-  return clamp(Math.round(unit?.cookStep||0),0,steps.length-1);
+  return clamp(twoSideSideStage(unit?.sides?.[twoSideFacingSide(unit)]),0,steps.length-1);
 }
 
-/* 익힘을 **올리기만** 합니다 (한 번 익은 김치전이 다시 반죽이 되지는 않습니다).
-     raise : 신호에 제때 답했을 때
-     burn  : **마지막 굽기**를 놓쳤을 때 — 한 칸씩, 마지막 장(탐)에서 멈춥니다
-
-   [예전과 무엇이 다른가]  예전에는 굽기에 한 번만 성공해도 곧바로 2(잘 익음)로
-   뛰었고, 굽기든 뒤집기든 **아무 신호나** 놓칠 때마다 탔습니다. 그래서 첫 굽기부터
-   다 익은 것처럼 보이고 두 번만 놓치면 새까매졌습니다. 지금은
-     · 굽는 동안에는 1(살짝 익음)에 머물고, **그 자루의 마지막 굽기**에서 2(잘 익음)
-     · 타는 것은 그 마지막 굽기를 놓쳤을 때뿐입니다 (뒤집기·양념은 안 태웁니다)
-   그래서 "끝까지 잘 하다 마지막에 놓치면 탄다" 가 됩니다. */
-function raiseTwoSideCookStep(data,unit,step){
-  if(!unit)return;
-  unit.cookStep=Math.max(unit.cookStep||0,step);
+/* 불에 닿아 있는 면을 한 칸 익히거나(raise) 한 칸 태웁니다(burn).
+   ⚠️ **그림은 보이는 면**을 그리므로, 아래 면을 익혀도 화면은 대개 그대로입니다.
+      그래도 updateTwoSideCookVisual 을 부르는 이유는 뒤집기 직후처럼 보이는 면이
+      바뀐 경우를 같이 처리하기 때문입니다. */
+function raiseTwoSideCookStep(data,unit){
+  const side=unit?.sides?.[twoSideCookingSide(unit)];
+  if(!side)return;
+  side.cook=(side.cook||0)+1;
   updateTwoSideCookVisual(data,unit);
 }
 
 function burnTwoSideCookStep(data,unit){
-  if(!unit)return;
-  unit.cookStep=Math.min(PANCAKE_COOK_STEPS.length-1,(unit.cookStep||0)+1);
+  const side=unit?.sides?.[twoSideCookingSide(unit)];
+  if(!side)return;
+  side.burn=(side.burn||0)+1;
   updateTwoSideCookVisual(data,unit);
 }
 
@@ -254,9 +295,10 @@ function burnTwoSideCookStep(data,unit){
 const TWO_SIDE_COOK_STAGE=Object.freeze(["raw","setting","ready","over","over"]);
 
 /* 조리기구(팬·화로)에 거는 분위기는 **한 벌뿐**입니다. 자루가 여럿이면
-   가장 많이 익은 자루를 따릅니다 — 한 자루라도 타면 화로가 벌겋게 달아오릅니다. */
+   가장 많이 익은 면을 따릅니다 — 한 자루라도 타면 화로가 벌겋게 달아오릅니다. */
 function twoSideCookLevel(data){
-  return twoSideUnits(data).reduce((top,unit)=>Math.max(top,cookArtStep(unit,PANCAKE_COOK_STEPS)),0);
+  return twoSideUnits(data).reduce((top,unit)=>
+    Math.max(top,...(unit.sides||[]).map(twoSideSideStage)),0);
 }
 
 function twoSideCookVisualStage(data){
@@ -354,7 +396,7 @@ registerMiniEngine("twoSideCook", {
     if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
-    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기·양념 · 드래그 : 굴려 뒤집기":"클릭 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
+    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념":"클릭 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
     renderTwoSideCook();
     // 팬 위에 이미 올라가 있는 자루(= 김치전)만 바로 첫 신호를 겁니다.
     twoSideUnits(m.data).forEach(unit=>{if(unit.placed)armTwoSideCue(m,unit);});
@@ -374,8 +416,9 @@ registerMiniEngine("twoSideCook", {
   // ACTION 버튼(휴대용 화면의 큰 버튼)으로도 클릭 신호에 답할 수 있게 열어 둡니다.
   // 키보드는 위 noKeyboard 가 막으므로 이 길로는 마우스·터치만 들어옵니다.
   action(m) {
-    // 신호가 켜진 자루 가운데 클릭으로 답하는 것(굽기·양념) 하나를 골라 줍니다.
-    const unit=twoSideUnits(m.data).find(one=>one.phase==="cue"&&twoSideStep(one)?.kind!=="flip");
+    // 신호가 켜진 자루 가운데 **클릭으로 답하는 것(굽기)** 하나를 골라 줍니다.
+    // 뒤집기와 양념은 드래그라 이 길로는 답할 수 없습니다.
+    const unit=twoSideUnits(m.data).find(one=>one.phase==="cue"&&twoSideStep(one)?.kind==="cook");
     if(unit)pressTwoSideCue(m,unit.index);
   }
 });
@@ -490,9 +533,11 @@ function pressTwoSideCue(m,unitIndex){
   }
   const step=twoSideStep(unit);
   if(!step||unit.done)return false;
-  if(step.kind==="flip"){
-    // 뒤집기는 클릭이 아니라 드래그입니다. 답을 몰라 클릭한 것이므로 벌점은 없습니다.
-    if(unit.phase==="cue")dom.miniFeedback.textContent=data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!";
+  // 뒤집기·양념은 클릭이 아니라 드래그입니다. 답을 몰라 클릭한 것이므로 벌점은 없습니다.
+  if(step.kind!=="cook"){
+    if(unit.phase==="cue")dom.miniFeedback.textContent=step.kind==="sauce"
+      ?"붓질하듯 **위아래로** 드래그해 양념을 발라주세요!"
+      :(data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!");
     return false;
   }
   if(unit.phase!=="cue"){
@@ -500,47 +545,51 @@ function pressTwoSideCue(m,unitIndex){
     return false;
   }
   data.hits.push(twoSideCueScore(unit,step.kind));
-  if(step.kind==="cook"){
-    // 굽는 동안에는 '살짝 익음'에 머물고, **마지막 굽기**에서만 '잘 익음'이 됩니다.
-    raiseTwoSideCookStep(data,unit,hasLaterCook(unit)?1:2);
-    data.cooked=(data.cooked||0)+1;
-    playTwoSideSizzle(m);
-    dom.miniFeedback.textContent="치이익—  노릇하게 익었습니다!";
-  }else{
-    applyTwoSideSauce(m,unit.index);
-  }
+  // 불에 닿아 있는 면이 한 칸 익습니다 (보이는 면은 그대로입니다)
+  raiseTwoSideCookStep(data,unit);
+  data.cooked=(data.cooked||0)+1;
+  playTwoSideSizzle(m);
+  dom.miniFeedback.textContent="치이익—  노릇하게 익었습니다!";
   advanceTwoSideStep(m,unit);
   return true;
 }
 
-function flickTwoSideCue(m,unitIndex){
+/* 뒤집기(옆으로·위로 튕기기)와 양념(위아래 붓질) — 둘 다 드래그로 답합니다.
+   어느 손짓인지는 조작 쪽(bindTwoSideCookPointer)이 가리고, 여기서는 지금 할 일과
+   맞는지만 봅니다. */
+function flickTwoSideCue(m,unitIndex,kind="flip"){
   if(!m)return false;
   const data=m.data,unit=twoSideUnit(data,unitIndex);
   if(!unit||data.timedOut||!unit.placed||unit.done)return false;
   const step=twoSideStep(unit);
-  if(!step||step.kind!=="flip"||unit.phase!=="cue")return false;
-  data.hits.push(twoSideCueScore(unit,"flip"));
-  performTwoSideFlip(m,unit);
+  if(!step||step.kind!==kind||unit.phase!=="cue")return false;
+  data.hits.push(twoSideCueScore(unit,kind));
+  if(kind==="sauce"){
+    // 양념을 바르는 동안에도 아래 면은 계속 익습니다 — 그래서 한 칸 올립니다
+    raiseTwoSideCookStep(data,unit);
+    applyTwoSideSauce(m,unit.index);
+  }else performTwoSideFlip(m,unit);
   advanceTwoSideStep(m,unit);
   return true;
 }
 
-/* 놓쳤습니다. **마지막 굽기를 놓친 것만** 탑니다 (raiseTwoSideCookStep 주석 참고).
-   그 앞의 굽기·뒤집기·양념은 점수만 깎이고 같은 일이 조금 뒤에 다시 옵니다. */
+/* 놓쳤습니다. **불에 닿아 있는 아래 면이 한 칸 탑니다** — 무슨 신호를 놓쳤든
+   그동안 그 면은 계속 불 위에 있었으니까요.
+   ⚠️ 그래도 덜 익은 면이 대뜸 새까매지지는 않습니다. 그림 번호를
+      `성공(2까지) + 놓침` 으로 세기 때문입니다 (twoSideSideStage 참고) —
+      잘 구워 둔 면을 놓쳐야 살짝 탐 → 탐 으로 넘어갑니다. */
 function missTwoSideCue(m,unit){
   const data=m.data,step=twoSideStep(unit);
   if(!step)return;
-  if(step.kind==="cook"){
-    data.cookErrors=(data.cookErrors||0)+1;
-    if(hasLaterCook(unit))dom.miniFeedback.textContent="불빛을 놓쳤어요. 곧 다시 신호가 옵니다.";
-    else{burnTwoSideCookStep(data,unit);dom.miniFeedback.textContent="마지막 불빛을 놓쳤어요. 탔습니다!";}
-  }else if(step.kind==="flip"){
-    data.flipErrors=(data.flipErrors||0)+1;
-    dom.miniFeedback.textContent="뒤집을 때를 놓쳤어요. 곧 다시 신호가 옵니다.";
-  }else{
-    data.flipErrors=(data.flipErrors||0)+1;
-    dom.miniFeedback.textContent="양념 바를 때를 놓쳤어요. 곧 다시 신호가 옵니다.";
-  }
+  if(step.kind==="cook")data.cookErrors=(data.cookErrors||0)+1;
+  else data.flipErrors=(data.flipErrors||0)+1;
+  burnTwoSideCookStep(data,unit);
+  const burnt=twoSideSideStage(unit.sides[twoSideCookingSide(unit)])>=3;
+  dom.miniFeedback.textContent=burnt
+    ?`${twoSideCookingSide(unit)?"뒷":"앞"}면이 탔습니다! 닿아 있던 면이 그을렸어요.`
+    :{cook:"불빛을 놓쳤어요. 곧 다시 신호가 옵니다.",
+      flip:"뒤집을 때를 놓쳤어요. 곧 다시 신호가 옵니다.",
+      sauce:"양념 바를 때를 놓쳤어요. 곧 다시 신호가 옵니다."}[step.kind];
   audio.bad();
   armTwoSideCue(m,unit,true);
 }
@@ -653,8 +702,13 @@ function performTwoSideFlip(m,unit){
     if(pan){
       pan.classList.add("flipping");
       setTimeout(()=>pan?.classList.remove("flipping"),620);
-      // 그림이 넘어가는 것은 연출 한가운데입니다 (팬이 가장 높이 떴을 때)
-      setTimeout(()=>{pan?.classList.remove("side-0","side-1");pan?.classList.add(`side-${side}`);},300);
+      /* 그림이 넘어가는 것은 연출 한가운데입니다 (팬이 가장 높이 떴을 때).
+         이때 **보이는 면이 바뀌므로** 익힘 그림도 같이 갈아 끼웁니다 —
+         방금 구운 면이 여기서 드러납니다. */
+      setTimeout(()=>{
+        pan?.classList.remove("side-0","side-1");pan?.classList.add(`side-${side}`);
+        updateTwoSideCookVisual(data,unit);
+      },300);
     }
     dom.miniFeedback.textContent="샥— 깔끔하게 뒤집었습니다!";
     return;
@@ -665,6 +719,7 @@ function performTwoSideFlip(m,unit){
   setTimeout(()=>{
     skewer?.classList.remove("turning");
     skewer?.classList.toggle("flipped",unit.flips%2===1);
+    updateTwoSideCookVisual(data,unit);   // 굴러서 드러난 면의 익힘으로 갈아 끼웁니다
   },300);
   dom.miniFeedback.textContent=`${unit.index+1}번 꼬치를 굴렸습니다!`;
 }
@@ -710,10 +765,13 @@ function twoSidePointerUnit(event){
   return Number.isFinite(index)?index:0;
 }
 
-function twoSideFlickHits(data,board,dx,dy){
+/* 이 드래그가 어떤 손짓인지. 지금 할 일(kind)에 맞는 방향으로 충분히 그었는가만 봅니다.
+     flip   김치전은 위로만(팬을 들어 올리는 손짓), 닭꼬치는 좌우 아무 쪽이나(굴리는 손짓)
+     sauce  **위아래 아무 쪽이나** — 붓으로 쓸어내리는 손짓입니다 */
+function twoSideFlickHits(data,board,dx,dy,kind="flip"){
   const rect=board.getBoundingClientRect();
   if(!rect.width||!rect.height)return false;
-  // 김치전은 위로만(팬을 들어 올리는 손짓), 닭꼬치는 좌우 아무 쪽이나(막대를 굴리는 손짓)
+  if(kind==="sauce")return Math.abs(dy)>=rect.height*TWO_SIDE_FLICK.sauceDistance;
   if(data.dishStyle==="pancake")return -dy>=rect.height*TWO_SIDE_FLICK.pancakeDistance;
   return Math.abs(dx)>=rect.width*TWO_SIDE_FLICK.skewerDistance;
 }
@@ -749,7 +807,11 @@ function bindTwoSideCookPointer(){
     if(performance.now()-drag.at>TWO_SIDE_FLICK.windowMs){
       drag.x=event.clientX;drag.y=event.clientY;drag.at=performance.now();return;
     }
-    if(twoSideFlickHits(m.data,board,dx,dy)&&flickTwoSideCue(m,drag.unit))drag.spent=true;
+    /* 지금 그 자루가 기다리는 것이 뒤집기인지 양념인지에 따라 재는 방향이 다릅니다
+       (뒤집기 = 옆/위 · 양념 = 위아래 붓질). */
+    const kind=twoSideStep(twoSideUnit(m.data,drag.unit))?.kind;
+    if(kind!=="flip"&&kind!=="sauce")return;
+    if(twoSideFlickHits(m.data,board,dx,dy,kind)&&flickTwoSideCue(m,drag.unit,kind))drag.spent=true;
   });
 
   const finish=event=>{
@@ -888,7 +950,7 @@ const TWO_SIDE_NOW_TEXT=Object.freeze({
   skewer:Object.freeze({
     waitCook:"숯불이 오르기를 기다리는 중…", cueCook:"지금! 불빛이 켜진 꼬치를 클릭",
     waitFlip:"곧 뒤집기 신호가 옵니다", cueFlip:"지금! 옆으로 굴리듯 드래그",
-    waitSauce:"곧 양념 신호가 옵니다", cueSauce:"지금! 꼬치를 클릭해 양념 바르기",
+    waitSauce:"곧 양념 신호가 옵니다", cueSauce:"지금! 위아래로 붓질하듯 드래그",
     place:"재료 칸의 꼬치를 화로로 끌어다 올리세요",
     serve:"다 구운 꼬치를 완성 칸으로 옮기세요!", done:"완성!"
   })
@@ -1051,7 +1113,9 @@ const TWO_SIDE_VIEW = Object.freeze({
   pancake: Object.freeze({
     subtitle: "불빛 신호에 맞춰 김치전을 굽고 뒤집으세요!",
     ingredients: [{ id: "pancakeBatter", label: "김치전 반죽", count: 1, asset: "cookPancakeBatter" }],
-    total: TWO_SIDE_COOK_CONFIG.pancake.cyclesPerUnit,   // 굽기 4번
+    // 진행도의 분모 = 할 일 목록의 굽기 횟수. **순서표에서 세어 옵니다** —
+    // 손으로 4 를 적어 두면 순서를 바꿀 때 화면만 조용히 옛 숫자로 남습니다.
+    total: TWO_SIDE_STEP_PLAN.pancake.filter(kind => kind === "cook").length,
     countLabel: "굽기",
     guide: [
       { icon: "click", name: "불빛이 켜지면 클릭", desc: "치이익 — 그 면이 익습니다" },
@@ -1074,7 +1138,7 @@ const TWO_SIDE_VIEW = Object.freeze({
       { icon: "drag-side", name: "꼬치를 화로로 드래그", desc: "올린 꼬치부터 익습니다" },
       { icon: "click", name: "불빛이 켜지면 클릭", desc: "치이익 — 그 꼬치가 익습니다" },
       { icon: "drag-side", name: "뒤집기 신호엔 드래그", desc: "옆으로 굴리듯 샥!" },
-      { icon: "sauce", name: "양념 신호엔 클릭", desc: "붓으로 양념을 바릅니다" }
+      { icon: "sauce", name: "양념 신호엔 위아래 드래그", desc: "붓질하듯 쓸어 양념을 바릅니다" }
     ]
   })
 });

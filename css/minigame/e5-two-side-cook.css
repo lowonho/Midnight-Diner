@@ -418,7 +418,15 @@
 .two-side-pan.cook-over .cook-steam { border-left-color:rgba(116,105,99,.82); filter:opacity(1); }
 .cook-steam.steam-one { left:calc(105 * var(--upx)); }
 .cook-steam.steam-two { left:calc(177 * var(--upx)); animation-delay:.45s; }
-@keyframes two-side-food-flip { 0% { transform:translateY(0) rotateX(0); } 50% { transform:translateY(calc(-75 * var(--upx))) rotateX(90deg) scale(.82); } 100% { transform:translateY(0) rotateX(180deg); } }
+/* 김치전이 팬에서 **확 떠올랐다** 내려앉습니다. 조리 칸 위로 삐져나가도 되도록
+   뒤집는 동안에는 칸의 자르기를 잠깐 풉니다 (아래 .ts-board:has(...) 규칙).
+   ⚠️ 75 → 250. 이 값만 키우고 자르기를 안 풀면 김치전이 칸 위쪽에서 뭉텅 잘립니다. */
+@keyframes two-side-food-flip {
+  0%   { transform:translateY(0) rotateX(0); }
+  46%  { transform:translateY(calc(-250 * var(--upx))) rotateX(90deg) scale(.78); }
+  72%  { transform:translateY(calc(-120 * var(--upx))) rotateX(150deg) scale(.88); }
+  100% { transform:translateY(0) rotateX(180deg); }
+}
 /* ⚠️ 꼬치가 세로로 서 있으므로 막대를 축으로 구르는 것은 rotateX 가 아니라
    **rotateY** 입니다 (예전 가로 꼬치일 때 쓰던 rotateX 를 그대로 두면
    꼬치가 구르지 않고 앞뒤로 꺾입니다). 살짝 드는 것도 옆으로 뺍니다. */
@@ -436,10 +444,12 @@
       반동 뒤집기(↑꾹→↓) 부품과 짝이던 것들입니다.
    ⚠️ transform 을 씁니다. 팬의 가운데 정렬은 margin-left 로 하고 있어서 안 부딪힙니다
       (위 `.ts-cooktop .two-side-pan` 주석 참고). */
+/* 팬도 같이 들립니다 — 김치전만 떠오르면 팬이 가만히 있어 손목으로 튕긴 느낌이 안 납니다. */
 @keyframes pan-toss {
   0%,100% { transform:translateY(0) rotate(0); }
-  22% { transform:translateY(calc(-26 * var(--upx))) rotate(-2deg); }
-  55% { transform:translateY(calc(-14 * var(--upx))) rotate(1.5deg); }
+  20% { transform:translateY(calc(-86 * var(--upx))) rotate(-7deg); }
+  50% { transform:translateY(calc(-44 * var(--upx))) rotate(4deg); }
+  76% { transform:translateY(calc(-12 * var(--upx))) rotate(-1.5deg); }
 }
 /* 신호 불빛. 실루엣을 따라 **두 겹**으로 번지게 해서 숯불 위에서도 눈에 띕니다.
    ⚠️ 예전에는 여기 keyframes 안에서 --cue-left(남은 시간)를 곱해 번짐 크기를 줄였습니다.
@@ -818,6 +828,11 @@
   /* 팬 손잡이가 칸 오른쪽으로 15 나갑니다 — E3 김치 볶기(.kf-board)와 같이 잘라 냅니다. */
   overflow: hidden;
 }
+/* ⚠️ **뒤집는 동안만** 자르기를 풉니다. 김치전이 팬 위로 250 이나 떠오르는데
+   칸이 잘라 내면 그 순간 김치전이 뭉텅 사라집니다. 손잡이가 잠깐 드러나지만
+   0.6초짜리 연출이고, "정말 뒤집는 느낌"이 그보다 중요합니다.
+   (평소에는 위 overflow:hidden 이 그대로라 손잡이는 계속 잘립니다) */
+.ts-board:has(.two-side-pan.flipping) { overflow: visible; }
 .e5-result {
   position:absolute;
   z-index:12;
