@@ -195,6 +195,12 @@ assert(p04.lines.some(line=>line.openJournalOnAdvance===true)
   &&p04.autoOpenJournal!==true
   &&p04.opensMenuSelection!==true,
   "프롤로그 대사 도중 영업일지를 읽고, 장면 뒤에는 냉장고에서 메뉴를 선택해야 합니다.");
+const p04DiscoveryText=p04.lines[0]?.text||"";
+assert(STORY_SCENES["SCN-P03"].lines.at(-1)?.text==="나 여기 갇힌건가??"
+  &&p04DiscoveryText.includes("다은은 다른 출구를 찾기 위해 식당을 둘러본다.")
+  &&p04DiscoveryText.includes("그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다.")
+  &&p04.lines[0]?.openJournalOnAdvance===true,
+  "문으로 나가지 못한 뒤 다른 출구를 찾다가 영업일지를 발견하고 펼치는 흐름이어야 합니다.");
 assert(String(storyAdvance).includes("openJournalOnAdvance")
   &&String(storyAdvance).includes("openGameplayJournal")
   &&String(resumeStoryAfterJournal).includes("waitingForJournal")

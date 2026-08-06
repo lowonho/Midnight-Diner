@@ -353,7 +353,7 @@ const STORY_SCENES = {
       storyLine("protagonist", "아무도 없나…?"),
       storyNarration("다은은 들어왔던 문을 다시 열고 빗속으로 발을 내딛는다.\n그러나 다음 발을 딛는 순간, 다은은 다시 식당 안에 서 있다."),
       storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?"),
-      storyLine("protagonist", "이 문은 밖으로 나가는 문이 아니야.", { repeatInteraction: "exitDoor" })
+      storyLine("protagonist", "나 여기 갇힌건가??", { repeatInteraction: "exitDoor" })
     ]
   },
 
@@ -368,7 +368,7 @@ const STORY_SCENES = {
     completesPrologue: true,
     lines: [
       {
-        ...storyNarration("다은이 영업일지를 펼치자 첫 장에 「주의사항」이라는 제목이 나타난다.\n그 뒤의 일곱 장에는 첫째 날부터 일곱째 날까지 날짜만 적혀 있을 뿐, 아직 아무 기록도 없다."),
+        ...storyNarration("다은은 다른 출구를 찾기 위해 식당을 둘러본다.\n그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다."),
         openJournalOnAdvance: true
       },
       storyLine("protagonist", "여기서 나가려면 결국 이 식당을 열어야 한다는 거네."),
