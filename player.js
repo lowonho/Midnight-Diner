@@ -182,7 +182,8 @@ function createPlayer(scene){
 
 function updatePlayer(dt){
   const p=state.player;
-  if(state.mini||!["day","night"].includes(state.phase)){p.moving=false;return;}
+  // 메뉴 선택도 주방 안에서 냉장고까지 직접 걸어가는 단계입니다.
+  if(state.mini||!["menuSelect","day","night"].includes(state.phase)){p.moving=false;return;}
   let vx=0,vy=0;
   if(playerKeys?.up.isDown||playerKeys?.w.isDown)vy-=1;
   if(playerKeys?.down.isDown||playerKeys?.s.isDown)vy+=1;

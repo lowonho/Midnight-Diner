@@ -587,6 +587,13 @@ function initializeStoryUI(){
   document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
   document.getElementById("endingRetryBranchButton")?.addEventListener("click",retryLastEndingBranch);
   document.getElementById("endingNewLoopButton")?.addEventListener("click",startNewLoopAfterEnding);
+  // 엔딩 결론창은 닫을 수 없는 선택 화면입니다. 캡처 단계에서 ESC를 막아
+  // 뒤쪽 게임 설정창이 함께 열리지 않도록 합니다.
+  window.addEventListener("keydown",event=>{
+    if(event.key!=="Escape"||!endingRetryMenuIsOpen())return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  },true);
   window.addEventListener("resize",()=>{
     clearTimeout(storySubtitleResizeTimer);
     storySubtitleResizeTimer=setTimeout(reflowCurrentStorySubtitle,80);
@@ -995,6 +1002,8 @@ function restoreStoryCheckpoint(checkpoint){
 function storyTimeOfDayOverride(){
   const scene=storySession?.scene
     ||(state.story?.activeStoryCook?STORY_SCENES[state.story.activeStoryCook.sceneId]:null);
+  const line=storySession?.lines?.[storySession.lineIndex];
+  if(line&&["day","night"].includes(line.timeOfDay))return line.timeOfDay;
   return scene&&["day","night"].includes(scene.timeOfDay)?scene.timeOfDay:null;
 }
 
@@ -1262,7 +1271,21 @@ function storyAdvance(){
   if(storySession.qaPreview){
     return typeof qaStoryStep==="function"?qaStoryStep(1):true;
   }
+  if(storySession.waitingForJournal)return true;
   const line=storySession.lines[storySession.lineIndex];
+  if(line?.openJournalOnAdvance){
+    // 이 자막을 모두 읽은 뒤 책을 실제로 펼칩니다. 책을 닫기 전에는 다음
+    // 자막의 타이핑을 시작하지 않아, 책 뒤에서 대사가 지나가지 않습니다.
+    storySession.lineIndex++;
+    storySession.subtitle=null;
+    storySession.typing=null;
+    storySession.waitingForJournal=true;
+    audio?.click();
+    const opened=typeof openGameplayJournal==="function"&&openGameplayJournal();
+    if(!opened){storySession.waitingForJournal=false;showStoryLine();}
+    else saveGame(true);
+    return true;
+  }
   if(line?.choices)return true;
   if(storySession.waitingForCook)return true;
   if(line?.cook){
@@ -1278,6 +1301,14 @@ function storyAdvance(){
   storySession.lineIndex++;
   audio?.click();
   showStoryLine();
+  return true;
+}
+
+function resumeStoryAfterJournal(){
+  if(!storySession?.waitingForJournal)return false;
+  storySession.waitingForJournal=false;
+  showStoryLine();
+  saveGame(true);
   return true;
 }
 
@@ -1310,20 +1341,25 @@ function applyStoryPortraitArt(portrait,speakerId){
 function ensureStoryActor(speakerId){
   if(!storySession||!speakerId)return null;
   if(!storySession.actors)storySession.actors=[];
-  const existing=storySession.actors.find(actor=>actor.id===speakerId);
+  // 왼쪽/오른쪽/합쳐진 목소리는 모두 '둘이 붙은 그림자' 한 몸에서
+  // 나옵니다. 이름표만 화자에 따라 바꾸고 무대 배우는 하나를 공유합니다.
+  const actorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)
+    ?"twinShadows"
+    :speakerId;
+  const existing=storySession.actors.find(actor=>actor.id===actorId);
   if(existing)return existing;
   const stage=document.getElementById("storyStage");
   if(!stage)return null;
   const element=document.createElement("div");
   element.className="story-actor";
-  element.dataset.speaker=speakerId;
+  element.dataset.speaker=actorId;
   const portrait=document.createElement("div");
   portrait.className="story-portrait";
-  applyStoryPortraitArt(portrait,speakerId);
+  applyStoryPortraitArt(portrait,actorId);
   element.appendChild(portrait);
   stage.appendChild(element);
-  const actor={id:speakerId,element};
-  if(speakerId==="protagonist")storySession.actors.unshift(actor);
+  const actor={id:actorId,element};
+  if(actorId==="protagonist")storySession.actors.unshift(actor);
   else storySession.actors.push(actor);
   layoutStoryActors();
   requestAnimationFrame(()=>element.classList.add("entered"));
@@ -1348,9 +1384,12 @@ function layoutStoryActors(){
 function setStoryPortrait(speakerId){
   if(!storySession)return;
   if(speakerId)ensureStoryActor(speakerId);
+  const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)
+    ?"twinShadows"
+    :speakerId;
   // 나레이션이면 발화자가 없으므로 전원 어둡게 유지합니다.
   (storySession.actors||[]).forEach(actor=>{
-    actor.element.classList.toggle("is-active",!!speakerId&&actor.id===speakerId);
+    actor.element.classList.toggle("is-active",!!speakerId&&actor.id===activeActorId);
   });
 }
 
@@ -1730,6 +1769,20 @@ function endingRetryElements(){
   };
 }
 
+function endingRetryMenuIsOpen(){
+  return !!endingRetryElements().overlay?.classList.contains("open");
+}
+
+function validEndingRetryAction(action){
+  const judgement=STORY_SCENES[action?.judgementSceneId];
+  const ending=STORY_SCENES[action?.endingSceneId];
+  return action?.type==="endingRetryMenu"
+    &&!!judgement
+    &&!!ending
+    &&ending.continuePolicy==="endingRetryMenu"
+    &&ending.retryJudgementSceneId===judgement.id;
+}
+
 function closeEndingRetryMenu(){
   const {overlay}=endingRetryElements();
   overlay?.classList.remove("open");
@@ -1737,13 +1790,15 @@ function closeEndingRetryMenu(){
   pendingEndingRetryAction=null;
 }
 
-function showEndingRetryMenu(action){
+function showEndingRetryMenu(action,{restoredCheckpoint=false}={}){
   const {overlay,title,description,branchButton}=endingRetryElements();
-  if(!overlay||!action?.judgementSceneId||!action?.endingSceneId){
-    beginNextStoryLoop({toTitle:false});
+  if(!overlay||!validEndingRetryAction(action)){
+    if(restoredCheckpoint)window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    else beginNextStoryLoop({toTitle:false});
     return false;
   }
-  pendingEndingRetryAction={...action};
+  if(!restoredCheckpoint)window.MoonlightTableSave?.saveEndingRetryCheckpoint?.(action);
+  pendingEndingRetryAction={...action,restoredCheckpoint:!!restoredCheckpoint};
   state.paused=true;
   if(title)title.textContent=`「${action.endingTitle||"엔딩"}」 기록 완료`;
   if(description)description.textContent="이 결말은 타이틀 영업일지에 남았습니다. 마지막 선택을 다시 보거나 새 회차를 시작할 수 있습니다.";
@@ -1751,6 +1806,12 @@ function showEndingRetryMenu(action){
   overlay.setAttribute("aria-hidden","false");
   branchButton?.focus?.();
   return true;
+}
+
+function restoreStoredEndingRetryState(action){
+  if(!action?.restoredCheckpoint)return true;
+  if(typeof restoreEndingRetryCheckpointGame!=="function")return false;
+  return restoreEndingRetryCheckpointGame(action);
 }
 
 function restoreEndingChoiceCheckpoint(action){
@@ -1769,17 +1830,33 @@ function restoreEndingChoiceCheckpoint(action){
 
 function retryLastEndingBranch(){
   const action=pendingEndingRetryAction;
+  if(!action)return;
+  if(!restoreStoredEndingRetryState(action)){
+    window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    closeEndingRetryMenu();
+    return;
+  }
+  window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
   closeEndingRetryMenu();
   if(!restoreEndingChoiceCheckpoint(action))beginNextStoryLoop({toTitle:false});
 }
 
 function startNewLoopAfterEnding(){
+  const action=pendingEndingRetryAction;
+  if(!action)return;
+  if(!restoreStoredEndingRetryState(action)){
+    window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    closeEndingRetryMenu();
+    return;
+  }
+  window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
   closeEndingRetryMenu();
   beginNextStoryLoop({toTitle:false});
 }
 
 function finishTrueEnding(){
   window.MoonlightTableSave?.unlockTrueEndingEpilogues?.();
+  window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
   window.MoonlightTableSave?.clearAutoSaveForTrueEnding?.();
   showTitleAfterStory({save:false});
 }
@@ -1837,6 +1914,7 @@ function prepareStoryNight(){
     .filter(scene=>scene&&!storySceneCompleted(scene))
     .map(scene=>{
       const menuSelected=state.selectedMenus.includes(scene.dishId);
+      const guest=getStoryGuestState(scene.character);
       return {
         guestId:scene.character,
         sceneId:scene.id,
@@ -1847,7 +1925,7 @@ function prepareStoryNight(){
         menuSelected,
         missingMenu:!menuSelected,
         special:true,
-        repeat:true,
+        repeat:Number(guest?.visits)>0,
         triggerTiming:scene.triggerTiming==="before"?"before":"after",
         triggerAfterGeneral:Math.max(0,Number(scene.triggerAfterGeneral)||0),
         triggerOnNightEnd:!!scene.triggerOnNightEnd,
@@ -1922,7 +2000,7 @@ function decorateStoryOrder(order,plan=null){
     :order.variant;
   order.bubble=plan.repeat
     ?REGULAR_GUEST_BUBBLES[plan.guestId]||"오늘도 잘 부탁드려요."
-    :plan.special?"오늘은 조금 특별하게 부탁드릴게요.":"오늘 먹고 싶은 걸 말씀드릴게요.";
+    :FIRST_SPECIAL_GUEST_BUBBLES[plan.guestId]||"처음 뵙겠습니다.";
   order.bubbleTime=5.5;
   return order;
 }

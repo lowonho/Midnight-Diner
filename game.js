@@ -87,6 +87,8 @@ const state = {
   menuSelectionDraft:[],
   ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
+  // 낮 준비 작업별 결과. 메뉴에 속한 작업 점수의 평균이 밤 재료 품질이 됩니다.
+  prepTaskScores:{},
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   skewerPrep:createSkewerPrepProgress(),   // 낮에 꽂은 꼬치 배치 → 밤 굽기가 그대로 씁니다 (day.js)
   selectedOrderId:null,
@@ -381,6 +383,10 @@ function closeSettings() {
   if(state.settingsFrom!=="title")audio.resumeLoops();
 }
 
+function settingsOverlayIsOpen(){
+  return dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen);
+}
+
 /* 반짝임(fx_perfect_sparkle)을 달 음식인지. 요리사가 손에 들고 있을 때만
    씁니다 (player.js syncCarriedFoodFx). 메뉴판 카드·손님 말풍선에서는 뺐습니다.
      · 그날의 특별음식 (DAY_DATA.specialMenu — day.js 메뉴 선택 화면의 "특별음식")
@@ -405,6 +411,7 @@ function buildMenuCards() {
 function currentRequirement() {
   const storyStep=activeStoryCookStep();
   if(storyStep) return storyStep.station||null;
+  if(state.phase===GAME_PHASES.MENU_SELECT)return "fridge";
   if(state.phase==="day") {
     return null;
   }
@@ -430,7 +437,7 @@ function nearestStoryCookStation(requiredId){
 }
 
 function interact() {
-  if(storyDialogueIsActive() || state.paused || state.mini || !["day","night"].includes(state.phase)) return;
+  if(storyDialogueIsActive() || state.paused || state.mini || ![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)) return;
   const storyStep=activeStoryCookStep();
   if(storyStep){
     const required=storyStep.station;
@@ -442,6 +449,13 @@ function interact() {
       return;
     }
     launchStoryCookStep(station.id);
+    return;
+  }
+  if(state.phase===GAME_PHASES.MENU_SELECT){
+    const station=nearestStation("fridge");
+    if(!station||station.id!=="fridge"){showToast("냉장고 가까이 이동해 오늘의 메뉴를 정하세요.",true);return;}
+    state.player.facing=station.facing;
+    openMenuSelectionAtFridge();
     return;
   }
   if(state.phase==="day"){
@@ -497,6 +511,9 @@ function setupMini() {
 
 // Space · ACTION 버튼 · 미니게임 안 조작 버튼이 모두 여기로 들어옵니다.
 function miniAction() {
+  // 설정창은 미니게임 위에 열릴 수 있습니다. 뒤쪽 ACTION 버튼이나 키 입력이
+  // 전달되면 일시정지 중에도 결과가 바뀌므로 설정을 닫을 때까지 받지 않습니다.
+  if(settingsOverlayIsOpen())return;
   const m=state.mini; if(!m)return;
   miniEngine(m)?.action?.(m);
 }
@@ -537,12 +554,15 @@ function completeMiniContext(m,score) {
 function update(dt) {
   audio.syncBgm?.();
   if(state.paused){
-    if(state.mini){updateMini(dt);updateUI(false);}
+    const settingsOpen=settingsOverlayIsOpen();
+    // 이야기 대화 때문에 paused인 동안에는 기존 조리/손님 등장 연출 규칙을
+    // 유지하되, 설정창이 원인인 경우에는 낮·밤 미니게임을 완전히 멈춥니다.
+    if(state.mini&&!settingsOpen){updateMini(dt);updateUI(false);}
     // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
     // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
     // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
     else{
-      if(state.phase==="night")updateNightOrderEntrances(dt,true);
+      if(state.phase==="night"&&!settingsOpen)updateNightOrderEntrances(dt,true);
       updatePrompt();
     }
     if(state.screen==="game"&&storyDialogueIsActive())updateAutosave(dt);
@@ -592,20 +612,25 @@ function showToast(text,bad=false){dom.toast.textContent=text;dom.toast.classLis
 
 function updateUI(force=false) {
   if(state.screen!=="game")return;
+  const isMenuSelect=state.phase===GAME_PHASES.MENU_SELECT;
   const isPrep=state.phase===GAME_PHASES.PREP, isIngredientSelect=state.phase===GAME_PHASES.INGREDIENT_SELECT, isOpen=state.phase===GAME_PHASES.OPEN;
-  dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isPrep||isIngredientSelect);
+  const isDayPreparation=isMenuSelect||isPrep||isIngredientSelect;
+  dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isDayPreparation);
   dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
   dom.dayText.textContent=state.day;
-  dom.timeLabel.textContent=(isPrep||isIngredientSelect)?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
-  dom.timeText.textContent=(isPrep||isIngredientSelect||isOpen)?UI_TEXT.timeNoLimit:UI_TEXT.blank;
+  dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
+  dom.timeText.textContent=(isDayPreparation||isOpen)?UI_TEXT.timeNoLimit:UI_TEXT.blank;
   dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
-  dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isPrep?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
+  dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
-  if(state.phase===GAME_PHASES.MENU_SELECT)renderMenuSelection();
+  if(isMenuSelect){
+    updateMenuSelectionObjective();
+    if(dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen))renderMenuSelection();
+  }
   else if(state.phase===GAME_PHASES.INGREDIENT_SELECT)renderIngredientSelection();
   else if(state.phase===GAME_PHASES.PREP){renderPrepChecklist();updateDayObjective();}
   else if(state.phase===GAME_PHASES.OPEN){renderNightOrderList();updateNightObjective();}
@@ -615,7 +640,7 @@ function updateUI(force=false) {
 function updatePrompt(){
   const prompt=dom.stationPrompt;
   const hide=(mobileAction=false)=>{prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);};
-  if(state.paused||!["day","night"].includes(state.phase)){hide();return;}
+  if(state.paused||![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
   let text="",x=0,y=0;
   const storyStep=activeStoryCookStep();
@@ -633,7 +658,13 @@ function updatePrompt(){
       x=CUSTOMER_SEATS[order.slot];y=470;
     }
   }else{
-    if(state.phase==="day"){
+    if(state.phase===GAME_PHASES.MENU_SELECT){
+      const station=nearestStation("fridge");
+      if(station?.id==="fridge"){
+        text=UI_TEXT.prompt.station(station.label);
+        x=station.ix;y=station.y+station.h+60;
+      }
+    }else if(state.phase==="day"){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
       // 판정은 prep.js 가 이름표 강조에 쓰는 것과 같은 함수입니다.
       const prepObject=nearestPrepObject();
@@ -733,6 +764,8 @@ window.addEventListener("keydown",e=>{
     else if(state.screen==="game")openSettings("game");
     return;
   }
+  // 설정창 뒤에서 미니게임 키 입력이 처리되지 않게 합니다.
+  if(settingsOverlayIsOpen())return;
   if(state.mini){
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
@@ -751,6 +784,7 @@ window.addEventListener("keydown",e=>{
   if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
 window.addEventListener("keyup",e=>{
+  if(settingsOverlayIsOpen())return;
   if(!state.mini)return;
   const engine=miniEngine(state.mini);
   if(engine?.noKeyboard)return;                 // 마우스 전용 게임 (위 keydown 과 같은 이유)

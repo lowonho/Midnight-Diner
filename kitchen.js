@@ -312,6 +312,7 @@ function nearestStation(preferredId=null){
    실제로 "E · …" 프롬프트를 띄우는 조건과 같아야, 이름표가 크게
    둥실대는 순간 = 정말 쓸 수 있는 순간이 됩니다.
 
+     메뉴 선택    냉장고에서 오늘의 메뉴를 정합니다
      낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
      프롤로그 조리 사장이 지정한 현재 조리 단계 집기만
      밤 · 들고 감  주방 집기와 추가 상호작용 없음
@@ -325,6 +326,7 @@ function stationUsable(s,near){
   if(state.mini)return state.mini.stationId===s.id;
   if(state.paused||near?.id!==s.id)return false;
   if(state.story?.activeStoryCook)return s.id===currentRequirement();
+  if(state.phase==="menuSelect")return s.id==="fridge";
   if(state.phase!=="night")return false;
   if(state.carrying)return false;
   return s.id===currentRequirement();

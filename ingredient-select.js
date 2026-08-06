@@ -251,6 +251,8 @@ function startIngredientTimer(){
   clearInterval(ingredientTimerId);
   ingredientTimerId=setInterval(()=>{
     if(state.phase!==GAME_PHASES.INGREDIENT_SELECT){stopIngredientTimer();return;}
+    // 설정창이 열린 동안에는 냉장고의 경과 기록도 함께 멈춥니다.
+    if(state.paused)return;
     if(!e13Tick(state.ingredientSelection,INGREDIENT_TICK/1000))return;
     updateIngredientTimeText();
   },INGREDIENT_TICK);

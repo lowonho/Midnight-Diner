@@ -9,6 +9,7 @@ const indexSource=fs.readFileSync(path.join(root,"index.html"),"utf8");
 const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
 const saveSource=fs.readFileSync(path.join(root,"save.js"),"utf8");
 const titleSource=fs.readFileSync(path.join(root,"title.js"),"utf8");
+const storySource=fs.readFileSync(path.join(root,"story.js"),"utf8");
 const gameSource=fs.readFileSync(path.join(root,"game.js"),"utf8");
 const titleCssSource=fs.readFileSync(path.join(root,"css","title.css"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
@@ -214,6 +215,21 @@ assert(saveSource.includes('const SAVE_VERSION=4;')
 assert(saveSource.includes("window.MoonlightTableSave=Object.freeze")
   &&saveSource.includes("clearAutoSaveForTrueEnding"),
   "스토리에서 영업일지 기록과 진엔딩 자동 저장 삭제 helper를 호출할 수 있어야 합니다.");
+assert(!saveSource.includes('addEventListener("pagehide"')
+  &&!saveSource.includes('addEventListener("visibilitychange"'),
+  "화면 이탈·백그라운드 전환은 자동 저장을 새로 만들면 안 됩니다.");
+assert(saveSource.includes("saveEndingRetryCheckpoint")
+  &&saveSource.includes("readEndingRetryCheckpoint")
+  &&saveSource.includes("clearEndingRetryCheckpoint"),
+  "일반 엔딩은 이어하기 슬롯과 분리된 숨은 재시도 체크포인트 API를 제공해야 합니다.");
+assert(titleSource.includes("showPendingEndingRetryCheckpoint")
+  &&titleSource.includes("restoreEndingRetryCheckpointGame")
+  &&titleSource.includes("clearEndingRetryCheckpoint"),
+  "타이틀은 숨은 엔딩 체크포인트를 표시·복원하고 새 게임에서 정리해야 합니다.");
+assert(storySource.includes('window.addEventListener("keydown"')
+  &&storySource.includes("endingRetryMenuIsOpen()")
+  &&storySource.includes("stopImmediatePropagation()"),
+  "엔딩 결론창의 ESC 입력이 뒤쪽 설정창으로 전파되면 안 됩니다.");
 assert((indexSource.match(/class="[^"]*retired-economy-ui[^"]*"/g)||[]).length>=5,
   "인기도·매출·폐기 HUD와 영업 결과 요소를 비노출 대상으로 표시해야 합니다.");
 assert(/\.retired-economy-ui\s*\{\s*display\s*:\s*none\s*!important/.test(hudCssSource),

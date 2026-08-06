@@ -336,6 +336,8 @@ function openGameplayJournal(){return openJournal("gameplay");}
 function closeJournal(){
   const elements=journalElements();
   if(!elements.overlay?.classList.contains("open"))return false;
+  const resumeStory=journalMode==="gameplay"
+    &&typeof resumeStoryAfterJournal==="function";
   elements.overlay.classList.remove("open");
   elements.overlay.setAttribute("aria-hidden","true");
   if(journalMode==="gameplay"&&typeof state!=="undefined"){
@@ -345,6 +347,7 @@ function closeJournal(){
   }
   journalReturnFocus?.focus?.();
   journalReturnFocus=null;
+  if(resumeStory)setTimeout(resumeStoryAfterJournal,0);
   return true;
 }
 
@@ -395,6 +398,7 @@ function markTitleGameReady(){
   dom.startButton.disabled=false;
   dom.startButton.textContent="새 게임";
   updateContinueButton();
+  setTimeout(showPendingEndingRetryCheckpoint,0);
 }
 
 function markTitleLoadFailed(){
@@ -411,6 +415,45 @@ function openGameScreen(){
   requestAnimationFrame(()=>phaserScene?.scale.refresh());showGameHud(true);
 }
 
+function sameEndingRetryAction(left,right){
+  return !!left&&!!right
+    &&left.type==="endingRetryMenu"
+    &&right.type==="endingRetryMenu"
+    &&left.judgementSceneId===right.judgementSceneId
+    &&left.endingSceneId===right.endingSceneId;
+}
+
+function showPendingEndingRetryCheckpoint(){
+  const checkpoint=window.MoonlightTableSave?.readEndingRetryCheckpoint?.();
+  if(!checkpoint)return false;
+  const shown=typeof showEndingRetryMenu==="function"
+    &&showEndingRetryMenu(checkpoint.action,{restoredCheckpoint:true});
+  if(!shown)window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+  return !!shown;
+}
+
+// 숨은 엔딩 체크포인트는 이어하기 슬롯으로 취급하지 않습니다. 사용자가 엔딩
+// 결론창의 버튼을 눌렀을 때만 게임 상태를 복원하고 실제 게임 화면으로 전환합니다.
+function restoreEndingRetryCheckpointGame(expectedAction){
+  const checkpoint=window.MoonlightTableSave?.readEndingRetryCheckpoint?.();
+  if(!checkpoint||!sameEndingRetryAction(checkpoint.action,expectedAction))return false;
+  try{restoreGameState(checkpoint.saveData);}
+  catch(error){
+    console.warn("엔딩 재시도 상태를 복원하지 못했습니다.",error);
+    window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    return false;
+  }
+
+  audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
+  dom.settingsOverlay.classList.remove("open");
+  dom.miniOverlay.classList.remove("open");
+  dom.resultOverlay.classList.remove("open");
+  dom.menuSelectOverlay.classList.remove("open");
+  dom.ingredientSelectOverlay.classList.remove("open");
+  buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();audio.startBgm();
+  return true;
+}
+
 function continueGame(){
   if(!hasAnySaveData()){updateContinueButton();return;}
   openSaveSlotDialog("load","title",dom.continueButton);
@@ -423,7 +466,8 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
   dom.settingsOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
   dom.resultOverlay.classList.toggle("open",state.phase==="result");
-  dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
+  // 메뉴 선택 단계의 저장을 불러와도 냉장고 앞 상호작용부터 다시 시작합니다.
+  dom.menuSelectOverlay.classList.remove("open");
   dom.ingredientSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.INGREDIENT_SELECT);
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
   if(state.phase==="result")renderNightResult();
@@ -434,6 +478,8 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
 
 function startNewGame(){
   if(readSaveData(AUTO_SAVE_SLOT)&&!window.confirm("자동 저장을 새 게임으로 교체할까요?\n수동 저장 3칸은 그대로 유지됩니다."))return;
+  window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+  if(typeof closeEndingRetryMenu==="function")closeEndingRetryMenu();
   clearSaveData(AUTO_SAVE_SLOT);clearStoryRuntime();startGame();saveGame(true);updateContinueButton();
 }
 

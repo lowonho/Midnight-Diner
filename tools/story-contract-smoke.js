@@ -190,11 +190,31 @@ Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&l
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
 assert(Object.values(l02.journalVariants).flat().every(line=>line.speakerLabel==="김다은(속말)"&&!line.speaker),
   "회귀 기록을 아는 다은의 반응은 손님에게 아는 척하는 대사가 아니라 속말이어야 합니다.");
-assert(STORY_SCENES["SCN-P04"].autoOpenJournal===true
-  &&STORY_SCENES["SCN-P04"].opensMenuSelection===true,
-  "프롤로그에서 영업일지를 직접 펼친 뒤 첫 메뉴를 선택해야 합니다.");
+const p04=STORY_SCENES["SCN-P04"];
+assert(p04.lines.some(line=>line.openJournalOnAdvance===true)
+  &&p04.autoOpenJournal!==true
+  &&p04.opensMenuSelection!==true,
+  "프롤로그 대사 도중 영업일지를 읽고, 장면 뒤에는 냉장고에서 메뉴를 선택해야 합니다.");
+assert(String(storyAdvance).includes("openJournalOnAdvance")
+  &&String(storyAdvance).includes("openGameplayJournal")
+  &&String(resumeStoryAfterJournal).includes("waitingForJournal")
+  &&String(resumeStoryAfterJournal).includes("showStoryLine"),
+  "프롤로그는 해당 자막 뒤 책을 열고, 닫은 뒤 다음 자막으로 복귀해야 합니다.");
+assert(p04.lines.slice(-3).every(line=>line.timeOfDay==="day")
+  &&String(storyTimeOfDayOverride).includes("line.timeOfDay"),
+  "프롤로그의 밤→첫째 날 낮 전환은 대사뿐 아니라 실제 배경 시간에도 반영되어야 합니다.");
 assert(!STORY_SCENES["SCN-P04"].lines.some(line=>line.speaker==="journal"),
   "영업일지 규칙은 장부가 말하는 대사로 출력하면 안 됩니다.");
+same(Object.keys(FIRST_SPECIAL_GUEST_BUBBLES),expectedGameplayJournalGuestIds,
+  "첫 방문 특별 손님 말풍선 목록");
+assert(Object.values(FIRST_SPECIAL_GUEST_BUBBLES).every(text=>text&&!text.includes("오늘도")),
+  "첫 방문 특별 손님은 재방문처럼 말하면 안 됩니다.");
+assert(String(prepareStoryNight).includes("guest?.visits")
+  &&String(decorateStoryOrder).includes("FIRST_SPECIAL_GUEST_BUBBLES"),
+  "첫 방문과 재방문 말풍선은 실제 만남 기록으로 구분해야 합니다.");
+assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
+  &&String(ensureStoryActor).includes('?"twinShadows"'),
+  "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
 assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("영업 기록은 남지만")&&rule.includes("모은 조각은 사라진다")),
   "영업일지 첫 장은 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
 assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("달빛 조각을 모아")&&rule.includes("문을 연다"))
@@ -343,6 +363,18 @@ assert(String(runStoryConclusion).includes("beginNextStoryLoop")
 assert(String(restoreEndingChoiceCheckpoint).includes("playStoryScenes")
   &&String(startNewLoopAfterEnding).includes("beginNextStoryLoop"),
   "엔딩 기록 뒤 마지막 분기 재생과 새 회차 시작 기능을 모두 제공해야 합니다.");
+assert(String(showEndingRetryMenu).includes("saveEndingRetryCheckpoint")
+  &&String(showEndingRetryMenu).includes("restoredCheckpoint"),
+  "일반 엔딩 화면은 현재 결말을 숨은 체크포인트로 저장하고 복구 표시를 구분해야 합니다.");
+assert(String(retryLastEndingBranch).includes("restoreStoredEndingRetryState")
+  &&String(retryLastEndingBranch).includes("clearEndingRetryCheckpoint")
+  &&String(startNewLoopAfterEnding).includes("restoreStoredEndingRetryState")
+  &&String(startNewLoopAfterEnding).includes("clearEndingRetryCheckpoint"),
+  "복구된 엔딩 화면의 두 버튼은 상태를 되살린 뒤 숨은 체크포인트를 삭제해야 합니다.");
+assert(String(finishTrueEnding).includes("clearEndingRetryCheckpoint")
+  &&String(finishTrueEnding).indexOf("clearEndingRetryCheckpoint")
+    <String(finishTrueEnding).indexOf("clearAutoSaveForTrueEnding"),
+  "진엔딩은 일반 엔딩의 숨은 체크포인트를 남기지 않아야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
   assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");

@@ -300,7 +300,11 @@ function spawnOrder(slot,options={}) {
   state.orders.push(order);
   state.spawnedCustomers++;
   if(order.customerType!=="story")state.generalSpawnedCustomers++;
-  if(state.selectedOrderId==null&&isCookableOrder(order))state.selectedOrderId=order.id;
+  // 특별 손님이 주문할 수 있는 상태로 등장하면 남아 있던 일반 주문보다
+  // 먼저 처리합니다. 이야기 직후 목표가 다시 일반 손님을 가리키면 중요한
+  // 방문이 묻히므로, 등장 시점에 선택을 넘기고 떠날 때까지 우선권을 둡니다.
+  if(order.customerType==="story"&&isCookableOrder(order))state.selectedOrderId=order.id;
+  else if(state.selectedOrderId==null&&isCookableOrder(order))state.selectedOrderId=order.id;
   if(order.deferUntilArrival&&!spawningInitialNightOrders){
     saveGame(true);
     resumeDeferredStoryOrderScene();
@@ -311,6 +315,13 @@ function spawnOrder(slot,options={}) {
 
 function selectOrder(id) {
   if(state.carrying){showToast("먼저 들고 있는 음식을 주문한 손님에게 가져다주세요.",true);return;}
+  const priorityStoryOrder=state.orders.find(order=>order.customerType==="story"&&isCookableOrder(order));
+  if(priorityStoryOrder&&id!==priorityStoryOrder.id){
+    state.selectedOrderId=priorityStoryOrder.id;
+    showToast("먼저 이야기 손님의 주문을 준비해 주세요.");
+    updateUI(true);
+    return;
+  }
   const lockedOrderId=activeStoryCookOrderId();
   if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 주문을 완성해 주세요.");return;}
   const order=state.orders.find(o=>o.id===id&&isCookableOrder(o));if(!order)return;
@@ -366,13 +377,14 @@ function serveOrder(order) {
   const cookScore=state.carrying.cookScore;
   const satisfaction=satisfactionScore(inv,cookScore);
   const isStoryOrder=order.customerType==="story";
-  const serviceScore=isStoryOrder?cookScore:satisfaction;
+  // 일반·이야기 손님 모두 낮에 준비한 재료 품질과 밤 조리 점수를 합쳐
+  // 한 접시의 최종 평가를 냅니다. 그래야 낮 준비 실력이 특별 손님의
+  // 기억과 달빛 조각 결과에도 실제로 이어집니다.
+  const serviceScore=satisfaction;
   const stars=clamp(Math.ceil(serviceScore/20),1,5);
   state.served++;
   if(!isStoryOrder)state.generalServed++;
   state.satisfactionTotal+=serviceScore;if(stars===5)state.fiveStar++;
-  // 특별 손님의 기억 판정은 문서 규칙대로 순수 조리 미니게임 점수를
-  // 사용합니다. 일반 손님 만족도와 결과 화면은 기존 혼합 점수를 유지합니다.
   const storyResult=applyStoryCookingResult(order,serviceScore);
   const resumedStory=finishSuspendedStoryCook(order,serviceScore);
   const tier=storyCookingTier(serviceScore);
@@ -401,7 +413,7 @@ function updateNightObjective(){
   if(state.carrying){
     const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId),inv=state.inventory[d.id];
     const storyOrder=o?.customerType==="story";
-    const expected=storyOrder?state.carrying.cookScore:satisfactionScore(inv,state.carrying.cookScore);
+    const expected=satisfactionScore(inv,state.carrying.cookScore);
     const expectedLabel=storyOrder?"예상 평가":"예상 만족도";
     dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성 · 조리 ${state.carrying.cookScore}점 · ${expectedLabel} ${expected}점</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
     return;

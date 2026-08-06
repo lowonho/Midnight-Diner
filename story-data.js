@@ -40,6 +40,19 @@ const GENERAL_GUEST_BUBBLES = {
 
 const REGULAR_GUEST_BUBBLES = {};
 
+// 특별 손님이 이번 진행에서 처음 등장할 때 사용하는 짧은 말풍선입니다.
+// 재방문 말풍선과 분리해 첫 만남에서 "오늘도" 같은 표현이 나오지 않게 합니다.
+const FIRST_SPECIAL_GUEST_BUBBLES = Object.freeze({
+  rainyChild: "여기서 잠깐 비를 피해도 돼요?",
+  lanternGuest: "이곳에는 아직 온기가 남아 있군요.",
+  twinShadows: "여기가 우리가 찾던 식탁일까?",
+  crowCourier: "잠시 쉬어 가도 되겠습니까?",
+  starBeast: "여긴 너무 밝지 않지?",
+  seawaterGuest: "육지의 식탁은 오랜만입니다.",
+  schoolDoll: "여기 시계는 아직 움직이나요?",
+  facelessDaeun: "내 자리도 아직 남아 있네."
+});
+
 const STORY_MENU_RULES = Object.freeze({
   dishIds: Object.freeze(["oden", "tofu", "kimchi", "skewer", "yakisoba", "shrimpTempura", "tteokbokki", "fries"]),
   selectCount: 5,
@@ -353,14 +366,16 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     completesPrologue: true,
-    opensMenuSelection: true,
-    autoOpenJournal: true,
     lines: [
-      storyNarration("다은이 영업일지를 펼치자 첫 장에 「주의사항」이라는 제목이 나타난다.\n그 뒤의 일곱 장에는 첫째 날부터 일곱째 날까지 날짜만 적혀 있을 뿐, 아직 아무 기록도 없다."),
-      storyCaption("김다은(속말)", "장부에 적힌 규칙부터 직접 확인해 보자."),
+      {
+        ...storyNarration("다은이 영업일지를 펼치자 첫 장에 「주의사항」이라는 제목이 나타난다.\n그 뒤의 일곱 장에는 첫째 날부터 일곱째 날까지 날짜만 적혀 있을 뿐, 아직 아무 기록도 없다."),
+        openJournalOnAdvance: true
+      },
       storyLine("protagonist", "여기서 나가려면 결국 이 식당을 열어야 한다는 거네."),
       storyCaption("김다은(속말)", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지."),
-      storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.")
+      { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎고, 늦은 밤이었던 골목에 눈 깜짝할 사이 첫째 날의 낮빛이 들어찬다."), timeOfDay: "day" },
+      { ...storyLine("protagonist", "방금까지 한밤중이었는데… 식당이 첫째 날 낮으로 시간을 옮긴 거야?"), timeOfDay: "day" },
+      { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자."), timeOfDay: "day" }
     ]
   },
 
@@ -821,34 +836,32 @@ const STORY_SCENES = {
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [0, 3],
     autoLoop: true,
     nextSceneId: "SCN-L01",
     lines: [
       storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 새벽문까지 닿지 못한다."),
-      storyLine("journal", "아직 하나의 길도 만들 수 없습니다."),
-      storyLine("journal", "영업은 첫째 날로 돌아갑니다."),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「아직 하나의 길도 만들 수 없습니다. 영업은 첫째 날로 돌아갑니다.」"),
       storyLine("protagonist", "또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자.")
     ]
   },
 
   "SCN-J02": {
     id: "SCN-J02",
-    title: "달빛 조각 4~7개 - 한 갈래의 달빛",
+    title: "달빛 조각 4~7개 - 둘 중 하나의 길",
     day: 7,
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [4, 7],
     lines: [
-      storyNarration("모인 달빛은 한 사람이 지나갈 수 있는 좁은 길 하나만 만들 수 있다.\n다은은 자신의 길을 밝힐지 손님들의 길을 밝힐지 선택해야 한다."),
-      storyLine("journal", "한 갈래의 길을 비출 수 있습니다."),
-      storyLine("journal", "누구의 길을 밝히시겠습니까?"),
-      storyLine("protagonist", "모두를 보낼 만큼의 빛은 없어. 그래도 지금 한 길은 선택할 수 있어."),
+      storyNarration("모인 달빛은 서로 다른 두 길 중 하나만 밝힐 수 있다.\n한쪽은 다은 한 사람을 현실로 돌려보내는 문이고, 다른 쪽은 특별 손님들을 각자의 새벽으로 돌려보내는 길이다."),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「두 길을 함께 밝힐 수는 없습니다. 어느 쪽에 달빛을 건네시겠습니까?」"),
+      storyLine("protagonist", "내가 나갈 문과 손님들이 돌아갈 길… 지금은 둘 중 하나만 선택할 수 있어."),
       {
-        prompt: "누구의 길을 밝힐까?",
+        prompt: "어느 쪽에 달빛을 건넬까?",
         choices: [
           { text: "내 문을 밝힌다", nextSceneId: "END-01" },
           { text: "손님들의 길을 밝힌다", nextSceneId: "END-02" }
@@ -864,12 +877,11 @@ const STORY_SCENES = {
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [8, 8],
     lines: [
       storyNarration("여덟 조각이 식탁 위에서 하나의 달빛 길로 이어진다.\n기억을 되찾은 손님들이 각자의 자리에 나타나 마지막 선택을 기다린다."),
-      storyLine("journal", "여덟 개의 달빛이 모두 모였습니다."),
-      storyLine("journal", "달빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?"),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「여덟 개의 달빛이 모두 모였습니다. 이 빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?」"),
       storyLine("protagonist", "이제 내가 어떤 밤을 남길지 결정해야 해."),
       {
         prompt: "어떤 밤을 남길까?",
