@@ -40,12 +40,83 @@ const GENERAL_GUEST_BUBBLES = {
 
 const REGULAR_GUEST_BUBBLES = {};
 
+// 특별 손님이 이번 진행에서 처음 등장할 때 사용하는 짧은 말풍선입니다.
+// 재방문 말풍선과 분리해 첫 만남에서 "오늘도" 같은 표현이 나오지 않게 합니다.
+const FIRST_SPECIAL_GUEST_BUBBLES = Object.freeze({
+  rainyChild: "여기서 잠깐 비를 피해도 돼요?",
+  lanternGuest: "이곳에는 아직 온기가 남아 있군요.",
+  twinShadows: "여기가 우리가 찾던 식탁일까?",
+  crowCourier: "잠시 쉬어 가도 되겠습니까?",
+  starBeast: "여긴 너무 밝지 않지?",
+  seawaterGuest: "육지의 식탁은 오랜만입니다.",
+  schoolDoll: "여기 시계는 아직 움직이나요?",
+  facelessDaeun: "내 자리도 아직 남아 있네."
+});
+
 const STORY_MENU_RULES = Object.freeze({
   dishIds: Object.freeze(["oden", "tofu", "kimchi", "skewer", "yakisoba", "shrimpTempura", "tteokbokki", "fries"]),
   selectCount: 5,
   requiredMenus: Object.freeze([]),
   allMenusAvailableFromDayOne: true
 });
+
+// 진행용 영업일지에서 보여 주는 조리 기록입니다. 손님의 정답 음식과는 연결하지
+// 않고, 현재 구현된 낮 준비와 밤 조리 순서만 플레이어가 다시 찾아볼 수 있게 적습니다.
+const STORY_JOURNAL_RECIPES = Object.freeze([
+  {
+    dishId: "oden",
+    ingredients: ["어묵", "무", "대파", "멸치"],
+    prepSteps: ["무 썰기", "어묵 썰기", "멸치 손질"],
+    cookSteps: ["냄비에서 적정 화력을 유지하며 끓이기"]
+  },
+  {
+    dishId: "tofu",
+    ingredients: ["두부", "김치", "설탕"],
+    prepSteps: ["김치 썰기", "김치와 설탕 볶기"],
+    cookSteps: ["두부를 일정한 크기로 썰기", "두부와 볶은 김치를 접시에 담기"]
+  },
+  {
+    dishId: "kimchi",
+    ingredients: ["부침가루", "물", "김치"],
+    prepSteps: ["김치 썰기", "부침가루 → 물 → 김치 순서로 넣어 반죽 섞기"],
+    cookSteps: ["후라이팬에서 앞뒤로 굽기"]
+  },
+  {
+    dishId: "skewer",
+    ingredients: ["닭고기", "대파", "양념"],
+    prepSteps: ["닭고기 썰기", "대파 썰기", "닭고기와 대파를 순서에 맞춰 꼬치에 꽂기"],
+    cookSteps: ["직화구이에서 굽고 뒤집은 뒤 양념 바르기"]
+  },
+  {
+    dishId: "yakisoba",
+    ingredients: ["우동면", "양배추", "당근", "간장", "굴소스", "고추기름"],
+    prepSteps: ["우동면 불리기", "양배추와 당근 채썰기", "간장 200g → 굴소스 100g → 고추기름 30g 순서로 소스 만들기"],
+    cookSteps: ["철판에서 골고루 볶기"]
+  },
+  {
+    dishId: "shrimpTempura",
+    ingredients: ["새우", "밀가루", "계란물", "빵가루"],
+    prepSteps: ["새우에 밀가루 → 계란물 → 빵가루 순서로 튀김옷 입히기"],
+    cookSteps: ["튀김기에서 알맞게 튀긴 뒤 건져 담기"]
+  },
+  {
+    dishId: "tteokbokki",
+    ingredients: ["떡", "양배추", "대파", "어묵", "고추장", "올리고당", "간장"],
+    prepSteps: ["떡 불리기", "양배추 → 대파 → 어묵 순서로 썰기", "고추장 120g → 올리고당 60g → 간장 30g 순서로 양념장 만들기"],
+    cookSteps: ["냄비에서 적정 화력을 유지하며 끓이기"]
+  },
+  {
+    dishId: "fries",
+    ingredients: ["감자", "튀김가루", "식용유"],
+    prepSteps: ["감자 채썰기", "봉투를 흔들어 튀김가루 골고루 묻히기"],
+    cookSteps: ["튀김기에서 알맞게 튀긴 뒤 건져 담기"]
+  }
+].map(recipe=>Object.freeze({
+  ...recipe,
+  ingredients:Object.freeze(recipe.ingredients),
+  prepSteps:Object.freeze(recipe.prepSteps),
+  cookSteps:Object.freeze(recipe.cookSteps)
+})));
 
 const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
   1: 3,
@@ -188,7 +259,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
       2: "입사 첫해 동료들과 볶음우동을 나누며 먹는 사람의 표정을 직접 보았던 기억을 되찾았다.",
       3: "자신이 김다은이 포기한 내일이며, 새벽으로 가는 길을 닫은 것은 다은의 소원이었음을 밝혔다."
     },
-    completedStory: "김다은이 포기한 내일이었다. 다은은 자신이 닫은 새벽문을 알아보고, 이 밤을 어떻게 끝낼지 스스로 선택하기로 했다.",
+    completedStory: "김다은이 포기한 내일이었다. 다은은 자신이 닫은 내일로 가는 문을 알아보고, 이 밤을 어떻게 끝낼지 스스로 선택하기로 했다.",
     shardId: "daeuns_tomorrow", shardName: "김다은의 내일",
     epilogue: "다은은 아직 정하지 못한 내일도 없애지 않고 현실의 아침에서 다시 생각하기로 했다."
   }
@@ -196,7 +267,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
 
 const TITLE_JOURNAL_GUEST_DEFS = GAMEPLAY_JOURNAL_PAGE_DEFS;
 const TITLE_JOURNAL_ENDING_DEFS = Object.freeze([
-  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 새벽문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자."},
+  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 내일로 가는 문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자."},
   {id:"alone_morning",number:2,title:"혼자 맞은 아침",summary:"다은만 현실의 아침으로 돌아가고 달빛을 돌려받지 못한 손님들은 식당에 남았다.",lastLine:"나는 나왔지만… 그 밤은 아직 끝나지 않았어."},
   {id:"guests_dawn",number:3,title:"손님들의 새벽",summary:"달빛을 손님들에게 돌려보내 각자의 아침으로 보내고 다은은 식당에 남았다.",lastLine:"남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게."},
   {id:"open_forever",number:4,title:"영원히 영업 중",summary:"다은은 달빛을 식탁에 붙잡아 두고 달빛식탁의 새 주인이 되었다.",lastLine:"오늘도 새벽은 오지 않습니다."},
@@ -340,7 +411,7 @@ const STORY_SCENES = {
       storyLine("protagonist", "아무도 없나…?"),
       storyNarration("다은은 들어왔던 문을 다시 열고 빗속으로 발을 내딛는다.\n그러나 다음 발을 딛는 순간, 다은은 다시 식당 안에 서 있다."),
       storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?"),
-      storyLine("protagonist", "이 문은 밖으로 나가는 문이 아니야.", { repeatInteraction: "exitDoor" })
+      storyLine("protagonist", "나 여기 갇힌건가??", { repeatInteraction: "exitDoor" })
     ]
   },
 
@@ -353,14 +424,16 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     completesPrologue: true,
-    opensMenuSelection: true,
-    autoOpenJournal: true,
     lines: [
-      storyNarration("다은이 영업일지를 펼치자 첫 장에 「주의사항」이라는 제목이 나타난다.\n그 뒤의 일곱 장에는 첫째 날부터 일곱째 날까지 날짜만 적혀 있을 뿐, 아직 아무 기록도 없다."),
-      storyCaption("김다은(속말)", "장부에 적힌 규칙부터 직접 확인해 보자."),
-      storyLine("protagonist", "여기서 나가려면 결국 이 식당을 열어야 한다는 거네."),
+      {
+        ...storyNarration("다은은 다른 출구를 찾기 위해 식당을 둘러본다.\n그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다."),
+        openJournalOnAdvance: true
+      },
+      storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네."),
       storyCaption("김다은(속말)", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지."),
-      storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.")
+      { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎고, 늦은 밤이었던 골목에 눈 깜짝할 사이 첫째 날의 낮빛이 들어찬다."), timeOfDay: "day" },
+      { ...storyLine("protagonist", "방금까지 한밤중이었는데… 식당이 첫째 날 낮으로 시간을 옮긴 거야?"), timeOfDay: "day" },
+      { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자."), timeOfDay: "day" }
     ]
   },
 
@@ -805,7 +878,7 @@ const STORY_SCENES = {
     greatLines: [
       storyNarration("얼굴 없는 손님은 윤기 나는 면을 맛있게 먹고 빈 접시를 오래 바라본다.\n다은이 기억하던 동료들의 웃음과 따뜻한 팬의 온기가 식탁 위로 되살아난다."),
       storyLine("facelessDaeun", "나는 김다은. 네가 포기한 내일이야."),
-      storyNarration("그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다.\n손님들이 붙잡아 둔 달빛은 조각으로 흩어졌고, 다은이 내일이 오지 않기를 바라던 순간 새벽으로 가는 문이 닫혔다."),
+      storyNarration("그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다.\n손님들이 붙잡아 둔 달빛은 조각으로 흩어졌고, 다은이 내일이 오지 않기를 바라던 순간 내일로 가는 문이 닫혔다."),
       storyLine("anotherDaeun", "우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어."),
       storyLine("protagonist", "내가 닫은 문이라면, 이제 이 밤을 어떻게 끝낼지도 내가 정할게."),
       storyLine("anotherDaeun", "아직 무엇을 할지 몰라도, 내일은 올 수 있어."),
@@ -821,34 +894,32 @@ const STORY_SCENES = {
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [0, 3],
     autoLoop: true,
     nextSceneId: "SCN-L01",
     lines: [
-      storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 새벽문까지 닿지 못한다."),
-      storyLine("journal", "아직 하나의 길도 만들 수 없습니다."),
-      storyLine("journal", "영업은 첫째 날로 돌아갑니다."),
+      storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 내일로 가는 문까지 닿지 못한다."),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「아직 하나의 길도 만들 수 없습니다. 영업은 첫째 날로 돌아갑니다.」"),
       storyLine("protagonist", "또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자.")
     ]
   },
 
   "SCN-J02": {
     id: "SCN-J02",
-    title: "달빛 조각 4~7개 - 한 갈래의 달빛",
+    title: "달빛 조각 4~7개 - 둘 중 하나의 길",
     day: 7,
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [4, 7],
     lines: [
-      storyNarration("모인 달빛은 한 사람이 지나갈 수 있는 좁은 길 하나만 만들 수 있다.\n다은은 자신의 길을 밝힐지 손님들의 길을 밝힐지 선택해야 한다."),
-      storyLine("journal", "한 갈래의 길을 비출 수 있습니다."),
-      storyLine("journal", "누구의 길을 밝히시겠습니까?"),
-      storyLine("protagonist", "모두를 보낼 만큼의 빛은 없어. 그래도 지금 한 길은 선택할 수 있어."),
+      storyNarration("모인 달빛은 서로 다른 두 길 중 하나만 밝힐 수 있다.\n한쪽은 다은 한 사람을 현실로 돌려보내는 문이고, 다른 쪽은 특별 손님들을 각자의 새벽으로 돌려보내는 길이다."),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「두 길을 함께 밝힐 수는 없습니다. 어느 쪽에 달빛을 건네시겠습니까?」"),
+      storyLine("protagonist", "내일로 가는 문과 손님들이 돌아갈 길… 지금은 둘 중 하나만 선택할 수 있어."),
       {
-        prompt: "누구의 길을 밝힐까?",
+        prompt: "어느 쪽에 달빛을 건넬까?",
         choices: [
           { text: "내 문을 밝힌다", nextSceneId: "END-01" },
           { text: "손님들의 길을 밝힌다", nextSceneId: "END-02" }
@@ -864,12 +935,11 @@ const STORY_SCENES = {
     moment: "nightJudgement",
     sceneType: "endingJudgement",
     timeOfDay: "night",
-    character: "journal",
+    character: "protagonist",
     shardRange: [8, 8],
     lines: [
       storyNarration("여덟 조각이 식탁 위에서 하나의 달빛 길로 이어진다.\n기억을 되찾은 손님들이 각자의 자리에 나타나 마지막 선택을 기다린다."),
-      storyLine("journal", "여덟 개의 달빛이 모두 모였습니다."),
-      storyLine("journal", "달빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?"),
+      storyNarration("영업일지 위에 글씨가 드러난다.\n「여덟 개의 달빛이 모두 모였습니다. 이 빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?」"),
       storyLine("protagonist", "이제 내가 어떤 밤을 남길지 결정해야 해."),
       {
         prompt: "어떤 밤을 남길까?",
@@ -895,7 +965,7 @@ const STORY_SCENES = {
     continuePolicy: "endingRetryMenu",
     retryJudgementSceneId: "SCN-J02",
     lines: [
-      storyNarration("다은은 모은 달빛으로 한 사람이 지나갈 수 있는 새벽문을 만들고 혼자 현실로 돌아간다.\n조각을 돌려받지 못한 손님들은 식당에 남는다."),
+      storyNarration("다은은 모은 달빛으로 한 사람이 지나갈 수 있는 내일로 가는 문을 만들고 혼자 현실로 돌아간다.\n조각을 돌려받지 못한 손님들은 식당에 남는다."),
       storyLine("protagonist", "나는 나왔지만… 그 밤은 아직 끝나지 않았어.")
     ]
   },
@@ -955,7 +1025,7 @@ const STORY_SCENES = {
     continuePolicy: "clearRunKeepMeta",
     nextSceneId: "SCN-EPI01",
     lines: [
-      storyNarration("다은은 달빛을 독점하거나 포기하지 않고 식탁 위에 돌려놓는다.\n손님들도 붙잡았던 밤을 스스로 놓는다. 여덟 조각은 모두의 길을 잇는 하나의 새벽문이 된다."),
+      storyNarration("다은은 달빛을 독점하거나 포기하지 않고 식탁 위에 돌려놓는다.\n손님들도 붙잡았던 밤을 스스로 놓는다. 여덟 조각은 모두의 길을 잇는 내일로 가는 문이 된다."),
       storyLine("moonlightTable", "내일 무엇을 할지 정했습니까?"),
       storyLine("protagonist", "아니요. 아직 뭘 할지는 모르겠어요."),
       storyLine("protagonist", "그래도 내일 가서 생각할게요.")
@@ -977,7 +1047,7 @@ const STORY_SCENES = {
     clearProgressSaves: true,
     keepTitleJournal: true,
     lines: [
-      storyNarration("다은이 새벽문을 통과하면 비가 그친 현실의 아침 골목으로 이어진다.\n휴대전화에는 출근 시간을 알리는 알람과 회사에서 온 메시지가 남아 있다.\n다은이 돌아가야 할 일상은 그대로지만, 내일을 없애고 싶었던 마음까지 그대로인 것은 아니다."),
+      storyNarration("다은이 내일로 가는 문을 통과하면 비가 그친 현실의 아침 골목으로 이어진다.\n휴대전화에는 출근 시간을 알리는 알람과 회사에서 온 메시지가 남아 있다.\n다은이 돌아가야 할 일상은 그대로지만, 내일을 없애고 싶었던 마음까지 그대로인 것은 아니다."),
       storyCaption("김다은(메시지)", "걱정해 줘서 고마워요. 오늘 출근해서 이야기할게요."),
       storyCaption("김다은(속말)", "당장 모든 게 달라지지는 않겠지."),
       storyCaption("김다은(속말)", "그래도 내일을 없애지는 말자. 바꿀 수 있는 것부터 오늘 생각하면 돼."),

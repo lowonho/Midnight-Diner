@@ -6,6 +6,12 @@ function createDayPrepProgress(){
   return Object.fromEntries(Object.keys(PREP_TASKS).map(id=>[id,false]));
 }
 
+function normalizePrepTaskScore(value,fallback=100){
+  if(value===null||value===undefined||value==="")return fallback;
+  const number=Number(value);
+  return Number.isFinite(number)?Math.round(Math.max(0,Math.min(100,number))):fallback;
+}
+
 function createKimchiPrepProgress(){
   return {cuttingComplete:false,fryingComplete:false};
 }
@@ -92,6 +98,19 @@ function normalizeDayPrepState(){
   if(legacyKimchiReady){state.prepProgress.cutTofuKimchi=true;state.prepProgress.fryTofuKimchi=true;}
   if(legacyShrimpComplete)state.prepProgress.coatShrimp=true;
   if(legacyTteokCut){state.prepProgress.cutTteokbokkiCabbage=true;state.prepProgress.cutTteokbokkiGreenOnion=true;state.prepProgress.cutTteokbokkiFishCake=true;}
+  // v4 이전 세이브에는 작업별 점수가 없습니다. 당시 완료 작업은 항상 품질 100을
+  // 주었으므로, 완료된 작업만 기존 메뉴 품질(없으면 100)로 채워 이어서 계산합니다.
+  const savedScores=state.prepTaskScores&&typeof state.prepTaskScores==="object"?state.prepTaskScores:{};
+  state.prepTaskScores={};
+  Object.keys(PREP_TASKS).forEach(taskId=>{
+    if(!state.prepProgress[taskId])return;
+    const task=PREP_TASKS[taskId];
+    const legacyQuality=state.inventory?.[task?.menuId]?.quality;
+    state.prepTaskScores[taskId]=normalizePrepTaskScore(
+      savedScores[taskId],
+      Number.isFinite(Number(legacyQuality))&&Number(legacyQuality)>0?normalizePrepTaskScore(legacyQuality):100
+    );
+  });
   state.kimchiPrep={...createKimchiPrepProgress(),...(state.kimchiPrep||{})};
   state.skewerPrep={...createSkewerPrepProgress(),...(state.skewerPrep||{})};
 }
@@ -103,6 +122,7 @@ function setSelectedMenus(menuIds){
   if(!dayData.requiredMenus.every(id=>unique.includes(id))||unique.length<dayData.minSelectedMenus||unique.length>maxSelectedMenus)return false;
   state.selectedMenus=unique;
   state.prepProgress=createDayPrepProgress();
+  state.prepTaskScores={};
   state.kimchiPrep=createKimchiPrepProgress();
   state.skewerPrep=createSkewerPrepProgress();
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
@@ -118,7 +138,7 @@ function resetDay(first=false) {
   normalizeDayPrepState();
   state.selectedDishId=state.selectedMenus[0]||DISHES[0].id;
   state.inventory=Object.fromEntries(DISHES.map(dish=>[dish.id,{count:0,quality:0,prepared:false}]));
-  state.prepProgress=createDayPrepProgress();state.kimchiPrep=createKimchiPrepProgress();state.skewerPrep=createSkewerPrepProgress();
+  state.prepProgress=createDayPrepProgress();state.prepTaskScores={};state.kimchiPrep=createKimchiPrepProgress();state.skewerPrep=createSkewerPrepProgress();
   state.ingredientSelection=state.phase===GAME_PHASES.INGREDIENT_SELECT?createIngredientSelectionState(state.selectedMenus):null;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
@@ -126,7 +146,9 @@ function resetDay(first=false) {
   state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.discardedCount=0;state.discardLoss=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
   state.mini=null;resetPlayerPosition();state.joyX=0;state.joyY=0;   // 시작 좌표는 player.js PLAYER_START
   dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
-  dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
+  // 오늘의 메뉴는 화면 전환과 동시에 띄우지 않습니다. 플레이어가 직접
+  // 냉장고 앞으로 걸어가 상호작용했을 때만 선택창을 엽니다.
+  dom.menuSelectOverlay.classList.remove("open");
   dom.ingredientSelectOverlay.dataset.signature="";
   dom.ingredientSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.INGREDIENT_SELECT);
   if(dom.miniClose)dom.miniClose.hidden=true;
@@ -171,15 +193,24 @@ function startPrepMini(){
   if(task)startPrepTask(task.id);
 }
 
-function completeDayPrepTask(taskId){
+function completeDayPrepTask(taskId,completionScore){
   const task=PREP_TASKS[taskId];
   if(!task||state.prepProgress[taskId])return;
   state.prepProgress[taskId]=true;
+  // 실제 미니게임은 day-prep-minigames.js가 점수를 넘깁니다. QA/구형 호출처럼
+  // 점수가 생략되면 현재 낮 미니게임의 결과를 읽고, 그것도 없으면 종전 품질 100을 씁니다.
+  const runtimeScore=typeof dayPrepCompletionScore==="function"
+    ?dayPrepCompletionScore(state.mini?.data)
+    :100;
+  state.prepTaskScores=state.prepTaskScores&&typeof state.prepTaskScores==="object"?state.prepTaskScores:{};
+  state.prepTaskScores[taskId]=normalizePrepTaskScore(completionScore,runtimeScore);
   selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented&&prepTaskAvailableToday(item));
     if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
+      const taskScores=menuTasks.map(item=>normalizePrepTaskScore(state.prepTaskScores[item.id]));
+      const quality=Math.round(taskScores.reduce((sum,score)=>sum+score,0)/taskScores.length);
       // count는 구버전 세이브 호환용 준비 표시일 뿐 밤 영업에서 소모하지 않습니다.
-      state.inventory[dish.id]={count:1,quality:100,prepared:true};
+      state.inventory[dish.id]={...(state.inventory[dish.id]||{}),count:1,quality,prepared:true};
     }
   });
   if(prepComplete())showToast("오늘의 메뉴 준비 완료 · 영업을 시작할 수 있습니다.");
@@ -213,6 +244,31 @@ function updateDayObjective(){
     </div>`;
 }
 
+function updateMenuSelectionObjective(){
+  const signature=`menu-select-standby|${state.day}`;
+  if(dom.inventoryList.dataset.signature!==signature){
+    dom.inventoryList.dataset.signature=signature;
+    dom.inventoryList.innerHTML='<div class="order-empty">냉장고 앞에서 오늘의 메뉴를 정하세요.</div>';
+  }
+  dom.objectiveTitle.textContent="오늘의 메뉴";
+  dom.objectiveBody.innerHTML=`
+    <div class="prep-summary">
+      <strong>메뉴 정하기</strong>
+      <div>주방의 냉장고 앞으로 이동해 오늘 준비할 메뉴를 정하세요.</div>
+      <strong>영업일지</strong>
+      <div>확인한 음식 기록이 있다면 냉장고를 열기 전에 참고할 수 있습니다.</div>
+      <strong>조작</strong>
+      <div>WASD 이동 · 냉장고 앞에서 E 상호작용 · ESC 메뉴</div>
+    </div>`;
+}
+
+function openMenuSelectionAtFridge(){
+  if(state.phase!==GAME_PHASES.MENU_SELECT)return false;
+  renderMenuSelection();
+  dom.menuSelectOverlay.classList.add("open");
+  return true;
+}
+
 function renderMenuSelection(){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return;
   const dayData=currentMenuSelectionRules();
@@ -241,7 +297,6 @@ function renderMenuSelection(){
   }
   dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} · 최소 ${dayData.minSelectedMenus} / 최대 ${maxSelectedMenus}`;
   dom.menuSelectConfirm.disabled=state.menuSelectionDraft.length<dayData.minSelectedMenus||!dayData.requiredMenus.every(id=>state.menuSelectionDraft.includes(id));
-  dom.menuSelectOverlay.classList.add("open");
 }
 
 function toggleMenuSelection(menuId){

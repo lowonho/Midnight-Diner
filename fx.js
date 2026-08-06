@@ -83,13 +83,14 @@ function drawParticles(){
    지금은 어떤 준비물이든 앞에 서면 이름표가 크게 둥실대므로
    (prep.js prepObjectUsable) 화살표 없이도 알 수 있습니다.
 
-   반대로 밤 조리와 프롤로그 조리는 currentRequirement() 가 단계를 강제하므로
+   반대로 메뉴 선택·밤 조리·프롤로그 조리는 currentRequirement() 가 단계를 강제하므로
    가리킬 곳이 실제로 하나뿐이고, 그래서 화살표를 남겨 둡니다.
    ------------------------------------------------------------ */
 
 function drawGuidance(){
   const storyCook=!!state.story?.activeStoryCook;
-  if(state.paused||state.mini||(state.phase!=="night"&&!storyCook))return;
+  const choosingMenu=state.phase==="menuSelect";
+  if(state.paused||state.mini||(state.phase!=="night"&&!storyCook&&!choosingMenu))return;
   const requirement=currentRequirement();
   const target=requirement?stationById(requirement):null;
   if(!target)return;

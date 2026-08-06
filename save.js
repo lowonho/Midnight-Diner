@@ -9,6 +9,8 @@ const JOURNAL_KEY="moonlightTable.journal.v1";
 const JOURNAL_VERSION=2;
 const JOURNAL_ENDING_ALIASES=Object.freeze({"SCN-J01":"loop_return"});
 const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1";
+const ENDING_RETRY_CHECKPOINT_KEY="moonlightTable.endingRetry.v1";
+const ENDING_RETRY_CHECKPOINT_VERSION=1;
 const DEFAULT_AUDIO_SETTINGS=Object.freeze({
   enabled:true,
   bgmEnabled:true,
@@ -71,10 +73,6 @@ function initializeSaveSystem(){
   if(saveSystemInitialized)return;
   migrateSaveStorage();
   saveSystemInitialized=true;
-  window.addEventListener("pagehide",()=>saveGame(true));
-  document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="hidden")saveGame(true);
-  });
 }
 
 // 새 시나리오와 호환되지 않는 과거 자동·수동 저장 네 칸을 최초 실행 때 한 번만
@@ -199,6 +197,96 @@ function clearAllSaveData(){
 // 진엔딩에서는 반복 플레이용 수동 저장을 남기고, 이어하기의 기본 지점인
 // 자동 저장만 비웁니다. story.js는 진엔딩 기록을 남긴 뒤 이 함수를 호출합니다.
 function clearAutoSaveForTrueEnding(){
+  return clearSaveData(AUTO_SAVE_SLOT);
+}
+
+function normalizeEndingRetryAction(action){
+  if(!action||typeof action!=="object"||action.type!=="endingRetryMenu")return null;
+  const judgementSceneId=typeof action.judgementSceneId==="string"
+    ?action.judgementSceneId.trim()
+    :"";
+  const endingSceneId=typeof action.endingSceneId==="string"
+    ?action.endingSceneId.trim()
+    :"";
+  if(!judgementSceneId||!endingSceneId)return null;
+  return {
+    type:"endingRetryMenu",
+    judgementSceneId,
+    endingSceneId,
+    endingTitle:typeof action.endingTitle==="string"
+      ?action.endingTitle.slice(0,120)
+      :""
+  };
+}
+
+function validEndingRetrySaveData(data){
+  return !!data
+    &&typeof data==="object"
+    &&data.version===SAVE_VERSION
+    &&Number.isFinite(Number(data.savedAt))
+    &&data.state
+    &&typeof data.state==="object"
+    &&Object.values(GAME_PHASES).includes(data.state.phase)
+    &&Number.isFinite(Number(data.state.day))
+    &&data.state.inventory
+    &&typeof data.state.inventory==="object";
+}
+
+function clearEndingRetryCheckpoint(){
+  try{
+    localStorage.removeItem(ENDING_RETRY_CHECKPOINT_KEY);
+    return true;
+  }catch(error){
+    console.warn("엔딩 재시도 체크포인트를 삭제하지 못했습니다.",error);
+    return false;
+  }
+}
+
+function readEndingRetryCheckpoint(){
+  try{
+    const raw=localStorage.getItem(ENDING_RETRY_CHECKPOINT_KEY);
+    if(!raw)return null;
+    const checkpoint=JSON.parse(raw);
+    const action=normalizeEndingRetryAction(checkpoint?.action);
+    if(
+      checkpoint?.version!==ENDING_RETRY_CHECKPOINT_VERSION
+      ||!Number.isFinite(Number(checkpoint.savedAt))
+      ||!action
+      ||!validEndingRetrySaveData(checkpoint.saveData)
+    )throw new Error("지원하지 않는 엔딩 재시도 체크포인트");
+    return {
+      version:ENDING_RETRY_CHECKPOINT_VERSION,
+      savedAt:Number(checkpoint.savedAt),
+      action,
+      saveData:checkpoint.saveData
+    };
+  }catch(error){
+    console.warn("엔딩 재시도 체크포인트를 읽지 못했습니다.",error);
+    clearEndingRetryCheckpoint();
+    return null;
+  }
+}
+
+// 일반 엔딩에서는 이어하기에 노출되는 자동 저장을 비우되, 앱을 다시 열었을 때
+// 엔딩 선택 화면만 복원할 수 있도록 별도의 숨은 체크포인트를 남깁니다. 저장에
+// 실패하면 기존 자동 저장을 지우지 않아 진행 데이터가 함께 사라지지 않게 합니다.
+function saveEndingRetryCheckpoint(action){
+  const normalizedAction=normalizeEndingRetryAction(action);
+  if(!normalizedAction||window.QA_MODE?.enabled)return false;
+  if(!saveGame(true))return false;
+  const saveData=readSaveData(AUTO_SAVE_SLOT);
+  if(!saveData)return false;
+  try{
+    localStorage.setItem(ENDING_RETRY_CHECKPOINT_KEY,JSON.stringify({
+      version:ENDING_RETRY_CHECKPOINT_VERSION,
+      savedAt:Date.now(),
+      action:normalizedAction,
+      saveData
+    }));
+  }catch(error){
+    console.warn("엔딩 재시도 체크포인트를 저장하지 못했습니다.",error);
+    return false;
+  }
   return clearSaveData(AUTO_SAVE_SLOT);
 }
 
@@ -438,7 +526,10 @@ window.MoonlightTableSave=Object.freeze({
   pendingUnlocks:pendingJournalUnlocks,
   acknowledgeUnlock:acknowledgeJournalUnlock,
   unlockTrueEndingEpilogues,
-  clearAutoSaveForTrueEnding
+  clearAutoSaveForTrueEnding,
+  saveEndingRetryCheckpoint,
+  readEndingRetryCheckpoint,
+  clearEndingRetryCheckpoint
 });
 
 function restoreGameState(data){

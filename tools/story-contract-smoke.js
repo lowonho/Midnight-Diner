@@ -108,19 +108,28 @@ assert(expectedGameplayJournalGuestIds.every(id=>{
     &&result.fragmentState==="none"&&result.fragmentName==null&&result.seenStoryScenes.length===0;
 }),"새 회차의 방문·평가·조각 결과는 모두 비어 있어야 합니다.");
 const initialGameplayJournal=getGameplayJournalPages();
-assert(initialGameplayJournal.length===8
+const initialRecipePages=initialGameplayJournal.filter(page=>page.pageType==="recipe");
+const initialDayPages=initialGameplayJournal.filter(page=>page.pageType==="day");
+assert(initialGameplayJournal.length===16
   &&initialGameplayJournal[0].pageType==="rules"
-  &&initialGameplayJournal.slice(1).every((page,index)=>
+  &&initialRecipePages.length===8
+  &&initialDayPages.every((page,index)=>
     page.pageType==="day"&&page.day===index+1&&!page.recorded&&page.entries.length===0),
-  "새 게임의 진행용 영업일지는 주의사항 1장과 빈 1~7일차 기록이어야 합니다.");
+  "새 게임의 진행용 영업일지는 주의사항 1장, 음식별 레시피 8장, 빈 1~7일차 기록으로 구성되어야 합니다.");
+same(initialGameplayJournal.map(page=>page.number),Array.from({length:16},(_,index)=>index+1),
+  "진행용 영업일지 16장의 페이지 번호");
 same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
-assert(initialGameplayJournal[0].rules.length===4
-  &&initialGameplayJournal[0].menuRule.includes("다섯 가지")
-  &&initialGameplayJournal[0].menuNames.every(name=>
-    initialGameplayJournal[0].rules.some(rule=>rule.includes(name))),
-  "네 가지 주의사항 중 하나에서 기존 여덟 음식과 매일 다섯 메뉴 준비를 안내해야 합니다.");
-assert(initialGameplayJournal.slice(1).every(page=>
+same(initialGameplayJournal[0].rules,[
+  "매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.",
+  "손님에게 항상 친절하게 대한다.",
+  "내일로 가는 문은 달빛 조각으로만 열 수 있다."
+],"영업일지의 간결한 주의사항 세 가지");
+same(initialRecipePages.map(page=>page.dishId),STORY_MENU_RULES.dishIds,
+  "음식별 레시피 여덟 장의 순서");
+assert(initialRecipePages.every(page=>page.ingredients.length>0&&page.prepSteps.length>0&&page.cookSteps.length>0),
+  "각 음식 레시피 장에는 재료와 영업 전 준비·주문 후 조리 순서가 있어야 합니다.");
+assert(initialDayPages.every(page=>
   !page.guestId&&!page.guestName&&!page.appearance&&!page.confirmedDish),
   "방문 전 날짜 페이지가 미래 손님·등장 조건·정답 음식을 노출하면 안 됩니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G7-A"]);
@@ -190,16 +199,44 @@ Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&l
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
 assert(Object.values(l02.journalVariants).flat().every(line=>line.speakerLabel==="김다은(속말)"&&!line.speaker),
   "회귀 기록을 아는 다은의 반응은 손님에게 아는 척하는 대사가 아니라 속말이어야 합니다.");
-assert(STORY_SCENES["SCN-P04"].autoOpenJournal===true
-  &&STORY_SCENES["SCN-P04"].opensMenuSelection===true,
-  "프롤로그에서 영업일지를 직접 펼친 뒤 첫 메뉴를 선택해야 합니다.");
+const p04=STORY_SCENES["SCN-P04"];
+assert(p04.lines.some(line=>line.openJournalOnAdvance===true)
+  &&p04.autoOpenJournal!==true
+  &&p04.opensMenuSelection!==true,
+  "프롤로그 대사 도중 영업일지를 읽고, 장면 뒤에는 냉장고에서 메뉴를 선택해야 합니다.");
+const p04DiscoveryText=p04.lines[0]?.text||"";
+assert(STORY_SCENES["SCN-P03"].lines.at(-1)?.text==="나 여기 갇힌건가??"
+  &&p04DiscoveryText.includes("다은은 다른 출구를 찾기 위해 식당을 둘러본다.")
+  &&p04DiscoveryText.includes("그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다.")
+  &&p04.lines[0]?.openJournalOnAdvance===true,
+  "문으로 나가지 못한 뒤 다른 출구를 찾다가 영업일지를 발견하고 펼치는 흐름이어야 합니다.");
+assert(p04.lines[1]?.text.includes("내일로 가는 문")
+  &&JSON.stringify(STORY_SCENES).includes("내일로 가는 문")
+  &&!JSON.stringify(STORY_SCENES).includes("새벽문"),
+  "다은이 나가려는 문은 프롤로그부터 엔딩까지 '내일로 가는 문'으로 불러야 합니다.");
+assert(String(storyAdvance).includes("openJournalOnAdvance")
+  &&String(storyAdvance).includes("openGameplayJournal")
+  &&String(resumeStoryAfterJournal).includes("waitingForJournal")
+  &&String(resumeStoryAfterJournal).includes("showStoryLine"),
+  "프롤로그는 해당 자막 뒤 책을 열고, 닫은 뒤 다음 자막으로 복귀해야 합니다.");
+assert(p04.lines.slice(-3).every(line=>line.timeOfDay==="day")
+  &&String(storyTimeOfDayOverride).includes("line.timeOfDay"),
+  "프롤로그의 밤→첫째 날 낮 전환은 대사뿐 아니라 실제 배경 시간에도 반영되어야 합니다.");
 assert(!STORY_SCENES["SCN-P04"].lines.some(line=>line.speaker==="journal"),
   "영업일지 규칙은 장부가 말하는 대사로 출력하면 안 됩니다.");
-assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("영업 기록은 남지만")&&rule.includes("모은 조각은 사라진다")),
-  "영업일지 첫 장은 회귀 뒤 기록만 남고 조각은 사라지는 규칙을 알려야 합니다.");
-assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("달빛 조각을 모아")&&rule.includes("문을 연다"))
+same(Object.keys(FIRST_SPECIAL_GUEST_BUBBLES),expectedGameplayJournalGuestIds,
+  "첫 방문 특별 손님 말풍선 목록");
+assert(Object.values(FIRST_SPECIAL_GUEST_BUBBLES).every(text=>text&&!text.includes("오늘도")),
+  "첫 방문 특별 손님은 재방문처럼 말하면 안 됩니다.");
+assert(String(prepareStoryNight).includes("guest?.visits")
+  &&String(decorateStoryOrder).includes("FIRST_SPECIAL_GUEST_BUBBLES"),
+  "첫 방문과 재방문 말풍선은 실제 만남 기록으로 구분해야 합니다.");
+assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
+  &&String(ensureStoryActor).includes('?"twinShadows"'),
+  "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
+assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문")&&rule.includes("달빛 조각으로만"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
-  "영업일지 첫 장은 세부 등급을 선공개하지 않고 조각을 모아 문을 여는 목표만 알려야 합니다.");
+  "영업일지 첫 장은 세부 등급을 선공개하지 않고 달빛 조각으로 내일의 문을 여는 목표만 알려야 합니다.");
 same(l01.lines.slice(-3).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
@@ -343,6 +380,18 @@ assert(String(runStoryConclusion).includes("beginNextStoryLoop")
 assert(String(restoreEndingChoiceCheckpoint).includes("playStoryScenes")
   &&String(startNewLoopAfterEnding).includes("beginNextStoryLoop"),
   "엔딩 기록 뒤 마지막 분기 재생과 새 회차 시작 기능을 모두 제공해야 합니다.");
+assert(String(showEndingRetryMenu).includes("saveEndingRetryCheckpoint")
+  &&String(showEndingRetryMenu).includes("restoredCheckpoint"),
+  "일반 엔딩 화면은 현재 결말을 숨은 체크포인트로 저장하고 복구 표시를 구분해야 합니다.");
+assert(String(retryLastEndingBranch).includes("restoreStoredEndingRetryState")
+  &&String(retryLastEndingBranch).includes("clearEndingRetryCheckpoint")
+  &&String(startNewLoopAfterEnding).includes("restoreStoredEndingRetryState")
+  &&String(startNewLoopAfterEnding).includes("clearEndingRetryCheckpoint"),
+  "복구된 엔딩 화면의 두 버튼은 상태를 되살린 뒤 숨은 체크포인트를 삭제해야 합니다.");
+assert(String(finishTrueEnding).includes("clearEndingRetryCheckpoint")
+  &&String(finishTrueEnding).indexOf("clearEndingRetryCheckpoint")
+    <String(finishTrueEnding).indexOf("clearAutoSaveForTrueEnding"),
+  "진엔딩은 일반 엔딩의 숨은 체크포인트를 남기지 않아야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
   assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");

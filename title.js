@@ -61,7 +61,10 @@ function gameplayJournalPages(){
 }
 
 function journalPageKindLabel(page){
-  if(journalMode==="gameplay")return page.dayLabel?`현재 진행 · ${page.dayLabel}`:"현재 진행";
+  if(journalMode==="gameplay"){
+    if(page.pageType==="recipe")return "현재 진행 · 음식 레시피";
+    return page.dayLabel?`현재 진행 · ${page.dayLabel}`:"현재 진행";
+  }
   return page.kind==="ending"?"엔딩":"특별 손님";
 }
 
@@ -74,6 +77,16 @@ function journalField(label,value){
 
 function journalSection(title,fields){
   return [`[${title}]`,...fields].join("\n");
+}
+
+function gameplayJournalRecipeNote(page){
+  const prepSteps=(page.prepSteps||[]).map((step,index)=>`${index+1}. ${step}`);
+  const cookSteps=(page.cookSteps||[]).map((step,index)=>`${index+1}. ${step}`);
+  return [
+    journalSection("재료",[(page.ingredients||[]).join(" · ")||"기록 없음"]),
+    journalSection("영업 전 준비",prepSteps.length?prepSteps:["기록 없음"]),
+    journalSection("주문 후 조리",cookSteps.length?cookSteps:["기록 없음"])
+  ].join("\n\n");
 }
 
 function firstJournalValue(page,keys,fallback="???"){
@@ -118,6 +131,9 @@ function gameplayJournalEntryNote(entry){
 function journalPageNote(page){
   if(journalMode==="gameplay"&&page.pageType==="rules"){
     return journalSection("주의사항",(page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`));
+  }
+  if(journalMode==="gameplay"&&page.pageType==="recipe"){
+    return gameplayJournalRecipeNote(page);
   }
   if(journalMode==="gameplay"&&page.pageType==="day"){
     if(!page.recorded||!page.entries?.length){
@@ -208,7 +224,8 @@ function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
-    if(page.pageType==="rules")return "준비 메뉴 · 여덟 가지 중 매일 다섯 가지";
+    if(page.pageType==="rules")return "주의사항 3개 · 음식 레시피 8장";
+    if(page.pageType==="recipe")return `재료 ${(page.ingredients||[]).length}가지 · 준비 ${(page.prepSteps||[]).length}단계 · 조리 ${(page.cookSteps||[]).length}단계`;
     if(page.pageType==="day")return page.recorded?`방문 기록 · ${page.entries.length}건`:"기록 없음";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
     if(page.currentLoopEvaluation&&page.currentLoopEvaluation!=="미평가"){
@@ -277,7 +294,7 @@ function renderJournalPage({acknowledge=false}={}){
   }
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
-    :isGameplayRecord?page.pageType==="rules"?"!":String(page.day||"·")
+    :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
       :page.kind==="ending"?"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.textContent=journalPageNote(page);
@@ -304,7 +321,7 @@ function refreshJournalUI(){
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
   elements.description.textContent=journalMode==="gameplay"
-    ?"첫 장에는 영업 규칙이, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
+    ?"첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
     :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
   renderJournalPage();
 }
@@ -336,6 +353,8 @@ function openGameplayJournal(){return openJournal("gameplay");}
 function closeJournal(){
   const elements=journalElements();
   if(!elements.overlay?.classList.contains("open"))return false;
+  const resumeStory=journalMode==="gameplay"
+    &&typeof resumeStoryAfterJournal==="function";
   elements.overlay.classList.remove("open");
   elements.overlay.setAttribute("aria-hidden","true");
   if(journalMode==="gameplay"&&typeof state!=="undefined"){
@@ -345,6 +364,7 @@ function closeJournal(){
   }
   journalReturnFocus?.focus?.();
   journalReturnFocus=null;
+  if(resumeStory)setTimeout(resumeStoryAfterJournal,0);
   return true;
 }
 
@@ -395,6 +415,7 @@ function markTitleGameReady(){
   dom.startButton.disabled=false;
   dom.startButton.textContent="새 게임";
   updateContinueButton();
+  setTimeout(showPendingEndingRetryCheckpoint,0);
 }
 
 function markTitleLoadFailed(){
@@ -411,6 +432,45 @@ function openGameScreen(){
   requestAnimationFrame(()=>phaserScene?.scale.refresh());showGameHud(true);
 }
 
+function sameEndingRetryAction(left,right){
+  return !!left&&!!right
+    &&left.type==="endingRetryMenu"
+    &&right.type==="endingRetryMenu"
+    &&left.judgementSceneId===right.judgementSceneId
+    &&left.endingSceneId===right.endingSceneId;
+}
+
+function showPendingEndingRetryCheckpoint(){
+  const checkpoint=window.MoonlightTableSave?.readEndingRetryCheckpoint?.();
+  if(!checkpoint)return false;
+  const shown=typeof showEndingRetryMenu==="function"
+    &&showEndingRetryMenu(checkpoint.action,{restoredCheckpoint:true});
+  if(!shown)window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+  return !!shown;
+}
+
+// 숨은 엔딩 체크포인트는 이어하기 슬롯으로 취급하지 않습니다. 사용자가 엔딩
+// 결론창의 버튼을 눌렀을 때만 게임 상태를 복원하고 실제 게임 화면으로 전환합니다.
+function restoreEndingRetryCheckpointGame(expectedAction){
+  const checkpoint=window.MoonlightTableSave?.readEndingRetryCheckpoint?.();
+  if(!checkpoint||!sameEndingRetryAction(checkpoint.action,expectedAction))return false;
+  try{restoreGameState(checkpoint.saveData);}
+  catch(error){
+    console.warn("엔딩 재시도 상태를 복원하지 못했습니다.",error);
+    window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    return false;
+  }
+
+  audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
+  dom.settingsOverlay.classList.remove("open");
+  dom.miniOverlay.classList.remove("open");
+  dom.resultOverlay.classList.remove("open");
+  dom.menuSelectOverlay.classList.remove("open");
+  dom.ingredientSelectOverlay.classList.remove("open");
+  buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();audio.startBgm();
+  return true;
+}
+
 function continueGame(){
   if(!hasAnySaveData()){updateContinueButton();return;}
   openSaveSlotDialog("load","title",dom.continueButton);
@@ -423,7 +483,8 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();audio.apply();syncAudioControls();
   dom.settingsOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
   dom.resultOverlay.classList.toggle("open",state.phase==="result");
-  dom.menuSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.MENU_SELECT);
+  // 메뉴 선택 단계의 저장을 불러와도 냉장고 앞 상호작용부터 다시 시작합니다.
+  dom.menuSelectOverlay.classList.remove("open");
   dom.ingredientSelectOverlay.classList.toggle("open",state.phase===GAME_PHASES.INGREDIENT_SELECT);
   buildMenuCards();openGameScreen();updateUI(true);syncPhaserObjects();
   if(state.phase==="result")renderNightResult();
@@ -434,6 +495,8 @@ function loadGameFromSlot(slotId=AUTO_SAVE_SLOT){
 
 function startNewGame(){
   if(readSaveData(AUTO_SAVE_SLOT)&&!window.confirm("자동 저장을 새 게임으로 교체할까요?\n수동 저장 3칸은 그대로 유지됩니다."))return;
+  window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+  if(typeof closeEndingRetryMenu==="function")closeEndingRetryMenu();
   clearSaveData(AUTO_SAVE_SLOT);clearStoryRuntime();startGame();saveGame(true);updateContinueButton();
 }
 

@@ -697,6 +697,20 @@ function isDayPrepMini(mini=state.mini){
   return mini?.context?.mode==="dayPrep";
 }
 
+// 개별 엔진이 점수를 직접 정하면 그대로 사용하고, 아직 점수 체계가 없는 엔진은
+// 공용 등급으로 환산합니다. 시간 종료는 실수 한 번보다 큰 감점으로 분리합니다.
+function dayPrepCompletionScore(data={}){
+  const rawScore=data?.completionScore;
+  const explicit=Number(rawScore);
+  if(rawScore!==null&&rawScore!==undefined&&rawScore!==""&&Number.isFinite(explicit)){
+    return Math.round(Math.max(0,Math.min(100,explicit)));
+  }
+  if(data?.timedOut)return 50;
+  const grade=data?.completionGrade
+    ||(data?.mistakes||data?.errors||data?.warnings?"good":"perfect");
+  return grade==="perfect"?100:grade==="good"?80:80;
+}
+
 /* ---- 엔진 등록 창구 ----------------------------------------
    engine-e*.js 파일들이 로드되면서 아래 두 함수를 호출해
    자기 자리를 채웁니다. 이 파일은 무엇이 등록되는지 알 필요가 없습니다. */
@@ -772,7 +786,8 @@ function finishDayPrepTask(taskId,message){
   const m=state.mini;if(!isDayPrepMini(m)||m.complete)return;
   m.complete=true;
   audio.stopOwner?.(m);
-  completeDayPrepTask(taskId);
+  const completionScore=dayPrepCompletionScore(m.data);
+  completeDayPrepTask(taskId,completionScore);
   dom.miniTimer.textContent="완료";
   dom.miniFeedback.textContent=message;
   dom.miniContent.classList.add("prep-complete-flash");
@@ -805,5 +820,5 @@ function closeDayPrepMini(completed=false){
   dom.miniContent.innerHTML="";
   updateUI(true);
   saveGame();
-  if(completed!==true)showToast("준비 작업을 닫았습니다. 다시 상호작용해 이어갈 수 있습니다.");
+  if(completed!==true)showToast("준비 작업을 닫았습니다. 현재 작업은 초기화되어 다음에 처음부터 다시 해야 합니다.");
 }
