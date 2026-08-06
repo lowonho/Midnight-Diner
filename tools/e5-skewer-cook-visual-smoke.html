@@ -67,7 +67,7 @@
        그리고 **낮에 꽂은 배치 그대로** 구워지는가 (state.skewerPrep.patterns).
 
        ⚠️ 예전에는 `?marker`(익힘 게이지 위치)로 익힘 단계를 정했습니다. 게이지가
-          없어지고 **몇 번째 장인지를 unit.cookStep 이 직접** 들고 있게 바뀌어서,
+          없어지고 **면(앞/뒤)마다 unit.sides 가 따로** 들고 있게 바뀌어서,
           이제 ?step 하나가 그 자리를 대신합니다.
 
        ⚠️ 꼬치는 이제 **플레이어가 하나씩 화로에 올립니다.** ?placed 로 몇 자루가
@@ -99,24 +99,25 @@
     loadDayPrepAssets().then(() => {
       /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
          적으면 판 구조가 바뀔 때 하네스만 조용히 옛 모양으로 남습니다.
-         할 일 목록은 자루마다 네 개(굽기 · 뒤집기 · 굽기 · 양념)이고 **자루마다 따로** 돕니다. */
+         할 일 목록은 자루마다 일곱 개(굽기·뒤집기·굽기·뒤집기·양념·뒤집기·양념)이고 **자루마다 따로** 돕니다. */
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
-        data:createTwoSideData("skewer",{timeLimit:58})
+        data:createTwoSideData("skewer",{timeLimit:72})
       };
       const data = state.mini.data;
-      const offset = { cook:0, flip:1, sauce:3 }[cue] ?? 0;
+      // 새 순서 [굽기,뒤집기,굽기,뒤집기,양념,뒤집기,양념] 에서 각 신호가 처음 나오는 자리
+      const offset = { cook:0, flip:1, sauce:4 }[cue] ?? 0;
       /* 담아 둔 자루는 **뒤에서부터** 셉니다 — 화로에는 앞 자루가 남아 있는 그림이라야
          "굽는 중 + 담은 것" 이 한 화면에 같이 보입니다. */
       const servedFrom = SKEWER_BATCH_SIZE - served;
       data.units.forEach((one, index) => {
         one.served = index >= servedFrom;
-        if(one.served){ one.done = true; one.placed = true; one.slot = null; one.cookStep = 2; return; }
+        if(one.served){ one.done = true; one.placed = true; one.slot = null; one.sides = [twoSideSideFromStage(2), twoSideSideFromStage(2)]; return; }
         one.placed = index < placed;
         // slot 은 화로의 **자리 번호**입니다 (자루 번호와 별개) — 안 채우면 화로가 빕니다
         one.slot = one.placed ? index : null;
         if(!one.placed) return;
-        one.cookStep = step;
+        one.sides = [twoSideSideFromStage(step), twoSideSideFromStage(step)];
         one.flips = index < flipped ? 1 : 0;
         one.stepIndex = offset;
         one.phase = (cue && index === unit) ? "cue" : "wait";
@@ -125,7 +126,7 @@
       dom.miniTitle.textContent = "닭꼬치 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.skewer.subtitle;
       // 아래 TIP 띠는 setup 이 채웁니다. 하네스는 setup 을 안 거치므로 같은 줄을 여기서 넣습니다.
-      setMiniTipHint?.("드래그 : 꼬치 올리기 · 클릭 : 굽기·양념 · 드래그 : 굴려 뒤집기");
+      setMiniTipHint?.("드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념");
       renderTwoSideCook();
       // 양념을 바른 자루 (실제로는 붓이 지나간 뒤에 붙는 클래스입니다)
       document.querySelectorAll(".cook-food .grill-skewer").forEach((skewer, index) => {
@@ -136,7 +137,7 @@
       if(ready && placed){
         const first = data.units.find(one => one.placed && !one.served);
         if(first){
-          first.done = true; first.phase = "done"; first.cookStep = 2;
+          first.done = true; first.phase = "done"; first.sides = [twoSideSideFromStage(2), twoSideSideFromStage(2)];
           const element = twoSideTargetElement(data, first);
           element?.classList.add("unit-done", "ready-to-serve");
           element?.setAttribute("data-ts-serve", String(first.index));
@@ -238,7 +239,7 @@
            마지막으로 켜진 장의 파일 이름이 지금 보이는 그림입니다. */
         cook:(() => {
           const piece = document.querySelector(".cook-food .gs-piece.has-cook-art");
-          const shown = twoSideUnit(state.mini.data, 0)?.cookStep ?? 0;
+          const shown = cookArtStep(twoSideUnit(state.mini.data, 0), SKEWER_COOK_STEPS);
           if (!piece) return { art:false, step:shown };
           const frames = [...piece.querySelectorAll(".gs-piece-asset")];
           const on = frames.filter(f => f.classList.contains("on"));

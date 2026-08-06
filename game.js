@@ -258,9 +258,24 @@ const audio = {
       const loops=this.loopFiles.get(entry.owner);if(loops?.get(entry.name)===entry)loops.delete(entry.name);if(loops&&!loops.size)this.loopFiles.delete(entry.owner);
     }
   },
-  stopFile(entry){if(!entry)return;entry.element.pause();entry.element.currentTime=0;this.releaseFile(entry);},
+  /* ⚠️ 한 항목이 말썽을 부려도 **나머지는 반드시 끕니다.** 아직 다 안 읽힌 파일에
+     currentTime 을 넣으면 브라우저가 튕겨 낼 때가 있는데, 예전에는 그 한 번이
+     stopOwner 의 반복을 통째로 끊어서 뒤에 있던 지글지글이 계속 울었습니다. */
+  stopFile(entry){
+    if(!entry)return;
+    try{entry.element.pause();entry.element.currentTime=0;}catch{}
+    this.releaseFile(entry);
+  },
   stop(name,owner){const entry=this.loopFiles.get(owner)?.get(name);if(entry)this.stopFile(entry);},
   stopOwner(owner){[...(this.ownerFiles.get(owner)||[])].forEach(entry=>this.stopFile(entry));},
+  /* 반복 소리를 주인과 상관없이 전부 끕니다.
+     반복으로 까는 소리는 **미니게임의 조리 소리뿐**이라(지글지글·기름·불꽃·젓기),
+     미니게임 화면이 사라지면 남아 있을 이유가 하나도 없습니다. 배경음은 여기 없고
+     bgmElement 가 따로 들고 있으므로 영향을 받지 않습니다.
+     ⚠️ 주인(owner)으로 지우는 stopOwner 와 **겹쳐서** 씁니다. 주인 표가 한 군데라도
+        어긋나면 소리만 살아남는데, 그 경우를 사람이 미리 다 찾을 수 없어서
+        "화면이 닫히면 반복 소리는 무조건 없다"는 쪽으로 못을 박습니다. */
+  stopLoops(){[...this.activeFiles].filter(entry=>entry.loop).forEach(entry=>this.stopFile(entry));},
   stopAllFiles(exceptName=null){[...this.activeFiles].filter(entry=>entry.name!==exceptName).forEach(entry=>this.stopFile(entry));},
   pauseLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&!entry.element.paused){entry.pausedBySettings=true;entry.element.pause();}});},
   resumeLoops(){this.activeFiles.forEach(entry=>{if(entry.loop&&entry.pausedBySettings){entry.pausedBySettings=false;entry.element.play().catch(()=>this.stopFile(entry));}});},
@@ -520,13 +535,15 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
-  audio.stopOwner(m);
+  audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   audio.result(score);
   setTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
   state.mini=null;dom.miniOverlay.classList.remove(UI_CLASS.overlayOpen);
+  // 화면이 실제로 사라지는 곳. 굽는 소리가 여기까지 살아 있으면 낮/밤 화면으로 새어 나갑니다.
+  audio.stopOwner(m);audio.stopLoops();
   if(m.context.mode==="story"){
     completeStoryCookStep(score);
     updateUI(true);
