@@ -471,12 +471,27 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   ])),
   // 김치전 굽기 화면 전용 마우스 포인터(고양이 발 뒤집개). 파일이 없으면 기본 포인터입니다.
   cookSpatulaCursor:"assets/minigame/E5/prop_spatula_cat.webp",
-  /* 닭꼬치 양념 붓. **아직 원화가 없습니다** — 파일이 없으면 임시 CSS 도형
-     (나무 손잡이 + 검은 솔)이 대신 나옵니다. 여기 경로에 파일만 넣으면
-     도형이 꺼지고 그림이 보입니다 (engine-e5-two-side-cook.js 의 sauceBrushMarkup ·
-     css 의 .ts-sauce-brush). 손잡이가 오른쪽 위로 가고 솔이 왼쪽 아래를 향하는
-     구도로 그려 주세요 — 화면 오른쪽 아래에서 들어와 꼬치를 쓸고 나갑니다. */
-  cookSauceBrush:"assets/minigame/E5/yakitori/prop_sauce_brush.webp",
+  /* 닭꼬치 데리야끼 양념 붓. 60도로 누인 한 장이고, 양념 신호에 답하면 자루 위를
+     한 번 쓸고 사라집니다 (engine-e5-two-side-cook.js 의 sauceBrushMarkup ·
+     css 의 .ts-sauce-brush). 파일이 없으면 예전 임시 CSS 도형(나무 손잡이 + 검은 솔)이
+     대신 나옵니다. */
+  cookSauceBrush:"assets/minigame/E5/yakitori/prop_teriyaki_basting_brush_pitched_60deg.webp",
+  /* 데리야끼 윤기 2종. 양념을 바른 뒤 **조각 그림 위에 반투명으로 덮는 한 겹**입니다
+     (css 의 .grill-skewer.sauced .gs-piece-glaze). 익힘 단계 그림을 갈아 끼우는 것과
+     달리 겹치기만 하므로, 어느 단계에서 발라도 그 위에 윤기만 얹힙니다.
+     ⚠️ 캔버스가 익힘 장과 같아야 조각에 1:1 로 겹칩니다 — 빌드에서 pad 로 맞춥니다. */
+  cookGlazeChicken:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_chicken_piece_overlay.webp",
+  cookGlazeGreenOnion:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_green_onion_piece_overlay.webp",
+  /* 조작 방향 화살표 3장. 신호가 켜져 있는 동안 조리물 위에 겹쳐 뜹니다
+     (engine-e5-two-side-cook.js 의 twoSideDragArrowMarkup · css 의 .ts-drag-arrow).
+     ⚠️ 방향이 그림에 이미 그려져 있어 **세 장을 따로** 씁니다 — CSS 로 돌리면
+        빛·그림자 방향까지 같이 돌아갑니다. 파일이 없으면 임시 CSS 화살표가 나옵니다. */
+  cookArrowSkewerFlip:"assets/minigame/E5/ui_drag_arrow_skewer_flip_horizontal.webp",
+  cookArrowSkewerSauce:"assets/minigame/E5/ui_drag_arrow_skewer_sauce_vertical.webp",
+  cookArrowPancakeFlip:"assets/minigame/E5/ui_drag_arrow_kimchi_pancake_flip_up.webp",
+  /* 굽기 신호 때 조리물 위에 겹치는 **누르는 손**. 닭꼬치(한 번 클릭)와 김치전(꾹 누르기)이
+     같은 그림을 씁니다. 파일이 없으면 css 의 임시 손 모양(인라인 SVG)이 나옵니다. */
+  cookGesturePress:"assets/minigame/E5/ui_gesture_press_hold_no_pressure_lines.webp",
   /* E8 떡 · 우동면 불려두기.
      PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
 
@@ -781,7 +796,7 @@ function advanceDayPrepDish(m,taskId){
 
 function closeDayPrepMini(completed=false){
   if(!isDayPrepMini())return;
-  audio.stopOwner?.(state.mini);
+  audio.stopOwner?.(state.mini);audio.stopLoops?.();
   state.mini=null;
   state.joyX=0;state.joyY=0;state.player.moving=false;
   dom.miniOverlay.classList.remove("open");

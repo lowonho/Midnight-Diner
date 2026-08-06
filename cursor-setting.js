@@ -58,8 +58,8 @@ function syncCatCursorToggle(){
   button.classList.toggle("is-off", !enabled);
   button.setAttribute("aria-pressed", String(enabled));
   button.setAttribute("aria-label", enabled
-    ? "고양이 마우스 켜짐. 누르면 끄기"
-    : "고양이 마우스 꺼짐. 누르면 켜기");
+    ? "고양이 마우스 포인터 켜짐. 누르면 끄기"
+    : "고양이 마우스 포인터 꺼짐. 누르면 켜기");
 }
 
 function toggleCatCursor(){
