@@ -366,7 +366,7 @@ function qaAbortMini(){
        주인으로 달고 있을 뿐 화면과는 이어져 있지 않습니다. 그래서 창만 닫고
        state.mini 를 비우면 주인이 사라진 채 소리만 계속 났습니다.
        정상 종료(finishMini)·낮 준비 닫기(closeDayPrepMini)는 이미 이렇게 끕니다. */
-    audio.stopOwner?.(state.mini);
+    audio.stopOwner?.(state.mini);audio.stopLoops?.();
     state.mini=null;
     dom.miniOverlay.classList.remove("open");
     dom.miniContent.innerHTML="";

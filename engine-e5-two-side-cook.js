@@ -161,6 +161,10 @@ const SKEWER_COOK_STEPS=Object.freeze([
   Object.freeze({suffix:"Burnt"})            // 4 탐
 ]);
 const SKEWER_COOK_ASSET_PREFIX=Object.freeze({chicken:"cookSkewerChicken",greenOnion:"cookSkewerGreenOnion"});
+/* 데리야끼 윤기 한 겹. 익힘 다섯 장과 **같은 캔버스**로 뽑혀 있어서 조각 위에 그대로
+   겹칩니다 (tools/build-minigame-art-webp.js 의 pad). 익힘 장을 갈아 끼우는 것과 달리
+   이건 덮기만 하므로, 어느 단계에서 발라도 그 단계 그림 위에 윤기만 얹힙니다. */
+const SKEWER_GLAZE_KEY=Object.freeze({chicken:"cookGlazeChicken",greenOnion:"cookGlazeGreenOnion"});
 
 function skewerCookAssetKey(ingredient,index){
   const suffix=SKEWER_COOK_STEPS[index].suffix;
@@ -384,7 +388,7 @@ registerMiniEngine("twoSideCook", {
     set(
       isSkewer ? "닭꼬치 굽기" : "김치전 굽기",
       isSkewer ? "불빛이 켜지면 그 꼬치를 클릭하고, 뒤집기 신호에는 옆으로 굴리듯 드래그하세요."
-               : "불빛이 켜지면 김치전을 클릭하고, 뒤집기 신호에는 위로 튕기듯 드래그하세요.",
+               : "불빛이 켜지면 김치전을 꾹 누르고, 뒤집기 신호에는 위로 튕기듯 드래그하세요.",
       config.timeLimit
     );
     // skewerPatterns : 낮에 꽂아 둔 꼬치 3개의 배치. 한 판 동안 바뀌지 않으므로
@@ -396,7 +400,7 @@ registerMiniEngine("twoSideCook", {
     if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
-    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념":"클릭 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
+    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념":"꾹 누르기 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
     renderTwoSideCook();
     // 팬 위에 이미 올라가 있는 자루(= 김치전)만 바로 첫 신호를 겁니다.
     twoSideUnits(m.data).forEach(unit=>{if(unit.placed)armTwoSideCue(m,unit);});
@@ -404,6 +408,7 @@ registerMiniEngine("twoSideCook", {
 
   update(m, dt) {
     updateTwoSideTime(m);
+    tickTwoSideHold(m,dt);
     twoSideUnits(m.data).forEach(unit=>tickTwoSideUnit(m,unit,dt));
   },
 
@@ -419,7 +424,10 @@ registerMiniEngine("twoSideCook", {
     // 신호가 켜진 자루 가운데 **클릭으로 답하는 것(굽기)** 하나를 골라 줍니다.
     // 뒤집기와 양념은 드래그라 이 길로는 답할 수 없습니다.
     const unit=twoSideUnits(m.data).find(one=>one.phase==="cue"&&twoSideStep(one)?.kind==="cook");
-    if(unit)pressTwoSideCue(m,unit.index);
+    if(!unit)return;
+    /* 김치전은 화면에서 **꾹 누르는** 것이지만, 이 버튼은 한 번 눌리고 마는 물건이라
+       누르고 있을 수가 없습니다. 그래서 버튼으로 들어온 것은 지금 점수로 바로 처리합니다. */
+    pressTwoSideCue(m,unit.index,twoSideHoldNeeded(m.data,unit)?twoSideCueScore(unit,"cook"):null);
   }
 });
 
@@ -523,7 +531,70 @@ function twoSideCueScore(unit,kind){
   return Math.round(clamp(94-(off-.22)/.38*20,74,94));
 }
 
-function pressTwoSideCue(m,unitIndex){
+/* ── 꾹 누르기 (김치전 전용) ──────────────────────────────────
+   김치전의 굽기 신호는 **한 번 톡 누르는 것이 아니라 눌러 두는 것**입니다.
+   팬에 올린 반죽을 지그시 눌러 붙이는 손짓이라 그렇습니다.
+   닭꼬치는 그대로 한 번 클릭입니다 — 자루 세 개를 번갈아 눌러야 해서
+   누르고 있게 하면 나머지 둘의 신호를 놓칩니다.
+
+   [점수는 **누르기 시작한 순간**으로 셉니다] 붙잡고 있는 시간은 누구나 같으므로,
+   그 시간까지 점수에 넣으면 빨리 반응한 보람이 사라집니다. */
+const TWO_SIDE_HOLD_SEC=.62;
+
+function twoSideHoldNeeded(data,unit){
+  return data?.dishStyle==="pancake"&&twoSideStep(unit)?.kind==="cook";
+}
+
+// 누르기 시작. 조건이 안 맞으면 아무 일도 없습니다(false).
+function beginTwoSideHold(m,unitIndex){
+  const data=m.data,unit=twoSideUnit(data,unitIndex);
+  if(!unit||data.timedOut||!unit.placed||unit.done)return false;
+  if(!twoSideHoldNeeded(data,unit)||unit.phase!=="cue")return false;
+  data.hold={index:unit.index,left:TWO_SIDE_HOLD_SEC,score:twoSideCueScore(unit,"cook")};
+  /* "치이익" 은 **누른 순간** 납니다. 반죽이 팬에 닿는 소리라, 다 누르고 나서
+     울리면 소리가 손짓보다 늦게 따라옵니다. 소리 길이(0.7초)가 누르는 시간(0.62초)과
+     맞아떨어져서 누르고 있는 내내 지글거립니다.
+     ⚠️ 그래서 다 채운 뒤 pressTwoSideCue 로 넘어갈 때는 **다시 울리지 않습니다**
+        (tickTwoSideHold 가 alreadySizzled 로 알려 줍니다). */
+  playTwoSideSizzle(m);
+  paintTwoSideHold(data);
+  return true;
+}
+
+function cancelTwoSideHold(m){
+  if(!m?.data?.hold)return;
+  m.data.hold=null;
+  paintTwoSideHold(m.data);
+}
+
+/* 남은 시간을 0~1 로 css 에 넘겨 줍니다 — 링이 그만큼 채워집니다. */
+function paintTwoSideHold(data){
+  const pan=dom.miniContent?.querySelector("#tsPan");
+  if(!pan)return;
+  const hold=data.hold;
+  pan.classList.toggle("holding",!!hold);
+  pan.style.setProperty("--ts-hold",hold?(1-clamp(hold.left/TWO_SIDE_HOLD_SEC,0,1)).toFixed(3):"0");
+}
+
+function tickTwoSideHold(m,dt){
+  const data=m.data,hold=data.hold;
+  if(!hold)return;
+  const unit=twoSideUnit(data,hold.index);
+  // 붙잡고 있는 사이에 신호가 꺼졌으면(놓쳤으면) 없던 일이 됩니다
+  if(!unit||unit.phase!=="cue"||!twoSideHoldNeeded(data,unit)){cancelTwoSideHold(m);return;}
+  hold.left-=dt;
+  if(hold.left>0){paintTwoSideHold(data);return;}
+  const score=hold.score;
+  data.hold=null;
+  paintTwoSideHold(data);
+  pressTwoSideCue(m,hold.index,score,true);
+}
+
+/* scoreOverride  : 꾹 누르기가 **누르기 시작한 순간의 점수**를 들고 옵니다.
+                    안 주면 지금 시점으로 셉니다(닭꼬치의 한 번 클릭).
+   alreadySizzled : "치이익" 이 이미 울렸다는 뜻입니다 — 꾹 누르기는 누른 순간에
+                    울리므로, 다 채우고 여기로 올 때 또 울리면 두 번 납니다. */
+function pressTwoSideCue(m,unitIndex,scoreOverride=null,alreadySizzled=false){
   if(!m)return false;
   const data=m.data,unit=twoSideUnit(data,unitIndex);
   if(!unit||data.timedOut)return false;
@@ -536,7 +607,7 @@ function pressTwoSideCue(m,unitIndex){
   // 뒤집기·양념은 클릭이 아니라 드래그입니다. 답을 몰라 클릭한 것이므로 벌점은 없습니다.
   if(step.kind!=="cook"){
     if(unit.phase==="cue")dom.miniFeedback.textContent=step.kind==="sauce"
-      ?"붓질하듯 **위아래로** 드래그해 양념을 발라주세요!"
+      ?"붓질하듯 위아래로 드래그해 양념을 발라주세요!"
       :(data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!");
     return false;
   }
@@ -544,11 +615,18 @@ function pressTwoSideCue(m,unitIndex){
     dom.miniFeedback.textContent="아직이에요. 불빛이 켜질 때 누르세요.";
     return false;
   }
-  data.hits.push(twoSideCueScore(unit,step.kind));
+  /* 김치전은 **꾹 누르고 있어야** 합니다. 톡 눌렀다 뗀 것은 여기서 되돌립니다 —
+     이 길로 들어온 것은 누르기가 다 차기 전에 손을 뗐다는 뜻이라 벌점은 없습니다.
+     (다 채우면 tickTwoSideHold 가 scoreOverride 를 들고 여기로 옵니다) */
+  if(scoreOverride===null&&twoSideHoldNeeded(data,unit)){
+    dom.miniFeedback.textContent="김치전은 꾹 눌러 주세요!";
+    return false;
+  }
+  data.hits.push(scoreOverride??twoSideCueScore(unit,step.kind));
   // 불에 닿아 있는 면이 한 칸 익습니다 (보이는 면은 그대로입니다)
   raiseTwoSideCookStep(data,unit);
   data.cooked=(data.cooked||0)+1;
-  playTwoSideSizzle(m);
+  if(!alreadySizzled)playTwoSideSizzle(m);
   dom.miniFeedback.textContent="치이익—  노릇하게 익었습니다!";
   advanceTwoSideStep(m,unit);
   return true;
@@ -743,9 +821,11 @@ function applyTwoSideSauce(m,unit){
   if(!skewer)return;
   skewer.insertAdjacentHTML("beforeend",sauceBrushMarkup());
   const brush=skewer.querySelector(".ts-sauce-brush");
-  // 쓸고 지나간 뒤부터 윤기가 돕니다 (연출 한가운데)
-  setTimeout(()=>{if(state.mini===m)skewer.classList.add("sauced");},340);
-  setTimeout(()=>brush?.remove(),760);
+  /* 쓸고 지나간 뒤부터 윤기가 돕니다 (연출 한가운데).
+     ⚠️ 두 시각은 css 의 붓질 길이와 짝입니다 — 원화는 ts-brush-sweep-long 0.9초,
+        임시 도형은 ts-brush-sweep 0.74초입니다. 긴 쪽에 맞춰 둡니다. */
+  setTimeout(()=>{if(state.mini===m)skewer.classList.add("sauced");},430);
+  setTimeout(()=>brush?.remove(),940);
 }
 
 /* ============================================================
@@ -794,13 +874,18 @@ function bindTwoSideCookPointer(){
     drag={id:event.pointerId,x:event.clientX,y:event.clientY,at:performance.now(),
           moved:false,spent:false,unit:twoSidePointerUnit(event)};
     try{board.setPointerCapture?.(event.pointerId);}catch{}
+    // 김치전 굽기 신호는 누르고 있어야 합니다 — 여기서 시계를 겁니다
+    beginTwoSideHold(twoSideMini(),drag.unit);
   });
 
   board.addEventListener("pointermove",event=>{
     const m=twoSideMini();
     if(!drag||drag.id!==event.pointerId||!m)return;
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
-    if(Math.hypot(dx,dy)>=6)drag.moved=true;
+    if(Math.hypot(dx,dy)>=6){
+      drag.moved=true;
+      cancelTwoSideHold(m);      // 손이 움직였으면 "꾹 누르기"가 아닙니다
+    }
     if(drag.spent)return;                       // 이 드래그로는 이미 한 번 뒤집었습니다
     // 재는 창을 넘겼으면 지금 자리에서 다시 잽니다 —
     // 천천히 가져갔다가 마지막에 확 긋는 것도 "튕김"으로 봐 줍니다.
@@ -819,6 +904,8 @@ function bindTwoSideCookPointer(){
     const clicked=event.type==="pointerup"&&!drag.moved,unit=drag.unit;
     drag=null;
     try{if(board.hasPointerCapture?.(event.pointerId))board.releasePointerCapture?.(event.pointerId);}catch{}
+    // 손을 뗐습니다. 다 채우기 전이면 누르기는 없던 일이 됩니다.
+    cancelTwoSideHold(twoSideMini());
     if(clicked)pressTwoSideCue(twoSideMini(),unit);
   };
   ["pointerup","pointercancel","lostpointercapture"].forEach(type=>board.addEventListener(type,finish));
@@ -943,7 +1030,7 @@ function clearTwoSideCue(data,unit=null){
       그래서 켜진 신호가 있으면 그 가운데 하나를, 없으면 남은 꼬치를 안내합니다. */
 const TWO_SIDE_NOW_TEXT=Object.freeze({
   pancake:Object.freeze({
-    waitCook:"불이 오르기를 기다리는 중…", cueCook:"지금! 김치전을 클릭",
+    waitCook:"불이 오르기를 기다리는 중…", cueCook:"지금! 김치전을 꾹 누르기",
     waitFlip:"곧 뒤집기 신호가 옵니다", cueFlip:"지금! 위로 튕기듯 드래그",
     done:"완성!"
   }),
@@ -956,7 +1043,17 @@ const TWO_SIDE_NOW_TEXT=Object.freeze({
   })
 });
 
+/* 완성 칸의 "여기로 끌어다 담으세요" 점선. 다 구운 자루가 하나라도 있으면 켭니다.
+   ⚠️ 접시가 이미 차 있어도 켭니다 — 자루가 셋이라 한 번 담고 나서도 또 담아야 합니다.
+      비었을 때만 보이던 점선(.ts-serve-mark)이 첫 자루를 담는 순간 사라져서,
+      두 번째부터는 어디로 끌어야 하는지 알려 주는 것이 아무것도 없었습니다. */
+function updateTwoSideServeHint(data){
+  const plate=dom.miniContent?.querySelector(".ts-serve-plate");
+  plate?.classList.toggle("wants-drop",twoSideServableUnits(data).length>0);
+}
+
 function updateTwoSideHint(data){
+  updateTwoSideServeHint(data);
   const now=dom.miniContent?.querySelector("#tsNow");
   if(!now)return;
   const text=TWO_SIDE_NOW_TEXT[data.dishStyle];
@@ -999,7 +1096,26 @@ function grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step) {
     skewerCookAssetKey(ingredient, index), `gs-piece-asset step-${index}${index <= step ? " on" : ""}`,
     index === step ? SKEWER_LABEL[ingredient] : ""
   )).join("");
-  return `<span class="gs-piece has-cook-art ${ingredient}">${frames}</span>`;
+  /* 데리야끼 윤기 한 겹. **늘 넣어 두고** 자루에 .sauced 가 붙었을 때만 css 가 보여
+     줍니다 — 익힘 장 다섯 위에 겹치는 것이라 어느 단계에서 발라도 그 위에 얹힙니다.
+     ⚠️ 조각 <span> 의 클래스는 그대로 둡니다 (위 계약 점검 주석 참고). 자식만 늘립니다. */
+  const glaze = dayPrepAssetMarkup(SKEWER_GLAZE_KEY[ingredient], "gs-piece-glaze");
+  return `<span class="gs-piece has-cook-art ${ingredient}">${frames}${glaze}</span>`;
+}
+
+/* 신호가 켜져 있는 동안 조리물 위에 겹치는 방향 화살표.
+   ⚠️ 꼬치는 **두 장을 다 넣어 둡니다**(뒤집기 ↔ · 양념 ↕). 지금 어느 신호인지는
+      css 가 자루에 붙은 cue-flip / cue-sauce 로 가릅니다 — 신호가 바뀔 때마다
+      화면을 다시 그리지 않기 때문입니다.
+   그림이 없으면 has-asset 이 안 붙고, css 의 임시 화살표 도형이 대신 나옵니다. */
+function twoSideDragArrowMarkup(dishStyle){
+  if(dishStyle!=="skewer"){
+    const up=dayPrepAssetMarkup("cookArrowPancakeFlip","ts-arrow-img for-flip");
+    return `<i class="ts-drag-arrow arrow-once ${up?"has-asset":""}" aria-hidden="true">${up}</i>`;
+  }
+  const flip=dayPrepAssetMarkup("cookArrowSkewerFlip","ts-arrow-img for-flip");
+  const sauce=dayPrepAssetMarkup("cookArrowSkewerSauce","ts-arrow-img for-sauce");
+  return `<i class="ts-drag-arrow ${flip&&sauce?"has-asset":""}" aria-hidden="true">${flip}${sauce}</i>`;
 }
 
 /* 꼬챙이. E8 과 같은 그림(skewerStick)이고, 손잡이까지 한 장에 들어 있어서
@@ -1029,7 +1145,7 @@ function grillSkewerMarkup(pattern, index, data) {
   //   늘 넣어 두고 보이고 안 보이고는 css 가 신호 클래스로 가립니다 —
   //   뒤집기(cue-flip)는 옆으로 ↔, 양념(cue-sauce)은 위아래로 ↕ 입니다.
   return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
-      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span><i class="ts-drag-arrow" aria-hidden="true"></i>
+      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>${twoSideDragArrowMarkup("skewer")}<i class="ts-tap-hint" aria-hidden="true"></i>
     </span>`;
 }
 
@@ -1121,7 +1237,7 @@ const TWO_SIDE_VIEW = Object.freeze({
     total: TWO_SIDE_STEP_PLAN.pancake.filter(kind => kind === "cook").length,
     countLabel: "굽기",
     guide: [
-      { icon: "click", name: "불빛이 켜지면 클릭", desc: "치이익 — 그 면이 익습니다" },
+      { icon: "click", name: "불빛이 켜지면 꾹 누르기", desc: "치이익 — 눌러 붙인 면이 익습니다" },
       { icon: "drag-up", name: "뒤집기 신호엔 드래그", desc: "위로 튕기듯 샥!" }
     ]
   }),
@@ -1244,7 +1360,7 @@ function pancakePanShell(inner, extraClass = "", id = "") {
   // .ts-cue-halo   : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
   // .ts-drag-arrow : 뒤집기 신호 때 김치전 위에 겹치는 방향 화살표.
   //   김치전은 "위로 튕기듯" 한 방향이라 머리가 하나인 ↑ (arrow-once) 입니다.
-  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}<i class="ts-drag-arrow arrow-once" aria-hidden="true"></i></div>`;
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}${twoSideDragArrowMarkup("pancake")}<i class="ts-tap-hint" aria-hidden="true"></i><i class="ts-hold-ring" aria-hidden="true"></i></div>`;
 }
 
 /* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다

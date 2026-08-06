@@ -463,6 +463,40 @@ const FILES = [
   ...["01","02","03","04","05"].map(no=>({
     file:`E5/yakitori/fix_charcoal_grill_fire_${no}.png`, size:[1368,821], quality:85,
     css:".ts-board .two-side-pan.skewer-cook 684x410.5 (5장 한 크기)" })),
+  /* ---- E5 굽기 : 조작 방향 화살표 3장 ------------------------------
+     신호가 켜져 있는 동안 조리물 **위에 겹쳐** 뜨는 안내입니다
+     (engine-e5-two-side-cook.js 의 twoSideDragArrowMarkup · css 의 .ts-drag-arrow).
+       skewer_flip_horizontal  ↔  꼬치를 옆으로 굴리기
+       skewer_sauce_vertical   ↕  꼬치에 위아래로 붓질
+       kimchi_pancake_flip_up  ↑  김치전을 위로 튕기기
+     ⚠️ **그림마다 방향이 이미 그려져 있습니다.** CSS 로 돌려 쓰지 않습니다 —
+        돌리면 빛·그림자 방향까지 같이 돌아갑니다. 그래서 세 장을 따로 받습니다.
+     [크기] 화면 자리의 2배율입니다. 세로로 긴 두 장은 **세로가 기준**이고
+     가로는 원본 비율대로 따라옵니다. */
+  { file:"E5/ui_drag_arrow_skewer_flip_horizontal.png", size:[252, 98], css:".ts-drag-arrow .for-flip 126x49.2 (꼬치)" },
+  { file:"E5/ui_drag_arrow_skewer_sauce_vertical.png",  size:[128,280], css:".ts-drag-arrow .for-sauce 63.9x140 (꼬치)" },
+  { file:"E5/ui_drag_arrow_kimchi_pancake_flip_up.png", size:[186,340], css:".ts-drag-arrow .for-flip 93x170 (김치전)" },
+  /* ---- E5 닭꼬치 굽기 : 데리야끼 양념 2종 --------------------------
+     [글레이즈 2장] 양념을 바른 뒤 **조각 그림 위에 반투명으로 덮는 한 겹**입니다
+     (css 의 .grill-skewer.sauced .gs-piece-glaze). 조각을 갈아 끼우는 것이 아니라
+     겹치는 것이라, 어느 익힘 단계에 발라도 그 위에 윤기만 얹힙니다.
+     ⚠️ **위 익힘 4단계와 똑같이 pad 로 캔버스를 되돌립니다.** 납품본이 닭 416x300 ·
+        대파 416x260 으로 익힘 장과 바이트 단위로 같은 잘림이라, 같은 여백을 덧대야
+        조각과 1:1 로 겹칩니다. 안 그러면 윤기만 1.23배로 커져 조각 밖으로 번집니다.
+     ⚠️ 크기도 익힘 장과 같은 240x210 이어야 합니다 — 같은 자리에 겹치는 한 벌입니다. */
+  { file:"E5/yakitori/fx_teriyaki_glaze_chicken_piece_overlay.png",     size:[240,210], pad:[512,448,48,74],
+    css:".ts-board .gs-piece 108x94.5 (익힘 장과 한 크기·한 캔버스)" },
+  { file:"E5/yakitori/fx_teriyaki_glaze_green_onion_piece_overlay.png", size:[240,210], pad:[512,448,48,94],
+    css:".ts-board .gs-piece 108x94.5 (익힘 장과 한 크기·한 캔버스)" },
+  /* [양념 붓] 60도로 누인 데리야끼 붓입니다. 양념 신호에 답하면 자루 위를 한 번
+     쓸고 사라집니다 (engine-e5 의 applyTwoSideSauce · css 의 .ts-sauce-brush).
+     [크기] 화면 200 x 365 의 2배율입니다.
+     ⚠️ 붓을 **자루만 하게 키우지 않습니다.** 한때 조각 더미를 한 번에 덮으려고 351x640
+        까지 키웠는데 화로의 절반이 가려졌습니다. 붓은 알맞은 크기로 두고 위아래로 길게
+        쓸어서 자루를 훑습니다 (css 의 ts-brush-sweep-long).
+     손잡이는 굽기 칸 위로 나갑니다 — css 에서 붓이 떠 있는 동안만 자르기를 풉니다. */
+  { file:"E5/yakitori/prop_teriyaki_basting_brush_pitched_60deg.png", size:[400,730],
+    css:".ts-sauce-brush 200x365" },
   /* ---- E6 튀기기 (새우튀김 · 감자튀김) -----------------------------
      [가스 버너 상판] 가운데 플레이 칸(824.2x613.2)을 통째로 덮는 바닥입니다.
      E3·E4 의 옆에서 본 화구(.mg-burner)와 달리 **위에서 본 한 장**이라

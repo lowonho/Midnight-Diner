@@ -187,14 +187,20 @@
   from { opacity:0; filter:drop-shadow(0 0 calc(16 * var(--upx)) rgba(255,214,132,.9)); }
   to   { opacity:1; }
 }
-/* 다 구운 자루 — 은은한 금빛으로 "이건 끝났다"만 알립니다.
+/* 다 구운 자루 — **초록빛**으로 "이건 끝났다"를 알립니다.
+   ⚠️ 색이 중요합니다. 예전에는 금빛이었는데, 누르기 신호(노랑 #ffce68)와 거의 같은
+      색이라 "지금 누르라"는 것인지 "다 됐다"는 것인지 구별이 안 됐습니다.
+      신호 세 가지(노랑·흰빛·주황)와 겹치지 않는 색은 초록뿐입니다.
    ⚠️ **깜빡이지 않습니다.** 예전에는 gs-done-glow 를 infinite alternate 로 돌려 빛이
       1.1초마다 밝아졌다 어두워졌는데, 화로 위에서 자루가 껌뻑이는 것으로 보였습니다.
-      빛 세기 한 값으로 고정해 "끝났다"만 조용히 알립니다. */
-/* ⚠️ 클래스를 두 번 적어 `.grill-skewer.flipped` 를 이깁니다. 두 요리 다 마지막 할 일을
-   마쳤을 때 뒤집기를 홀수 번 한 상태라(자루가 .flipped 입니다), 그냥 두면 뒤집힌 면의
-   어둡기가 이겨서 "다 구웠다" 표시가 아예 안 보입니다. */
-.grill-skewer.unit-done.unit-done { filter: drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,216,136,.85)) drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62)); }
+   ⚠️ 클래스를 두 번 적어 `.grill-skewer.flipped` 를 이깁니다. 두 요리 다 마지막 할 일을
+      마쳤을 때 뒤집기를 홀수 번 한 상태라(자루가 .flipped 입니다), 그냥 두면 뒤집힌 면의
+      어둡기가 이겨서 "다 구웠다" 표시가 아예 안 보입니다. */
+.grill-skewer.unit-done.unit-done {
+  filter: drop-shadow(0 0 calc(12 * var(--upx)) rgba(126,246,150,.95))
+          drop-shadow(0 0 calc(26 * var(--upx)) rgba(74,222,128,.7))
+          drop-shadow(0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.62));
+}
 .grill-skewer.current { filter: drop-shadow(0 0 calc(7 * var(--upx)) #ffe08d); }
 .grill-skewer.flipped { filter: brightness(.76) saturate(1.15); }
 .grill-skewer.turning { animation: skewer-single-flip .3s ease-in-out; }
@@ -245,6 +251,31 @@
    하나로 충분하므로 곧바로 갈아 끼웁니다. */
 .gs-piece.has-cook-art .gs-piece-asset { position:absolute; inset:0; opacity:0; filter:none; }
 .gs-piece.has-cook-art .gs-piece-asset.on { opacity:1; }
+/* ── 데리야끼 윤기 (assets/minigame/E5/yakitori/fx_teriyaki_glaze_*) ──
+   양념을 바른 뒤 조각 위에 **반투명으로 덮는 한 겹**입니다. 익힘 장처럼 갈아 끼우는
+   것이 아니라 겹치기만 해서, 어느 익힘 단계에서 발라도 그 그림 위에 윤기만 얹힙니다.
+   ⚠️ 캔버스가 익힘 장과 같게 뽑혀 있어야 조각에 1:1 로 겹칩니다
+      (tools/build-minigame-art-webp.js 의 pad).
+   ⚠️ 자루 단위(.grill-skewer.sauced)로 켭니다 — 조각마다 따로 켜는 것이 아니라
+      "이 자루는 양념을 발랐다" 한 가지 상태입니다. */
+.gs-piece-glaze {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+}
+/* ⚠️ **은은하게** 입힙니다. 원화를 그대로(.88) 덮으면 코팅이 너무 짙어서 조각이
+   통째로 갈색 한 덩어리가 되고, 애써 갈아 끼운 익힘 단계가 안 보입니다.
+   "발랐다" 는 것만 알아볼 정도의 윤기면 충분합니다. 0.88 → 0.4 → **0.2** 로 내려온
+   값입니다 — 더 올리지 마세요. */
+.grill-skewer.sauced .gs-piece-glaze { opacity: .2; }
+/* 완성 칸으로 들고 가는 그림에도 윤기를 남깁니다 — 담을 수 있는 자루는 이미 양념까지
+   마친 것뿐인데, 복제해 오는 것이 조각 더미뿐이라 .sauced 가 따라오지 않습니다. */
+.order-drag-ghost > .gs-pieces .gs-piece-glaze { opacity: .2; }
 .skewer-cook.cook-over .gs-piece.has-cook-art .gs-piece-asset { filter:none; }
 /* [납품본 밝기 보정] 살짝 익음(step-1) 한 장만 낮춥니다. 그림의 평균 밝기가
    닭 138.8(raw) → **189.0** → 122.3(잘 익음) 이라 익어 가는 도중에 한 번 확 밝아졌다
@@ -414,9 +445,12 @@
 }
 .cue-flip > .ts-drag-arrow,
 .cue-sauce > .ts-drag-arrow { display: block; }
-.grill-skewer.cue-flip > .ts-drag-arrow  { --ts-arrow-rot: 0deg; }
-.grill-skewer.cue-sauce > .ts-drag-arrow { --ts-arrow-rot: 90deg; color: #ffdcb0; }
-.pancake-cook.cue-flip > .ts-drag-arrow  { --ts-arrow-rot: -90deg; }
+/* ⚠️ 돌리는 것은 **임시 도형일 때뿐**입니다(:not(.has-asset)). 원화는 방향이 그림에
+   이미 있어서, 여기서 상자를 돌리면 그림까지 같이 돌아갑니다 — 실제로 세로 양방향
+   화살표(양념)가 90도 돌아 가로로 보였고, 김치전의 ↑ 도 옆으로 누웠습니다. */
+.grill-skewer.cue-flip > .ts-drag-arrow:not(.has-asset)  { --ts-arrow-rot: 0deg; }
+.grill-skewer.cue-sauce > .ts-drag-arrow:not(.has-asset) { --ts-arrow-rot: 90deg; color: #ffdcb0; }
+.pancake-cook.cue-flip > .ts-drag-arrow:not(.has-asset)  { --ts-arrow-rot: -90deg; }
 /* 한 방향(김치전 뒤집기) — 머리가 하나이고, 그 쪽으로 밀려 나갑니다.
    김치전은 팬이 넓어서 화살표도 한 뼘 크게 잡습니다. */
 .ts-drag-arrow.arrow-once {
@@ -454,6 +488,46 @@
   filter: drop-shadow(0 0 calc(15 * var(--upx)) rgba(255,150,40,.75));
 }
 .ts-drag-arrow::after { background: currentColor; }
+/* ── 원화 화살표 3장 (E5/ui_drag_arrow_*) ─────────────────────
+   그림이 다 있으면 has-asset 이 붙고 위 임시 도형 두 겹은 꺼집니다.
+   ⚠️ **그림을 돌리지 않습니다** — 방향이 이미 그려져 있고, 돌리면 빛·그림자까지
+      같이 돌아갑니다. 그래서 미끄러지는 방향도 세로용 keyframes 를 따로 씁니다.
+   ⚠️ 꼬치는 두 장(↔ ·↕)이 같이 들어 있고, 지금 무슨 신호인지에 따라 한 장만 켭니다. */
+.ts-drag-arrow.has-asset::before,
+.ts-drag-arrow.has-asset::after { display: none; }
+/* ⚠️ 선택자에 **부모를 꼭 붙입니다.** 이 <img> 에는 공용 `.prep-asset` 이 함께 붙는데
+   (day-prep-minigames.js 의 dayPrepAssetMarkup), 거기 `display:block; max-width:100%`
+   가 특정도가 같아 파일 순서로 이깁니다 — 실제로 두 장이 한꺼번에 떠서 화살표가
+   십자 모양으로 겹쳐 보였습니다. */
+.ts-drag-arrow .ts-arrow-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: none;
+  max-width: none;
+  filter: drop-shadow(0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(20,7,3,.75));
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+.grill-skewer.cue-flip  > .ts-drag-arrow.has-asset .for-flip,
+.grill-skewer.cue-sauce > .ts-drag-arrow.has-asset .for-sauce,
+.pancake-cook.cue-flip  > .ts-drag-arrow.has-asset .for-flip { display: block; }
+/* 자리. 세로로 긴 두 장은 세로가 기준이고 가로는 비율대로 따라옵니다
+   (tools/build-minigame-art-webp.js 의 같은 자리 주석과 짝입니다). */
+.grill-skewer .ts-drag-arrow .for-flip  { width: calc(126 * var(--upx)); height: auto; animation: ts-arrow-swing .78s ease-in-out infinite alternate; }
+.grill-skewer .ts-drag-arrow .for-sauce { width: auto; height: calc(140 * var(--upx)); animation: ts-arrow-swing-y .78s ease-in-out infinite alternate; }
+.pancake-cook .ts-drag-arrow .for-flip  { width: auto; height: calc(170 * var(--upx)); animation: ts-arrow-push-y .72s ease-in-out infinite; }
+/* 세로로 미끄러지는 갈래. 위 가로용(ts-arrow-swing / ts-arrow-push)과 값은 같고
+   움직이는 축만 다릅니다 — 그림을 돌리지 않기 때문에 축마다 한 벌씩 필요합니다. */
+@keyframes ts-arrow-swing-y {
+  from { transform: translate(-50%,calc(-50% - 14 * var(--upx))); }
+  to   { transform: translate(-50%,calc(-50% + 14 * var(--upx))); }
+}
+@keyframes ts-arrow-push-y {
+  0%   { transform: translate(-50%,calc(-50% + 26 * var(--upx))); opacity: .62; }
+  45%  { transform: translate(-50%,calc(-50% - 10 * var(--upx))); opacity: 1; }
+  100% { transform: translate(-50%,calc(-50% - 30 * var(--upx))); opacity: .62; }
+}
 @keyframes ts-arrow-swing {
   from { transform: translate(calc(-50% - 14 * var(--upx)),-50%); }
   to   { transform: translate(calc(-50% + 14 * var(--upx)),-50%); }
@@ -467,12 +541,92 @@
   100% { transform: translate(calc(-50% + 30 * var(--upx)),-50%); opacity: .62; }
 }
 
+/* ── 누르기 손가락 (engine-e5 의 .ts-tap-hint) ────────────────
+   누르기 신호(cue-cook)일 때 조리물 **위에 겹쳐** "여기를 누르세요"를 그립니다.
+   닭꼬치·김치전 둘 다 같은 조각을 씁니다 — 방향이 없는 손짓이라 화살표 대신입니다.
+   ⚠️ 손 모양은 인라인 SVG 한 줄입니다(외부 파일 없음). 원화가 들어오면 이 background 만
+      갈아 끼우면 됩니다. `#` 은 데이터 URI 안에서 %23 으로 적어야 합니다.
+   ⚠️ 움직이는 것은 **손과 물결뿐**입니다. 조리물에는 손대지 않으므로 "뒤집기·양념
+      말고는 꼬치가 움직이지 않는다" 규칙은 그대로입니다. */
+.ts-tap-hint {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  top: 50%;
+  display: none;
+  width: calc(130 * var(--upx));
+  height: calc(130 * var(--upx));
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+.cue-cook > .ts-tap-hint { display: block; }
+/* 손 — 검지를 세운 모양. 손끝이 상자 한가운데(=조리물 한가운데)에 옵니다. */
+.ts-tap-hint::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100 * var(--upx));
+  height: calc(122 * var(--upx));
+  /* 화살표 원화(크림빛 + 금테 + 먹빛 외곽선)와 같은 결로 맞춥니다 */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 78'%3E%3Cpath d='M26 6a7 7 0 0 1 14 0v30h5a13 13 0 0 1 13 13v13a13 13 0 0 1-13 13H34a14 14 0 0 1-10-4L8 53a7 7 0 0 1 10-10l8 8Z' fill='%23fff3dd' stroke='%23eab252' stroke-width='9' stroke-linejoin='round'/%3E%3Cpath d='M26 6a7 7 0 0 1 14 0v30h5a13 13 0 0 1 13 13v13a13 13 0 0 1-13 13H34a14 14 0 0 1-10-4L8 53a7 7 0 0 1 10-10l8 8Z' fill='none' stroke='%233b1c08' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter: drop-shadow(0 0 calc(12 * var(--upx)) rgba(255,150,40,.85)) drop-shadow(0 calc(3 * var(--upx)) calc(5 * var(--upx)) rgba(20,7,3,.7));
+  animation: ts-tap-press .8s ease-in-out infinite;
+}
+/* 두드릴 때 퍼지는 물결. 손끝 자리에서 커지며 사라집니다. */
+.ts-tap-hint::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(64 * var(--upx));
+  height: calc(64 * var(--upx));
+  margin: calc(-32 * var(--upx)) 0 0 calc(-32 * var(--upx));
+  border: calc(5 * var(--upx)) solid #ffd27a;
+  border-radius: 50%;
+  box-shadow: 0 0 calc(8 * var(--upx)) rgba(30,12,4,.9), inset 0 0 calc(6 * var(--upx)) rgba(30,12,4,.55);
+  opacity: 0;
+  animation: ts-tap-ring .8s ease-out infinite;
+}
+@keyframes ts-tap-press {
+  0%,100% { transform: translate(calc(-30 * var(--upx)),calc(6 * var(--upx))); }
+  40%     { transform: translate(calc(-30 * var(--upx)),calc(-16 * var(--upx))); }
+}
+@keyframes ts-tap-ring {
+  0%   { opacity: 0;   scale: .35; }
+  30%  { opacity: .95; scale: .7; }
+  100% { opacity: 0;   scale: 1.4; }
+}
+/* ── 꾹 누르기 게이지 (김치전 전용) ───────────────────────────
+   누르고 있는 동안 김치전 한가운데에 링이 차오릅니다. 다 차면 익습니다
+   (engine-e5-two-side-cook.js 의 tickTwoSideHold 가 --ts-hold 를 0→1 로 넣습니다).
+   ⚠️ conic-gradient 를 **테두리 두께만큼의 가면(mask)** 으로 잘라 링을 만듭니다.
+      네모를 돌리는 방식이 아니라서 각도가 아무리 커도 안 튑니다. */
+/* 누르고 있는 동안에는 손가락 안내를 치웁니다 — 이미 누르고 있는데 "누르세요" 를
+   겹쳐 두면 링이 가려서 얼마나 찼는지가 안 보입니다. */
+.two-side-pan.holding > .ts-tap-hint { display: none; }
+.ts-hold-ring {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 50%;
+  width: calc(190 * var(--upx));
+  height: calc(190 * var(--upx));
+  margin: calc(-95 * var(--upx)) 0 0 calc(-95 * var(--upx));
+  border-radius: 50%;
+  background: conic-gradient(#ffd27a calc(var(--ts-hold,0) * 360deg), rgba(255,236,196,.22) 0);
+  -webkit-mask: radial-gradient(farthest-side,transparent calc(100% - 9 * var(--upx)),#000 calc(100% - 8 * var(--upx)));
+  mask: radial-gradient(farthest-side,transparent calc(100% - 9 * var(--upx)),#000 calc(100% - 8 * var(--upx)));
+  filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(30,12,4,.9));
+  opacity: 0;
+  pointer-events: none;
+}
+.two-side-pan.holding .ts-hold-ring { opacity: 1; }
+
 /* ── 양념 붓 (닭꼬치 전용) ───────────────────────────────────
    그 자루 안에 잠깐 붙었다 사라집니다 (engine-e5 의 applyTwoSideSauce).
    오른쪽 아래에서 들어와 자루를 위아래로 두 번 쓸고 빠집니다.
-   ⚠️ 원화(cookSauceBrush)가 아직 없어서 아래 임시 도형이 나옵니다 —
-      손잡이(::before 나무) + 솔(::after 검정). 파일을 넣으면 .has-asset 이 붙어
-      도형이 꺼지고 <img> 가 대신 보입니다. */
+   원화가 없으면 아래 임시 도형이 나옵니다 — 손잡이(::before 나무) + 솔(::after 검정). */
 .ts-sauce-brush {
   position:absolute; z-index:6; left:50%; top:0;
   width:calc(86 * var(--upx)); height:calc(150 * var(--upx));
@@ -480,6 +634,27 @@
   animation:ts-brush-sweep .74s ease-in-out;
   pointer-events:none;
 }
+/* 원화(prop_teriyaki_basting_brush_pitched_60deg)를 쓸 때의 자리.
+   **자루 한 벌(조각 더미 246)을 덮고도 남는 크기**입니다 — 붓이 조각보다 작으면
+   "쓸고 지나갔다"가 아니라 "옆을 스쳤다"로 보입니다.
+   ⚠️ 손잡이가 굽기 칸 밖으로 나갑니다. 그래서 붓이 떠 있는 동안만 칸의 자르기를
+      풀어 둡니다 — 김치전 뒤집기(.two-side-pan.flipping)와 같은 처리입니다. */
+/* ⚠️ 붓을 **자루만 하게 키우지 않습니다.** 한때 조각 더미를 한 번에 덮으려고 560 까지
+   키웠는데, 화로의 절반을 가려서 옆 자루가 안 보였습니다. 지금은 붓을 알맞은 크기로
+   두고 **위아래로 길게 쓸어서** 자루 전체를 훑습니다 — 붓질은 원래 그런 손짓입니다
+   (움직이는 폭은 아래 ts-brush-sweep-long 이 정합니다). */
+.ts-sauce-brush.has-asset {
+  width:calc(200 * var(--upx));
+  height:calc(365 * var(--upx));
+  top:calc(-120 * var(--upx));
+  animation:ts-brush-sweep-long .9s ease-in-out;
+}
+/* 붓이 떠 있는 동안만 자르기를 풉니다 (김치전 뒤집기와 같은 처리).
+   ⚠️ 화로 쪽 상자들도 함께 열어야 합니다 — 하나라도 hidden 이면 거기서 잘립니다. */
+.ts-board:has(.ts-sauce-brush),
+.ts-board:has(.ts-sauce-brush) .two-side-pan,
+.ts-board:has(.ts-sauce-brush) .cook-food,
+.ts-board:has(.ts-sauce-brush) .gs-slot { overflow: visible; }
 .ts-sauce-brush::before,
 .ts-sauce-brush::after { content:""; position:absolute; left:50%; transform:translateX(-50%) rotate(18deg); }
 .ts-sauce-brush::before { top:0; width:calc(16 * var(--upx)); height:calc(96 * var(--upx)); border-radius:calc(8 * var(--upx)); background:linear-gradient(90deg,#c08a4a,#7a4c22); }
@@ -493,6 +668,10 @@
       선택자를 그보다 길게 잡아야 이 윤기가 살아납니다. */
 .grill-skewer.sauced .gs-piece.has-cook-art .gs-piece-asset,
 .grill-skewer.sauced .gs-piece-asset { filter:saturate(1.3) brightness(.93) sepia(.14) drop-shadow(0 0 calc(4 * var(--upx)) rgba(255,150,60,.4)); }
+/* ⚠️ 윤기 그림(.gs-piece-glaze)이 있으면 위 색 보정은 **끕니다.** 둘 다 걸면 윤기를
+   두 번 입히는 셈이라 조각이 벌겋게 뜹니다. 그림이 있는 쪽이 원화가 의도한 결입니다. */
+.grill-skewer.sauced:has(.gs-piece-glaze) .gs-piece.has-cook-art .gs-piece-asset,
+.grill-skewer.sauced:has(.gs-piece-glaze) .gs-piece-asset { filter:none; }
 .grill-skewer.sauced b,
 .grill-skewer.sauced em { filter:saturate(1.3) brightness(.93); }
 /* ── 김치전 위로 피어오르는 연기 ─────────────────────────────
@@ -558,6 +737,19 @@
    빛이 0.5초마다 세졌다 옅어져서, 누르기 신호에도 양념 신호에도 자루가 껌뻑였습니다.
    지금은 위 `.cue-on` 규칙이 세기 한 값을 그냥 걸어 둡니다 — 되살리지 마세요. */
 /* 붓이 오른쪽 아래에서 들어와 꼬치를 위아래로 두 번 쓸고 빠집니다 */
+/* 원화 붓의 붓질. 위 임시 도형(ts-brush-sweep)보다 **세로로 훨씬 길게** 훑습니다 —
+   붓이 자루보다 작으므로, 한자리에서 왔다 갔다 하면 가운데만 바르는 것으로 보입니다.
+   조각 더미 아래(+210)에서 들어와 위(-56)까지 올라갔다 다시 내려오고 빠집니다. */
+/* 세로 자리를 잡은 근거(1600 폭에서 실측) : 안 움직였을 때 솔끝이 412 이고
+   조각 더미가 235~520 입니다. 그래서 아래로 +178 이면 솔끝이 더미 아래(560),
+   위로 -194 면 더미 꼭대기(250) 입니다 — 그 사이를 왕복하면 자루 전체를 훑습니다. */
+@keyframes ts-brush-sweep-long {
+  0%   { opacity:0; transform:translate(calc(70 * var(--upx)),calc(200 * var(--upx))) rotate(20deg); }
+  14%  { opacity:1; transform:translate(calc(-10 * var(--upx)),calc(178 * var(--upx))) rotate(8deg); }
+  46%  { opacity:1; transform:translate(calc(-24 * var(--upx)),calc(-194 * var(--upx))) rotate(2deg); }
+  74%  { opacity:1; transform:translate(calc(-10 * var(--upx)),calc(168 * var(--upx))) rotate(8deg); }
+  100% { opacity:0; transform:translate(calc(80 * var(--upx)),calc(-210 * var(--upx))) rotate(20deg); }
+}
 @keyframes ts-brush-sweep {
   0% { opacity:0; transform:translate(calc(60 * var(--upx)),calc(120 * var(--upx))) rotate(24deg); }
   18% { opacity:1; transform:translate(calc(-30 * var(--upx)),calc(150 * var(--upx))) rotate(10deg); }
@@ -867,6 +1059,21 @@
   pointer-events: none;
 }
 .ts-serve-plate.filled .ts-serve-mark { display: none; }
+/* 다 구운 자루가 화로에 있을 때 — "이리로 끌어다 담으세요" 를 진하게 켭니다
+   (engine-e5 의 updateTwoSideServeHint 가 wants-drop 을 붙입니다).
+   ⚠️ **접시가 이미 차 있어도 켭니다.** 자루가 셋이라 한 자루를 담은 뒤에도 또 담아야
+      하는데, 비었을 때만 보이던 점선이 첫 자루를 담는 순간 사라져서 두 번째부터는
+      어디로 끌어야 하는지 알려 주는 것이 하나도 없었습니다. 그래서 .filled 보다
+      선택자를 길게 잡습니다. */
+.ts-serve-plate.wants-drop .ts-serve-mark,
+.ts-serve-plate.filled.wants-drop .ts-serve-mark {
+  display: block;
+  border-color: #ffe6b4;
+  background: rgba(255,206,120,.12);
+  box-shadow: 0 0 calc(16 * var(--upx)) rgba(255,206,120,.35);
+}
+/* 접시도 같이 밝혀 둡니다 — 점선만으로는 오른쪽 카드가 눈에 안 들어옵니다 */
+.ts-serve-plate.wants-drop .ts-serve-dish { filter: brightness(1.1); }
 /* 끌어온 꼬치가 접시 위에 왔을 때 (E8 공통 .order-drop-ready) */
 .ts-serve-plate.order-drop-ready { outline: 0; }
 .ts-serve-plate.order-drop-ready .ts-serve-dish { filter: brightness(1.2); box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 0 calc(18 * var(--upx)) #ffe08d; }
@@ -1200,7 +1407,11 @@
   /* 완성한 자루를 들고 갈 때의 흔들림은 멈춥니다 (그림은 그대로 따라옵니다) */
   .order-drag-ghost:has(.gs-pieces) > * { animation:none; }
   /* 방향 화살표도 미끄러지는 것만 멈춥니다 — 어느 쪽으로 그어야 하는지는 남아야 합니다 */
-  .ts-drag-arrow::before { animation:none; opacity:1; }
+  .ts-drag-arrow::before,
+  .ts-arrow-img { animation:none; opacity:1; }
+  /* 누르기 손가락도 마찬가지 — 손은 세워 두고 물결만 한 겹 남깁니다 */
+  .ts-tap-hint::before { animation:none; transform:translate(calc(-30 * var(--upx)),calc(-5 * var(--upx))); }
+  .ts-tap-hint::after { animation:none; opacity:.7; scale:.75; }
   .ts-now.on { animation:none; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); }
   .ts-sauce-brush { animation:none; opacity:1; }
   /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */

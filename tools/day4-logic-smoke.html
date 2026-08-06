@@ -378,11 +378,20 @@ try{
   const pancakeUnit=pancakeMini.data.units[0];
   // 하단 게이지 줄(익힘 게이지 · Space 버튼)이 다시 생기면 조리 칸이 457 로 낮아집니다
   assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&!dom.miniContent.querySelector(".doneness-gauge")&&!dom.miniContent.querySelector("#miniAction")&&!dom.miniContent.querySelector(".ts-key"),"E5 no doneness gauge, no Space button, no key caps");
-  // 익힘 신호를 켜고 창 한가운데에서 클릭 — 굽기 한 번이 끝나고 다음 할 일로 넘어갑니다
+  // 익힘 신호를 켜고 **꾹 눌러** 굽습니다 — 김치전은 톡 누르는 것이 아니라 눌러 두는 것입니다
   openTwoSideCue(pancakeMini,pancakeUnit);
   pancakeUnit.cueTimer=TWO_SIDE_CUE.cook.window*.6;
   assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook"),"E5 cue lights up the food itself");
-  pressTwoSideCue(pancakeMini,0);
+  assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===0,"E5 a pancake cook cue does not accept a tap");
+  assert(beginTwoSideHold(pancakeMini,0)===true&&pancakeMini.data.hold?.index===0,"E5 pressing down starts the hold");
+  tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC*.5);
+  assert(pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 half a hold does not cook yet");
+  cancelTwoSideHold(pancakeMini);
+  assert(!pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 letting go early cancels the hold with no penalty");
+  // 닭꼬치는 그대로 한 번 클릭입니다 — 자루 셋을 번갈아 눌러야 해서 누르고 있게 하면 안 됩니다
+  assert(twoSideHoldNeeded(pancakeMini.data,pancakeUnit)===true,"E5 only the pancake cook cue needs a hold");
+  beginTwoSideHold(pancakeMini,0);
+  tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC+.01);
   /* ⚠️ 익는 것은 **불에 닿아 있는 아래 면**입니다. 처음에는 앞면(0)이 아래이고
      보이는 면은 뒷면(1)이라, 굽고 나서도 **화면 색은 그대로**여야 합니다
      ("아래를 굽는데 왜 윗면 색이 변하냐" 를 고친 자리). */
