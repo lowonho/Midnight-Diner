@@ -42,6 +42,80 @@
 
 const MINI_ENGINES = {};
 
+/* 설정창이 열린 동안에도 브라우저의 기본 setTimeout/setInterval 은 계속
+   흐릅니다. 미니게임 연출·완료 콜백을 이 등록소로 통일하면 설정을 여는
+   순간 남은 시간을 보관하고, 닫은 뒤 정확히 그 지점부터 이어갈 수 있습니다. */
+const MINI_ASYNC_TASKS = new Set();
+let miniAsyncPaused = false;
+
+function armMiniAsyncTask(task) {
+  if (!task || task.cancelled || miniAsyncPaused || task.handle !== null) return;
+  task.startedAt = performance.now();
+  task.handle = setTimeout(() => {
+    task.handle = null;
+    if (task.cancelled) return;
+    if (task.interval === null) MINI_ASYNC_TASKS.delete(task);
+    task.callback();
+    if (task.interval !== null && !task.cancelled) {
+      task.remaining = task.interval;
+      armMiniAsyncTask(task);
+    }
+  }, Math.max(0, task.remaining));
+}
+
+function createMiniAsyncTask(callback, delay, interval = null) {
+  const task = {
+    callback,
+    remaining: Math.max(0, Number(delay) || 0),
+    interval,
+    startedAt: 0,
+    handle: null,
+    cancelled: false
+  };
+  MINI_ASYNC_TASKS.add(task);
+  armMiniAsyncTask(task);
+  return task;
+}
+
+function miniSetTimeout(callback, delay = 0) {
+  return createMiniAsyncTask(callback, delay, null);
+}
+
+function miniClearTimeout(task) {
+  if (!task) return;
+  task.cancelled = true;
+  if (task.handle !== null) clearTimeout(task.handle);
+  task.handle = null;
+  MINI_ASYNC_TASKS.delete(task);
+}
+
+function miniSetInterval(callback, interval) {
+  const delay = Math.max(1, Number(interval) || 1);
+  return createMiniAsyncTask(callback, delay, delay);
+}
+
+function miniClearInterval(task) {
+  miniClearTimeout(task);
+}
+
+function pauseMiniAsyncTasks() {
+  if (miniAsyncPaused) return;
+  miniAsyncPaused = true;
+  const now = performance.now();
+  MINI_ASYNC_TASKS.forEach(task => {
+    if (task.cancelled || task.handle === null) return;
+    clearTimeout(task.handle);
+    task.handle = null;
+    task.remaining = Math.max(0, task.remaining - (now - task.startedAt));
+  });
+}
+
+function resumeMiniAsyncTasks() {
+  if (!miniAsyncPaused) return;
+  miniAsyncPaused = false;
+  MINI_ASYNC_TASKS.forEach(armMiniAsyncTask);
+}
+
 function registerMiniEngine(name, engine) {
   if (MINI_ENGINES[name]) {
     console.warn(`미니게임 엔진 이름이 중복됩니다: ${name} (나중에 로드된 쪽이 이깁니다)`);

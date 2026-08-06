@@ -226,5 +226,5 @@ function completeWhiskBatter(m,config){
   renderWhiskTool(m,config);   // 다 저었으니 젓는 중 거품기에서 손 뗀 거품기로
   if(count)count.textContent="1 / 1";
   if(result){result.hidden=false;result.textContent=m.data.completionGrade==="perfect"?"PERFECT":"GOOD";result.classList.add(m.data.completionGrade,"show");}
-  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(config.taskId,config.completionMessage);},config.finishDelay);
+  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(config.taskId,config.completionMessage);},config.finishDelay);
 }

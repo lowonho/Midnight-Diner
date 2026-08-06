@@ -265,5 +265,5 @@ function timeoutAnchovy(m){
   // 다시 시도 없이 그대로 끝냅니다. TIME OVER 판을 잠깐 보여준 뒤 태스크를 마감해
   // 다음 준비 작업(또는 준비 화면 닫기)으로 넘어갑니다.
   // timedOut 이 켜져 있으므로 finishDayPrepTask 의 판정은 perfect 가 아닌 good 입니다.
-  setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("cleanAnchovy","멸치 손질 시간 종료");},ANCHOVY_TIMEOUT_END_MS);
+  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("cleanAnchovy","멸치 손질 시간 종료");},ANCHOVY_TIMEOUT_END_MS);
 }

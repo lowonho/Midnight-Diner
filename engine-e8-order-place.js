@@ -63,7 +63,7 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
     const drag=active;active=null;clearTarget();
     drag.source.classList.remove("order-source-dragging");drag.ghost?.remove();
     if(!drag.dragging)return;
-    suppressClick=true;setTimeout(()=>{suppressClick=false;},0);
+    suppressClick=true;miniSetTimeout(()=>{suppressClick=false;},0);
     const target=cancelled?null:targetAt(event.clientX,event.clientY);
     if(target)onPlace(drag.item,target,true,drag.source);
     else onMiss?.(drag.item,drag.source);
@@ -91,7 +91,7 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
 function pulseOrderTarget(target,className="order-place-reject"){
   if(!target)return;
   target.classList.remove(className);void target.offsetWidth;target.classList.add(className);
-  setTimeout(()=>target.classList.remove(className),360);
+  miniSetTimeout(()=>target.classList.remove(className),360);
 }
 
 /* ---- 김치전 반죽 재료 넣기 ---------------------------------
@@ -258,7 +258,7 @@ function addBatterIngredient(ingredientId,button,target){
   audio.play?.(sfx.name,{owner:m,gain:sfx.gain});
   dom.miniFeedback.textContent=`${expected.label} 넣기 완료`;
   const filled=m.data.step>=m.data.ingredients.length;
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     // 마지막 재료까지 넣었으면 곧바로 거품기(E9)로 갈아 끼우지 않습니다.
     // 세 가지가 다 담긴 볼을 한 박자 보여 준 뒤에 넘깁니다.
@@ -266,7 +266,7 @@ function addBatterIngredient(ingredientId,button,target){
     renderKimchiBatterIngredients();
     if(!filled)return;
     dom.miniFeedback.textContent="재료가 모두 들어갔습니다.";
-    setTimeout(()=>{
+    miniSetTimeout(()=>{
       if(state.mini!==m||m.complete||!m.data.holding)return;
       m.data.holding=false;
       // 여기서 게임 종류가 거품기(E9)로 바뀝니다.
@@ -544,12 +544,12 @@ function placeSkewerPiece(skewerIndex,ingredient,target){
     : `${SKEWER_LABEL[ingredient]}를 꽂았습니다.`;
   if(done>=data.total){
     data.finishing=true;data.completionGrade=data.mistakes?"good":"perfect";rememberAssembledSkewers(data);renderChickenSkewer();
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);},720);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("assembleChickenSkewer",`닭꼬치 ${data.total}개 꽂기 완료`);},720);
   }else if(result.complete){
     // 5개를 다 꽂았습니다. 바로 다음 꼬치로 갈아 끼우면 완성된 모습을 못 보고
     // 지나가므로, 잠깐 그대로 두었다가 넘깁니다. 그동안 재료는 잠깁니다.
     data.holdIndex=skewerIndex;renderChickenSkewer();
-    setTimeout(()=>{
+    miniSetTimeout(()=>{
       if(state.mini!==m||m.complete||data.holdIndex!==skewerIndex)return;
       data.holdIndex=null;data.lastPlaced=null;renderChickenSkewer();
     },820);
@@ -562,7 +562,7 @@ function rejectSkewerPiece(skewerIndex,message,target){
   const rack=target||dom.miniContent.querySelector(`.sk-rack[data-skewer="${skewerIndex}"]`);
   if(!rack)return;
   rack.classList.remove("reject");void rack.offsetWidth;rack.classList.add("reject");
-  setTimeout(()=>rack.classList.remove("reject"),340);
+  miniSetTimeout(()=>rack.classList.remove("reject"),340);
 }
 
 /* ---- 떡 · 우동면 불리기 ------------------------------------
@@ -812,7 +812,7 @@ let soakTiltTimer=null;    // 기울인 자세를 되돌리는 타이머
 function soakStage(){return dom.miniContent?.querySelector(".soak-stage")||null;}
 
 function stopSoakPour(){
-  if(soakPourTimer){clearInterval(soakPourTimer);soakPourTimer=null;}
+  if(soakPourTimer){miniClearInterval(soakPourTimer);soakPourTimer=null;}
 }
 
 // 기울인 자세는 한 모금 시간만큼 남깁니다. 짧게 눌렀을 때 기울이는 동작이
@@ -820,8 +820,8 @@ function stopSoakPour(){
 function tiltSoakPitcher(){
   const stage=soakStage();if(!stage)return;
   stage.classList.add("pouring");
-  if(soakTiltTimer)clearTimeout(soakTiltTimer);
-  soakTiltTimer=setTimeout(()=>{soakTiltTimer=null;soakStage()?.classList.remove("pouring");},SOAK_POUR_MS);
+  if(soakTiltTimer)miniClearTimeout(soakTiltTimer);
+  soakTiltTimer=miniSetTimeout(()=>{soakTiltTimer=null;soakStage()?.classList.remove("pouring");},SOAK_POUR_MS);
 }
 
 function startSoakPour(){
@@ -835,7 +835,7 @@ function startSoakPour(){
   pourSoakWaterOnce();
   // ⚠️ 첫 모금에서 이미 다 찼으면 이어 붓기를 걸지 않습니다.
   //    (걸어 두면 renderTteokSoak 이 지운 타이머를 여기서 되살려 버립니다)
-  if(m.data.water<100&&!m.data.finishing)soakPourTimer=setInterval(pourSoakWaterOnce,SOAK_POUR_MS);
+  if(m.data.water<100&&!m.data.finishing)soakPourTimer=miniSetInterval(pourSoakWaterOnce,SOAK_POUR_MS);
 }
 
 function pourSoakWaterOnce(){
@@ -889,9 +889,9 @@ function finishSoakWater(m){
      방금 붙인 기울인 자세와 물줄기가 새 DOM 으로 갈려 그 자리에서 사라집니다
      (예전에 "마지막 클릭에서 병이 안 기울어" 보이던 것이 이것입니다).
      그 모금이 끝나기를 기다렸다가 불리는 연출로 넘어갑니다. */
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     renderTteokSoak();      // 여기서 물병이 세워지고 잠깁니다
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},SOAK_SETTLE_MS);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.ingredientLabel} 불려두기 완료`);},SOAK_SETTLE_MS);
   },SOAK_POUR_MS);
 }

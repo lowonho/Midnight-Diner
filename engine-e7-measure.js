@@ -358,15 +358,15 @@ function playSaucePour(m,id){
       visual.style.setProperty("--stream-height",`${streamHeight}px`);
     }
     pourer.classList.remove("pouring");void pourer.offsetWidth;pourer.classList.add("pouring");
-    setTimeout(()=>pourer.classList.remove("pouring"),SAUCE_POUR_DURATION);
+    miniSetTimeout(()=>pourer.classList.remove("pouring"),SAUCE_POUR_DURATION);
   }
   const bowl=dom.miniContent.querySelector(".sc-bowl");
   if(bowl){
-    setTimeout(()=>{
+    miniSetTimeout(()=>{
       if(!bowl.isConnected)return;
       advanceSauceBowlStage(m,bowl);
       bowl.classList.remove("splash");void bowl.offsetWidth;bowl.classList.add("splash");
-      setTimeout(()=>bowl.classList.remove("splash"),300);
+      miniSetTimeout(()=>bowl.classList.remove("splash"),300);
     },230);
   }
 }
@@ -417,14 +417,14 @@ function addYakisobaSauce(id){
     dom.miniFeedback.textContent=`아직 ${sauce.label} 차례가 아닙니다. ${first.label}을(를) 먼저 넣어주세요!`;
     renderYakisobaSauce();
     const pourer=dom.miniContent.querySelector(`.sc-pourer[data-sauce-id="${id}"]`);
-    if(pourer){pourer.classList.add("wrong");setTimeout(()=>pourer.classList.remove("wrong"),400);}
+    if(pourer){pourer.classList.add("wrong");miniSetTimeout(()=>pourer.classList.remove("wrong"),400);}
     return;
   }
   sauce.amount=sauce.target;m.data.pourLocked=true;m.data.pendingCursor=nextIncompleteSauceIndex(m.data,index);
   audio.play?.(`pour_${sauce.flow||"thin"}`,{owner:m});dom.miniFeedback.textContent=`${sauce.label}을(를) 한 번에 넣는 중입니다!`;
   renderYakisobaSauce();
   playSaucePour(m,id);
-  setTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
+  miniSetTimeout(()=>finishSaucePour(m),SAUCE_POUR_DURATION);
 }
 
 function checkYakisobaSauceComplete(m){
@@ -433,7 +433,7 @@ function checkYakisobaSauceComplete(m){
   renderYakisobaSauce();
   if(complete){
     dom.miniFeedback.textContent="레시피와 정확히 일치합니다!";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},720);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(m.data.recipe.taskId,m.data.recipe.completionMessage);},720);
   }
   return complete;
 }

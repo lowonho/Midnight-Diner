@@ -107,25 +107,12 @@ function journalFirstUnlockLabel(page){
 
 function gameplayJournalEntryNote(entry){
   return [
-    journalSection(entry.guestName,[
-      journalField("음식 단서",entry.clue),
-      journalField("확인 음식",entry.confirmedDish),
-      journalField("최근 평가",entry.latestEvaluation),
-      journalField("공개 이야기",entry.revealedStory)
-    ]),
-    journalSection("과거 영업 기록",[
-      journalField("이전 회차 평가",entry.previousLoopEvaluation),
-      journalField("이전 회차 부분 조각",entry.previouslyObtainedPartial),
-      journalField("이전 회차 완전 조각",entry.previouslyObtainedFull),
-      journalField("본 장면",entry.seenStoryScenes)
-    ]),
-    journalSection("현재 회차",[
-      journalField("방문",entry.currentLoopVisited),
-      journalField("평가",entry.currentLoopEvaluation),
-      journalField("조각 상태",entry.currentFragmentState),
-      journalField("조각명",entry.currentFragmentName)
-    ])
-  ].join("\n\n");
+    `[${entry.guestName}]`,
+    `“${entry.clue}”`,
+    entry.dishNote,
+    entry.reactionNote,
+    entry.shardNote
+  ].filter(Boolean).join("\n");
 }
 
 function journalPageNote(page){
@@ -136,10 +123,8 @@ function journalPageNote(page){
     return gameplayJournalRecipeNote(page);
   }
   if(journalMode==="gameplay"&&page.pageType==="day"){
-    if(!page.recorded||!page.entries?.length){
-      return "기록 없음\n\n그날 손님을 직접 만난 뒤 얻은 단서와 결과가 여기에 기록됩니다.";
-    }
-    return page.entries.map(gameplayJournalEntryNote).join("\n\n────────\n\n");
+    if(!page.recorded||!page.entries?.length)return "";
+    return page.entries.map(gameplayJournalEntryNote).join("\n────────\n");
   }
   if(!page.unlocked){
     if(journalMode==="gameplay")return [
@@ -226,7 +211,7 @@ function journalPageMeta(page){
   if(journalMode==="gameplay"){
     if(page.pageType==="rules")return "주의사항 3개 · 음식 레시피 8장";
     if(page.pageType==="recipe")return `재료 ${(page.ingredients||[]).length}가지 · 준비 ${(page.prepSteps||[]).length}단계 · 조리 ${(page.cookSteps||[]).length}단계`;
-    if(page.pageType==="day")return page.recorded?`방문 기록 · ${page.entries.length}건`:"기록 없음";
+    if(page.pageType==="day")return page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:"";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
     if(page.currentLoopEvaluation&&page.currentLoopEvaluation!=="미평가"){
       items.push(`현재 평가 · ${page.currentLoopEvaluation}`);
@@ -244,6 +229,11 @@ function journalPageMeta(page){
   return items.join("  ·  ")||"기록 완료";
 }
 
+function journalTabLabel(page,index){
+  if(!page.unlocked)return "???";
+  return page.tabLabel||page.dayLabel||page.dishName||page.label||`${index+1}쪽`;
+}
+
 function renderJournalTabs(elements){
   if(!elements.tabs)return;
   elements.tabs.style.setProperty("--journal-page-count",String(Math.max(1,journalPages.length)));
@@ -254,10 +244,14 @@ function renderJournalTabs(elements){
     button.classList.toggle("is-active",index===journalPageIndex);
     button.classList.toggle("is-locked",!page.unlocked);
     button.classList.toggle("is-new",!!page.notificationPending);
-    button.textContent=String(index+1);
+    if(page.pageType)button.classList.add(`is-${page.pageType}`);
+    else if(page.kind)button.classList.add(`is-${page.kind}`);
+    const tabLabel=journalTabLabel(page,index);
+    button.textContent=tabLabel;
+    button.title=page.unlocked?page.label:"잠긴 기록";
     button.setAttribute("role","tab");
     button.setAttribute("aria-selected",String(index===journalPageIndex));
-    button.setAttribute("aria-label",`${index+1}쪽 · ${page.unlocked?page.label:"잠긴 기록"}`);
+    button.setAttribute("aria-label",`${index+1}쪽 · ${tabLabel}`);
     button.addEventListener("click",()=>selectJournalPage(index,true));
     return button;
   }));
@@ -277,12 +271,13 @@ function renderJournalPage({acknowledge=false}={}){
     renderJournalTabs(elements);
     return;
   }
+  const isGameplayRecord=journalMode==="gameplay";
   elements.page.classList.toggle("is-locked",!page.unlocked);
   elements.page.classList.toggle("is-ending",page.kind==="ending");
+  elements.page.classList.toggle("is-gameplay-page",isGameplayRecord);
   elements.pageKind.textContent=journalPageKindLabel(page);
   elements.pageProgress.textContent=`${journalPageIndex+1} / ${journalPages.length}`;
   const portraitRow=Number(page.portraitRow);
-  const isGameplayRecord=journalMode==="gameplay";
   const isGuestPortrait=!isGameplayRecord&&page.kind!=="ending";
   const hasPortrait=isGuestPortrait&&Number.isFinite(portraitRow)&&portraitRow>=0&&portraitRow<=5;
   elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
@@ -509,8 +504,8 @@ function startGame(){
 }
 
 function returnTitle(){
-  if(state.mini||state.story?.activeStoryCook){
-    showToast("진행 중인 조리를 마친 뒤 타이틀로 돌아갈 수 있습니다.",true);
+  if(state.mini||state.story?.activeStoryCook||state.phase===GAME_PHASES.INGREDIENT_SELECT){
+    showToast("진행 중인 미니게임을 마친 뒤 타이틀로 돌아갈 수 있습니다.",true);
     return;
   }
   if(!saveGame(true)){

@@ -191,6 +191,9 @@
               <p class="mini-station">오늘의 메뉴에 필요한 재료를 찾아주세요!</p>
               <h2 id="ingredientSelectTitle">냉장고 재료 찾기</h2>
             </div>
+
+            <!-- 냉장고 미니게임도 진행 상태를 유지한 채 설정을 열 수 있습니다. -->
+            <button id="ingredientPause" class="mini-icon-button mini-pause" type="button" aria-label="설정 열기" title="설정 열기">❚❚</button>
           </section>
 
           <div id="mobileControls" class="mobile-controls hidden-hud" aria-label="모바일 조작">
@@ -207,6 +210,7 @@
               <strong id="storySceneTitle">지친 밤 - 퇴근길</strong>
             </div>
             <div id="storyStage" class="story-stage" aria-hidden="true"></div>
+            <div id="storyFragmentHandoff" class="story-fragment-handoff" aria-hidden="true"></div>
             <div class="story-dialogue-box">
               <div class="story-speaker-row">
                 <strong id="storySpeaker" hidden></strong>

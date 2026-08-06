@@ -8,7 +8,7 @@
      1. .mini-window      뒤에 깔리는 가장 큰 패널
      2. .mini-title-panel 미니게임 타이틀 패널 (뒤 패널 위쪽에 걸침)
      3. .mini-stage       게임 메인 플레이 영역 패널
-     4. #miniClose / #miniPause  닫기 버튼 (닫을 수 없는 미니게임은 일시정지)
+     4. #miniClose / #miniPause  준비 작업 닫기 · 설정 버튼
 
    괄호 안 px 값은 1920x1080 기준 환산값 = UI 에셋 제작 기준 크기입니다.
    비율을 바꾸려면 아래 변수만 고치면 모든 미니게임에 동시에 반영됩니다.
@@ -110,6 +110,13 @@
 }
 /* 열 때는 뒷배경만 바로 깔리고(페이드 없음), 패널은 아래에서 통째로 올라옵니다. */
 .mini-overlay.open { transition: opacity 0s, visibility 0s; }
+
+/* 설정창은 미니게임보다 위에 뜨지만, 뒤의 CSS 애니메이션은 기본적으로 계속
+   재생됩니다. JS 진행 타이머와 같은 시점에 화면 연출도 얼렸다가 이어갑니다. */
+body:has(#settingsOverlay.open) .mini-overlay,
+body:has(#settingsOverlay.open) .mini-overlay * {
+  animation-play-state: paused !important;
+}
 
 /* ── 등장 연출 : 영수증 뽑히듯 아래에서 한 번에 올라오기 ──────────
    .open 이 붙는 순간부터 재생되므로 미니게임을 열 때마다 다시 돕니다.
@@ -349,9 +356,12 @@
 .mini-icon-button[hidden] { display: none; }
 .mini-close { background-image: var(--ui-close); }
 .mini-pause { background-image: var(--ui-pause); }
-/* 닫기 버튼이 숨겨진(닫을 수 없는) 미니게임에서만 일시정지 버튼이 뜹니다 */
-#miniPause { display: none; }
-#miniClose[hidden] + #miniPause { display: grid; }
+/* 설정은 모든 미니게임에서 열 수 있습니다. 낮 준비처럼 닫기 버튼도 함께
+   보이는 화면에서는 두 버튼이 겹치지 않도록 설정 버튼을 왼쪽으로 옮깁니다. */
+#miniPause { display: grid; }
+#miniClose:not([hidden]) + #miniPause {
+  right: calc(var(--btn-x) + var(--btn) + .8%);
+}
 
 /* ── 5. 미니게임 전용 마우스 포인터 ─────────────────────────────
    패널 뭉치(뒤 패널 · 타이틀 · 플레이 영역 · TIP 줄 · 버튼) 위에 커서가

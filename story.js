@@ -303,8 +303,6 @@ function gameplayJournalGuestRecord(definition){
   if(!recorded)return null;
   const currentFragmentState=["none","partial","full"].includes(result.fragmentState)
     ?result.fragmentState:"none";
-  const revealedStory=definition.storyByLevel?.[guest.revealedStoryLevel]
-    ||"아직 손님이 들려준 이야기가 없습니다.";
   const hasKnownDish=!!guest.foodConfirmed;
   const hasClue=!!(guest.clueFound||hasKnownDish);
   const currentEvaluation=storyJournalEvaluationLabel(
@@ -315,21 +313,25 @@ function gameplayJournalGuestRecord(definition){
     guest.previousLoopTier,
     guest.previousLoopScore
   );
+  const reactionNote=result.evaluationTier
+    ?`이번에 음식을 맛본 뒤 “${currentEvaluation}”라고 했다.`
+    :guest.previousLoopTier
+      ?`전에 음식을 맛본 뒤 “${previousEvaluation}”라고 했다.`
+      :"아직 음식을 대접하지 못했다.";
+  let shardNote="아직 달빛 조각은 받지 못했다.";
+  if(currentFragmentState==="full")shardNote=`달빛 조각 「${definition.shardName}」을 건넸다.`;
+  else if(currentFragmentState==="partial")shardNote=`달빛 조각 「${definition.shardName}」의 일부를 건넸다.`;
+  else if(guest.previouslyObtainedFull)shardNote=`전에 달빛 조각 「${definition.shardName}」을 건넨 적이 있다.`;
+  else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
     guestName:definition.displayName,
-    clue:hasClue?definition.clue:"아직 음식 단서를 얻지 못했습니다.",
-    confirmedDish:hasKnownDish?definition.dishName:"미확인",
-    latestEvaluation:result.evaluationTier?currentEvaluation:previousEvaluation,
-    revealedStory,
-    previousLoopEvaluation:previousEvaluation,
-    previouslyObtainedPartial:guest.previouslyObtainedPartial?"획득 기록 있음":"없음",
-    previouslyObtainedFull:guest.previouslyObtainedFull?"획득 기록 있음":"없음",
-    seenStoryScenes:storySceneTitlesSeenForGuest(definition.guestId),
-    currentLoopVisited:result.visited?"방문 완료":"미방문",
-    currentLoopEvaluation:currentEvaluation,
-    currentFragmentState:storyFragmentStateLabel(currentFragmentState),
-    currentFragmentName:currentFragmentState==="none"?"미획득":definition.shardName
+    clue:hasClue?definition.clue:"아직 음식에 관한 단서를 듣지 못했다.",
+    dishNote:hasKnownDish
+      ?`이 손님이 기억하는 음식은 ${definition.dishName}이었다.`
+      :"아직 어떤 음식을 기억하는지는 알 수 없다.",
+    reactionNote,
+    shardNote
   };
 }
 
@@ -353,6 +355,7 @@ function getGameplayJournalPages(){
     total,
     title:"영업일지 주의사항",
     label:"주의사항",
+    tabLabel:"주의사항",
     dayLabel:"주의사항",
     unlocked:true,
     locked:false,
@@ -378,6 +381,7 @@ function getGameplayJournalPages(){
       dishName:menu?.displayName||dishId,
       title:`${menu?.displayName||dishId} 레시피`,
       label:`${menu?.displayName||dishId} 레시피`,
+      tabLabel:menu?.displayName||dishId,
       unlocked:true,
       locked:false,
       ingredients:[...(recipe?.ingredients||[])],
@@ -401,6 +405,7 @@ function getGameplayJournalPages(){
       dayLabel:`${day}일차`,
       title:`${day}일차 기록`,
       label:`${day}일차 기록`,
+      tabLabel:`${day}일차`,
       unlocked:true,
       locked:false,
       recorded:entries.length>0,
@@ -749,19 +754,30 @@ function reflowCurrentStorySubtitle(){
 }
 
 function storySceneHasRequiredInteraction(scene){
-  return !!scene?.lines?.some(line=>
+  return !!scene?.requiresDishChoice||!!scene?.lines?.some(line=>
     line?.cook||line?.orderCook||line?.choices?.some(choice=>choice?.orderCook||choice?.nextSceneId)
   );
 }
 
+function storyDishChoiceLineIndex(){
+  return storySession?.lines?.findIndex(line=>
+    line?.choices?.some(choice=>choice?.orderCook?.dishId)
+  )??-1;
+}
+
 function storySceneCanSkip(scene=storySession?.scene){
-  return !!(
+  const base=!!(
     scene
     &&!storySession?.qaPreview
     &&state.story?.seenScenes?.[scene.id]
     &&!storySession?.suspended
-    &&!storySceneHasRequiredInteraction(scene)
   );
+  if(!base)return false;
+  if(scene.requiresDishChoice){
+    const choiceIndex=storyDishChoiceLineIndex();
+    return choiceIndex>=0&&storySession.lineIndex<choiceIndex;
+  }
+  return !storySceneHasRequiredInteraction(scene);
 }
 
 function updateStorySkipButton(){
@@ -775,6 +791,15 @@ function skipCurrentStoryScene(){
   clearStoryTyping();
   clearStorySceneIntro();
   audio?.click?.();
+  if(storySession.scene?.requiresDishChoice){
+    const choiceIndex=storyDishChoiceLineIndex();
+    if(choiceIndex<0)return false;
+    storySession.lineIndex=choiceIndex;
+    storySession.subtitle=null;
+    storySession.typing=null;
+    showStoryLine();
+    return true;
+  }
   completeStoryScene();
   return true;
 }
@@ -953,6 +978,7 @@ function clearStoryRuntime(){
   clearStorySceneIntro();
   setStoryGameUiVisible(false);
   clearStoryCinematic();
+  applyStoryFragmentHandoff(null);
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
@@ -1067,6 +1093,29 @@ function storyJournalStatusForDay(day=state.day){
   return {status,arrival,guest};
 }
 
+function storyPreparedMenuDishes(){
+  const selected=Array.isArray(state.selectedMenus)?state.selectedMenus:[];
+  return [...new Set(selected)]
+    .map(dishById)
+    .filter(Boolean)
+    .filter(dish=>typeof dishPreparedForService!=="function"||dishPreparedForService(dish.id));
+}
+
+function storySpecialGuestDishChoiceLine(scene){
+  return {
+    prompt:"어떤 음식을 내줄까?",
+    choices:storyPreparedMenuDishes().map(dish=>({
+      text:dish.name||dish.displayName||dish.id,
+      orderCook:{
+        dishId:dish.id,
+        special:!!scene.specialCook,
+        thresholds:scene.thresholds?{...scene.thresholds}:null,
+        suppressReply:true
+      }
+    }))
+  };
+}
+
 function storyLinesForScene(scene){
   let source=scene.lines||[];
   let replacements={};
@@ -1080,8 +1129,15 @@ function storyLinesForScene(scene){
       "[음식명]":dish?.name||dish?.displayName||"아직 모르는 음식"
     };
   }
+  if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene)];
   return source.map(line=>{
-    const copy={...line,choices:line.choices?.map(choice=>({...choice}))};
+    const copy={
+      ...line,
+      choices:line.choices?.map(choice=>({
+        ...choice,
+        orderCook:choice.orderCook?{...choice.orderCook}:choice.orderCook
+      }))
+    };
     if(typeof copy.text==="string")Object.entries(replacements).forEach(([token,value])=>{copy.text=copy.text.split(token).join(value);});
     if(typeof copy.prompt==="string")Object.entries(replacements).forEach(([token,value])=>{copy.prompt=copy.prompt.split(token).join(value);});
     return copy;
@@ -1153,6 +1209,28 @@ function startStorySubtitleTyping(line){
   return true;
 }
 
+function applyStoryFragmentHandoff(line){
+  const layer=document.getElementById("storyFragmentHandoff");
+  if(!layer)return false;
+  const handoff=line?.fragmentHandoff;
+  layer.classList?.toggle("show",!!handoff);
+  layer.setAttribute?.("aria-hidden",handoff?"false":"true");
+  if(handoff){
+    layer.dataset.shardId=String(handoff.shardId||"");
+    layer.dataset.shardName=String(handoff.shardName||"");
+    layer.dataset.fragmentState=String(handoff.state||"");
+    const asset=String(handoff.asset||"").trim();
+    if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
+    else layer.style?.removeProperty?.("--fragment-art");
+  }else{
+    delete layer.dataset.shardId;
+    delete layer.dataset.shardName;
+    delete layer.dataset.fragmentState;
+    layer.style?.removeProperty?.("--fragment-art");
+  }
+  return !!handoff;
+}
+
 function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   if(!storySession)return;
   clearStoryTyping();
@@ -1168,6 +1246,7 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   const speakerLabel=storySpeakerLabel(line);
   setStoryGameUiVisible(line.showGameUI===true);
   applyStoryCinematic(line);
+  applyStoryFragmentHandoff(line);
   speakerEl.classList.remove("revealed");
   speakerEl.hidden=!speakerLabel;
   speakerEl.textContent=speakerLabel;
@@ -1342,6 +1421,7 @@ const STORY_ACTOR_GUTTER=1.5;
 
 function resetStoryStage(){
   clearStoryCinematic();
+  applyStoryFragmentHandoff(null);
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
   if(storySession)storySession.actors=[];
@@ -1637,6 +1717,22 @@ function suspendStoryForOrderCook(scene,config,metadata={}){
     showToast("이야기 손님의 주문을 찾지 못했습니다. 손님이 도착한 뒤 다시 시도해 주세요.",true);
     return false;
   }
+  if(scene.requiresDishChoice){
+    const chosenDish=dishById(config.dishId);
+    const selectedMenus=Array.isArray(state.selectedMenus)?state.selectedMenus:[];
+    const prepared=chosenDish&&(
+      typeof dishPreparedForService!=="function"||dishPreparedForService(chosenDish.id)
+    );
+    if(!chosenDish||!selectedMenus.includes(chosenDish.id)||!prepared){
+      showToast("오늘 준비한 음식 중 하나를 골라 주세요.",true);
+      return false;
+    }
+    order.dishId=chosenDish.id;
+    order.guestOrder=true;
+    order.awaitingDishChoice=false;
+    order.menuSelected=true;
+    order.missingMenu=false;
+  }
   order.specialRecipe=!!config.special;
   storySession.waitingForCook=true;storySession.suspended=true;
   storySession.pendingCook={
@@ -1695,6 +1791,7 @@ function recordStoryCookOutcome(scene,config,metadata,order,score,tier){
   const resultKey=config.resultKey||scene.id;
   state.story.storyCookResults[resultKey]={
     score,tier,day:state.day,dishId:order.dishId,
+    matchedDish:!order.storyDishId||order.dishId===order.storyDishId,
     choiceIndex:Number.isInteger(index)?index:null,affinityDelta
   };
   return configuredStoryCookReply(scene,config,metadata,tier);
@@ -1709,9 +1806,10 @@ function finishSuspendedStoryCook(order,satisfaction){
   const metadata={choice:pending.choice,choiceIndex:pending.choiceIndex};
   const reply=recordStoryCookOutcome(scene,pending.config,metadata,order,satisfaction,tier);
   const lineIndex=pending.lineIndex;
+  const suppressReply=!!pending.config.suppressReply;
   storySession.pendingCook=null;storySession.waitingForCook=false;storySession.suspended=false;
   state.paused=true;
-  storySession.lines.splice(lineIndex+1,0,reply);
+  if(!suppressReply)storySession.lines.splice(lineIndex+1,0,reply);
   storySession.lineIndex=lineIndex+1;
   document.getElementById("storyOverlay").classList.add("open");
   showStoryLine();
@@ -1935,7 +2033,6 @@ function prepareStoryNight(){
     .map(id=>STORY_SCENES[id])
     .filter(scene=>scene&&!storySceneCompleted(scene))
     .map(scene=>{
-      const menuSelected=state.selectedMenus.includes(scene.dishId);
       const guest=getStoryGuestState(scene.character);
       return {
         guestId:scene.character,
@@ -1943,9 +2040,10 @@ function prepareStoryNight(){
         dishId:scene.dishId,
         arrival:["early","late","last"].includes(scene.arrival)?scene.arrival:"early",
         deferUntilArrival:true,
-        guestOrder:menuSelected,
-        menuSelected,
-        missingMenu:!menuSelected,
+        guestOrder:false,
+        awaitingDishChoice:true,
+        menuSelected:false,
+        missingMenu:false,
         special:true,
         repeat:Number(guest?.visits)>0,
         triggerTiming:scene.triggerTiming==="before"?"before":"after",
@@ -2000,7 +2098,7 @@ function processStoryNightTrigger(){
 
 function decorateStoryOrder(order,plan=null){
   order.customerType="general";order.guestId=null;order.specialRecipe=false;order.storySceneId=null;order.repeatVisit=false;
-  order.storyDishId=null;order.storyArrival=null;order.deferUntilArrival=false;order.guestOrder=false;
+  order.storyDishId=null;order.storyArrival=null;order.deferUntilArrival=false;order.guestOrder=false;order.awaitingDishChoice=false;
   order.bubble=pickGeneralGuestBubble("arrival");order.bubbleTime=4.5;order.waitingTime=0;order.waitingBubbleShown=false;
   if(!plan)return order;
   const plans=state.story?.pendingNightGuests||[];
@@ -2013,9 +2111,11 @@ function decorateStoryOrder(order,plan=null){
   order.storyArrival=["early","late","last"].includes(plan.arrival)?plan.arrival:"early";
   order.deferUntilArrival=!!plan.deferUntilArrival;
   order.guestOrder=plan.guestOrder!==false;
+  order.awaitingDishChoice=!!plan.awaitingDishChoice;
   order.menuSelected=plan.menuSelected!==false;
   order.missingMenu=!!plan.missingMenu;
   order.storyMystic=true;
+  if(order.awaitingDishChoice)order.guestOrder=false;
   if(order.guestOrder&&order.storyDishId)order.dishId=order.storyDishId;
   order.variant=Number.isFinite(character?.portraitRow)
     ?clamp(character.portraitRow,0,5)
@@ -2040,7 +2140,9 @@ function normalizeStoryOrder(order){
     ?order.storyArrival
     :["early","late","last"].includes(scene?.arrival)?scene.arrival:null;
   order.deferUntilArrival=!!(order.deferUntilArrival||scene?.deferUntilArrival);
+  order.awaitingDishChoice=!!order.awaitingDishChoice;
   order.guestOrder=order.guestOrder!==false&&(order.customerType==="story"||scene?.guestOrder===true);
+  if(order.awaitingDishChoice)order.guestOrder=false;
   order.menuSelected=order.menuSelected!==false;
   order.missingMenu=!!order.missingMenu;
   order.storyMystic=!!(order.storyMystic||order.customerType==="story");
@@ -2058,29 +2160,37 @@ function applyStoryCookingResult(order,satisfaction){
   if(!order?.guestId)return null;
   const pending=storySession?.pendingCook;
   const scene=STORY_SCENES[order.storySceneId]||null;
-  const thresholds=pending?.orderId===order.id?pending.config?.thresholds:scene?.thresholds;
+  const thresholds=pending&&pending.orderId===order.id?pending.config?.thresholds:scene?.thresholds;
   const tier=storyCookingTier(satisfaction,thresholds);
+  const matchedDish=!order.storyDishId||order.dishId===order.storyDishId;
   if(STORY_GUEST_IDS.includes(order.guestId)){
     const guest=getStoryGuestState(order.guestId);
     if(!order.storySceneId&&tier==="great")guest.affinity++;
     if(guest.lastVisitDay!==state.day){guest.visits++;guest.lastVisitDay=state.day;}
   }
   if(order.storySceneId){
-    state.story.storyCookResults[order.storySceneId]={score:satisfaction,tier,day:state.day,dishId:order.dishId};
+    state.story.storyCookResults[order.storySceneId]={
+      score:satisfaction,tier,day:state.day,dishId:order.dishId,matchedDish
+    };
     const guestId=storyGuestIdForScene(scene)||order.guestId;
     const result=getStoryGuestResult(guestId);
     result.visited=true;
-    result.evaluationScore=satisfaction;
-    result.evaluationTier=tier;
-    const resultSceneId=scene?.resultSceneIds?.[tier]||null;
+    if(matchedDish){
+      result.evaluationScore=satisfaction;
+      result.evaluationTier=tier;
+    }
+    const resultSceneId=matchedDish
+      ?scene?.resultSceneIds?.[tier]||null
+      :scene?.wrongDishSceneId||scene?.missingMenuSceneId||null;
     if(resultSceneId){
       state.story.pendingResultSceneId=resultSceneId;
       setTimeout(playPendingStoryResult,0);
     }
   }
   return {
-    tier,
-    text:pickGeneralGuestBubble(tier),
+    tier:matchedDish?tier:null,
+    matched:matchedDish,
+    text:matchedDish?pickGeneralGuestBubble(tier):"제가 찾던 음식은 아닌 것 같아요.",
     name:storyDisplayName(order.guestId),
     special:order.specialRecipe,
     resultSceneId:state.story.pendingResultSceneId

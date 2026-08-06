@@ -60,7 +60,7 @@ const UI_TEXT = Object.freeze({
   pauseFromTitle: "소리와 마우스 포인터를 설정할 수 있습니다.",
   pauseFromGame: "게임이 일시정지되었습니다.",
   // 미니게임·이야기 조리 중에는 저장과 타이틀 이동을 막습니다.
-  pauseSaveBlocked: "진행 중인 조리를 마치면 저장과 타이틀 이동을 사용할 수 있습니다.",
+  pauseSaveBlocked: "진행 중인 미니게임을 마치면 저장과 타이틀 이동을 사용할 수 있습니다.",
   resumeFromTitle: "설정 닫기",
   resumeFromGame: "게임으로 돌아가기",
 

@@ -274,7 +274,7 @@ function rejectAlternateInput(m,message,targetSelector){
   scene?.classList.add("input-wrong");target?.classList.add("input-wrong");
   dom.miniContent.querySelector(".fp-key.expected")?.classList.add("wrong");
   dom.miniFeedback.textContent=message;audio.bad();
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.inputLocked=false;scene?.classList.remove("input-wrong");target?.classList.remove("input-wrong");
     dom.miniContent.querySelector(".fp-key.wrong")?.classList.remove("wrong");
@@ -324,14 +324,14 @@ function finishMandolineStep(m){
   showAlternateGrade(next?stageGrade:finalGrade);
   if(!next){
     dom.miniFeedback.textContent=`${data.label} 채썰기 ${finalGrade==="perfect"?"완벽하게 ":""}완료!`;
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);},E2_FEEL_CONFIG.completeDelayMs);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,`${data.label} 채썰기 완료`);},E2_FEEL_CONFIG.completeDelayMs);
     return;
   }
   completeDayPrepTask(data.taskId);
   dom.miniTimer.textContent="완료";
   dom.miniFeedback.textContent=`${data.label} 채썰기 완료 · ${mandolineTask(next).label} 차례입니다.`;
   dom.miniContent.classList.add("prep-complete-flash");
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     dom.miniContent.classList.remove("prep-complete-flash");
     setupMandoline(next,data.stageGrades);
@@ -473,7 +473,7 @@ function potatoStarchInput(key,repeat=false,pointerDriven=false,tilt=null){
     dom.miniContent.querySelector(".fp-scene")?.classList.add("e2-complete");
     showAlternateGrade(grade);
     dom.miniFeedback.textContent=`감자채에 튀김가루가 ${grade==="perfect"?"완벽하게 ":"골고루 "}묻었습니다!`;
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"감자튀김 튀김가루 묻히기 완료");},E2_FEEL_CONFIG.completeDelayMs);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"감자튀김 튀김가루 묻히기 완료");},E2_FEEL_CONFIG.completeDelayMs);
   }
   return true;
 }
@@ -924,11 +924,11 @@ function placeShrimpBackInTray(m){
   if(!finalStage)audio.result(stageGrade);
   if(finalStage){
     dom.miniFeedback.textContent="새우 5마리 튀김옷 3단계 준비 완료!";
-    setTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
     return;
   }
   dom.miniFeedback.textContent=`${completed.label} 5마리 완료 · 다음 코팅 재료로 넘어갑니다.`;
-  setTimeout(()=>{
+  miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.step++;data.successes=0;data.total=data.sequence[data.step].shrimpCount;
     data.board=null;data.transitioning=false;data.inputLocked=false;data.phase="pick";data.justCompleted=-1;
@@ -980,7 +980,7 @@ function finishShrimpRoll(m,pointerId){
   dom.miniDescription.textContent=shrimpCoatHelpText(data);
   dom.miniFeedback.textContent="다 묻었습니다! 새우가 재료칸으로 돌아갑니다.";
   renderShrimpCoat();
-  setTimeout(()=>{if(state.mini===m&&!m.complete)placeShrimpBackInTray(m);},E2_FEEL_CONFIG.shrimpReturnMs);
+  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)placeShrimpBackInTray(m);},E2_FEEL_CONFIG.shrimpReturnMs);
 }
 
 function bindShrimpCoatRoll(){

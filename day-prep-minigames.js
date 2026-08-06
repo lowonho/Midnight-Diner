@@ -793,7 +793,7 @@ function finishDayPrepTask(taskId,message){
   dom.miniContent.classList.add("prep-complete-flash");
   const grade=m.data.completionGrade||((m.data.mistakes||m.data.errors||m.data.warnings||m.data.timedOut)?"good":"perfect");
   audio.result?.(grade);
-  setTimeout(()=>advanceDayPrepDish(m,taskId),520);
+  miniSetTimeout(()=>advanceDayPrepDish(m,taskId),520);
 }
 
 function advanceDayPrepDish(m,taskId){
