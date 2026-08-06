@@ -361,6 +361,12 @@ function qaAbortMini(){
   if(!QA_MODE_ENABLED||!state.mini)return false;
   if(isDayPrepMini())closeDayPrepMini(true);
   else{
+    /* ⚠️ 소리부터 끕니다. 굽기·튀기기는 "지글지글"을 **반복 재생**으로 깔아 두는데
+       (engine-e5 의 pan_sizzle · engine-e6 의 deep_fry), 그 소리는 미니게임(m)을
+       주인으로 달고 있을 뿐 화면과는 이어져 있지 않습니다. 그래서 창만 닫고
+       state.mini 를 비우면 주인이 사라진 채 소리만 계속 났습니다.
+       정상 종료(finishMini)·낮 준비 닫기(closeDayPrepMini)는 이미 이렇게 끕니다. */
+    audio.stopOwner?.(state.mini);
     state.mini=null;
     dom.miniOverlay.classList.remove("open");
     dom.miniContent.innerHTML="";

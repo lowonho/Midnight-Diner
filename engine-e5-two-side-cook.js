@@ -1024,9 +1024,12 @@ function grillSkewerMarkup(pattern, index, data) {
   const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step)).join("");
   const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
   const flipped = (unit?.flips || 0) % 2 === 1;
-  // .ts-cue-halo : 신호가 켜졌을 때 자루 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
+  // .ts-cue-halo  : 신호가 켜졌을 때 자루 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
+  // .ts-drag-arrow: 어느 쪽으로 끌어야 하는지 알려 주는 화살표. **자루 위에 겹칩니다.**
+  //   늘 넣어 두고 보이고 안 보이고는 css 가 신호 클래스로 가립니다 —
+  //   뒤집기(cue-flip)는 옆으로 ↔, 양념(cue-sauce)은 위아래로 ↕ 입니다.
   return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
-      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>
+      <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span><i class="ts-drag-arrow" aria-hidden="true"></i>
     </span>`;
 }
 
@@ -1238,8 +1241,10 @@ function twoSideGuideMarkup(view) {
    손잡이까지 들어 있어서 자리 잡는 규칙도 같습니다 — css/minigames.css 의 .two-side-pan 참고. */
 function pancakePanShell(inner, extraClass = "", id = "") {
   const asset = dayPrepAssetMarkup("fryingPan", "two-side-pan-asset", "후라이팬");
-  // .ts-cue-halo : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
-  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}</div>`;
+  // .ts-cue-halo   : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
+  // .ts-drag-arrow : 뒤집기 신호 때 김치전 위에 겹치는 방향 화살표.
+  //   김치전은 "위로 튕기듯" 한 방향이라 머리가 하나인 ↑ (arrow-once) 입니다.
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}<i class="ts-drag-arrow arrow-once" aria-hidden="true"></i></div>`;
 }
 
 /* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다
