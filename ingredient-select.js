@@ -117,9 +117,7 @@ const PANTRY_INGREDIENT_IDS=Object.freeze(new Set([
 ]));
 
 const INGREDIENT_ASSET_BASE=document.currentScript?.src||document.baseURI;
-const INGREDIENT_TICK=100;                 // 걸린 시간 갱신 간격(ms)
 const INGREDIENT_FINISH_DELAY=1500;        // 다 찾고 낮 준비로 넘어가기까지
-let ingredientTimerId=null;
 let ingredientFinishId=null;
 let ingredientColdAirId=null;
 
@@ -234,33 +232,9 @@ function currentIngredientRoundComplete(){
   return e13Complete(state.ingredientSelection);
 }
 
-/* ---- 걸린 시간 ------------------------------------------------
-   제한시간이 아니라 기록이라 0.1초마다 숫자만 갈아 끼웁니다.
-   화면 전체(renderIngredientSelection)를 다시 그리면 24칸이 매번 새로
-   만들어져 클릭이 씹힙니다. */
 function stopIngredientTimer(){
-  miniClearInterval(ingredientTimerId);ingredientTimerId=null;
   miniClearTimeout(ingredientFinishId);ingredientFinishId=null;
   stopFridgeColdAir();
-}
-
-function startIngredientTimer(){
-  // ⚠️ 여기서 stopIngredientTimer() 를 부르면 안 됩니다 — 그 함수는 냉기 무리까지
-  //    같이 끕니다. 냉기는 판이 열릴 때 한 번 걸리는데, 이 함수가 그 뒤에 불려서
-  //    조용히 꺼져 버렸습니다(냉기가 첫 무리에서 멈춰 있던 원인). 시계만 갈아 끕니다.
-  miniClearInterval(ingredientTimerId);
-  ingredientTimerId=miniSetInterval(()=>{
-    if(state.phase!==GAME_PHASES.INGREDIENT_SELECT){stopIngredientTimer();return;}
-    // 설정창이 열린 동안에는 냉장고의 경과 기록도 함께 멈춥니다.
-    if(state.paused)return;
-    if(!e13Tick(state.ingredientSelection,INGREDIENT_TICK/1000))return;
-    updateIngredientTimeText();
-  },INGREDIENT_TICK);
-}
-
-function updateIngredientTimeText(){
-  const value=dom.ingredientTimer?.querySelector("b");
-  if(value)value.textContent=e13TimeText(state.ingredientSelection?.elapsed||0);
 }
 
 /* ---- 열기 / 닫기 --------------------------------------------- */
@@ -309,20 +283,13 @@ function pickIngredientSlot(slotIndex){
   if(state.phase!==GAME_PHASES.INGREDIENT_SELECT)return false;
   const progress=state.ingredientSelection;
   if(!progress||e13Complete(progress))return false;
-  const {result,id,complete,penalty}=e13Pick(progress,slotIndex);
+  const {result,id,complete}=e13Pick(progress,slotIndex);
   const item=ingredientInfo(id);
   if(result==="empty")return false;
   if(result==="wrong"){
-    // 벌칙은 걸린 시간 +3초뿐입니다(engine 이 이미 더했습니다). 숫자를 바로 갱신해
-    // "왜 시간이 뛰었지?" 하지 않게 카드도 잠깐 빨갛게 깜빡입니다.
-    dom.ingredientSelectFeedback.textContent=`${item.label}은(는) 오늘 쓰지 않아요. (+${penalty}초)`;
+    dom.ingredientSelectFeedback.textContent=`${item.label}은(는) 오늘 쓰지 않아요.`;
     audio.bad?.();
-    updateIngredientTimeText();
-    showFridgePenalty(penalty);
     flashIngredientSlot(slotIndex,"wrong");
-    dom.ingredientTimer?.classList.remove("penalty");
-    void dom.ingredientTimer?.offsetWidth;
-    dom.ingredientTimer?.classList.add("penalty");
     saveGame();
     return false;
   }
@@ -336,23 +303,6 @@ function pickIngredientSlot(slotIndex){
   return true;
 }
 
-/* 벌칙 안내. 냉장고 한가운데에 "+3초"가 떠올랐다 사라집니다.
-   우측 카드의 숫자만 바꾸면 시계를 안 보고 있던 사람은 뭐가 벌어졌는지 모릅니다.
-   한 장을 만들어 두고 누를 때마다 애니메이션만 되감습니다(계속 쌓이지 않게). */
-function showFridgePenalty(seconds){
-  const cabinet=dom.ingredientGrid?.closest(".fridge-cabinet");
-  if(!cabinet)return;
-  let tag=cabinet.querySelector(".fridge-penalty");
-  if(!tag){
-    tag=document.createElement("span");
-    tag.className="fridge-penalty";
-    tag.setAttribute("aria-hidden","true");
-    cabinet.appendChild(tag);
-  }
-  tag.textContent=`+${seconds}초`;
-  tag.classList.remove("show");void tag.offsetWidth;tag.classList.add("show");
-}
-
 /* 틀린 칸은 다시 그리지 않고 흔들기만 합니다(칸 내용이 그대로라 신호가 없습니다). */
 function flashIngredientSlot(slotIndex,className){
   const slot=dom.ingredientGrid?.querySelector(`[data-slot="${slotIndex}"]`);
@@ -364,7 +314,7 @@ function finishIngredientSelection(){
   stopIngredientTimer();
   const banner=dom.ingredientGrid?.closest(".fridge-cabinet");
   if(banner&&!banner.querySelector(".fridge-clear")){
-    banner.insertAdjacentHTML("beforeend",`<div class="fridge-clear"><strong>재료 준비 완료</strong><span>걸린 시간 ${e13TimeText(state.ingredientSelection?.elapsed||0)}</span></div>`);
+    banner.insertAdjacentHTML("beforeend",`<div class="fridge-clear"><strong>재료 준비 완료</strong></div>`);
   }
   ingredientFinishId=miniSetTimeout(continueIngredientSelection,INGREDIENT_FINISH_DELAY);
 }
@@ -448,9 +398,8 @@ function renderIngredientSelection(){
   bindIngredientSlots();
   if(!ingredientColdAirId)startFridgeColdAir();   // 세이브에서 바로 들어온 경우를 위한 보험
 
-  // 우 위 : 완료 개수 · 걸린 시간
+  // 우 위 : 완료 개수
   dom.ingredientTotalProgress.innerHTML=`<b>${progress.found.length}</b> / ${required.length}`;
-  updateIngredientTimeText();
 
   // 우 아래 : 찾아야 할 재료 — 여기도 그림만 놓습니다.
   // 7가지가 넘어가면 3열로 나눕니다. 2열로 두면 칸이 납작해져 아이콘이 손톱만 해집니다.
@@ -469,5 +418,4 @@ function renderIngredientSelection(){
   //  상온 재료 목록이 다시 필요하면 pantryIngredientIdsForMenus 로 뽑을 수 있습니다.)
 
   dom.ingredientSelectOverlay.classList.add("open");
-  if(!e13Complete(progress)&&!ingredientTimerId)startIngredientTimer();
 }

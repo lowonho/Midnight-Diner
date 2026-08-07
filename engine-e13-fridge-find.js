@@ -5,13 +5,13 @@
 
    메뉴 선택 뒤, 낮 준비에 들어가기 전에 실행되는 독립 미니게임입니다.
    화면과 재료 데이터는 ingredient-select.js 가 맡고, 이 파일은
-   "칸 채우기 · 클릭 판정 · 완료 판정 · 걸린 시간"만 관리합니다.
+   "칸 채우기 · 클릭 판정 · 완료 판정"만 관리합니다.
 
    [규칙]
    · 냉장고는 3행 x (4칸 | 4칸) = 24칸입니다. 가운데 세로 기둥으로 좌우가 갈립니다.
    · 오늘 필요한 재료가 **한 칸에 하나씩** 들어가고, 남는 칸은 오늘 안 쓰는 재료로 채웁니다.
    · 필요한 재료를 누르면 그 칸이 비고, 아닌 것을 누르면 안내만 나옵니다(실패 없음).
-   · 필요한 재료를 모두 찾으면 끝납니다. 제한시간은 없고 **걸린 시간**만 잽니다.
+   · 필요한 재료를 모두 찾으면 끝납니다. 시간 제한이나 시간 기록은 없습니다.
 
    [옛 정렬 퍼즐]
    원래 같은 재료 3개를 한 칸에 모으는 퍼즐(engine-e13-fridge-sort.js)이었습니다.
@@ -24,8 +24,7 @@ const E13_FRIDGE_FIND=Object.freeze({
   rows:3,          // 선반 3단
   half:4,          // 한쪽 문 안에 4칸
   columns:8,       // 4 | 4
-  slotCount:24,    // rows x columns
-  missPenalty:3    // 엉뚱한 재료를 누르면 걸린 시간에 더해지는 초
+  slotCount:24     // rows x columns
 });
 
 /* 칸 번호(0~23) → 격자 자리.
@@ -38,7 +37,6 @@ function e13SlotCell(index){
   const row=Math.floor(index/E13_FRIDGE_FIND.columns),column=index%E13_FRIDGE_FIND.columns;
   return {row:row*2+1,column:column<E13_FRIDGE_FIND.half?column+1:column+2,side:column<E13_FRIDGE_FIND.half?"left":"right"};
 }
-
 /* 24칸을 채웁니다.
    필요한 재료는 하나씩만 넣습니다 — 같은 재료가 두 칸에 있으면
    "찾아야 할 재료 4개인데 5번 눌러야" 같은 어긋남이 생깁니다.
@@ -63,8 +61,7 @@ function e13CreateProgress(requiredIds=[],fillerIds=[]){
     required,
     found:[],
     slots:e13BuildSlots(required,fillerIds),
-    misses:0,
-    elapsed:0
+    misses:0
   };
 }
 
@@ -91,8 +88,7 @@ function e13NormalizeProgress(saved,requiredIds=[],fillerIds=[]){
     required,
     found,
     slots:[...source.slots],
-    misses:Number.isFinite(source.misses)?source.misses:0,
-    elapsed:Number.isFinite(source.elapsed)?Math.max(0,source.elapsed):0
+    misses:Number.isFinite(source.misses)?source.misses:0
   };
 }
 
@@ -106,7 +102,7 @@ function e13Complete(progress){
 
 /* 칸 하나를 누른 결과.
      found   오늘 필요한 재료였다 (칸이 비고 개수가 오릅니다)
-     wrong   재료는 있는데 오늘 쓰지 않는다 → **걸린 시간에 3초가 붙습니다**
+     wrong   재료는 있는데 오늘 쓰지 않는다 → 안내 후 계속 찾습니다
      empty   이미 비어 있는 칸이다
    실패(게임 오버)는 없습니다. 벌칙은 기록에 붙는 3초뿐입니다. */
 function e13Pick(progress,slotIndex){
@@ -115,23 +111,9 @@ function e13Pick(progress,slotIndex){
   if(!id)return {result:"empty",id:null,complete:e13Complete(progress),penalty:0};
   if(!progress.required.includes(id)||progress.found.includes(id)){
     progress.misses+=1;
-    progress.elapsed+=E13_FRIDGE_FIND.missPenalty;
-    return {result:"wrong",id,complete:e13Complete(progress),penalty:E13_FRIDGE_FIND.missPenalty};
+    return {result:"wrong",id,complete:e13Complete(progress),penalty:0};
   }
   progress.slots[slotIndex]=null;
   progress.found.push(id);
   return {result:"found",id,complete:e13Complete(progress),penalty:0};
-}
-
-/* 걸린 시간. 화면이 0.1초마다 불러 줍니다(제한시간이 아니라 기록입니다). */
-function e13Tick(progress,seconds){
-  if(!progress||e13Complete(progress))return false;
-  progress.elapsed+=Math.max(0,seconds);
-  return true;
-}
-
-/* 걸린 시간 표기. E10 멸치의 '남은 시간'과 같은 결로 **초 단위**입니다(12.3초).
-   한 판이 길어야 1~2분이라 분을 따로 떼면 오히려 읽기 번거롭습니다. */
-function e13TimeText(elapsed=0){
-  return `${Math.max(0,elapsed).toFixed(1)}초`;
 }

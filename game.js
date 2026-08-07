@@ -33,7 +33,7 @@ const dom = Object.fromEntries([
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
-  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer","ingredientPause",
+  "ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientPause",
   "joystick","joystickKnob","actionButton"
 ].map(id => [id, document.getElementById(id)]));
 

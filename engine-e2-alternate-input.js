@@ -214,7 +214,7 @@ function mandolineSceneMarkup(data){
       <i class="md-legs left" aria-hidden="true"></i>
       <div class="md-pile ${data.ingredient}" aria-label="채 썬 ${data.label}">${shreds}</div>
       <div class="md-plate ${plateAsset?"has-asset":""}">
-        ${plateAsset}<i class="md-blade" aria-hidden="true"></i><i class="md-drag-track" aria-hidden="true"></i>
+        ${plateAsset}<i class="md-blade" aria-hidden="true"></i>
         <div class="md-ingredient ${data.ingredient} ${asset?"has-asset":""}" id="mandolineIngredient" style="--md-shorten:${shorten};--md-ing-drift:${drift}">${asset}</div>
       </div>
     </div>`;

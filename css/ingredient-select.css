@@ -5,7 +5,7 @@
    배치는 E10 멸치 머리 떼기와 같은 벌입니다.
      좌  A1 613.2   오늘의 요리
      중  824.2      냉장고 24칸
-     우  C 198.1    완료 개수 + 걸린 시간   ← 멸치는 '남은 시간'
+     우  C 198.1    완료 개수
         A2 403.1    찾아야 할 재료          ← 멸치는 '참고 모양'
    패널 그림·격자·카드 제목은 css/minigame-parts.css 가 정합니다.
    여기 남는 것은 냉장고 안쪽과 좌·우 패널 내용물뿐입니다.
@@ -260,32 +260,6 @@
 /* 오늘 안 쓰는 재료를 눌렀을 때 — 실패는 없고 고개만 젓습니다 */
 .fridge-slot.wrong { animation: fridge-slot-wrong .32s ease-out; }
 
-/* 엉뚱한 재료를 눌렀을 때 냉장고 한가운데에 떠오르는 "+3초".
-   재료를 누른 자리가 아니라 **가운데**입니다 — 어디를 눌렀든 눈이 가는 자리라
-   시계를 안 보고 있어도 벌칙이 붙은 걸 바로 압니다. */
-.fridge-penalty {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  top: 50%;
-  color: #ff725f;
-  font-size: calc(54 * var(--upx));
-  font-weight: 900;
-  letter-spacing: .02em;
-  text-shadow: 0 calc(3 * var(--upx)) 0 #3d1008, 0 0 calc(20 * var(--upx)) rgba(255,90,60,.5);
-  transform: translate(-50%,-50%);
-  opacity: 0;
-  pointer-events: none;
-}
-.fridge-penalty.show { animation: fridge-penalty-rise 1s ease-out; }
-@keyframes fridge-penalty-rise {
-  0%   { opacity: 0; transform: translate(-50%,-28%) scale(.7); }
-  18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.14); }
-  32%  { transform: translate(-50%,-50%) scale(1); }
-  74%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%,-96%) scale(1); }
-}
-
 /* 다 찾았을 때 냉장고 위에 뜨는 안내. 잠시 뒤 낮 준비로 넘어갑니다. */
 .fridge-clear {
   position: absolute;
@@ -305,10 +279,8 @@
   animation: fridge-clear-pop .3s ease-out;
 }
 .fridge-clear strong { color: var(--gold-bright); font-size: calc(28 * var(--upx)); letter-spacing: .06em; }
-.fridge-clear span { color: #d9c39a; font-size: calc(16 * var(--upx)); font-weight: 800; }
 
-/* ---- 우 위 : 완료 개수 · 걸린 시간 (C 198.1) -----------------
-   숫자·간격은 E10 멸치(.anchovy-count / .anchovy-time)와 같은 값입니다. */
+/* ---- 우 위 : 완료 개수 (C 198.1) ----------------------------- */
 .fridge-count {
   margin: 0;
   color: var(--gold-bright);
@@ -318,30 +290,6 @@
   line-height: 1.1;
 }
 .fridge-count b { color: #f2a03c; }
-.fridge-time {
-  margin: calc(12 * var(--upx)) 0 0;
-  padding-top: calc(11 * var(--upx));
-  border-top: 1px solid rgba(232,190,111,.28);
-  display: grid;
-  place-items: center;
-  gap: calc(2 * var(--upx));
-  color: #c9b58d;
-  font-size: calc(14 * var(--upx));
-  font-weight: 800;
-}
-.fridge-time b {
-  color: #f4d58b;
-  font-size: calc(25 * var(--upx));
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-/* 엉뚱한 재료를 눌러 3초가 붙었을 때. 숫자가 갑자기 뛰는 이유를 눈으로 알려 줍니다. */
-.fridge-time.penalty b { animation: fridge-time-penalty .5s ease-out; }
-@keyframes fridge-time-penalty {
-  0%,60% { color: #ff725f; transform: scale(1.12); }
-  100%   { color: #f4d58b; transform: scale(1); }
-}
-
 /* ---- 우 아래 : 찾아야 할 재료 (A2 403.1) ---------------------
    컨셉 이미지처럼 2열 아이콘 판입니다. 찾은 것은 어두워지고 발자국 도장이 찍힙니다. */
 /* ⚠️ display:grid 를 여기서 직접 켜야 합니다. 공용 카드 껍데기(.fridge-panel)는
@@ -519,8 +467,6 @@
 @media (prefers-reduced-motion:reduce) {
   .fridge-slot.wrong,
   .fridge-clear { animation-duration: .01ms; }
-  /* 벌칙 글자는 애니메이션이 곧 표시라 시간만 줄입니다(끄면 아예 안 보입니다) */
-  .fridge-penalty.show { animation-duration: 1.2s; animation-timing-function: step-start; }
   /* ⚠️ 냉기는 duration 을 줄이면 다섯 장 모두 opacity:0 으로 끝나 사라집니다.
      애니메이션을 끄되 한 장(가장 큰 04)은 켜 둡니다 — 조리 연기와 같은 이유입니다.
      덩이 자체도 opacity:0 에서 시작하므로 여기서 되살려 줘야 합니다. */

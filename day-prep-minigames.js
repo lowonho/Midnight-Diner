@@ -27,7 +27,7 @@ const DAY_PREP_MINI_CONFIG = {
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:11,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19},
   cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:22},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,requiredShakes:3,swingDistance:18}
 };
 
 // cycles 한 번 = ← → 두 번 (썰기 횟수 = cycles * 2)

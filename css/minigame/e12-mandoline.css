@@ -221,24 +221,6 @@
 }
 .md-plate.has-asset .md-blade { display: none; }
 
-/* 재료 중심을 통과하는 실제 채칼 장축(약 33도)입니다. */
-.md-drag-track {
-  position: absolute;
-  z-index: 2;
-  left: 54%;
-  top: 49%;
-  width: 62%;
-  height: calc(5 * var(--upx));
-  border-radius: calc(4 * var(--upx));
-  background: repeating-linear-gradient(90deg,rgba(255,239,182,.78) 0 calc(16 * var(--upx)),transparent calc(16 * var(--upx)) calc(27 * var(--upx)));
-  box-shadow: 0 0 calc(8 * var(--upx)) rgba(70,34,12,.7);
-  opacity: .68;
-  transform: translate(-50%,-50%) rotate(33deg);
-  transform-origin: 50% 50%;
-  pointer-events: none;
-}
-.md-scene.mandoline-dragging .md-drag-track { opacity: 1; }
-
 /* 썰리는 재료 — food_*_whole_01~08 을 진행도에 맞춰 갈아 끼웁니다.
 
    ⚠️ **아래를 기준으로 놓습니다** (top 이 아니라 bottom 입니다).

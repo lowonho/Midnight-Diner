@@ -27,13 +27,8 @@ registerDayPrepSetup("anchovy",()=>setupAnchovyPrep());
 // 그 좌표는 css/day-prep-minigames.css 의 .anchovy.v01 ~ .v04 변수에 있습니다.
 const ANCHOVY_VARIANTS=Object.freeze(["01","02","03","04"]);
 
-// 시간이 끝났을 때 TIME OVER 판을 보여주는 시간. 이 뒤에는 다시 시도 없이 마감합니다.
-const ANCHOVY_TIMEOUT_END_MS=1200;
-
 // 포인터로 머리를 잡아 흔드는 게임이라 키 처리는 없습니다.
-registerDayPrepEngine("anchovy",{
-  update(m,dt){updateAnchovyTimer(m,dt);}
-});
+registerDayPrepEngine("anchovy",{});
 
 function setupAnchovyPrep(){
   const config=DAY_PREP_MINI_CONFIG.cleanAnchovy;
@@ -58,7 +53,7 @@ function setupAnchovyPrep(){
   // 멸치 그림 4종을 두 벌 섞어 돌려 씁니다. 7마리면 4종이 최소 한 번씩은 나옵니다.
   // 붙이는 좌표는 css/day-prep-minigames.css 의 .anchovy.v01~v04 가 갖고 있습니다.
   const variants=shuffle(ANCHOVY_VARIANTS.concat(ANCHOVY_VARIANTS)).slice(0,config.total);
-  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,timeLimit:config.timeLimit,timeLeft:config.timeLimit,timerWarningPlayed:false,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,timedOut:false,finishing:false,grip:null,items:slots.map((slot,index)=>{
+  setDayPrepData({mode:"anchovy",cleaned:0,total:config.total,requiredShakes:config.requiredShakes,swingDistance:config.swingDistance,finishing:false,grip:null,items:slots.map((slot,index)=>{
     const col=slot%2,row=Math.floor(slot/2),stagger=(row%2)*4;
     return {
       id:index,cleaned:false,variant:variants[index],
@@ -68,10 +63,9 @@ function setupAnchovyPrep(){
     };
   })});
   dom.miniTitle.textContent=config.title;
-  dom.miniDescription.textContent="멸치 머리를 잡고 좌우로 흔들어 뜯어주세요. 제한시간 안에 모두 손질해야 합니다!";
+  dom.miniDescription.textContent="멸치 머리를 잡고 좌우로 흔들어 모두 손질해주세요.";
   renderAnchovyPrep();
 }
-
 // 사이드 카드(재료 · 참고 모양)에 들어가는 견본 멸치입니다.
 // 도마 위 멸치와 같은 조각을 쓰되 클릭 대상이 아니므로 <i> 로 그립니다.
 // 견본은 종류를 섞을 이유가 없어 01 로 고정합니다.
@@ -120,7 +114,6 @@ function renderAnchovyPrep(){
         <div class="anchovy-card anchovy-count-card">
           <h3 class="anchovy-card-title">완성 개수</h3>
           <p class="anchovy-count" id="anchovyCount"><b>${data.cleaned}</b> / ${data.total}</p>
-          <p class="anchovy-time" id="anchovyTime"><span>남은 시간</span><b>${data.timeLeft.toFixed(1)}초</b></p>
         </div>
         <div class="anchovy-card anchovy-ref-card">
           <h3 class="anchovy-card-title">참고 모양</h3>
@@ -177,7 +170,7 @@ function bindAnchovyTugControls(){
 
 function activeAnchovyMini(){
   const m=state.mini;
-  return isDayPrepMini(m)&&m.data.mode==="anchovy"&&!m.data.timedOut&&!m.data.finishing?m:null;
+  return isDayPrepMini(m)&&m.data.mode==="anchovy"&&!m.data.finishing?m:null;
 }
 
 function startAnchovyTug(button,event){
@@ -234,36 +227,4 @@ function finishAnchovyTug(m,grip){
   dom.miniContent.querySelector("#anchovyCount").innerHTML=`<b>${m.data.cleaned}</b> / ${m.data.total}`;
   dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.play?.("anchovy_finish",{owner:m});
   if(m.data.cleaned===m.data.total){m.data.finishing=true;finishDayPrepTask("cleanAnchovy","멸치 손질 완료");}
-}
-
-function updateAnchovyTimer(m,dt){
-  if(m.data.timedOut||m.data.finishing)return;
-  const previousTime=m.data.timeLeft;
-  m.data.timeLeft=Math.max(0,m.data.timeLeft-dt);
-  if(previousTime>7&&m.data.timeLeft<=7&&!m.data.timerWarningPlayed){m.data.timerWarningPlayed=true;audio.play?.("timer_warning",{owner:m,gain:.85});}
-  const timer=dom.miniContent.querySelector("#anchovyTime");
-  if(timer){timer.classList.toggle("warning",m.data.timeLeft<=7);timer.querySelector("b").textContent=`${m.data.timeLeft.toFixed(1)}초`;}
-  if(m.data.timeLeft<=0)timeoutAnchovy(m);
-}
-
-function timeoutAnchovy(m){
-  if(state.mini!==m||m.data.timedOut||m.data.finishing)return;
-  m.data.timedOut=true;
-  if(m.data.grip){
-    const grip=m.data.grip;m.data.grip=null;
-    try{grip.button.releasePointerCapture?.(grip.pointerId);}catch{}
-    grip.wrapper.classList.remove("grabbing","tug-pulse");
-    grip.wrapper.style.removeProperty("--tug-x");grip.wrapper.style.removeProperty("--tug-y");grip.wrapper.style.removeProperty("--tug-turn");
-  }
-  const area=dom.miniContent.querySelector("#anchovyWorkArea");
-  if(area){
-    area.classList.add("time-over");
-    area.querySelectorAll("button").forEach(button=>button.disabled=true);
-    area.insertAdjacentHTML("beforeend",`<div class="anchovy-timeout"><strong>TIME OVER</strong><span>${m.data.cleaned} / ${m.data.total} 손질</span></div>`);
-  }
-  dom.miniFeedback.textContent="시간이 끝났습니다. 손질을 여기서 마칩니다.";audio.bad();
-  // 다시 시도 없이 그대로 끝냅니다. TIME OVER 판을 잠깐 보여준 뒤 태스크를 마감해
-  // 다음 준비 작업(또는 준비 화면 닫기)으로 넘어갑니다.
-  // timedOut 이 켜져 있으므로 finishDayPrepTask 의 판정은 perfect 가 아닌 good 입니다.
-  miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("cleanAnchovy","멸치 손질 시간 종료");},ANCHOVY_TIMEOUT_END_MS);
 }

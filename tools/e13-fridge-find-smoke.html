@@ -46,21 +46,15 @@ try{
   assert(progress.slots[target]===null,"picked slot becomes empty");
   assert(e13Pick(progress,target).result==="empty","empty slot does nothing");
   const wrongIndex=progress.slots.findIndex(id=>id&&!required.includes(id));
-  const beforePenalty=progress.elapsed;
   pick=e13Pick(progress,wrongIndex);
   assert(pick.result==="wrong"&&progress.slots[wrongIndex]!==null&&progress.misses===1,"wrong pick stays in the fridge");
-  assert(pick.penalty===3&&progress.elapsed===beforePenalty+3,"wrong pick adds three seconds to the clock");
+  assert(pick.penalty===0&&!Object.hasOwn(progress,"elapsed"),"wrong pick has no time penalty or clock state");
   assert(!e13Complete(progress)&&e13RemainingIds(progress).length===3,"three ingredients left");
 
   required.slice(1).forEach(id=>e13Pick(progress,progress.slots.indexOf(id)));
   assert(e13Complete(progress),"finding every ingredient completes the round");
 
-  // 걸린 시간은 기록입니다 — 완료 뒤에는 멈춥니다
-  const timed=e13CreateProgress(required,fillers);
-  assert(e13Tick(timed,1.5)&&e13TimeText(timed.elapsed)==="1.5초","elapsed time counts up in seconds (E10 멸치와 같은 표기)");
-  timed.elapsed=61.24;assert(e13TimeText(timed.elapsed)==="61.2초","one decimal, no minutes");
-  required.forEach(id=>e13Pick(timed,timed.slots.indexOf(id)));
-  assert(!e13Tick(timed,1),"timer stops once the round is complete");
+  assert(typeof e13Tick==="undefined"&&typeof e13TimeText==="undefined","fridge has no timer helpers");
 
   // 세이브 되돌리기 : 형태가 어긋나면(옛 정렬 퍼즐 포함) 새 판으로
   const saved=e13CreateProgress(required,fillers);
