@@ -120,15 +120,13 @@ function createSaveSlotItem(slot){
   button.setAttribute("aria-label",saveSlotAccessibleLabel(slot));
   button.addEventListener("click",()=>selectSaveSlot(slot));
 
+  // 칸 이름(자동 저장 / 수동 저장 1~3)만 적습니다. 자동인지 수동인지는 그
+  // 이름에 이미 들어 있어서, 밑에 따로 붙이던 설명 뱃지는 두지 않습니다.
   const name=document.createElement("span");
   name.className="save-slot-name";
   const nameText=document.createElement("strong");
   nameText.textContent=slot.label;
-  const badge=document.createElement("small");
-  badge.className="save-slot-badge";
-  // 비었는지는 옆의 나무 명패가 말해 주므로, 여기에는 칸의 성격만 적습니다.
-  badge.textContent=slot.manual?"직접 저장하는 칸":"자동으로 채워지는 칸";
-  name.append(nameText,badge);
+  name.append(nameText);
 
   const details=document.createElement("span");
   details.className="save-slot-details";

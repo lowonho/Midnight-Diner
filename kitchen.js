@@ -45,15 +45,19 @@
    앞뒤 겹침 처리는 §3 의 trashInFront() 를 보세요.
    ------------------------------------------------------------ */
 
+/* [hideLabel] 몸통 위에 뜨는 이름표만 안 그립니다. label 값 자체는 지우면
+   안 됩니다 — 안내 토스트("먼저 싱크대에서…")·현재 목표 칸·상호작용 프롬프트가
+   전부 이 글자를 씁니다 (game.js · night.js · story.js). 이름표를 다시 켜려면
+   그 줄만 지우면 됩니다. */
 const STATION_SPEC = {
   fridge:     {label:"냉장고",    stand:[ 435,640], facing:"up"},
-  sink:       {label:"싱크대",    stand:[ 646,640], facing:"up"},
+  sink:       {label:"싱크대",    stand:[ 646,640], facing:"up", hideLabel:true},
   board:      {label:"도마",      stand:[ 830,640], facing:"up"},
   pot:        {label:"냄비",      stand:[ 982,640], facing:"up"},
   pan:        {label:"후라이팬",  stand:[1114,640], facing:"up"},
   grill:      {label:"직화구이",  stand:[1264,640], facing:"up"},
   fryer:      {label:"튀김기",    stand:[1415,640], facing:"up"},
-  dishwasher: {label:"식기세척기",stand:[1536,640], facing:"up"},
+  dishwasher: {label:"식기세척기",stand:[1536,640], facing:"up", hideLabel:true},
   // labelDy = 이름표를 내릴 거리(VIEW). 다른 집기는 몸통 위에 떠 있지만
   //           쓰레기통은 키가 작아 그러면 허공에 뜬 것처럼 보입니다.
   //           앞쪽 계산대·철판 명패(counter.js)처럼 몸통에 걸치게 내립니다.
@@ -177,7 +181,8 @@ const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])
   x:STATION_LAYOUT[id].body.x, y:STATION_LAYOUT[id].body.y,
   w:STATION_LAYOUT[id].body.w, h:STATION_LAYOUT[id].body.h,
   ix:toLogic(spec.stand[0]), iy:toLogic(spec.stand[1]),
-  labelDy:toLogic(spec.labelDy||0)
+  labelDy:toLogic(spec.labelDy||0),
+  hideLabel:!!spec.hideLabel
 }]));
 
 /* 이 거리(논리 좌표) 안에 들어와야 집기를 쓸 수 있습니다.
@@ -395,11 +400,54 @@ function trashInFront(){
 // (12 → 3글자 이름표가 약 63px. 예전 88폭 집기의 명판 72px 과 비슷합니다)
 const LABEL_PAD_X = 12;
 
+/* 이름표 판의 크기와 높이(논리 좌표).
+   game.js 의 E 키캡도 같은 값을 봐야 둘이 어긋나지 않으므로 상수로 뺐습니다.
+   여기만 고치면 이름표와 키캡이 같이 따라옵니다. */
+const STATION_LABEL_H    = 23;   // 판 높이
+const STATION_LABEL_RISE = 25;   // 집기 윗변에서 판 윗변까지 (위로)
+
+// 이름표 판의 윗변. 둥실 흔들림(labelFloatStep)은 뺀 기준 위치입니다.
+function stationLabelTop(s){
+  return s.y - STATION_LABEL_RISE + (s.labelDy||0);
+}
+
+/* 뒤쪽 집기의 E 키캡을 앉힐 y (논리 좌표).
+
+   [왜 이름표 위인가] 원래는 집기 아랫변보다 60 아래(= y+h+60)였습니다.
+   뒤쪽 조리대는 요리사가 그 앞에 서서 쓰는 자리라, 키캡이 아래에 뜨면
+   요리사 몸 위에 겹쳐서 둘 다 알아보기 어려웠습니다. 이름표 위로 올리면
+   "이름표(무엇을) + 키캡(어떻게)" 이 위아래 한 줄로 읽힙니다.
+
+   키캡은 이 지점을 **바닥**으로 삼아 위로 그려집니다
+   (css/interaction.css 의 translate(-50%,-100%)). 그래서 이름표 윗변보다
+   조금 더 위를 돌려주면 키캡 전체가 이름표 위에 놓입니다.
+
+   [18 인 이유] 둘 다 가만히 있지 않아서, 각자 제일 가까워지는 순간을 다 빼야
+   합니다. 가만히 있을 때의 간격만 보고 잡으면 움직이다가 겹칩니다.
+     이름표가 올라오는 쪽  4.7  둥실 진폭 (draw-utils.js LABEL_FLOAT.active.amp)
+                          0.4  1.03 배로 커지면서 윗변이 더 올라오는 몫
+     키캡이 내려가는 쪽    3.7  눌리는 연출 5upx (css/interaction.css keycap-press)
+                          4.4  키 옆면 노릇을 하는 그림자 6upx — rect 에는
+                               안 잡히지만 눈에는 키의 일부로 보입니다
+   합이 약 13 이라 5 정도가 남습니다. (upx → 논리 환산은 창 크기에 따라
+   조금씩 달라지므로 넉넉한 쪽으로 잡았습니다)
+
+   이름표를 끈 집기(§1 hideLabel)도 같은 높이를 씁니다 — 뒤쪽 줄에서 키캡
+   높이가 들쭉날쭉하면 오히려 더 어수선합니다. */
+const STATION_PROMPT_GAP = 18;
+function stationPromptY(s){
+  return stationLabelTop(s) - STATION_PROMPT_GAP;
+}
+
 /* 이름표 한 장.
    E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
    앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
    둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
 function labelStation(s,near){
+  /* 이름표를 끈 집기(§1 hideLabel)는 여기서 바로 빠집니다.
+     labelFloatStep 을 부르기 전에 빠져야 합니다 — 그 함수는 집기마다 둥실
+     상태를 기억해 두는데, 안 그릴 것까지 부르면 쓰지도 않을 상태가 계속 쌓입니다. */
+  if(s.hideLabel)return;
   const active=stationUsable(s,near);
   const f=labelFloatStep(`station_${s.id}`,active);
 
@@ -407,11 +455,11 @@ function labelStation(s,near){
      냉장고(154)·세면대(146) 같은 큰 집기에서 명판만 길쭉해집니다.
      집기가 커져도 명판은 글자 길이만큼만 커집니다. */
   ctx.font="bold 13px Malgun Gothic";
-  const h=23,cx=s.x+s.w/2;
+  const h=STATION_LABEL_H,cx=s.x+s.w/2;
   const w=Math.round(ctx.measureText(s.label).width)+LABEL_PAD_X*2;
-  // labelDy = 기본 위치에서 더 내릴 거리. 키 작은 집기가 이름표만 허공에
-  // 띄우지 않도록 몸통 쪽으로 당길 때 씁니다. (§1 쓰레기통)
-  const x=cx-w/2,y=s.y-25+(s.labelDy||0)+f.dy;
+  // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
+  // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.
+  const x=cx-w/2,y=stationLabelTop(s)+f.dy;
 
   ctx.save();
   applyLabelScale(f.scale,cx,y+h/2);

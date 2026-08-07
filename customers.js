@@ -58,9 +58,14 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
 
      원화 교체·추가 → 그 폴더에 넣고 npm run build:customer
 
-   두 시트는 셀 크기(144x282)와 행 순서가 같습니다. 발바닥도 둘 다 셀
-   아래변에 붙어 있어서, 모션이 바뀌어도 손님이 위아래로 튀지 않습니다.
-   빌드 스크립트가 매번 그 두 가지를 검사합니다.
+   두 시트는 셀 크기와 행 순서가 같습니다. 발바닥은 셀 아래변에, 몸의
+   세로축은 셀 한가운데에 맞춰져 있습니다. 그래서 프레임이 넘어가도,
+   모션이 바뀌어도 손님이 제자리에 있습니다.
+
+   [원본은 격자에 안 맞습니다] 원화의 캐릭터 간격은 장마다 245~292 로
+   제각각입니다. 빌드 스크립트가 캐릭터를 한 명씩 떼어 셀 한가운데로
+   다시 놓아 주기 때문에 여기서는 신경 쓰지 않아도 됩니다. 다만
+   시트를 손으로 만들어 끼우면 손님이 옆으로 미끄러집니다.
 
    [스토리 손님은 쓰지 않습니다] 특별 손님은 캐릭터마다 얼굴이 정해져
    있어서(story.js portraitRow) 예전 시트를 그대로 씁니다. 그림을 고르는
@@ -85,14 +90,14 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
    안 나지만, 너무 올리면 신발이 카운터 앞면(논리 660 위쪽) 위로 떠오릅니다.
    그 선이 footY 의 하한입니다.
 
-   손님을 키우거나 줄일 때는 h 만 고치세요. w 는 셀 비율(144:282)을
-   유지해야 캐릭터가 홀쭉해지거나 뚱뚱해지지 않습니다.
+   [크기는 h 하나입니다] 가로는 시트의 셀 비율에서 계산합니다.
+   빌드 쪽에서 셀 폭이 바뀌어도(젓가락 여유를 늘리는 등) 캐릭터가
+   홀쭉해지거나 뚱뚱해지지 않습니다. 셀 여백은 투명이라 남아도 그만입니다.
    ------------------------------------------------------------ */
 
 const CUSTOMER_COMMON = {
   rows: 8,      // 캐릭터 수 (시트의 행 수)
-  w: 87,        // 화면에 그릴 셀 크기(논리 좌표). 셀 원본은 144x282
-  h: 170,
+  h: 170,       // 화면에 그릴 셀 높이(논리 좌표). 가로는 셀 비율에서 나옵니다
   footY: 670,   // 발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
 
   /* 모션. cols 는 시트의 열 수, fps 는 재생 속도입니다.
@@ -105,11 +110,12 @@ const CUSTOMER_COMMON = {
     eat:  { file:"assets/customer/customer_common_eat.webp",  cols:6, fps:8 }
   },
 
-  /* 머리 위치를 재는 기준 (§1-2-1)
-     headWidth  실루엣 가로폭이 셀 폭의 이 비율에 처음 닿는 줄을 머리끝으로 봅니다
-     headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
-     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격 */
-  headWidth: .31,
+  /* 머리 위치를 재는 기준 (§1-2-1). 둘 다 셀 "높이"에 대한 비율입니다.
+     셀 폭에는 젓가락용 여백이 들어 있어서 기준으로 쓸 수 없습니다.
+       headWidth  실루엣 가로폭이 이 값에 처음 닿는 줄을 머리끝으로 봅니다
+       headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
+       hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px) */
+  headWidth: .16,
   headBand:  .35,
   hudGap:    7
 };
@@ -204,7 +210,7 @@ function measureCommonHeadTops(image){
   const cellW=Math.floor(image.width/C.motions[CUSTOMER_BASE_MOTION].cols);
   const cellH=Math.floor(image.height/C.rows);
   const band=Math.max(1,Math.round(cellH*C.headBand));
-  const minRun=Math.max(1,Math.round(cellW*C.headWidth));
+  const minRun=Math.max(1,Math.round(cellH*C.headWidth));
 
   let tops;
   try{
@@ -305,14 +311,17 @@ function customerEnterOffset(progress,setting){
 
    예전에는 알파를 life/3.2 로 계산해서 등장하자마자 흐려지기 시작했고,
    그래서 인사말이 절반쯤 투명한 채로 지나갔습니다. 지금은 마지막
-   fade 초 동안에만 흐려집니다. 그 구간이 일어서는 구간이기도 합니다.
+   fade 초 동안에만 흐려집니다.
    (life 를 3.2 로 못 박지 않아서 2.6 인 특별 손님도 또렷하게 시작합니다)
 
+   [위로 뜨지 않습니다] 예전에는 일어서는 느낌을 내려고 16px 떠올랐는데,
+   앉은 자세 그대로 뜨면 의자에서 뽑혀 나가는 것처럼 보입니다.
+   자리를 지킨 채 사라지기만 합니다.
+
      fade  마지막 이 초 동안 사라집니다. 식사 모션을 보여 줄 시간이기도 합니다
-     rise  일어서면서 뜨는 높이
    ------------------------------------------------------------ */
 
-const CUSTOMER_DEPART = { fade:1.2, rise:16 };
+const CUSTOMER_DEPART = { fade:1.2 };
 
 // 손님 머리 위에 뜨는 것들의 y 오프셋(손님 기준 y 로부터).
 const CUSTOMER_HUD = {
@@ -405,16 +414,12 @@ function drawCustomers(){
     if(order.bubble&&order.bubbleTime>0&&progress>.85)drawCustomerSpeech(order.bubble,x,hy+H.speechY,entryAlpha);
   });
 
-  /* 떠나는 손님 — 마저 먹고 일어서듯 살짝 뜨면서 사라집니다. (§1-4)
+  /* 떠나는 손님 — 자리에 앉은 채로 마저 먹다가 사라집니다. (§1-4)
      life 는 game.js 가 매 프레임 줄이고 0 이 되면 목록에서 빠집니다. */
   state.departures.forEach((item,index)=>{
-    const D=CUSTOMER_DEPART;
-    const x=CUSTOMER_SEATS[item.slot];
-    const life=Math.max(0,item.life);
-    const alpha=clamp(life/D.fade,0,1);
+    const x=CUSTOMER_SEATS[item.slot],y=CUSTOMER_SEAT_Y;
+    const alpha=clamp(Math.max(0,item.life)/CUSTOMER_DEPART.fade,0,1);
     const motion=customerMotionOf(usesCommonArt(item)?"eat":CUSTOMER_BASE_MOTION);
-    // 남은 시간이 fade 아래로 내려가면 = 자리에서 일어나는 구간입니다.
-    const y=CUSTOMER_SEAT_Y-D.rise*(1-clamp(life/D.fade,0,1));
     drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
     drawCustomerSpeech(item.bubble,x,y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY,alpha);
   });
@@ -428,14 +433,18 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
 
   const sheet=customerMotionSheets[motion];
   if(sheet&&usesCommonArt(customer)){
-    // 셀 크기는 파일에서 읽습니다. 시트를 다시 뽑아 해상도가 바뀌어도
-    // 여기를 고칠 필요가 없습니다. 세로는 발바닥(셀 아래변) 기준입니다.
+    /* 셀 크기는 파일에서 읽습니다. 시트를 다시 뽑아 해상도나 여백이
+       바뀌어도 여기를 고칠 필요가 없습니다.
+         세로 — 발바닥이 셀 아래변
+         가로 — 몸의 세로축이 셀 한가운데
+       둘 다 빌드 스크립트가 맞춰 주고 검증합니다. */
     const C=CUSTOMER_COMMON;
     const cols=C.motions[motion].cols;
     const cellW=sheet.width/cols,cellH=sheet.height/C.rows;
+    const drawW=C.h*cellW/cellH;
     ctx.drawImage(sheet,
       (frame%cols)*cellW,(variant%C.rows)*cellH,cellW,cellH,
-      x-C.w/2,y+CUSTOMER_COMMON_FOOT_OFFSET-C.h,C.w,C.h);
+      x-drawW/2,y+CUSTOMER_COMMON_FOOT_OFFSET-C.h,drawW,C.h);
     ctx.restore();
     return;
   }

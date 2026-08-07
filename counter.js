@@ -187,10 +187,16 @@ const COUNTER_LAYOUT = {
     { id:"condiment_3", x:1634 }    // 5번 자리 오른쪽
   ],
 
-  // 명패 2개 — 같은 에셋 재사용. 글자는 이미지가 아니라 런타임 텍스트입니다. (§2-6)
+  /* 명패 — 같은 에셋 재사용. 글자는 이미지가 아니라 런타임 텍스트입니다. (§2-6)
+
+     hidden:true 는 "안 그린다" 는 뜻입니다. 좌표를 지우지 않고 남겨 두는 이유는
+     이 값들이 카운터 에셋 위에서 손으로 맞춘 값이라, 다시 켤 때 새로 잡으려면
+     같은 품이 또 들기 때문입니다. 되돌리려면 그 줄만 지우면 됩니다.
+     ※ 판정(FRONT_STATIONS.register)과는 무관합니다 — 명패만 안 보일 뿐
+       계산대 앞 상호작용은 그대로 됩니다. */
   plateSize: { w:94, h:46 },
   plates: [
-    { id:"plate_register", x:88,  y:890, text:"계산대", zone:"register" },
+    { id:"plate_register", x:88,  y:890, text:"계산대", zone:"register", hidden:true },
     // 철판을 19 왼쪽으로 당긴 만큼 같이 옮겼습니다. (스펙값 434)
     { id:"plate_griddle",  x:415, y:937, text:"철판",   zone:"griddle"  }
   ]
@@ -475,7 +481,9 @@ function createCounter(scene){
       .setVisible(false)
   );
 
-  counter.plates=L.plates.map(data=>createCounterPlate(scene,data));
+  // hidden 은 아예 만들지 않습니다 — 만들어 놓고 숨기면 매 프레임 둥실 보간만
+  // 돌면서 보이지도 않습니다. (§2-6 plates 의 hidden 주석 참고)
+  counter.plates=L.plates.filter(data=>!data.hidden).map(data=>createCounterPlate(scene,data));
 
   counter.debugGraphics=scene.add.graphics().setDepth(COUNTER_DEPTH.debug).setVisible(false);
 
@@ -706,7 +714,9 @@ function drawCounterDebug(playerView){
   box(L.pos,0x8888ff); box(L.steam,0x66ddff);
   L.chairs.forEach(c=>box({x:c.x,y:L.chairSize.y,w:L.chairSize.w,h:L.chairSize.h},0x66ff88));
   L.condiments.forEach(c=>box({x:c.x,y:L.condimentSize.y,w:L.condimentSize.w,h:L.condimentSize.h},0xffaa66));
-  L.plates.forEach(p=>box({x:p.x,y:p.y,w:L.plateSize.w,h:L.plateSize.h},0xffffff));
+  // 안 그리는 명패는 디버그 상자도 안 칩니다 — 화면에 없는 것의 상자만 떠 있으면
+  // 자리를 잘못 잡은 것으로 오해합니다.
+  L.plates.filter(p=>!p.hidden).forEach(p=>box({x:p.x,y:p.y,w:L.plateSize.w,h:L.plateSize.h},0xffffff));
 
   // 상호작용 판정: ix/iy 를 중심으로 한 반경 원
   const griddleStand=counterStandPoint(FRONT_STATIONS.griddle);
