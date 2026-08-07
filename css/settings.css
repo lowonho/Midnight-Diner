@@ -39,10 +39,12 @@
   --set-toggle-img:   url("../assets/UI/Setting/ui_toggle_on.webp");
   --set-knob-img:     url("../assets/UI/Setting/ui_slider_knob.webp");
 
-  /* 판 높이. 가로는 aspect-ratio 가 그림 비율대로 잡아 줍니다.
-     --upx 는 상한이 0.0926vh 라 1040 배는 어떤 창에서도 96.3vh 를 넘지
-     않습니다. 그래서 따로 vh 로 자르지 않아도 화면 밖으로 나가지 않습니다. */
-  --set-panel-h: calc(1040 * var(--upx));
+  /* 판 높이. 가로는 aspect-ratio 가 그림 비율대로 잡아 줍니다 (795 x 1018).
+     --upx 는 상한이 0.0926vh 라 1018 배는 어떤 창에서도 94.3vh 를 넘지
+     않습니다. 그래서 따로 vh 로 자르지 않아도 화면 밖으로 나가지 않습니다.
+     값은 "내용이 딱 차는 높이"입니다 — 늘리면 아래가 휑해집니다.
+     tools/settings-visual-smoke.html 의 data-slack 으로 재면 됩니다. */
+  --set-panel-h: calc(1018 * var(--upx));
 
   /* 그림 속 금테 안쪽까지의 여백. 실측값(판 가로의 4.4%, 세로의 4.2%)에
      한 칸 정도 여유를 더한 값입니다. 이보다 줄이면 글자가 금테에 닿습니다. */
@@ -62,7 +64,7 @@
 }
 /* lobby 는 칸이 적어 같은 높이면 아래가 휑합니다. 내용이 딱 차는 높이입니다. */
 .settings-overlay.is-lobby {
-  --set-panel-h: calc(790 * var(--upx));
+  --set-panel-h: calc(778 * var(--upx));
 }
 
 /* ── 판 ──────────────────────────────────────────────────── */
@@ -103,22 +105,32 @@
 .settings-overlay.is-lobby .eyebrow-ingame { display: none; }
 .settings-overlay.is-lobby .eyebrow-lobby { display: inline; }
 
+/* 글자 크기는 --upx 배수라 창을 줄여도 판과 같은 비율로 따라갑니다.
+   칸 밑 설명문을 걷어내면서 남은 자리를 글자 크기로 돌렸습니다. */
+.settings-overlay .settings-window h2 { font-size: calc(30 * var(--upx)); }
+/* 머리 세 줄(PAUSE MENU · 설정 · 안내문)을 판 위 금테에서 한 칸 떼어 놓습니다.
+   판 자체의 --set-pad-y 를 키우면 아래 여백까지 같이 벌어지므로 위만 밉니다. */
+.settings-overlay .eyebrow {
+  margin-top: calc(22 * var(--upx));
+  font-size: calc(13 * var(--upx));
+}
+
 .pause-message {
   margin: 0 0 calc(6 * var(--upx));
   color: #c9ae85;
-  font-size: calc(13 * var(--upx));
+  font-size: calc(16 * var(--upx));
   line-height: 1.55;
 }
 
 /* 칸 묶음 제목. 소리 · 조작 · 기록 세 덩어리를 눈으로 갈라 줍니다. */
 .settings-section {
-  margin: calc(14 * var(--upx)) 0 calc(2 * var(--upx));
-  padding-bottom: calc(4 * var(--upx));
+  margin: calc(20 * var(--upx)) 0 calc(4 * var(--upx));
+  padding-bottom: calc(5 * var(--upx));
   border-bottom: 1px solid rgba(202, 139, 66, .34);
   color: #e0b06a;
-  font-size: calc(12 * var(--upx));
+  font-size: calc(19 * var(--upx));
   font-weight: 800;
-  letter-spacing: .14em;
+  letter-spacing: .1em;
   text-align: left;
 }
 
@@ -127,25 +139,13 @@
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: calc(5 * var(--upx)) calc(12 * var(--upx));
-  margin: calc(10 * var(--upx)) 0;
+  gap: calc(7 * var(--upx)) calc(12 * var(--upx));
+  margin: calc(16 * var(--upx)) 0;
   color: #ead7b5;
-  font-size: calc(15 * var(--upx));
+  font-size: calc(19 * var(--upx));
   text-align: left;
 }
 .volume-row strong { color: #ffd78d; }
-/* 각 칸이 무엇을 바꾸는지 한 줄로 적는 자리입니다. 문구는 index.html 에
-   그대로 적혀 있고 JS 가 건드리지 않습니다.
-   판이 가운데 정렬(.settings-window)이라 설명만 따로 왼쪽으로 붙입니다. */
-.setting-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: #a98e6c;
-  font-size: calc(11 * var(--upx));
-  line-height: 1.45;
-  text-align: left;
-  word-break: keep-all;
-}
 .volume-state-controls {
   display: flex;
   align-items: center;
@@ -277,8 +277,20 @@
 /* ── 나무판 · 금판 버튼 4종 ─────────────────────────────────
    폭은 판 안쪽을 꽉 채우고(100%), 높이는 그림 비율이 정합니다.
    저장/불러오기만 한 줄에 둘이라 절반씩 나눠 갖습니다.
-   글자는 그림 위에 CSS 로 얹습니다 (그림에는 아무 글자도 없습니다). */
-.settings-window .save-action-button,
+   글자는 그림 위에 CSS 로 얹습니다 (그림에는 아무 글자도 없습니다).
+   네 개 모두 손을 올리면 밝기만 한 단계 오르고, 누르면 2px 내려앉습니다.
+
+   ⚠️ [id 로 적는 이유 — 클래스로 적으면 hover 에서 그림이 깨집니다]
+   css/save-slots.css 가 이 파일보다 **뒤에** 로드되는데, 거기
+   `.save-action-button:hover` 가 `background` **단축 속성**을 씁니다.
+   단축 속성은 안 적은 값(size · position · repeat)까지 초기값으로 되돌립니다.
+   `.settings-window .save-action-button`(클래스 둘 = 0,2,0)로 적으면 저쪽
+   hover(0,2,0)와 우선순위가 같아 나중에 로드된 쪽이 이겨서, 손을 올리는
+   순간 background-size 가 100% 100% → auto 로 풀립니다. 그러면 730px 짜리
+   원본이 버튼(약 350px) 위에 왼쪽 위 기준으로 깔려 금테 모서리만 확대돼
+   보입니다. id(1,1,0)로 적으면 항상 이깁니다. */
+.settings-window #manualSaveButton,
+.settings-window #loadGameButton,
 .settings-window #resumeButton,
 .settings-window #returnTitleButton {
   width: 100%;
@@ -288,75 +300,84 @@
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: center / 100% 100% no-repeat;
   box-shadow: none;
   font-weight: 800;
   line-height: 1.1;
   cursor: pointer;
   transition: filter .12s;
 }
-.settings-window .save-action-button:hover:not(:disabled),
-.settings-window .save-action-button:focus-visible,
+.settings-window #manualSaveButton:hover:not(:disabled),
+.settings-window #loadGameButton:hover:not(:disabled),
+.settings-window #manualSaveButton:focus-visible,
+.settings-window #loadGameButton:focus-visible,
 .settings-window #resumeButton:hover,
 .settings-window #returnTitleButton:hover { filter: brightness(1.09); }
-.settings-window .save-action-button:active:not(:disabled),
+.settings-window #manualSaveButton:active:not(:disabled),
+.settings-window #loadGameButton:active:not(:disabled),
 .settings-window #resumeButton:active,
 .settings-window #returnTitleButton:active { transform: translateY(2px); }
-.settings-window .save-action-button:disabled {
+.settings-window #manualSaveButton:disabled,
+.settings-window #loadGameButton:disabled {
   opacity: .42;
   filter: grayscale(.7);
   cursor: default;
 }
 
 /* 어두운 나무판 3종 — 밝은 크림색 글자 */
-.settings-window .save-action-button,
+.settings-window #manualSaveButton,
+.settings-window #loadGameButton,
 .settings-window #returnTitleButton {
   color: #f3d9a4;
   text-shadow: 0 calc(2 * var(--upx)) calc(2 * var(--upx)) #150b05;
 }
+/* background 를 단축 속성으로 한 번에 적습니다 — 위 [id 로 적는 이유] 참고.
+   hover / focus 에서도 이 선언이 그대로 이겨야 그림이 안 흔들립니다. */
 .settings-window #manualSaveButton {
   aspect-ratio: 831 / 176;
-  background-image: var(--set-btn-save);
-  font-size: calc(18 * var(--upx));
+  background: var(--set-btn-save) center / 100% 100% no-repeat;
+  font-size: calc(21 * var(--upx));
 }
 .settings-window #loadGameButton {
   aspect-ratio: 831 / 176;
-  background-image: var(--set-btn-load);
-  font-size: calc(18 * var(--upx));
+  background: var(--set-btn-load) center / 100% 100% no-repeat;
+  font-size: calc(21 * var(--upx));
 }
+/* [일부러 늘린 판입니다]
+   ui_button_title_screen 원본은 1702x121 로 다른 버튼(1702x176)보다 얇습니다.
+   그대로 쓰면 위의 "게임으로 돌아가기" 와 두께 차이가 커서 눌린 것처럼 보이고
+   두 판 사이 간격도 좁아 붙어 보였습니다. 그래서 세로 비율을 176 으로 맞춰
+   **의도적으로 늘려** 씁니다 (그림이 세로로 찌그러지는 것은 감수한 것입니다.
+   가로줄 나뭇결 + 금테라 늘려도 티가 거의 안 납니다).
+
+   늘어나는 방향은 아래쪽입니다 — 일반 흐름의 블록이라 margin-top 이 위를
+   붙들고 height 만 커집니다. 위 버튼을 침범하지 않습니다.
+   ⚠️ 이 비율을 다시 바꾸면 tools/build-ui-setting-webp.js 의
+      ui_button_title_screen 목표 크기도 같이 고쳐야 합니다. */
 .settings-window #returnTitleButton {
-  /* 원본이 더 얇은 판이라 비율이 다릅니다 */
-  aspect-ratio: 1702 / 121;
-  margin-top: calc(8 * var(--upx));
-  background-color: transparent;
-  background-image: var(--set-btn-title);
-  font-size: calc(16 * var(--upx));
+  aspect-ratio: 1702 / 176;
+  margin-top: calc(14 * var(--upx));
+  background: var(--set-btn-title) center / 100% 100% no-repeat;
+  font-size: calc(19 * var(--upx));
 }
-/* 타이틀 버튼은 lobby 와 미니게임 진행 중에 JS 가 .is-hidden 으로 감춥니다.
-   그 아래 설명 한 줄도 같이 사라져야 합니다. */
-#returnTitleButton.is-hidden + #returnTitleNote { display: none; }
-#returnTitleNote { margin-top: calc(6 * var(--upx)); }
 
 /* 금판 — 그 화면의 기본 동작입니다. 바탕이 밝아 글자는 짙은 갈색입니다.
    ingame 이면 "게임으로 돌아가기", lobby 면 "설정 닫기" 그림을 씁니다
    (문구는 ui-hud.js UI_TEXT 가 넣습니다). */
 .settings-window #resumeButton {
   aspect-ratio: 1702 / 176;
-  margin-top: calc(12 * var(--upx));
-  background-image: var(--set-btn-resume);
+  margin-top: calc(16 * var(--upx));
+  background: var(--set-btn-resume) center / 100% 100% no-repeat;
   color: #3b2109;
-  font-size: calc(21 * var(--upx));
+  font-size: calc(24 * var(--upx));
   text-shadow: 0 1px 0 rgba(255, 243, 209, .5);
 }
 .settings-overlay.is-lobby .settings-window #resumeButton {
   background-image: var(--set-btn-close);
 }
 
-/* 저장/불러오기 한 줄. 칸 제목과 설명은 같은 묶음 안에 있어야
+/* 저장/불러오기 한 줄. 칸 제목도 같은 묶음 안에 있어야
    game.js 가 #saveLoadActions 를 감출 때 같이 사라집니다. */
-.save-load-actions .settings-section,
-.save-load-actions .setting-note { grid-column: 1 / -1; }
-.save-load-actions .settings-section { margin-top: calc(4 * var(--upx)); }
+.save-load-actions .settings-section { grid-column: 1 / -1; margin-top: calc(4 * var(--upx)); }
 
 .dark-button {
   width: 100%;
@@ -371,8 +392,8 @@
 
 @media (max-width: 760px) {
   .settings-overlay { --set-pad-x: calc(42 * var(--upx)); --set-pad-y: calc(44 * var(--upx)); }
-  .volume-row { margin: calc(10 * var(--upx)) 0; font-size: calc(13 * var(--upx)); }
-  .setting-note { font-size: calc(10 * var(--upx)); }
+  .volume-row { margin: calc(11 * var(--upx)) 0; font-size: calc(16 * var(--upx)); }
+  .settings-section { margin-top: calc(14 * var(--upx)); font-size: calc(13 * var(--upx)); }
 }
 
 .journal-window {

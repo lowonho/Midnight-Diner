@@ -13,15 +13,23 @@
    (WebP → WebP 재인코딩 금지. 세대 손실이 누적됩니다.)
 
    ------------------------------------------------------------
-   [배율 기준 = "CSS 레이아웃 크기의 2배"]
+   [배율 기준 = "CSS 레이아웃 크기의 2배 이상"]
    ------------------------------------------------------------
    설정창은 미니게임 오버레이처럼 DOM 이고, 크기는 css/settings.css 가
    --upx(1920x1080 프레임에서 1px) 배수로 정합니다. 그래서 여기 목표 크기는
-   전부 "css/settings.css 가 쓰는 CSS 크기 x2" 입니다.
+   전부 "css/settings.css 가 쓰는 CSS 크기 x2" 가 하한입니다.
    (assets/UI/Minigame 쪽 tools/build-minigame-ui-webp.js 와 같은 기준입니다)
 
-   ⚠️ css/settings.css 의 --set-panel-w / --set-panel-h / --set-toggle-w 등을
-      고치면 아래 표도 같이 고쳐야 합니다. 안 고치면 화면에서 확대되어 뭉갭니다.
+   딱 2배가 아니라 조금 크게 잡아 둔 것들이 있습니다. 판 높이(--set-panel-h)는
+   글 크기·칸 수를 손볼 때마다 흔들리는 값이라, 그때마다 다시 뽑지 않아도
+   되도록 여유를 둡니다. **줄여 그리는 쪽은 안전하고, 늘려 그리는 쪽만
+   뭉갭니다.** 그래서 지키면 되는 것은 "화면 크기보다 작지 않게" 하나입니다.
+   (checkAspect 가 원본보다 크게 뽑으면 경고합니다)
+
+   ⚠️ css/settings.css 의 --set-panel-h / --set-toggle-w 등을 키워서 아래
+      표를 넘어서면 그때는 표도 같이 키워야 합니다. 안 그러면 뭉갭니다.
+      2026-08-07 기준 실제 CSS 크기 — 판 ingame 795x1018 · lobby 777x778 ·
+      판 안쪽 폭 695(ingame) / 677(lobby) · 토글 72x42 · 손잡이 36
 
    ------------------------------------------------------------
    [ingame / lobby 두 장인 이유]
@@ -67,7 +75,13 @@ const FILES = [
      큰 쪽에 맞춥니다. 작은 화면에서 줄어드는 건 문제가 없습니다. */
   { file:"ui_button_game_return.png",    size:[1494,154], why:"게임으로 돌아가기 747 폭 x2 (ingame 기본 동작)" },
   { file:"ui_button_settings_close.png", size:[1494,154], why:"설정 닫기 747 폭 x2 (lobby 기본 동작)" },
-  { file:"ui_button_title_screen.png",   size:[1494,106], why:"타이틀 화면으로 747 폭 x2 (원본이 더 얇은 판)" },
+  /* 이것만 원본(1702x121)이 얇습니다. 화면에서는 다른 버튼과 같은 두께로
+     맞추려고 세로로 늘려 쓰므로(css/settings.css #returnTitleButton 참고),
+     늘리는 일을 여기서 한 번에 끝냅니다. 그리는 시점에 늘리면 매 프레임
+     쌍선형으로 뭉개지지만, 여기서 lanczos 로 한 번 늘려 두면 화면에서는
+     1:1 이라 더 깨끗합니다. */
+  { file:"ui_button_title_screen.png",   size:[1494,154], stretch:true,
+    why:"타이틀 화면으로 747 폭 x2 · 세로는 다른 버튼과 같은 176 비율로 늘림(의도)" },
 
   /* ── 반씩 나눠 앉는 버튼 2종 ───────────────────────────────
      저장/불러오기는 한 줄에 둘이 들어갑니다. (747 - 사이 17) / 2 = 365 */
@@ -102,7 +116,12 @@ function checkAspect(f, meta){
   const source = meta.width / meta.height;
   const target = f.size[0] / f.size[1];
   const drift = Math.abs(target - source) / source;
-  if(drift > ASPECT_TOLERANCE){
+  // stretch:true 는 "비율이 다른 것을 알고 그렇게 뽑는다" 는 표시입니다.
+  // 이걸 안 두면 매번 뜨는 경고에 눈이 익어서 진짜 실수를 놓칩니다.
+  if(f.stretch){
+    console.log(`  · ${f.file} : 의도적으로 세로를 늘립니다 ` +
+      `(${meta.width}x${meta.height} → ${f.size[0]}x${f.size[1]}, 비율 ${(drift*100).toFixed(1)}% 차이)`);
+  }else if(drift > ASPECT_TOLERANCE){
     console.warn(`  ! ${f.file} : 가로세로비가 ${(drift*100).toFixed(1)}% 다릅니다. ` +
       `원본 ${meta.width}x${meta.height}(${source.toFixed(3)}) → ${f.size[0]}x${f.size[1]}(${target.toFixed(3)})`);
   }
