@@ -37,14 +37,14 @@ const CUSTOMER_AUTO_SERVE_REACH = 64; // 가까이 가면 자동 서빙
 // 앉았을 때의 기준 y. 머리·어깨가 의자 등받이(VIEW 878)보다 위로
 // 올라오도록 맞췄습니다. 값을 키우면 손님이 의자 뒤로 가라앉습니다.
 // 말풍선·주문 패널·강조 원이 전부 이 y 를 기준으로 붙어 있으므로
-// 그림만 바꿀 때는 이 값이 아니라 아래 CUSTOMER_COMMON 을 만지세요.
+// 그림만 바꿀 때는 이 값이 아니라 아래 CUSTOMER_ART_BASE 를 만지세요.
 const CUSTOMER_SEAT_Y = 607;
 
 // 원본 시트는 44x60 셀에 4열 6행. 카운터 에셋에 비해 캐릭터가 작아서
 // 키운 상태입니다(원래 54x74 → 83x113). 지금은 스토리 손님 전용입니다. (§1-2)
 // cols/fps 는 일반 손님 모션(§1-2 motions)과 같은 뜻이고, 프레임 번호를
 // 고르는 customerFrame() 이 두 경우를 같은 방식으로 다루기 위한 것입니다.
-const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4, fps:5 };
+const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4, rows:6, fps:5 };
 
 
 /* ------------------------------------------------------------
@@ -67,9 +67,18 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
    다시 놓아 주기 때문에 여기서는 신경 쓰지 않아도 됩니다. 다만
    시트를 손으로 만들어 끼우면 손님이 옆으로 미끄러집니다.
 
-   [스토리 손님은 쓰지 않습니다] 특별 손님은 캐릭터마다 얼굴이 정해져
-   있어서(story.js portraitRow) 예전 시트를 그대로 씁니다. 그림을 고르는
-   판정은 §2 의 usesCommonArt() 한 곳에만 있습니다.
+   [특별 손님도 같은 구조입니다] 세트만 special 로 갈립니다.
+   행 번호가 story-data.js 의 portraitRow 이고, 파일 번호에서 1 을 뺀 값입니다.
+
+     0 비에 젖은 아이   1 등불 손님     2 두 그림자   3 까마귀 배달부
+     4 작은 짐승        5 바닷물 손님   6 교복 인형   7 얼굴 없는 손님
+
+   4번(작은 짐승)은 동물이라 사람처럼 다리가 보이지 않습니다. 정상입니다.
+   그림을 고르는 판정은 §2 의 customerArtSet() 한 곳에만 있습니다.
+
+   [여기 그림은 자리에 앉은 손님 전용입니다] 대화씬 초상화는 css/story.css
+   의 별도 시트를, 영업일지는 글자만 씁니다. 둘 다 이 파일과 무관하므로
+   여기에 시트를 추가해도 그쪽에 새어 나가지 않습니다.
 
    [세로 위치는 footY 하나로 정합니다] 셀 아래변이 발바닥이라 "발이 어디에
    닿는가"로 잡습니다. 말풍선 묶음은 §1-2-1 이 잰 머리 높이를 따라오므로
@@ -95,29 +104,33 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
    홀쭉해지거나 뚱뚱해지지 않습니다. 셀 여백은 투명이라 남아도 그만입니다.
    ------------------------------------------------------------ */
 
-const CUSTOMER_COMMON = {
-  rows: 8,      // 캐릭터 수 (시트의 행 수)
-  h: 170,       // 화면에 그릴 셀 높이(논리 좌표). 가로는 셀 비율에서 나옵니다
-  footY: 670,   // 발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
+/* 두 세트가 공유하는 값. 크기와 앉는 높이는 세트를 가리지 않습니다.
+     h          화면에 그릴 셀 높이(논리 좌표). 가로는 셀 비율에서 나옵니다
+     footY      발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
+     headWidth  실루엣 가로폭이 이 값(셀 높이 대비)에 처음 닿는 줄이 머리끝
+     headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
+     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px)
 
-  /* 모션. cols 는 시트의 열 수, fps 는 재생 속도입니다.
-     빌드 스크립트가 마지막에 cols 값을 찍어 주므로 그대로 옮겨 적으세요.
-     불러올 때 파일 크기와 대조해서 어긋나면 경고합니다. */
-  motions: {
-    idle: { file:"assets/customer/customer_common_idle.webp", cols:3, fps:5 },
+   headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
+   젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
+   기준으로 삼으면 세트가 바뀔 때 판정선이 같이 움직입니다. */
+const CUSTOMER_ART_BASE = { h:170, footY:670, headWidth:.16, headBand:.35, hudGap:7 };
+
+/* 그림 세트. rows 는 시트의 행 수(= 캐릭터 수),
+   cols 는 시트의 열 수, fps 는 재생 속도입니다.
+   빌드 스크립트가 마지막에 cols 값을 찍어 주므로 그대로 옮겨 적으세요.
+   불러올 때 파일 크기와 대조해서 어긋나면 경고합니다. */
+const CUSTOMER_ART = {
+  common: { rows:8, motions:{
+    idle:{ file:"assets/customer/customer_common_idle.webp", cols:3, fps:5 },
     // 젓가락이 올라갔다 내려오는 한 사이클이 6프레임입니다. 8fps 면
     // 0.75초에 한 입이라, 급하지도 굼뜨지도 않게 보입니다.
-    eat:  { file:"assets/customer/customer_common_eat.webp",  cols:6, fps:8 }
-  },
-
-  /* 머리 위치를 재는 기준 (§1-2-1). 둘 다 셀 "높이"에 대한 비율입니다.
-     셀 폭에는 젓가락용 여백이 들어 있어서 기준으로 쓸 수 없습니다.
-       headWidth  실루엣 가로폭이 이 값에 처음 닿는 줄을 머리끝으로 봅니다
-       headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
-       hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px) */
-  headWidth: .16,
-  headBand:  .35,
-  hudGap:    7
+    eat: { file:"assets/customer/customer_common_eat.webp",  cols:6, fps:8 }
+  }},
+  special: { rows:8, motions:{
+    idle:{ file:"assets/customer/customer_special_idle.webp", cols:3, fps:5 },
+    eat: { file:"assets/customer/customer_special_eat.webp",  cols:6, fps:8 }
+  }}
 };
 
 // 머리 높이를 재고, 시트가 없을 때 물러설 기준이 되는 모션.
@@ -125,56 +138,68 @@ const CUSTOMER_BASE_MOTION = "idle";
 
 // 일반 손님 variant 의 범위. night.js 가 이 값으로 뽑습니다.
 // 원화를 늘리면 시트 행 수와 여기가 같이 늘어납니다.
-const CUSTOMER_VARIANT_COUNT = CUSTOMER_COMMON.rows;
+const CUSTOMER_VARIANT_COUNT = CUSTOMER_ART.common.rows;
 
 // 손님 기준 y 로부터 발바닥까지의 거리. 기준 y 는 그대로 두고
 // 그림만 발 기준으로 놓기 위한 보정값입니다.
-const CUSTOMER_COMMON_FOOT_OFFSET = CUSTOMER_COMMON.footY - CUSTOMER_SEAT_Y;
+const CUSTOMER_FOOT_OFFSET = CUSTOMER_ART_BASE.footY - CUSTOMER_SEAT_Y;
 
-// 모션 이름 → HTMLImageElement. 못 불러온 모션은 키가 없습니다.
-const customerMotionSheets = {};
+// "세트/모션" → HTMLImageElement. 못 불러온 것은 키가 없습니다.
+const customerSheets = {};
+const sheetKey = (set,motion) => `${set}/${motion}`;
 
 /* game.js 의 에셋 로딩 Promise.all 에 stage.js loadStageAssets() 를 거쳐
    들어갑니다. (요리사 시트와 같은 경로 — stage.js §5 주석 참고)
 
    시트가 없어도 게임은 돌아가야 하므로 실패해도 reject 하지 않습니다.
-   기준 모션이 없으면 예전 스프라이트시트로, 식사 시트만 없으면
+   세트의 기준 모션이 없으면 예전 스프라이트시트로, 식사 시트만 없으면
    정지 모션으로 물러섭니다. */
 function loadCommonCustomerSheet(){
-  const entries=Object.entries(CUSTOMER_COMMON.motions);
-  return Promise.all(entries.map(([name,motion])=>new Promise(resolve=>{
-    const image=new Image();
-    image.onload=()=>{
-      if(image.width%motion.cols||image.height%CUSTOMER_COMMON.rows)
-        console.warn(`[customers] ${name} 시트 격자 불일치: ${image.width}x${image.height} / ${motion.cols}열 ${CUSTOMER_COMMON.rows}행`);
-      customerMotionSheets[name]=image;
-      resolve(image);
-    };
-    image.onerror=()=>{
-      console.warn(`[customers] ${name} 손님 시트를 불러오지 못했습니다: ${motion.file}`);
-      resolve(null);
-    };
-    image.src=motion.file;
-  }))).then(images=>{
-    const base=customerMotionSheets[CUSTOMER_BASE_MOTION];
-    if(base)measureCommonHeadTops(base);
-    checkMotionSheetsMatch();
+  const jobs=[];
+  Object.entries(CUSTOMER_ART).forEach(([set,art])=>{
+    Object.entries(art.motions).forEach(([motion,spec])=>{
+      jobs.push(new Promise(resolve=>{
+        const key=sheetKey(set,motion);
+        const image=new Image();
+        image.onload=()=>{
+          if(image.width%spec.cols||image.height%art.rows)
+            console.warn(`[customers] ${key} 시트 격자 불일치: ${image.width}x${image.height} / ${spec.cols}열 ${art.rows}행`);
+          customerSheets[key]=image;
+          resolve(image);
+        };
+        image.onerror=()=>{
+          console.warn(`[customers] ${key} 손님 시트를 불러오지 못했습니다: ${spec.file}`);
+          resolve(null);
+        };
+        image.src=spec.file;
+      }));
+    });
+  });
+  return Promise.all(jobs).then(images=>{
+    Object.keys(CUSTOMER_ART).forEach(measureHeadTops);
+    checkSheetsMatch();
     return images;
   });
 }
 
-/* 모션 시트끼리 셀 크기가 다르면 모션이 바뀌는 순간 손님이 커지거나
-   위아래로 튑니다. 빌드 때도 검사하지만, 시트를 손으로 갈아 끼우는
-   경우가 있어 불러온 뒤에도 한 번 더 봅니다. */
-function checkMotionSheetsMatch(){
-  const base=customerMotionSheets[CUSTOMER_BASE_MOTION];
-  if(!base)return;
-  const baseCell=base.width/CUSTOMER_COMMON.motions[CUSTOMER_BASE_MOTION].cols;
-  Object.entries(customerMotionSheets).forEach(([name,image])=>{
-    const cell=image.width/CUSTOMER_COMMON.motions[name].cols;
-    if(cell!==baseCell||image.height!==base.height)
-      console.warn(`[customers] ${name} 시트의 셀 크기가 ${CUSTOMER_BASE_MOTION} 과 다릅니다: `
-        +`${cell}x${image.height/CUSTOMER_COMMON.rows} / ${baseCell}x${base.height/CUSTOMER_COMMON.rows}`);
+/* 같은 세트 안에서 모션끼리 셀 크기가 다르면 모션이 바뀌는 순간 손님이
+   커지거나 위아래로 튑니다. 빌드 때도 검사하지만, 시트를 손으로 갈아
+   끼우는 경우가 있어 불러온 뒤에도 한 번 더 봅니다.
+   (세트끼리는 달라도 됩니다. 그리는 크기를 셀 비율에서 계산하므로
+    특별 손님 셀이 더 넓어도 캐릭터는 같은 크기로 나옵니다) */
+function checkSheetsMatch(){
+  Object.entries(CUSTOMER_ART).forEach(([set,art])=>{
+    const base=customerSheets[sheetKey(set,CUSTOMER_BASE_MOTION)];
+    if(!base)return;
+    const baseCell=base.width/art.motions[CUSTOMER_BASE_MOTION].cols;
+    Object.keys(art.motions).forEach(motion=>{
+      const image=customerSheets[sheetKey(set,motion)];
+      if(!image)return;
+      const cell=image.width/art.motions[motion].cols;
+      if(cell!==baseCell||image.height!==base.height)
+        console.warn(`[customers] ${set}/${motion} 셀 크기가 ${CUSTOMER_BASE_MOTION} 과 다릅니다: `
+          +`${cell}x${image.height/art.rows} / ${baseCell}x${base.height/art.rows}`);
+    });
   });
 }
 
@@ -192,7 +217,10 @@ function checkMotionSheetsMatch(){
 
    그래서 "제일 위 픽셀"이 아니라 "실루엣이 눈에 띄게 넓어지는 줄"을
    머리끝으로 봅니다. 가는 머리끝은 무시하고 사람이 실제로 머리라고
-   읽는 지점을 잡기 위해서입니다. 기준은 CUSTOMER_COMMON.headWidth.
+   읽는 지점을 잡기 위해서입니다. 기준은 CUSTOMER_ART_BASE.headWidth.
+
+   특별 손님은 후드·등불·동물처럼 머리 모양 차이가 더 크기 때문에
+   이 보정이 일반 손님보다 오히려 더 필요합니다. 세트마다 따로 잽니다.
 
    재는 건 0번 프레임 한 장뿐입니다. 프레임마다 다시 재면 숨쉬는 동안
    말풍선이 1~2px 씩 떨리기 때문입니다.
@@ -202,15 +230,20 @@ function checkMotionSheetsMatch(){
    footY 를 고치면 머리끝도 같이 움직이므로 말풍선이 저절로 따라옵니다.
    ------------------------------------------------------------ */
 
-let customerHeadDrops = [];
+// 세트 이름 → 캐릭터별 보정값(논리 px) 배열
+const customerHeadDrops = {};
 
-function measureCommonHeadTops(image){
-  customerHeadDrops=[];
-  const C=CUSTOMER_COMMON;
-  const cellW=Math.floor(image.width/C.motions[CUSTOMER_BASE_MOTION].cols);
-  const cellH=Math.floor(image.height/C.rows);
-  const band=Math.max(1,Math.round(cellH*C.headBand));
-  const minRun=Math.max(1,Math.round(cellH*C.headWidth));
+function measureHeadTops(set){
+  const art=CUSTOMER_ART[set];
+  const image=customerSheets[sheetKey(set,CUSTOMER_BASE_MOTION)];
+  customerHeadDrops[set]=[];
+  if(!image)return;
+
+  const B=CUSTOMER_ART_BASE;
+  const cellW=Math.floor(image.width/art.motions[CUSTOMER_BASE_MOTION].cols);
+  const cellH=Math.floor(image.height/art.rows);
+  const band=Math.max(1,Math.round(cellH*B.headBand));
+  const minRun=Math.max(1,Math.round(cellH*B.headWidth));
 
   let tops;
   try{
@@ -218,7 +251,7 @@ function measureCommonHeadTops(image){
     canvas.width=cellW;canvas.height=band;
     const cell=canvas.getContext("2d",{willReadFrequently:true});
     tops=[];
-    for(let row=0;row<C.rows;row++){
+    for(let row=0;row<art.rows;row++){
       cell.clearRect(0,0,cellW,band);
       cell.drawImage(image,0,row*cellH,cellW,band,0,0,cellW,band);
       const pixels=cell.getImageData(0,0,cellW,band).data;
@@ -239,17 +272,18 @@ function measureCommonHeadTops(image){
 
   // 손님 기준 y 로부터 머리끝까지의 거리(위가 음수) → 말풍선이 있어야 할 자리와의 차이.
   // 머리끝은 패널 아랫변(tailY)보다 hudGap 만큼 아래에 있는 것이 기준입니다.
-  const scale=C.h/cellH;
-  const wanted=CUSTOMER_HUD.tailY+C.hudGap;
-  customerHeadDrops=tops.map(top=>
-    (CUSTOMER_COMMON_FOOT_OFFSET-C.h+top*scale)-wanted);
+  const scale=B.h/cellH;
+  const wanted=CUSTOMER_HUD.tailY+B.hudGap;
+  customerHeadDrops[set]=tops.map(top=>
+    (CUSTOMER_FOOT_OFFSET-B.h+top*scale)-wanted);
 }
 
 // 이 손님의 말풍선 묶음을 얼마나 내려야 하는지(논리 px).
-// 예전 시트를 쓰는 특별 손님은 보정하지 않습니다.
+// 예전 시트로 물러선 손님은 보정하지 않습니다.
 function customerHudDrop(customer,variant){
-  if(!usesCommonArt(customer))return 0;
-  return customerHeadDrops[variant%CUSTOMER_COMMON.rows]||0;
+  const set=customerArtSet(customer);
+  if(!set)return 0;
+  return customerHeadDrops[set]?.[variant%CUSTOMER_ART[set].rows]||0;
 }
 
 
@@ -343,28 +377,33 @@ const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17,
    2. 드로잉
    ------------------------------------------------------------ */
 
-/* 이 손님을 새 원화(일반 손님 8종)로 그릴지 판정합니다.
-   특별 손님은 얼굴이 정해져 있어서(story.js portraitRow) 예전 시트를 씁니다.
-   state.departures 항목에는 customerType 이 없어서 guestId 로도 봅니다. */
-function usesCommonArt(customer){
-  return !!customerMotionSheets[CUSTOMER_BASE_MOTION]
-    &&customer.customerType!=="story"&&!customer.guestId;
+/* 이 손님을 어느 그림 세트로 그릴지. 그림 선택은 여기 한 곳에서만 합니다.
+
+   특별 손님인지 판정하는 기준이 둘인 이유: state.orders 항목에는
+   customerType 이 있고, state.departures 항목에는 없어서 guestId 로 봅니다.
+
+   해당 세트의 기준 시트를 못 불러왔으면 null 을 돌려주고,
+   부르는 쪽은 예전 스프라이트시트로 물러섭니다. */
+function customerArtSet(customer){
+  const set=(customer.customerType==="story"||customer.guestId)?"special":"common";
+  return customerSheets[sheetKey(set,CUSTOMER_BASE_MOTION)]?set:null;
 }
 
 /* 실제로 쓸 모션. 요청한 시트가 없으면 기준 모션으로 물러섭니다.
    (식사 시트만 빠져도 손님이 사라지지 않게) */
-function customerMotionOf(name){
-  return customerMotionSheets[name]?name:CUSTOMER_BASE_MOTION;
+function customerMotionOf(set,name){
+  return set&&customerSheets[sheetKey(set,name)]?name:CUSTOMER_BASE_MOTION;
 }
 
 /* 이 손님에게 쓸 프레임 번호. 시트마다 프레임 수와 속도가 달라서
-   어떤 시트를 쓸지 정한 다음에 계산해야 합니다. 예전 시트(4프레임)를
-   쓰는 특별 손님도 여기서 같이 처리합니다.
+   어떤 시트를 쓸지 정한 다음에 계산해야 합니다. 예전 시트(4프레임)로
+   물러선 경우도 여기서 같이 처리합니다.
 
    seed 는 정수(손님 id 등)를 넣으세요. 프레임 단위로만 어긋나서
    재생이 끊기지 않으면서, 네 명이 한 몸처럼 같이 움직이지 않습니다. */
 function customerFrame(customer,motion,t,seed){
-  const spec=usesCommonArt(customer)?CUSTOMER_COMMON.motions[motion]:CUSTOMER_SPRITE;
+  const set=customerArtSet(customer);
+  const spec=set?CUSTOMER_ART[set].motions[motion]:CUSTOMER_SPRITE;
   return Math.floor(t*spec.fps+seed)%spec.cols;
 }
 
@@ -379,7 +418,7 @@ function drawCustomers(){
     const progress=clamp(order.entered,0,1);
     const y=CUSTOMER_SEAT_Y+customerEnterOffset(progress,enter);
     const entryAlpha=clamp(progress/enter.fadeIn,0,1);
-    const motion=customerMotionOf("idle");
+    const motion=customerMotionOf(customerArtSet(order),"idle");
     drawCustomerSprite(order.variant,x,y,customerFrame(order,motion,t,order.id),entryAlpha,order,motion);
 
     // 말풍선 묶음은 몸이 아니라 머리 위에 붙어야 하므로, 캐릭터마다
@@ -419,39 +458,43 @@ function drawCustomers(){
   state.departures.forEach((item,index)=>{
     const x=CUSTOMER_SEATS[item.slot],y=CUSTOMER_SEAT_Y;
     const alpha=clamp(Math.max(0,item.life)/CUSTOMER_DEPART.fade,0,1);
-    const motion=customerMotionOf(usesCommonArt(item)?"eat":CUSTOMER_BASE_MOTION);
+    const motion=customerMotionOf(customerArtSet(item),"eat");
     drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
     drawCustomerSpeech(item.bubble,x,y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY,alpha);
   });
 }
 
 /* customer 는 state.orders 또는 state.departures 의 항목입니다.
-   어떤 그림을 쓸지 판정하는 데만 씁니다. (usesCommonArt)
-   motion 은 CUSTOMER_COMMON.motions 의 이름입니다. */
+   어떤 그림 세트를 쓸지 판정하는 데만 씁니다. (customerArtSet)
+   motion 은 CUSTOMER_ART[세트].motions 의 이름입니다. */
 function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOMER_BASE_MOTION){
   ctx.save();ctx.globalAlpha=alpha;
 
-  const sheet=customerMotionSheets[motion];
-  if(sheet&&usesCommonArt(customer)){
+  const set=customerArtSet(customer);
+  const sheet=set&&customerSheets[sheetKey(set,motion)];
+  if(sheet){
     /* 셀 크기는 파일에서 읽습니다. 시트를 다시 뽑아 해상도나 여백이
-       바뀌어도 여기를 고칠 필요가 없습니다.
-         세로 — 발바닥이 셀 아래변
+       바뀌어도, 세트마다 셀 폭이 달라도 여기를 고칠 필요가 없습니다.
+         세로 — 발바닥이 셀 아래변, 캐릭터 키가 셀에 꽉 참
          가로 — 몸의 세로축이 셀 한가운데
-       둘 다 빌드 스크립트가 맞춰 주고 검증합니다. */
-    const C=CUSTOMER_COMMON;
-    const cols=C.motions[motion].cols;
-    const cellW=sheet.width/cols,cellH=sheet.height/C.rows;
-    const drawW=C.h*cellW/cellH;
+       셋 다 빌드 스크립트가 맞춰 주고 검증합니다. 덕분에 그리는 크기를
+       셀 비율로 계산해도 두 세트의 캐릭터가 같은 크기로 나옵니다. */
+    const art=CUSTOMER_ART[set],B=CUSTOMER_ART_BASE;
+    const cols=art.motions[motion].cols;
+    const cellW=sheet.width/cols,cellH=sheet.height/art.rows;
+    const drawW=B.h*cellW/cellH;
     ctx.drawImage(sheet,
-      (frame%cols)*cellW,(variant%C.rows)*cellH,cellW,cellH,
-      x-drawW/2,y+CUSTOMER_COMMON_FOOT_OFFSET-C.h,drawW,C.h);
+      (frame%cols)*cellW,(variant%art.rows)*cellH,cellW,cellH,
+      x-drawW/2,y+CUSTOMER_FOOT_OFFSET-B.h,drawW,B.h);
     ctx.restore();
     return;
   }
 
+  // 물러선 경우. 예전 시트는 6행뿐이라 행 번호를 접어 넣습니다.
+  // (특별 손님 variant 는 0~7 이라 그냥 쓰면 시트 밖을 읽어 아무것도 안 나옵니다)
   const S=CUSTOMER_SPRITE;
   if(images.customers)
-    ctx.drawImage(images.customers,frame*S.frameW,variant*S.frameH,S.frameW,S.frameH,
+    ctx.drawImage(images.customers,frame*S.frameW,(variant%S.rows)*S.frameH,S.frameW,S.frameH,
       x-S.w/2,y-S.h*S.anchor,S.w,S.h);
   else{ctx.fillStyle="#48352b";ctx.fillRect(x-S.w*.37,y-S.h*.75,S.w*.74,S.h*.75);}
   ctx.restore();

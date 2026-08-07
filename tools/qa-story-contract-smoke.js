@@ -37,8 +37,22 @@ assert(qaModeSource.includes('data-qa-story-prev')
   && qaModeSource.includes('data-qa-story-next')
   && qaModeSource.includes('data-qa-story-lines'),
 "QA 스토리 화면에 이전·다음 및 대사 목록이 있어야 합니다.");
-assert(/\.qa-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*1fr\)/s.test(qaCssSource),
-"날짜·스토리·미니게임 세 탭을 같은 폭으로 배치해야 합니다.");
+assert(/\.qa-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*1fr\)/s.test(qaCssSource),
+"날짜·스토리·미니게임·영업일지 네 탭을 같은 폭으로 배치해야 합니다.");
+assert(qaModeSource.includes('data-qa-tab="journal"')
+  && qaModeSource.includes('data-qa-view="journal"'),
+"QA 패널에 영업일지 탭과 화면이 있어야 합니다.");
+assert(qaModeSource.includes("data-qa-journal-unlock")
+  && qaModeSource.includes("data-qa-journal-reset"),
+"영업일지 탭에는 전체 개방과 초기화 버튼이 함께 있어야 합니다.");
+assert(qaModeSource.includes("collectionPages?.()")
+  && qaModeSource.includes("recordGuest?.(page.id,{perfect:true")
+  && qaModeSource.includes("unlockTrueEndingEpilogues?.()"),
+"전체 개방은 실제 해금 API(손님·엔딩·후일담)를 그대로 사용해야 합니다.");
+assert(qaModeSource.includes("localStorage.removeItem(JOURNAL_KEY)"),
+"초기화는 영업일지 저장 키를 지워 처음 상태로 되돌려야 합니다.");
+assert(qaCssSource.includes(".qa-journal-reset.armed"),
+"초기화 두 번 누르기 대기 상태 스타일이 있어야 합니다.");
 assert(qaCssSource.includes(".qa-story-day-grid")
   && qaCssSource.includes(".qa-story-line.active")
   && qaCssSource.includes(".qa-story-branches"),
@@ -146,6 +160,13 @@ check(qaStoryLineSpeaker({speakerLabel:"김다은(속말)"})==="김다은(속말
   "표시 전용 화자명을 보존해야 합니다.");
 check(qaStoryLineSpeaker({kind:"direction"})==="",
   "상황 설명 자막에는 별도 명칭을 표시하지 않아야 합니다.");
+
+check(qaJournalCollectionPages().length===0&&qaUnlockAllJournalPages()===false,
+  "영업일지 저장 모듈이 없으면 전체 개방은 조용히 멈춰야 합니다.");
+check(qaJournalResetArmed()===false&&qaResetJournalPages()===false&&qaJournalResetArmed()===true,
+  "초기화는 첫 클릭에서 실행되지 않고 두 번 누르기 대기 상태가 되어야 합니다.");
+check(qaResetJournalPages()===false&&qaJournalResetArmed()===false,
+  "저장소를 쓸 수 없으면 초기화는 실패를 알리고 대기 상태를 풀어야 합니다.");
 
 check(JSON.stringify(state.story)===progressBefore,
   "QA 목록·영업일지·분기 탐색은 실제 이야기 진행 상태를 변경하면 안 됩니다.");

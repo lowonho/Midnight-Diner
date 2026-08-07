@@ -647,7 +647,7 @@ function updateUI(force=false) {
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
-  dom.timeText.textContent=(isDayPreparation||isOpen)?UI_TEXT.timeNoLimit:UI_TEXT.blank;
+  dom.timeText.textContent=isOpen?UI_TEXT.guestsLeft(nightGuestsRemaining()):isDayPreparation?UI_TEXT.timeNoLimit:UI_TEXT.blank;
   dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
