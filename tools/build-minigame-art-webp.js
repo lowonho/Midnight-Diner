@@ -208,14 +208,10 @@ const FILES = [
   ...["left","up","right","down"].map(way=>({
     file:`E3/ui_arrow_${way}.png`, size:[256,256], css:".kf-next-arrow / .yk-next-arrow 128 (칩에서는 46)"
   })),
-  /* 화살표 칩 나무틀. 다른 UI 틀과 같은 "크기별 통짜 그림"인데,
-     **칸 수가 게임마다 달라서 가로가 두 가지**입니다 (칩 줄 안쪽 폭 1340.2 공통).
-       김치 볶기  10칸 → (1340.2 − 8x9)  / 10 = 126.8
-       볶음우동   12칸 → (1340.2 − 8x11) / 12 = 104.35
-     세로는 둘 다 공용 띠 78 입니다. 한 마스터(1.368)에서 두 크기를 뽑으므로
-     가로세로비가 원본과 달라집니다 — 나무틀이라 늘려도 티가 안 나서 stretch 로 넘깁니다. */
-  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_254x156.webp", size:[254,156], stretch:true, css:"김치 볶기 칩 126.8x78" },
-  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_209x156.webp", size:[209,156], stretch:true, css:"볶음우동 칩 104.35x78" },
+  /* 화살표 칩 나무틀. 김치 볶기와 볶음우동 모두 10칸이라 같은 크기를 씁니다.
+     칩 줄 안쪽 폭 1340.2 에서 (1340.2 − 8x9) / 10 = 126.8, 세로는 78 입니다.
+     원본 비율과 달라 나무틀을 stretch 로 맞춥니다. */
+  { file:"E3/ui_arrow_chip.png", out:"E3/ui_arrow_chip_254x156.webp", size:[254,156], stretch:true, css:"김치 볶기·볶음우동 칩 126.8x78" },
   /* 화구 2종 x 3장. 조리기구(팬·철판)와 분리된 **바닥 레이어**입니다.
        gas      가스버너   → E3 김치 볶기 · E5 김치전 굽기
        griddle  철판 화구  → E3 볶음우동

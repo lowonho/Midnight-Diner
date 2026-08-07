@@ -9,8 +9,8 @@
 
 /* ── 볶음우동 조리 · 철판 볶기 (engine-e3 · stir) ──────────────
    왼쪽 재료 · 가운데 철판 · 오른쪽 진행도/다음 순서 3단이고,
-   맨 아래 화살표 8칸이 3단 폭을 가로질러 깔립니다.
-   (낮 준비의 "김치 볶기" 와 같은 틀입니다. 그쪽은 12칸 · css/day-prep-minigames.css)
+   맨 아래 화살표 10칸이 3단 폭을 가로질러 깔립니다.
+   (낮 준비의 "김치 볶기"와 같은 10칸 틀입니다.)
 
    화구·철판·면·뒤집개는 assets/minigame/E3 의 납품 그림입니다.
    그림이 있으면 .has-asset(.has-prep-asset) 이 붙어 아래 임시 CSS 도형이 꺼지고
@@ -498,7 +498,7 @@
     drop-shadow(0 0 calc(34 * var(--upx)) rgba(255,166,60,.38));
 }
 
-/* 아래 화살표 12칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
+/* 아래 화살표 10칸(engine-e3 의 STIR_TOTAL). 지금 눌러야 할 칸만 밝게 켜집니다.
    칸 수는 grid-auto-flow 로 자동이라 STIR_TOTAL 만 바꾸면 폭이 알아서 맞습니다.
    ⚠️ 다만 칩 나무틀 그림은 폭이 고정이라 따라오지 않습니다 — 아래 .yk-chip 주석 참고 */
 .yk-seq {
@@ -513,9 +513,8 @@
   background: linear-gradient(#1d120b,#120b07);
 }
 /* 칩 나무틀은 다른 UI 틀과 같은 "크기별 통짜 그림"입니다 (9-slice 아님).
-   ⚠️ 칸 수가 폭을 정하기 때문에 김치 볶기와 파일이 다릅니다.
-        볶음우동  12칸 → (1340.2 − 8x11) / 12 = 104.35 x 78 → _209x156
-        김치 볶기 10칸 → (1340.2 − 8x9)  / 10 = 126.8 x 78  → _254x156  (css/day-prep-minigames.css)
+   볶음우동과 김치 볶기가 모두 10칸이라 같은 파일을 씁니다.
+        볶음우동·김치 볶기 10칸 → (1340.2 − 8x9) / 10 = 126.8 x 78 → _254x156
       STIR_TOTAL 을 바꾸면 폭이 어긋납니다.
       그때는 tools/build-minigame-art-webp.js 의 크기표부터 고치세요.
    테두리는 `transparent` 로 남깁니다 — '지금 차례'가 이 자리에 금테를 그립니다. */
@@ -526,7 +525,7 @@
   border: 2px solid transparent;
   border-radius: calc(8 * var(--upx));
   background-color: #2a1a11;
-  background-image: url("../../assets/minigame/E3/ui_arrow_chip_209x156.webp");
+  background-image: url("../../assets/minigame/E3/ui_arrow_chip_254x156.webp");
   background-origin: border-box;
   background-clip: border-box;
   background-size: 100% 100%;
