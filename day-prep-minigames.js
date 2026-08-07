@@ -21,12 +21,12 @@ const DAY_PREP_MINI_CONFIG = {
   // E1은 칼날이 실제 절단선을 지나는 속도로 박자를 만듭니다.
   // travelSpeed는 재료 그림 너비 대비 초당 이동 퍼센트입니다.
   cutRadish:{title:"어묵탕 · 무 썰기",total:7,hitTolerance:CUT_HIT_TOLERANCE.radish,travelSpeed:22},
-  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true},
+  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:22,horizontalLastCut:true},
   cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17},
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17},
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:11,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19},
-  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:12},
+  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:22},
   cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
 };
 

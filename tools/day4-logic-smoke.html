@@ -70,24 +70,25 @@ try{
   startCuttingMinigame=originalStartCutting;
   assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
   assert(cutTimingGrade(.5,.4,.2)==="perfect"&&cutTimingGrade(.41,.4,.2)==="good"&&cutTimingGrade(.2,.4,.2)==="miss","Legacy night-cut grading remains available");
-  assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startSignalMs===450,"E1 path timing config");
+  assert(CUT_FEEL_CONFIG.hitZoneScale===.7&&CUT_FEEL_CONFIG.travelSpeedScale===1.15&&CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.flowVisualSettleMs===180&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startCountdownStepSeconds===.5&&CUT_FEEL_CONFIG.startSignalMs===300,"E1 tighter, faster, continuous path timing config");
   assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:3.4,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===3.4,"E1 ingredient-specific tuned hit boxes");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,16"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki cut counts, tempos, and fish-cake horizontal finish");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="16,19,22"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 slows the twelve-cut cabbage and speeds up the four-cut fish cake");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,3.4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===3.4,"E1 tteokbokki ingredients use tuned hit boxes");
 
   dayPrepAssets.tteokCabbage0={src:"assets/minigame/E1/cabbage-0.png"};
   dayPrepAssets.tteokCabbage1={src:"assets/minigame/E1/cabbage-1.png"};
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:22,title:"E1 smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,title:"E1 smoke",description:"smoke"});
   const cabbageMini=state.mini,cabbageStart=cabbageMini.data.knifeX;
+  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-18.4)<1e-9,"E1 applies the tighter hit zone while keeping twelve-cut cabbage at the slower 18.4 speed");
   timingCutAction();
-  assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
-  assert(cabbageMini.data.knifeX===cabbageStart&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="2","E1 countdown advances to two without moving the knife");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
-  assert(dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="1","E1 countdown advances to one");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
+  assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3!"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
+  assert(cabbageMini.data.knifeX===cabbageStart&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="2!","E1 fast countdown advances to two without moving the knife");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
+  assert(dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="1!","E1 fast countdown advances to one");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
   assert(cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&!dom.miniContent.querySelector("#dayPrepAction").disabled&&dom.miniContent.querySelector("#cutStartCountdown.go strong").textContent==="시작!","E1 starts only after the three-two-one countdown");
   assert(Math.abs((cabbageStart-suppliedCutPosition("cabbage",0,12))-(suppliedCutPosition("cabbage",0,12)-suppliedCutPosition("cabbage",1,12)))<.01,"E1 first beat uses the same travel distance as the following supplied cut gap");
   const waitingKnifeX=dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x");
@@ -101,7 +102,7 @@ try{
   const pathZone=pathBar.querySelector(".prep-success-zone"),pathMarker=pathBar.querySelector("#dayPrepMarker");
   const barAt=()=>parseFloat(pathMarker.style.left);
   const zoneCenter=parseFloat(pathZone.style.left)+parseFloat(pathZone.style.width)/2;
-  assert(Math.abs(zoneCenter-barAt())<.2,"E1 bottom-bar hit zone centers on the marker when the knife sits on the cut line");
+  assert(pathBar.querySelectorAll(".prep-success-zone").length===12&&pathBar.querySelectorAll(".prep-perfect-zone").length===12&&pathZone.classList.contains("active")&&Math.abs(zoneCenter-barAt())<.2,"E1 shows every cut hit zone up front and centers the active zone on the marker");
   /* 바는 "칼이 지나는 구간"을 폭 전체로 폅니다 — 재료가 도마에서 차지한 만큼만
      쓰던 예전 방식은 포인터가 좁게 움직여 속도감이 없었습니다.
      ⚠️ 판정은 재료 좌표 그대로라, 여기 숫자가 바뀌어도 절단선·타이밍은 그대로입니다. */
@@ -114,7 +115,7 @@ try{
   cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,12);syncTimingKnife(cabbageMini.data);
   assert(cutPathGrade(cabbageMini.data)==="perfect","E1 judgment is measured from the knife's actual cut-line distance");
   timingCutAction();
-  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 advances to the next supplied asset while removing only the extra completed seam");
+  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 immediately flows to the next hit zone while the cut effect settles");
   const tteokCabbage=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="cabbage");
   const cabbageStages=Array.from({length:13},(_,successes)=>cutAssetStage({ingredient:"cabbage",total:12,successes})).join(",");
   assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5"&&CUT_ASSET_STAGE_MAX.cabbage===12,"E1 cabbage uses all twelve supplied cut gaps");
@@ -125,7 +126,7 @@ try{
   const missMini=state.mini,missTarget=timingCutTarget(missMini.data).value;
   missMini.data.knifeX=missTarget-missMini.data.hitTolerance+.1;
   advanceTimingKnife(missMini,.01);
-  assert(missMini.data.successes===1&&missMini.data.mistakes===1&&missMini.data.phase==="impact","E1 passing a cut line consumes that beat as a miss and advances to the next score position");
+  assert(missMini.data.successes===1&&missMini.data.mistakes===1&&missMini.data.phase==="ready"&&!missMini.data.inputLocked,"E1 passing a cut line consumes that beat and immediately flows to the next score position");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeGreenOnion",ingredient:"greenOnion",requiredHits:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19,title:"E1 green onion smoke",description:"smoke"});
@@ -146,16 +147,18 @@ try{
   assert(CUT_ASSET_STAGE_MAX.radish===7&&radishStages==="0,1,2,3,4,5,6,7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E1 radish maps seven cuts one-to-one onto eight progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:22,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
   const fishCakeLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line:not(.tofu-horizontal-line)")].map(line=>line.style.left).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 fish cake uses three straight vertical cuts and one final horizontal cut");
+  assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line")&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===3,"E1 fish cake previews only its three vertical hit zones");
   const fishTarget=timingCutTarget(state.mini.data).value;
   state.mini.data.knifeX=fishTarget+state.mini.data.hitTolerance-.01;
   const fishEdgeGrade=cutPathGrade(state.mini.data);
   state.mini.data.knifeX=fishTarget+state.mini.data.hitTolerance+.01;
-  assert(state.mini.data.hitTolerance===3.4&&fishEdgeGrade==="good"&&cutPathGrade(state.mini.data)==="miss","E1 fish-cake hit box ends at 3.4% from the cut line");
+  assert(Math.abs(state.mini.data.hitTolerance-2.38)<1e-9&&Math.abs(state.mini.data.travelSpeed-25.3)<1e-9&&fishEdgeGrade==="good"&&cutPathGrade(state.mini.data)==="miss","E1 fish-cake uses the tighter 2.38-percent hit box and the faster 25.3 bar");
   state.mini.data.successes=3;state.mini.data.knifeY=12;renderTimingCut();
-  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y"&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-y")==="50%"&&state.mini.data.knifeY===12,"E1 fish cake waits at the horizontal cut line while its bottom marker starts moving");
+  const fishHorizontalZone=dom.miniContent.querySelector(".cut-path-timing .prep-success-zone");
+  const fishHorizontalCenter=parseFloat(fishHorizontalZone.style.left)+parseFloat(fishHorizontalZone.style.width)/2;
+  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y"&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-y")==="50%"&&state.mini.data.knifeY===12&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===1&&Math.abs(fishHorizontalCenter-50)<.1,"E1 fish cake reveals one centered hit zone only when the horizontal cut begins");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
@@ -165,9 +168,9 @@ try{
   assert(CUT_ASSET_STAGE_MAX.kimchi===9&&kimchiStages==="0,1,2,3,4,5,6,7,8,9"&&DAY_PREP_ASSET_PATHS.kimchiCut9==="assets/minigame/E1/kimchi-9.png","E1 kimchi maps nine cuts one-to-one onto ten progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:12,title:"E1 tofu smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:22,title:"E1 tofu smoke",description:"smoke"});
   const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===12&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu keeps six cuts and the tuned heavy tempo");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===22&&Math.abs(state.mini.data.travelSpeed-25.3)<1e-9&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line")&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===6,"E1 tofu shows all six hit zones and matches fish-cake speed at 25.3");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
@@ -182,6 +185,11 @@ try{
   assert(playedSfx.join(",")==="cut_meat1","E1 chicken first tap plays meat sound 1");
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
   assert(playedSfx.join(",")==="cut_meat1,cut_meat2","E1 chicken second tap plays meat sound 2");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeChickenRecovery",ingredient:"chicken",requiredHits:2,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true,title:"E1 chicken recovery smoke",description:"smoke"});
+  MINI_ENGINES.timing.update(state.mini,1.6);
+  state.mini.data.knifeX=suppliedCutPosition("chicken",0,2);timingCutAction();timingCutAction();
+  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&state.mini.data.inputLocked,"E1 chicken alone keeps the recovery pause between double-tap cuts");
 
   dayPrepAssets.tofu0={src:"assets/minigame/E1/tofu-0.png"};
   dayPrepAssets.tofu1={src:"assets/minigame/E1/tofu-1.png"};
@@ -195,7 +203,7 @@ try{
   assert(cookTofuMini.data.knifeX<cookTofuKnifeStart&&!MINI_ENGINES.timing.timerRuns(cookTofuMini)&&timingCutAverageScore({cutScores:[100,85,45]})===77,"Open-hours tofu advances the E1 knife and uses E1 score aggregation without a legacy timer");
   cookTofuMini.data.knifeX=suppliedCutPosition("tofu",0,6);
   timingCutAction();
-  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.phase==="impact"&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses the E1 blade position judgment and advances its supplied asset");
+  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.phase==="ready"&&!cookTofuMini.data.inputLocked&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses continuous E1 blade judgment and advances its supplied asset without a pause");
   if(new URLSearchParams(location.search).get("scope")==="e1")throw new Error("E1_PATH_TEST_COMPLETE");
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===12,"E12 mandoline stroke counts are doubled and each stroke drops a full dozen shreds");
