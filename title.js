@@ -7,6 +7,9 @@ let journalMode="collection";
 let journalPageIndex=0;
 let journalPages=[];
 let journalWasPaused=false;
+// 인게임 일지는 다시 열었을 때 마지막으로 보던 장을 그대로 펼칩니다.
+// (로비 컬렉션은 언제나 첫 장부터입니다.)
+let journalLastGameplayPageId="";
 
 function initializeTitleScreen(){
   dom.startButton.disabled=true;
@@ -18,6 +21,25 @@ function initializeTitleScreen(){
   dom.returnTitleButton.addEventListener("click",returnTitle);
   initializeJournalUI();
   updateContinueButton();
+}
+
+// 특별 손님 페이지에 초상화처럼 얹는 달빛 조각 그림입니다.
+// 파일은 tools/build-moonpiece-webp.js 가 PNG 원본에서 뽑습니다.
+const JOURNAL_MOON_PIECE_DIR="assets/customer/Special/MoonPiece";
+const JOURNAL_MOON_PIECE_ART=Object.freeze({
+  first_raindrop:"01_raindrop_glass_keepsake.webp",
+  remaining_warmth:"02_miniature_lantern.webp",
+  two_half_names:"03_two_shadows_ornament.webp",
+  undelivered_letter:"04_letter_and_crow_feather.webp",
+  golden_salt:"05_constellation_pendant.webp",
+  eastern_scale:"06_wave_and_fish_frame.webp",
+  stopped_minute_hand:"07_stopped_pocket_watch.webp",
+  daeuns_tomorrow:"08_faceless_daeun_ribbon.webp"
+});
+
+function journalMoonPieceArt(page){
+  const file=JOURNAL_MOON_PIECE_ART[String(page?.shardId||"")];
+  return file?`${JOURNAL_MOON_PIECE_DIR}/${file}`:"";
 }
 
 function journalElements(){
@@ -36,9 +58,13 @@ function journalElements(){
     pageTitle:document.getElementById("journalPageTitle"),
     pageNote:document.getElementById("journalPageNote"),
     pageMeta:document.getElementById("journalPageMeta"),
+    relic:document.getElementById("journalPageRelic"),
+    relicArt:document.getElementById("journalPageRelicArt"),
+    relicName:document.getElementById("journalPageRelicName"),
     previous:document.getElementById("journalPrevious"),
     next:document.getElementById("journalNext"),
-    tabs:document.getElementById("journalPageTabs")
+    tabs:document.getElementById("journalSectionTabs"),
+    pastTabs:document.getElementById("journalSectionTabsPast")
   };
 }
 
@@ -223,38 +249,105 @@ function journalPageMeta(page){
   if(journalMode==="collection"&&page.dishName)items.push(`찾는 음식 · ${page.dishName}`);
   else if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
   if(page.latestEvaluation&&page.latestEvaluation!=="평가 기록 없음")items.push(page.latestEvaluation);
-  if(page.shardName&&(journalMode==="collection"||page.shardOwned))items.push(`달빛 조각 · ${page.shardName}`);
-  else if(page.shardStatus)items.push(`달빛 조각 · ${page.shardStatus}`);
+  // 달빛 조각 이름은 그림 밑에 이미 적혀 있어서, 그림이 붙는 장에서는 뺍니다.
+  if(!journalRelicVisible(page)){
+    if(page.shardName&&(journalMode==="collection"||page.shardOwned))items.push(`달빛 조각 · ${page.shardName}`);
+    else if(page.shardStatus)items.push(`달빛 조각 · ${page.shardStatus}`);
+  }
   if(page.day&&!page.dayLabel)items.push(`DAY ${page.day}`);
   return items.join("  ·  ")||"기록 완료";
 }
 
-function journalTabLabel(page,index){
-  if(!page.unlocked)return "???";
-  return page.tabLabel||page.dayLabel||page.dishName||page.label||`${index+1}쪽`;
+// 일지 오른쪽에 붙는 견출지입니다. 인게임은 주의사항·요리·일기 세 장,
+// 로비 컬렉션은 특별 손님·엔딩 두 장입니다.
+function journalSectionDefs(){
+  if(journalMode==="gameplay")return [
+    {id:"rules",label:"주의사항",matches:page=>page.pageType==="rules"},
+    {id:"recipe",label:"요리",matches:page=>page.pageType==="recipe"},
+    {id:"day",label:"일기",matches:page=>page.pageType==="day"}
+  ];
+  return [
+    {id:"guest",label:"특별 손님",matches:page=>page.kind!=="ending"},
+    {id:"ending",label:"엔딩",matches:page=>page.kind==="ending"}
+  ];
+}
+
+// slot 은 견출지가 붙는 세로 자리입니다. 왼쪽으로 넘어가도 같은 높이에
+// 남아 있어야 책장을 넘긴 것처럼 보여서, 구역 순서를 그대로 씁니다.
+function journalSections(){
+  return journalSectionDefs().map((section,slot)=>{
+    const indexes=journalPages.reduce((collected,page,index)=>{
+      if(section.matches(page))collected.push(index);
+      return collected;
+    },[]);
+    return {...section,slot,indexes,first:indexes.length?indexes[0]:-1};
+  }).filter(section=>section.first>=0);
+}
+
+function journalActiveSectionSlot(sections){
+  const current=sections.find(section=>section.indexes.includes(journalPageIndex));
+  if(current)return current.slot;
+  return sections.length?sections[sections.length-1].slot:0;
+}
+
+// 요리 견출지는 첫 요리로, 일기 견출지는 지금 진행 중인 날짜로 펼칩니다.
+function journalSectionEntryIndex(section){
+  if(journalMode==="gameplay"&&section.id==="day"){
+    const day=Math.max(1,Math.floor(Number(typeof state!=="undefined"?state.day:1)||1));
+    const matched=section.indexes.find(index=>Number(journalPages[index]?.day)===day);
+    if(matched!==undefined)return matched;
+  }
+  return section.first;
+}
+
+function createJournalSectionTab(section,activeSlot){
+  const button=document.createElement("button");
+  button.type="button";
+  button.className=`journal-section-tab is-${section.id}`;
+  button.classList.toggle("is-active",section.slot===activeSlot);
+  button.classList.toggle("is-past",section.slot<activeSlot);
+  button.classList.toggle("is-new",section.indexes.some(index=>journalPages[index]?.notificationPending));
+  button.style.setProperty("--journal-tab-slot",String(section.slot));
+  button.textContent=section.label;
+  button.title=section.label;
+  button.setAttribute("role","tab");
+  button.setAttribute("aria-selected",String(section.slot===activeSlot));
+  button.setAttribute("aria-label",`${section.label} 구역 펼치기`);
+  button.addEventListener("click",()=>selectJournalPage(journalSectionEntryIndex(section),true));
+  return button;
 }
 
 function renderJournalTabs(elements){
-  if(!elements.tabs)return;
-  elements.tabs.style.setProperty("--journal-page-count",String(Math.max(1,journalPages.length)));
-  elements.tabs.replaceChildren(...journalPages.map((page,index)=>{
-    const button=document.createElement("button");
-    button.type="button";
-    button.className="journal-page-tab";
-    button.classList.toggle("is-active",index===journalPageIndex);
-    button.classList.toggle("is-locked",!page.unlocked);
-    button.classList.toggle("is-new",!!page.notificationPending);
-    if(page.pageType)button.classList.add(`is-${page.pageType}`);
-    else if(page.kind)button.classList.add(`is-${page.kind}`);
-    const tabLabel=journalTabLabel(page,index);
-    button.textContent=tabLabel;
-    button.title=page.unlocked?page.label:"잠긴 기록";
-    button.setAttribute("role","tab");
-    button.setAttribute("aria-selected",String(index===journalPageIndex));
-    button.setAttribute("aria-label",`${index+1}쪽 · ${tabLabel}`);
-    button.addEventListener("click",()=>selectJournalPage(index,true));
-    return button;
-  }));
+  if(!elements.tabs&&!elements.pastTabs)return;
+  const sections=journalSections();
+  const activeSlot=journalActiveSectionSlot(sections);
+  const build=list=>list.map(section=>createJournalSectionTab(section,activeSlot));
+  elements.pastTabs?.replaceChildren(...build(sections.filter(section=>section.slot<activeSlot)));
+  elements.tabs?.replaceChildren(...build(sections.filter(section=>section.slot>=activeSlot)));
+}
+
+// 달빛 조각 그림은 로비 컬렉션의 특별 손님 페이지에만 붙습니다.
+// (엔딩 페이지와 인게임 진행용 일지에는 없습니다.)
+function journalRelicVisible(page){
+  return journalMode==="collection"&&!!page&&page.kind!=="ending"&&!!journalMoonPieceArt(page);
+}
+
+function renderJournalRelic(elements,page){
+  if(!elements.relic)return;
+  const visible=journalRelicVisible(page);
+  elements.relic.hidden=!visible;
+  // 표제 면이 초상화 + 조각 두 장을 담아야 해서, 붙는 장만 자리를 좁힙니다.
+  elements.page?.classList.toggle("has-relic",visible);
+  if(!visible){
+    elements.relicArt.style.backgroundImage="";
+    return;
+  }
+  // 잠긴 손님은 그림 대신 자리만 남깁니다. 조각 모양이 미리 보이면 안 됩니다.
+  const unlocked=!!page.unlocked;
+  elements.relic.classList.toggle("is-locked",!unlocked);
+  elements.relicArt.style.backgroundImage=unlocked?`url("${journalMoonPieceArt(page)}")`:"";
+  elements.relicArt.textContent=unlocked?"":"?";
+  elements.relicName.textContent=unlocked?`「${page.shardName}」`:"「???」";
 }
 
 function renderJournalPage({acknowledge=false}={}){
@@ -268,6 +361,7 @@ function renderJournalPage({acknowledge=false}={}){
     elements.pageMeta.textContent="";
     elements.pagePortrait.textContent="?";
     elements.previous.disabled=true;elements.next.disabled=true;
+    renderJournalRelic(elements,null);
     renderJournalTabs(elements);
     return;
   }
@@ -294,8 +388,10 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.textContent=journalPageNote(page);
   elements.pageMeta.textContent=journalPageMeta(page);
+  renderJournalRelic(elements,page);
   elements.previous.disabled=journalPageIndex<=0;
   elements.next.disabled=journalPageIndex>=journalPages.length-1;
+  if(isGameplayRecord)journalLastGameplayPageId=page.id;
   renderJournalTabs(elements);
   if(acknowledge&&journalMode==="collection"&&page.unlocked&&page.notificationPending){
     page.notificationPending=false;
@@ -310,9 +406,13 @@ function selectJournalPage(index,acknowledge=false){
   return true;
 }
 
-function refreshJournalUI(){
+function refreshJournalUI({restoreLastPage=false}={}){
   const elements=journalElements();
   journalPages=journalMode==="gameplay"?gameplayJournalPages():collectionJournalPages();
+  if(restoreLastPage&&journalLastGameplayPageId){
+    const lastIndex=journalPages.findIndex(page=>page.id===journalLastGameplayPageId);
+    if(lastIndex>=0)journalPageIndex=lastIndex;
+  }
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
   elements.description.textContent=journalMode==="gameplay"
@@ -334,7 +434,7 @@ function openJournal(mode="collection"){
     state.paused=true;
     audio?.pauseLoops?.();
   }
-  refreshJournalUI();
+  refreshJournalUI({restoreLastPage:journalMode==="gameplay"});
   elements.overlay.classList.add("open");
   elements.overlay.setAttribute("aria-hidden","false");
   elements.closeButton?.focus();

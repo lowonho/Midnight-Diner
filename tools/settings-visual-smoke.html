@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<!-- CSS·에셋 경로가 전부 index.html(루트) 기준입니다 -->
+<base href="../" />
+<title>설정창 visual smoke</title>
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/app-shell.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/settings.css" />
+<link rel="stylesheet" href="css/save-slots.css" />
+<style>
+  /* 오버레이만 찍으므로 전환 애니메이션을 끄고 바로 켜 둡니다 */
+  .global-overlay { transition: none; }
+</style>
+</head>
+<body>
+<!--
+  설정창 한 화면만 헤드리스 크롬으로 찍는 하네스입니다.
+
+    node 없이:
+    chrome --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files
+           --window-size=1920,1080 --virtual-time-budget=8000
+           --screenshot=out.png "file:///.../tools/settings-visual-smoke.html?mode=ingame"
+
+  ?mode=ingame  게임 중 일시정지 (긴 판 · 저장/불러오기 · 타이틀 버튼 있음)
+  ?mode=lobby   타이틀 화면      (정사각 판 · 설정 닫기만)
+  ?muted=1      전체 음향 OFF 상태(토글 꺼짐 모양 확인용)
+
+  마크업을 여기 베껴 적지 않고 index.html 에서 #settingsOverlay 를 통째로
+  꺼내 씁니다. 베껴 적으면 실제 화면과 어긋나도 스모크는 통과해 버립니다.
+  (file:// 에서 fetch 는 막히므로 XHR 을 씁니다 — --allow-file-access-from-files 필요)
+-->
+<main class="app-screen game-screen active"></main>
+<script>
+const params=new URLSearchParams(location.search);
+const mode=params.get("mode")||"ingame";
+const muted=params.get("muted")==="1";
+
+function fail(message){
+  document.body.dataset.error=message;
+  document.body.insertAdjacentHTML("beforeend",
+    `<pre style="position:fixed;inset:0;padding:24px;color:#ff9a7a;font:16px monospace">${message}</pre>`);
+}
+window.addEventListener("error",event=>fail("에러: "+event.message));
+
+const request=new XMLHttpRequest();
+request.open("GET","index.html",false);
+try{ request.send(null); }
+catch(error){ fail("index.html 을 못 읽었습니다. --allow-file-access-from-files 가 필요합니다. "+error); }
+
+if(!document.body.dataset.error){
+  const parsed=new DOMParser().parseFromString(request.responseText,"text/html");
+  const overlay=parsed.getElementById("settingsOverlay");
+  if(!overlay) fail("index.html 에서 #settingsOverlay 를 못 찾았습니다.");
+  else{
+    document.body.append(document.importNode(overlay,true));
+    setup(document.getElementById("settingsOverlay"));
+  }
+}
+
+function setup(overlay){
+  overlay.classList.add("open");
+  overlay.classList.toggle("is-lobby",mode==="lobby");
+  overlay.setAttribute("aria-hidden","false");
+
+  // game.js openSettings 가 화면에 따라 바꾸는 것들을 그대로 흉내 냅니다
+  const byId=id=>document.getElementById(id);
+  const fromTitle=mode==="lobby";
+  byId("pauseMessage").textContent=fromTitle
+    ? "소리와 마우스 포인터를 설정할 수 있습니다."
+    : "게임이 일시정지되었습니다.";
+  byId("saveLoadActions").hidden=fromTitle;
+  byId("resumeButton").textContent=fromTitle?"설정 닫기":"게임으로 돌아가기";
+  byId("returnTitleButton").classList.toggle("is-hidden",fromTitle);
+
+  // syncAudioControls 가 하는 일(값·% 표시·토글 상태·흐림 처리)
+  const rows=[["masterVolume",70],["bgmVolume",45],["sfxVolume",75]];
+  rows.forEach(([id,value])=>{
+    const input=byId(id);
+    input.value=value;
+    input.style.setProperty("--fill",value+"%");
+    byId(id+"Value").textContent=value+"%";
+  });
+  if(muted){
+    const toggle=byId("masterAudioToggle");
+    toggle.textContent="OFF";
+    toggle.classList.add("is-off");
+    toggle.setAttribute("aria-pressed","false");
+    overlay.classList.add("audio-muted");
+    const sfx=byId("sfxAudioToggle");
+    sfx.textContent="OFF";
+    sfx.classList.add("is-off");
+    byId("sfxVolumeRow").classList.add("is-muted");
+  }
+
+  // 실측값을 DOM 에 남겨 둡니다 (--dump-dom 으로 읽습니다)
+  requestAnimationFrame(()=>{
+    const panel=overlay.querySelector(".settings-window");
+    const scroll=overlay.querySelector(".settings-scroll");
+    const rect=panel.getBoundingClientRect();
+    document.body.dataset.panel=`${Math.round(rect.width)}x${Math.round(rect.height)}`;
+    document.body.dataset.scroll=`${Math.round(scroll.scrollHeight)}/${Math.round(scroll.clientHeight)}`;
+    document.body.dataset.overflow=scroll.scrollHeight>scroll.clientHeight+1?"yes":"no";
+    // 마지막 줄 아래에 남는 여백(px). 음수면 판 밖으로 삐져나온 것입니다.
+    // display:none 인 줄(lobby 의 타이틀 버튼·설명)은 rect 가 0 이라 건너뜁니다.
+    const visible=[...scroll.children].filter(node=>node.getClientRects().length);
+    const last=visible.at(-1).getBoundingClientRect();
+    document.body.dataset.slack=String(Math.round(scroll.getBoundingClientRect().bottom-last.bottom));
+    document.body.dataset.upx=getComputedStyle(document.documentElement).getPropertyValue("--upx").trim();
+  });
+}
+</script>
+</body>
+</html>

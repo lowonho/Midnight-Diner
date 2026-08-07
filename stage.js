@@ -124,12 +124,14 @@ function loadStageImage(key){
 }
 
 // game.js 의 에셋 로딩 Promise.all 에 넣어서 사용합니다.
-// 요리사 시트도 여기 묶습니다. game.js 를 수정하지 않기로 해서
-// 로딩 단계에 끼어들 수 있는 지점이 이 함수뿐입니다. (구현은 chef-anims.js)
+// 요리사·손님 시트도 여기 묶습니다. game.js 를 수정하지 않기로 해서
+// 로딩 단계에 끼어들 수 있는 지점이 이 함수뿐입니다.
+// (구현은 chef-anims.js / customers.js — 이 파일은 호출만 합니다)
 function loadStageAssets(){
   return Promise.all([
     ...BACKGROUND_LAYERS.map(layer=>loadStageImage(layer.key)),
-    loadChefSheets()
+    loadChefSheets(),
+    loadCommonCustomerSheet()
   ]);
 }
 

@@ -2117,8 +2117,17 @@ function decorateStoryOrder(order,plan=null){
   order.storyMystic=true;
   if(order.awaitingDishChoice)order.guestOrder=false;
   if(order.guestOrder&&order.storyDishId)order.dishId=order.storyDishId;
+  /* 자리에 앉은 모습을 그릴 때 쓰는 그림 번호입니다. 특별 손님 8명이
+     portraitRow 0~7 로 1:1 대응합니다. (customers.js CUSTOMER_ART.special)
+
+     위쪽 한계를 여기서 두지 않습니다. 예전에는 5 로 잘랐는데, 그건 그때
+     쓰던 시트가 6행이라서였습니다. 시트 행 수를 아는 쪽은 customers.js 이고
+     거기서 행 번호를 접어 넣으므로, 여기서 또 자르면 원화를 늘릴 때마다
+     두 곳을 같이 고쳐야 합니다.
+
+     대화씬 초상화는 이 값이 아니라 applyStoryPortraitArt() 가 따로 정합니다. */
   order.variant=Number.isFinite(character?.portraitRow)
-    ?clamp(character.portraitRow,0,5)
+    ?Math.max(0,Math.floor(character.portraitRow))
     :order.variant;
   order.bubble=plan.repeat
     ?REGULAR_GUEST_BUBBLES[plan.guestId]||"오늘도 잘 부탁드려요."

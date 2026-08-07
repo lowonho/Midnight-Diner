@@ -21,10 +21,18 @@
     "verify:utensils": "node tools/build-utensils-webp.js --verify",
     "build:chef": "node tools/build-chef-sprites.js",
     "verify:chef": "node tools/build-chef-sprites.js --verify",
+    "build:customer": "node tools/build-customer-sprites.js",
+    "verify:customer": "node tools/build-customer-sprites.js --verify",
+    "build:moonpiece": "node tools/build-moonpiece-webp.js",
+    "verify:moonpiece": "node tools/build-moonpiece-webp.js --verify",
     "build:minigame-art": "node tools/build-minigame-art-webp.js",
     "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify",
     "build:ui-common": "node tools/build-ui-common-webp.js",
-    "verify:ui-common": "node tools/build-ui-common-webp.js --verify"
+    "verify:ui-common": "node tools/build-ui-common-webp.js --verify",
+    "build:ui-setting": "node tools/build-ui-setting-webp.js",
+    "verify:ui-setting": "node tools/build-ui-setting-webp.js --verify",
+    "build:ui-save": "node tools/build-ui-save-webp.js",
+    "verify:ui-save": "node tools/build-ui-save-webp.js --verify"
   },
   "repository": {
     "type": "git",

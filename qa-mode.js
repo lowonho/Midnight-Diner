@@ -886,6 +886,97 @@ function qaFilterMiniList(panel,keyword){
 }
 
 /* ============================================================
+   3-2. 컬렉션 영업일지 강제 개방 · 초기화
+
+   [왜 필요한가] 타이틀 영업일지의 특별 손님 8장·엔딩 5장은 완벽 평가와
+   엔딩 도달로만 열립니다. 잠긴 페이지와 열린 페이지를 번갈아 확인하려고
+   회차를 다시 도는 시간을 없애기 위한 기능입니다.
+
+   [⚠ QA에서 실제 저장을 건드리는 유일한 곳입니다]
+   컬렉션 일지는 세이브 슬롯과 따로 남는 영구 기록이라, 화면에서만 열어
+   두면 새로고침에 사라져 확인이 이어지지 않습니다. 그래서 기록 자체를
+   바꾸고, 되돌아갈 길로 초기화 버튼을 바로 옆에 함께 둡니다.
+   진행 세이브 슬롯은 여전히 건드리지 않습니다.
+   ============================================================ */
+
+const QA_JOURNAL_NOTE="QA 강제 개방";
+const QA_JOURNAL_RESET_ARM_MS=4000;   // 초기화는 이 시간 안에 두 번 눌러야 실행됩니다
+let qaJournalResetArmedAt=0;
+
+function qaJournalCollectionPages(){
+  return window.MoonlightTableSave?.collectionPages?.()||[];
+}
+
+function qaUnlockAllJournalPages(){
+  if(!QA_MODE_ENABLED)return false;
+  const api=window.MoonlightTableSave;
+  const pages=qaJournalCollectionPages();
+  if(!api||!pages.length){qaRefreshPanel("영업일지 기록을 찾지 못했습니다.");return false;}
+  // 실제 진행과 같은 해금 경로를 씁니다(손님=완벽 평가, 엔딩=도달).
+  pages.forEach(page=>{
+    if(page.kind==="ending")api.recordEnding?.(page.id,{note:QA_JOURNAL_NOTE});
+    else api.recordGuest?.(page.id,{perfect:true,note:QA_JOURNAL_NOTE});
+  });
+  api.unlockTrueEndingEpilogues?.();   // 진엔딩 이후 후일담까지 함께 엽니다
+  window.refreshJournalUI?.();
+  qaJournalResetArmedAt=0;
+  qaRefreshPanel(`컬렉션 영업일지 ${pages.length}장을 모두 열었습니다. (영구 기록 변경)`);
+  return true;
+}
+
+function qaJournalResetArmed(){
+  return qaJournalResetArmedAt>0&&Date.now()-qaJournalResetArmedAt<QA_JOURNAL_RESET_ARM_MS;
+}
+
+// 영구 기록을 실수로 지우지 않도록 같은 버튼을 두 번 눌러야 실행됩니다.
+// (headless 캡처에서 멈추지 않도록 confirm 창 대신 두 번 누르기를 씁니다)
+function qaResetJournalPages(){
+  if(!QA_MODE_ENABLED)return false;
+  if(!qaJournalResetArmed()){
+    qaJournalResetArmedAt=Date.now();
+    qaRefreshPanel(`컬렉션 영업일지를 지우려면 ${QA_JOURNAL_RESET_ARM_MS/1000}초 안에 한 번 더 누르세요.`);
+    return false;
+  }
+  qaJournalResetArmedAt=0;
+  // 키를 지우면 save.js 가 다음에 읽을 때 첫 상태(전부 잠김)를 새로 만듭니다.
+  try{localStorage.removeItem(JOURNAL_KEY);}
+  catch(error){qaRefreshPanel(`영업일지를 초기화하지 못했습니다: ${error.message}`);return false;}
+  window.refreshJournalUI?.();
+  qaRefreshPanel("컬렉션 영업일지를 처음 상태(전부 잠김)로 되돌렸습니다.");
+  return true;
+}
+
+function qaOpenJournalOverlay(mode){
+  if(!QA_MODE_ENABLED)return false;
+  if(typeof window.openJournal!=="function"){qaRefreshPanel("영업일지 화면을 찾지 못했습니다.");return false;}
+  // 진행 일지는 현재 세이브의 이야기 기록을 읽으므로 세션이 필요합니다.
+  if(mode==="gameplay"&&!qaEnsureSession())return false;
+  window.openJournal(mode);
+  qaRefreshPanel(mode==="gameplay"?"현재 진행 영업일지를 열었습니다.":"컬렉션 영업일지를 열었습니다.");
+  return true;
+}
+
+function qaRenderJournalPanel(panel=document.getElementById("qaModePanel")){
+  const view=panel?.querySelector('[data-qa-view="journal"]');
+  if(!view||view.hidden)return;
+  const pages=qaJournalCollectionPages();
+  const guests=pages.filter(page=>page.kind!=="ending");
+  const endings=pages.filter(page=>page.kind==="ending");
+  const opened=list=>list.filter(page=>page.unlocked).length;
+  const summary=view.querySelector("[data-qa-journal-summary]");
+  if(summary)summary.textContent=[
+    `특별 손님 ${opened(guests)} / ${guests.length}장`,
+    `엔딩 ${opened(endings)} / ${endings.length}장`,
+    `진엔딩 후일담 ${guests.some(page=>page.epilogueUnlocked)?"공개":"잠김"}`
+  ].join("\n");
+  const reset=view.querySelector("[data-qa-journal-reset]");
+  if(!reset)return;
+  const armed=qaJournalResetArmed();
+  reset.textContent=armed?"한 번 더 누르면 삭제":"↺ 초기화";
+  reset.classList.toggle("armed",armed);
+}
+
+/* ============================================================
    4. 패널
    ============================================================ */
 
@@ -913,6 +1004,7 @@ function qaRefreshPanel(message=""){
     message
   ].filter(Boolean).join("\n");
   qaUpdateStoryControls(panel);
+  qaRenderJournalPanel(panel);
 }
 
 function qaExitMode(){
@@ -927,6 +1019,9 @@ function qaSelectTab(panel,name){
   panel.querySelectorAll("[data-qa-view]").forEach(view=>{view.hidden=view.dataset.qaView!==name;});
   panel.classList.toggle("story-tab",name==="story");
   if(name==="story")qaRenderStoryBrowser(panel);
+  // 탭을 옮기면 초기화 두 번 누르기 카운트는 풀립니다.
+  if(name!=="journal")qaJournalResetArmedAt=0;
+  else qaRenderJournalPanel(panel);
 }
 
 function qaBuildPanel(){
@@ -939,6 +1034,7 @@ function qaBuildPanel(){
         <button data-qa-tab="day" class="active" type="button">날짜 이동</button>
         <button data-qa-tab="story" type="button">스토리</button>
         <button data-qa-tab="mini" type="button">미니게임</button>
+        <button data-qa-tab="journal" type="button">영업일지</button>
       </div>
       <div data-qa-view="day">
         <div class="qa-day-nav"><button data-qa-prev type="button">이전</button><strong>DAY 이동</strong><button data-qa-next type="button">다음</button></div>
@@ -977,6 +1073,19 @@ function qaBuildPanel(){
         <button data-qa-story-close class="qa-story-close" type="button">스토리 미리보기 닫기</button>
         <small class="qa-story-hint">대사를 누르면 실제 대화 UI에서 바로 확인합니다. 미리보기에서는 조리·선택 결과·완료 처리를 실행하지 않습니다.</small>
       </div>
+      <div data-qa-view="journal" hidden>
+        <strong class="qa-phase-title">컬렉션 영업일지 · 영구 기록</strong>
+        <div data-qa-journal-summary class="qa-journal-summary">불러오는 중…</div>
+        <div class="qa-journal-actions">
+          <button data-qa-journal-unlock type="button">🔓 전체 개방</button>
+          <button data-qa-journal-reset class="qa-journal-reset" type="button">↺ 초기화</button>
+        </div>
+        <div class="qa-journal-actions">
+          <button data-qa-journal-open="collection" type="button">컬렉션 일지 열기</button>
+          <button data-qa-journal-open="gameplay" type="button">진행 일지 열기</button>
+        </div>
+        <small class="qa-journal-hint">⚠ 이 탭의 개방·초기화만 실제 영구 기록을 바꿉니다(진행 세이브 슬롯은 그대로). 전체 개방은 특별 손님 8장·엔딩 5장·진엔딩 후일담을 모두 열고, 초기화는 ${QA_JOURNAL_RESET_ARM_MS/1000}초 안에 두 번 눌러야 전부 잠긴 처음 상태로 되돌립니다. 진행 일지는 지금 세이브의 이야기 기록을 그대로 보여 줍니다.</small>
+      </div>
       <pre data-qa-state></pre>
       <button data-qa-abort class="qa-abort" type="button">미니게임 강제 종료 (Alt+0)</button>
       <small>Alt + 1~7 날짜 이동 · Alt + ←/→ 대사 이동 · Alt + 0 미니게임 닫기 · Alt + F/D/N 냉장고·낮·밤 전환 (Alt + \` 토글)</small>
@@ -1001,6 +1110,11 @@ function qaBuildPanel(){
   panel.querySelector("[data-qa-story-close]").addEventListener("click",()=>qaCloseStoryPreview());
   panel.querySelectorAll("[data-qa-prep]").forEach(button=>button.addEventListener("click",()=>qaPlayPrepMini(button.dataset.qaPrep)));
   panel.querySelectorAll("[data-qa-cook]").forEach(button=>button.addEventListener("click",()=>qaPlayCookMini(button.dataset.qaCook,Number(button.dataset.qaStep||0))));
+  panel.querySelector("[data-qa-journal-unlock]").addEventListener("click",qaUnlockAllJournalPages);
+  panel.querySelector("[data-qa-journal-reset]").addEventListener("click",qaResetJournalPages);
+  panel.querySelectorAll("[data-qa-journal-open]").forEach(button=>button.addEventListener("click",()=>{
+    qaOpenJournalOverlay(button.dataset.qaJournalOpen);
+  }));
   panel.querySelector("[data-qa-abort]").addEventListener("click",qaAbortMini);
   panel.querySelector("[data-qa-search]").addEventListener("input",event=>qaFilterMiniList(panel,event.target.value));
   panel.querySelector("[data-qa-collapse]").addEventListener("click",event=>{

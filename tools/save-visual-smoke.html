@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<!-- CSS·에셋 경로가 전부 index.html(루트) 기준입니다 -->
+<base href="../" />
+<title>저장창 visual smoke</title>
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/app-shell.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/settings.css" />
+<link rel="stylesheet" href="css/save-slots.css" />
+<style>
+  /* 오버레이만 찍으므로 전환 애니메이션을 끄고 바로 켜 둡니다 */
+  .global-overlay { transition: none; }
+</style>
+</head>
+<body>
+<!--
+  저장/불러오기 창 한 화면만 헤드리스 크롬으로 찍는 하네스입니다.
+
+    chrome --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files
+           --window-size=1920,1080 --virtual-time-budget=8000
+           --screenshot=out.png "file:///.../tools/save-visual-smoke.html?mode=title"
+
+  ?mode=title  타이틀 이어하기  (자동 1칸에만 기록 · 수동 3칸은 빈 칸)
+  ?mode=load   게임 중 불러오기 (자동 + 수동 두 칸에 기록)
+  ?mode=save   게임 중 저장하기 (자동 칸은 잠기고 수동 칸만 눌림)
+  ?full=1      네 칸 모두 기록 있음 (카드 네 줄이 꽉 찬 최대 높이 확인용)
+
+  마크업을 여기 베껴 적지 않고 index.html 에서 #saveSlotOverlay 를 통째로
+  꺼내 쓰고, 카드도 save-ui.js 의 createSaveSlotItem 이 직접 그립니다.
+  베껴 적으면 실제 화면과 어긋나도 스모크는 통과해 버립니다.
+  (file:// 에서 fetch 는 막히므로 XHR 을 씁니다 — --allow-file-access-from-files 필요)
+-->
+<main class="app-screen game-screen active"></main>
+<script>
+const params=new URLSearchParams(location.search);
+const mode=params.get("mode")||"title";
+const full=params.get("full")==="1";
+
+function fail(message){
+  document.body.dataset.error=message;
+  document.body.insertAdjacentHTML("beforeend",
+    `<pre style="position:fixed;inset:0;padding:24px;color:#ff9a7a;font:16px monospace">${message}</pre>`);
+}
+window.addEventListener("error",event=>fail("에러: "+event.message));
+
+/* ── save-ui.js 가 기대하는 게임 전역들 ──────────────────────
+   실제 저장소 대신 고정 데이터를 물려 주는 것뿐입니다. 카드 하나하나는
+   아래에서 불러오는 save-ui.js 가 그립니다. */
+const STORY_SCENES={
+  "G-02":{title:"입담이 좋아도 자식과의 대화는 어려운 사람"},
+  "C1-04B":{title:"돌아갈 자리와 남을 자리"},
+  "C3-11":{title:"국물이 식기 전에 하고 싶던 말"}
+};
+const GAME_PHASES={MENU_SELECT:"menuSelect",PREP:"day",OPEN:"night",RESULT:"result"};
+
+function record(day,phase,loop,shards,sceneId,savedAt){
+  return {
+    savedAt,
+    state:{day,phase,story:{loop,currentLoop:{moonFragmentCount:shards}}},
+    storyCheckpoint:{sceneId}
+  };
+}
+const SLOTS=[
+  {id:"auto",label:"자동 저장",manual:false,
+    data:record(2,"night",2,1,"G-02","2026-08-06T21:12:00")},
+  {id:"manual1",label:"저장 1",manual:true,
+    data:record(7,"day",3,5,"C1-04B","2026-08-07T02:40:00")},
+  {id:"manual2",label:"저장 2",manual:true,data:null},
+  {id:"manual3",label:"저장 3",manual:true,data:null}
+];
+if(mode==="title")SLOTS[1].data=null;          // 타이틀에서는 자동 저장만 있는 상태
+if(full){
+  SLOTS[1].data=record(7,"day",3,5,"C1-04B","2026-08-07T02:40:00");
+  SLOTS[2].data=record(11,"menuSelect",4,8,"C3-11","2026-08-07T15:05:00");
+  SLOTS[3].data=record(4,"result",1,0,"G-02","2026-08-05T19:31:00");
+}
+function readAllSaveSlots(){ return SLOTS; }
+function hasAnySaveData(){ return SLOTS.some(slot=>!!slot.data); }
+function updateContinueButton(){}
+
+const request=new XMLHttpRequest();
+request.open("GET","index.html",false);
+try{ request.send(null); }
+catch(error){ fail("index.html 을 못 읽었습니다. --allow-file-access-from-files 가 필요합니다. "+error); }
+
+if(!document.body.dataset.error){
+  const parsed=new DOMParser().parseFromString(request.responseText,"text/html");
+  const overlay=parsed.getElementById("saveSlotOverlay");
+  if(!overlay) fail("index.html 에서 #saveSlotOverlay 를 못 찾았습니다.");
+  else{
+    document.body.append(document.importNode(overlay,true));
+    // 마크업이 붙은 뒤에 읽어야 initializeSaveSlotUI 가 요소를 잡습니다
+    const script=document.createElement("script");
+    script.src="save-ui.js";
+    script.onload=setup;
+    script.onerror=()=>fail("save-ui.js 를 못 읽었습니다.");
+    document.body.append(script);
+  }
+}
+
+function setup(){
+  openSaveSlotDialog(mode==="save"?"save":"load", mode==="title"?"title":"game", null);
+
+  // 실측값을 DOM 에 남겨 둡니다 (--dump-dom 으로 읽습니다)
+  requestAnimationFrame(()=>{
+    const overlay=document.getElementById("saveSlotOverlay");
+    const panel=overlay.querySelector(".save-slot-window");
+    const list=document.getElementById("saveSlotList");
+    const card=list.querySelector(".save-slot-card");
+    const box=node=>{const r=node.getBoundingClientRect();return `${Math.round(r.width)}x${Math.round(r.height)}`;};
+    document.body.dataset.panel=box(panel);
+    document.body.dataset.card=box(card);
+    document.body.dataset.list=`${Math.round(list.scrollHeight)}/${Math.round(list.clientHeight)}`;
+    document.body.dataset.overflow=list.scrollHeight>list.clientHeight+1?"yes":"no";
+    // 카드 안 한 줄짜리 글이 잘렸는지(= … 가 붙었는지). 잘린 줄이 있으면
+    // 몇 px 이 모자란지 같이 적습니다 — 글자 크기·칸 폭을 잡는 근거입니다.
+    const clipped=[...list.querySelectorAll(".save-slot-summary, .save-slot-story")]
+      .map(node=>[node.className.replace("save-slot-",""),Math.ceil(node.scrollWidth-node.clientWidth)])
+      .filter(([,over])=>over>0);
+    document.body.dataset.clipped=clipped.length?clipped.map(pair=>pair.join(":")).join(" "):"none";
+    // 마지막 줄 아래에 판 안쪽으로 남는 여백(px). 음수면 판 밖으로 나간 것입니다.
+    const panelRect=panel.getBoundingClientRect();
+    const padY=parseFloat(getComputedStyle(panel).paddingBottom);
+    const last=list.lastElementChild.getBoundingClientRect();
+    document.body.dataset.slack=String(Math.round(panelRect.bottom-padY-last.bottom));
+    document.body.dataset.upx=getComputedStyle(document.documentElement).getPropertyValue("--upx").trim();
+  });
+}
+</script>
+</body>
+</html>

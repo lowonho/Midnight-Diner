@@ -10,6 +10,7 @@ const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
 const saveSource=fs.readFileSync(path.join(root,"save.js"),"utf8");
 const titleSource=fs.readFileSync(path.join(root,"title.js"),"utf8");
 const storySource=fs.readFileSync(path.join(root,"story.js"),"utf8");
+const storyDataSource=fs.readFileSync(path.join(root,"story-data.js"),"utf8");
 const gameSource=fs.readFileSync(path.join(root,"game.js"),"utf8");
 const titleCssSource=fs.readFileSync(path.join(root,"css","title.css"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
@@ -49,7 +50,8 @@ function assert(condition,message){
   "journalPageProgress",
   "journalPrevious",
   "journalNext",
-  "journalPageTabs",
+  "journalSectionTabs",
+  "journalSectionTabsPast",
   "storySkipButton"
 ].forEach(id=>{
   assert(
@@ -139,8 +141,8 @@ assert(titleSource.includes("function openJournal(")
   "타이틀에서 영업일지를 열고 닫고 다시 그릴 수 있어야 합니다.");
 assert(titleSource.includes("collectionPages")
   &&titleSource.includes("journalPageProgress")
-  &&titleSource.includes("journalPageTabs"),
-  "타이틀 영업일지는 고정 13페이지 API로 페이지 수와 탭을 그려야 합니다.");
+  &&titleSource.includes("journalSectionTabs"),
+  "타이틀 영업일지는 고정 13페이지 API로 페이지 수와 견출지를 그려야 합니다.");
 assert(titleSource.includes('function openTitleJournal(){return openJournal("collection");}')
   &&titleSource.includes('function openGameplayJournal(){return openJournal("gameplay");}'),
   "타이틀 영구 컬렉션과 게임 내 진행 기록은 서로 다른 모드로 열려야 합니다.");
@@ -179,14 +181,70 @@ const journalNoteSource=titleSource.match(/function journalPageNote\([\s\S]+?\r?
 assert(journalNoteSource.includes('if(!page.recorded||!page.entries?.length)return "";')
   &&!journalNoteSource.includes("그날 손님을 직접 만난 뒤 얻은 단서와 결과가 여기에 기록됩니다."),
   "아직 손님을 만나지 않은 날짜 장의 본문은 설명문 없이 비어 있어야 합니다.");
-const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\r?\n}\r?\n\r?\nfunction renderJournalTabs/)?.[0]||"";
+const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\r?\n}\r?\n/)?.[0]||"";
 assert(journalMetaSource.includes('journalMode==="gameplay"')
   &&journalMetaSource.includes('page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:""'),
   "빈 날짜 장의 요약도 비우고, 기록이 생긴 뒤에만 자연스러운 방문 기록을 표시해야 합니다.");
-assert(titleSource.includes("function journalTabLabel(page,index)")
-  &&titleSource.includes("button.textContent=tabLabel")
-  &&!titleSource.includes("button.textContent=String(index+1)"),
-  "영업일지 하단 탭은 페이지 숫자 대신 주의사항·음식·날짜 이름을 표시해야 합니다.");
+// 하단 페이지 탭 대신, 일지 옆에 붙는 구역 견출지로 넘깁니다.
+assert(!indexSource.includes('id="journalPageTabs"')
+  &&!settingsCssSource.includes(".journal-page-tabs")
+  &&!titleSource.includes("function journalTabLabel("),
+  "페이지마다 하나씩 있던 하단 탭 줄은 남아 있으면 안 됩니다.");
+const journalSectionDefsSource=titleSource.match(
+  /function journalSectionDefs\([\s\S]+?\r?\n}\r?\n/
+)?.[0]||"";
+assert(["주의사항","요리","일기"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`))
+  &&["특별 손님","엔딩"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`)),
+  "견출지는 인게임 주의사항·요리·일기, 로비 특별 손님·엔딩 순이어야 합니다.");
+assert(titleSource.includes("function journalSectionEntryIndex(section)")
+  &&titleSource.includes('journalMode==="gameplay"&&section.id==="day"')
+  &&titleSource.includes("return section.first;"),
+  "요리 견출지는 첫 요리로, 일기 견출지는 현재 일차로 펼쳐야 합니다.");
+assert(titleSource.includes("function journalActiveSectionSlot(sections)")
+  &&titleSource.includes('button.classList.toggle("is-past",section.slot<activeSlot)')
+  &&titleSource.includes("sections.filter(section=>section.slot<activeSlot)")
+  &&titleSource.includes("sections.filter(section=>section.slot>=activeSlot)"),
+  "지나온 구역의 견출지는 왼쪽 면에, 남은 구역은 오른쪽 면에 붙어야 합니다.");
+assert(titleSource.includes("journalLastGameplayPageId")
+  &&titleSource.includes("refreshJournalUI({restoreLastPage:journalMode===\"gameplay\"})"),
+  "인게임 일지는 다시 열 때 마지막으로 보던 장을 펼쳐야 합니다.");
+assert(settingsCssSource.includes(".journal-side-tabs-left .journal-section-tab")
+  &&settingsCssSource.includes(".journal-side-tabs-right .journal-section-tab")
+  &&settingsCssSource.includes("--journal-tab-slot"),
+  "견출지는 좌우 어느 면에 붙어도 같은 세로 자리를 지켜야 합니다.");
+// 특별 손님 페이지의 달빛 조각 그림
+const moonPieceDir=path.join(root,"assets","customer","Special","MoonPiece");
+const moonPieceArtSource=titleSource.match(
+  /const JOURNAL_MOON_PIECE_ART=Object\.freeze\(\{[\s\S]+?\}\);/
+)?.[0]||"";
+// 같은 조각 id 가 손님 정의와 조각 목록 양쪽에 나와서 중복을 걸러 냅니다.
+const shardIds=[...new Set(
+  [...storyDataSource.matchAll(/shardId:\s*"([^"]+)"/g)].map(match=>match[1])
+)];
+assert(shardIds.length===8,
+  `특별 손님 여덟 명의 달빛 조각 id 를 읽어야 합니다. (읽은 개수 ${shardIds.length})`);
+shardIds.forEach(shardId=>{
+  const file=moonPieceArtSource.match(new RegExp(`${shardId}:"([^"]+)"`))?.[1];
+  assert(!!file,`달빛 조각 '${shardId}' 에 짝지은 그림이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(moonPieceDir,file)),
+    `${file} 이 없습니다. npm run build:moonpiece 로 PNG 에서 다시 뽑으세요.`);
+  assert(fs.existsSync(path.join(moonPieceDir,file.replace(/\.webp$/,".png"))),
+    `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
+});
+assert(titleSource.includes('journalMode==="collection"&&!!page&&page.kind!=="ending"'),
+  "달빛 조각 그림은 로비 컬렉션의 특별 손님 장에만 붙어야 합니다.");
+assert(titleSource.includes('elements.relicArt.style.backgroundImage=unlocked?')
+  &&titleSource.includes('elements.relicName.textContent=unlocked?'),
+  "잠긴 손님의 달빛 조각은 그림도 이름도 미리 보여 주면 안 됩니다.");
+assert(settingsCssSource.includes(".journal-page-relic-art")
+  &&settingsCssSource.includes("--journal-relic-size")
+  &&/id="journalPageRelic"/.test(indexSource),
+  "달빛 조각 그림 자리는 크기를 한 값(--journal-relic-size)으로 잡아야 합니다.");
+
+assert(/\.journal-heading-text/.test(settingsCssSource)
+  &&indexSource.indexOf('class="journal-heading-text"')<indexSource.indexOf('id="journalDescription"')
+  &&indexSource.indexOf('id="journalDescription"')<indexSource.indexOf('id="journalClose"'),
+  "제목 아래 안내문은 제목과 같은 판 안에 있어야 합니다.");
 [
   "이름","기억의 음식","좋아한 스타일","완성된 이야기","달빛 조각","진엔딩 이후 후일담"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
@@ -195,9 +253,8 @@ assert(titleSource.includes("function journalTabLabel(page,index)")
   "엔딩 번호","엔딩 제목","요약","마지막 대사","최초 달성"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
   `타이틀 엔딩 페이지에 '${label}' 필드가 있어야 합니다.`));
-assert(settingsCssSource.includes(".journal-page-tab")
-  &&settingsCssSource.includes(".is-locked")
-  &&settingsCssSource.includes(".is-new"),
+assert(settingsCssSource.includes(".journal-page.is-locked")
+  &&settingsCssSource.includes(".journal-section-tab.is-new"),
   "타이틀 영업일지는 고정 페이지의 잠금과 최초 해금 상태를 구분해야 합니다.");
 assert(settingsCssSource.includes(".journal-page-portrait.journal-page-icon")
   &&titleSource.includes('classList.toggle("journal-page-icon",isGameplayRecord)'),
@@ -493,15 +550,15 @@ let slots=[
     }
   },
   {
-    id:"manual1",label:"수동 저장 1",manual:true,
+    id:"manual1",label:"저장 1",manual:true,
     data:{
       savedAt,
       state:{day:7,phase:"day",story:{loop:3,guestResults:{rainyChild:{fragmentState:"partial"},lanternGuest:{fragmentState:"full"}}}},
       storyCheckpoint:{sceneId:"C1-04B"}
     }
   },
-  {id:"manual2",label:"수동 저장 2",manual:true,data:null},
-  {id:"manual3",label:"수동 저장 3",manual:true,data:null}
+  {id:"manual2",label:"저장 2",manual:true,data:null},
+  {id:"manual3",label:"저장 3",manual:true,data:null}
 ];
 function readAllSaveSlots(){
   return slots;
@@ -613,7 +670,7 @@ card("manual2").click();
 equal(manualSaveCalls.length,1,"수동 슬롯 클릭은 저장 함수를 한 번 호출해야 합니다.");
 equal(manualSaveCalls[0],"manual2","클릭한 수동 슬롯 ID로 저장해야 합니다.");
 equal(updateContinueCalls,1,"수동 저장 성공 후 이어하기 상태를 갱신해야 합니다.");
-equal(toastMessages[0],"수동 저장 2에 저장했습니다.","수동 저장 성공 안내가 보여야 합니다.");
+equal(toastMessages[0],"저장 2에 저장했습니다.","수동 저장 성공 안내가 보여야 합니다.");
 check(!overlay.classList.contains("open"),"수동 저장 성공 후 슬롯 창을 닫아야 합니다.");
 check(
   callOrder.indexOf("save:manual2")<callOrder.indexOf("updateContinue")

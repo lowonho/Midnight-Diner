@@ -50,11 +50,13 @@ function openSaveSlotDialog(mode="load",origin="title",trigger=null){
   elements.title.textContent=saveSlotDialogMode==="save"
     ?"저장하기"
     :saveSlotDialogOrigin==="game"?"불러오기":"이어하기";
+  // 판 안쪽 폭(css/save-slots.css --sv-inner-w)에 한 줄로 들어가는 길이입니다.
+  // 더 길게 쓰면 두 줄이 되고, 두 줄까지는 아래 슬롯 네 칸을 밀지 않습니다.
   elements.description.textContent=saveSlotDialogMode==="save"
-    ?"수동 저장 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다."
+    ?"칸을 고르면 지금까지의 이야기가 그 자리에 남습니다."
     :(saveSlotDialogOrigin==="game"
-      ?"불러올 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다."
-      :"이어갈 저장 슬롯을 선택하세요. 저장된 데이터는 오른쪽 삭제 버튼으로 지울 수 있습니다.");
+      ?"돌아갈 자리를 고르세요. 저장하지 않은 지금 진행은 사라집니다."
+      :"이어서 열 자리를 고르세요.");
   setSaveSlotStatus("");
   renderSaveSlotList();
   elements.overlay.classList.add("open");
@@ -118,14 +120,13 @@ function createSaveSlotItem(slot){
   button.setAttribute("aria-label",saveSlotAccessibleLabel(slot));
   button.addEventListener("click",()=>selectSaveSlot(slot));
 
+  // 칸 이름(자동 저장 / 수동 저장 1~3)만 적습니다. 자동인지 수동인지는 그
+  // 이름에 이미 들어 있어서, 밑에 따로 붙이던 설명 뱃지는 두지 않습니다.
   const name=document.createElement("span");
   name.className="save-slot-name";
   const nameText=document.createElement("strong");
   nameText.textContent=slot.label;
-  const badge=document.createElement("small");
-  badge.className="save-slot-badge";
-  badge.textContent=slot.manual?(slot.data?"수동 저장":"빈 슬롯"):"자동 전용";
-  name.append(nameText,badge);
+  name.append(nameText);
 
   const details=document.createElement("span");
   details.className="save-slot-details";
@@ -142,11 +143,13 @@ function createSaveSlotItem(slot){
       details.append(story);
     }
   }else{
+    // 이 글자는 작은 나무 명패(ui_save_empty_notice) 위에 얹힙니다.
+    // 명패 폭이 곧 글자 자리라 여섯 자를 넘기면 안 됩니다.
     const empty=document.createElement("span");
     empty.className="save-slot-empty-text";
     empty.textContent=saveSlotDialogMode==="save"&&slot.manual
-      ?"선택하면 현재 진행 상황을 저장합니다."
-      :"저장 데이터가 없습니다.";
+      ?"여기에 저장"
+      :"빈 칸";
     details.append(empty);
   }
 
@@ -159,7 +162,8 @@ function createSaveSlotItem(slot){
       savedTime.textContent=formatSaveSlotTime(date);
     }
   }
-  if(!savedTime.textContent)savedTime.textContent="—";
+  // 빈 칸에는 자리만 비워 둡니다. 기록은 있는데 시각을 못 읽은 경우에만 "—".
+  if(!savedTime.textContent&&slot.data)savedTime.textContent="—";
 
   button.append(name,details,savedTime);
   item.append(button);

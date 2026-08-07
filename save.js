@@ -23,7 +23,8 @@ const AUTO_SAVE_SLOT="auto";
 const MANUAL_SAVE_SLOTS=Object.freeze(["manual1","manual2","manual3"]);
 const SAVE_SLOT_DEFS=Object.freeze([
   Object.freeze({id:AUTO_SAVE_SLOT,label:"자동 저장",manual:false}),
-  ...MANUAL_SAVE_SLOTS.map((id,index)=>Object.freeze({id,label:`수동 저장 ${index+1}`,manual:true}))
+  // 화면에 "자동 저장" 과 나란히 서는 이름이라 "수동" 을 빼도 뜻이 갈립니다.
+  ...MANUAL_SAVE_SLOTS.map((id,index)=>Object.freeze({id,label:`저장 ${index+1}`,manual:true}))
 ]);
 let autosaveElapsed=0;
 let saveSystemInitialized=false;

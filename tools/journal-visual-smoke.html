@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<!-- CSS 경로가 전부 index.html(루트) 기준입니다 -->
+<base href="../" />
+<title>영업일지 visual smoke</title>
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/app-shell.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/settings.css" />
+<style>
+  /* 오버레이만 찍으므로 전환 애니메이션을 끄고 바로 켜 둡니다 */
+  .global-overlay { transition: none; }
+</style>
+</head>
+<body>
+<!--
+  영업일지(견출지) 한 화면만 헤드리스 크롬으로 찍는 하네스입니다.
+
+    chrome --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files
+           --window-size=1920,1080 --virtual-time-budget=8000
+           --screenshot=out.png "file:///.../tools/journal-visual-smoke.html?mode=gameplay"
+
+  ?mode=gameplay    인게임 일지 (견출지 주의사항·요리·일기)
+  ?mode=collection  로비 일지   (견출지 특별 손님·엔딩)
+  ?tab=1            열자마자 n번째 견출지를 눌러 둡니다 (0부터)
+  ?page=5           특정 쪽으로 넘겨 둡니다 (0부터)
+
+  마크업은 베껴 적지 않고 index.html 에서 #journalOverlay 를 통째로 꺼내 씁니다.
+  (file:// 에서 fetch 는 막히므로 XHR 을 씁니다 — --allow-file-access-from-files 필요)
+-->
+<main class="app-screen game-screen active"></main>
+<script>
+const params=new URLSearchParams(location.search);
+const mode=params.get("mode")==="collection"?"collection":"gameplay";
+// 로비 컬렉션에서 해금해 둘 특별 손님 수 (?unlocked=8 이면 여덟 장 다 열림)
+const unlockedGuests=Number(params.get("unlocked")??5);
+
+function fail(message){
+  document.body.dataset.error=message;
+  document.body.insertAdjacentHTML("beforeend",
+    `<pre style="position:fixed;inset:0;padding:24px;color:#ff9a7a;font:16px monospace">${message}</pre>`);
+}
+window.addEventListener("error",event=>fail("에러: "+event.message));
+
+// title.js 가 참조하는 게임 전역들의 최소 대역입니다.
+var audio=null;
+var state={day:3,paused:false,phase:"night"};
+var GAME_PHASES={MENU_SELECT:"menuSelect",PREP:"day",OPEN:"night",RESULT:"result"};
+var dom={};
+
+const DISHES=["어묵탕","감자전","김치볶음밥","계란말이","새우튀김","두부조림","꼬치구이","감자튀김"];
+const GUESTS=["비에 젖은 아이","등불을 머리에 인 손님","둘이 붙은 그림자","까마귀 우편배달부",
+  "별을 먹는 작은 짐승","바닷물로 된 손님","멈춰버린 교복 인형","얼굴 없는 김다은"];
+// story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
+const SHARDS=[
+  ["first_raindrop","첫 빗방울"],["remaining_warmth","남은 온기"],
+  ["two_half_names","반쪽 이름 두 개"],["undelivered_letter","배달되지 못한 편지"],
+  ["golden_salt","금빛 소금"],["eastern_scale","동쪽의 비늘"],
+  ["stopped_minute_hand","멈춘 분침"],["daeuns_tomorrow","김다은의 내일"]
+];
+
+function getGameplayJournalPages(){
+  const total=1+DISHES.length+7;
+  const rules={
+    id:"gameplay-rules",pageType:"rules",number:1,total,unlocked:true,
+    label:"주의사항",tabLabel:"주의사항",dayLabel:"주의사항",
+    rules:[
+      "매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.",
+      "손님에게 항상 친절하게 대한다.",
+      "내일로 가는 문은 달빛 조각으로만 열 수 있다."
+    ]
+  };
+  const recipes=DISHES.map((dishName,index)=>({
+    id:`gameplay-recipe-${index}`,pageType:"recipe",number:index+2,total,recipeNumber:index+1,
+    dishName,label:`${dishName} 레시피`,tabLabel:dishName,unlocked:true,
+    ingredients:["재료 하나","재료 둘","재료 셋"],
+    prepSteps:["영업 전 준비 한 줄","영업 전 준비 두 줄"],
+    cookSteps:["주문 후 조리 한 줄","주문 후 조리 두 줄"]
+  }));
+  // 7일차는 손님이 둘이라 진행용 일지에서 가장 긴 장입니다.
+  // 글자 크기를 키운 뒤 넘치는지 보려고 실제 서식대로 길게 적어 둡니다.
+  const entryFor=index=>({
+    guestId:`guest-${index}`,guestName:GUESTS[index],
+    clue:"비 오는 날 우산도 없이 뛰어가다 처마 밑에서 한참을 서 있었다는 이야기를 했다.",
+    dishNote:`이 손님이 기억하는 음식은 ${DISHES[index]}이었다.`,
+    reactionNote:"이번에 음식을 맛본 뒤 “그때 그 맛이랑 똑같아서 한참을 못 먹었다”라고 했다.",
+    shardNote:"달빛 조각 「첫 비」를 건넸다."
+  });
+  const days=Array.from({length:7},(unused,index)=>{
+    const day=index+1;
+    const recorded=day<=3||day===7;
+    return {
+      id:`gameplay-day-${day}`,pageType:"day",number:DISHES.length+day+1,total,day,
+      dayLabel:`${day}일차`,label:`${day}일차 기록`,tabLabel:`${day}일차`,unlocked:true,
+      recorded,
+      entries:day===7?[entryFor(6),entryFor(7)]:recorded?[entryFor(index)]:[]
+    };
+  });
+  return [rules,...recipes,...days];
+}
+
+window.MoonlightTableSave={
+  collectionPages(){
+    const guests=GUESTS.map((displayName,index)=>({
+      id:`guest-${index}`,kind:"guest",displayName,label:displayName,
+      unlocked:index<unlockedGuests,notificationPending:index===3,portraitRow:index%6,
+      dishName:DISHES[index],preferredStyle:"빗소리가 묻힐 만큼 고르게 익힌 따뜻한 김치전",
+      completedStory:"김다은이 포기한 내일이었다. 다은은 자신이 닫은 내일로 가는 문을 알아보고, 이 밤을 어떻게 끝낼지 스스로 선택하기로 했다.",
+      shardId:SHARDS[index][0],shardName:SHARDS[index][1],
+      epilogueUnlocked:index<2,epilogue:"그 뒤로도 가끔 문을 두드린다.",
+      unlockedAt:Date.now()
+    }));
+    const endings=Array.from({length:5},(unused,index)=>({
+      id:`ending-${index}`,kind:"ending",number:index+1,label:`엔딩 ${index+1}`,
+      unlocked:index<2,notificationPending:false,
+      summary:"달빛이 식탁 위에 오래 머물렀다.",lastLine:"다시 만나요.",unlockedAt:Date.now()
+    }));
+    return [...guests,...endings];
+  },
+  acknowledgeUnlock(){return true;}
+};
+
+const request=new XMLHttpRequest();
+request.open("GET","index.html",false);
+try{ request.send(null); }
+catch(error){ fail("index.html 을 못 읽었습니다. --allow-file-access-from-files 가 필요합니다. "+error); }
+
+if(!document.body.dataset.error){
+  const parsed=new DOMParser().parseFromString(request.responseText,"text/html");
+  const overlay=parsed.getElementById("journalOverlay");
+  if(!overlay) fail("index.html 에서 #journalOverlay 를 못 찾았습니다.");
+  else{
+    document.body.append(document.importNode(overlay,true));
+    const script=document.createElement("script");
+    script.src="title.js";
+    script.onload=setup;
+    document.body.append(script);
+  }
+}
+
+function setup(){
+  initializeJournalUI();
+  openJournal(mode);
+
+  const tab=Number(params.get("tab"));
+  if(Number.isFinite(tab)&&params.get("tab")!==null){
+    const tabs=[...document.querySelectorAll(".journal-section-tab")]
+      .sort((a,b)=>Number(a.style.getPropertyValue("--journal-tab-slot"))
+        -Number(b.style.getPropertyValue("--journal-tab-slot")));
+    tabs[tab]?.click();
+  }
+  const page=Number(params.get("page"));
+  if(Number.isFinite(page)&&params.get("page")!==null)selectJournalPage(page,true);
+  // 닫았다 다시 열었을 때 마지막으로 보던 장이 나오는지 확인용입니다.
+  if(params.get("reopen")==="1"){
+    closeJournal();
+    openJournal(mode);
+  }
+
+  // 실측값을 DOM 에 남겨 둡니다 (--dump-dom 으로 읽습니다).
+  // rAF 안에서 적으면 --dump-dom 이 그 전에 찍혀 비어 버립니다.
+  {
+    const readTabs=selector=>[...document.querySelectorAll(selector)].map(button=>{
+      const rect=button.getBoundingClientRect();
+      const style=getComputedStyle(button);
+      return `${button.textContent}@${Math.round(rect.x)},${Math.round(rect.y)}`
+        +` ${Math.round(rect.width)}x${Math.round(rect.height)}`
+        +` 글자칸 ${button.scrollWidth}x${button.scrollHeight}`
+        +` ${style.fontSize}/${style.whiteSpace}`;
+    }).join(" | ");
+    const pageRect=document.getElementById("journalPage").getBoundingClientRect();
+    const headRect=document.querySelector(".journal-heading").getBoundingClientRect();
+    // 본문 <p> 는 flex 로 늘어나 있어서 부모(.journal-page-right)의 scrollHeight 로는
+    // 넘침을 못 잡습니다. 글이 실제로 차지한 높이를 따로 재야 합니다.
+    const body=document.getElementById("journalPageNote");
+    document.body.dataset.left=readTabs(".journal-side-tabs-left .journal-section-tab")||"(없음)";
+    document.body.dataset.right=readTabs(".journal-side-tabs-right .journal-section-tab")||"(없음)";
+    document.body.dataset.page=`${Math.round(pageRect.x)},${Math.round(pageRect.y)} ${Math.round(pageRect.width)}x${Math.round(pageRect.height)}`;
+    // 제목 판이 책 세로선과 어긋난 픽셀 수입니다. 0 이어야 맞습니다.
+    document.body.dataset.headAlign=`좌 ${Math.round(headRect.x-pageRect.x)} / 우 ${Math.round(headRect.right-pageRect.right)}`
+      +` / 판 높이 ${Math.round(headRect.height)}`;
+    // 안내문이 제목과 한 줄에 남아 있는지 (두 줄이 되면 판이 두꺼워집니다)
+    const desc=document.getElementById("journalDescription");
+    const descRange=document.createRange();
+    descRange.selectNodeContents(desc);
+    const descHeight=Math.round(descRange.getBoundingClientRect().height);
+    const descLine=Math.round(parseFloat(getComputedStyle(desc).lineHeight));
+    document.body.dataset.descLines=`${Math.round(descHeight/descLine)}줄 (${descHeight}/${descLine})`;
+    // 표제 면(왼쪽)에 초상화 + 달빛 조각이 다 들어갔는지. 음수면 넘친 것입니다.
+    const leaf=document.querySelector(".journal-page-left");
+    const last=[...leaf.children].filter(node=>node.getClientRects().length).at(-1);
+    document.body.dataset.leftSlack=last
+      ?String(Math.round(leaf.getBoundingClientRect().bottom-last.getBoundingClientRect().bottom))
+      :"(빈 면)";
+    const art=document.getElementById("journalPageRelicArt");
+    document.body.dataset.relic=art&&!document.getElementById("journalPageRelic").hidden
+      ?`${getComputedStyle(art).backgroundImage.replace(/^url\("?|"?\)$/g,"").split("/").pop()}`
+        +` ${Math.round(art.getBoundingClientRect().width)}px`
+      :"(없음)";
+    // 본문이 페이지 밖으로 넘쳤는지 (진행용 일지는 스크롤이 없어 잘립니다)
+    const range=document.createRange();
+    range.selectNodeContents(body);
+    const textHeight=Math.round(range.getBoundingClientRect().height);
+    const room=Math.round(body.getBoundingClientRect().bottom-body.getBoundingClientRect().top);
+    document.body.dataset.overflow=(textHeight>room?"넘침 ":"괜찮음 ")+`글 ${textHeight} / 자리 ${room}`;
+    document.body.dataset.progress=document.getElementById("journalPageProgress").textContent;
+    document.body.dataset.title=document.getElementById("journalPageTitle").textContent;
+    document.body.dataset.desc=document.getElementById("journalDescription").textContent;
+  }
+}
+</script>
+</body>
+</html>

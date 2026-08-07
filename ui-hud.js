@@ -32,9 +32,12 @@ const UI_TEXT = Object.freeze({
   phaseNameFallback: "영업 준비",
 
   timeLabelPrep: "준비",
-  timeLabelOpen: "영업",
+  // 밤에는 시간이 아니라 남은 손님 수로 마감을 셉니다. 그래서 같은 칸의
+  // 이름과 값이 밤에만 손님 수로 바뀝니다.
+  timeLabelOpen: "남은 손님",
   timeLabelOther: "남은 시간",
   timeNoLimit: "제한 없음",
+  guestsLeft: count => `${count}명`,
   blank: "-",
 
   money: value => `${value.toLocaleString()}원`,

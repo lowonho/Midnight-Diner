@@ -1,46 +1,384 @@
-.pause-message { margin: 0 0 calc(17 * var(--upx)); color: #c9ae85; }
+/* ============================================================
+   설정창 — assets/UI/Setting 에셋 적용
+   ------------------------------------------------------------
+   같은 #settingsOverlay 를 두 곳에서 엽니다.
+
+     · ingame — 게임 중 일시정지 (game.js openSettings("game"))
+                소리 3줄 + 포인터 + 저장/불러오기 + 게임으로 돌아가기 +
+                타이틀 화면으로  →  세로로 긴 판
+     · lobby  — 타이틀 화면 (title.js openSettings("title"))
+                소리 3줄 + 포인터 + 설정 닫기  →  거의 정사각 판
+
+   둘을 가르는 것은 오버레이에 붙는 `.is-lobby` 하나뿐입니다
+   (game.js openSettings 가 fromTitle 일 때 붙입니다). 나머지 차이 —
+   판 그림 · 판 크기 · 기본 버튼 그림 — 는 전부 여기서 처리합니다.
+   저장/불러오기 줄과 타이틀 버튼은 원래도 JS 가 감추므로 건드리지 않습니다.
+
+   에셋 이름에 ingame / lobby 가 붙은 것은 판 2장뿐이고, 버튼·토글·손잡이는
+   두 화면이 같이 씁니다.
+
+   [테두리를 CSS 로 그리지 않는 이유]
+   판과 버튼의 나무결·금테·둥근 모서리가 전부 그림 안에 그려져 있습니다.
+   그래서 .wood-panel / .gold-button / .dark-button 에서 오는 border ·
+   border-radius · box-shadow · 배경 그라디언트를 여기서 전부 걷어냅니다.
+   남겨 두면 그림 속 금테와 이중으로 겹칩니다.
+   (css/minigame-frame.css 가 미니게임 패널에 한 것과 같은 처리입니다)
+
+   PNG 가 마스터, 실제로 쓰는 WebP 는 tools/build-ui-setting-webp.js 가
+   만듭니다. ⚠️ 아래 --set-panel-* / --set-toggle-* / --set-knob-size 를
+   고치면 그 스크립트의 크기 표도 같이 고쳐야 합니다.
+   ============================================================ */
+.settings-overlay {
+  --set-panel-ingame: url("../assets/UI/Setting/ui_settings_ingame.webp");
+  --set-panel-lobby:  url("../assets/UI/Setting/ui_settings_lobby.webp");
+  --set-btn-resume:   url("../assets/UI/Setting/ui_button_game_return.webp");
+  --set-btn-close:    url("../assets/UI/Setting/ui_button_settings_close.webp");
+  --set-btn-title:    url("../assets/UI/Setting/ui_button_title_screen.webp");
+  --set-btn-save:     url("../assets/UI/Setting/ui_button_save.webp");
+  --set-btn-load:     url("../assets/UI/Setting/ui_button_load.webp");
+  --set-toggle-img:   url("../assets/UI/Setting/ui_toggle_on.webp");
+  --set-knob-img:     url("../assets/UI/Setting/ui_slider_knob.webp");
+
+  /* 판 높이. 가로는 aspect-ratio 가 그림 비율대로 잡아 줍니다 (795 x 1018).
+     --upx 는 상한이 0.0926vh 라 1018 배는 어떤 창에서도 94.3vh 를 넘지
+     않습니다. 그래서 따로 vh 로 자르지 않아도 화면 밖으로 나가지 않습니다.
+     값은 "내용이 딱 차는 높이"입니다 — 늘리면 아래가 휑해집니다.
+     tools/settings-visual-smoke.html 의 data-slack 으로 재면 됩니다. */
+  --set-panel-h: calc(1018 * var(--upx));
+
+  /* 그림 속 금테 안쪽까지의 여백. 실측값(판 가로의 4.4%, 세로의 4.2%)에
+     한 칸 정도 여유를 더한 값입니다. 이보다 줄이면 글자가 금테에 닿습니다. */
+  --set-pad-x: calc(50 * var(--upx));
+  --set-pad-y: calc(48 * var(--upx));
+
+  --set-toggle-w: calc(72 * var(--upx));
+  --set-toggle-h: calc(42 * var(--upx));
+  /* 토글 손잡이. 그림 비율(104/121)대로 토글 높이의 86% 입니다.
+     위아래로 3upx 씩 남아서 그 값이 곧 손잡이가 끝에서 떨어지는 거리입니다. */
+  --set-knob-size: calc(36 * var(--upx));
+  --set-knob-inset: calc(3 * var(--upx));
+
+  /* 공용 .global-overlay 의 padding:4% 는 가로 기준이라 1920 창에서 위아래로
+     77px 씩 먹습니다. 세로로 긴 판이 그만큼 눌리므로 여기서만 줄입니다. */
+  padding: calc(16 * var(--upx));
+}
+/* lobby 는 칸이 적어 같은 높이면 아래가 휑합니다. 내용이 딱 차는 높이입니다. */
+.settings-overlay.is-lobby {
+  --set-panel-h: calc(778 * var(--upx));
+}
+
+/* ── 판 ──────────────────────────────────────────────────── */
+.settings-overlay .settings-window {
+  width: auto;
+  height: var(--set-panel-h);
+  aspect-ratio: 1920 / 2459;
+  display: flex;
+  flex-direction: column;
+  padding: var(--set-pad-y) var(--set-pad-x);
+  border: 0;
+  border-radius: 0;
+  background: var(--set-panel-ingame) center / 100% 100% no-repeat;
+  box-shadow: none;
+  color: var(--cream);
+}
+.settings-overlay.is-lobby .settings-window {
+  aspect-ratio: 1920 / 1922;
+  background-image: var(--set-panel-lobby);
+}
+
+/* 칸이 많은 ingame 쪽은 안내문 길이(미니게임 중에는 더 깁니다)에 따라
+   판보다 내용이 길어질 수 있습니다. 판 크기는 그림이라 늘릴 수 없으므로
+   안쪽만 스크롤합니다. lobby 는 짧아서 실제로는 스크롤이 안 생깁니다. */
+.settings-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: calc(4 * var(--upx));
+  scrollbar-color: #9b7046 rgba(102, 68, 39, .14);
+  scrollbar-width: thin;
+}
+
+/* 같은 창이라 제목 위 한 줄만 화면에 맞춰 바꿉니다. 글자를 JS 로 갈아 끼우지
+   않고 두 개를 넣어 두고 하나만 보이게 합니다 (game.js 를 안 건드리려는 것). */
+.eyebrow-lobby { display: none; }
+.settings-overlay.is-lobby .eyebrow-ingame { display: none; }
+.settings-overlay.is-lobby .eyebrow-lobby { display: inline; }
+
+/* 글자 크기는 --upx 배수라 창을 줄여도 판과 같은 비율로 따라갑니다.
+   칸 밑 설명문을 걷어내면서 남은 자리를 글자 크기로 돌렸습니다. */
+.settings-overlay .settings-window h2 { font-size: calc(30 * var(--upx)); }
+/* 머리 세 줄(PAUSE MENU · 설정 · 안내문)을 판 위 금테에서 한 칸 떼어 놓습니다.
+   판 자체의 --set-pad-y 를 키우면 아래 여백까지 같이 벌어지므로 위만 밉니다. */
+.settings-overlay .eyebrow {
+  margin-top: calc(22 * var(--upx));
+  font-size: calc(13 * var(--upx));
+}
+
+.pause-message {
+  margin: 0 0 calc(6 * var(--upx));
+  color: #c9ae85;
+  font-size: calc(16 * var(--upx));
+  line-height: 1.55;
+}
+
+/* 칸 묶음 제목. 소리 · 조작 · 기록 세 덩어리를 눈으로 갈라 줍니다. */
+.settings-section {
+  margin: calc(20 * var(--upx)) 0 calc(4 * var(--upx));
+  padding-bottom: calc(5 * var(--upx));
+  border-bottom: 1px solid rgba(202, 139, 66, .34);
+  color: #e0b06a;
+  font-size: calc(19 * var(--upx));
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-align: left;
+}
+
+/* ── 한 칸(소리 3줄 · 포인터) ────────────────────────────── */
 .volume-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: calc(8 * var(--upx)) calc(12 * var(--upx));
-  margin: calc(15 * var(--upx)) 0;
+  align-items: center;
+  gap: calc(7 * var(--upx)) calc(12 * var(--upx));
+  margin: calc(16 * var(--upx)) 0;
   color: #ead7b5;
+  font-size: calc(19 * var(--upx));
   text-align: left;
 }
 .volume-row strong { color: #ffd78d; }
-.volume-row input {
-  grid-column: 1 / -1;
-  width: 100%;
-  accent-color: #d79843;
-}
 .volume-state-controls {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: calc(9 * var(--upx));
 }
-.audio-toggle-button {
-  min-width: calc(52 * var(--upx));
-  min-height: calc(28 * var(--upx));
-  padding: calc(3 * var(--upx)) calc(9 * var(--upx));
-  border: 1px solid #9db66c;
-  border-radius: calc(4 * var(--upx));
-  background: linear-gradient(#516936,#2d3c21);
-  color: #f0ffd0;
-  font-weight: 800;
+
+/* ── 음량 슬라이더 : 홈은 CSS, 손잡이는 에셋 ────────────────
+   홈(track) 그림은 납품에 없어서 판·금테 색에 맞춰 CSS 로 팝니다.
+   지나온 구간의 금색 칠은 --fill 로 들어옵니다 (settings-ui.js).
+   그 값이 없으면 0% 라 홈만 보이고, 숫자(%)는 옆에 따로 있어서
+   스크립트가 안 돌아도 조작에는 지장이 없습니다. */
+.volume-row input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: calc(30 * var(--upx));
+  margin: calc(2 * var(--upx)) 0 0;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  accent-color: #d79843;   /* 아래 규칙을 못 읽는 브라우저용 예비값 */
   cursor: pointer;
 }
-.audio-toggle-button.is-off {
-  border-color: #755342;
-  background: linear-gradient(#3a2820,#1b110d);
-  color: #bfa99a;
+.volume-row input[type="range"]::-webkit-slider-runnable-track {
+  height: calc(14 * var(--upx));
+  border-radius: calc(7 * var(--upx));
+  background:
+    linear-gradient(90deg, #f0c069 0 var(--fill, 0%), rgba(0,0,0,0) var(--fill, 0%)),
+    linear-gradient(#140b06, #2c1a10);
+  box-shadow:
+    inset 0 0 0 1px #8a5a2e,
+    inset 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.55);
 }
+.volume-row input[type="range"]::-webkit-slider-thumb {
+  width: calc(30 * var(--upx));
+  height: calc(30 * var(--upx));
+  /* 홈(14) 위에 손잡이(30)를 세로 가운데로 앉힙니다 = (14 - 30) / 2 */
+  margin-top: calc(-8 * var(--upx));
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--set-knob-img) center / 100% 100% no-repeat;
+}
+.volume-row input[type="range"]::-moz-range-track {
+  height: calc(14 * var(--upx));
+  border-radius: calc(7 * var(--upx));
+  background: linear-gradient(#140b06, #2c1a10);
+  box-shadow:
+    inset 0 0 0 1px #8a5a2e,
+    inset 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(0,0,0,.55);
+}
+/* 파이어폭스는 지나온 구간을 브라우저가 직접 그려 주므로 --fill 이 필요 없습니다 */
+.volume-row input[type="range"]::-moz-range-progress {
+  height: calc(14 * var(--upx));
+  border-radius: calc(7 * var(--upx)) 0 0 calc(7 * var(--upx));
+  background: #f0c069;
+}
+.volume-row input[type="range"]::-moz-range-thumb {
+  width: calc(30 * var(--upx));
+  height: calc(30 * var(--upx));
+  border: 0;
+  background: var(--set-knob-img) center / 100% 100% no-repeat;
+}
+.volume-row input[type="range"]:focus-visible {
+  outline: calc(2 * var(--upx)) solid #ffe09a;
+  outline-offset: calc(2 * var(--upx));
+}
+
+/* ── ON / OFF 토글 ──────────────────────────────────────────
+   납품된 것은 켜짐(ui_toggle_on) 한 장뿐이라, 꺼짐은 같은 그림의 색을
+   빼서 만듭니다. 손잡이는 슬라이더와 같은 ui_slider_knob 을 씁니다 —
+   토글 높이(42)와 손잡이(36)의 비가 그림 비율(121:104)과 같아서
+   그대로 얹으면 위아래 3upx 씩 남고 좌우로 딱 반칸씩 움직입니다.
+
+   ⚠️ ON / OFF 글자를 마크업에서 빼면 안 됩니다. game.js syncAudioToggle 과
+      cursor-setting.js syncCatCursorToggle 이 textContent 로 상태를 씁니다.
+      그림 안에 이미 상태가 보이므로 크기만 0 으로 줄여 감춥니다. */
+.audio-toggle-button {
+  position: relative;
+  width: var(--set-toggle-w);
+  height: var(--set-toggle-h);
+  min-width: 0;
+  min-height: 0;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--set-toggle-img) center / 100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  transition: filter .16s;
+}
+.audio-toggle-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% - var(--set-knob-size) - var(--set-knob-inset));
+  width: var(--set-knob-size);
+  height: var(--set-knob-size);
+  background: var(--set-knob-img) center / 100% 100% no-repeat;
+  transform: translateY(-50%);
+  transition: left .16s ease;
+}
+.audio-toggle-button.is-off {
+  border-color: transparent;
+  background: var(--set-toggle-img) center / 100% 100% no-repeat;
+  color: transparent;
+  filter: saturate(.16) brightness(.58);
+}
+.audio-toggle-button.is-off::after { left: var(--set-knob-inset); }
+.audio-toggle-button:hover { filter: brightness(1.1); }
+.audio-toggle-button.is-off:hover { filter: saturate(.16) brightness(.72); }
 .audio-toggle-button:focus-visible {
   outline: 2px solid #f0bf64;
   outline-offset: 2px;
 }
+@media (prefers-reduced-motion: reduce) {
+  .audio-toggle-button::after { transition: none; }
+}
+
+/* 전체 음향이 꺼져 있으면 아래 두 줄은 만져도 소리가 안 나므로 흐리게 둡니다 */
 .settings-overlay.audio-muted .volume-row input,
 .volume-row.is-muted input { opacity: .48; }
+
+/* ── 나무판 · 금판 버튼 4종 ─────────────────────────────────
+   폭은 판 안쪽을 꽉 채우고(100%), 높이는 그림 비율이 정합니다.
+   저장/불러오기만 한 줄에 둘이라 절반씩 나눠 갖습니다.
+   글자는 그림 위에 CSS 로 얹습니다 (그림에는 아무 글자도 없습니다).
+   네 개 모두 손을 올리면 밝기만 한 단계 오르고, 누르면 2px 내려앉습니다.
+
+   ⚠️ [id 로 적는 이유 — 클래스로 적으면 hover 에서 그림이 깨집니다]
+   css/save-slots.css 가 이 파일보다 **뒤에** 로드되는데, 거기
+   `.save-action-button:hover` 가 `background` **단축 속성**을 씁니다.
+   단축 속성은 안 적은 값(size · position · repeat)까지 초기값으로 되돌립니다.
+   `.settings-window .save-action-button`(클래스 둘 = 0,2,0)로 적으면 저쪽
+   hover(0,2,0)와 우선순위가 같아 나중에 로드된 쪽이 이겨서, 손을 올리는
+   순간 background-size 가 100% 100% → auto 로 풀립니다. 그러면 730px 짜리
+   원본이 버튼(약 350px) 위에 왼쪽 위 기준으로 깔려 금테 모서리만 확대돼
+   보입니다. id(1,1,0)로 적으면 항상 이깁니다. */
+.settings-window #manualSaveButton,
+.settings-window #loadGameButton,
+.settings-window #resumeButton,
+.settings-window #returnTitleButton {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-weight: 800;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: filter .12s;
+}
+.settings-window #manualSaveButton:hover:not(:disabled),
+.settings-window #loadGameButton:hover:not(:disabled),
+.settings-window #manualSaveButton:focus-visible,
+.settings-window #loadGameButton:focus-visible,
+.settings-window #resumeButton:hover,
+.settings-window #returnTitleButton:hover { filter: brightness(1.09); }
+.settings-window #manualSaveButton:active:not(:disabled),
+.settings-window #loadGameButton:active:not(:disabled),
+.settings-window #resumeButton:active,
+.settings-window #returnTitleButton:active { transform: translateY(2px); }
+.settings-window #manualSaveButton:disabled,
+.settings-window #loadGameButton:disabled {
+  opacity: .42;
+  filter: grayscale(.7);
+  cursor: default;
+}
+
+/* 어두운 나무판 3종 — 밝은 크림색 글자 */
+.settings-window #manualSaveButton,
+.settings-window #loadGameButton,
+.settings-window #returnTitleButton {
+  color: #f3d9a4;
+  text-shadow: 0 calc(2 * var(--upx)) calc(2 * var(--upx)) #150b05;
+}
+/* background 를 단축 속성으로 한 번에 적습니다 — 위 [id 로 적는 이유] 참고.
+   hover / focus 에서도 이 선언이 그대로 이겨야 그림이 안 흔들립니다. */
+.settings-window #manualSaveButton {
+  aspect-ratio: 831 / 176;
+  background: var(--set-btn-save) center / 100% 100% no-repeat;
+  font-size: calc(21 * var(--upx));
+}
+.settings-window #loadGameButton {
+  aspect-ratio: 831 / 176;
+  background: var(--set-btn-load) center / 100% 100% no-repeat;
+  font-size: calc(21 * var(--upx));
+}
+/* [일부러 늘린 판입니다]
+   ui_button_title_screen 원본은 1702x121 로 다른 버튼(1702x176)보다 얇습니다.
+   그대로 쓰면 위의 "게임으로 돌아가기" 와 두께 차이가 커서 눌린 것처럼 보이고
+   두 판 사이 간격도 좁아 붙어 보였습니다. 그래서 세로 비율을 176 으로 맞춰
+   **의도적으로 늘려** 씁니다 (그림이 세로로 찌그러지는 것은 감수한 것입니다.
+   가로줄 나뭇결 + 금테라 늘려도 티가 거의 안 납니다).
+
+   늘어나는 방향은 아래쪽입니다 — 일반 흐름의 블록이라 margin-top 이 위를
+   붙들고 height 만 커집니다. 위 버튼을 침범하지 않습니다.
+   ⚠️ 이 비율을 다시 바꾸면 tools/build-ui-setting-webp.js 의
+      ui_button_title_screen 목표 크기도 같이 고쳐야 합니다. */
+.settings-window #returnTitleButton {
+  aspect-ratio: 1702 / 176;
+  margin-top: calc(14 * var(--upx));
+  background: var(--set-btn-title) center / 100% 100% no-repeat;
+  font-size: calc(19 * var(--upx));
+}
+
+/* 금판 — 그 화면의 기본 동작입니다. 바탕이 밝아 글자는 짙은 갈색입니다.
+   ingame 이면 "게임으로 돌아가기", lobby 면 "설정 닫기" 그림을 씁니다
+   (문구는 ui-hud.js UI_TEXT 가 넣습니다). */
+.settings-window #resumeButton {
+  aspect-ratio: 1702 / 176;
+  margin-top: calc(16 * var(--upx));
+  background: var(--set-btn-resume) center / 100% 100% no-repeat;
+  color: #3b2109;
+  font-size: calc(24 * var(--upx));
+  text-shadow: 0 1px 0 rgba(255, 243, 209, .5);
+}
+.settings-overlay.is-lobby .settings-window #resumeButton {
+  background-image: var(--set-btn-close);
+}
+
+/* 저장/불러오기 한 줄. 칸 제목도 같은 묶음 안에 있어야
+   game.js 가 #saveLoadActions 를 감출 때 같이 사라집니다. */
+.save-load-actions .settings-section { grid-column: 1 / -1; margin-top: calc(4 * var(--upx)); }
+
 .dark-button {
   width: 100%;
   margin-top: calc(10 * var(--upx));
@@ -52,8 +390,24 @@
   cursor: pointer;
 }
 
+@media (max-width: 760px) {
+  .settings-overlay { --set-pad-x: calc(42 * var(--upx)); --set-pad-y: calc(44 * var(--upx)); }
+  .volume-row { margin: calc(11 * var(--upx)) 0; font-size: calc(16 * var(--upx)); }
+  .settings-section { margin-top: calc(14 * var(--upx)); font-size: calc(13 * var(--upx)); }
+}
+
 .journal-window {
-  width: min(calc(1120 * var(--upx)),96%);
+  /* 견출지가 책 양옆으로 나오는 만큼 창을 넓혔습니다. */
+  /* 화살표 칸은 버튼 48 + 좌우 여백 5 를 그대로 담는 폭입니다. 좁히면 버튼이
+     칸 밖으로 나와 펼쳐진 견출지를 덮습니다. */
+  --journal-arrow-column: calc(58 * var(--upx));
+  --journal-tab-column: calc(52 * var(--upx));
+  --journal-tab-height: calc(96 * var(--upx));
+  --journal-tab-pitch: calc(110 * var(--upx));
+  --journal-tab-top: calc(26 * var(--upx));
+  /* 화살표 칸 + 견출지 칸. 제목 판을 책 세로선에 맞출 때 쓰는 값입니다. */
+  --journal-side: calc(var(--journal-arrow-column) + var(--journal-tab-column));
+  width: min(calc(1210 * var(--upx)),96%);
   max-height: 94vh;
   display: flex;
   flex-direction: column;
@@ -61,32 +415,48 @@
   padding: calc(18 * var(--upx)) calc(24 * var(--upx));
   color: var(--cream);
 }
+/* 판의 좌우 끝은 책 페이지의 세로선(펼친 책의 좌우 가장자리)과 같습니다.
+   바깥으로 나온 견출지·화살표까지 덮지 않습니다. */
 .journal-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: calc(16 * var(--upx));
-  width: calc(100% - calc(150 * var(--upx)));
+  width: calc(100% - 2 * var(--journal-side));
   margin: 0 auto;
-  padding: calc(9 * var(--upx)) calc(15 * var(--upx));
+  padding: calc(11 * var(--upx)) calc(18 * var(--upx));
   border: 1px solid rgba(196,135,68,.54);
   border-radius: calc(8 * var(--upx));
   background: rgba(20,11,8,.9);
   box-shadow: 0 calc(4 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.32);
 }
+/* 안내문은 제목 옆 같은 줄에 둡니다. 아래로 쌓으면 판이 한 줄만큼 두꺼워집니다. */
+.journal-heading-text {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  align-items: baseline;
+  column-gap: calc(16 * var(--upx));
+}
+.journal-heading .eyebrow {
+  grid-column: 1 / -1;
+  font-size: calc(13 * var(--upx));
+}
 .journal-heading h2 {
   margin: 0;
   color: #ffe09a;
-  font-size: calc(24 * var(--upx));
+  font-size: calc(30 * var(--upx));
 }
+/* 눈높이가 제목 줄에 오도록 눈썹 글자 한 줄만큼 내려 둡니다. */
+.journal-heading .journal-close { flex: none; margin-top: calc(14 * var(--upx)); }
 .journal-close {
-  width: calc(36 * var(--upx));
-  height: calc(36 * var(--upx));
+  width: calc(42 * var(--upx));
+  height: calc(42 * var(--upx));
   border: 1px solid #8c592f;
   border-radius: 50%;
   background: #160d09;
   color: #e8bf79;
-  font-size: calc(22 * var(--upx));
+  font-size: calc(26 * var(--upx));
   line-height: 1;
   cursor: pointer;
 }
@@ -95,31 +465,38 @@
   border-color: #efc77b;
   color: #ffe7ae;
 }
+/* 제목과 같은 판 안에 들어가는 안내문입니다. */
 .journal-description {
-  width: calc(100% - calc(180 * var(--upx)));
-  margin: calc(8 * var(--upx)) auto calc(10 * var(--upx));
+  margin: 0;
   color: #c9ae85;
-  font-size: calc(13 * var(--upx));
-  line-height: 1.55;
-  text-align: center;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.5;
+  text-align: left;
 }
 .journal-book {
   display: grid;
-  grid-template-columns: calc(52 * var(--upx)) minmax(0,1fr) calc(52 * var(--upx));
+  grid-template-columns:
+    var(--journal-arrow-column)
+    var(--journal-tab-column)
+    minmax(0,1fr)
+    var(--journal-tab-column)
+    var(--journal-arrow-column);
   align-items: center;
-  gap: calc(10 * var(--upx));
+  gap: 0;
   min-height: 0;
+  margin-top: calc(12 * var(--upx));
 }
 .journal-page-arrow {
   position: relative;
   z-index: 3;
+  margin: 0 calc(5 * var(--upx));
   width: calc(48 * var(--upx));
   height: calc(76 * var(--upx));
   border: 1px solid #86542f;
   border-radius: calc(24 * var(--upx));
   background: linear-gradient(#2b190f,#130b08);
   color: #efc77b;
-  font: 700 calc(35 * var(--upx))/1 Georgia,serif;
+  font: 700 calc(40 * var(--upx))/1 Georgia,serif;
   box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.42);
   cursor: pointer;
 }
@@ -212,8 +589,8 @@
 }
 .journal-page.is-gameplay-page .journal-page-right { overflow-y: hidden; }
 .journal-page.is-gameplay-page .journal-page-right p {
-  font-size: calc(12 * var(--upx));
-  line-height: 1.5;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.55;
 }
 .journal-page-right:focus-visible {
   outline: calc(2 * var(--upx)) solid rgba(121,82,55,.72);
@@ -223,13 +600,13 @@
   width: 100%;
   display: flex;
   justify-content: space-between;
-  margin-bottom: calc(34 * var(--upx));
+  margin-bottom: calc(32 * var(--upx));
   color: #795237;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(14 * var(--upx));
   letter-spacing: .08em;
 }
 .journal-page-portrait {
-  width: calc(100 * var(--upx));
+  width: calc(112 * var(--upx));
   aspect-ratio: 44 / 60;
   display: grid;
   place-items: center;
@@ -237,7 +614,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 45% 35%,#fff0bf,#b57b45);
   color: #4d2d1c;
-  font: 700 calc(38 * var(--upx))/1 Georgia,serif;
+  font: 700 calc(44 * var(--upx))/1 Georgia,serif;
 }
 .journal-page-portrait.has-portrait {
   background-color: #24140e;
@@ -257,7 +634,7 @@
   aspect-ratio: 1;
   background: radial-gradient(circle at 45% 35%,#fff4c8,#b97d42);
   color: #5a321d;
-  font-size: calc(26 * var(--upx));
+  font-size: calc(32 * var(--upx));
 }
 .journal-page.is-locked .journal-page-portrait.has-portrait {
   background-color: #7d6d5d;
@@ -278,7 +655,7 @@
   max-width: 100%;
   margin: calc(18 * var(--upx)) 0 calc(9 * var(--upx));
   color: #4b2b1a;
-  font-size: calc(24 * var(--upx));
+  font-size: calc(30 * var(--upx));
   line-height: 1.3;
   overflow-wrap: anywhere;
   word-break: keep-all;
@@ -289,72 +666,153 @@
   margin: 0;
   padding: calc(9 * var(--upx)) calc(11 * var(--upx)) calc(9 * var(--upx)) calc(4 * var(--upx));
   color: #5b3b28;
-  font-size: calc(14 * var(--upx));
+  font-size: calc(17 * var(--upx));
   line-height: 1.7;
   overflow-wrap: anywhere;
   white-space: pre-line;
   word-break: keep-all;
 }
+/* 특별 손님 페이지 아래쪽에 붙는 달빛 조각 그림입니다.
+   그림 크기를 바꾸면 tools/build-moonpiece-webp.js 의 SIZE(이 값 x2)도
+   같이 키워야 합니다. */
+/* 조각 그림이 붙는 장은 표제 면에 초상화까지 둘이 들어갑니다.
+   위쪽 여백과 이름 글자를 조금씩 줄여 한 면에 담습니다. */
+.journal-page.has-relic .journal-page-topline { margin-bottom: calc(14 * var(--upx)); }
+.journal-page.has-relic .journal-page-portrait { width: calc(90 * var(--upx)); }
+.journal-page.has-relic h3 {
+  margin: calc(10 * var(--upx)) 0 calc(4 * var(--upx));
+  font-size: calc(26 * var(--upx));
+}
+.journal-page-relic {
+  --journal-relic-size: calc(132 * var(--upx));
+  margin: calc(10 * var(--upx)) 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--upx));
+}
+.journal-page-relic[hidden] { display: none; }
+.journal-page-relic-art {
+  width: var(--journal-relic-size);
+  height: var(--journal-relic-size);
+  display: grid;
+  place-items: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* 종이 위에 놓인 물건처럼 보이도록 그림자만 얹습니다. 테두리는 없습니다. */
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.45));
+  color: #8a6440;
+  font: 700 calc(34 * var(--upx))/1 Georgia,serif;
+}
+.journal-page-relic.is-locked .journal-page-relic-art {
+  border: calc(2 * var(--upx)) dashed rgba(122,84,52,.5);
+  border-radius: 50%;
+  filter: none;
+}
+.journal-page-relic-name {
+  color: #6d472c;
+  font-size: calc(15 * var(--upx));
+  letter-spacing: .02em;
+  word-break: keep-all;
+}
+.journal-page.is-locked .journal-page-relic-name { color: #7d6d5d; }
+
 .journal-page small {
   max-width: 100%;
   color: #805b3b;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(14 * var(--upx));
   line-height: 1.55;
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
-.journal-page-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  gap: calc(5 * var(--upx));
-  width: calc(100% - calc(150 * var(--upx)));
-  margin: calc(13 * var(--upx)) auto 0;
-}
-.journal-page-tab {
+/* 일지 옆에 붙는 견출지입니다. 아직 넘기지 않은 구역은 오른쪽 면에,
+   이미 지나온 구역은 왼쪽 면에 붙습니다. 세로 자리(--journal-tab-slot)는
+   구역 순서로 고정해서, 좌우로 옮겨가도 같은 높이에 남습니다. */
+.journal-side-tabs {
   position: relative;
-  flex: 0 1 auto;
-  min-width: calc(48 * var(--upx));
-  min-height: calc(30 * var(--upx));
-  padding: calc(4 * var(--upx)) calc(7 * var(--upx));
-  border: 1px solid #704323;
-  border-radius: calc(4 * var(--upx));
-  background: #180e0a;
-  color: #b28e62;
-  font-size: calc(10 * var(--upx));
-  line-height: 1.15;
-  white-space: nowrap;
-  cursor: pointer;
+  align-self: stretch;
+  height: 100%;
+  min-width: 0;
 }
-.journal-page-tab.is-active { border-color: #ffe09a; color: #ffe09a; box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,210,125,.35); }
-.journal-page-tab:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
-.journal-page-tab.is-locked { color: #625143; }
-.journal-page-tab.is-new::after {
-  content: "NEW";
+.journal-section-tab {
   position: absolute;
-  right: calc(-3 * var(--upx));
-  top: calc(-8 * var(--upx));
-  padding: 1px calc(3 * var(--upx));
-  border-radius: calc(4 * var(--upx));
+  top: calc(var(--journal-tab-top) + var(--journal-tab-slot,0) * var(--journal-tab-pitch));
+  z-index: 2;
+  width: calc(45 * var(--upx));
+  height: var(--journal-tab-height);
+  display: grid;
+  place-items: center;
+  padding: calc(6 * var(--upx)) 0;
+  border: calc(2 * var(--upx)) solid #6d4528;
+  background: linear-gradient(#f2dcae,#d3ae76);
+  color: #4b2b1a;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.1;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  box-shadow: 0 calc(3 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.38);
+  cursor: pointer;
+  transition: width .16s, filter .16s;
+}
+.journal-side-tabs-right .journal-section-tab {
+  left: 0;
+  border-left: none;
+  border-radius: 0 calc(10 * var(--upx)) calc(10 * var(--upx)) 0;
+}
+.journal-side-tabs-left .journal-section-tab {
+  right: 0;
+  border-right: none;
+  border-radius: calc(10 * var(--upx)) 0 0 calc(10 * var(--upx));
+}
+.journal-section-tab.is-active {
+  width: var(--journal-tab-column);
+  border-color: #8c5a2c;
+  background: linear-gradient(#fff2c9,#e6c489);
+  color: #3b2110;
+  font-weight: 700;
+}
+.journal-section-tab.is-past { background: linear-gradient(#dcc396,#b8935f); color: #402615; }
+.journal-section-tab:hover:not(.is-active) { filter: brightness(1.07); }
+.journal-section-tab:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
+.journal-section-tab.is-new::after {
+  content: "";
+  position: absolute;
+  top: calc(4 * var(--upx));
+  right: calc(4 * var(--upx));
+  width: calc(8 * var(--upx));
+  height: calc(8 * var(--upx));
+  border-radius: 50%;
   background: #bd5e3a;
-  color: #fff4d3;
-  font-size: calc(6 * var(--upx));
+  box-shadow: 0 0 calc(5 * var(--upx)) rgba(255,150,90,.6);
 }
 
 @media (max-width: 760px) {
-  .journal-window { width: 98%; padding: calc(10 * var(--upx)); }
-  .journal-heading,
-  .journal-description,
-  .journal-page-tabs { width: calc(100% - calc(90 * var(--upx))); }
-  .journal-book { grid-template-columns: calc(36 * var(--upx)) minmax(0,1fr) calc(36 * var(--upx)); gap: calc(4 * var(--upx)); }
-  .journal-page-arrow { width: calc(34 * var(--upx)); height: calc(62 * var(--upx)); }
+  /* 칸 너비는 변수만 줄이면 제목 판(--journal-side)까지 같이 따라옵니다. */
+  .journal-window {
+    --journal-arrow-column: calc(38 * var(--upx)); /* 버튼 34 + 여백 2 */
+    --journal-tab-column: calc(40 * var(--upx));
+    --journal-tab-height: calc(82 * var(--upx));
+    --journal-tab-pitch: calc(94 * var(--upx));
+    --journal-tab-top: calc(18 * var(--upx));
+    width: 98%;
+    padding: calc(10 * var(--upx));
+  }
+  .journal-heading h2 { font-size: calc(24 * var(--upx)); }
+  .journal-description { font-size: calc(13 * var(--upx)); }
+  .journal-page-arrow { width: calc(34 * var(--upx)); height: calc(62 * var(--upx)); margin: 0 calc(2 * var(--upx)); font-size: calc(32 * var(--upx)); }
+  .journal-section-tab { width: calc(34 * var(--upx)); font-size: calc(13 * var(--upx)); }
   .journal-page { height: calc(430 * var(--upx)); min-height: calc(330 * var(--upx)); padding: calc(18 * var(--upx)) calc(19 * var(--upx)); }
   .journal-page-leaf { padding: calc(6 * var(--upx)) calc(13 * var(--upx)); }
   .journal-page-right { padding-left: calc(19 * var(--upx)); }
-  .journal-page-topline { margin-bottom: calc(18 * var(--upx)); }
-  .journal-page-portrait { width: calc(72 * var(--upx)); }
-  .journal-page h3 { font-size: calc(19 * var(--upx)); }
-  .journal-page p { font-size: calc(12 * var(--upx)); line-height: 1.55; }
-  .journal-page-tab { min-width: calc(44 * var(--upx)); font-size: calc(9 * var(--upx)); }
+  .journal-page-topline { margin-bottom: calc(18 * var(--upx)); font-size: calc(12 * var(--upx)); }
+  .journal-page-portrait { width: calc(82 * var(--upx)); }
+  .journal-page h3 { font-size: calc(23 * var(--upx)); }
+  .journal-page p { font-size: calc(15 * var(--upx)); line-height: 1.55; }
+  .journal-page.is-gameplay-page .journal-page-right p { font-size: calc(13 * var(--upx)); }
+  .journal-page small { font-size: calc(12 * var(--upx)); }
+  .journal-page-relic { --journal-relic-size: calc(112 * var(--upx)); margin-top: calc(10 * var(--upx)); }
+  .journal-page-relic-name { font-size: calc(13 * var(--upx)); }
 }

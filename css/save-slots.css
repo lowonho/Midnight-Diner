@@ -44,219 +44,338 @@
   outline-offset: calc(3 * var(--upx));
 }
 
+/* ============================================================
+   저장/불러오기 창 — assets/UI/Save 에셋 적용
+   ------------------------------------------------------------
+   같은 #saveSlotOverlay 를 세 가지 문맥에서 씁니다 (save-ui.js).
+     · 저장하기  — 게임 중 설정창의 저장하기
+     · 불러오기  — 게임 중 설정창의 불러오기
+     · 이어하기  — 타이틀의 이어하기
+   문맥에 따라 달라지는 것은 제목·안내문·어떤 칸이 눌리는가 뿐이고,
+   판과 카드 그림은 셋이 똑같습니다. 그래서 여기에는 상태 분기가 없습니다.
+
+   [테두리를 CSS 로 그리지 않는 이유]
+   판·카드·삭제 버튼·닫기의 나무결과 금테가 전부 그림 안에 있습니다.
+   마크업의 .wood-panel 에서 오는 border · border-radius · box-shadow ·
+   배경 그라디언트를 여기서 전부 걷어냅니다. 남겨 두면 이중으로 겹칩니다.
+   (css/settings.css 가 설정창에 한 것과 같은 처리입니다)
+
+   [크기가 전부 --sv-panel-h 하나에서 나오는 이유]
+   납품된 6장은 서로 아귀가 맞게 그려져 있습니다. 원본 픽셀로 재면
+
+     판 2880x2612 · 판 안쪽(금테 안) 폭 2648 · 카드 세로 448
+     카드(삭제 없음) 2648  =  카드(삭제 있음) 2332 + 사이 36 + 삭제 280
+
+   즉 "판 안쪽 폭"이 정해지면 나머지 다섯 장의 자리가 전부 따라옵니다.
+   그래서 아래 값들은 전부 --sv-panel-h 에 원본 픽셀 비를 곱한 것입니다.
+   판 크기를 바꾸고 싶으면 --sv-panel-h 한 줄만 고치면 됩니다.
+
+   PNG 가 마스터, 실제로 쓰는 WebP 는 tools/build-ui-save-webp.js 가
+   만듭니다. ⚠️ --sv-panel-h 를 키우면 그 스크립트의 크기 표도 같이
+   키워야 합니다 (안 그러면 확대되면서 뭉갭니다).
+   ============================================================ */
 .save-slot-overlay {
+  --sv-panel:  url("../assets/UI/Save/ui_save_panel.webp");
+  --sv-card:   url("../assets/UI/Save/ui_save_card_with_delete.webp");
+  --sv-card-wide: url("../assets/UI/Save/ui_save_card_without_delete.webp");
+  --sv-delete: url("../assets/UI/Save/ui_save_delete_button.webp");
+  --sv-close:  url("../assets/UI/Save/ui_save_close_button.webp");
+  --sv-empty:  url("../assets/UI/Save/ui_save_empty_notice.webp");
+
+  /* 판 세로. --upx 상한이 0.0926vh 라 860 배는 어떤 창에서도 80vh 를 넘지
+     않고, 가로로도 프레임의 49% 라 잘리지 않습니다.
+
+     이 값은 "칸 네 개 + 머리글이 딱 차는 높이"입니다. 카드 네 줄은 판을
+     따라 같이 커지지만 머리글의 글자 크기는 그대로라, 판을 키우면 그 차이만큼
+     아래 여백이 생깁니다 (100upx 당 22upx 정도). 줄이면 반대로 마지막 칸이
+     아래 금테를 밟습니다. tools/save-visual-smoke.html 의 data-slack 이
+     그 남는 여백이고, 지금 값에서 28 정도입니다. */
+  --sv-panel-h: calc(860 * var(--upx));
+  --sv-panel-w: calc(var(--sv-panel-h) * 2880 / 2612);
+
+  /* 금테 안쪽. 실측(가로 116 / 세로 124)을 그대로 쓴 값이라
+     이보다 줄이면 글자가 금테에 닿습니다. */
+  --sv-pad-x: calc(var(--sv-panel-h) * 116 / 2612);
+  --sv-pad-y: calc(var(--sv-panel-h) * 124 / 2612);
+
+  /* 머리글(SAVE DATA · 제목 · 안내문)을 금테에서 얼마나 내릴지.
+     닫기 단추도 이 값을 따라 내려가야 제목과 한 줄로 남습니다. */
+  --sv-head-top: calc(34 * var(--upx));
+
+  /* 슬롯 네 줄만 금테에서 한 칸 더 들여 놓습니다. 머리글은 그대로 두고
+     줄만 좁히는 값이라, 키우면 오른쪽 삭제 버튼이 금테(와 옆구리 구슬
+     장식)에서 그만큼 더 떨어집니다. 좌우 같은 값이라 판은 계속 대칭입니다. */
+  --sv-slot-inset: calc(16 * var(--upx));
+
+  /* 슬롯 한 줄의 폭 = 판 안쪽 폭 - 위 여백. 카드·삭제 버튼의 기준자입니다. */
+  --sv-inner-w:  calc(var(--sv-panel-h) * 2648 / 2612 - 2 * var(--sv-slot-inset));
+  --sv-card-h:   calc(var(--sv-inner-w) * 448 / 2648);
+  --sv-delete-w: calc(var(--sv-inner-w) * 280 / 2648);
+  /* 카드와 삭제 버튼 사이. 그림에 그려진 간격(36)이 그대로 자리를 만듭니다. */
+  --sv-item-gap: calc(var(--sv-inner-w) * 36 / 2648);
+
   z-index: 120;
-  padding: calc(28 * var(--upx));
+  padding: calc(16 * var(--upx));
 }
 
-.save-slot-window {
+/* ── 판 ──────────────────────────────────────────────────── */
+.save-slot-overlay .save-slot-window {
+  position: relative;   /* 닫기 단추를 오른쪽 위 구석에 앉히는 기준 */
   display: flex;
   flex-direction: column;
-  width: min(calc(720 * var(--upx)), 94vw);
-  max-height: min(calc(880 * var(--upx)), 94vh);
-  padding: calc(24 * var(--upx));
+  width: var(--sv-panel-w);
+  height: var(--sv-panel-h);
+  max-width: none;
+  max-height: none;
+  padding: var(--sv-pad-y) var(--sv-pad-x);
+  border: 0;
+  border-radius: 0;
+  background: var(--sv-panel) center / 100% 100% no-repeat;
+  box-shadow: none;
+  color: var(--cream);
   overflow: hidden;
 }
 
+/* ── 머리글 ──────────────────────────────────────────────────
+   판이 좌우 대칭이라 글도 가운데로 모읍니다. 닫기 단추는 흐름에서 빼내
+   구석에 따로 앉히므로, 제목이 길어져도 단추 자리를 밀지 않습니다.
+   좌우 padding 은 그 단추와 겹치지 않게 비워 두는 폭입니다. */
 .save-slot-heading {
-  display: flex;
+  display: block;
   flex: 0 0 auto;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: calc(20 * var(--upx));
+  /* --sv-pad-y 는 금테 안쪽까지의 실측값이라 첫 줄이 금테에 닿습니다.
+     판 여백 자체를 키우면 아래쪽까지 같이 벌어지므로 위 한 줄만 밀어 둡니다. */
+  margin-top: var(--sv-head-top);
+  /* 오른쪽 위 닫기 단추(44 + 56)와 겹치지 않게 비워 두는 폭입니다. */
+  padding: 0 calc(108 * var(--upx));
+  text-align: center;
 }
 
 .save-slot-heading h2 {
   margin: 0;
   color: #ffe09a;
-  font-size: calc(25 * var(--upx));
+  font-size: calc(30 * var(--upx));
+  text-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) #150b05;
 }
-
-.save-slot-close {
-  flex: 0 0 auto;
-  width: calc(42 * var(--upx));
-  height: calc(42 * var(--upx));
-  padding: 0 0 calc(3 * var(--upx));
-  border: 1px solid #8f5c31;
-  border-radius: 50%;
-  color: #e4c28a;
-  font-size: calc(27 * var(--upx));
-  line-height: 1;
-  background: #180e0a;
-  cursor: pointer;
-}
-
-.save-slot-close:hover { color: #fff0c8; border-color: #d59748; }
 
 .save-slot-description {
   flex: 0 0 auto;
-  margin: calc(10 * var(--upx)) 0 0;
-  color: #d0b58c;
+  margin: calc(9 * var(--upx)) 0 0;
+  color: #cdb187;
   font-size: calc(14 * var(--upx));
   line-height: 1.5;
+  text-align: center;
 }
 
 .save-slot-status {
   flex: 0 0 auto;
-  min-height: calc(21 * var(--upx));
-  margin: calc(4 * var(--upx)) 0 calc(8 * var(--upx));
+  min-height: calc(16 * var(--upx));
+  margin: calc(3 * var(--upx)) 0 calc(5 * var(--upx));
   color: #f1c779;
   font-size: calc(13 * var(--upx));
+  text-align: center;
 }
 
 .save-slot-status.is-error { color: #ef9b8f; }
 
+/* ── 닫기 : 판 오른쪽 위의 동그란 금장 ──────────────────────
+   그림에 × 가 그려져 있으므로 마크업의 × 글자는 크기를 0 으로 줄여 감춥니다.
+   (지우지는 않습니다 — 그림을 못 읽는 상황에서도 눌러야 하니까요) */
+.save-slot-overlay .save-slot-close {
+  position: absolute;
+  /* 판 그림의 오른쪽 위 구석에는 안쪽으로 휘어드는 장식이 있습니다.
+     그 위에 얹으면 금장끼리 겹쳐 보여서, 장식을 지나 판 안쪽에 앉힙니다.
+
+     세로는 제목(h2)과 한 줄로 보이는 자리입니다. 머리글 위에서부터
+       --sv-head-top + eyebrow 18 + 제목 줄높이의 절반 18 = 제목 한가운데,
+     거기서 단추 높이의 절반(28)을 뺀 값이라 +8 이 남습니다. 머리글을 위아래로
+     옮기면 --sv-head-top 만 고치면 되고, 제목 글자 크기나 eyebrow 나 아래
+     크기를 건드릴 때만 이 8 을 다시 잡으면 됩니다. */
+  top: calc(var(--sv-pad-y) + var(--sv-head-top) + 8 * var(--upx));
+  right: calc(var(--sv-pad-x) + 44 * var(--upx));
+  width: calc(56 * var(--upx));
+  height: calc(56 * var(--upx));
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sv-close) center / 100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  transition: filter .12s;
+}
+
+.save-slot-overlay .save-slot-close:hover { filter: brightness(1.12); }
+.save-slot-overlay .save-slot-close:active { transform: translateY(1px); }
+
+/* ── 슬롯 네 줄 ──────────────────────────────────────────────
+   줄 높이는 카드 그림이 정하므로 스크롤이 생길 일이 없습니다.
+   그래도 글이 길어져 넘칠 때를 대비해 auto 로 둡니다. */
 .save-slot-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: calc(10 * var(--upx));
+  /* 줄이 좁아진 만큼 카드 그림도 낮아져(비율 고정) 아래에 자리가 남습니다.
+     start 로 두면 그 자리가 전부 아래에만 몰리므로 위아래로 나눠 갖습니다. */
+  flex: 1 1 auto;
+  align-content: center;
+  gap: calc(8 * var(--upx));
   min-height: 0;
-  padding: calc(3 * var(--upx));
+  margin-top: calc(2 * var(--upx));
+  padding-inline: var(--sv-slot-inset);
   overflow-y: auto;
   scrollbar-color: #9b6535 #1a0f0a;
   scrollbar-width: thin;
 }
 
+/* 저장 데이터가 있는 줄만 오른쪽에 삭제 버튼이 붙습니다. 그 폭과 사이 간격이
+   곧 카드 그림 두 장의 가로 차이라, 어느 쪽이든 줄 전체 폭은 같습니다. */
 .save-slot-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: calc(9 * var(--upx));
+  gap: var(--sv-item-gap);
   min-width: 0;
 }
 
 .save-slot-item:not(.has-data) .save-slot-card { grid-column: 1 / -1; }
 
+/* ── 슬롯 카드 ────────────────────────────────────────────── */
+/* 세 칸은 이름 · 요약 · 저장 시각입니다. 시각은 글자 길이만큼만 가져가고
+   가운데 요약이 남는 자리를 전부 씁니다 (카드에서 제일 긴 줄이라서).
+   이름 칸에 하한을 두는 것은 "자동 저장"(4자)과 "저장 1"(3자)의 길이가
+   달라서입니다 — 하한이 없으면 줄마다 요약이 시작하는 자리가 어긋납니다.
+   제일 긴 이름이 왼쪽 여백까지 합쳐 123 이라 158 이면 다 담기고, 남는 폭은
+   가운데 요약이 가져갑니다. 이보다 키우면 제일 긴 요약 줄이 잘립니다 —
+   tools/save-visual-smoke.html 의 data-clipped 이 몇 px 모자란지 알려 줍니다. */
 .save-slot-card {
   display: grid;
-  grid-template-columns: minmax(calc(150 * var(--upx)), .8fr) minmax(0, 1.65fr) auto;
+  grid-template-columns: minmax(calc(158 * var(--upx)), auto) minmax(0, 1fr) auto;
   align-items: center;
   gap: calc(16 * var(--upx));
   width: 100%;
-  min-height: calc(112 * var(--upx));
-  padding: calc(14 * var(--upx)) calc(18 * var(--upx));
-  border: 1px solid #80502d;
-  border-radius: calc(7 * var(--upx));
+  height: var(--sv-card-h);
+  /* 그림 속 금테와 네 귀퉁이 장식 안쪽까지의 여백(원본 46 / 95px) */
+  padding: calc(var(--sv-card-h) * 46 / 448) calc(var(--sv-inner-w) * 95 / 2648);
+  border: 0;
+  border-radius: 0;
   color: #ead5b1;
   text-align: left;
-  background:
-    linear-gradient(90deg, rgba(92, 51, 28, .34), transparent 44%),
-    rgba(20, 12, 8, .9);
-  box-shadow: inset 0 0 0 1px rgba(255, 223, 162, .035);
+  background: var(--sv-card) center / 100% 100% no-repeat;
+  box-shadow: none;
   cursor: pointer;
+  transition: filter .12s, transform .12s;
 }
 
-.save-slot-card:not(:disabled):hover {
-  border-color: #d49345;
-  background:
-    linear-gradient(90deg, rgba(126, 73, 37, .45), transparent 48%),
-    rgba(29, 16, 10, .96);
+/* 삭제 버튼이 없는 줄은 판 안쪽을 꽉 채우는 넓은 카드 그림을 씁니다.
+   두 그림의 세로가 같아서 줄 높이는 그대로입니다. */
+.save-slot-item:not(.has-data) .save-slot-card { background-image: var(--sv-card-wide); }
+
+.save-slot-card:not(:disabled):hover,
+.save-slot-card:not(:disabled):focus-visible {
+  filter: brightness(1.1);
   transform: translateY(calc(-1 * var(--upx)));
 }
 
+.save-slot-card:not(:disabled):active { transform: translateY(calc(1 * var(--upx))); }
+
 .save-slot-card:disabled {
-  opacity: .58;
+  filter: grayscale(.55) brightness(.68);
   cursor: default;
 }
 
-.save-slot-card.is-auto {
-  border-left: calc(4 * var(--upx)) solid #d59a4b;
-  padding-left: calc(15 * var(--upx));
-}
-
-.save-slot-card.is-empty { background: rgba(16, 10, 7, .74); }
-
+/* ── 삭제 버튼 ────────────────────────────────────────────────
+   그림에 글자가 없어서 "삭제" 는 CSS 로 얹습니다.
+   세로는 카드와 같은 448 로 그려져 있어 줄 높이에 그대로 맞물립니다.
+   min-height 는 판이 아주 작아졌을 때도 누를 수 있게 지키는 하한입니다. */
 .save-slot-delete {
+  display: grid;
+  place-items: center;
   align-self: stretch;
-  min-width: calc(70 * var(--upx));
-  min-height: calc(44 * var(--upx));
-  padding: calc(10 * var(--upx));
-  border: 1px solid #81463b;
-  border-radius: calc(7 * var(--upx));
-  color: #e8b5a8;
-  font-size: calc(13 * var(--upx));
-  font-weight: 800;
-  background: linear-gradient(rgba(77, 35, 30, .94), rgba(34, 18, 16, .98));
-  cursor: pointer;
-}
-
-.save-slot-delete:hover {
-  border-color: #ce7462;
-  color: #ffe1d8;
-  background: linear-gradient(rgba(112, 47, 39, .96), rgba(48, 22, 19, .98));
-}
-
-.save-slot-name {
-  display: flex;
-  flex-direction: column;
-  gap: calc(7 * var(--upx));
+  width: var(--sv-delete-w);
   min-width: 0;
+  min-height: calc(44 * var(--upx));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #ffe3cf;
+  font-size: calc(23 * var(--upx));
+  font-weight: 800;
+  background: var(--sv-delete) center / 100% 100% no-repeat;
+  text-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(48, 8, 4, .75);
+  cursor: pointer;
+  transition: filter .12s, transform .12s;
+}
+
+.save-slot-delete:hover,
+.save-slot-delete:focus-visible { filter: brightness(1.12); }
+.save-slot-delete:active { transform: translateY(calc(1 * var(--upx))); }
+
+/* ── 카드 안 세 칸 : 이름 · 요약 · 저장 시각 ───────────────
+   글자 크기는 카드 안쪽 높이(카드 세로에서 위아래 여백을 뺀 값, 지금 118upx)
+   안에 두 줄이 들어가는 선에서 최대한 키운 값입니다. */
+/* 카드 그림의 왼쪽 귀퉁이 장식에서 한 칸 더 떼어 놓습니다. 칸 자체는 아래
+   grid-template-columns 의 하한(170)이 잡고 있어서, 이 여백을 늘려도
+   가운데 요약이 시작하는 자리는 그대로입니다. */
+.save-slot-name {
+  min-width: 0;
+  padding-left: calc(16 * var(--upx));
+  white-space: nowrap;
 }
 
 .save-slot-name strong {
   color: #ffe0a0;
-  font-size: calc(17 * var(--upx));
-}
-
-.save-slot-badge {
-  align-self: flex-start;
-  padding: calc(3 * var(--upx)) calc(7 * var(--upx));
-  border: 1px solid #76502f;
-  border-radius: calc(10 * var(--upx));
-  color: #c8a778;
-  font-size: calc(10 * var(--upx));
-  line-height: 1.2;
-  background: #170e0a;
+  font-size: calc(25 * var(--upx));
+  text-shadow: 0 calc(1 * var(--upx)) calc(2 * var(--upx)) #150b05;
 }
 
 .save-slot-details {
   display: flex;
   flex-direction: column;
-  gap: calc(6 * var(--upx));
+  gap: calc(8 * var(--upx));
   min-width: 0;
 }
 
+/* 카드에서 제일 긴 줄입니다. 줄바꿈되면 카드 높이(그림)가 안 늘어나므로
+   글자가 위아래로 삐져나옵니다. 넘칠 때는 줄이지 말고 잘라 냅니다. */
 .save-slot-summary {
-  color: #f2d5a4;
-  font-size: calc(14 * var(--upx));
-  font-weight: 700;
-}
-
-.save-slot-story,
-.save-slot-empty-text {
   overflow: hidden;
-  color: #bca47f;
-  font-size: calc(12 * var(--upx));
+  color: #f2d5a4;
+  font-size: calc(19 * var(--upx));
+  font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.save-slot-time {
-  justify-self: end;
-  color: #a9906d;
-  font-size: calc(11 * var(--upx));
-  text-align: right;
+/* 장면 제목이 들어오는 줄이라 카드에서 제일 길어질 수 있습니다.
+   story-data.js 의 가장 긴 제목(22자) + "이야기 · " 가 안 잘리는 크기입니다. */
+.save-slot-story {
+  overflow: hidden;
+  color: #c0a681;
+  font-size: calc(15 * var(--upx));
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-@media (max-aspect-ratio: 4 / 3), (max-height: 560px) {
-  .save-slot-overlay { padding: calc(14 * var(--upx)); }
-  .save-slot-window {
-    max-height: 96vh;
-    padding: calc(18 * var(--upx));
-  }
-  .save-slot-card {
-    grid-template-columns: minmax(calc(135 * var(--upx)), .72fr) minmax(0, 1.5fr);
-    min-height: calc(102 * var(--upx));
-  }
-  .save-slot-item { gap: calc(7 * var(--upx)); }
-  .save-slot-delete {
-    min-width: calc(58 * var(--upx));
-    padding-inline: calc(7 * var(--upx));
-  }
-  .save-slot-time {
-    grid-column: 1 / -1;
-    justify-self: start;
-    text-align: left;
-  }
+/* 빈 칸에는 요약 대신 작은 나무 명패를 놓습니다. 명패 크기가 곧 글자 자리라
+   save-ui.js 는 여기에 짧은 말(빈 칸 / 여기에 저장)만 넣습니다. */
+.save-slot-empty-text {
+  display: grid;
+  place-items: center;
+  align-self: flex-start;
+  width: calc(128 * var(--upx));
+  height: calc(48 * var(--upx));
+  color: #e3c290;
+  font-size: calc(17 * var(--upx));
+  white-space: nowrap;
+  background: var(--sv-empty) center / 100% 100% no-repeat;
+  text-shadow: 0 calc(1 * var(--upx)) calc(2 * var(--upx)) #150b05;
+}
+
+.save-slot-time {
+  justify-self: end;
+  color: #b09571;
+  font-size: calc(15 * var(--upx));
+  text-align: right;
+  white-space: nowrap;
 }

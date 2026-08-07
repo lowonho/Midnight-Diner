@@ -392,6 +392,10 @@ function openSettings(from=state.screen) {
   dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
   dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||saveBlocked);
   dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
+  // 설정창 그림이 두 벌입니다(assets/UI/Setting 의 ingame · lobby).
+  // 판 그림·판 크기·기본 버튼 그림의 차이는 전부 css/settings.css 가 맡고,
+  // 여기서는 어느 쪽인지만 알려 줍니다.
+  dom.settingsOverlay.classList.toggle("is-lobby",fromTitle);
   syncAudioControls();
   dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);audio.pauseLoops();
 }
@@ -643,7 +647,7 @@ function updateUI(force=false) {
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
-  dom.timeText.textContent=(isDayPreparation||isOpen)?UI_TEXT.timeNoLimit:UI_TEXT.blank;
+  dom.timeText.textContent=isOpen?UI_TEXT.guestsLeft(nightGuestsRemaining()):isDayPreparation?UI_TEXT.timeNoLimit:UI_TEXT.blank;
   dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
@@ -660,6 +664,16 @@ function updateUI(force=false) {
   updateRelationshipUI();
   updatePrompt();
 }
+/* E 키캡을 앉힐 y. 세 군데(이야기 조리 · 냉장고 · 밤 영업)가 같은 규칙을 써야
+   화면을 옮겨 다녀도 키캡 높이가 안 튑니다.
+
+   철판만 다릅니다 — 앞쪽 카운터라 요리사가 뒤(위)에 서고, 이름표도 kitchen.js
+   가 아니라 counter.js 가 Phaser 로 따로 그립니다. 그래서 요리사 서는 자리
+   기준(iy-58)을 그대로 둡니다.
+   뒤쪽 조리대는 kitchen.js stationPromptY() 가 이름표 윗변에서 계산합니다. */
+function promptYFor(station){
+  return station.id==="griddle" ? station.iy-58 : stationPromptY(station);
+}
 function updatePrompt(){
   const prompt=dom.stationPrompt;
   const hide=(mobileAction=false)=>{prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);};
@@ -672,7 +686,7 @@ function updatePrompt(){
     const station=nearestStoryCookStation(required);
     if(station?.id===required){
       text=UI_TEXT.prompt.station(station.label);
-      x=station.ix;y=station.id==="griddle"?station.iy-58:station.y+station.h+60;
+      x=station.ix;y=promptYFor(station);
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
@@ -685,7 +699,7 @@ function updatePrompt(){
       const station=nearestStation("fridge");
       if(station?.id==="fridge"){
         text=UI_TEXT.prompt.station(station.label);
-        x=station.ix;y=station.y+station.h+60;
+        x=station.ix;y=promptYFor(station);
       }
     }else if(state.phase==="day"){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
@@ -697,7 +711,7 @@ function updatePrompt(){
       const station=nearestStation(required);
       if(station){
       if(station.id===required)text=UI_TEXT.prompt.station(station.label);
-      if(text){x=station.ix;y=station.id==="griddle"?station.iy-58:station.y+station.h+60;}
+      if(text){x=station.ix;y=promptYFor(station);}
       }
     }
   }

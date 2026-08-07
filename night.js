@@ -11,6 +11,13 @@ function nightGeneralOrderTarget(day=state.day){
   return Number.isFinite(configured)?Math.max(0,Math.floor(configured)):0;
 }
 
+/* 아직 안 받은 일반 손님 수. 밤에는 시간이 아니라 이 숫자로 마감을 세므로
+   상단 HUD("남은 손님")와 손님 추가 생성이 같은 값을 봅니다. */
+function nightGuestsRemaining(){
+  const served=Math.max(0,Math.floor(Number(state.generalServed)||0));
+  return Math.max(0,nightGeneralOrderTarget()-served);
+}
+
 function normalizeNightOrderCounters(){
   state.nightCustomerTarget=nightGeneralOrderTarget();
   if(!Number.isFinite(state.generalServed))state.generalServed=0;
@@ -123,8 +130,7 @@ function ensureNightOrders(){
   });
   if(beforePlanWaiting||beforeGuestActive)return false;
 
-  const remaining=Math.max(0,nightGeneralOrderTarget()-state.generalServed);
-  const desiredWaiting=Math.min(2,remaining);
+  const desiredWaiting=Math.min(2,nightGuestsRemaining());
   const activeGeneral=state.orders.filter(order=>order.customerType!=="story").length;
   const queuedGeneral=state.respawns.filter(respawn=>!respawn.forceStory).length;
   let waiting=activeGeneral+queuedGeneral;
@@ -294,7 +300,8 @@ function spawnOrder(slot,options={}) {
   }
 
   const order=decorateStoryOrder({
-    id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),
+    // variant = 일반 손님 그림 번호. 종류 수는 customers.js 가 정합니다.
+    id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*CUSTOMER_VARIANT_COUNT),
     entered:0,cookStep:0,cookScores:[]
   },plan);
   state.orders.push(order);
