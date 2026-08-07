@@ -493,15 +493,15 @@ let slots=[
     }
   },
   {
-    id:"manual1",label:"수동 저장 1",manual:true,
+    id:"manual1",label:"저장 1",manual:true,
     data:{
       savedAt,
       state:{day:7,phase:"day",story:{loop:3,guestResults:{rainyChild:{fragmentState:"partial"},lanternGuest:{fragmentState:"full"}}}},
       storyCheckpoint:{sceneId:"C1-04B"}
     }
   },
-  {id:"manual2",label:"수동 저장 2",manual:true,data:null},
-  {id:"manual3",label:"수동 저장 3",manual:true,data:null}
+  {id:"manual2",label:"저장 2",manual:true,data:null},
+  {id:"manual3",label:"저장 3",manual:true,data:null}
 ];
 function readAllSaveSlots(){
   return slots;
@@ -613,7 +613,7 @@ card("manual2").click();
 equal(manualSaveCalls.length,1,"수동 슬롯 클릭은 저장 함수를 한 번 호출해야 합니다.");
 equal(manualSaveCalls[0],"manual2","클릭한 수동 슬롯 ID로 저장해야 합니다.");
 equal(updateContinueCalls,1,"수동 저장 성공 후 이어하기 상태를 갱신해야 합니다.");
-equal(toastMessages[0],"수동 저장 2에 저장했습니다.","수동 저장 성공 안내가 보여야 합니다.");
+equal(toastMessages[0],"저장 2에 저장했습니다.","수동 저장 성공 안내가 보여야 합니다.");
 check(!overlay.classList.contains("open"),"수동 저장 성공 후 슬롯 창을 닫아야 합니다.");
 check(
   callOrder.indexOf("save:manual2")<callOrder.indexOf("updateContinue")

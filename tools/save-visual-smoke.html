@@ -66,10 +66,10 @@ function record(day,phase,loop,shards,sceneId,savedAt){
 const SLOTS=[
   {id:"auto",label:"자동 저장",manual:false,
     data:record(2,"night",2,1,"G-02","2026-08-06T21:12:00")},
-  {id:"manual1",label:"수동 저장 1",manual:true,
+  {id:"manual1",label:"저장 1",manual:true,
     data:record(7,"day",3,5,"C1-04B","2026-08-07T02:40:00")},
-  {id:"manual2",label:"수동 저장 2",manual:true,data:null},
-  {id:"manual3",label:"수동 저장 3",manual:true,data:null}
+  {id:"manual2",label:"저장 2",manual:true,data:null},
+  {id:"manual3",label:"저장 3",manual:true,data:null}
 ];
 if(mode==="title")SLOTS[1].data=null;          // 타이틀에서는 자동 저장만 있는 상태
 if(full){
@@ -115,6 +115,12 @@ function setup(){
     document.body.dataset.card=box(card);
     document.body.dataset.list=`${Math.round(list.scrollHeight)}/${Math.round(list.clientHeight)}`;
     document.body.dataset.overflow=list.scrollHeight>list.clientHeight+1?"yes":"no";
+    // 카드 안 한 줄짜리 글이 잘렸는지(= … 가 붙었는지). 잘린 줄이 있으면
+    // 몇 px 이 모자란지 같이 적습니다 — 글자 크기·칸 폭을 잡는 근거입니다.
+    const clipped=[...list.querySelectorAll(".save-slot-summary, .save-slot-story")]
+      .map(node=>[node.className.replace("save-slot-",""),Math.ceil(node.scrollWidth-node.clientWidth)])
+      .filter(([,over])=>over>0);
+    document.body.dataset.clipped=clipped.length?clipped.map(pair=>pair.join(":")).join(" "):"none";
     // 마지막 줄 아래에 판 안쪽으로 남는 여백(px). 음수면 판 밖으로 나간 것입니다.
     const panelRect=panel.getBoundingClientRect();
     const padY=parseFloat(getComputedStyle(panel).paddingBottom);

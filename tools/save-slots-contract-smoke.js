@@ -216,11 +216,11 @@ same(
   SAVE_SLOT_DEFS.map(slot=>({id:slot.id,label:slot.label,manual:slot.manual})),
   [
     {id:"auto",label:"자동 저장",manual:false},
-    {id:"manual1",label:"수동 저장 1",manual:true},
-    {id:"manual2",label:"수동 저장 2",manual:true},
-    {id:"manual3",label:"수동 저장 3",manual:true}
+    {id:"manual1",label:"저장 1",manual:true},
+    {id:"manual2",label:"저장 2",manual:true},
+    {id:"manual3",label:"저장 3",manual:true}
   ],
-  "저장 슬롯은 자동 저장 뒤에 수동 저장 1~3 순서여야 합니다."
+  "저장 슬롯은 자동 저장 뒤에 저장 1~3 순서여야 합니다."
 );
 assert(new Set(SAVE_SLOT_DEFS.map(slot=>saveKeyForSlot(slot.id))).size===4,
   "네 저장 슬롯은 서로 독립적인 localStorage 키를 사용해야 합니다.");
