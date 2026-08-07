@@ -57,16 +57,24 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838 };
    있어서(story.js portraitRow) 예전 시트를 그대로 씁니다. 그림을 고르는
    판정은 §2 의 usesCommonArt() 한 곳에만 있습니다.
 
-   [크기 기준] 셀 아래변이 발바닥입니다. 그래서 세로 위치는 "발이 어디에
-   닿는가"로 잡습니다. 의자 바닥선(counter.js chairSize.y 1042 → 논리 695)에서
-   8 올린 687 입니다. 카운터 앞변 아래로 신발이 보이면서, 머리끝이 바 상판
-   윗변(VIEW 782)보다 확실히 올라와 눈높이가 잘 보입니다.
+   [세로 위치는 footY 하나로 정합니다] 셀 아래변이 발바닥이라 "발이 어디에
+   닿는가"로 잡습니다. 말풍선 묶음은 §1-2-1 이 잰 머리 높이를 따라오므로
+   footY 만 고치면 그림과 말풍선이 같이 움직입니다. 따로 맞출 것이 없습니다.
 
-   [footY 를 687 보다 더 줄이지 마세요] 주문 패널 아랫변이 논리 517 이고
-   지금 머리끝이 정확히 517 입니다. 여기서 더 올리면 머리가 패널을 파고듭니다.
-   더 올리려면 CUSTOMER_HUD 의 bubbleY / iconY / tailY / labelY / speechY 를
-   같은 값만큼 같이 올려야 하는데, 그러면 예전 시트를 쓰는 특별 손님의
-   말풍선이 머리에서 떨어집니다.
+   [왜 의자 바닥선(695)이 아닌가]
+   원화 속 인물이 앉아 있는 의자가 게임 의자보다 낮습니다.
+   원화의 엉덩이~발바닥은 논리 45 인데, 게임 의자는 앉는 면(논리 630.6)에서
+   바닥(695)까지 64 입니다. 그래서 "발을 바닥에 붙이기"와 "엉덩이를 앉는 면에
+   올리기"를 동시에 만족시킬 수 없습니다.
+
+   둘 중 엉덩이를 택했습니다. 발을 바닥에 붙이면 남자 손님은 상의 밑단이
+   논리 640 까지 내려와서, 등받이 틈(610.2~615.4 / 625.4~630.6)과 앉는 면
+   윗변(630.6) 사이에 바지가 한 줄도 안 보입니다. 앉아 있다기보다 의자
+   뒤에 서 있는 것처럼 읽힙니다.
+
+   발은 의자 앉는 면·가로대와 카운터 앞면이 가려 주므로 조금 떠도 티가
+   안 나지만, 너무 올리면 신발이 카운터 앞면(논리 660 위쪽) 위로 떠오릅니다.
+   그 선이 footY 의 하한입니다.
 
    손님을 키우거나 줄일 때는 h 만 고치세요. w 는 셀 비율(144:282)을
    유지해야 캐릭터가 홀쭉해지거나 뚱뚱해지지 않습니다.
@@ -78,7 +86,15 @@ const CUSTOMER_COMMON = {
   rows: 8,      // 캐릭터 수 (세로)
   w: 87,        // 화면에 그릴 셀 크기(논리 좌표). 셀 원본은 144x282
   h: 170,
-  footY: 687    // 발바닥이 닿는 논리 y (의자 바닥선 695 에서 8 위)
+  footY: 670,   // 발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
+
+  /* 머리 위치를 재는 기준 (§1-2-1)
+     headWidth  실루엣 가로폭이 셀 폭의 이 비율에 처음 닿는 줄을 머리끝으로 봅니다
+     headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
+     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격 */
+  headWidth: .31,
+  headBand:  .35,
+  hudGap:    7
 };
 
 // 일반 손님 variant 의 범위. night.js 가 이 값으로 뽑습니다.
@@ -107,6 +123,7 @@ function loadCommonCustomerSheet(){
       if(image.width%CUSTOMER_COMMON.cols||image.height%CUSTOMER_COMMON.rows)
         console.warn(`[customers] 손님 시트 격자 불일치: ${image.width}x${image.height} / ${CUSTOMER_COMMON.cols}열 ${CUSTOMER_COMMON.rows}행`);
       customerCommonSheet=image;
+      measureCommonHeadTops(image);
       resolve(image);
     };
     image.onerror=()=>{
@@ -115,6 +132,79 @@ function loadCommonCustomerSheet(){
     };
     image.src=CUSTOMER_COMMON.file;
   });
+}
+
+
+/* ------------------------------------------------------------
+   1-2-1. 캐릭터별 머리 높이 재기
+   ------------------------------------------------------------
+   말풍선·주문 패널은 손님 기준 y 에 고정 오프셋으로 붙어 있습니다.
+   그런데 8종의 머리 모양이 제각각이라 고정값으로 두면 사람마다
+   머리와 말풍선 사이가 벌어졌다 붙었다 합니다.
+
+   특히 쪽머리(6번)는 위로 가늘게 솟은 부분만 높고 머리 덩어리는 한참
+   아래라, 꼬리가 허공에 뜬 것처럼 보입니다. 반대로 짧은 머리(5번)는
+   꼬리가 머리카락에 파묻힙니다.
+
+   그래서 "제일 위 픽셀"이 아니라 "실루엣이 눈에 띄게 넓어지는 줄"을
+   머리끝으로 봅니다. 가는 머리끝은 무시하고 사람이 실제로 머리라고
+   읽는 지점을 잡기 위해서입니다. 기준은 CUSTOMER_COMMON.headWidth.
+
+   재는 건 0번 프레임 한 장뿐입니다. 프레임마다 다시 재면 숨쉬는 동안
+   말풍선이 1~2px 씩 떨리기 때문입니다.
+
+   결과는 CUSTOMER_HUD 오프셋에 더할 값(논리 px)입니다. 잰 머리끝이
+   "주문 패널 아랫변(tailY) 에서 hudGap 만큼 위"에 오도록 맞춥니다.
+   footY 를 고치면 머리끝도 같이 움직이므로 말풍선이 저절로 따라옵니다.
+   ------------------------------------------------------------ */
+
+let customerHeadDrops = [];
+
+function measureCommonHeadTops(image){
+  customerHeadDrops=[];
+  const C=CUSTOMER_COMMON;
+  const cellW=Math.floor(image.width/C.cols),cellH=Math.floor(image.height/C.rows);
+  const band=Math.max(1,Math.round(cellH*C.headBand));
+  const minRun=Math.max(1,Math.round(cellW*C.headWidth));
+
+  let tops;
+  try{
+    const canvas=document.createElement("canvas");
+    canvas.width=cellW;canvas.height=band;
+    const cell=canvas.getContext("2d",{willReadFrequently:true});
+    tops=[];
+    for(let row=0;row<C.rows;row++){
+      cell.clearRect(0,0,cellW,band);
+      cell.drawImage(image,0,row*cellH,cellW,band,0,0,cellW,band);
+      const pixels=cell.getImageData(0,0,cellW,band).data;
+      let top=0;
+      for(let y=0;y<band;y++){
+        let solid=0;
+        for(let x=0;x<cellW;x++) if(pixels[(y*cellW+x)*4+3]>128) solid++;
+        if(solid>=minRun){top=y;break;}
+      }
+      tops.push(top);
+    }
+  }catch(error){
+    // 캔버스를 읽지 못하면(예: file:// 로 열어 텍스처가 오염된 경우)
+    // 보정 없이 예전처럼 전부 같은 높이로 둡니다.
+    console.warn("[customers] 머리 높이를 재지 못해 말풍선 보정을 끕니다.",error);
+    return;
+  }
+
+  // 손님 기준 y 로부터 머리끝까지의 거리(위가 음수) → 말풍선이 있어야 할 자리와의 차이.
+  // 머리끝은 패널 아랫변(tailY)보다 hudGap 만큼 아래에 있는 것이 기준입니다.
+  const scale=C.h/cellH;
+  const wanted=CUSTOMER_HUD.tailY+C.hudGap;
+  customerHeadDrops=tops.map(top=>
+    (CUSTOMER_COMMON_FOOT_OFFSET-C.h+top*scale)-wanted);
+}
+
+// 이 손님의 말풍선 묶음을 얼마나 내려야 하는지(논리 px).
+// 예전 시트를 쓰는 특별 손님은 보정하지 않습니다.
+function customerHudDrop(customer,variant){
+  if(!usesCommonArt(customer))return 0;
+  return customerHeadDrops[variant%CUSTOMER_COMMON.rows]||0;
 }
 
 
@@ -208,32 +298,36 @@ function drawCustomers(){
     const entryAlpha=clamp(progress/enter.fadeIn,0,1);
     drawCustomerSprite(order.variant,x,y,customerIdleFrame(t,order.id),entryAlpha,order);
 
+    // 말풍선 묶음은 몸이 아니라 머리 위에 붙어야 하므로, 캐릭터마다
+    // 다른 머리 높이만큼 따로 내려서 그립니다. (§1-2-1)
+    const hy=y+customerHudDrop(order,order.variant);
+
     ctx.save();ctx.globalAlpha=entryAlpha;
     const visitorOnly=storyEntrance&&order.guestOrder===false;
     const selected=!visitorOnly&&state.selectedOrderId===order.id;
     const H=CUSTOMER_HUD;
     if(!visitorOnly){
       ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
-      roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
+      roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
       ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
-      roundRect(ctx,x-H.bubbleW/2,y+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
+      roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
       // 주문 표시라 아직 조리 전입니다. 등급은 기본(normal) 그림을 씁니다.
       // 반짝임은 요리사가 손에 들었을 때만 나옵니다. (player.js syncCarriedFoodFx)
-      drawFoodProp(order.dishId,x,y+H.iconY,H.iconW,H.iconH);
+      drawFoodProp(order.dishId,x,hy+H.iconY,H.iconW,H.iconH);
       ctx.fillStyle="#3b2518";ctx.beginPath();
-      ctx.moveTo(x-5,y+H.tailY);ctx.lineTo(x+6,y+H.tailY+10);ctx.lineTo(x+10,y+H.tailY);ctx.fill();
+      ctx.moveTo(x-5,hy+H.tailY);ctx.lineTo(x+6,hy+H.tailY+10);ctx.lineTo(x+10,hy+H.tailY);ctx.fill();
     }
 
     if(selected){
       ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
-      ctx.arc(x,y+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
+      ctx.arc(x,hy+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
     }
     ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,y+H.labelY);
+    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,hy+H.labelY);
     ctx.textAlign="left";
 
     ctx.restore();
-    if(order.bubble&&order.bubbleTime>0&&progress>.85)drawCustomerSpeech(order.bubble,x,y+H.speechY,entryAlpha);
+    if(order.bubble&&order.bubbleTime>0&&progress>.85)drawCustomerSpeech(order.bubble,x,hy+H.speechY,entryAlpha);
   });
 
   // 떠나는 손님은 일어서듯 살짝 뜨면서 사라집니다. (등장과 반대 방향)
@@ -242,7 +336,7 @@ function drawCustomers(){
     const alpha=clamp(item.life/3.2,0,1);
     const y=CUSTOMER_SEAT_Y-Math.min(16,(3.2-item.life)*5);
     drawCustomerSprite(item.variant,x,y,customerIdleFrame(t,index),alpha,item);
-    drawCustomerSpeech(item.bubble,x,y+CUSTOMER_HUD.departSpeechY,alpha);
+    drawCustomerSpeech(item.bubble,x,y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY,alpha);
   });
 }
 

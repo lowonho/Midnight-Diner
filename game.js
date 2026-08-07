@@ -392,6 +392,10 @@ function openSettings(from=state.screen) {
   dom.loadGameButton.disabled=from!=="game"||!hasAnySaveData();
   dom.returnTitleButton.classList.toggle(UI_CLASS.hidden,fromTitle||saveBlocked);
   dom.resumeButton.textContent=fromTitle?UI_TEXT.resumeFromTitle:UI_TEXT.resumeFromGame;
+  // 설정창 그림이 두 벌입니다(assets/UI/Setting 의 ingame · lobby).
+  // 판 그림·판 크기·기본 버튼 그림의 차이는 전부 css/settings.css 가 맡고,
+  // 여기서는 어느 쪽인지만 알려 줍니다.
+  dom.settingsOverlay.classList.toggle("is-lobby",fromTitle);
   syncAudioControls();
   dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);audio.pauseLoops();
 }

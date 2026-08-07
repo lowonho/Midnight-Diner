@@ -26,7 +26,9 @@
     "build:minigame-art": "node tools/build-minigame-art-webp.js",
     "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify",
     "build:ui-common": "node tools/build-ui-common-webp.js",
-    "verify:ui-common": "node tools/build-ui-common-webp.js --verify"
+    "verify:ui-common": "node tools/build-ui-common-webp.js --verify",
+    "build:ui-setting": "node tools/build-ui-setting-webp.js",
+    "verify:ui-setting": "node tools/build-ui-setting-webp.js --verify"
   },
   "repository": {
     "type": "git",
