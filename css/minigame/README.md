@@ -28,9 +28,7 @@
 | `e8-batter.css` | 김치전 반죽 (넣기 → 젓기) | `engine-e8-order-place.js` + `engine-e9-whisk.js` |
 | `e8-skewer.css` | 닭꼬치 꽂기 | `engine-e8-order-place.js` |
 | `e12-mandoline.css` | 채칼 (양배추 · 당근 · 감자) | `engine-e12-grab-shake.js` |
-| `e7-sauce.css` | 소스 제조 | `engine-e7-measure.js` |
 | `e2-fry-prep.css` | 튀김 준비 (감자 · 새우) | `engine-e2-alternate-input.js` |
-| `e8-soak.css` | 떡 · 우동면 불리기 | `engine-e8-order-place.js` |
 | `_prep-boards.css` | 여러 칸이 함께 쓰는 나무 쟁반 · 도마 그림 | — |
 
 ## 밤 조리 (`css/minigames.css` 가 읽습니다)

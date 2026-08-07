@@ -26,7 +26,6 @@ function setMiniTipHint(){}
 <script src="../engine-e4-gauge-hold.js"></script>
 <script src="../engine-e5-two-side-cook.js"></script>
 <script src="../engine-e6-deep-fry.js"></script>
-<script src="../engine-e7-measure.js"></script>
 <script src="../engine-e8-order-place.js"></script>
 <script src="../engine-e9-whisk.js"></script>
 <script src="../engine-e10-target-click.js"></script>
@@ -45,20 +44,20 @@ try{
   });
 
   const day4Ids=selectedPrepTasks().map(task=>task.id);
-  assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+  assert(JSON.stringify(day4Ids)===JSON.stringify(["cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
   const prepGroups=prepDishGroups();
-  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="soakTteok","Prep table keeps one grouped slot and next step per dish");
-  state.prepProgress.soakTteok=true;
-  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Grouped prep slot and sequence advance to the dish's next task");
+  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===3&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Prep table keeps one grouped slot and next step per dish");
+  state.prepProgress.cutTteokbokkiCabbage=true;
+  assert(prepDishGroups()[0].task.id==="cutTteokbokkiGreenOnion"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiGreenOnion","Grouped prep slot and sequence advance to the dish's next task");
   let chainedPrepTask="";const originalStartDayPrepMini=startDayPrepMini;
-  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"soakTteok"}};state.mini=chainMini;
-  assert(advanceDayPrepDish(chainMini,"soakTteok")&&chainedPrepTask==="cutTteokbokkiCabbage","Completed prep step automatically starts the same dish's next step");
+  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"cutTteokbokkiCabbage"}};state.mini=chainMini;
+  assert(advanceDayPrepDish(chainMini,"cutTteokbokkiCabbage")&&chainedPrepTask==="cutTteokbokkiGreenOnion","Completed prep step automatically starts the same dish's next step");
   startDayPrepMini=originalStartDayPrepMini;state.mini=null;
-  state.prepProgress.soakTteok=false;
+  state.prepProgress.cutTteokbokkiCabbage=false;
 
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
   const day3Ids=selectedPrepTasks().map(task=>task.id);
-  assert(day3Ids.length===5&&day3Ids.includes("coatShrimp"),`Day 3 merged shrimp task: ${day3Ids}`);
+  assert(day3Ids.length===3&&day3Ids.includes("coatShrimp"),`Day 3 merged shrimp task: ${day3Ids}`);
 
   state.day=6;state.selectedMenus=["shrimpTempura","fries"];
   const laterIds=selectedPrepTasks().map(task=>task.id);
@@ -498,21 +497,6 @@ try{
   }
   assert(perfectFry.data.finishing&&perfectFry.data.completionGrade==="perfect"&&fryScore(perfectFry.data)===100&&dom.miniContent.querySelector("#e6Result.perfect.show"),"E6 five well-cooked pieces complete PERFECT");
 
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.flow).join(",")==="thick,syrup,thin"&&DAY_PREP_ASSET_PATHS.sauceFlowThin&&DAY_PREP_ASSET_PATHS.sauceFlowSyrup&&DAY_PREP_ASSET_PATHS.sauceFlowThick,"E7 data-driven viscosity and three reusable stream assets");
-  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupSauceRecipe("tteokbokki");
-  const sauceMini=state.mini;
-  assert(dom.miniContent.querySelectorAll(".sc-goal").length===3&&!dom.miniContent.querySelector(".sc-goal-meter")&&!dom.miniContent.querySelector(".sc-undo")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 one-pour cards and viscosity-specific streams");
-  MINI_ENGINES.sauceMeasure.key(sauceMini," ",{repeat:true});
-  assert(sauceMini.data.sauces[0].amount===0,"E7 held Space cannot auto-pour repeatedly");
-  addYakisobaSauce("gochujang");
-  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 one click pours the full recipe amount while the bottle flies");
-  finishSaucePour(sauceMini);
-  assert(sauceMini.data.cursor===1&&!sauceMini.data.pourLocked,"E7 next ingredient is selected after bottle returns");
-  addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);
-  assert(sauceMini.data.sauces[1].amount===60&&sauceMini.data.cursor===2&&sauceCompletionGrade(sauceMini.data)==="perfect","E7 second ingredient is also a single full pour");
-  addYakisobaSauce("soy");finishSaucePour(sauceMini);
-  assert(sauceMini.data.finishing&&sauceMini.data.sauces.every(item=>item.amount===item.target)&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 three one-time pours mix and complete PERFECT");
-
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
   assert(placeOrderedItem(batter,"flour").accepted&&placeOrderedItem(batter,"water").accepted&&placeOrderedItem(batter,"kimchi").complete,"E8 batter order");
@@ -555,16 +539,6 @@ try{
     if(Number.isInteger(liveSkewer.holdIndex)){liveSkewer.holdIndex=null;renderChickenSkewer();}
   });
   assert(liveSkewer.finishing&&liveSkewer.completionGrade==="good"&&skewerDoneCount(liveSkewer)===3&&!!dom.miniContent.querySelector(".order-result.good"),"E8 three pattern-matched skewers complete through the live renderer");
-  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"soakTteok"},complete:false,data:{}};setupTteokSoak();
-  const soakTarget=()=>dom.miniContent.querySelector('[data-order-target="soak"]');
-  addTteokSoakItem("water",soakTarget());
-  assert(!state.mini.data.water&&!state.mini.data.added.water,"E8 soak takes no water from the ingredient card — only the pitcher pours");
-  addTteokSoakItem("tteok",soakTarget());
-  for(let index=0;index<4;index++)pourSoakWaterOnce();
-  // 마지막 한 모금이 화면에 보이도록 finishSoakWater 는 다시 그리기를 SOAK_POUR_MS 뒤로
-  // 미룹니다. 이 검사는 타이머 없이 도는 동기 흐름이라 여기서 직접 다시 그립니다.
-  renderTteokSoak();
-  assert(state.mini.data.finishing&&state.mini.data.water===100&&state.mini.data.added.water&&!!dom.miniContent.querySelector(".soak-bubbles"),"E8 soak settles once four pitcher tilts fill the bowl");
   assert(WHISK_CONFIG.kimchiBatter.targetTurns===4&&WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 four-turn data config");
   const smoothWhisk=createWhiskState();
   for(let index=0;index<=130;index++)sampleWhiskMotion(smoothWhisk,index*Math.PI*2/32,.35);
@@ -641,7 +615,8 @@ try{
   MINI_ENGINES.chop.setup(state.mini,{set(){},difficulty:1});
   assert(state.mini.engine==="timing"&&state.mini.data.mode==="timing"&&state.mini.data.ingredient==="tofu"&&state.mini.data.total===6&&state.mini.data.phase==="countdown"&&dom.miniContent.querySelector(".cut-path-mode"),"Open-hours tofu chop uses the shared E1 moving-knife controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
+  assert(!PREP_TASKS.soakUdon&&!PREP_TASKS.soakTteok&&!PREP_TASKS.mixYakisobaSauce&&!PREP_TASKS.mixTteokbokkiSauce,"Soaking and sauce-making prep games stay removed");
+  assert(!["udonSoak","tteokSoak","yakisobaSauce","tteokbokkiSauce"].some(key=>DAY_PREP_SETUPS[key]),"Removed prep games have no runtime setup registration");
 
   document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 100";
 }catch(error){

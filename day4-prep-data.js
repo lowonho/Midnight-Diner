@@ -18,33 +18,7 @@ const SHRIMP_COAT_STEPS=Object.freeze([
   Object.freeze({step:2,id:"breadcrumbs",label:"빵가루",shrimpCount:5})
 ]);
 
-const SAUCE_RECIPES=Object.freeze({
-  yakisoba:Object.freeze({
-    title:"볶음우동 소스 레시피",
-    taskId:"mixYakisobaSauce",
-    completionMessage:"볶음우동 소스 제조 완료",
-    bowlColor:"#6b341b",bowlDark:"#32160d",
-    ingredients:Object.freeze([
-      Object.freeze({id:"soy",label:"간장",target:200,flow:"thin",color:"#633019"}),
-      Object.freeze({id:"oyster",label:"굴소스",target:100,flow:"thick",color:"#482014"}),
-      Object.freeze({id:"chili",label:"고추기름",target:30,flow:"thin",color:"#c44d22"})
-    ])
-  }),
-  tteokbokki:Object.freeze({
-    title:"떡볶이 양념장 레시피",
-    taskId:"mixTteokbokkiSauce",
-    completionMessage:"떡볶이 양념장 계량 완료",
-    bowlColor:"#a93222",bowlDark:"#4d160e",
-    ingredients:Object.freeze([
-      Object.freeze({id:"gochujang",label:"고추장",target:120,flow:"thick",color:"#b83a25"}),
-      Object.freeze({id:"oligosaccharide",label:"올리고당",target:60,flow:"syrup",color:"#d59a47"}),
-      Object.freeze({id:"soy",label:"간장",target:30,flow:"thin",color:"#633019"})
-    ])
-  })
-});
-
 const DAY4_PREP_CONFIG=Object.freeze({
-  soak:{taskId:"soakTteok",required:["tteok","water"]},
   potatoMandoline:{taskId:"sliceFriesPotato",ingredient:"potato",label:"감자",directions:["left","right"],totalInputs:20},
   potatoStarch:{taskId:"shakeFriesStarch",requiredPresses:14,stages:[0,35,70,100]}
 });

@@ -39,7 +39,7 @@ const HEAT_INGREDIENTS=Object.freeze({
     Object.freeze({id:"anchovy",label:"손질한 멸치",count:DAY_PREP_MINI_CONFIG.cleanAnchovy.total,asset:"anchovyGroup"})
   ]),
   tteokbokki:Object.freeze([
-    Object.freeze({id:"tteok",label:"불린 떡",count:null,asset:"soakTteok"}),
+    Object.freeze({id:"tteok",label:"떡",count:null,asset:"soakTteok"}),
     Object.freeze({id:"fishCake",label:"썬 어묵",count:TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="fishCake")?.requiredPieces??null,asset:"fishCake4"}),
     // 양념장 섞기(E7)에서 마지막에 완성된 그 볼 그림입니다 — 낮에 만든 것을
     // 그대로 냄비에 넣는 흐름이라 두 화면이 같은 장을 써야 이어져 보입니다.

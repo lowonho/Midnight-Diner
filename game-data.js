@@ -49,18 +49,14 @@ const PREP_TASKS=Object.freeze({
   fryTofuKimchi:{id:"fryTofuKimchi",menuId:"tofu",label:"두부김치용 김치 볶기",objectLabel:"김치 볶기 팬",objectKind:"pan",miniGame:"kimchiFry",dependsOn:["cutTofuKimchi"],prepOrder:50,isImplemented:true},
   mixKimchiBatter:{id:"mixKimchiBatter",menuId:"kimchi",label:"김치전 반죽 만들기",objectLabel:"김치전 믹스볼",objectKind:"batter",miniGame:"batter",dependsOn:["cutPancakeKimchi"],prepOrder:60,isImplemented:true},
   assembleChickenSkewer:{id:"assembleChickenSkewer",menuId:"skewer",label:"닭꼬치 꽂기",objectLabel:"꼬치 조립대",objectKind:"skewer",miniGame:"skewer",dependsOn:["cutSkewerChicken","cutSkewerGreenOnion"],prepOrder:70,isImplemented:true},
-  soakUdon:{id:"soakUdon",menuId:"yakisoba",label:"우동면 불려두기",objectLabel:"우동면과 물",objectKind:"udonBowl",miniGame:"udonSoak",prepOrder:75,isImplemented:true},
-  sliceYakisobaCabbage:{id:"sliceYakisobaCabbage",menuId:"yakisoba",label:"양배추 채썰기",objectLabel:"양배추와 채칼",objectKind:"cabbage",miniGame:"mandoline",dependsOn:["soakUdon"],prepOrder:80,isImplemented:true},
+  sliceYakisobaCabbage:{id:"sliceYakisobaCabbage",menuId:"yakisoba",label:"양배추 채썰기",objectLabel:"양배추와 채칼",objectKind:"cabbage",miniGame:"mandoline",prepOrder:80,isImplemented:true},
   sliceYakisobaCarrot:{id:"sliceYakisobaCarrot",menuId:"yakisoba",label:"당근 채썰기",objectLabel:"당근과 채칼",objectKind:"carrot",miniGame:"mandoline",dependsOn:["sliceYakisobaCabbage"],prepOrder:90,isImplemented:true},
-  mixYakisobaSauce:{id:"mixYakisobaSauce",menuId:"yakisoba",label:"소스 제조",objectLabel:"볶음우동 소스볼",objectKind:"sauceBowl",miniGame:"yakisobaSauce",dependsOn:["sliceYakisobaCarrot"],prepOrder:100,isImplemented:true},
   coatShrimp:{id:"coatShrimp",menuId:"shrimpTempura",label:"새우 튀김옷 입히기",objectLabel:"새우 코팅 작업대",objectKind:"shrimpCoat",miniGame:"shrimpCoat",prepOrder:110,isImplemented:true},
-  soakTteok:{id:"soakTteok",menuId:"tteokbokki",label:"떡 불려두기",objectLabel:"떡과 물",objectKind:"tteokBowl",miniGame:"tteokSoak",prepOrder:121,day4Order:1,isImplemented:true},
-  cutTteokbokkiCabbage:{id:"cutTteokbokkiCabbage",menuId:"tteokbokki",label:"양배추 썰기",objectLabel:"떡볶이용 양배추",objectKind:"cabbage",miniGame:"tteokbokkiCut",dependsOn:["soakTteok"],prepOrder:122,day4Order:2,isImplemented:true},
-  cutTteokbokkiGreenOnion:{id:"cutTteokbokkiGreenOnion",menuId:"tteokbokki",label:"대파 썰기",objectLabel:"떡볶이용 대파",objectKind:"greenOnion",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiCabbage"],prepOrder:123,day4Order:3,isImplemented:true},
-  cutTteokbokkiFishCake:{id:"cutTteokbokkiFishCake",menuId:"tteokbokki",label:"어묵 썰기",objectLabel:"떡볶이용 어묵",objectKind:"fishCake",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiGreenOnion"],prepOrder:124,day4Order:4,isImplemented:true},
-  mixTteokbokkiSauce:{id:"mixTteokbokkiSauce",menuId:"tteokbokki",label:"떡볶이 양념장 계량",objectLabel:"떡볶이 양념장 볼",objectKind:"sauceBowl",miniGame:"tteokbokkiSauce",dependsOn:["cutTteokbokkiFishCake"],prepOrder:125,day4Order:5,isImplemented:true},
-  sliceFriesPotato:{id:"sliceFriesPotato",menuId:"fries",label:"채칼로 감자 썰기",objectLabel:"감자와 채칼",objectKind:"potato",miniGame:"potatoMandoline",prepOrder:126,day4Order:6,isImplemented:true},
-  shakeFriesStarch:{id:"shakeFriesStarch",menuId:"fries",label:"감자 전분 털기",objectLabel:"감자 바구니",objectKind:"potatoBasket",miniGame:"potatoStarch",dependsOn:["sliceFriesPotato"],prepOrder:127,day4Order:7,isImplemented:true}
+  cutTteokbokkiCabbage:{id:"cutTteokbokkiCabbage",menuId:"tteokbokki",label:"양배추 썰기",objectLabel:"떡볶이용 양배추",objectKind:"cabbage",miniGame:"tteokbokkiCut",prepOrder:122,day4Order:1,isImplemented:true},
+  cutTteokbokkiGreenOnion:{id:"cutTteokbokkiGreenOnion",menuId:"tteokbokki",label:"대파 썰기",objectLabel:"떡볶이용 대파",objectKind:"greenOnion",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiCabbage"],prepOrder:123,day4Order:2,isImplemented:true},
+  cutTteokbokkiFishCake:{id:"cutTteokbokkiFishCake",menuId:"tteokbokki",label:"어묵 썰기",objectLabel:"떡볶이용 어묵",objectKind:"fishCake",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiGreenOnion"],prepOrder:124,day4Order:3,isImplemented:true},
+  sliceFriesPotato:{id:"sliceFriesPotato",menuId:"fries",label:"채칼로 감자 썰기",objectLabel:"감자와 채칼",objectKind:"potato",miniGame:"potatoMandoline",prepOrder:126,day4Order:4,isImplemented:true},
+  shakeFriesStarch:{id:"shakeFriesStarch",menuId:"fries",label:"감자 전분 털기",objectLabel:"감자 바구니",objectKind:"potatoBasket",miniGame:"potatoStarch",dependsOn:["sliceFriesPotato"],prepOrder:127,day4Order:5,isImplemented:true}
 });
 
 const MENU_DATA=Object.freeze([
@@ -68,9 +64,9 @@ const MENU_DATA=Object.freeze([
   {id:"tofu",displayName:"두부김치",unlockDay:1,requiredPrepTasks:["cutTofuKimchi","fryTofuKimchi"],cookware:["pan","board","fridge"],isImplemented:true,icon:3,ingredients:["두부","김치"],prep:["fridge","sink","board"],openFlow:["board","fridge","counter"],cook:[{station:"board",game:"chop"},{station:"fridge",game:"plateKimchi"}],price:8800},
   {id:"kimchi",displayName:"김치전",unlockDay:1,requiredPrepTasks:["cutPancakeKimchi","mixKimchiBatter"],cookware:["board","mixingBowl","pan"],isImplemented:true,icon:0,ingredients:["김치","밀가루","물"],prep:["board","mixingBowl"],cook:[{station:"pan",game:"twoSideCook"}],price:6200},
   {id:"skewer",displayName:"닭꼬치",unlockDay:1,requiredPrepTasks:["cutSkewerChicken","cutSkewerGreenOnion","assembleChickenSkewer"],cookware:["board","skewerTable","grill"],isImplemented:true,prepYield:SKEWER_BATCH_SIZE,icon:1,ingredients:["닭고기","대파"],prep:["board","skewerTable"],cook:[{station:"grill",game:"twoSideCook"}],price:7200},
-  {id:"yakisoba",displayName:"볶음우동",unlockDay:1,requiredPrepTasks:["soakUdon","sliceYakisobaCabbage","sliceYakisobaCarrot","mixYakisobaSauce"],cookware:["griddle"],isImplemented:true,icon:2,ingredients:["우동면","양배추","당근","볶음우동 소스"],prep:["board"],cook:[{station:"griddle",game:"stir"}],price:8200},
+  {id:"yakisoba",displayName:"볶음우동",unlockDay:1,requiredPrepTasks:["sliceYakisobaCabbage","sliceYakisobaCarrot"],cookware:["griddle"],isImplemented:true,icon:2,ingredients:["우동면","양배추","당근","볶음우동 소스"],prep:["board"],cook:[{station:"griddle",game:"stir"}],price:8200},
   {id:"shrimpTempura",displayName:"새우튀김",unlockDay:1,requiredPrepTasks:["coatShrimp"],cookware:["fryer"],isImplemented:true,icon:null,ingredients:["새우","밀가루","계란물","빵가루"],prep:["board"],cook:[{station:"fryer",game:"fry"}],price:8600},
-  {id:"tteokbokki",displayName:"떡볶이",unlockDay:1,requiredPrepTasks:["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce"],cookware:["pot"],isImplemented:true,prepYield:3,icon:null,ingredients:["떡","고추장","어묵"],prep:[],cook:[{station:"pot",game:"heat"}],price:7900},
+  {id:"tteokbokki",displayName:"떡볶이",unlockDay:1,requiredPrepTasks:["cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake"],cookware:["pot"],isImplemented:true,prepYield:3,icon:null,ingredients:["떡","고추장","어묵"],prep:[],cook:[{station:"pot",game:"heat"}],price:7900},
   {id:"fries",displayName:"감자튀김",unlockDay:1,requiredPrepTasks:["sliceFriesPotato","shakeFriesStarch"],cookware:["fryer"],isImplemented:true,prepYield:3,icon:null,ingredients:["감자","식용유"],prep:[],cook:[{station:"fryer",game:"fry"}],price:6500}
 ]);
 
