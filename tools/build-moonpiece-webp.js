@@ -18,11 +18,11 @@
    tools/build-ui-save-webp.js 와 같은 기준입니다. 이 그림이 놓이는 자리는
    css/settings.css 의
 
-     .journal-page-relic { --journal-relic-size: 132upx }
+     .journal-page-relic { --journal-relic-size: 118upx }
 
-   한 곳뿐입니다(--upx = 1920x1080 프레임에서 1px). x2 는 264 인데, 표제 면
-   여백이 지금 12upx 밖에 안 남아 앞으로 줄이면 줄였지 크게 키우기는 어려워서
-   여유분만 얹은 300x300 입니다. 원본이 1254x1254 정사각이라 비율은 그대로입니다.
+   한 곳뿐입니다(--upx = 1920x1080 프레임에서 1px). x2 는 236 인데, 나중에
+   조금 키울 여지를 남겨 300x300 으로 뽑습니다. 줄여 그리는 쪽은 안전하고
+   늘려 그리는 쪽만 뭉갭니다. 원본이 1254x1254 정사각이라 비율은 그대로입니다.
 
    ⚠️ --journal-relic-size 를 150upx 보다 키우면 여기 SIZE 도 같이 키워야
       합니다. 안 그러면 확대되면서 뭉갭니다.
