@@ -256,8 +256,8 @@
    것이 아니라 겹치기만 해서, 어느 익힘 단계에서 발라도 그 그림 위에 윤기만 얹힙니다.
    ⚠️ 캔버스가 익힘 장과 같게 뽑혀 있어야 조각에 1:1 로 겹칩니다
       (tools/build-minigame-art-webp.js 의 pad).
-   ⚠️ 자루 단위(.grill-skewer.sauced)로 켭니다 — 조각마다 따로 켜는 것이 아니라
-      "이 자루는 양념을 발랐다" 한 가지 상태입니다. */
+   ⚠️ 현재 보이는 면에 양념을 발랐을 때만 자루에 .sauced를 켭니다.
+      앞·뒷면 상태는 unit.saucedSides가 따로 기억합니다. */
 .gs-piece-glaze {
   position: absolute;
   inset: 0;

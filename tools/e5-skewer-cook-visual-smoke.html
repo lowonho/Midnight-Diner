@@ -77,7 +77,7 @@
        ?step=0..4                 익힘 단계 (0 안 익음 … 4 탐)
        ?flipped=0..3              굴려 놓은 꼬치 개수
        ?unit=0..2                 신호·양념이 걸리는 자루
-       ?cue=cook|flip|sauce       신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음)
+       ?cue=flip|sauce            신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음)
        ?sauced=0..3               양념을 다 바른 꼬치 개수
        ?served=0..3               완성 칸(접시)에 담아 둔 꼬치 개수
        ?ready=1                   화로 위 첫 자루를 "다 구워서 옮길 수 있는" 상태로
@@ -99,14 +99,14 @@
     loadDayPrepAssets().then(() => {
       /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
          적으면 판 구조가 바뀔 때 하네스만 조용히 옛 모양으로 남습니다.
-         할 일 목록은 자루마다 일곱 개(굽기·뒤집기·굽기·뒤집기·양념·뒤집기·양념)이고 **자루마다 따로** 돕니다. */
+         할 일 목록은 자루마다 네 개(앞면 양념·뒤집기·뒷면 양념·뒤집기)이고 **자루마다 따로** 돕니다. */
       state.mini = {
         engine:"twoSideCook", complete:false, time:20,
-        data:createTwoSideData("skewer",{timeLimit:72})
+        data:createTwoSideData("skewer",{timeLimit:58})
       };
       const data = state.mini.data;
-      // 새 순서 [굽기,뒤집기,굽기,뒤집기,양념,뒤집기,양념] 에서 각 신호가 처음 나오는 자리
-      const offset = { cook:0, flip:1, sauce:4 }[cue] ?? 0;
+      // 새 순서 [앞면 양념,뒤집기,뒷면 양념,뒤집기] 에서 각 신호가 처음 나오는 자리
+      const offset = { flip:1, sauce:0 }[cue] ?? 0;
       /* 담아 둔 자루는 **뒤에서부터** 셉니다 — 화로에는 앞 자루가 남아 있는 그림이라야
          "굽는 중 + 담은 것" 이 한 화면에 같이 보입니다. */
       const servedFrom = SKEWER_BATCH_SIZE - served;
@@ -126,7 +126,7 @@
       dom.miniTitle.textContent = "닭꼬치 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.skewer.subtitle;
       // 아래 TIP 띠는 setup 이 채웁니다. 하네스는 setup 을 안 거치므로 같은 줄을 여기서 넣습니다.
-      setMiniTipHint?.("드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념");
+      setMiniTipHint?.("드래그 : 꼬치 올리기 · 위아래 드래그 : 양념 · 옆으로 드래그 : 뒤집기");
       renderTwoSideCook();
       // 양념을 바른 자루 (실제로는 붓이 지나간 뒤에 붙는 클래스입니다)
       document.querySelectorAll(".cook-food .grill-skewer").forEach((skewer, index) => {

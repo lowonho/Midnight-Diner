@@ -364,11 +364,11 @@ try{
   const pancakeSteps=buildTwoSideUnitSteps("pancake"),skewerSteps=buildTwoSideUnitSteps("skewer");
   const kinds=steps=>steps.reduce((count,step)=>({...count,[step.kind]:(count[step.kind]||0)+1}),{});
   const plan=steps=>steps.map(step=>step.kind).join(">");
-  /* 순서가 곧 "지금 어느 면이 아래인가" 입니다 — 두 요리 다 한 면에 성공 두 번씩입니다.
+  /* 순서가 곧 "지금 어느 면이 아래인가" 입니다.
      (할 일 목록은 **자루 하나 몫**이고, 자루 3개가 같은 목록을 따로 소화합니다) */
   assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook>flip>cook","E5 pancake plan: front/back cooked twice each with flips between");
-  assert(plan(skewerSteps)==="cook>flip>cook>flip>sauce>flip>sauce","E5 skewer plan: cook both sides, then sauce both sides");
-  assert(kinds(skewerSteps).flip===3&&kinds(skewerSteps).sauce===2,"E5 skewer plan flips three times and sauces both sides");
+  assert(plan(skewerSteps)==="sauce>flip>sauce>flip","E5 skewer plan: sauce front, flip to back, sauce back, flip to front");
+  assert(kinds(skewerSteps).flip===2&&kinds(skewerSteps).sauce===2&&!kinds(skewerSteps).cook,"E5 skewer plan has two sauces and two flips with no separate cook cue");
   assert(MINI_ENGINES.twoSideCook.noKeyboard===true,"E5 is mouse-only (no keyboard route)");
   // 진행도 분모는 순서표에서 세어 옵니다 (손으로 적어 두면 순서를 바꿀 때 화면만 어긋납니다)
   assert(TWO_SIDE_VIEW.pancake.total===kinds(pancakeSteps).cook&&Number.isInteger(TWO_SIDE_VIEW.pancake.total),"E5 pancake progress denominator comes from the step plan");
@@ -387,7 +387,7 @@ try{
   assert(pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 half a hold does not cook yet");
   cancelTwoSideHold(pancakeMini);
   assert(!pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 letting go early cancels the hold with no penalty");
-  // 닭꼬치는 그대로 한 번 클릭입니다 — 자루 셋을 번갈아 눌러야 해서 누르고 있게 하면 안 됩니다
+  // 꾹 누르기는 김치전 굽기 신호에만 적용됩니다
   assert(twoSideHoldNeeded(pancakeMini.data,pancakeUnit)===true,"E5 only the pancake cook cue needs a hold");
   beginTwoSideHold(pancakeMini,0);
   tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC+.01);
@@ -445,16 +445,20 @@ try{
   placeTwoSideUnit(skewerCookMini,0);
   raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0]);
   assert(skewerCookMini.data.units[0].sides[0].cook===1&&skewerUnit.sides[0].cook===0,"E5 doneness is per skewer, not shared");
-  /* 양념 신호 : **위아래 붓질 드래그**로 답합니다 (클릭이 아닙니다).
-     마지막 할 일(7번째)이 뒷면 양념이라, 그것까지 마치면 그 자루가 다 구워집니다. */
-  skewerUnit.stepIndex=skewerUnit.steps.length-1;
+  /* 닭꼬치 네 단계 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기. */
   openTwoSideCue(skewerCookMini,skewerUnit);
-  assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 sauce cue lights the skewer being finished");
+  assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 the first cue sauces the front side");
   assert(pressTwoSideCue(skewerCookMini,1)===false&&!skewerUnit.done,"E5 a sauce cue does not accept a click");
-  const saucedSide=twoSideCookingSide(skewerUnit),sauceCookBefore=skewerUnit.sides[saucedSide].cook;
-  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true,"E5 a vertical brush drag answers the sauce cue");
-  assert(skewerUnit.done&&skewerUnit.sides[saucedSide].cook===sauceCookBefore+1
-    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 saucing brings in the brush and cooks that side one more step");
+  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===1
+    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===0&&skewerUnit.saucedSides[0]&&!skewerUnit.saucedSides[1]
+    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 front sauce brings in the brush and cooks only the front side");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.stepIndex===2&&skewerUnit.flips===1&&twoSideCookingSide(skewerUnit)===1,"E5 first flip turns the skewer from front to back");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===3
+    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===1&&skewerUnit.saucedSides.every(Boolean),"E5 back sauce cooks and coats only the back side");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.done&&skewerUnit.flips===2&&twoSideCookingSide(skewerUnit)===0,"E5 final flip returns the finished skewer to the front side");
   /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
      담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
   assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");
