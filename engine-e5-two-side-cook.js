@@ -58,7 +58,7 @@
    ⚠️ 예전에는 cyclesPerUnit 로 만들어 냈는데, 두 요리의 순서가 서로 달라져
       규칙으로는 못 만들게 됐습니다. 순서 그대로 적는 것이 읽기도 쉽습니다. */
 const TWO_SIDE_STEP_PLAN=Object.freeze({
-  pancake:Object.freeze(["cook","flip","cook","flip","cook","flip","cook"]),
+  pancake:Object.freeze(["cook","flip","cook","flip","cook"]),
   skewer: Object.freeze(["sauce","flip","sauce","flip"])
 });
 
@@ -1256,10 +1256,10 @@ function charcoalSkewerMarkup(data) {
 
 const TWO_SIDE_VIEW = Object.freeze({
   pancake: Object.freeze({
-    subtitle: "불빛 신호에 맞춰 김치전을 굽고 뒤집으세요!",
+    subtitle: "앞면을 누르고 뒤집어 뒷면을 누른 뒤, 다시 앞면을 눌러 주세요!",
     ingredients: [{ id: "pancakeBatter", label: "김치전 반죽", count: 1, asset: "cookPancakeBatter" }],
     // 진행도의 분모 = 할 일 목록의 굽기 횟수. **순서표에서 세어 옵니다** —
-    // 손으로 4 를 적어 두면 순서를 바꿀 때 화면만 조용히 옛 숫자로 남습니다.
+    // 숫자를 손으로 적어 두면 순서를 바꿀 때 화면만 조용히 옛 값으로 남습니다.
     total: TWO_SIDE_STEP_PLAN.pancake.filter(kind => kind === "cook").length,
     countLabel: "굽기",
     guide: [

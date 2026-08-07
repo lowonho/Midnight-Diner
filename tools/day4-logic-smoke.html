@@ -366,7 +366,7 @@ try{
   const plan=steps=>steps.map(step=>step.kind).join(">");
   /* 순서가 곧 "지금 어느 면이 아래인가" 입니다.
      (할 일 목록은 **자루 하나 몫**이고, 자루 3개가 같은 목록을 따로 소화합니다) */
-  assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook>flip>cook","E5 pancake plan: front/back cooked twice each with flips between");
+  assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook","E5 pancake plan: press front, flip to back, press back, flip to front, press front");
   assert(plan(skewerSteps)==="sauce>flip>sauce>flip","E5 skewer plan: sauce front, flip to back, sauce back, flip to front");
   assert(kinds(skewerSteps).flip===2&&kinds(skewerSteps).sauce===2&&!kinds(skewerSteps).cook,"E5 skewer plan has two sauces and two flips with no separate cook cue");
   assert(MINI_ENGINES.twoSideCook.noKeyboard===true,"E5 is mouse-only (no keyboard route)");
@@ -418,6 +418,16 @@ try{
   assert(pancakeUnit.stepIndex===missedAt+1,"E5 a missed cue moves on to the next step instead of repeating it");
   assert(pancakeMini.data.cooked===1,"E5 a missed cook cue does not count toward the progress");
   assert(TWO_SIDE_CUE.retryWait===undefined,"E5 has no retry wait any more (nothing repeats)");
+  // 성공 경로는 요청한 다섯 동작을 마친 뒤 앞면 방향에서 바로 완료됩니다.
+  const pancakeFlowMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeFlowMini;
+  MINI_ENGINES.twoSideCook.setup(pancakeFlowMini,{set:(title,description,time)=>{pancakeFlowMini.time=time;},dish:dishById("kimchi")});
+  const pancakeFlowUnit=pancakeFlowMini.data.units[0];
+  const pressPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);beginTwoSideHold(pancakeFlowMini,0);tickTwoSideHold(pancakeFlowMini,TWO_SIDE_HOLD_SEC+.01);};
+  const flipPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);flickTwoSideCue(pancakeFlowMini,0,"flip");};
+  pressPancake();flipPancake();pressPancake();flipPancake();pressPancake();
+  assert(pancakeFlowUnit.done&&pancakeFlowUnit.stepIndex===5&&pancakeFlowUnit.flips===2
+    &&twoSideCookingSide(pancakeFlowUnit)===0&&pancakeFlowUnit.sides[0].cook===2&&pancakeFlowUnit.sides[1].cook===1
+    &&TWO_SIDE_VIEW.pancake.total===3,"E5 pancake completes after front press, back press, and final front press with two flips");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
   assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
