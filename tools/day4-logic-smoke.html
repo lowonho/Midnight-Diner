@@ -29,7 +29,6 @@ function setMiniTipHint(){}
 <script src="../engine-e8-order-place.js"></script>
 <script src="../engine-e9-whisk.js"></script>
 <script src="../engine-e10-target-click.js"></script>
-<script src="../engine-e11-one-shot.js"></script>
 <script src="../engine-e12-grab-shake.js"></script>
 <script>
 try{
@@ -595,44 +594,10 @@ try{
   [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
   assert(state.mini.data.cleaned===1&&anchovyHead.closest(".anchovy").classList.contains("torn")&&anchovyHead.closest(".anchovy").style.getPropertyValue("--tear-x").includes("-38"),`E10 pointer tug completes outward and leaves one head beside the body: cleaned=${state.mini.data.cleaned}, classes=${anchovyHead.closest(".anchovy").className}`);
   assert(!dom.miniContent.querySelector(".anchovy-timeout")&&!Object.hasOwn(state.mini.data,"timedOut"),"E10 anchovy has no time-over state or overlay");
-  assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
-  assert(ONE_SHOT_VARIANTS.place.finishDelay>ONE_SHOT_VARIANTS.drop.finishDelay&&ONE_SHOT_VARIANTS.pour.pourDuration===900,"E11 place, drop, and pour variants share input but keep separate finish timing");
-  assert(!ONE_SHOT_VESSELS.pot&&!ONE_SHOT_PIECES.broth&&typeof showOdenIngredientDrop==="undefined"&&typeof setupOdenBroth==="undefined","E11 oden pot drop and broth pour are removed");
-  state.mini={complete:false,data:{}};
-  startOneShot({variant:"place",vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
-  assert(oneShotData().items.length===2&&oneShotData().vessel===ONE_SHOT_VESSELS.plate,"E11 shared one-shot data");
-  const osSource=dom.miniContent.querySelector('[data-os-item="tofu"]'),osDrop=dom.miniContent.querySelector(".os-drop");osSource.setPointerCapture=()=>{};
-  const e11ElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>osDrop;
-  osSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:51,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
-  osSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
-  osSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));document.elementFromPoint=e11ElementFromPoint;
-  assert(oneShotData().placed[0]==="tofu"&&!document.querySelector(".os-drag-ghost")&&dom.miniContent.querySelector(".os-board.variant-place"),"E11 custom pointer drag places tofu and cleans its ghost");
-  placeOneShotItem("friedKimchi");
-  assert(oneShotData().finishing&&oneShotData().actionPhase==="complete"&&dom.miniContent.querySelectorAll(".os-drop .os-food").length===2&&dom.miniContent.querySelector(".os-complete-sparks"),"E11 plating snaps both foods to their asset-safe slots and finishes visually");
-  // 자유 플레이팅(두부김치) : 조각을 하나씩, 놓은 자리 그대로
-  state.mini={complete:false,data:{}};
-  MINI_ENGINES.plateKimchi.setup(state.mini,{set(){},difficulty:1});
-  const freePlate=oneShotData();
-  assert(freePlate.free&&freePlate.variant==="free"&&oneShotTotal(freePlate)===12&&oneShotLeft(freePlate,"tofu")===6&&oneShotLeft(freePlate,"friedKimchi")===6,`E11 free plating stocks 6 tofu + 6 kimchi: total=${oneShotTotal(freePlate)}`);
-  // 두부는 각도를 못박고(pieceTilt), 조각 한가운데가 갈 수 있는 자리는 접시 안쪽입니다
-  assert(ONE_SHOT_PIECES.tofu.pieceTilt===0&&ONE_SHOT_PIECES.friedKimchi.pieceTilt===undefined&&FREE_PLATE_RADIUS.x<50&&FREE_PLATE_RADIUS.y<50,"E11 tofu keeps one fixed angle and piece centers stay on the plate");
-  const freeDrop=dom.miniContent.querySelector(".os-drop");
-  freeDrop.getBoundingClientRect=()=>({left:0,top:0,width:400,height:300});
-  placeOneShotItem("tofu",{drop:freeDrop,clientX:120,clientY:90});
-  const firstSpot=freePlate.placements[0];
-  assert(freePlate.placements.length===1&&firstSpot.id==="tofu"&&firstSpot.x===30&&firstSpot.y===30,`E11 free plating keeps the dropped point: x=${firstSpot.x}, y=${firstSpot.y}`);
-  assert(dom.miniContent.querySelector('[data-os-item="tofu"] .os-ing-name b').textContent==="×5"&&dom.miniContent.querySelector(".os-food.free").style.getPropertyValue("--x")==="30%","E11 free plating counts the card down and draws the piece where it landed");
-  placeOneShotItem("tofu",{drop:freeDrop,clientX:900,clientY:150});
-  const clamped=freePlate.placements[1];
-  assert(Math.round(clamped.x)===50+FREE_PLATE_RADIUS.x&&Math.round(clamped.y)===50,`E11 free plating pulls an off-plate drop back inside the rim: x=${clamped.x}, y=${clamped.y}`);
-  for(let i=0;i<10;i++)placeOneShotItem(nextOneShotItemId(oneShotData()));
-  assert(oneShotData().placements.length===12&&oneShotData().finishing&&dom.miniContent.querySelectorAll(".os-drop .os-food.free").length===12&&dom.miniContent.querySelector(".os-board.variant-free.complete"),`E11 free plating finishes at twelve pieces: placed=${oneShotData().placements.length}`);
-  assert(oneShotData().placements.filter(spot=>spot.id==="tofu").every(spot=>spot.rot===0),"E11 every tofu piece lands at the same angle");
-  assert(nextOneShotItemId(oneShotData())===null&&dom.miniContent.querySelectorAll(".os-ing-card[disabled]").length===2,"E11 free plating empties both ingredient cards when the plate is full");
   const odenMenu=menuDataById("oden");
   assert(odenMenu.requiredPrepTasks.join(",")==="cutRadish,cutFishCake,cleanAnchovy"&&!PREP_TASKS.addOdenBroth,"Oden prep ends at the three cutting/cleaning tasks");
   const tofuMenu=menuDataById("tofu");
-  assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
+  assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop"&&tofuMenu.openFlow.join(",")==="board,counter"&&!tofuMenu.cookware.includes("fridge")&&!MINI_ENGINES.plateKimchi,"Tofu finishes after chopping with no plating step or fridge stop");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
   MINI_ENGINES.chop.setup(state.mini,{set(){},difficulty:1});
   assert(state.mini.engine==="timing"&&state.mini.data.mode==="timing"&&state.mini.data.ingredient==="tofu"&&state.mini.data.total===6&&state.mini.data.phase==="countdown"&&dom.miniContent.querySelector(".cut-path-mode"),"Open-hours tofu chop uses the shared E1 moving-knife controller");

@@ -196,7 +196,6 @@ const audio = {
     drop_pancake_kimchi:["assets/sfx/sfx_drop_pancake_kimchi.MP3"],
     fries_starch_bag_shake:["assets/sfx/sfx_fries_starch_bag_shake1.MP3","assets/sfx/sfx_fries_starch_bag_shake2.MP3"],
     soak_ingredient_drop:["assets/sfx/sfx_soak_ingredient_drop.MP3"],
-    plate_tofu_place:["assets/sfx/sfx_plate_tofu_place.MP3"],
     shrimp_flour_coat:["assets/sfx/sfx_shrimp_flour_coat.MP3"],
     shrimp_egg_coat:["assets/sfx/sfx_shrimp_egg_coat.MP3"],
     shrimp_crumb_coat:["assets/sfx/sfx_shrimp_crumb_coat.MP3"],

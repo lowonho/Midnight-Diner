@@ -717,7 +717,7 @@ function bindFriesBagDrag(){
 
    [끌어다 놓기]  1) 은 E8 공용 배치기(bindOrderPlacementPointers)를 그대로
    씁니다 — 커서를 따라오는 유령(.order-drag-ghost)과 놓을 자리 표시
-   (.order-drop-ready)가 E8·E11 과 같은 클래스입니다. dragOnly 라 짧게 누르는
+   (.order-drop-ready)가 E8 과 같은 클래스입니다. dragOnly 라 짧게 누르는
    자동 배치는 없습니다: 반드시 끌어다 놓아야 합니다.
    2) 의 굴리기만 이 파일이 직접 포인터를 잡습니다 — 잡은 채 계속 굴려야 해서
    요소가 아니라 mini-content 에 포인터를 캡처합니다.

@@ -89,7 +89,7 @@ const asyncFiles=[
   "engine-e2-alternate-input.js","engine-e3-direction-seq.js","engine-e4-gauge-hold.js",
   "engine-e5-two-side-cook.js","engine-e6-deep-fry.js",
   "engine-e8-order-place.js","engine-e9-whisk.js","engine-e10-target-click.js",
-  "engine-e11-one-shot.js","engine-e12-grab-shake.js","engine-e13-fridge-find.js",
+  "engine-e12-grab-shake.js","engine-e13-fridge-find.js",
   "engine-legacy-night.js"
 ];
 asyncFiles.forEach(file=>{

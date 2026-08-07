@@ -20,7 +20,7 @@
 
    [고르는 기준 두 가지]
    1. **손질 전 모습만 씁니다.** 냉장고는 요리를 시작하기 전이라, 우리 조리
-      과정에서 이미 썰린 그림(E11 두부 5쪽 · E11 썬 김치 · E8 깍둑 닭 정육 ·
+      과정에서 이미 썰린 그림(플레이팅용 두부 · 볶은 김치 · E8 깍둑 닭 정육 ·
       E3 썬 모둠채소)은 넣지 않습니다. 통두부(E1) · 통김치(E1)처럼 통짜 그림이
       있으면 그쪽을 씁니다.
    2. **길쭉한 원화는 비스듬히 눕힙니다.** 가로:세로가 2 이상이면 `long:true` 를
@@ -52,7 +52,7 @@ const FRIDGE_INGREDIENTS=Object.freeze({
   radish:{id:"radish",label:"무",icon:"🥕",asset:"assets/minigame/E1/radish-0.png",long:true,lean:1,drop:11,size:1},
   greenOnion:{id:"greenOnion",label:"대파",icon:"🌿",asset:"assets/minigame/E1/green-onion-0.png",long:true,lean:1,drop:0,size:1.05},
   anchovy:{id:"anchovy",label:"멸치",icon:"🐟",asset:"assets/minigame/E10/food_anchovy_whole_group_3.webp",long:true,lean:1,drop:18,size:.62},
-  // 두부·김치는 E11(두부김치) 그림이 이미 썰린 모습이라 E1 썰기 게임의 통짜 그림을 씁니다.
+  // 두부·김치는 플레이팅용 그림이 이미 썰린 모습이라 E1 썰기 게임의 통짜 그림을 씁니다.
   tofu:{id:"tofu",label:"두부",icon:"⬜",asset:"assets/minigame/E1/tofu-0.png",size:1},
   kimchi:{id:"kimchi",label:"김치",icon:"🥬",asset:"assets/minigame/E1/kimchi-0.png",long:true,lean:-1,drop:12,size:.95},
   flour:{id:"flour",label:"밀가루",icon:"🌾",asset:"assets/minigame/E8/02_food_pancake_flour_panel.webp"},

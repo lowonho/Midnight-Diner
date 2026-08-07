@@ -483,7 +483,6 @@
 .bt-panel,
 .sk-panel,
 .soak-panel,
-.os-panel,
 .heat-panel,
 .fridge-panel,
 .cut-card,
@@ -511,7 +510,6 @@
 .heat-ing-panel,
 .soak-ing-panel,
 .anchovy-ing-panel,
-.os-ing-panel,
 .fridge-menu-panel,
 .fry-ing-panel     { --mg-panel-art: var(--mg-art-a1-613); }
 .cut-ing-panel,
@@ -526,7 +524,6 @@
 .sk-guide,
 .heat-control,
 .soak-guide,
-.os-guide,
 .fry-rack-panel    { --mg-panel-art: var(--mg-art-a2-460); }
 .anchovy-ref-card,
 .fridge-goal-card  { --mg-panel-art: var(--mg-art-a2-403); }
@@ -545,7 +542,6 @@
 .bt-count,
 .sk-count,
 .soak-count,
-.os-count,
 .heat-count,
 .fry-progress-card { --mg-panel-art: var(--mg-art-c-140); }
 .anchovy-count-card,
@@ -616,8 +612,7 @@
   min-height: 0;
 }
 
-/* 재료가 하나뿐인 화면 — 카드를 세로 가운데에 두고 높이를 --mg-ing-card-h 로 묶습니다.
-   E11(.os-ing-list)이 같은 이유로 쓰던 방식입니다. */
+/* 재료가 하나뿐인 화면 — 카드를 세로 가운데에 두고 높이를 --mg-ing-card-h 로 묶습니다. */
 .cut-ing-list,
 .anchovy-ing-list {
   flex: 1;
@@ -635,7 +630,7 @@
   gap: calc(8 * var(--upx));
 }
 
-/* 패널 안쪽 카드 겉모습 — .bt-ing-card · .os-ing-card 와 같은 값입니다.
+/* 패널 안쪽 카드 겉모습 — .bt-ing-card 와 같은 값입니다.
    ⚠️ E7 .sc-goal 과 E8꼬치 .sk-ing-card 는 원래 바깥 카드 껍데기(.○-panel)를
       쓰고 있었습니다. 패널 안으로 들어가면서 안쪽 카드 모양으로 바뀝니다. */
 .sc-goal,
@@ -648,8 +643,7 @@
 .fp-ing-card,
 .kf-ing-card,
 .yk-ing-card,
-.bt-ing-card,
-.os-ing-card {
+.bt-ing-card {
   padding: calc(8 * var(--upx)) calc(6 * var(--upx));
   /* 테두리는 `transparent` 로 남깁니다 — 지우면 카드가 좌우·위아래로 4 씩 줄어
      226 x 실측 높이가 어긋납니다. 상태 표시(.active · .next · .selected · .required)가
@@ -668,8 +662,7 @@
 /* 🟪 B 재료 카드 — 카드 수와 패널 높이로 크기가 갈립니다 (5종) */
 .cut-ing-card,
 .ts-ing-card,
-.anchovy-ing-card,
-.os-ing-card   { --mg-card-art: var(--mg-art-b-280); }
+.anchovy-ing-card { --mg-card-art: var(--mg-art-b-280); }
 .fp-ing-card,
 .sk-ing-card,
 .soak-ing-card { --mg-card-art: var(--mg-art-b-268); }
@@ -693,8 +686,7 @@
    ⚠️ 이 규칙은 위 `.cut-card` 카드 껍데기(display:grid) 보다 뒤에 있어야
       display:flex 이 살아납니다. 순서를 바꾸지 마세요.
 
-   높이를 고정하면서 안쪽 내용은 가운데로 모읍니다. 원래 카드보다 커지는
-   화면(예: E11 123.8 → 140.6)에서 숫자가 위로 쏠려 보이지 않게 하려는 것입니다. */
+   높이를 고정하면서 안쪽 내용은 가운데로 모읍니다. */
 .cut-count-card,
 .fp-count,
 .kf-count,
@@ -704,7 +696,6 @@
 .bt-count,
 .sk-count,
 .soak-count,
-.os-count,
 .heat-count,
 .fry-progress-card,
 .anchovy-count-card,
@@ -747,7 +738,6 @@
 .bt-col-title,
 .sk-col-title,
 .soak-col-title,
-.os-col-title,
 .heat-col-title,
 .fridge-col-title,
 .cut-card-title,
@@ -797,8 +787,7 @@
 }
 
 /* ---- TIP 줄 조작 안내 칩 (공용) -----------------------------
-   원래 E11(단발 액션)만 .mini-tip::after 가상 요소로 붙이던 것을
-   어느 게임이든 쓸 수 있는 요소로 올렸습니다.
+   어느 게임이든 쓸 수 있는 요소입니다.
    ESC 안내 왼쪽에 앉습니다(order 로 순서만 바꿉니다).
 
    ⚠️ 칩이 떠 있는 동안 설명 폭이 1040.9 → 약 848 로 줄어듭니다.
@@ -826,7 +815,6 @@
 .bt-col-title.starred::before,     .bt-col-title.starred::after,
 .sk-col-title.starred::before,     .sk-col-title.starred::after,
 .soak-col-title.starred::before,   .soak-col-title.starred::after,
-.os-col-title.starred::before,     .os-col-title.starred::after,
 .heat-col-title.starred::before,   .heat-col-title.starred::after,
 .fridge-col-title.starred::before, .fridge-col-title.starred::after,
 .cut-card-title.starred::before,   .cut-card-title.starred::after,

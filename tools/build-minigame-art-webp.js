@@ -173,8 +173,8 @@ const FILES = [
   { file:"E10/food_anchovy_innards.png",       size:[140, 46], css:".anchovy-innards 약 36x12" },
   // 손질 전 통멸치 묶음 — E10(머리 떼기)의 왼쪽 재료 카드
   { file:"E10/food_anchovy_whole_group_3.png", size:[560,134], css:"E10 재료 카드 약 210" },
-  // 손질한 멸치 묶음 — 어묵탕에 넣기(E11 .os-art 최대 158)의 재료 카드·냄비
-  { file:"E10/food_anchovy_cleaned_group.png", size:[560,191], css:"E11 재료 카드 · 냄비" },
+  // 손질한 멸치 묶음 — E10 오른쪽 완성 예시 카드
+  { file:"E10/food_anchovy_cleaned_group.png", size:[560,191], css:"E10 완성 예시 카드" },
   /* 나무 쟁반은 원본 크기 그대로 씁니다.
      플레이 칸이 824.2x613.2 라 2배율은 1648x1226 인데 납품본이 1580x1176 입니다.
      1.92배율이라 사실상 2배율이고, 늘리면 없던 화소를 지어내는 셈이라 그대로 둡니다.
@@ -797,33 +797,6 @@ const FILES = [
   { file:"E7/food_yakisoba_chili_oil_play_open.png",         size:[173,319], css:"볶음우동 고추기름 뚜껑 열림 86.6x159.4" },
   /* [화살표] E7 도 위 공용 ui_arrow_right_01 한 장을 씁니다 — 납품본이
      E2 새우 것과 바이트까지 같아 여기서 따로 뽑지 않습니다. */
-  /* ---- E11 두부김치 자유 플레이팅 ---------------------------------
-     [빈 접시] **여백을 잘라내고 씁니다.** 납품본은 1254 정사각 캔버스인데
-     접시는 그 안 1025x720 (왼쪽 118 · 위 265) 뿐이고 나머지는 투명입니다.
-     그대로 두면 .os-drop 안에서 contain 이 여백까지 맞추느라 접시가 72% 크기로
-     그려지고, 접시 위 좌표(engine-e11 의 FREE_PLATE_RADIUS)도 그만큼 어긋납니다.
-     잘라낸 1025x720 은 참고 모양 그림과 같은 크기라 두 장이 딱 겹칩니다.
-     ⚠️ **원본 배율 그대로입니다(size:null).** .os-drop 540 폭의 2배율은 1080 인데
-        잘라낸 마스터가 1025(1.9배)입니다. 늘리면 없던 화소를 지어내는 셈이라
-        그대로 둡니다 (ui_play_tray_wood · E3 화구와 같은 판단입니다). */
-  { file:"E11/food_tofu_kimchi_plate_empty.png", size:null, crop:[118,265,1025,720],
-    css:".os-drop 540x379.4 (여백 잘라내고 원본 배율 유지)" },
-  /* [참고 모양] 다 담은 모습 한 장. 오른쪽 칸(210 폭)에만 쓰여서 크게 줄입니다.
-     빈 접시와 같은 1025x720 이라 비율(1.424)이 그대로입니다. */
-  { file:"E11/food_tofu_kimchi_reference_complete.png", size:[420,295], css:".os-guide-figure .os-vessel 210x147.5" },
-  /* [접시에 얹히는 낱개 2장] 자유 플레이팅에서 한 조각씩 놓이는 그림입니다.
-     .os-food.free 의 --w (접시 가로 대비 %) x 접시 540 이 곧 화면 크기입니다.
-     크기는 engine-e11 의 pieceWidth 하나로 정해지니 거기를 고치면 여기도 같이.
-       두부   25% → 135.0 폭, 그림 비율 1.194 라 세로 113.1
-       김치   26% → 140.4 폭, 그림 비율 1.358 라 세로 103.4 */
-  { file:"E11/food_tofu_kimchi_tofu_piece.png",   size:[270,226], css:".os-food.free 135.0x113.1 (두부 한 조각)" },
-  { file:"E11/food_tofu_kimchi_kimchi_piece.png", size:[281,207], css:".os-food.free 140.4x103.4 (김치 한 조각)" },
-  /* [왼쪽 재료 카드 2장] 낱개가 아니라 더미로 그린 그림입니다.
-     .os-ing-art .os-art 가 카드 폭 210 을 그대로 쓰고 세로는 그림 비율대로입니다.
-       두부   1069/677 = 1.579 → 210x133.0
-       김치    882/706 = 1.249 → 210x168.1 */
-  { file:"E11/food_tofu_kimchi_ingredient_tofu.png",   size:[420,266], css:".os-ing-art .os-art 210x133.0" },
-  { file:"E11/food_tofu_kimchi_ingredient_kimchi.png", size:[420,336], css:".os-ing-art .os-art 210x168.1" }
 ];
 
 const QUALITY = 90;

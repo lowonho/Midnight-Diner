@@ -91,7 +91,7 @@ function cutTimingGrade(marker,zoneStart,zoneWidth){
 
 /* ---- 공통 화면 틀 (컨셉 이미지 3열 구성) --------------------
    [재료 카드] [도마] [완성 개수 · 완성 예시]
-   멸치(E10)·단발 액션(E11)이 쓰는 것과 같은 틀입니다.
+   멸치(E10)가 쓰는 것과 같은 틀입니다.
    공용 프레임(ui-mini-frame.js · css/minigame-frame.css)은 건드리지 않고
    #miniContent 안에서만 그립니다. 판정·조작 규칙은 위아래 그대로입니다.
    timing 방식이 가운데 도마 안쪽을 채웁니다.

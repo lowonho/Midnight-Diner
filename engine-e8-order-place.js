@@ -216,7 +216,6 @@ function renderKimchiBatterIngredients(){
   const added=data.placements[0]||[];
   dom.miniTimer.textContent=`${data.step} / ${data.ingredients.length}`;   // 공용 카드는 CSS 로 숨겨져 있습니다
   /* 맨 처음(아직 아무것도 안 넣은 화면)에만 "볼까지 끌어다 놓으세요" 점선을 그립니다.
-     두부김치 플레이팅(engine-e11 의 .os-drag-hint)과 같은 표시입니다 —
      이 게임은 클릭 자동 배치가 없어서(dragOnly) 끌어야 하는 것을 알려 줘야 합니다.
      자리는 absolute(도마 .bt-board 기준)라 여기 순서는 그리는 순서일 뿐입니다. */
   dom.miniContent.innerHTML=batterSceneMarkup(`

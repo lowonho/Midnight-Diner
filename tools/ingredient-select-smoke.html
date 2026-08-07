@@ -112,7 +112,7 @@
         assert(!document.querySelector(".fridge-time"),"fridge has no elapsed-time display");
         assert(!("pork" in FRIDGE_INGREDIENTS)&&!ingredientRecipe("tofu").includes("pork"),"pork removed from fridge and tofu kimchi");
         assert(ingredientInfo("chicken").asset.endsWith("assets/minigame/E1/chicken-0.png"),"original chicken asset used");
-        assert(ingredientInfo("tofu").asset.includes("E1/tofu-0"),"whole tofu block, not the sliced E11 art");
+        assert(ingredientInfo("tofu").asset.includes("E1/tofu-0"),"whole tofu block, not the sliced plating art");
         assert(Object.values(FRIDGE_EXTRAS).every(item=>item.asset),"every fridge-only extra has real art now");
         // 그림 파일이 실제로 열리는지는 맨 아래에서 따로 봅니다(로딩이 비동기라 여기서는 아직 0x0 입니다)
         const artSrcs=[...document.querySelectorAll("#ingredientGrid img,#fridgeColdAir img,#ingredientChecklist img")].map(img=>img.src);

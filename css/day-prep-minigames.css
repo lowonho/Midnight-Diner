@@ -25,7 +25,6 @@
 
 @import url("minigame/e1-cut.css");          /* E1  썰기 (타이밍 · 빠른 칼질)      */
 @import url("minigame/e10-anchovy.css");     /* E10 멸치 머리 떼기                 */
-@import url("minigame/e11-one-shot.css");    /* E11 단발 액션 (플레이팅·냄비·육수) */
 @import url("minigame/e3-kimchi-fry.css");   /* E3  김치 볶기                      */
 @import url("minigame/e8-batter.css");       /* E8+E9 김치전 반죽 (넣기 → 젓기)    */
 @import url("minigame/e8-skewer.css");       /* E8  닭꼬치 꽂기                    */
