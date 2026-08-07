@@ -294,7 +294,8 @@ function spawnOrder(slot,options={}) {
   }
 
   const order=decorateStoryOrder({
-    id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*6),
+    // variant = 일반 손님 그림 번호. 종류 수는 customers.js 가 정합니다.
+    id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*CUSTOMER_VARIANT_COUNT),
     entered:0,cookStep:0,cookScores:[]
   },plan);
   state.orders.push(order);
