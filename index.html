@@ -347,15 +347,16 @@
     >
       <div class="journal-window">
         <div class="journal-heading">
-          <div>
+          <div class="journal-heading-text">
             <p id="journalModeLabel" class="eyebrow">COLLECTION</p>
             <h2 id="journalTitle">영업일지</h2>
+            <p id="journalDescription" class="journal-description">특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.</p>
           </div>
           <button id="journalClose" class="journal-close" type="button" aria-label="영업일지 닫기">×</button>
         </div>
-        <p id="journalDescription" class="journal-description">특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.</p>
         <div class="journal-book" role="group" aria-label="펼쳐진 영업일지">
           <button id="journalPrevious" class="journal-page-arrow" type="button" aria-label="이전 영업일지 페이지">‹</button>
+          <div id="journalSectionTabsPast" class="journal-side-tabs journal-side-tabs-left" role="tablist" aria-label="지나온 영업일지 구역"></div>
           <article id="journalPage" class="journal-page" aria-live="polite" aria-labelledby="journalPageTitle">
             <section class="journal-page-leaf journal-page-left" aria-label="영업일지 표제">
               <div class="journal-page-topline">
@@ -365,14 +366,18 @@
               <div id="journalPagePortrait" class="journal-page-portrait" aria-hidden="true">?</div>
               <h3 id="journalPageTitle">잠긴 기록</h3>
               <small id="journalPageMeta"></small>
+              <figure id="journalPageRelic" class="journal-page-relic" hidden>
+                <div id="journalPageRelicArt" class="journal-page-relic-art" aria-hidden="true"></div>
+                <figcaption id="journalPageRelicName" class="journal-page-relic-name"></figcaption>
+              </figure>
             </section>
             <section class="journal-page-leaf journal-page-right" role="region" aria-label="영업일지 기록 내용" tabindex="0">
               <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
             </section>
           </article>
+          <div id="journalSectionTabs" class="journal-side-tabs journal-side-tabs-right" role="tablist" aria-label="영업일지 구역 선택"></div>
           <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
-        <div id="journalPageTabs" class="journal-page-tabs" role="tablist" aria-label="영업일지 페이지 선택"></div>
       </div>
     </section>
 

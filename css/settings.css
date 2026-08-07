@@ -397,7 +397,17 @@
 }
 
 .journal-window {
-  width: min(calc(1120 * var(--upx)),96%);
+  /* 견출지가 책 양옆으로 나오는 만큼 창을 넓혔습니다. */
+  /* 화살표 칸은 버튼 48 + 좌우 여백 5 를 그대로 담는 폭입니다. 좁히면 버튼이
+     칸 밖으로 나와 펼쳐진 견출지를 덮습니다. */
+  --journal-arrow-column: calc(58 * var(--upx));
+  --journal-tab-column: calc(52 * var(--upx));
+  --journal-tab-height: calc(96 * var(--upx));
+  --journal-tab-pitch: calc(110 * var(--upx));
+  --journal-tab-top: calc(26 * var(--upx));
+  /* 화살표 칸 + 견출지 칸. 제목 판을 책 세로선에 맞출 때 쓰는 값입니다. */
+  --journal-side: calc(var(--journal-arrow-column) + var(--journal-tab-column));
+  width: min(calc(1210 * var(--upx)),96%);
   max-height: 94vh;
   display: flex;
   flex-direction: column;
@@ -405,32 +415,48 @@
   padding: calc(18 * var(--upx)) calc(24 * var(--upx));
   color: var(--cream);
 }
+/* 판의 좌우 끝은 책 페이지의 세로선(펼친 책의 좌우 가장자리)과 같습니다.
+   바깥으로 나온 견출지·화살표까지 덮지 않습니다. */
 .journal-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: calc(16 * var(--upx));
-  width: calc(100% - calc(150 * var(--upx)));
+  width: calc(100% - 2 * var(--journal-side));
   margin: 0 auto;
-  padding: calc(9 * var(--upx)) calc(15 * var(--upx));
+  padding: calc(11 * var(--upx)) calc(18 * var(--upx));
   border: 1px solid rgba(196,135,68,.54);
   border-radius: calc(8 * var(--upx));
   background: rgba(20,11,8,.9);
   box-shadow: 0 calc(4 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.32);
 }
+/* 안내문은 제목 옆 같은 줄에 둡니다. 아래로 쌓으면 판이 한 줄만큼 두꺼워집니다. */
+.journal-heading-text {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  align-items: baseline;
+  column-gap: calc(16 * var(--upx));
+}
+.journal-heading .eyebrow {
+  grid-column: 1 / -1;
+  font-size: calc(13 * var(--upx));
+}
 .journal-heading h2 {
   margin: 0;
   color: #ffe09a;
-  font-size: calc(24 * var(--upx));
+  font-size: calc(30 * var(--upx));
 }
+/* 눈높이가 제목 줄에 오도록 눈썹 글자 한 줄만큼 내려 둡니다. */
+.journal-heading .journal-close { flex: none; margin-top: calc(14 * var(--upx)); }
 .journal-close {
-  width: calc(36 * var(--upx));
-  height: calc(36 * var(--upx));
+  width: calc(42 * var(--upx));
+  height: calc(42 * var(--upx));
   border: 1px solid #8c592f;
   border-radius: 50%;
   background: #160d09;
   color: #e8bf79;
-  font-size: calc(22 * var(--upx));
+  font-size: calc(26 * var(--upx));
   line-height: 1;
   cursor: pointer;
 }
@@ -439,31 +465,38 @@
   border-color: #efc77b;
   color: #ffe7ae;
 }
+/* 제목과 같은 판 안에 들어가는 안내문입니다. */
 .journal-description {
-  width: calc(100% - calc(180 * var(--upx)));
-  margin: calc(8 * var(--upx)) auto calc(10 * var(--upx));
+  margin: 0;
   color: #c9ae85;
-  font-size: calc(13 * var(--upx));
-  line-height: 1.55;
-  text-align: center;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.5;
+  text-align: left;
 }
 .journal-book {
   display: grid;
-  grid-template-columns: calc(52 * var(--upx)) minmax(0,1fr) calc(52 * var(--upx));
+  grid-template-columns:
+    var(--journal-arrow-column)
+    var(--journal-tab-column)
+    minmax(0,1fr)
+    var(--journal-tab-column)
+    var(--journal-arrow-column);
   align-items: center;
-  gap: calc(10 * var(--upx));
+  gap: 0;
   min-height: 0;
+  margin-top: calc(12 * var(--upx));
 }
 .journal-page-arrow {
   position: relative;
   z-index: 3;
+  margin: 0 calc(5 * var(--upx));
   width: calc(48 * var(--upx));
   height: calc(76 * var(--upx));
   border: 1px solid #86542f;
   border-radius: calc(24 * var(--upx));
   background: linear-gradient(#2b190f,#130b08);
   color: #efc77b;
-  font: 700 calc(35 * var(--upx))/1 Georgia,serif;
+  font: 700 calc(40 * var(--upx))/1 Georgia,serif;
   box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.42);
   cursor: pointer;
 }
@@ -556,8 +589,8 @@
 }
 .journal-page.is-gameplay-page .journal-page-right { overflow-y: hidden; }
 .journal-page.is-gameplay-page .journal-page-right p {
-  font-size: calc(12 * var(--upx));
-  line-height: 1.5;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.55;
 }
 .journal-page-right:focus-visible {
   outline: calc(2 * var(--upx)) solid rgba(121,82,55,.72);
@@ -567,13 +600,13 @@
   width: 100%;
   display: flex;
   justify-content: space-between;
-  margin-bottom: calc(34 * var(--upx));
+  margin-bottom: calc(32 * var(--upx));
   color: #795237;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(14 * var(--upx));
   letter-spacing: .08em;
 }
 .journal-page-portrait {
-  width: calc(100 * var(--upx));
+  width: calc(112 * var(--upx));
   aspect-ratio: 44 / 60;
   display: grid;
   place-items: center;
@@ -581,7 +614,7 @@
   border-radius: 50%;
   background: radial-gradient(circle at 45% 35%,#fff0bf,#b57b45);
   color: #4d2d1c;
-  font: 700 calc(38 * var(--upx))/1 Georgia,serif;
+  font: 700 calc(44 * var(--upx))/1 Georgia,serif;
 }
 .journal-page-portrait.has-portrait {
   background-color: #24140e;
@@ -601,7 +634,7 @@
   aspect-ratio: 1;
   background: radial-gradient(circle at 45% 35%,#fff4c8,#b97d42);
   color: #5a321d;
-  font-size: calc(26 * var(--upx));
+  font-size: calc(32 * var(--upx));
 }
 .journal-page.is-locked .journal-page-portrait.has-portrait {
   background-color: #7d6d5d;
@@ -622,7 +655,7 @@
   max-width: 100%;
   margin: calc(18 * var(--upx)) 0 calc(9 * var(--upx));
   color: #4b2b1a;
-  font-size: calc(24 * var(--upx));
+  font-size: calc(30 * var(--upx));
   line-height: 1.3;
   overflow-wrap: anywhere;
   word-break: keep-all;
@@ -633,72 +666,153 @@
   margin: 0;
   padding: calc(9 * var(--upx)) calc(11 * var(--upx)) calc(9 * var(--upx)) calc(4 * var(--upx));
   color: #5b3b28;
-  font-size: calc(14 * var(--upx));
+  font-size: calc(17 * var(--upx));
   line-height: 1.7;
   overflow-wrap: anywhere;
   white-space: pre-line;
   word-break: keep-all;
 }
+/* 특별 손님 페이지 아래쪽에 붙는 달빛 조각 그림입니다.
+   그림 크기를 바꾸면 tools/build-moonpiece-webp.js 의 SIZE(이 값 x2)도
+   같이 키워야 합니다. */
+/* 조각 그림이 붙는 장은 표제 면에 초상화까지 둘이 들어갑니다.
+   위쪽 여백과 이름 글자를 조금씩 줄여 한 면에 담습니다. */
+.journal-page.has-relic .journal-page-topline { margin-bottom: calc(14 * var(--upx)); }
+.journal-page.has-relic .journal-page-portrait { width: calc(90 * var(--upx)); }
+.journal-page.has-relic h3 {
+  margin: calc(10 * var(--upx)) 0 calc(4 * var(--upx));
+  font-size: calc(26 * var(--upx));
+}
+.journal-page-relic {
+  --journal-relic-size: calc(132 * var(--upx));
+  margin: calc(10 * var(--upx)) 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6 * var(--upx));
+}
+.journal-page-relic[hidden] { display: none; }
+.journal-page-relic-art {
+  width: var(--journal-relic-size);
+  height: var(--journal-relic-size);
+  display: grid;
+  place-items: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* 종이 위에 놓인 물건처럼 보이도록 그림자만 얹습니다. 테두리는 없습니다. */
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.45));
+  color: #8a6440;
+  font: 700 calc(34 * var(--upx))/1 Georgia,serif;
+}
+.journal-page-relic.is-locked .journal-page-relic-art {
+  border: calc(2 * var(--upx)) dashed rgba(122,84,52,.5);
+  border-radius: 50%;
+  filter: none;
+}
+.journal-page-relic-name {
+  color: #6d472c;
+  font-size: calc(15 * var(--upx));
+  letter-spacing: .02em;
+  word-break: keep-all;
+}
+.journal-page.is-locked .journal-page-relic-name { color: #7d6d5d; }
+
 .journal-page small {
   max-width: 100%;
   color: #805b3b;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(14 * var(--upx));
   line-height: 1.55;
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
-.journal-page-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  gap: calc(5 * var(--upx));
-  width: calc(100% - calc(150 * var(--upx)));
-  margin: calc(13 * var(--upx)) auto 0;
-}
-.journal-page-tab {
+/* 일지 옆에 붙는 견출지입니다. 아직 넘기지 않은 구역은 오른쪽 면에,
+   이미 지나온 구역은 왼쪽 면에 붙습니다. 세로 자리(--journal-tab-slot)는
+   구역 순서로 고정해서, 좌우로 옮겨가도 같은 높이에 남습니다. */
+.journal-side-tabs {
   position: relative;
-  flex: 0 1 auto;
-  min-width: calc(48 * var(--upx));
-  min-height: calc(30 * var(--upx));
-  padding: calc(4 * var(--upx)) calc(7 * var(--upx));
-  border: 1px solid #704323;
-  border-radius: calc(4 * var(--upx));
-  background: #180e0a;
-  color: #b28e62;
-  font-size: calc(10 * var(--upx));
-  line-height: 1.15;
-  white-space: nowrap;
-  cursor: pointer;
+  align-self: stretch;
+  height: 100%;
+  min-width: 0;
 }
-.journal-page-tab.is-active { border-color: #ffe09a; color: #ffe09a; box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,210,125,.35); }
-.journal-page-tab:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
-.journal-page-tab.is-locked { color: #625143; }
-.journal-page-tab.is-new::after {
-  content: "NEW";
+.journal-section-tab {
   position: absolute;
-  right: calc(-3 * var(--upx));
-  top: calc(-8 * var(--upx));
-  padding: 1px calc(3 * var(--upx));
-  border-radius: calc(4 * var(--upx));
+  top: calc(var(--journal-tab-top) + var(--journal-tab-slot,0) * var(--journal-tab-pitch));
+  z-index: 2;
+  width: calc(45 * var(--upx));
+  height: var(--journal-tab-height);
+  display: grid;
+  place-items: center;
+  padding: calc(6 * var(--upx)) 0;
+  border: calc(2 * var(--upx)) solid #6d4528;
+  background: linear-gradient(#f2dcae,#d3ae76);
+  color: #4b2b1a;
+  font-size: calc(15 * var(--upx));
+  line-height: 1.1;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  box-shadow: 0 calc(3 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.38);
+  cursor: pointer;
+  transition: width .16s, filter .16s;
+}
+.journal-side-tabs-right .journal-section-tab {
+  left: 0;
+  border-left: none;
+  border-radius: 0 calc(10 * var(--upx)) calc(10 * var(--upx)) 0;
+}
+.journal-side-tabs-left .journal-section-tab {
+  right: 0;
+  border-right: none;
+  border-radius: calc(10 * var(--upx)) 0 0 calc(10 * var(--upx));
+}
+.journal-section-tab.is-active {
+  width: var(--journal-tab-column);
+  border-color: #8c5a2c;
+  background: linear-gradient(#fff2c9,#e6c489);
+  color: #3b2110;
+  font-weight: 700;
+}
+.journal-section-tab.is-past { background: linear-gradient(#dcc396,#b8935f); color: #402615; }
+.journal-section-tab:hover:not(.is-active) { filter: brightness(1.07); }
+.journal-section-tab:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
+.journal-section-tab.is-new::after {
+  content: "";
+  position: absolute;
+  top: calc(4 * var(--upx));
+  right: calc(4 * var(--upx));
+  width: calc(8 * var(--upx));
+  height: calc(8 * var(--upx));
+  border-radius: 50%;
   background: #bd5e3a;
-  color: #fff4d3;
-  font-size: calc(6 * var(--upx));
+  box-shadow: 0 0 calc(5 * var(--upx)) rgba(255,150,90,.6);
 }
 
 @media (max-width: 760px) {
-  .journal-window { width: 98%; padding: calc(10 * var(--upx)); }
-  .journal-heading,
-  .journal-description,
-  .journal-page-tabs { width: calc(100% - calc(90 * var(--upx))); }
-  .journal-book { grid-template-columns: calc(36 * var(--upx)) minmax(0,1fr) calc(36 * var(--upx)); gap: calc(4 * var(--upx)); }
-  .journal-page-arrow { width: calc(34 * var(--upx)); height: calc(62 * var(--upx)); }
+  /* 칸 너비는 변수만 줄이면 제목 판(--journal-side)까지 같이 따라옵니다. */
+  .journal-window {
+    --journal-arrow-column: calc(38 * var(--upx)); /* 버튼 34 + 여백 2 */
+    --journal-tab-column: calc(40 * var(--upx));
+    --journal-tab-height: calc(82 * var(--upx));
+    --journal-tab-pitch: calc(94 * var(--upx));
+    --journal-tab-top: calc(18 * var(--upx));
+    width: 98%;
+    padding: calc(10 * var(--upx));
+  }
+  .journal-heading h2 { font-size: calc(24 * var(--upx)); }
+  .journal-description { font-size: calc(13 * var(--upx)); }
+  .journal-page-arrow { width: calc(34 * var(--upx)); height: calc(62 * var(--upx)); margin: 0 calc(2 * var(--upx)); font-size: calc(32 * var(--upx)); }
+  .journal-section-tab { width: calc(34 * var(--upx)); font-size: calc(13 * var(--upx)); }
   .journal-page { height: calc(430 * var(--upx)); min-height: calc(330 * var(--upx)); padding: calc(18 * var(--upx)) calc(19 * var(--upx)); }
   .journal-page-leaf { padding: calc(6 * var(--upx)) calc(13 * var(--upx)); }
   .journal-page-right { padding-left: calc(19 * var(--upx)); }
-  .journal-page-topline { margin-bottom: calc(18 * var(--upx)); }
-  .journal-page-portrait { width: calc(72 * var(--upx)); }
-  .journal-page h3 { font-size: calc(19 * var(--upx)); }
-  .journal-page p { font-size: calc(12 * var(--upx)); line-height: 1.55; }
-  .journal-page-tab { min-width: calc(44 * var(--upx)); font-size: calc(9 * var(--upx)); }
+  .journal-page-topline { margin-bottom: calc(18 * var(--upx)); font-size: calc(12 * var(--upx)); }
+  .journal-page-portrait { width: calc(82 * var(--upx)); }
+  .journal-page h3 { font-size: calc(23 * var(--upx)); }
+  .journal-page p { font-size: calc(15 * var(--upx)); line-height: 1.55; }
+  .journal-page.is-gameplay-page .journal-page-right p { font-size: calc(13 * var(--upx)); }
+  .journal-page small { font-size: calc(12 * var(--upx)); }
+  .journal-page-relic { --journal-relic-size: calc(112 * var(--upx)); margin-top: calc(10 * var(--upx)); }
+  .journal-page-relic-name { font-size: calc(13 * var(--upx)); }
 }
