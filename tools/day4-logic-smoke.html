@@ -232,7 +232,7 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===7&&HEAT_CONFIG.tteokbokki.targetHold===7&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a seven-second hold and dish-specific tracking variants");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.default.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a five-second hold and dish-specific tracking variants");
   /* 적정 구간은 [출발점 → 목적지] 한 구간씩 계획하고 움직입니다.
      random 값을 손으로 먹여, 같은 거리라도 뽑힌 성격(pace)에 따라 걸리는 시간이
      달라지는지 · 도착 후 숨을 고르고 다음 이동을 새로 뽑는지 · 구간 폭이
@@ -323,13 +323,13 @@ try{
   assert(MINI_ENGINES.heat.timerRuns()===true&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
   /* 진행도(채워야 하는 점수)와 남은 시간(줄어드는 시간)은 서로 다른 값이라 한 줄에 섞으면
      안 됩니다. 진행도 숫자에 '초' 가 붙으면 밖으로 나갈 때 시간이 거꾸로 가는 것처럼
-     보였습니다 — 그래서 단위 없이 "0.0 / 7.0", 시간은 아래 남은 시간 줄로 갈랐습니다. */
-  assert(heatMini.time===HEAT_CONFIG.oden.timeLimit&&HEAT_CONFIG.oden.timeLimit>HEAT_CONFIG.oden.targetHold&&HEAT_CONFIG.tteokbokki.timeLimit>HEAT_CONFIG.oden.timeLimit&&/^\d+\.\d \/ 7\.0$/.test(dom.miniContent.querySelector(".heat-count-value").textContent.trim())&&dom.miniContent.querySelector("#heatTime b").textContent==="22.0초","E4 fills a 7.0 progress score inside a time limit, with seconds only on the countdown row");
+     보였습니다 — 그래서 단위 없이 "0.0 / 5.0", 시간은 아래 남은 시간 줄로 갈랐습니다. */
+  assert(heatMini.time===HEAT_CONFIG.oden.timeLimit&&HEAT_CONFIG.oden.timeLimit>HEAT_CONFIG.oden.targetHold&&HEAT_CONFIG.tteokbokki.timeLimit>HEAT_CONFIG.oden.timeLimit&&/^\d+\.\d \/ 5\.0$/.test(dom.miniContent.querySelector(".heat-count-value").textContent.trim())&&dom.miniContent.querySelector("#heatTime b").textContent==="22.0초","E4 fills a 5.0 progress score inside a time limit, with seconds only on the countdown row");
   heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
   // 완료 판정만 보려는 곳이라 적정 구간은 세워 둡니다(도착 + 긴 멈춤 + 좁아짐 예약 뒤로).
-  heatMini.data.target=.5;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  heatMini.data.target=.5;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   /* 시간이 다 됐을 때. 0점으로 끝내면 그날 장사를 통째로 다시 해야 해서 벌이 너무 큽니다 —
@@ -337,9 +337,9 @@ try{
   finishedScore=null;
   const heatTimeoutMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatTimeoutMini;
   MINI_ENGINES.heat.setup(heatTimeoutMini,{set:(title,description,time)=>{heatTimeoutMini.time=time;}});
-  heatTimeoutMini.data.inZone=3.5;
+  heatTimeoutMini.data.inZone=2.5;
   MINI_ENGINES.heat.timeout(heatTimeoutMini);
-  assert(finishedScore===55&&finishedScore<85&&heatTimeoutMini.data.phase==="complete"&&dom.miniContent.querySelector("#e4Result.timeout")&&dom.miniContent.querySelector("#heatTime b").textContent==="0.0초","E4 running out of time scores by how much of the 7.0 progress was filled");
+  assert(finishedScore===55&&finishedScore<85&&heatTimeoutMini.data.phase==="complete"&&dom.miniContent.querySelector("#e4Result.timeout")&&dom.miniContent.querySelector("#heatTime b").textContent==="0.0초","E4 running out of time scores by how much of the 5.0 progress was filled");
   playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
