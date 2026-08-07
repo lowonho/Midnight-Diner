@@ -28,7 +28,9 @@
     "build:ui-common": "node tools/build-ui-common-webp.js",
     "verify:ui-common": "node tools/build-ui-common-webp.js --verify",
     "build:ui-setting": "node tools/build-ui-setting-webp.js",
-    "verify:ui-setting": "node tools/build-ui-setting-webp.js --verify"
+    "verify:ui-setting": "node tools/build-ui-setting-webp.js --verify",
+    "build:ui-save": "node tools/build-ui-save-webp.js",
+    "verify:ui-save": "node tools/build-ui-save-webp.js --verify"
   },
   "repository": {
     "type": "git",

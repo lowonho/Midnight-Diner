@@ -40,18 +40,27 @@ const CUSTOMER_AUTO_SERVE_REACH = 64; // 가까이 가면 자동 서빙
 // 그림만 바꿀 때는 이 값이 아니라 아래 CUSTOMER_COMMON 을 만지세요.
 const CUSTOMER_SEAT_Y = 607;
 
-// 원본 시트는 44x60 셀. 카운터 에셋에 비해 캐릭터가 작아서 키운 상태입니다.
-// (원래 54x74 → 83x113). 지금은 스토리 손님 전용입니다. (§1-2)
-const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838 };
+// 원본 시트는 44x60 셀에 4열 6행. 카운터 에셋에 비해 캐릭터가 작아서
+// 키운 상태입니다(원래 54x74 → 83x113). 지금은 스토리 손님 전용입니다. (§1-2)
+// cols/fps 는 일반 손님 모션(§1-2 motions)과 같은 뜻이고, 프레임 번호를
+// 고르는 customerFrame() 이 두 경우를 같은 방식으로 다루기 위한 것입니다.
+const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4, fps:5 };
 
 
 /* ------------------------------------------------------------
    1-2. 일반 손님 원화 (뒷모습으로 앉은 8종)
    ------------------------------------------------------------
-   assets/customer/Common/ 의 원화 8장을 tools/build-customer-sprites.js 가
-   시트 한 장으로 묶어 줍니다. 4열(정지 애니메이션) x 8행(캐릭터).
+   assets/customer/Common/ 의 원화를 tools/build-customer-sprites.js 가
+   모션마다 시트 한 장으로 묶어 줍니다. 가로 = 프레임, 세로 = 캐릭터 8명.
 
-     원화 교체·추가 → 그 폴더에 넣고 node tools/build-customer-sprites.js
+     idle  Common/       3프레임   앉아서 기다리는 중
+     eat   Common/eat/   6프레임   젓가락질. 다 먹고 떠날 때 (§2)
+
+     원화 교체·추가 → 그 폴더에 넣고 npm run build:customer
+
+   두 시트는 셀 크기(144x282)와 행 순서가 같습니다. 발바닥도 둘 다 셀
+   아래변에 붙어 있어서, 모션이 바뀌어도 손님이 위아래로 튀지 않습니다.
+   빌드 스크립트가 매번 그 두 가지를 검사합니다.
 
    [스토리 손님은 쓰지 않습니다] 특별 손님은 캐릭터마다 얼굴이 정해져
    있어서(story.js portraitRow) 예전 시트를 그대로 씁니다. 그림을 고르는
@@ -81,12 +90,20 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838 };
    ------------------------------------------------------------ */
 
 const CUSTOMER_COMMON = {
-  file: "assets/customer/customer_common_sheet.webp",
-  cols: 4,      // 프레임 수 (가로)
-  rows: 8,      // 캐릭터 수 (세로)
+  rows: 8,      // 캐릭터 수 (시트의 행 수)
   w: 87,        // 화면에 그릴 셀 크기(논리 좌표). 셀 원본은 144x282
   h: 170,
   footY: 670,   // 발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
+
+  /* 모션. cols 는 시트의 열 수, fps 는 재생 속도입니다.
+     빌드 스크립트가 마지막에 cols 값을 찍어 주므로 그대로 옮겨 적으세요.
+     불러올 때 파일 크기와 대조해서 어긋나면 경고합니다. */
+  motions: {
+    idle: { file:"assets/customer/customer_common_idle.webp", cols:3, fps:5 },
+    // 젓가락이 올라갔다 내려오는 한 사이클이 6프레임입니다. 8fps 면
+    // 0.75초에 한 입이라, 급하지도 굼뜨지도 않게 보입니다.
+    eat:  { file:"assets/customer/customer_common_eat.webp",  cols:6, fps:8 }
+  },
 
   /* 머리 위치를 재는 기준 (§1-2-1)
      headWidth  실루엣 가로폭이 셀 폭의 이 비율에 처음 닿는 줄을 머리끝으로 봅니다
@@ -97,6 +114,9 @@ const CUSTOMER_COMMON = {
   hudGap:    7
 };
 
+// 머리 높이를 재고, 시트가 없을 때 물러설 기준이 되는 모션.
+const CUSTOMER_BASE_MOTION = "idle";
+
 // 일반 손님 variant 의 범위. night.js 가 이 값으로 뽑습니다.
 // 원화를 늘리면 시트 행 수와 여기가 같이 늘어납니다.
 const CUSTOMER_VARIANT_COUNT = CUSTOMER_COMMON.rows;
@@ -105,32 +125,50 @@ const CUSTOMER_VARIANT_COUNT = CUSTOMER_COMMON.rows;
 // 그림만 발 기준으로 놓기 위한 보정값입니다.
 const CUSTOMER_COMMON_FOOT_OFFSET = CUSTOMER_COMMON.footY - CUSTOMER_SEAT_Y;
 
-// 정지 애니메이션 재생 속도(프레임/초). 손님마다 위상을 어긋나게 해서
-// 네 명이 한 몸처럼 같이 숨쉬지 않게 합니다.
-const CUSTOMER_IDLE_FPS = 5;
-
-let customerCommonSheet = null;
+// 모션 이름 → HTMLImageElement. 못 불러온 모션은 키가 없습니다.
+const customerMotionSheets = {};
 
 /* game.js 의 에셋 로딩 Promise.all 에 stage.js loadStageAssets() 를 거쳐
    들어갑니다. (요리사 시트와 같은 경로 — stage.js §5 주석 참고)
 
    시트가 없어도 게임은 돌아가야 하므로 실패해도 reject 하지 않습니다.
-   그때는 예전 스프라이트시트로 물러섭니다. */
+   기준 모션이 없으면 예전 스프라이트시트로, 식사 시트만 없으면
+   정지 모션으로 물러섭니다. */
 function loadCommonCustomerSheet(){
-  return new Promise(resolve=>{
+  const entries=Object.entries(CUSTOMER_COMMON.motions);
+  return Promise.all(entries.map(([name,motion])=>new Promise(resolve=>{
     const image=new Image();
     image.onload=()=>{
-      if(image.width%CUSTOMER_COMMON.cols||image.height%CUSTOMER_COMMON.rows)
-        console.warn(`[customers] 손님 시트 격자 불일치: ${image.width}x${image.height} / ${CUSTOMER_COMMON.cols}열 ${CUSTOMER_COMMON.rows}행`);
-      customerCommonSheet=image;
-      measureCommonHeadTops(image);
+      if(image.width%motion.cols||image.height%CUSTOMER_COMMON.rows)
+        console.warn(`[customers] ${name} 시트 격자 불일치: ${image.width}x${image.height} / ${motion.cols}열 ${CUSTOMER_COMMON.rows}행`);
+      customerMotionSheets[name]=image;
       resolve(image);
     };
     image.onerror=()=>{
-      console.warn(`[customers] 일반 손님 시트를 불러오지 못했습니다: ${CUSTOMER_COMMON.file}`);
+      console.warn(`[customers] ${name} 손님 시트를 불러오지 못했습니다: ${motion.file}`);
       resolve(null);
     };
-    image.src=CUSTOMER_COMMON.file;
+    image.src=motion.file;
+  }))).then(images=>{
+    const base=customerMotionSheets[CUSTOMER_BASE_MOTION];
+    if(base)measureCommonHeadTops(base);
+    checkMotionSheetsMatch();
+    return images;
+  });
+}
+
+/* 모션 시트끼리 셀 크기가 다르면 모션이 바뀌는 순간 손님이 커지거나
+   위아래로 튑니다. 빌드 때도 검사하지만, 시트를 손으로 갈아 끼우는
+   경우가 있어 불러온 뒤에도 한 번 더 봅니다. */
+function checkMotionSheetsMatch(){
+  const base=customerMotionSheets[CUSTOMER_BASE_MOTION];
+  if(!base)return;
+  const baseCell=base.width/CUSTOMER_COMMON.motions[CUSTOMER_BASE_MOTION].cols;
+  Object.entries(customerMotionSheets).forEach(([name,image])=>{
+    const cell=image.width/CUSTOMER_COMMON.motions[name].cols;
+    if(cell!==baseCell||image.height!==base.height)
+      console.warn(`[customers] ${name} 시트의 셀 크기가 ${CUSTOMER_BASE_MOTION} 과 다릅니다: `
+        +`${cell}x${image.height/CUSTOMER_COMMON.rows} / ${baseCell}x${base.height/CUSTOMER_COMMON.rows}`);
   });
 }
 
@@ -163,7 +201,8 @@ let customerHeadDrops = [];
 function measureCommonHeadTops(image){
   customerHeadDrops=[];
   const C=CUSTOMER_COMMON;
-  const cellW=Math.floor(image.width/C.cols),cellH=Math.floor(image.height/C.rows);
+  const cellW=Math.floor(image.width/C.motions[CUSTOMER_BASE_MOTION].cols);
+  const cellH=Math.floor(image.height/C.rows);
   const band=Math.max(1,Math.round(cellH*C.headBand));
   const minRun=Math.max(1,Math.round(cellW*C.headWidth));
 
@@ -253,6 +292,28 @@ function customerEnterOffset(progress,setting){
   return setting.sink*Math.sin(Math.PI*q)*(1-q*.5);
 }
 
+/* ------------------------------------------------------------
+   1-4. 퇴장 연출 — 마저 먹고 일어서기
+   ------------------------------------------------------------
+   음식을 받은 손님은 state.departures 로 옮겨져서 인사말을 남기고
+   사라집니다. 그 동안 식사 모션(eat)을 재생합니다. 방금 음식을 받아
+   놓고 가만히 앉아만 있다가 없어지면 먹었다는 게 안 읽힙니다.
+
+   item.life 는 night.js 가 3.2(특별 손님은 story.js 가 2.6)로 넣고
+   game.js 가 매 프레임 줄입니다. 0 이 되면 목록에서 빠집니다.
+   즉 남은 시간이 곧 "얼마나 더 있을 것인가"입니다.
+
+   예전에는 알파를 life/3.2 로 계산해서 등장하자마자 흐려지기 시작했고,
+   그래서 인사말이 절반쯤 투명한 채로 지나갔습니다. 지금은 마지막
+   fade 초 동안에만 흐려집니다. 그 구간이 일어서는 구간이기도 합니다.
+   (life 를 3.2 로 못 박지 않아서 2.6 인 특별 손님도 또렷하게 시작합니다)
+
+     fade  마지막 이 초 동안 사라집니다. 식사 모션을 보여 줄 시간이기도 합니다
+     rise  일어서면서 뜨는 높이
+   ------------------------------------------------------------ */
+
+const CUSTOMER_DEPART = { fade:1.2, rise:16 };
+
 // 손님 머리 위에 뜨는 것들의 y 오프셋(손님 기준 y 로부터).
 const CUSTOMER_HUD = {
   bubbleY:-145, bubbleW:76, bubbleH:55,   // 주문 아이콘 패널
@@ -277,12 +338,25 @@ const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17,
    특별 손님은 얼굴이 정해져 있어서(story.js portraitRow) 예전 시트를 씁니다.
    state.departures 항목에는 customerType 이 없어서 guestId 로도 봅니다. */
 function usesCommonArt(customer){
-  return !!customerCommonSheet&&customer.customerType!=="story"&&!customer.guestId;
+  return !!customerMotionSheets[CUSTOMER_BASE_MOTION]
+    &&customer.customerType!=="story"&&!customer.guestId;
 }
 
-// 손님마다 위상을 어긋나게 한 정지 애니메이션 프레임 번호.
-function customerIdleFrame(t,seed){
-  return Math.floor(t*CUSTOMER_IDLE_FPS+seed)%CUSTOMER_COMMON.cols;
+/* 실제로 쓸 모션. 요청한 시트가 없으면 기준 모션으로 물러섭니다.
+   (식사 시트만 빠져도 손님이 사라지지 않게) */
+function customerMotionOf(name){
+  return customerMotionSheets[name]?name:CUSTOMER_BASE_MOTION;
+}
+
+/* 이 손님에게 쓸 프레임 번호. 시트마다 프레임 수와 속도가 달라서
+   어떤 시트를 쓸지 정한 다음에 계산해야 합니다. 예전 시트(4프레임)를
+   쓰는 특별 손님도 여기서 같이 처리합니다.
+
+   seed 는 정수(손님 id 등)를 넣으세요. 프레임 단위로만 어긋나서
+   재생이 끊기지 않으면서, 네 명이 한 몸처럼 같이 움직이지 않습니다. */
+function customerFrame(customer,motion,t,seed){
+  const spec=usesCommonArt(customer)?CUSTOMER_COMMON.motions[motion]:CUSTOMER_SPRITE;
+  return Math.floor(t*spec.fps+seed)%spec.cols;
 }
 
 function drawCustomers(){
@@ -296,7 +370,8 @@ function drawCustomers(){
     const progress=clamp(order.entered,0,1);
     const y=CUSTOMER_SEAT_Y+customerEnterOffset(progress,enter);
     const entryAlpha=clamp(progress/enter.fadeIn,0,1);
-    drawCustomerSprite(order.variant,x,y,customerIdleFrame(t,order.id),entryAlpha,order);
+    const motion=customerMotionOf("idle");
+    drawCustomerSprite(order.variant,x,y,customerFrame(order,motion,t,order.id),entryAlpha,order,motion);
 
     // 말풍선 묶음은 몸이 아니라 머리 위에 붙어야 하므로, 캐릭터마다
     // 다른 머리 높이만큼 따로 내려서 그립니다. (§1-2-1)
@@ -330,28 +405,36 @@ function drawCustomers(){
     if(order.bubble&&order.bubbleTime>0&&progress>.85)drawCustomerSpeech(order.bubble,x,hy+H.speechY,entryAlpha);
   });
 
-  // 떠나는 손님은 일어서듯 살짝 뜨면서 사라집니다. (등장과 반대 방향)
+  /* 떠나는 손님 — 마저 먹고 일어서듯 살짝 뜨면서 사라집니다. (§1-4)
+     life 는 game.js 가 매 프레임 줄이고 0 이 되면 목록에서 빠집니다. */
   state.departures.forEach((item,index)=>{
+    const D=CUSTOMER_DEPART;
     const x=CUSTOMER_SEATS[item.slot];
-    const alpha=clamp(item.life/3.2,0,1);
-    const y=CUSTOMER_SEAT_Y-Math.min(16,(3.2-item.life)*5);
-    drawCustomerSprite(item.variant,x,y,customerIdleFrame(t,index),alpha,item);
+    const life=Math.max(0,item.life);
+    const alpha=clamp(life/D.fade,0,1);
+    const motion=customerMotionOf(usesCommonArt(item)?"eat":CUSTOMER_BASE_MOTION);
+    // 남은 시간이 fade 아래로 내려가면 = 자리에서 일어나는 구간입니다.
+    const y=CUSTOMER_SEAT_Y-D.rise*(1-clamp(life/D.fade,0,1));
+    drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
     drawCustomerSpeech(item.bubble,x,y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY,alpha);
   });
 }
 
 /* customer 는 state.orders 또는 state.departures 의 항목입니다.
-   어떤 그림을 쓸지 판정하는 데만 씁니다. (usesCommonArt) */
-function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={}){
+   어떤 그림을 쓸지 판정하는 데만 씁니다. (usesCommonArt)
+   motion 은 CUSTOMER_COMMON.motions 의 이름입니다. */
+function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOMER_BASE_MOTION){
   ctx.save();ctx.globalAlpha=alpha;
 
-  if(usesCommonArt(customer)){
+  const sheet=customerMotionSheets[motion];
+  if(sheet&&usesCommonArt(customer)){
     // 셀 크기는 파일에서 읽습니다. 시트를 다시 뽑아 해상도가 바뀌어도
     // 여기를 고칠 필요가 없습니다. 세로는 발바닥(셀 아래변) 기준입니다.
     const C=CUSTOMER_COMMON;
-    const cellW=customerCommonSheet.width/C.cols,cellH=customerCommonSheet.height/C.rows;
-    ctx.drawImage(customerCommonSheet,
-      (frame%C.cols)*cellW,(variant%C.rows)*cellH,cellW,cellH,
+    const cols=C.motions[motion].cols;
+    const cellW=sheet.width/cols,cellH=sheet.height/C.rows;
+    ctx.drawImage(sheet,
+      (frame%cols)*cellW,(variant%C.rows)*cellH,cellW,cellH,
       x-C.w/2,y+CUSTOMER_COMMON_FOOT_OFFSET-C.h,C.w,C.h);
     ctx.restore();
     return;
