@@ -25,6 +25,8 @@
     "verify:customer": "node tools/build-customer-sprites.js --verify",
     "build:moonpiece": "node tools/build-moonpiece-webp.js",
     "verify:moonpiece": "node tools/build-moonpiece-webp.js --verify",
+    "build:ui-journal": "node tools/build-ui-journal-webp.js",
+    "verify:ui-journal": "node tools/build-ui-journal-webp.js --verify",
     "build:minigame-art": "node tools/build-minigame-art-webp.js",
     "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify",
     "build:ui-common": "node tools/build-ui-common-webp.js",

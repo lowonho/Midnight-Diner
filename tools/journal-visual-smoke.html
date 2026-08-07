@@ -175,8 +175,8 @@ function setup(){
     // 본문 <p> 는 flex 로 늘어나 있어서 부모(.journal-page-right)의 scrollHeight 로는
     // 넘침을 못 잡습니다. 글이 실제로 차지한 높이를 따로 재야 합니다.
     const body=document.getElementById("journalPageNote");
-    document.body.dataset.left=readTabs(".journal-side-tabs-left .journal-section-tab")||"(없음)";
-    document.body.dataset.right=readTabs(".journal-side-tabs-right .journal-section-tab")||"(없음)";
+    document.body.dataset.left=readTabs(".journal-tab-strip-left .journal-section-tab")||"(없음)";
+    document.body.dataset.right=readTabs(".journal-tab-strip-right .journal-section-tab")||"(없음)";
     document.body.dataset.page=`${Math.round(pageRect.x)},${Math.round(pageRect.y)} ${Math.round(pageRect.width)}x${Math.round(pageRect.height)}`;
     // 제목 판이 책 세로선과 어긋난 픽셀 수입니다. 0 이어야 맞습니다.
     document.body.dataset.headAlign=`좌 ${Math.round(headRect.x-pageRect.x)} / 우 ${Math.round(headRect.right-pageRect.right)}`

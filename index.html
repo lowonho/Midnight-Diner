@@ -356,7 +356,9 @@
         </div>
         <div class="journal-book" role="group" aria-label="펼쳐진 영업일지">
           <button id="journalPrevious" class="journal-page-arrow" type="button" aria-label="이전 영업일지 페이지">‹</button>
-          <div id="journalSectionTabsPast" class="journal-side-tabs journal-side-tabs-left" role="tablist" aria-label="지나온 영업일지 구역"></div>
+          <div class="journal-spread">
+          <div id="journalSectionTabsPast" class="journal-tab-strip journal-tab-strip-left" role="tablist" aria-label="지나온 영업일지 구역"></div>
+          <div id="journalSectionTabs" class="journal-tab-strip journal-tab-strip-right" role="tablist" aria-label="영업일지 구역 선택"></div>
           <article id="journalPage" class="journal-page" aria-live="polite" aria-labelledby="journalPageTitle">
             <section class="journal-page-leaf journal-page-left" aria-label="영업일지 표제">
               <div class="journal-page-topline">
@@ -375,7 +377,7 @@
               <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
             </section>
           </article>
-          <div id="journalSectionTabs" class="journal-side-tabs journal-side-tabs-right" role="tablist" aria-label="영업일지 구역 선택"></div>
+          </div>
           <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
       </div>

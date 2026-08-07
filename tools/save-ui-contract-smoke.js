@@ -125,11 +125,32 @@ assert(settingsCssSource.includes(".audio-toggle-button.is-off")
   &&settingsCssSource.includes(".settings-overlay.audio-muted")
   &&settingsCssSource.includes(".volume-row.is-muted"),
   "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
-assert(settingsCssSource.includes("--journal-book-image")
+assert(settingsCssSource.includes('--journal-book-image: url("../assets/UI/Journal/ui_journal_book_open.webp")')
   &&/\.journal-page\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/.test(settingsCssSource)
-  &&settingsCssSource.includes(".journal-page::before")
   &&settingsCssSource.includes(".journal-page-right"),
-  "영업일지는 향후 책 에셋을 적용할 수 있는 중앙 펼침책 레이아웃이어야 합니다.");
+  "영업일지는 펼친 책 원화를 깐 중앙 펼침책 레이아웃이어야 합니다.");
+
+// 영업일지 UI 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+const journalArtDir=path.join(root,"assets","UI","Journal");
+[
+  "ui_journal_book_open","ui_journal_title_panel","ui_journal_close",
+  "ui_journal_arrow_prev","ui_journal_arrow_next",
+  "ui_journal_tab_caution","ui_journal_tab_cooking","ui_journal_tab_diary",
+  "ui_journal_picture_caution","ui_journal_picture_diary"
+].forEach(name=>{
+  assert(fs.existsSync(path.join(journalArtDir,`${name}.png`)),
+    `${name}.png 원본이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(journalArtDir,`${name}.webp`)),
+    `${name}.webp 이 없습니다. npm run build:ui-journal 로 PNG 에서 다시 뽑으세요.`);
+  assert(settingsCssSource.includes(`ui/Journal/${name}.webp`)
+    ||settingsCssSource.includes(`UI/Journal/${name}.webp`),
+    `css/settings.css 가 ${name}.webp 을 써야 합니다.`);
+});
+// 견출지는 책보다 뒤(z-index 0)에 깔려 아래쪽이 책에 가려집니다.
+assert(/\.journal-tab-strip\s*\{[\s\S]*?z-index:\s*0/.test(settingsCssSource)
+  &&/\.journal-page\s*\{[\s\S]*?z-index:\s*1/.test(settingsCssSource)
+  &&settingsCssSource.includes("--journal-tab-out"),
+  "견출지는 책 뒤에 깔려 아래쪽이 책에 끼워진 것처럼 보여야 합니다.");
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
@@ -208,10 +229,11 @@ assert(titleSource.includes("function journalActiveSectionSlot(sections)")
 assert(titleSource.includes("journalLastGameplayPageId")
   &&titleSource.includes("refreshJournalUI({restoreLastPage:journalMode===\"gameplay\"})"),
   "인게임 일지는 다시 열 때 마지막으로 보던 장을 펼쳐야 합니다.");
-assert(settingsCssSource.includes(".journal-side-tabs-left .journal-section-tab")
-  &&settingsCssSource.includes(".journal-side-tabs-right .journal-section-tab")
-  &&settingsCssSource.includes("--journal-tab-slot"),
-  "견출지는 좌우 어느 면에 붙어도 같은 세로 자리를 지켜야 합니다.");
+assert(settingsCssSource.includes(".journal-tab-strip-left")
+  &&settingsCssSource.includes(".journal-tab-strip-right")
+  &&settingsCssSource.includes("--journal-tab-slot")
+  &&/\.journal-section-tab\s*\{[\s\S]*?left:\s*calc\(var\(--journal-tab-start\)/.test(settingsCssSource),
+  "견출지는 책 위쪽 모서리에 붙고, 어느 면에 있어도 같은 가로 자리를 지켜야 합니다.");
 // 특별 손님 페이지의 달빛 조각 그림
 const moonPieceDir=path.join(root,"assets","customer","Special","MoonPiece");
 const moonPieceArtSource=titleSource.match(
