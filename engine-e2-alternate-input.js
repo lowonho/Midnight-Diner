@@ -21,7 +21,7 @@
 
    [새우 튀김옷]
    밀가루 → 계란물 → 빵가루를 하나의 준비 작업에서 연속 진행합니다.
-   한 화면에는 한 재료만 놓고, 단계마다 새우 다섯 마리를 직접 굴립니다.
+   한 화면에는 한 재료만 놓고, 단계마다 새우 세 마리를 직접 굴립니다.
    ============================================================ */
 
 registerDayPrepSetup("potatoStarch",()=>setupPotatoStarchShake());
@@ -34,8 +34,8 @@ const E2_FEEL_CONFIG=Object.freeze({
   completeDelayMs:600,
   /* 새우 튀김옷 : 그림이 '다 묻은 모습'에 닿은 뒤에도 몇 번 더 굴려야 끝나는지.
      눈으로는 다 됐는데 손은 조금 더 가는, 마무리 손질 구간입니다.
-     횟수 자체(밀 10 · 계 8 · 빵 12)는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 이고,
-     그중 마지막 몇 번을 이 구간으로 떼어 놓는 값입니다. */
+     단계마다 처리할 새우 수는 day4-prep-data.js 의 SHRIMP_COAT_STEPS 에 있고,
+     이 값은 한 마리를 굴릴 때의 마지막 구간만 조절합니다. */
   shrimpFinishRolls:2,
   /* 다 묻은 새우가 **스스로** 재료칸으로 돌아가는 데 걸리는 시간.
      다 됐다는 것을 한 박자 보여 주고(그릇 위에서 살짝 떠오름) 날아갑니다.
@@ -372,7 +372,7 @@ function fryPrepIngredientMarkup(item){
 // keys 는 문자열("a") 또는 {value,glyph} 입니다. 문자열이면 대문자로 보여 줍니다.
 // controlName / controlDesc 는 비워 두면 그 줄이 아예 나오지 않습니다.
 // ingredientsMarkup 을 주면 재료 카드 목록 대신 그 마크업이 통째로 들어갑니다 —
-//   새우튀김 준비는 재료 카드가 아니라 굴릴 새우 다섯 마리를 놓습니다.
+//   새우튀김 준비는 재료 카드가 아니라 굴릴 새우 세 마리를 놓습니다.
 // onKey 는 화면 안 키 버튼을 눌렀을 때 호출할 입력 함수입니다(entry.value 를 넘김).
 function renderFryPrepScreen(view,onKey){
   const keys=(view.keys||[]).map(entry=>typeof entry==="string"?{value:entry,glyph:entry.toUpperCase()}:entry);
@@ -696,10 +696,10 @@ function bindFriesBagDrag(){
 }
 
 /* ============================================================
-   3. 새우튀김 준비 — 밀가루 → 계란물 → 빵가루, 단계마다 다섯 마리
+   3. 새우튀김 준비 — 밀가루 → 계란물 → 빵가루, 단계마다 세 마리
 
    왼쪽 재료칸에는 밀가루·계란물·빵가루 카드가 아니라 **이번 단계에 굴릴
-   새우 다섯 마리**가 놓입니다. 어느 옷을 입히는 중인지는 가운데 그릇 그림과
+   새우 세 마리**가 놓입니다. 어느 옷을 입히는 중인지는 가운데 그릇 그림과
    단계 표시가 말해 주므로 재료 카드를 따로 둘 자리가 없습니다
    (E6 튀기기의 왼쪽 '재료' 칸과 같은 결입니다 — 거기도 튀길 것만 늘어놓습니다).
 
@@ -707,9 +707,9 @@ function bindFriesBagDrag(){
      1) 재료칸의 새우를 잡아 가운데 그릇으로 끌어다 놓기   ← 손으로 합니다
      2) 그릇 안에서 좌우로 굴려 옷을 다 묻히기            ← 손으로 합니다
      3) 다 묻으면 새우가 스스로 재료칸으로 돌아갑니다     ← 여기서 한 마리 완료
-   다섯 마리를 전부 되돌려 놓아야 다음 그릇으로 넘어갑니다.
+   세 마리를 전부 되돌려 놓아야 다음 그릇으로 넘어갑니다.
 
-   판 위에는 늘 새우가 한 마리뿐입니다(data.board). 그래서 재료칸 다섯 칸의
+   판 위에는 늘 새우가 한 마리뿐입니다(data.board). 그래서 재료칸 세 칸의
    상태를 따로 들고 있지 않고 진행도(successes) 하나에서 그대로 나옵니다.
      index < successes    done     다 묻혀 도로 갖다 놓은 새우
      index === successes  ready    지금 꺼낼 차례 (판에 나가 있으면 out)
@@ -784,20 +784,20 @@ function setupShrimpCoat(taskId){
 // 타이틀 아래 긴 안내 — 지금 무엇을 할 차례인지 한 줄로 말해 줍니다.
 function shrimpCoatHelpText(data){
   const label=data.sequence[data.step].label;
-  if(!data.board)return `재료칸의 새우를 잡아 ${label} 그릇으로 끌어다 놓으세요. 한 단계에 5마리씩 준비합니다!`;
+  if(!data.board)return `재료칸의 새우를 잡아 ${label} 그릇으로 끌어다 놓으세요. 한 단계에 ${data.total}마리씩 준비합니다!`;
   if(data.board.coated)return "다 묻었습니다! 새우가 재료칸으로 돌아갑니다.";
   return `${label} 안에서 새우를 좌우로 여러 번 굴려주세요.`;
 }
 
 // 판 아래 짧은 안내 — 위와 같은 내용을 한 손짓으로 줄인 것입니다.
 function shrimpCoatHintText(data){
-  if(data.successes>=data.total)return `${data.sequence[data.step].label} 새우 5마리 완료!`;
+  if(data.successes>=data.total)return `${data.sequence[data.step].label} 새우 ${data.total}마리 완료!`;
   if(!data.board)return "재료칸의 새우를 끌어다 그릇에 놓으세요";
   if(data.board.coated)return "다 묻었어요! 재료칸으로 돌아갑니다";
   return "새우를 잡은 채 좌우로 여러 번 굴려주세요";
 }
 
-/* ---- 왼쪽 재료칸 : 이번 단계에 굴릴 새우 다섯 마리 ---------- */
+/* ---- 왼쪽 재료칸 : 이번 단계에 굴릴 새우 세 마리 ---------- */
 
 function shrimpTraySlotStatus(data,index){
   if(index<data.successes)return "done";
@@ -896,7 +896,7 @@ function putShrimpInVessel(m){
 
 /* 3) 그릇 → 재료칸. **한 마리가 끝나는 곳은 여기입니다.**
    다 묻은 뒤 날아가는 연출(.returning)이 끝나면 finishShrimpRoll 의 타이머가
-   여기로 옵니다. 다섯 마리를 다 놓으면 다음 그릇으로 넘어갑니다.
+   여기로 옵니다. 세 마리를 다 놓으면 다음 그릇으로 넘어갑니다.
    ⚠️ 여기서는 shrimpCoatPlayable 을 쓰면 안 됩니다 — 날아가는 동안 손을
       잠가 두므로(inputLocked) 스스로 걸려서 영영 안 놓입니다. */
 function placeShrimpBackInTray(m){
@@ -923,11 +923,11 @@ function placeShrimpBackInTray(m){
   // 마지막 단계는 finishDayPrepTask가 최종 판정음을 재생하므로 두 번 겹치지 않게 합니다.
   if(!finalStage)audio.result(stageGrade);
   if(finalStage){
-    dom.miniFeedback.textContent="새우 5마리 튀김옷 3단계 준비 완료!";
+    dom.miniFeedback.textContent=`새우 ${data.total}마리 튀김옷 3단계 준비 완료!`;
     miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask(data.taskId,"새우튀김 튀김옷 준비 완료");},E2_FEEL_CONFIG.completeDelayMs);
     return;
   }
-  dom.miniFeedback.textContent=`${completed.label} 5마리 완료 · 다음 코팅 재료로 넘어갑니다.`;
+  dom.miniFeedback.textContent=`${completed.label} ${data.total}마리 완료 · 다음 코팅 재료로 넘어갑니다.`;
   miniSetTimeout(()=>{
     if(state.mini!==m||m.complete)return;
     data.step++;data.successes=0;data.total=data.sequence[data.step].shrimpCount;

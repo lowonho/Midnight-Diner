@@ -207,7 +207,7 @@ try{
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===12,"E12 mandoline stroke counts are doubled and each stroke drops a full dozen shreds");
   assert(DAY4_PREP_CONFIG.potatoMandoline.directions.join(",")==="left,right","Potato mandoline must use left/right");
-  assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="5,5,5"&&PREP_TASKS.coatShrimp,"Shrimp coating uses five shrimp in each of three stages");
+  assert(SHRIMP_COAT_STEPS.map(item=>item.shrimpCount).join(",")==="3,3,3"&&PREP_TASKS.coatShrimp,"Shrimp coating uses three shrimp in each of three stages");
   assert(DAY4_PREP_CONFIG.potatoStarch.requiredPresses===14,"Fries coating input count");
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.join(",")==="left,up,right,down"&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
   // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
@@ -272,7 +272,7 @@ try{
      이 진짜 포인터 입력으로 확인합니다. */
   playedSfx.length=0;
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupShrimpCoat(SHRIMP_COAT_TASK_ID);
-  assert(dom.miniContent.querySelectorAll(".fp-tray-slot").length===5&&dom.miniContent.querySelectorAll(".fp-tray-slot.ready").length===1&&!dom.miniContent.querySelector(".fp-ing-card")&&!state.mini.data.board,"E2 shrimp ingredient column holds five shrimp instead of coating ingredient cards");
+  assert(dom.miniContent.querySelectorAll(".fp-tray-slot").length===3&&dom.miniContent.querySelectorAll(".fp-tray-slot.ready").length===1&&!dom.miniContent.querySelector(".fp-ing-card")&&!state.mini.data.board,"E2 shrimp ingredient column holds three shrimp instead of coating ingredient cards");
   function rollShrimp(pointerId){
     const shrimp=dom.miniContent.querySelector("#shrimpRollShrimp"),rollSurface=dom.miniContent.querySelector(".fp-roll-surface");
     rollSurface.getBoundingClientRect=()=>({left:0,top:0,width:400,height:240,right:400,bottom:240});
@@ -288,7 +288,7 @@ try{
   for(let index=1;index<SHRIMP_COAT_STEPS[0].shrimpCount;index++){
     putShrimpInVessel(state.mini);rollShrimp(60+index);placeShrimpBackInTray(state.mini);
   }
-  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===5&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1&&playedSfx.includes("result_perfect"),"E2 shrimp rolls five pieces in one vessel and plays its grade sound before the first stage transition");
+  assert(state.mini.data.transitioning&&state.mini.data.phase==="transition"&&state.mini.data.successes===3&&state.mini.data.stageGrades[0]==="perfect"&&dom.miniContent.querySelectorAll(".fp-roll-vessel").length===1&&playedSfx.includes("result_perfect"),"E2 shrimp rolls three pieces in one vessel and plays its grade sound before the first stage transition");
 
   let finishedScore=null;
   window.finishMini=score=>{finishedScore=score;if(state.mini)state.mini.complete=true;};

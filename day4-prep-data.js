@@ -10,12 +10,12 @@ const TTEOKBOKKI_CUT_SEQUENCE=Object.freeze([
 ]);
 
 // 새우 튀김옷은 하나의 준비 작업 안에서 세 단계가 연속으로 이어집니다.
-// 각 단계마다 새우 다섯 마리를 마우스로 굴려 재료를 묻힙니다.
+// 각 단계마다 새우 세 마리를 마우스로 굴려 재료를 묻힙니다.
 const SHRIMP_COAT_TASK_ID="coatShrimp";
 const SHRIMP_COAT_STEPS=Object.freeze([
-  Object.freeze({step:0,id:"flour",label:"밀가루",shrimpCount:5}),
-  Object.freeze({step:1,id:"egg",label:"계란물",shrimpCount:5}),
-  Object.freeze({step:2,id:"breadcrumbs",label:"빵가루",shrimpCount:5})
+  Object.freeze({step:0,id:"flour",label:"밀가루",shrimpCount:3}),
+  Object.freeze({step:1,id:"egg",label:"계란물",shrimpCount:3}),
+  Object.freeze({step:2,id:"breadcrumbs",label:"빵가루",shrimpCount:3})
 ]);
 
 const DAY4_PREP_CONFIG=Object.freeze({
