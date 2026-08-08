@@ -79,6 +79,27 @@ function selectedPrepTasksForChecklist(){
   });
 }
 
+/* 낮 준비 체크리스트에 올라가는 줄 = 메뉴 하나.
+   ------------------------------------------------------------
+   주방 바 위에 놓이는 준비물도 메뉴당 하나이므로(prep.js prepDishGroups)
+   체크리스트 줄 수와 준비물 수가 1:1로 맞습니다. 그래서 "완료"는 작업
+   하나가 아니라 그 메뉴의 준비 작업이 전부 끝났을 때만 붙습니다.
+   순서는 작업 순서(selectedPrepTasksForChecklist)를 그대로 따라가므로
+   Day 4 전용 순서도 여기에 딸려 옵니다. */
+function prepChecklistDishes(){
+  const ordered=selectedPrepTasksForChecklist();
+  const menuIds=[];
+  ordered.forEach(task=>{if(!menuIds.includes(task.menuId))menuIds.push(task.menuId);});
+  // 준비 작업이 하나도 없는 메뉴도 줄은 있어야 하므로 뒤에 붙입니다.
+  selectedDishes().forEach(dish=>{if(!menuIds.includes(dish.id))menuIds.push(dish.id);});
+  return menuIds.map(menuId=>{
+    const dish=dishById(menuId);
+    if(!dish)return null;
+    const tasks=ordered.filter(task=>task.menuId===menuId&&task.isImplemented);
+    return {dish,tasks,done:tasks.length>0&&tasks.every(task=>!!state.prepProgress?.[task.id])};
+  }).filter(Boolean);
+}
+
 function normalizeDayPrepState(){
   const dayData=getCurrentDayData();
   const maxSelectedMenus=maxSelectedMenusForDay(dayData);
@@ -218,14 +239,16 @@ function completeDayPrepTask(taskId,completionScore){
 }
 
 function renderPrepChecklist(){
-  const tasks=selectedPrepTasksForChecklist(),actionable=selectedPrepTasks();
-  const signature=`prep|${state.selectedMenus.join(",")}|${tasks.map(task=>Number(!!state.prepProgress[task.id])).join("")}`;
+  const items=prepChecklistDishes();
+  const signature=`prep|${state.selectedMenus.join(",")}|${items.map(item=>Number(item.done)).join("")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
-  dom.inventoryList.innerHTML=`<div class="prep-checklist">${tasks.map((task,index)=>{
-    const dish=dishById(task.menuId),done=!!state.prepProgress[task.id];
-    return `<div class="prep-task-row ${done?"done":task.isImplemented?"":"disabled"}"><span>${index+1}</span><strong>${dish?.name||task.menuId}</strong><div>${done?"☑":task.isImplemented?"☐":"–"} ${task.label}</div></div>`;
-  }).join("")}<div class="prep-total">준비 완료 ${actionable.filter(task=>state.prepProgress[task.id]).length} / ${actionable.length}</div></div>`;
+  const ready=items.filter(item=>item.done).length;
+  dom.inventoryList.innerHTML=`<div class="prep-checklist">${items.map((item,index)=>
+    // "완료"는 이름 옆에 붙입니다. 아랫줄(.prep-task-row > div)에 두면 끝난 줄만
+    // 두 줄이 되어 목록 높이가 들쭉날쭉해집니다.
+    `<div class="prep-task-row ${item.done?"done":item.tasks.length?"":"disabled"}"><span>${index+1}.</span><strong>${item.dish.name}${item.done?" 완료":""}</strong></div>`
+  ).join("")}<div class="prep-total">준비 완료 ${ready} / ${items.length}</div></div>`;
 }
 
 function updateDayObjective(){
@@ -283,7 +306,7 @@ function renderMenuSelection(){
     :dayData.isSpecialDay
       ?`오늘의 특별음식 ${dishById(dayData.specialMenu).name}은 필수입니다. 총 ${dayData.minSelectedMenus}~${maxSelectedMenus}개를 선택하세요.`
       :dayData.minSelectedMenus===maxSelectedMenus
-        ?`해금된 여덟 가지 메뉴 중 오늘 준비할 메뉴 ${maxSelectedMenus}개를 선택하세요.`
+        ?`오늘 준비할 메뉴 ${maxSelectedMenus}개를 선택하세요.`
         :`최소 ${dayData.minSelectedMenus}개, 최대 ${maxSelectedMenus}개를 선택하세요.`;
   const signature=`${dayData.qaAllMenus?"qa-all":"day"}|${state.day}|${state.menuSelectionDraft.join(",")}`;
   if(dom.menuSelectGrid.dataset.signature!==signature){
@@ -295,7 +318,7 @@ function renderMenuSelection(){
     }).join("");
     dom.menuSelectGrid.querySelectorAll("[data-menu-id]").forEach(button=>button.addEventListener("click",()=>toggleMenuSelection(button.dataset.menuId)));
   }
-  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} · 최소 ${dayData.minSelectedMenus} / 최대 ${maxSelectedMenus}`;
+  dom.menuSelectCount.textContent=`선택 ${state.menuSelectionDraft.length} / 필수 ${dayData.minSelectedMenus}`;
   dom.menuSelectConfirm.disabled=state.menuSelectionDraft.length<dayData.minSelectedMenus||!dayData.requiredMenus.every(id=>state.menuSelectionDraft.includes(id));
 }
 

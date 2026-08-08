@@ -11,6 +11,7 @@
     "test:save": "node tools/save-slots-contract-smoke.js",
     "test:save-ui": "node tools/save-ui-contract-smoke.js",
     "test:story-cinematic": "node tools/story-cinematic-contract-smoke.js",
+    "test:story-motion": "node tools/story-motion-contract-smoke.js",
     "test:prep-days": "node tools/prep-all-days-contract-smoke.js",
     "test:gameplay-flow": "node tools/gameplay-flow-contract-smoke.js",
     "test:night-queue": "node tools/night-queue-contract-smoke.js",
@@ -26,6 +27,8 @@
     "verify:customer": "node tools/build-customer-sprites.js --verify",
     "build:moonpiece": "node tools/build-moonpiece-webp.js",
     "verify:moonpiece": "node tools/build-moonpiece-webp.js --verify",
+    "build:ui-journal": "node tools/build-ui-journal-webp.js",
+    "verify:ui-journal": "node tools/build-ui-journal-webp.js --verify",
     "build:minigame-art": "node tools/build-minigame-art-webp.js",
     "verify:minigame-art": "node tools/build-minigame-art-webp.js --verify",
     "build:ui-common": "node tools/build-ui-common-webp.js",
@@ -33,7 +36,15 @@
     "build:ui-setting": "node tools/build-ui-setting-webp.js",
     "verify:ui-setting": "node tools/build-ui-setting-webp.js --verify",
     "build:ui-save": "node tools/build-ui-save-webp.js",
-    "verify:ui-save": "node tools/build-ui-save-webp.js --verify"
+    "verify:ui-save": "node tools/build-ui-save-webp.js --verify",
+    "build:ui-main": "node tools/build-ui-main-webp.js",
+    "verify:ui-main": "node tools/build-ui-main-webp.js --verify",
+    "build:conversation": "node tools/build-conversation-webp.js",
+    "verify:conversation": "node tools/build-conversation-webp.js --verify",
+    "build:cutscene": "node tools/build-cutscene-webp.js",
+    "verify:cutscene": "node tools/build-cutscene-webp.js --verify",
+    "build:story-ending": "node tools/build-story-ending-webp.js",
+    "verify:story-ending": "node tools/build-story-ending-webp.js --verify"
   },
   "repository": {
     "type": "git",

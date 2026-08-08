@@ -79,8 +79,11 @@ assert(
 
 assert(indexSource.includes("<title>달빛식탁 - 낮의 준비, 밤의 한 접시</title>"),
   "브라우저 제목에 새 게임명 달빛식탁이 표시되어야 합니다.");
-assert(indexSource.includes("<strong>달빛식탁</strong>"),
-  "타이틀과 게임 HUD 로고에 달빛식탁이 표시되어야 합니다.");
+/* 타이틀·HUD 로고는 글자가 아니라 납품된 금박 그림입니다(assets/UI/Main).
+   그림에는 글자가 없으니 게임 이름은 aria-label 로만 남습니다. */
+assert(/id="gameTitle"[^>]*role="img"[^>]*aria-label="달빛식탁[^"]*"/.test(indexSource)
+  &&/class="hud-logo"[^>]*role="img"[^>]*aria-label="달빛식탁"/.test(indexSource),
+  "타이틀과 게임 HUD 로고 그림은 달빛식탁을 접근성 이름으로 가져야 합니다.");
 assert(indexSource.includes('aria-label="달빛식탁 게임 화면"')
   &&indexSource.includes('aria-label="달빛식탁 게임"'),
   "게임 화면 접근성 이름도 달빛식탁으로 변경되어야 합니다.");
@@ -125,11 +128,71 @@ assert(settingsCssSource.includes(".audio-toggle-button.is-off")
   &&settingsCssSource.includes(".settings-overlay.audio-muted")
   &&settingsCssSource.includes(".volume-row.is-muted"),
   "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
-assert(settingsCssSource.includes("--journal-book-image")
+assert(settingsCssSource.includes('--journal-book-image: url("../assets/UI/Journal/ui_journal_book_open.webp")')
   &&/\.journal-page\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/.test(settingsCssSource)
-  &&settingsCssSource.includes(".journal-page::before")
   &&settingsCssSource.includes(".journal-page-right"),
-  "영업일지는 향후 책 에셋을 적용할 수 있는 중앙 펼침책 레이아웃이어야 합니다.");
+  "영업일지는 펼친 책 원화를 깐 중앙 펼침책 레이아웃이어야 합니다.");
+
+/* 영업일지 UI 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+   제목 판만 마스터 이름과 산출물 이름이 다릅니다(어두운 판으로 교체하면서
+   build-ui-journal-webp.js 의 out 으로 이름을 정리했습니다). */
+const journalArtDir=path.join(root,"assets","UI","Journal");
+[
+  ["ui_journal_book_open"],
+  ["ui_business_journal_title_panel_dark_thin_gold_4x","ui_journal_title_panel_dark"],
+  ["ui_journal_close"],
+  ["ui_journal_arrow_prev"],["ui_journal_arrow_next"],
+  ["ui_journal_tab_caution"],["ui_journal_tab_cooking"],["ui_journal_tab_diary"],
+  ["ui_journal_picture_caution"],["ui_journal_picture_cooking"],["ui_journal_picture_diary"]
+].forEach(([master,out=master])=>{
+  assert(fs.existsSync(path.join(journalArtDir,`${master}.png`)),
+    `${master}.png 원본이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(journalArtDir,`${out}.webp`)),
+    `${out}.webp 이 없습니다. npm run build:ui-journal 로 PNG 에서 다시 뽑으세요.`);
+  assert(settingsCssSource.includes(`ui/Journal/${out}.webp`)
+    ||settingsCssSource.includes(`UI/Journal/${out}.webp`),
+    `css/settings.css 가 ${out}.webp 을 써야 합니다.`);
+});
+// 견출지는 책보다 뒤(z-index 0)에 깔려 아래쪽이 책에 가려집니다.
+assert(/\.journal-tab-strip\s*\{[\s\S]*?z-index:\s*0/.test(settingsCssSource)
+  &&/\.journal-page\s*\{[\s\S]*?z-index:\s*1/.test(settingsCssSource)
+  &&settingsCssSource.includes("--journal-tab-out"),
+  "견출지는 책 뒤에 깔려 아래쪽이 책에 끼워진 것처럼 보여야 합니다.");
+
+/* 타이틀 화면 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+   (영업일지 원화와 같은 규칙입니다. 마스터 이름과 산출물 이름이 다른 것은
+    tools/build-ui-main-webp.js 의 out 항목 때문입니다) */
+const mainArtDir=path.join(root,"assets","UI","Main");
+[
+  { master:"bg_title_variant_04_modern_4x", out:"bg_title_modern", css:titleCssSource },
+  { master:"ui_title_moonlight_table_variant_03_main", out:"ui_title_logo_main", css:titleCssSource },
+  { master:"ui_title_moonlight_table_variant_03_main", out:"ui_title_logo_hud", css:hudCssSource }
+].forEach(({master,out,css})=>{
+  assert(fs.existsSync(path.join(mainArtDir,`${master}.png`)),
+    `${master}.png 원본이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(mainArtDir,`${out}.webp`)),
+    `${out}.webp 이 없습니다. npm run build:ui-main 으로 PNG 에서 다시 뽑으세요.`);
+  assert(css.includes(`UI/Main/${out}.webp`),
+    `${out}.webp 을 쓰는 CSS 가 없습니다.`);
+});
+/* 타이틀은 게임 화면과 같은 16:9 무대 안에서 그려야 합니다. 배경 그림 속 간판을
+   % 좌표로 짚는 QA 숨은 입구가 이 전제에 기대고 있습니다. */
+assert(indexSource.includes('class="title-stage"')
+  &&/\.title-stage\s*\{[\s\S]*?aspect-ratio:\s*16\s*\/\s*9/.test(titleCssSource),
+  "타이틀 화면은 16:9 무대(.title-stage) 안에 배경을 깔아야 합니다.");
+/* 로고 그림의 비율은 두 CSS 와 tools/build-ui-main-webp.js 세 곳이 같아야 합니다.
+   어긋나면 글씨가 눌리거나 늘어납니다. */
+[["css/title.css",titleCssSource],["css/hud.css",hudCssSource]].forEach(([name,css])=>
+  assert(css.includes("aspect-ratio: 1697 / 706"),
+    `${name} 의 로고 비율이 납품 원본(1697x706)과 달라졌습니다.`));
+/* 왼쪽 칸은 배경 그림 속 가게 건물(37.2% 지점) 앞에서 끝나야 합니다. */
+const titleWindowRule=titleCssSource.match(/\.title-window\s*\{[\s\S]*?\}/)?.[0]||"";
+const windowLeft=Number(titleWindowRule.match(/left:\s*([\d.]+)%/)?.[1]);
+const windowWidth=Number(titleWindowRule.match(/width:\s*([\d.]+)%/)?.[1]);
+assert(titleWindowRule.includes("position: absolute")&&windowLeft>0&&windowWidth>0,
+  "타이틀 로고와 버튼은 배경 그림 위 한 자리에 고정 배치되어야 합니다.");
+assert(windowLeft+windowWidth<=37,
+  `왼쪽 칸이 ${windowLeft+windowWidth}% 까지 나와 가게 건물(37.2%)에 겹칩니다.`);
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
@@ -199,9 +262,9 @@ assert(!indexSource.includes('id="journalPageTabs"')
 const journalSectionDefsSource=titleSource.match(
   /function journalSectionDefs\([\s\S]+?\r?\n}\r?\n/
 )?.[0]||"";
-assert(["주의사항","요리","일기"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`))
+assert(["주의사항","레시피","일기"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`))
   &&["특별 손님","엔딩"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`)),
-  "견출지는 인게임 주의사항·요리·일기, 로비 특별 손님·엔딩 순이어야 합니다.");
+  "견출지는 인게임 주의사항·레시피·일기, 로비 특별 손님·엔딩 순이어야 합니다.");
 assert(titleSource.includes("function journalSectionEntryIndex(section)")
   &&titleSource.includes('journalMode==="gameplay"&&section.id==="day"')
   &&titleSource.includes("return section.first;"),
@@ -214,10 +277,11 @@ assert(titleSource.includes("function journalActiveSectionSlot(sections)")
 assert(titleSource.includes("journalLastGameplayPageId")
   &&titleSource.includes("refreshJournalUI({restoreLastPage:journalMode===\"gameplay\"})"),
   "인게임 일지는 다시 열 때 마지막으로 보던 장을 펼쳐야 합니다.");
-assert(settingsCssSource.includes(".journal-side-tabs-left .journal-section-tab")
-  &&settingsCssSource.includes(".journal-side-tabs-right .journal-section-tab")
-  &&settingsCssSource.includes("--journal-tab-slot"),
-  "견출지는 좌우 어느 면에 붙어도 같은 세로 자리를 지켜야 합니다.");
+assert(settingsCssSource.includes(".journal-tab-strip-left")
+  &&settingsCssSource.includes(".journal-tab-strip-right")
+  &&settingsCssSource.includes("--journal-tab-slot")
+  &&/\.journal-section-tab\s*\{[\s\S]*?left:\s*calc\(var\(--journal-tab-start\)/.test(settingsCssSource),
+  "견출지는 책 위쪽 모서리에 붙고, 어느 면에 있어도 같은 가로 자리를 지켜야 합니다.");
 // 특별 손님 페이지의 달빛 조각 그림
 const moonPieceDir=path.join(root,"assets","customer","Special","MoonPiece");
 const moonPieceArtSource=titleSource.match(
@@ -237,11 +301,43 @@ shardIds.forEach(shardId=>{
   assert(fs.existsSync(path.join(moonPieceDir,file.replace(/\.webp$/,".png"))),
     `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
 });
+// 엔딩 장의 컷씬 그림
+const endingArtDir=path.join(root,"assets","story","bg");
+const endingArtSource=titleSource.match(
+  /const JOURNAL_ENDING_ART=Object\.freeze\(\{[\s\S]+?\}\);/
+)?.[0]||"";
+const endingDefsSource=storyDataSource.match(
+  /const TITLE_JOURNAL_ENDING_DEFS[\s\S]+?\]\.map\(ending=>Object\.freeze\(ending\)\)\);/
+)?.[0]||"";
+const endingIds=[...endingDefsSource.matchAll(/\{id:"([^"]+)"/g)].map(match=>match[1]);
+assert(endingIds.length===5,
+  `엔딩 다섯 개의 id 를 읽어야 합니다. (읽은 개수 ${endingIds.length})`);
+endingIds.forEach(endingId=>{
+  const file=endingArtSource.match(new RegExp(`${endingId}:"([^"]+)"`))?.[1];
+  assert(!!file,`엔딩 '${endingId}' 에 짝지은 컷씬 그림이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(endingArtDir,file)),
+    `${file} 이 없습니다. npm run build:story-ending 으로 PNG 에서 다시 뽑으세요.`);
+  assert(fs.existsSync(path.join(endingArtDir,file.replace(/\.webp$/,".png"))),
+    `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
+});
+assert(titleSource.includes('if(!page||page.kind!=="ending"||!page.unlocked)return "";'),
+  "아직 못 본 엔딩의 컷씬 그림은 미리 보여 주면 안 됩니다.");
+assert(titleSource.includes('elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt)')
+  &&settingsCssSource.includes(".journal-page.is-ending .journal-page-portrait.has-cutscene"),
+  "본 엔딩의 컷씬 그림은 엔딩 장의 가로 직사각형 자리에 깔려야 합니다.");
+// 인게임 세 구역 모두 액자 원화를 씁니다.
+["rules","recipe","day"].forEach(kind=>assert(
+  titleSource.includes(`frame-${kind}`)&&settingsCssSource.includes(`.journal-page-portrait.frame-${kind}`),
+  `${kind} 장의 그림 자리에 액자 원화를 붙여야 합니다.`));
 assert(titleSource.includes('journalMode==="collection"&&!!page&&page.kind!=="ending"'),
   "달빛 조각 그림은 로비 컬렉션의 특별 손님 장에만 붙어야 합니다.");
 assert(titleSource.includes('elements.relicArt.style.backgroundImage=unlocked?')
-  &&titleSource.includes('elements.relicName.textContent=unlocked?'),
+  &&titleSource.includes(':unlocked?`「${page.shardName}」`:"「???」"'),
   "잠긴 손님의 달빛 조각은 그림도 이름도 미리 보여 주면 안 됩니다.");
+// 레시피 장에는 완성된 음식 프롭이 제목 아래에 붙습니다.
+assert(titleSource.includes('foodPropUrl(page.dishId,"perfect")')
+  &&settingsCssSource.includes(".journal-page-relic.is-dish"),
+  "레시피 장 제목 아래에 음식 프롭 그림이 붙어야 합니다.");
 assert(settingsCssSource.includes(".journal-page-relic-art")
   &&settingsCssSource.includes("--journal-relic-size")
   &&/id="journalPageRelic"/.test(indexSource),

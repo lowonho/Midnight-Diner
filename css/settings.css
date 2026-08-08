@@ -39,6 +39,19 @@
   --set-toggle-img:   url("../assets/UI/Setting/ui_toggle_on.webp");
   --set-knob-img:     url("../assets/UI/Setting/ui_slider_knob.webp");
 
+  /* [설정창 전체 축소 — 여기 한 줄만 고치면 됩니다]
+     이 창의 크기·여백·글자 크기가 전부 --upx 배수라, 그 자(尺) 자체를
+     줄이면 아래 값들을 하나도 안 건드리고 창만 통째로 작아집니다.
+     비율은 전부 그대로라 에셋이 찌그러지지 않습니다.
+     1 이면 예전 크기, .85 면 85% 입니다.
+
+     --upx 를 여기서 다시 정의해도 순환이 아닙니다 — :root 의 정의와 같은
+     식을 쓰되 재료(--vw1)만 물려받아 다시 계산하는 것입니다.
+     ⚠️ 1 보다 크게 잡지 마세요. 확대되면서 에셋이 뭉갭니다
+        (키우려면 tools/build-ui-setting-webp.js 의 크기 표부터 키워야 합니다). */
+  --set-scale: .85;
+  --upx: calc(var(--vw1) / 19.2 * var(--set-scale));
+
   /* 판 높이. 가로는 aspect-ratio 가 그림 비율대로 잡아 줍니다 (795 x 1018).
      --upx 는 상한이 0.0926vh 라 1018 배는 어떤 창에서도 94.3vh 를 넘지
      않습니다. 그래서 따로 vh 로 자르지 않아도 화면 밖으로 나가지 않습니다.
@@ -396,18 +409,22 @@
   .settings-section { margin-top: calc(14 * var(--upx)); font-size: calc(13 * var(--upx)); }
 }
 
+/* ⚠️ 아래 크기들은 assets/UI/Journal 원화의 가로세로비에 맞춰 놓은 값입니다.
+   비율을 깨면 background-size:100% 100% 라 그림이 찌그러집니다.
+   바꿀 때는 tools/build-ui-journal-webp.js 의 표도 같이 고치세요. */
 .journal-window {
-  /* 견출지가 책 양옆으로 나오는 만큼 창을 넓혔습니다. */
-  /* 화살표 칸은 버튼 48 + 좌우 여백 5 를 그대로 담는 폭입니다. 좁히면 버튼이
-     칸 밖으로 나와 펼쳐진 견출지를 덮습니다. */
-  --journal-arrow-column: calc(58 * var(--upx));
-  --journal-tab-column: calc(52 * var(--upx));
-  --journal-tab-height: calc(96 * var(--upx));
-  --journal-tab-pitch: calc(110 * var(--upx));
-  --journal-tab-top: calc(26 * var(--upx));
-  /* 화살표 칸 + 견출지 칸. 제목 판을 책 세로선에 맞출 때 쓰는 값입니다. */
-  --journal-side: calc(var(--journal-arrow-column) + var(--journal-tab-column));
-  width: min(calc(1210 * var(--upx)),96%);
+  /* 화살표 칸은 버튼 72 + 좌우 여백 5 를 그대로 담는 폭입니다. */
+  --journal-arrow-column: calc(82 * var(--upx));
+  /* 견출지는 책 위쪽 모서리에 붙습니다. 자리(lane)는 각 면의 종이 왼쪽 끝에서
+     start + 순서 x pitch 로 잡아서, 오른쪽 면에서 왼쪽 면으로 넘어가도
+     그 면 안에서의 가로 자리가 같습니다. */
+  --journal-tab-width: calc(130 * var(--upx));
+  /* 책 위로 나오는 높이. 견출지 그림은 이보다 길어서 나머지는 책 뒤로 들어갑니다.
+     줄일수록 견출지가 책 속으로 더 내려가 짧아 보입니다. */
+  --journal-tab-out: calc(36 * var(--upx));
+  --journal-tab-rise: calc(6 * var(--upx));   /* 펼친 견출지가 더 나오는 만큼 */
+  --journal-tab-pitch: calc(132 * var(--upx));
+  width: min(calc(1258 * var(--upx)),96%);
   max-height: 94vh;
   display: flex;
   flex-direction: column;
@@ -415,20 +432,20 @@
   padding: calc(18 * var(--upx)) calc(24 * var(--upx));
   color: var(--cream);
 }
-/* 판의 좌우 끝은 책 페이지의 세로선(펼친 책의 좌우 가장자리)과 같습니다.
-   바깥으로 나온 견출지·화살표까지 덮지 않습니다. */
+/* 어두운 나무 명패 원화(3280x344)의 비율 그대로입니다. 책보다 짧습니다. */
 .journal-heading {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: calc(16 * var(--upx));
-  width: calc(100% - 2 * var(--journal-side));
+  width: calc(880 * var(--upx));
+  height: calc(92 * var(--upx));
   margin: 0 auto;
-  padding: calc(11 * var(--upx)) calc(18 * var(--upx));
-  border: 1px solid rgba(196,135,68,.54);
-  border-radius: calc(8 * var(--upx));
-  background: rgba(20,11,8,.9);
-  box-shadow: 0 calc(4 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.32);
+  /* 얇은 금테 안쪽 나무 면이 글자 자리입니다.
+     오른쪽은 판 안에 들어온 닫기 버튼(34 + 좌우 여백)만큼 비워 둡니다. */
+  padding: calc(15 * var(--upx)) calc(72 * var(--upx)) calc(11 * var(--upx)) calc(26 * var(--upx));
+  /* 원화 자체가 어두운 판이라 예전처럼 따로 어둡게 깔지 않습니다. */
+  background: url("../assets/UI/Journal/ui_journal_title_panel_dark.webp") center/100% 100% no-repeat;
 }
 /* 안내문은 제목 옆 같은 줄에 둡니다. 아래로 쌓으면 판이 한 줄만큼 두꺼워집니다. */
 .journal-heading-text {
@@ -438,38 +455,41 @@
   align-items: baseline;
   column-gap: calc(16 * var(--upx));
 }
+/* 어두운 나무 판 위라서 두 글자 색을 원래보다 밝게 씁니다. */
 .journal-heading .eyebrow {
   grid-column: 1 / -1;
-  font-size: calc(13 * var(--upx));
+  color: #edb463;
+  font-size: calc(10 * var(--upx));
 }
 .journal-heading h2 {
   margin: 0;
   color: #ffe09a;
-  font-size: calc(30 * var(--upx));
+  font-size: calc(21 * var(--upx));
 }
-/* 눈높이가 제목 줄에 오도록 눈썹 글자 한 줄만큼 내려 둡니다. */
-.journal-heading .journal-close { flex: none; margin-top: calc(14 * var(--upx)); }
+/* 닫기 버튼은 판 안쪽 오른쪽 끝에 얹습니다. */
 .journal-close {
-  width: calc(42 * var(--upx));
-  height: calc(42 * var(--upx));
-  border: 1px solid #8c592f;
-  border-radius: 50%;
-  background: #160d09;
-  color: #e8bf79;
-  font-size: calc(26 * var(--upx));
-  line-height: 1;
+  position: absolute;
+  right: calc(30 * var(--upx));
+  top: 50%;
+  /* 원화(159x168)는 세로로 긴 사각형이라 그대로 쓰면 좁아 보입니다.
+     오른쪽 끝을 고정한 채 가로만 조금 늘려(≈13%) 정사각에 가깝게 씁니다. */
+  width: calc(34 * var(--upx));
+  height: calc(32 * var(--upx));
+  border: none;
+  background: url("../assets/UI/Journal/ui_journal_close.webp") center/100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
+  transform: translateY(-50%);
   cursor: pointer;
 }
 .journal-close:hover,
-.journal-close:focus-visible {
-  border-color: #efc77b;
-  color: #ffe7ae;
-}
+.journal-close:focus-visible { filter: brightness(1.12); }
+.journal-close:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
 /* 제목과 같은 판 안에 들어가는 안내문입니다. */
 .journal-description {
   margin: 0;
-  color: #c9ae85;
-  font-size: calc(15 * var(--upx));
+  color: #e6cda2;
+  font-size: calc(12 * var(--upx));
   line-height: 1.5;
   text-align: left;
 }
@@ -477,92 +497,56 @@
   display: grid;
   grid-template-columns:
     var(--journal-arrow-column)
-    var(--journal-tab-column)
     minmax(0,1fr)
-    var(--journal-tab-column)
     var(--journal-arrow-column);
   align-items: center;
   gap: 0;
   min-height: 0;
   margin-top: calc(12 * var(--upx));
 }
+/* 견출지가 책 위로 나오는 만큼 자리를 비워 둡니다. */
+.journal-spread {
+  position: relative;
+  min-width: 0;
+  padding-top: calc(var(--journal-tab-out) + var(--journal-tab-rise));
+}
 .journal-page-arrow {
   position: relative;
   z-index: 3;
   margin: 0 calc(5 * var(--upx));
-  width: calc(48 * var(--upx));
-  height: calc(76 * var(--upx));
-  border: 1px solid #86542f;
-  border-radius: calc(24 * var(--upx));
-  background: linear-gradient(#2b190f,#130b08);
-  color: #efc77b;
-  font: 700 calc(40 * var(--upx))/1 Georgia,serif;
-  box-shadow: 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.42);
+  width: calc(72 * var(--upx));
+  height: calc(58 * var(--upx));
+  border: none;
+  background: center/100% 100% no-repeat;
+  color: transparent;
+  font-size: 0;
   cursor: pointer;
 }
-.journal-page-arrow:hover:not(:disabled),
-.journal-page-arrow:focus-visible {
-  border-color: #e6bd75;
-  color: #fff0bb;
-  filter: brightness(1.12);
-}
+#journalPrevious { background-image: url("../assets/UI/Journal/ui_journal_arrow_prev.webp"); }
+#journalNext { background-image: url("../assets/UI/Journal/ui_journal_arrow_next.webp"); }
+.journal-page-arrow:hover:not(:disabled) { filter: brightness(1.12); }
+.journal-page-arrow:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
 .journal-page-arrow:disabled { opacity: .28; cursor: default; }
 .journal-page {
   /* 책 에셋 제작 후 예: --journal-book-image: url("../assets/UI/journal-book.webp"); */
-  --journal-book-image: none;
+  --journal-book-image: url("../assets/UI/Journal/ui_journal_book_open.webp");
   position: relative;
+  z-index: 1;              /* 견출지(0)를 책 뒤로 보냅니다 */
   isolation: isolate;
   min-width: 0;
-  height: calc(470 * var(--upx));
-  min-height: calc(390 * var(--upx));
+  /* 펼친 책 원화(3492x1816)의 비율 그대로입니다. */
+  height: calc(544 * var(--upx));
+  min-height: calc(430 * var(--upx));
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
-  padding: calc(25 * var(--upx)) calc(34 * var(--upx)) calc(28 * var(--upx));
-  border: calc(3 * var(--upx)) solid #6d4528;
-  border-radius: calc(16 * var(--upx)) calc(27 * var(--upx)) calc(20 * var(--upx)) calc(27 * var(--upx));
-  background-image:
-    var(--journal-book-image),
-    linear-gradient(90deg,
-      rgba(210,176,119,.99) 0,
-      rgba(249,231,187,.99) 3%,
-      rgba(244,222,174,.99) 47.5%,
-      rgba(184,145,91,.99) 49.6%,
-      rgba(147,105,66,.99) 50%,
-      rgba(190,153,97,.99) 50.4%,
-      rgba(246,225,177,.99) 52.5%,
-      rgba(250,233,190,.99) 97%,
-      rgba(205,169,112,.99) 100%),
-    repeating-linear-gradient(0deg,transparent 0 calc(24 * var(--upx)),rgba(94,54,28,.06) calc(24 * var(--upx)) calc(25 * var(--upx)));
+  /* 그림에서 종이가 시작되는 자리보다 더 안쪽까지 밀어 둡니다
+     (위 50 · 좌우 122 · 아래 74). 종이 가장자리에 글자가 붙지 않습니다. */
+  padding: calc(50 * var(--upx)) calc(122 * var(--upx)) calc(74 * var(--upx));
+  background-image: var(--journal-book-image);
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
   color: #3c2619;
-  box-shadow:
-    inset 0 0 calc(25 * var(--upx)) rgba(91,51,24,.22),
-    0 calc(9 * var(--upx)) calc(24 * var(--upx)) rgba(0,0,0,.52);
-  overflow: hidden;
-}
-.journal-page::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: 3%;
-  bottom: 3%;
-  left: 50%;
-  width: calc(8 * var(--upx));
-  background: linear-gradient(90deg,rgba(68,39,22,.06),rgba(75,42,23,.35) 48%,rgba(255,245,207,.22));
-  box-shadow: calc(-5 * var(--upx)) 0 calc(12 * var(--upx)) rgba(66,37,19,.15),calc(5 * var(--upx)) 0 calc(12 * var(--upx)) rgba(66,37,19,.13);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-.journal-page::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: calc(7 * var(--upx));
-  border: 1px solid rgba(111,72,40,.18);
-  border-radius: calc(11 * var(--upx)) calc(21 * var(--upx)) calc(14 * var(--upx)) calc(21 * var(--upx));
-  pointer-events: none;
 }
 .journal-page.is-locked { filter: saturate(.38) brightness(.72); }
 .journal-page-leaf {
@@ -570,18 +554,21 @@
   z-index: 1;
   min-width: 0;
   min-height: 0;
-  padding: calc(8 * var(--upx)) calc(26 * var(--upx));
+  padding: 0;
 }
+/* 접힘선 쪽 여백. 그림의 접힘 그림자(가운데 약 46~53%)를 피해 글자를 놓고,
+   각 면의 글자 자리가 그 면 종이의 한가운데에 오게 하는 값입니다. */
 .journal-page-left {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  padding-right: calc(81 * var(--upx));
   text-align: center;
 }
 .journal-page-right {
   display: flex;
-  padding-left: calc(34 * var(--upx));
+  padding-left: calc(67 * var(--upx));
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-color: #9b7046 rgba(102,68,39,.12);
@@ -636,6 +623,25 @@
   color: #5a321d;
   font-size: calc(32 * var(--upx));
 }
+/* 인게임 세 구역(주의사항·요리·일기)은 각자 원화 액자를 씁니다. */
+.journal-page-portrait.has-frame {
+  border: none;
+  border-radius: 0;
+  background: center/100% 100% no-repeat;
+  color: #5a321d;
+}
+.journal-page-portrait.frame-rules {
+  aspect-ratio: 436 / 448;
+  background-image: url("../assets/UI/Journal/ui_journal_picture_caution.webp");
+}
+.journal-page-portrait.frame-recipe {
+  aspect-ratio: 422 / 448;
+  background-image: url("../assets/UI/Journal/ui_journal_picture_cooking.webp");
+}
+.journal-page-portrait.frame-day {
+  aspect-ratio: 431 / 448;
+  background-image: url("../assets/UI/Journal/ui_journal_picture_diary.webp");
+}
 .journal-page.is-locked .journal-page-portrait.has-portrait {
   background-color: #7d6d5d;
   background-image:
@@ -644,7 +650,35 @@
   color: #f4d99b;
   text-shadow: 0 1px calc(5 * var(--upx)) #000;
 }
-.journal-page.is-ending .journal-page-portrait { background: radial-gradient(circle,#fff4bd,#6d4c68 72%); }
+/* 엔딩 장은 컷씬 그림이 들어가는 자리라, 초상화 대신 가로로 긴
+   직사각형입니다. 게임 화면과 같은 16:9 로 페이지 폭을 거의 꽉 채웁니다. */
+/* 컷씬 자리는 글자가 아니라 그림이라, 글자 자리를 좁혀도 같이 줄지 않게
+   폭을 따로 잡습니다. (가운데는 여전히 왼쪽 종이의 정중앙입니다) */
+.journal-page.is-ending .journal-page-portrait {
+  width: calc(360 * var(--upx));
+  aspect-ratio: 16 / 9;
+  border-radius: calc(8 * var(--upx));
+  background: linear-gradient(150deg,#402e52,#6d4c68 55%,#2b1e35);
+  color: #f4e2b6;
+  font-size: calc(40 * var(--upx));
+}
+/* 한 번이라도 본 엔딩은 위 보라색 판 대신 그 엔딩의 컷씬 그림이 깔립니다.
+   그림 주소는 title.js 의 JOURNAL_ENDING_ART 가 인라인 style 로 넣습니다.
+   (인라인이라 위 background 축약형을 확실히 덮습니다. 여기서는 깔리는
+   방식만 정합니다) 원화도 컷씬 자리도 16:9 라 cover 로 잘릴 일은 없고,
+   비율이 어긋난 그림이 들어와도 찌그러지지 않게 cover 로 둡니다. */
+.journal-page.is-ending .journal-page-portrait.has-cutscene {
+  background-color: #1b1220;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  border-color: #a8763f;
+  box-shadow: inset 0 0 calc(12 * var(--upx)) rgba(0,0,0,.5);
+}
+.journal-page.is-ending.is-locked .journal-page-portrait {
+  background: #6b5c50;
+  color: #f4d99b;
+}
 .journal-page.is-locked .journal-page-portrait {
   background:
     radial-gradient(circle at 50% 30%,#1b1613 0 17%,transparent 18%),
@@ -672,6 +706,11 @@
   white-space: pre-line;
   word-break: keep-all;
 }
+/* [주의사항] 같은 구역 머리와 '이름 ·' 같은 항목 이름만 굵게 씁니다. */
+.journal-page p .journal-note-label {
+  color: #4b2b1a;
+  font-weight: 700;
+}
 /* 특별 손님 페이지 아래쪽에 붙는 달빛 조각 그림입니다.
    그림 크기를 바꾸면 tools/build-moonpiece-webp.js 의 SIZE(이 값 x2)도
    같이 키워야 합니다. */
@@ -684,7 +723,7 @@
   font-size: calc(26 * var(--upx));
 }
 .journal-page-relic {
-  --journal-relic-size: calc(132 * var(--upx));
+  --journal-relic-size: calc(118 * var(--upx));
   margin: calc(10 * var(--upx)) 0 0;
   display: flex;
   flex-direction: column;
@@ -692,6 +731,14 @@
   gap: calc(6 * var(--upx));
 }
 .journal-page-relic[hidden] { display: none; }
+/* 레시피 장의 음식 프롭. 원본이 가로로 납작해서(264:152) 조각과 크기를
+   따로 잡습니다. 이름은 페이지 제목에 이미 있어 캡션은 비워 둡니다. */
+.journal-page-relic.is-dish {
+  --journal-relic-size: calc(200 * var(--upx));
+  margin-top: calc(14 * var(--upx));
+}
+.journal-page-relic.is-dish .journal-page-relic-art { aspect-ratio: 264 / 152; height: auto; }
+.journal-page-relic-name:empty { display: none; }
 .journal-page-relic-art {
   width: var(--journal-relic-size);
   height: var(--journal-relic-size);
@@ -726,55 +773,66 @@
   overflow-wrap: anywhere;
   word-break: keep-all;
 }
-/* 일지 옆에 붙는 견출지입니다. 아직 넘기지 않은 구역은 오른쪽 면에,
-   이미 지나온 구역은 왼쪽 면에 붙습니다. 세로 자리(--journal-tab-slot)는
-   구역 순서로 고정해서, 좌우로 옮겨가도 같은 높이에 남습니다. */
-.journal-side-tabs {
-  position: relative;
-  align-self: stretch;
-  height: 100%;
-  min-width: 0;
+/* 책 위쪽 모서리에 붙는 견출지입니다. 아직 넘기지 않은 구역은 오른쪽 면 위에,
+   이미 지나온 구역은 왼쪽 면 위에 붙습니다. 가로 자리(--journal-tab-slot)는
+   구역 순서로 고정해서, 면을 옮겨가도 그 면 안에서의 자리는 같습니다. */
+/* 띠는 책 위로 나온 부분만 차지하고, 견출지 그림은 이 띠보다 길어서
+   아래쪽이 책(z-index 1) 뒤로 들어갑니다 — 책에 끼워 넣은 모양입니다. */
+.journal-tab-strip {
+  position: absolute;
+  top: 0;
+  z-index: 0;
+  width: 50%;
+  height: calc(var(--journal-tab-out) + var(--journal-tab-rise));
 }
+/* 각 면의 종이가 시작되는 자리에서부터 견출지를 놓습니다.
+   왼쪽 면은 종이가 바깥에서 84, 오른쪽 면은 접힘선에서 29 부터입니다. */
+.journal-tab-strip-left { left: 0; --journal-tab-start: calc(84 * var(--upx)); }
+.journal-tab-strip-right { left: 50%; --journal-tab-start: calc(29 * var(--upx)); }
 .journal-section-tab {
   position: absolute;
-  top: calc(var(--journal-tab-top) + var(--journal-tab-slot,0) * var(--journal-tab-pitch));
-  z-index: 2;
-  width: calc(45 * var(--upx));
-  height: var(--journal-tab-height);
+  top: var(--journal-tab-rise);
+  left: calc(var(--journal-tab-start) + var(--journal-tab-slot,0) * var(--journal-tab-pitch));
+  width: var(--journal-tab-width);
   display: grid;
-  place-items: center;
-  padding: calc(6 * var(--upx)) 0;
-  border: calc(2 * var(--upx)) solid #6d4528;
-  background: linear-gradient(#f2dcae,#d3ae76);
-  color: #4b2b1a;
+  justify-items: center;
+  /* 글자는 책 위로 나온 부분 안에 놓습니다. 세로 가운데로 두면 그림이
+     길어서 글자가 책 뒤로 반쯤 들어갑니다. */
+  align-content: start;
+  padding: calc(17 * var(--upx)) calc(10 * var(--upx)) 0;
+  border: none;
+  background: center/100% 100% no-repeat;
+  color: #fff3d6;
   font-size: calc(15 * var(--upx));
   line-height: 1.1;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
   white-space: nowrap;
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  box-shadow: 0 calc(3 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.38);
+  text-shadow: 0 calc(1 * var(--upx)) calc(3 * var(--upx)) rgba(46,20,8,.75);
   cursor: pointer;
-  transition: width .16s, filter .16s;
+  transition: top .16s, filter .16s;
 }
-.journal-side-tabs-right .journal-section-tab {
-  left: 0;
-  border-left: none;
-  border-radius: 0 calc(10 * var(--upx)) calc(10 * var(--upx)) 0;
+/* 원화 세 장의 가로세로비. 아래쪽이 책 뒤로 얼마나 들어가는지가 조금씩
+   다르지만, 보이는 높이는 --journal-tab-out 으로 모두 같습니다. */
+.journal-section-tab.is-rules,
+.journal-section-tab.is-guest {
+  aspect-ratio: 392 / 190;
+  background-image: url("../assets/UI/Journal/ui_journal_tab_caution.webp");
 }
-.journal-side-tabs-left .journal-section-tab {
-  right: 0;
-  border-right: none;
-  border-radius: calc(10 * var(--upx)) 0 0 calc(10 * var(--upx));
+.journal-section-tab.is-recipe {
+  aspect-ratio: 380 / 200;
+  background-image: url("../assets/UI/Journal/ui_journal_tab_cooking.webp");
 }
+.journal-section-tab.is-day,
+.journal-section-tab.is-ending {
+  aspect-ratio: 392 / 182;
+  background-image: url("../assets/UI/Journal/ui_journal_tab_diary.webp");
+}
+/* 펼친 견출지는 그만큼 더 위로 올라옵니다(아래쪽은 그대로 책 속). */
 .journal-section-tab.is-active {
-  width: var(--journal-tab-column);
-  border-color: #8c5a2c;
-  background: linear-gradient(#fff2c9,#e6c489);
-  color: #3b2110;
+  top: 0;
   font-weight: 700;
 }
-.journal-section-tab.is-past { background: linear-gradient(#dcc396,#b8935f); color: #402615; }
+.journal-section-tab.is-past { filter: brightness(.86) saturate(.85); }
 .journal-section-tab:hover:not(.is-active) { filter: brightness(1.07); }
 .journal-section-tab:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
 .journal-section-tab.is-new::after {
@@ -790,29 +848,34 @@
 }
 
 @media (max-width: 760px) {
-  /* 칸 너비는 변수만 줄이면 제목 판(--journal-side)까지 같이 따라옵니다. */
+  /* 그림 비율은 그대로 두고 크기만 줄입니다. 여기 값을 고칠 때도
+     책·제목 판·화살표의 가로세로비는 지켜야 합니다. */
   .journal-window {
-    --journal-arrow-column: calc(38 * var(--upx)); /* 버튼 34 + 여백 2 */
-    --journal-tab-column: calc(40 * var(--upx));
-    --journal-tab-height: calc(82 * var(--upx));
-    --journal-tab-pitch: calc(94 * var(--upx));
-    --journal-tab-top: calc(18 * var(--upx));
+    --journal-arrow-column: calc(62 * var(--upx)); /* 버튼 54 + 여백 4 */
+    --journal-tab-width: calc(104 * var(--upx));
+    --journal-tab-out: calc(34 * var(--upx));
+    --journal-tab-rise: calc(6 * var(--upx));
+    --journal-tab-pitch: calc(106 * var(--upx));
     width: 98%;
     padding: calc(10 * var(--upx));
   }
-  .journal-heading h2 { font-size: calc(24 * var(--upx)); }
-  .journal-description { font-size: calc(13 * var(--upx)); }
-  .journal-page-arrow { width: calc(34 * var(--upx)); height: calc(62 * var(--upx)); margin: 0 calc(2 * var(--upx)); font-size: calc(32 * var(--upx)); }
-  .journal-section-tab { width: calc(34 * var(--upx)); font-size: calc(13 * var(--upx)); }
-  .journal-page { height: calc(430 * var(--upx)); min-height: calc(330 * var(--upx)); padding: calc(18 * var(--upx)) calc(19 * var(--upx)); }
-  .journal-page-leaf { padding: calc(6 * var(--upx)) calc(13 * var(--upx)); }
-  .journal-page-right { padding-left: calc(19 * var(--upx)); }
+  .journal-heading { width: calc(700 * var(--upx)); height: calc(74 * var(--upx)); padding: calc(11 * var(--upx)) calc(58 * var(--upx)) calc(9 * var(--upx)) calc(20 * var(--upx)); }
+  .journal-heading h2 { font-size: calc(22 * var(--upx)); }
+  .journal-description { font-size: calc(12 * var(--upx)); }
+  .journal-close { right: calc(22 * var(--upx)); width: calc(30 * var(--upx)); height: calc(28 * var(--upx)); }
+  .journal-page-arrow { width: calc(54 * var(--upx)); height: calc(44 * var(--upx)); margin: 0 calc(4 * var(--upx)); }
+  .journal-section-tab { font-size: calc(13 * var(--upx)); padding-top: calc(6 * var(--upx)); }
+  .journal-page { height: calc(430 * var(--upx)); min-height: calc(360 * var(--upx)); padding: calc(40 * var(--upx)) calc(84 * var(--upx)) calc(58 * var(--upx)); }
+  .journal-tab-strip-left { --journal-tab-start: calc(66 * var(--upx)); }
+  .journal-tab-strip-right { --journal-tab-start: calc(23 * var(--upx)); }
+  .journal-page-right { padding-left: calc(46 * var(--upx)); }
+  .journal-page-left { padding-right: calc(56 * var(--upx)); }
   .journal-page-topline { margin-bottom: calc(18 * var(--upx)); font-size: calc(12 * var(--upx)); }
   .journal-page-portrait { width: calc(82 * var(--upx)); }
   .journal-page h3 { font-size: calc(23 * var(--upx)); }
   .journal-page p { font-size: calc(15 * var(--upx)); line-height: 1.55; }
   .journal-page.is-gameplay-page .journal-page-right p { font-size: calc(13 * var(--upx)); }
   .journal-page small { font-size: calc(12 * var(--upx)); }
-  .journal-page-relic { --journal-relic-size: calc(112 * var(--upx)); margin-top: calc(10 * var(--upx)); }
+  .journal-page-relic { --journal-relic-size: calc(100 * var(--upx)); margin-top: calc(10 * var(--upx)); }
   .journal-page-relic-name { font-size: calc(13 * var(--upx)); }
 }

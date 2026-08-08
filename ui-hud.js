@@ -95,7 +95,9 @@ const UI_TEXT = Object.freeze({
      스크린리더가 읽습니다. (css/interaction.css 가 글자를 그리지 않습니다) */
   prompt: Object.freeze({
     serve: seat => `E · ${seat}번 손님에게 서빙`,
-    prepObject: label => `E · ${label}`,
+    // 낮 준비물은 이름을 붙이지 않습니다 — 바로 위에 이름표(prep.js)가 이미 떠 있어서
+    // 같은 글자가 두 줄로 겹쳐 보였습니다. 여기는 "누를 수 있다"만 알려 줍니다.
+    prepObject: () => "E",
     station: label => `E · ${label} 사용`
   }),
 

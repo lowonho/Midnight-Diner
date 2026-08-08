@@ -137,7 +137,7 @@ function applyLabelScale(scale,cx,cy){
 
 /* 집기·준비물 이름표. (x, y) 는 글자 baseline 기준입니다.
    폭은 고정값이 아니라 글자 실측 폭 + 좌우 여백입니다.
-   "김치전용 김치" 처럼 긴 이름이 명판을 뚫고 나가지 않게 하려는 것이고,
+   "두부김치용 김치 썰기" 처럼 긴 이름이 명판을 뚫고 나가지 않게 하려는 것이고,
    짧은 이름은 minW 아래로는 줄어들지 않아 명판 크기가 들쭉날쭉해지지 않습니다. */
 const FIXTURE_LABEL = { minW:70, padX:11, h:24, radius:5, font:"bold 12px Malgun Gothic", bg:"#1b100b", line:"#9a6235", text:"#f0c87b" };
 
