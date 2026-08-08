@@ -331,7 +331,7 @@ function titleJournalStoredReaction(value){
     const line=value.trim();
     const wrapped=line.match(/^(?:“([\s\S]*)”|"([\s\S]*)"|'([\s\S]*)'|‘([\s\S]*)’)$/);
     const text=(wrapped?(wrapped[1]??wrapped[2]??wrapped[3]??wrapped[4]):line).trim();
-    return text?`'${text}'`:"";
+    return text?`“${text}”`:"";
   }).filter(Boolean).join("\n");
 }
 
@@ -367,7 +367,7 @@ function titleJournalPerfectReaction(definition){
       &&line.speaker!=="protagonist"
       &&typeof line.text==="string"
       &&line.text.trim())
-    .map(line=>`'${line.text.trim()}'`)
+    .map(line=>`“${line.text.trim()}”`)
     .join("\n");
 }
 

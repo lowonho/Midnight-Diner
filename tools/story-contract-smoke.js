@@ -428,6 +428,7 @@ const guestContracts=[
   [8,7,"facelessDaeun","yakisoba","daeuns_tomorrow","김다은의 내일","after",5]
 ];
 
+let quotedDaeunReflectionCount=0;
 guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,afterGeneral])=>{
   const prefix="SCN-G"+number;
   const arrival=STORY_SCENES[prefix+"-A"];
@@ -474,7 +475,21 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
   assert(!soft.lines.some(line=>line.fragmentHandoff),prefix+" 아쉽다 조각 미지급");
   assert([soft,warm,great].every(scene=>scene.preservesUnlockedMemory),
     prefix+" 재평가가 기존 기억과 조각을 회수하면 안 됩니다.");
+  [soft,warm,great].forEach(scene=>{
+    const quotedReflections=scene.lines.filter(line=>line.speaker==="protagonist"
+      &&typeof line.text==="string"&&/^'.*'$/.test(line.text));
+    const expected=number===8&&scene===great?2:1;
+    assert(quotedReflections.length===expected
+      &&quotedReflections.every(line=>typeof line.motion==="string"&&line.motion),
+      scene.id+" 손님 반응 뒤 김다은의 옛 속말만 작은따옴표와 모션을 유지해야 합니다.");
+    quotedDaeunReflectionCount+=quotedReflections.length;
+  });
+  assert([arrival,missing].every(scene=>!scene.lines.some(line=>line.speaker==="protagonist"
+    &&typeof line.text==="string"&&/^'.*'$/.test(line.text))),
+    prefix+" 등장·오답 장면의 일반 김다은 대사에는 작은따옴표를 붙이면 안 됩니다.");
 });
+assert(quotedDaeunReflectionCount===25,
+  "특별 손님 결과 뒤 김다은의 옛 속말 25개만 작은따옴표로 표시해야 합니다.");
 
 same(STORY_SPECIAL_GUEST_BY_DAY,{
   1:["SCN-G1-A"],2:["SCN-G2-A"],3:["SCN-G3-A"],4:["SCN-G4-A"],
@@ -780,7 +795,7 @@ const dayOnePage=getGameplayJournalPages().find(page=>page.day===1);
 const rainyPage=dayOnePage.entries.find(entry=>entry.guestId==="rainyChild");
 assert(dayOnePage.recorded&&rainyPage
   &&rainyPage.dishNote.includes("김치전")
-  &&rainyPage.reactionNote==="'맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.'"
+  &&rainyPage.reactionNote==="“맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.”"
   &&rainyPage.shardNote.includes("첫 빗방울")
   &&!("previousLoopEvaluation" in rainyPage)
   &&!("revealedStory" in rainyPage)
@@ -798,8 +813,8 @@ recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
 dayOneEntry=getGameplayJournalPages().find(page=>page.day===1)
   .entries.find(entry=>entry.guestId==="rainyChild");
 assert(dayOneEntry?.reactionNote===[
-  "'이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.'",
-  "'제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요'"
+  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”",
+  "“제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요”"
 ].join("\\n"),
 "음식 미준비·오답 기록에는 판정명 대신 해당 손님이 실제 한 말을 모두 남겨야 합니다.");
 
@@ -808,8 +823,8 @@ recordStorySceneOutcome(STORY_SCENES["SCN-G3-맛있다"]);
 const twinEntry=getGameplayJournalPages().find(page=>page.day===3)
   .entries.find(entry=>entry.guestId==="twinShadows");
 assert(twinEntry?.reactionNote===[
-  "'나는 떠나고 싶었어.'",
-  "'나는 남고 싶었어.'"
+  "“나는 떠나고 싶었어.”",
+  "“나는 남고 싶었어.”"
 ].join("\\n"),
 "둘이 붙은 그림자는 왼쪽·오른쪽 그림자의 실제 반응을 모두 기록해야 합니다.");
 
@@ -819,8 +834,8 @@ let daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
   .entries.find(entry=>entry.guestId==="facelessDaeun");
 assert(daySevenEntry?.guestName==="얼굴 없는 손님"
   &&daySevenEntry.reactionNote===[
-    "'이건 그날 우리가 나눠 먹던 음식이 아니야.'",
-    "'굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.'"
+    "“이건 그날 우리가 나눠 먹던 음식이 아니야.”",
+    "“굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.”"
   ].join("\\n"),
   "마지막 예약 손님의 정체 공개 전 영업일지는 이름을 숨기고 실제 오답 반응을 기록해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G8-완벽"]);
@@ -828,9 +843,9 @@ daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
   .entries.find(entry=>entry.guestId==="facelessDaeun");
 assert(daySevenEntry?.guestName==="얼굴 없는 김다은"
   &&daySevenEntry.reactionNote===[
-    "'나는 김다은. 네가 포기한 내일이야.'",
-    "'우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.'",
-    "'아직 무엇을 할지 몰라도, 내일은 올 수 있어.'"
+    "“나는 김다은. 네가 포기한 내일이야.”",
+    "“우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.”",
+    "“아직 무엇을 할지 몰라도, 내일은 올 수 있어.”"
   ].join("\\n"),
   "마지막 예약 손님의 정체는 완벽 결과로 기억이 공개된 뒤에만 영업일지에 기록해야 합니다.");
 assert(![rainyPage,dayOneEntry,twinEntry,daySevenEntry].some(entry=>
@@ -838,8 +853,8 @@ assert(![rainyPage,dayOneEntry,twinEntry,daySevenEntry].some(entry=>
 ),"영업일지의 손님 반응에는 내부 판정명이나 평가 없음 문구가 노출되면 안 됩니다.");
 assert([rainyPage,dayOneEntry,twinEntry,daySevenEntry].every(entry=>
   (entry?.reactionNote||"").split("\\n").filter(Boolean)
-    .every(line=>/^'.*'$/.test(line)&&!/[“”]/.test(line))
-),"영업일지의 모든 손님 반응은 줄마다 작은따옴표 하나로 감싸야 합니다.");
+    .every(line=>/^“.*”$/.test(line)&&!/^'.*'$/.test(line))
+),"영업일지의 손님 반응은 기존 큰따옴표를 유지하고 김다은 속말용 작은따옴표를 쓰면 안 됩니다.");
 state.story=journalStoryBeforeReactionTests;
 
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
@@ -851,7 +866,7 @@ assert(rainy.previousLoopTier==="warm"&&rainy.previousLoopScore===73
 const rainyAfterMissingLoop=getGameplayJournalPages().find(page=>page.day===1)
   .entries.find(entry=>entry.guestId==="rainyChild");
 assert(rainyAfterMissingLoop?.reactionNote.startsWith(
-  "'이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.'"
+  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”"
 ),"음식 미준비 반응은 과거 평가 수치를 지우지 않으면서도 직전 회차 멘트로 남아야 합니다.");
 
 state.story=createStoryState();

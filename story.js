@@ -335,7 +335,7 @@ function storyJournalGuestReactionNote(definition,guest,result){
   );
   return (scene.lines||[])
     .filter(line=>speakerIds.has(line?.speaker)&&typeof line.text==="string"&&line.text.trim())
-    .map(line=>`'${line.text.trim()}'`)
+    .map(line=>`“${line.text.trim()}”`)
     .join("\n");
 }
 
