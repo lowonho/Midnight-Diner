@@ -15,7 +15,8 @@
    불에 닿아 있는 **아래 면**만 익으므로, 순서가 곧 "지금 어느 면이 아래인가" 입니다.
      김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
      닭꼬치 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기
-   닭꼬치는 양념을 바르는 동안 해당 면이 한 단계 익습니다 (TWO_SIDE_STEP_PLAN).
+   닭꼬치는 양념을 한 번 바르면 해당 면이 잘 익음(2단계)까지 갑니다
+   (TWO_SIDE_STEP_PLAN). 굽기 횟수를 줄이기 전과 같은 완성 그림을 유지하기 위함입니다.
    신호를 놓치면 해당 면에 벌점이 붙고 다음 단계로 넘어갑니다.
 
    [답하는 손짓]  굽기는 **클릭**, 뒤집기와 양념은 **드래그**입니다.
@@ -54,7 +55,8 @@
      김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
 
    김치전은 한 면에 두 번씩 굽고, 닭꼬치는 한 면에 양념을 한 번씩 바릅니다.
-   양념 성공이 해당 면의 익힘도도 한 단계 올립니다 (익힘 셈은 아래 twoSideSideStage 참고).
+   닭꼬치의 양념 성공은 한 번으로 해당 면을 잘 익음(2단계)까지 올립니다
+   (익힘 셈은 아래 twoSideSideStage 참고).
    ⚠️ 예전에는 cyclesPerUnit 로 만들어 냈는데, 두 요리의 순서가 서로 달라져
       규칙으로는 못 만들게 됐습니다. 순서 그대로 적는 것이 읽기도 쉽습니다. */
 const TWO_SIDE_STEP_PLAN=Object.freeze({
@@ -226,8 +228,8 @@ function createTwoSideUnits(dishStyle){
   /* sides : **앞면(0) · 뒷면(1)** 이 따로 익습니다.
        cook  그 면에 제때 답한 횟수 (성공)
        burn  그 면이 불에 닿아 있는 동안 놓친 횟수 (탐)
-     닭꼬치는 양념 성공도 cook 한 번으로 셉니다. 보이는 그림 번호는
-     twoSideSideStage 가 이 둘로 계산합니다. */
+     닭꼬치는 양념 성공 한 번을 cook 두 단계로 셉니다. 보이는 그림 번호는
+     아래 twoSideSideStage가 이 둘로 계산합니다. */
   return Array.from({length:config.units},(_,index)=>({
     index, placed:onPan, slot:onPan?index:null, done:false, served:onPan,
     steps:buildTwoSideUnitSteps(dishStyle), stepIndex:0,
@@ -261,8 +263,8 @@ function updateTwoSideSauceVisual(data,unit){
 /* 한 면의 그림 번호(0~4).
      성공(cook)은 2(잘 익음)까지만 올립니다 — 잘 구우면 절대 타지 않습니다.
      놓침(burn)은 거기서 한 칸씩 더 올립니다 → 3 살짝 탐 · 4 탐.
-   김치전은 한 면에 두 번씩 성공해 2에서 멈추고, 닭꼬치는 양념 한 번씩으로
-   양쪽이 1에서 멈춥니다.
+   김치전은 한 면에 두 번씩 성공해 2에서 멈추고, 닭꼬치는 양념 성공 한 번이
+   두 단계로 계산되어 양쪽이 2에서 멈춥니다.
    ⚠️ 아직 덜 익은 면(cook 0~1)을 놓치면 3 으로 건너뛰지 않고 1~2 로만 갑니다.
       "안 익은 것이 갑자기 새까매지는" 일이 없게 하려는 것입니다. */
 function twoSideSideStage(side){
@@ -287,10 +289,10 @@ function cookArtStep(unit,steps){
    ⚠️ **그림은 보이는 면**을 그리므로, 아래 면을 익혀도 화면은 대개 그대로입니다.
       그래도 updateTwoSideCookVisual 을 부르는 이유는 뒤집기 직후처럼 보이는 면이
       바뀐 경우를 같이 처리하기 때문입니다. */
-function raiseTwoSideCookStep(data,unit){
+function raiseTwoSideCookStep(data,unit,amount=1){
   const side=unit?.sides?.[twoSideCookingSide(unit)];
   if(!side)return;
-  side.cook=(side.cook||0)+1;
+  side.cook=(side.cook||0)+amount;
   updateTwoSideCookVisual(data,unit);
 }
 
@@ -651,8 +653,9 @@ function flickTwoSideCue(m,unitIndex,kind="flip"){
   if(!step||step.kind!==kind||unit.phase!=="cue")return false;
   data.hits.push(twoSideCueScore(unit,kind));
   if(kind==="sauce"){
-    // 양념을 바르는 동안에도 아래 면은 계속 익습니다 — 그래서 한 칸 올립니다
-    raiseTwoSideCookStep(data,unit);
+    // 굽기 횟수를 줄인 현재 순서에서는 양념 한 번이 그 면의 유일한 성공입니다.
+    // 완성 UI가 살짝 익음(1)이 아니라 잘 익음(2)에 닿도록 두 칸 올립니다.
+    raiseTwoSideCookStep(data,unit,2);
     applyTwoSideSauce(m,unit.index);
   }else performTwoSideFlip(m,unit);
   advanceTwoSideStep(m,unit);

@@ -468,15 +468,16 @@ try{
   assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 the first cue sauces the front side");
   assert(pressTwoSideCue(skewerCookMini,1)===false&&!skewerUnit.done,"E5 a sauce cue does not accept a click");
   assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===1
-    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===0&&skewerUnit.saucedSides[0]&&!skewerUnit.saucedSides[1]
-    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 front sauce brings in the brush and cooks only the front side");
+    &&skewerUnit.sides[0].cook===2&&skewerUnit.sides[1].cook===0&&twoSideSideStage(skewerUnit.sides[0])===2&&skewerUnit.saucedSides[0]&&!skewerUnit.saucedSides[1]
+    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 front sauce brings in the brush and fully cooks only the front side");
   openTwoSideCue(skewerCookMini,skewerUnit);
   assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.stepIndex===2&&skewerUnit.flips===1&&twoSideCookingSide(skewerUnit)===1,"E5 first flip turns the skewer from front to back");
   openTwoSideCue(skewerCookMini,skewerUnit);
   assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===3
-    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===1&&skewerUnit.saucedSides.every(Boolean),"E5 back sauce cooks and coats only the back side");
+    &&skewerUnit.sides[0].cook===2&&skewerUnit.sides[1].cook===2&&skewerUnit.saucedSides.every(Boolean),"E5 back sauce fully cooks and coats only the back side");
   openTwoSideCue(skewerCookMini,skewerUnit);
-  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.done&&skewerUnit.flips===2&&twoSideCookingSide(skewerUnit)===0,"E5 final flip returns the finished skewer to the front side");
+  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.done&&skewerUnit.flips===2&&twoSideCookingSide(skewerUnit)===0
+    &&cookArtStep(skewerUnit,SKEWER_COOK_STEPS)===2,"E5 final flip returns a well-cooked finished skewer to the front side");
   /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
      담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
   assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");
