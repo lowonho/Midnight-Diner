@@ -238,17 +238,39 @@ function completeDayPrepTask(taskId,completionScore){
   updateUI(true);saveGame();
 }
 
+/* 낮 좌측 HUD 목록.
+   메뉴 이름 한 줄 아래에 그 메뉴의 세부 준비 작업을 'ㄴ' 로 늘어놓습니다
+   (어묵탕 → 무 썰기 · 어묵 썰기 · 멸치 손질). 'ㄴ' 기호는 글이 아니라
+   표시라서 CSS(.prep-subtask::before)가 붙입니다.
+
+   [두 덩이로 나눠 넣는 이유] 목록(.prep-checklist)만 스크롤되고
+   합계 줄(.prep-total)은 늘 보여야 해서 형제로 둡니다. 그 아래 「영업 시작」
+   버튼은 원래부터 #inventoryList 바깥이라 스크롤과 무관합니다.
+   (자리 규칙은 css/hud.css 의 .left-hud / .prep-checklist 참고) */
 function renderPrepChecklist(){
   const items=prepChecklistDishes();
-  const signature=`prep|${state.selectedMenus.join(",")}|${items.map(item=>Number(item.done)).join("")}`;
+  const taskDone=task=>!!state.prepProgress?.[task.id];
+  const allTasks=items.flatMap(item=>item.tasks);
+  const doneCount=allTasks.filter(taskDone).length;
+  // ⚠️ 서명에 **작업 하나하나**의 완료 여부가 들어가야 합니다. 예전처럼 메뉴 줄의
+  //    done 만 보면, 같은 메뉴 안에서 작업 하나를 끝내도 목록이 다시 안 그려집니다.
+  const signature=`prep|${state.selectedMenus.join(",")}|${allTasks.map(task=>Number(taskDone(task))).join("")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
-  const ready=items.filter(item=>item.done).length;
-  dom.inventoryList.innerHTML=`<div class="prep-checklist">${items.map((item,index)=>
-    // "완료"는 이름 옆에 붙입니다. 아랫줄(.prep-task-row > div)에 두면 끝난 줄만
-    // 두 줄이 되어 목록 높이가 들쭉날쭉해집니다.
-    `<div class="prep-task-row ${item.done?"done":item.tasks.length?"":"disabled"}"><span>${index+1}.</span><strong>${item.dish.name}${item.done?" 완료":""}</strong></div>`
-  ).join("")}<div class="prep-total">준비 완료 ${ready} / ${items.length}</div></div>`;
+  const rows=items.map((item,index)=>{
+    const rowClass=item.done?"done":item.tasks.length?"":"disabled";
+    const subtasks=item.tasks.length
+      ? `<div class="prep-subtasks">${item.tasks.map(task=>
+          `<div class="prep-subtask ${taskDone(task)?"done":""}">${task.label}</div>`).join("")}</div>`
+      : "";
+    // "완료"는 이름 옆에 붙입니다. 아랫줄에 두면 끝난 줄만 두 줄이 되어
+    // 목록 높이가 들쭉날쭉해집니다.
+    return `<div class="prep-task-row ${rowClass}"><span>${index+1}.</span>`
+      +`<strong>${item.dish.name}${item.done?" 완료":""}</strong>${subtasks}</div>`;
+  }).join("");
+  dom.inventoryList.innerHTML=
+    `<div class="prep-checklist drag-scroll">${rows}</div>`
+    +`<div class="prep-total">준비 완료 ${doneCount} / ${allTasks.length}</div>`;
 }
 
 function updateDayObjective(){

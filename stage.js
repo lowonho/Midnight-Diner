@@ -88,8 +88,13 @@ const BACKGROUND_LAYERS = [
   { key:"bg_window_view_night", x:464,  y:130, depth:15 },  // 창밖 야경
   { key:"bg_window_view_day",   x:464,  y:130, depth:15 },  // 창밖 주간 (야경 위에 크로스페이드)
   { key:"bg_window",            x:464,  y:130, depth:20 },  // 창틀 (유리 부분 투명)
-  { key:"bg_floor",             x:0,    y:545, depth:30 }   // 바닥
+  { key:"bg_floor_night",       x:0,    y:545, depth:30 },  // 바닥 야간
+  { key:"bg_floor_day",         x:0,    y:545, depth:30 }   // 바닥 주간 (야간 위에 크로스페이드)
 ];
+
+// 낮에 alpha 1, 밤에 alpha 0 으로 크로스페이드하는 레이어들.
+// 같은 자리에 밤 버전이 깔려 있어서, 낮 버전만 흐려지면 밤 그림이 드러납니다.
+const DAY_FADE_LAYERS = ["bg_window_view_day","bg_floor_day"];
 
 const BACKGROUND_ASSET_DIR = "assets/bg/";
 
@@ -170,7 +175,8 @@ function createStage(scene){
     stageLayers.bg_window_view_day,
     stageStarLayer,
     stageLayers.bg_window,
-    stageLayers.bg_floor
+    stageLayers.bg_floor_night,
+    stageLayers.bg_floor_day
   ]);
 
   timeOfDay=timeOfDay||"day";
@@ -256,20 +262,20 @@ function syncStageTimeOfDay(phase){
 }
 
 function applyTimeOfDay(mode,instant=false){
-  const dayView=stageLayers.bg_window_view_day;
   const scene=stageContainer?.scene;
-  if(!dayView||!scene)return;
+  const dayViews=DAY_FADE_LAYERS.map(key=>stageLayers[key]).filter(Boolean);
+  if(!dayViews.length||!scene)return;
 
   const dayAlpha=mode==="day"?1:0;
   const ambientAlpha=mode==="day"?0:AMBIENT_NIGHT_ALPHA;
 
-  scene.tweens.killTweensOf(dayView);
+  dayViews.forEach(view=>scene.tweens.killTweensOf(view));
   scene.tweens.killTweensOf(stageAmbient);
   if(instant){
-    dayView.setAlpha(dayAlpha);
+    dayViews.forEach(view=>view.setAlpha(dayAlpha));
     stageAmbient.setAlpha(ambientAlpha);
   }else{
-    scene.tweens.add({targets:dayView,alpha:dayAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
+    scene.tweens.add({targets:dayViews,alpha:dayAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
     scene.tweens.add({targets:stageAmbient,alpha:ambientAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
   }
   stageStarLayer.setVisible(mode==="night");

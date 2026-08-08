@@ -156,11 +156,17 @@ body {
 
 /* 끌어서 쓰는 것 = 이동 십자 그림.
    지금 미니게임 밖에서 실제로 걸리는 것은 설정 화면의 음량 슬라이더 3개
-   (#masterVolume · #bgmVolume · #sfxVolume) 와 모바일 조이스틱입니다.
+   (#masterVolume · #bgmVolume · #sfxVolume) 와 모바일 조이스틱,
+   그리고 좌측 HUD 의 굴러가는 목록(.drag-scroll)입니다.
+   ⚠️ 목록은 `.can-scroll` 이 붙었을 때만 걸립니다 — 짧아서 굴릴 것이 없는데
+      끌 수 있는 것처럼 보이면 안 됩니다. 이 클래스는 hud-list-drag-scroll.js 가
+      목록을 다시 그릴 때마다 켜고 끕니다.
    [draggable="true"] 는 나중에 끌기 UI 가 늘어날 때를 위한 자리입니다. */
 :is(
   input[type="range"],
   [draggable="true"],
+  .drag-scroll.can-scroll,
+  .drag-scroll.can-scroll *,
   .joystick,
   .joystick-knob
 ):not(:disabled):not(.mini-overlay *) {

@@ -394,7 +394,9 @@ function renderNightOrderList(){
     dom.inventoryList.innerHTML='<div class="order-empty">현재 대기 중인 주문이 없습니다.</div>';
     return;
   }
-  dom.inventoryList.innerHTML=`<div class="order-list">${activeOrders.map((order,index)=>{
+  // drag-scroll : 좌측 패널이 최대 높이에 걸리면 잡고 끌어 굴릴 수 있게 합니다.
+  //               (동작은 hud-list-drag-scroll.js, 자리는 css/hud.css)
+  dom.inventoryList.innerHTML=`<div class="order-list drag-scroll">${activeOrders.map((order,index)=>{
     const cookable=isCookableOrder(order),dish=cookable?dishById(order.dishId):null;
     const selected=order.id===state.selectedOrderId;
     const name=dish?.name||storyOrderLabel(order);
