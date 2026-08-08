@@ -19,6 +19,7 @@ const title=read("title.js");
 const gameData=read("game-data.js");
 const miniFrame=read("ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
+const orderPlace=read("engine-e8-order-place.js");
 const index=read("index.html");
 
 assert(game.includes("if(state.mini&&!settingsOpen){updateMini(dt);updateUI(false);}"),
@@ -47,6 +48,14 @@ assert(game.includes('if(k==="escape")')
   &&game.includes('else if(state.screen==="game")openSettings("game");')
   &&game.includes("if(settingsOverlayIsOpen())return;"),
   "모든 미니게임에서 ESC로 설정을 열고 설정 뒤쪽 입력은 차단해야 합니다.");
+assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
+  &&miniFrameCss.includes("-webkit-user-select: none;")
+  &&miniFrameCss.includes("user-select: none;")
+  &&miniFrameCss.includes("touch-action: none;")
+  &&miniFrameCss.includes(".mini-overlay.open .mini-stage img,")
+  &&miniFrameCss.includes("-webkit-user-drag: none;")
+  &&/source\.addEventListener\("pointerdown",event=>\{[\s\S]*?source\.disabled\)return;[\s\S]*?event\.preventDefault\(\);/.test(orderPlace),
+  "드래그 미니게임에서는 텍스트 블록 지정과 브라우저 기본 이미지 드래그를 막아야 합니다.");
 
 assert(game.includes("prepTaskScores:{}")
   &&day.includes("state.prepTaskScores[taskId]")

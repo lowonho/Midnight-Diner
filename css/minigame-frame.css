@@ -108,6 +108,23 @@
   /* 닫을 때는 공용 .overlay 처럼 서서히 사라집니다 */
   transition: opacity .22s, visibility .22s;
 }
+
+/* 드래그 조작 중 브라우저가 글자를 블록 지정하거나 이미지를 새 탭으로
+   끌어가려는 기본 동작을 막습니다. 설정창·영업일지와 미니게임 제목/버튼에는
+   영향을 주지 않도록 실제 플레이 판 안으로만 범위를 제한합니다. */
+.mini-overlay.open .mini-stage,
+.mini-overlay.open .mini-stage * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.mini-overlay.open .mini-stage {
+  touch-action: none;
+}
+.mini-overlay.open .mini-stage img,
+.mini-overlay.open .mini-stage svg {
+  -webkit-user-drag: none;
+}
 /* 열 때는 뒷배경만 바로 깔리고(페이드 없음), 패널은 아래에서 통째로 올라옵니다. */
 .mini-overlay.open { transition: opacity 0s, visibility 0s; }
 

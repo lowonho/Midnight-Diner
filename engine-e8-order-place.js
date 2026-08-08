@@ -72,6 +72,7 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
   sources.forEach(source=>{
     source.addEventListener("pointerdown",event=>{
       if(event.pointerType==="mouse"&&event.button!==0||source.disabled)return;
+      event.preventDefault();
       active={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,item:itemFromSource(source),source,dragging:false,ghost:null};
       source.setPointerCapture?.(event.pointerId);
     });
