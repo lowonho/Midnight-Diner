@@ -82,9 +82,12 @@ assert(story.includes('prompt:"어떤 음식을 내줄까?"')
   &&story.includes("order.awaitingDishChoice=false;")
   &&story.includes("scene?.wrongDishSceneId||scene?.missingMenuSceneId"),
   "특별 손님은 준비 메뉴 선택 뒤 그 음식으로 기존 조리를 진행하고 오답은 단서 장면으로 보내야 합니다.");
-assert(night.includes("const mismatchedStoryDish=storyResult?.matched===false;")
-  &&night.includes("if(!mismatchedStoryDish)spawnPopup"),
-  "잘못 고른 특별 손님 음식은 점수 평가 팝업으로 오인되지 않아야 합니다.");
+const serveOrderSource=night.match(/function serveOrder\(order\) \{[\s\S]+?\n\}/)?.[0]||"";
+assert(serveOrderSource.includes("const mismatchedStoryDish=storyResult?.matched===false;")
+  &&serveOrderSource.includes("bubble:departureText")
+  &&!serveOrderSource.includes("spawnPopup(CUSTOMER_SEATS")
+  &&!serveOrderSource.includes("만족도 ${serviceScore}점"),
+  "손님 평가는 말풍선으로만 보여 주고 별·숫자 점수 팝업과 토스트를 표시하면 안 됩니다.");
 
 assert(dayPrep.includes("현재 작업은 초기화되어 다음에 처음부터 다시 해야 합니다."),
   "준비 미니게임 닫기 안내는 이어하기가 아닌 초기화를 알려야 합니다.");

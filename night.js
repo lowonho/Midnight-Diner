@@ -406,12 +406,11 @@ function serveOrder(order) {
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;
   state.selectedOrderId=state.orders.find(isCookableOrder)?.id||null;
   if(state.generalSpawnedCustomers<nightGeneralOrderTarget()||(state.story?.pendingNightGuests?.length||0))scheduleOrderRespawn(order.slot,3.1);
-  if(!mismatchedStoryDish)spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${serviceScore}점`);
   showToast(mismatchedStoryDish
     ?`${storyResult.name}에게 내어 준 음식이 찾던 음식과 달랐습니다. 들은 단서를 영업일지에 남깁니다.`
     :storyResult
-    ?`${storyResult.name}${storyResult.special?"의 특별 조리":"에게 한 접시 제공"} · 만족도 ${serviceScore}점`
-    :`${dish.name} 제공 · 만족도 ${serviceScore}점`);
+    ?`${storyResult.name}${storyResult.special?"의 특별 조리를 마쳤습니다.":"에게 한 접시를 내었습니다."}`
+    :`${dish.name} 제공 완료`);
   audio.serve();updateUI(true);
   if(typeof processStoryNightTrigger==="function")processStoryNightTrigger();
   // 주문 조리 대사가 재개된 경우에는 장면 완료 시점에 저장합니다.
