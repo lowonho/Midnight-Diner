@@ -1118,9 +1118,22 @@ function storyPreparedMenuDishes(){
     .filter(dish=>typeof dishPreparedForService!=="function"||dishPreparedForService(dish.id));
 }
 
-function storySpecialGuestDishChoiceLine(scene){
+/* 선택지 화면에는 손님이 방금 한 말(=무엇을 찾는지에 대한 힌트)을 같이 붙여 둡니다.
+   대사창은 이 시점에 이미 "어떤 음식을 내줄까?" 로 넘어가 있어서, 힌트를 다시 볼 곳이
+   여기밖에 없습니다. 화자 이름은 그리는 시점에 풀어야(storyDisplayName) 대화 도중
+   이름을 알게 된 손님도 제대로 나옵니다 — 그래서 여기서는 화자 id 만 들고 갑니다. */
+const STORY_DISH_CHOICE_HINT_LIMIT=3;
+function storyDishChoiceHintLines(source){
+  return (source||[])
+    .filter(line=>line?.speaker&&line.speaker!=="protagonist"&&typeof line.text==="string"&&line.text.trim())
+    .slice(-STORY_DISH_CHOICE_HINT_LIMIT)
+    .map(line=>({speaker:line.speaker,text:line.text}));
+}
+
+function storySpecialGuestDishChoiceLine(scene,source){
   return {
     prompt:"어떤 음식을 내줄까?",
+    choiceHint:storyDishChoiceHintLines(source),
     choices:storyPreparedMenuDishes().map(dish=>({
       text:dish.name||dish.displayName||dish.id,
       orderCook:{
@@ -1146,10 +1159,11 @@ function storyLinesForScene(scene){
       "[음식명]":dish?.name||dish?.displayName||"아직 모르는 음식"
     };
   }
-  if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene)];
+  if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene,source)];
   return source.map(line=>{
     const copy={
       ...line,
+      choiceHint:line.choiceHint?line.choiceHint.map(hint=>({...hint})):line.choiceHint,
       choices:line.choices?.map(choice=>({
         ...choice,
         orderCook:choice.orderCook?{...choice.orderCook}:choice.orderCook
@@ -1157,6 +1171,9 @@ function storyLinesForScene(scene){
     };
     if(typeof copy.text==="string")Object.entries(replacements).forEach(([token,value])=>{copy.text=copy.text.split(token).join(value);});
     if(typeof copy.prompt==="string")Object.entries(replacements).forEach(([token,value])=>{copy.prompt=copy.prompt.split(token).join(value);});
+    copy.choiceHint?.forEach(hint=>{
+      Object.entries(replacements).forEach(([token,value])=>{hint.text=hint.text.split(token).join(value);});
+    });
     return copy;
   });
 }
@@ -1240,7 +1257,11 @@ function applyStoryFragmentHandoff(line){
     layer.dataset.fragmentState=String(handoff.state||"");
     const asset=String(handoff.asset||"").trim();
     layer.classList?.toggle("has-art",!!asset);
-    if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
+    /* ⚠️ 여기도 --portrait-art 와 같은 함정입니다. 커스텀 속성 안의 url() 은 그
+       값을 쓰는 스타일시트(css/story.css) 기준으로 풀려서, 상대경로를 그대로
+       넣으면 "css/assets/..." 를 찾다가 404 가 납니다. 그러면 빛무리만 뜨고
+       가운데 조각 그림이 안 보입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
+    if(asset)layer.style?.setProperty?.("--fragment-art",storyPortraitArtValue(asset));
     else layer.style?.removeProperty?.("--fragment-art");
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
   }else{
@@ -1294,7 +1315,8 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   speakerEl.hidden=!speakerLabel;
   speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
-  setStoryPortrait(speakerId);
+  setStoryPortrait(speakerId,line);
+  updateStoryCinematicSpeaking(line);
   updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
   setStoryNextButton(false);
@@ -1350,10 +1372,34 @@ function finishStoryTyping(){
   if(storySession.qaPreview&&typeof qaSyncStoryPreviewNextButton==="function")qaSyncStoryPreviewNextButton();
 }
 
+function renderStoryChoiceHint(line,wrap){
+  const hints=(Array.isArray(line?.choiceHint)?line.choiceHint:[]).filter(hint=>hint?.text);
+  if(!hints.length)return;
+  const box=document.createElement("div");
+  box.className="story-choice-hint";
+  hints.forEach((hint,index)=>{
+    const row=document.createElement("p");
+    row.className="story-choice-hint-line";
+    // 같은 손님이 연달아 말한 줄에는 이름을 다시 붙이지 않습니다(둘이 붙은 그림자처럼
+    // 화자가 바뀌는 경우에만 이름이 다시 나옵니다).
+    const name=hint.speaker&&hint.speaker!==hints[index-1]?.speaker?storyDisplayName(hint.speaker):"";
+    if(name){
+      const who=document.createElement("span");
+      who.className="story-choice-hint-speaker";
+      who.textContent=name;
+      row.appendChild(who);
+    }
+    row.appendChild(document.createTextNode(hint.text));
+    box.appendChild(row);
+  });
+  wrap.appendChild(box);
+}
+
 function renderStoryChoices(line){
   const wrap=document.getElementById("storyChoices");
   document.getElementById("storyNextButton").style.display="none";
   wrap.innerHTML="";
+  renderStoryChoiceHint(line,wrap);
   line.choices.forEach((choice,index)=>{
     const button=document.createElement("button");
     button.type="button";button.className="story-choice";button.textContent=choice.text;
@@ -1459,11 +1505,38 @@ function resumeStoryAfterJournal(){
 // 무대 배치 규칙: 주인공은 항상 맨 왼쪽 자리, 나머지 화자는 등장 순서대로 오른쪽 끝까지 균등 배치합니다.
 // (상대 1명이면 오른쪽, 2명이면 중앙·오른쪽, 그 이상은 같은 간격으로 계속 벌어집니다.)
 const STORY_ACTOR_MAX_WIDTH=24;
-const STORY_ACTOR_MARGIN=2;
+/* 좌우 여백. 2 였을 때는 두 사람이 14% / 86% 에 서서 화면 양끝에 붙어 보였고,
+   14 로 넓혔더니 이번엔 25% / 75% 로 너무 가운데에 몰렸습니다. 지금 8 은
+   두 사람이 20% / 80% 에 서는 값입니다.
+
+   ⚠️ 원화(.story-portrait.art)의 실제 폭은 --actor-w 보다 넓습니다. 상자를 그림
+   비율에 맞춰 절대 배치하기 때문에 이 자리 계산에는 안 잡힙니다. 그래서 여백을
+   여기서 더 키우면 세 명이 서는 장면(SCN-G8-완벽)에서 원화가 옆 사람과 겹칩니다. */
+const STORY_ACTOR_MARGIN=8;
 const STORY_ACTOR_GUTTER=1.5;
+
+/* [컷씬 중에도 말하는 줄에서는 원화를 올립니다]
+   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css).
+   그러면 그 장면 내내 김다은 원화가 한 번도 안 나옵니다.
+
+   그렇다고 항상 세우면 같은 사람이 화면에 둘이 될 수 있습니다 — 프롤로그 세
+   컷처럼 원화 안에 김다은이 이미 그려져 있는 경우입니다. 그래서 '말하는 줄'
+   이면서 '그 컷에 김다은이 안 그려져 있을 때'만 올립니다. 컷마다의 그 여부는
+   story-cinematic.js 의 STORY_CUTSCENES[].protagonist 에 적혀 있습니다. */
+function updateStoryCinematicSpeaking(line){
+  const overlay=document.getElementById("storyOverlay");
+  if(!overlay)return;
+  const drawnInCut=typeof storyCinematicDrawsProtagonist==="function"&&storyCinematicDrawsProtagonist();
+  // 컷에 그려져 있는 건 김다은뿐이므로, 이 이유로 막는 것도 김다은일 때만입니다.
+  // 같은 컷 위에서 손님이 말하는 장면이 생기면 그 원화는 그대로 올라와야 합니다.
+  const duplicate=line?.speaker==="protagonist"&&drawnInCut;
+  const speaking=!!line?.speaker&&storySpeakerHasPortrait(line.speaker)&&!duplicate;
+  overlay.classList.toggle("story-cinematic-speaking",speaking);
+}
 
 function resetStoryStage(){
   clearStoryCinematic();
+  document.getElementById("storyOverlay")?.classList.remove("story-cinematic-speaking");
   applyStoryFragmentHandoff(null);
   applyStoryEndingBackground(null);
   const stage=document.getElementById("storyStage");
@@ -1471,21 +1544,159 @@ function resetStoryStage(){
   if(storySession)storySession.actors=[];
 }
 
+/* ------------------------------------------------------------------
+   주인공 원화(assets/Conversation)
+   ------------------------------------------------------------------
+   대사마다 문맥에 맞는 동작으로 갈아 끼웁니다. 짝짓기는 story-data.js 가
+   각 대사 줄에 motion:"..." 으로 적어 두고, 안 적힌 줄은 DEFAULT 로 섭니다.
+
+   복장은 두 벌입니다. 가게에 들어가기 전 퇴근길은 회사원, 그 뒤로는 전부
+   주방 복장입니다. 장면 쪽에서 protagonistCostume 으로 고릅니다.
+
+   두 복장 열여덟 장 모두 tools/build-conversation-webp.js 가 '같은 크롭
+   박스'로 뽑았기 때문에 얼굴 위치가 어긋나지 않습니다. 그래서 배경 이미지만
+   바꿔도 표정만 바뀐 것처럼 보이고 인물이 덜컹거리지 않습니다.
+   (복장 사이의 크기 차이는 css/story.css 의 --art-height 가 맞춥니다)
+   ------------------------------------------------------------------ */
+const STORY_PROTAGONIST_MOTIONS=Object.freeze({
+  calm:"01",     // 손 모으고 잔잔한 미소 · 기본값
+  soft:"02",     // 머리카락 넘기며 미소 · 다정하게 건네는 말
+  think:"03",    // 검지를 턱에 대고 골똘 · 질문과 고민
+  sad:"04",      // 고개 숙이고 눈 내리깔기 · 지치고 가라앉음
+  cook:"05",     // 팬을 들고 요리 · 조리와 영업 이야기
+  resolve:"06",  // 두 주먹 쥐고 불꽃 · 각오와 의욕
+  happy:"07",    // 두 손 들고 반짝 웃음 · 기쁨과 감탄
+  cry:"08",      // 눈물 훔치기 · 깊은 슬픔
+  angry:"09"     // 주먹 들고 화남 · 분노와 항의
+});
+const STORY_PROTAGONIST_DEFAULT_MOTION="calm";
+
+/* 등장인물별 원화.
+   dir/stem 은 tools/build-conversation-webp.js 의 PORTRAITS 와 같아야 합니다.
+
+   height/drop 은 그 도구가 원화 안 인물을 실측해 계산한 값입니다(단위 %).
+   손으로 고치지 마세요. 원화를 새로 받으면 이렇게 다시 뽑아 붙입니다:
+
+     node tools/build-conversation-webp.js --css
+
+   height 는 원화 상자를 무대 높이의 몇 %로 세울지, drop 은 그 상자 바닥을
+   무대 바닥보다 얼마나 내릴지입니다. drop 이 인물마다 다른 건 저마다 캔버스
+   안 발끝 높이가 달라서이고, 이 값 덕분에 모두 같은 바닥선에 섭니다.
+   height 가 대체로 같은 건 '그려진 크기 그대로' 두기 때문입니다 —
+   작은 짐승만 눈에 띄게 작은 것이 의도한 결과입니다. */
+const STORY_PORTRAIT_ART=Object.freeze({
+  protagonistChef:{dir:"char_cust_kim_daeun_chef",stem:"char_cust_kim_daeun",height:181.3,drop:73.3},
+  protagonistOffice:{dir:"char_cust_kim_daeun_office",stem:"char_cust_kim_daeun_office",height:163.1,drop:63.7},
+  rainyChild:{dir:"char_cust_rain_child",stem:"char_cust_rain_child",height:167.6,drop:64.9},
+  lanternGuest:{dir:"char_cust_lantern_head",stem:"char_cust_lantern_head",height:177.3,drop:74.0},
+  twinShadows:{dir:"char_cust_joined_shadows",stem:"char_cust_joined_shadows",height:167.0,drop:64.6},
+  crowCourier:{dir:"char_cust_crow_postman",stem:"char_cust_crow_postman",height:176.6,drop:73.7},
+  // 작은 짐승만 대사창 턱에 걸터앉는 방식입니다(도구의 anchor:"feet").
+  starBeast:{dir:"char_cust_star_eating_beast",stem:"char_cust_star_eating_beast",height:188.3,drop:51.7},
+  seawaterGuest:{dir:"char_cust_seawater_guest",stem:"char_cust_seawater_guest",height:167.0,drop:66.1},
+  schoolDoll:{dir:"char_cust_stopped_school_doll",stem:"char_cust_stopped_school_doll",height:167.0,drop:66.1},
+  facelessDaeun:{dir:"char_cust_faceless_kim_daeun",stem:"char_cust_faceless_kim_daeun",height:167.0,drop:66.1}
+});
+
+/* 화자 → 원화 열쇠. 여기에 없는 화자는 원화가 없다는 뜻입니다.
+   - 김다은은 장면의 protagonistCostume 에 따라 두 벌 중 하나입니다.
+   - 왼쪽/오른쪽 그림자는 한 몸이라 배우도 원화도 twinShadows 하나를 씁니다.
+   - '또 다른 김다은'은 얼굴 없는 손님의 얼굴이 드러난 모습이라 같은 원화입니다. */
+function storyPortraitKey(speakerId){
+  if(speakerId==="protagonist"){
+    return storySession?.scene?.protagonistCostume==="office"
+      ?"protagonistOffice"
+      :"protagonistChef";
+  }
+  if(["leftShadow","rightShadow","twinShadows"].includes(speakerId))return "twinShadows";
+  if(speakerId==="anotherDaeun")return "facelessDaeun";
+  return STORY_PORTRAIT_ART[speakerId]?speakerId:null;
+}
+
+function storyPortraitMotionArt(portraitKey,motion){
+  const art=STORY_PORTRAIT_ART[portraitKey];
+  if(!art)return "";
+  const index=STORY_PROTAGONIST_MOTIONS[motion]||STORY_PROTAGONIST_MOTIONS[STORY_PROTAGONIST_DEFAULT_MOTION];
+  return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
+}
+
+/* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
+   커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
+   풀립니다. 그래서 "assets/..." 는 "css/assets/..." 가 되어 404 가 납니다.
+   인라인 style 로 넣어도 마찬가지입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
+function storyPortraitArtValue(source){
+  return `url("${new URL(source,document.baseURI).href}")`;
+}
+
+/* 대사마다 그림을 바꾸므로, 처음 쓰이는 순간 받아오면 한 박자 비어 보입니다.
+   무대에 오르는 인물의 아홉 장을 그때 한꺼번에 미리 받아 둡니다(인물당 1.5MB
+   안팎). 열 명분을 전부 받지는 않습니다 — 한 장면에 서는 건 많아야 셋이고,
+   그 날 안 나오는 손님까지 받으면 15MB 를 통째로 내려받게 됩니다. */
+const storyPortraitArtPreloaded=new Set();
+function preloadStoryPortraitArt(portraitKey){
+  if(!portraitKey||storyPortraitArtPreloaded.has(portraitKey))return;
+  storyPortraitArtPreloaded.add(portraitKey);
+  Object.keys(STORY_PROTAGONIST_MOTIONS).forEach(motion=>{
+    const image=new Image();
+    image.src=storyPortraitMotionArt(portraitKey,motion);
+  });
+}
+
+/* 말하는 사람의 동작만 바꿉니다. 나머지 배우는 마지막 동작 그대로 어두워진 채
+   서 있습니다 — 대사마다 전원이 같이 움직이면 누가 말하는지 흐려집니다. */
+function applyStorySpeakerMotion(line){
+  const speakerId=line?.speaker;
+  if(!speakerId)return;
+  const portraitKey=storyPortraitKey(speakerId);
+  if(!portraitKey)return;
+  // 그림자 셋은 배우 하나를 공유하므로 배우 id 로 다시 찾습니다.
+  const actorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)?"twinShadows":speakerId;
+  const actor=(storySession?.actors||[]).find(entry=>entry.id===actorId);
+  const portrait=actor?.element.querySelector(".story-portrait.art");
+  if(!portrait)return;
+  portrait.style.setProperty("--portrait-art",
+    storyPortraitArtValue(storyPortraitMotionArt(portraitKey,line.motion)));
+}
+
 function applyStoryPortraitArt(portrait,speakerId){
+  const portraitKey=storyPortraitKey(speakerId);
+  if(portraitKey){
+    const art=STORY_PORTRAIT_ART[portraitKey];
+    preloadStoryPortraitArt(portraitKey);
+    portrait.classList.add("art");
+    // 인물마다 캔버스에 그려진 크기와 발끝 높이가 달라 상자 치수를 따로 넣습니다.
+    portrait.style.setProperty("--art-height",`${art.height}%`);
+    portrait.style.setProperty("--art-drop",`${-art.drop}%`);
+    portrait.style.setProperty("--portrait-art",
+      storyPortraitArtValue(storyPortraitMotionArt(portraitKey,STORY_PROTAGONIST_DEFAULT_MOTION)));
+    return;
+  }
   const character=STORY_CHARACTERS[speakerId];
   if(character?.art){
     portrait.classList.add("art");
-    portrait.style.setProperty("--portrait-art",`url("${character.art}")`);
+    portrait.style.setProperty("--portrait-art",storyPortraitArtValue(character.art));
     return;
   }
-  if(speakerId==="protagonist"){portrait.classList.add("chef");return;}
   if(!character||character.portraitRow==null){portrait.classList.add("role");return;}
   const row=clamp(character.portraitRow,0,5);
   portrait.style.setProperty("--portrait-y",row===5?"100%":`${row*20}%`);
 }
 
+/* 몸이 없는 화자는 무대에 세우지 않습니다.
+   상사(회상)·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
+   없는 배역입니다. 예전에는 이들 자리에 ✦ 하나만 있는 빈 갈색 패널(.story-portrait
+   .role)이 대신 섰는데, 컷씬이 무대를 가려 준 덕에 눈에 안 띄었을 뿐입니다.
+   이름표와 대사만으로 충분한 화자들이라 아예 안 세웁니다.
+   ⚠️ 이 배역들에 나중에 원화를 붙이면 art 를 채우세요. 그러면 다시 섭니다. */
+function storySpeakerHasPortrait(speakerId){
+  if(storyPortraitKey(speakerId))return true;   // 대화씬 원화가 있는 인물
+  const character=STORY_CHARACTERS[speakerId];
+  return !!character&&(!!character.art||character.portraitRow!=null);
+}
+
 function ensureStoryActor(speakerId){
   if(!storySession||!speakerId)return null;
+  if(!storySpeakerHasPortrait(speakerId))return null;
   if(!storySession.actors)storySession.actors=[];
   // 왼쪽/오른쪽/합쳐진 목소리는 모두 '둘이 붙은 그림자' 한 몸에서
   // 나옵니다. 이름표만 화자에 따라 바꾸고 무대 배우는 하나를 공유합니다.
@@ -1527,7 +1738,7 @@ function layoutStoryActors(){
   });
 }
 
-function setStoryPortrait(speakerId){
+function setStoryPortrait(speakerId,line=null){
   if(!storySession)return;
   if(speakerId)ensureStoryActor(speakerId);
   const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)
@@ -1537,6 +1748,7 @@ function setStoryPortrait(speakerId){
   (storySession.actors||[]).forEach(actor=>{
     actor.element.classList.toggle("is-active",!!speakerId&&actor.id===activeActorId);
   });
+  applyStorySpeakerMotion(line);
 }
 
 function storyGuestIdForScene(scene){

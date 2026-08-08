@@ -1,2 +1,7 @@
 # 에셋 변환 스크립트(tools/)용 의존성. 게임 실행에는 필요 없습니다.
 node_modules/
+
+# 대화씬 원화(assets/Conversation)는 WebP 만 저장소에 둡니다.
+# PNG 마스터는 장당 6~8MB 라 저장소 밖에 둡니다. 위치와 이유는
+# tools/build-conversation-webp.js 맨 위 [PNG 마스터는 저장소 밖에 있습니다] 참고.
+assets/Conversation/**/*.png

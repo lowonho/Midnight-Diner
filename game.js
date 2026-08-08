@@ -831,7 +831,7 @@ function updatePrompt(){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
       // 판정은 prep.js 가 이름표 강조에 쓰는 것과 같은 함수입니다.
       const prepObject=nearestPrepObject();
-      if(prepObject&&prepObjectUsable(prepObject,prepObject)){text=UI_TEXT.prompt.prepObject(prepObject.task.objectLabel);x=prepObject.x;y=prepObject.y-58;}
+      if(prepObject&&prepObjectUsable(prepObject,prepObject)){text=UI_TEXT.prompt.prepObject();x=prepObject.x;y=prepObject.y-58;}
     }else{
       const required=currentRequirement();
       const station=nearestStation(required);

@@ -225,7 +225,9 @@ function drawPrepObjects(){
 
     ctx.globalAlpha=1;
     // 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
-    drawFixtureLabel(`${item.dish.name} · ${item.task.label}`,item.x,item.y+L.labelDy,
+    // 준비물은 메뉴당 하나라 이름표도 "메뉴 이름 + 준비" 한 가지로 씁니다.
+    // 지금 어떤 작업 차례인지는 그림과 아래 진행 숫자가 알려 줍니다.
+    drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,
       labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)));
 
     if(done){

@@ -42,6 +42,25 @@ function journalMoonPieceArt(page){
   return file?`${JOURNAL_MOON_PIECE_DIR}/${file}`:"";
 }
 
+// 엔딩 장의 가로 직사각형에 깔리는 그 엔딩의 컷씬 그림입니다.
+// 파일은 tools/build-story-ending-webp.js 가 PNG 원본에서 뽑습니다.
+// 열쇠는 story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 의 id 입니다.
+const JOURNAL_ENDING_ART_DIR="assets/story/bg";
+const JOURNAL_ENDING_ART=Object.freeze({
+  loop_return:"01_loop_daeun_reenters_restaurant_entrance_v3.webp",
+  alone_morning:"02_morning_alone_loop_restaurant_unified_v7.webp",
+  guests_dawn:"03_guests_dawn_loop_restaurant_unified_v2.webp",
+  open_forever:"04_eternally_open_trapped_balanced_texture_v9.webp",
+  morning_together:"05_morning_together_restaurant_unified_v2.webp"
+});
+
+// 아직 못 본 엔딩은 그림을 숨깁니다. 결말이 미리 보이면 안 됩니다.
+function journalEndingArt(page){
+  if(!page||page.kind!=="ending"||!page.unlocked)return "";
+  const file=JOURNAL_ENDING_ART[String(page.id||"")];
+  return file?`${JOURNAL_ENDING_ART_DIR}/${file}`:"";
+}
+
 function journalElements(){
   return {
     overlay:document.getElementById("journalOverlay"),
@@ -94,24 +113,38 @@ function journalPageKindLabel(page){
   return page.kind==="ending"?"엔딩":"특별 손님";
 }
 
+/* 일지 본문은 굵은 소제목을 쓰려고 HTML 로 그립니다.
+   그래서 사람이 쓴 글은 여기를 지나 온 뒤에만 본문에 들어갑니다. */
+function journalText(value){
+  return String(value).replace(/[&<>]/g,ch=>ch==="&"?"&amp;":ch==="<"?"&lt;":"&gt;");
+}
+
+function journalHeading(text){
+  return `<b class="journal-note-label">${journalText(text)}</b>`;
+}
+
+function journalLines(lines){
+  return (lines||[]).map(journalText);
+}
+
 function journalField(label,value){
   const text=Array.isArray(value)
     ?value.length?value.join(", "):"없음"
     :value==null||value===""?"???":String(value);
-  return `${label} · ${text}`;
+  return `${journalHeading(label)} · ${journalText(text)}`;
 }
 
 function journalSection(title,fields){
-  return [`[${title}]`,...fields].join("\n");
+  return [journalHeading(`[${title}]`),...fields].join("\n");
 }
 
 function gameplayJournalRecipeNote(page){
   const prepSteps=(page.prepSteps||[]).map((step,index)=>`${index+1}. ${step}`);
   const cookSteps=(page.cookSteps||[]).map((step,index)=>`${index+1}. ${step}`);
   return [
-    journalSection("재료",[(page.ingredients||[]).join(" · ")||"기록 없음"]),
-    journalSection("영업 전 준비",prepSteps.length?prepSteps:["기록 없음"]),
-    journalSection("주문 후 조리",cookSteps.length?cookSteps:["기록 없음"])
+    journalSection("재료",journalLines([(page.ingredients||[]).join(" · ")||"기록 없음"])),
+    journalSection("영업 전 준비",journalLines(prepSteps.length?prepSteps:["기록 없음"])),
+    journalSection("주문 후 조리",journalLines(cookSteps.length?cookSteps:["기록 없음"]))
   ].join("\n\n");
 }
 
@@ -133,17 +166,15 @@ function journalFirstUnlockLabel(page){
 
 function gameplayJournalEntryNote(entry){
   return [
-    `[${entry.guestName}]`,
-    `“${entry.clue}”`,
-    entry.dishNote,
-    entry.reactionNote,
-    entry.shardNote
+    journalHeading(`[${entry.guestName}]`),
+    entry.clue?journalText(`“${entry.clue}”`):"",
+    ...journalLines([entry.dishNote,entry.reactionNote,entry.shardNote].filter(Boolean))
   ].filter(Boolean).join("\n");
 }
 
 function journalPageNote(page){
   if(journalMode==="gameplay"&&page.pageType==="rules"){
-    return journalSection("주의사항",(page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`));
+    return journalSection("주의사항",journalLines((page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`)));
   }
   if(journalMode==="gameplay"&&page.pageType==="recipe"){
     return gameplayJournalRecipeNote(page);
@@ -263,7 +294,7 @@ function journalPageMeta(page){
 function journalSectionDefs(){
   if(journalMode==="gameplay")return [
     {id:"rules",label:"주의사항",matches:page=>page.pageType==="rules"},
-    {id:"recipe",label:"요리",matches:page=>page.pageType==="recipe"},
+    {id:"recipe",label:"레시피",matches:page=>page.pageType==="recipe"},
     {id:"day",label:"일기",matches:page=>page.pageType==="day"}
   ];
   return [
@@ -326,28 +357,46 @@ function renderJournalTabs(elements){
   elements.tabs?.replaceChildren(...build(sections.filter(section=>section.slot>=activeSlot)));
 }
 
-// 달빛 조각 그림은 로비 컬렉션의 특별 손님 페이지에만 붙습니다.
-// (엔딩 페이지와 인게임 진행용 일지에는 없습니다.)
+// 제목 아래에 그림 한 장이 더 붙는 장이 둘 있습니다.
+//   relic — 로비 컬렉션 특별 손님 장의 달빛 조각 (엔딩 장에는 없습니다)
+//   dish  — 인게임 레시피 장의 음식 프롭 (이름은 제목에 이미 있어 캡션 없음)
+function journalFigure(page){
+  if(journalMode==="collection"&&!!page&&page.kind!=="ending"&&journalMoonPieceArt(page)){
+    return {kind:"relic",src:journalMoonPieceArt(page)};
+  }
+  if(journalMode==="gameplay"&&page?.pageType==="recipe"&&typeof foodPropUrl==="function"){
+    // 완성된 모습이 제일 잘 보이는 등급으로 보여 줍니다.
+    const src=foodPropUrl(page.dishId,"perfect");
+    if(src)return {kind:"dish",src};
+  }
+  return null;
+}
+
+// 달빛 조각 이름은 요약 줄에서 빼야 하므로 그 장인지만 따로 봅니다.
 function journalRelicVisible(page){
-  return journalMode==="collection"&&!!page&&page.kind!=="ending"&&!!journalMoonPieceArt(page);
+  return journalFigure(page)?.kind==="relic";
 }
 
 function renderJournalRelic(elements,page){
   if(!elements.relic)return;
-  const visible=journalRelicVisible(page);
-  elements.relic.hidden=!visible;
-  // 표제 면이 초상화 + 조각 두 장을 담아야 해서, 붙는 장만 자리를 좁힙니다.
-  elements.page?.classList.toggle("has-relic",visible);
-  if(!visible){
+  const figure=journalFigure(page);
+  elements.relic.hidden=!figure;
+  // 조각 장은 표제 면에 초상화까지 둘이 들어가서 그 장만 자리를 좁힙니다.
+  // 레시피 장은 그림이 가로로 납작해 좁히지 않아도 들어갑니다.
+  elements.page?.classList.toggle("has-relic",figure?.kind==="relic");
+  elements.page?.classList.toggle("has-dish",figure?.kind==="dish");
+  elements.relic.classList.toggle("is-dish",figure?.kind==="dish");
+  if(!figure){
     elements.relicArt.style.backgroundImage="";
     return;
   }
   // 잠긴 손님은 그림 대신 자리만 남깁니다. 조각 모양이 미리 보이면 안 됩니다.
-  const unlocked=!!page.unlocked;
+  const unlocked=figure.kind!=="relic"||!!page.unlocked;
   elements.relic.classList.toggle("is-locked",!unlocked);
-  elements.relicArt.style.backgroundImage=unlocked?`url("${journalMoonPieceArt(page)}")`:"";
+  elements.relicArt.style.backgroundImage=unlocked?`url("${figure.src}")`:"";
   elements.relicArt.textContent=unlocked?"":"?";
-  elements.relicName.textContent=unlocked?`「${page.shardName}」`:"「???」";
+  elements.relicName.textContent=figure.kind!=="relic"?""
+    :unlocked?`「${page.shardName}」`:"「???」";
 }
 
 function renderJournalPage({acknowledge=false}={}){
@@ -377,16 +426,29 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
   elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!hasPortrait);
   elements.pagePortrait.classList.toggle("journal-page-icon",isGameplayRecord);
+  // 인게임 세 구역은 각자 원화 액자를 씁니다.
+  const frame=!isGameplayRecord?""
+    :page.pageType==="rules"?"rules"
+      :page.pageType==="recipe"?"recipe"
+        :page.pageType==="day"?"day":"";
+  elements.pagePortrait.classList.toggle("has-frame",!!frame);
+  elements.pagePortrait.classList.toggle("frame-rules",frame==="rules");
+  elements.pagePortrait.classList.toggle("frame-recipe",frame==="recipe");
+  elements.pagePortrait.classList.toggle("frame-day",frame==="day");
   if(hasPortrait){
     const row=Math.floor(portraitRow);
     elements.pagePortrait.style.setProperty("--journal-portrait-y",row===5?"100%":`${row*20}%`);
   }
+  // 본 엔딩은 ☾ 자리에 그 엔딩의 컷씬 그림이 대신 들어갑니다.
+  const endingArt=journalEndingArt(page);
+  elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt);
+  elements.pagePortrait.style.backgroundImage=endingArt?`url("${endingArt}")`:"";
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
     :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
-      :page.kind==="ending"?"☾":"";
+      :page.kind==="ending"?endingArt?"":"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
-  elements.pageNote.textContent=journalPageNote(page);
+  elements.pageNote.innerHTML=journalPageNote(page);
   elements.pageMeta.textContent=journalPageMeta(page);
   renderJournalRelic(elements,page);
   elements.previous.disabled=journalPageIndex<=0;

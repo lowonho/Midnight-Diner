@@ -30,30 +30,23 @@
 </head>
 <body>
   <div id="appRoot" class="app-root">
+    <!-- 타이틀 화면은 게임 화면(.game-frame)과 같은 16:9 무대(.title-stage) 안에서 그립니다.
+         배경 그림 안 '달빛식탁' 간판 자리를 % 좌표로 짚어야 하는데(QA 숨은 입구),
+         창 전체를 쓰면 창 비율에 따라 그림이 잘려서 그 좌표가 어긋납니다. -->
     <section id="titleScreen" class="app-screen title-screen active" aria-labelledby="gameTitle">
-      <div class="title-backdrop" aria-hidden="true">
-        <div class="store-awning"></div>
-        <span class="title-lamp lamp-one"></span>
-        <span class="title-lamp lamp-two"></span>
-        <span class="title-steam steam-one"></span>
-        <span class="title-steam steam-two"></span>
-        <div class="street-glow"></div>
-      </div>
-      <div class="title-window">
-        <div class="title-logo" id="gameTitle">
-          <span class="logo-spark">✦</span>
-          <small>낮의 준비 · 밤의 한 접시</small>
-          <strong>달빛식탁</strong>
-          <em>오늘도 영업합니다</em>
+      <div class="title-stage">
+        <div class="title-backdrop" aria-hidden="true"></div>
+        <!-- 배경 그림 왼쪽이 비어 있는 밤거리라 글자·버튼을 그 자리에 모아 둡니다. -->
+        <div class="title-window">
+          <div class="title-logo" id="gameTitle" role="img" aria-label="달빛식탁 — 낮의 준비, 밤의 한 접시"></div>
+          <button id="startButton" class="gold-button title-start" type="button">새 게임</button>
+          <button id="continueButton" class="gold-button title-start title-continue" type="button" disabled>이어하기</button>
+          <div class="title-meta-actions">
+            <button id="journalButton" class="title-meta-button" type="button">영업일지</button>
+            <button id="titleSettingsButton" class="title-meta-button" type="button">설정</button>
+          </div>
+          <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
         </div>
-        <p>낮에는 재료를 정성껏 준비하고, 밤에는 손님에게 맛있는 안주를 내어주세요.<br />새 게임을 시작하거나 자동 저장·저장 1~3 칸을 골라 이어서 플레이하세요.</p>
-        <button id="startButton" class="gold-button title-start" type="button">새 게임</button>
-        <button id="continueButton" class="gold-button title-start title-continue" type="button" disabled>이어하기</button>
-        <div class="title-meta-actions">
-          <button id="journalButton" class="title-meta-button" type="button">영업일지</button>
-          <button id="titleSettingsButton" class="title-meta-button" type="button">설정</button>
-        </div>
-        <small id="saveInfo" class="save-info">저장 데이터가 없습니다.</small>
       </div>
     </section>
 
@@ -64,8 +57,7 @@
 
           <header id="topHud" class="top-hud hidden-hud">
             <div class="small-logo wood-panel">
-              <span>✦</span>
-              <strong>달빛식탁</strong>
+              <i class="hud-logo" role="img" aria-label="달빛식탁"></i>
               <small id="phaseName">낮 준비</small>
             </div>
             <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
@@ -203,6 +195,12 @@
 
           <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySceneTitle">
             <button id="storySkipButton" class="story-skip" type="button" hidden>SKIP</button>
+            <!-- 컷씬 배경(프롤로그 등). 그림 경로는 story-cinematic.js 가 넣습니다.
+                 레이어가 두 장인 것은 컷이 바뀔 때 교차 페이드하기 위해서입니다. -->
+            <div id="storyCutscene" class="story-cutscene" aria-hidden="true" hidden>
+              <div class="story-cutscene-layer"></div>
+              <div class="story-cutscene-layer"></div>
+            </div>
             <div id="storySceneMeta" class="story-scene-meta">
               <span id="storyDayLabel">DAY 1</span>
               <strong id="storySceneTitle">지친 밤 - 퇴근길</strong>
@@ -223,9 +221,11 @@
                 <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
               </div>
               <p id="storyText" class="story-text" aria-live="polite"></p>
-              <div id="storyChoices" class="story-choices" aria-label="대화 선택지"></div>
               <button id="storyNextButton" class="story-next" type="button">계속 <span>▼</span></button>
             </div>
+            <!-- 선택지는 대사창 안이 아니라 화면 한가운데 뜨는 별도 오버레이입니다.
+                 대사창 뒤가 아니라 앞에 깔려야 해서 DOM 순서도 대사창 다음입니다. -->
+            <div id="storyChoices" class="story-choices" role="group" aria-label="대화 선택지"></div>
           </section>
 
           <!-- 미니게임 공용 프레임이 들어올 자리.
@@ -361,7 +361,9 @@
         </div>
         <div class="journal-book" role="group" aria-label="펼쳐진 영업일지">
           <button id="journalPrevious" class="journal-page-arrow" type="button" aria-label="이전 영업일지 페이지">‹</button>
-          <div id="journalSectionTabsPast" class="journal-side-tabs journal-side-tabs-left" role="tablist" aria-label="지나온 영업일지 구역"></div>
+          <div class="journal-spread">
+          <div id="journalSectionTabsPast" class="journal-tab-strip journal-tab-strip-left" role="tablist" aria-label="지나온 영업일지 구역"></div>
+          <div id="journalSectionTabs" class="journal-tab-strip journal-tab-strip-right" role="tablist" aria-label="영업일지 구역 선택"></div>
           <article id="journalPage" class="journal-page" aria-live="polite" aria-labelledby="journalPageTitle">
             <section class="journal-page-leaf journal-page-left" aria-label="영업일지 표제">
               <div class="journal-page-topline">
@@ -380,7 +382,7 @@
               <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
             </section>
           </article>
-          <div id="journalSectionTabs" class="journal-side-tabs journal-side-tabs-right" role="tablist" aria-label="영업일지 구역 선택"></div>
+          </div>
           <button id="journalNext" class="journal-page-arrow" type="button" aria-label="다음 영업일지 페이지">›</button>
         </div>
       </div>

@@ -191,6 +191,32 @@ check(qaJournalResetArmed()===false&&qaResetJournalPages()===false&&qaJournalRes
 check(qaResetJournalPages()===false&&qaJournalResetArmed()===false,
   "저장소를 쓸 수 없으면 초기화는 실패를 알리고 대기 상태를 풀어야 합니다.");
 
+/* QA가 대신 고르는 오늘의 메뉴에는 그날 특별 손님이 찾는 음식이 반드시 들어가야
+   합니다. 빠지면 손님 앞 음식 선택지에 정답이 아예 나오지 않습니다. */
+var dishById=id=>menuDataById(id);
+var maxSelectedMenusForDay=data=>Math.max(1,Math.floor(Number(data.maxSelectedMenus)||1));
+var getCurrentDayData=()=>DAY_DATA[state.day];
+var qaCapturedPicks=null;
+var setSelectedMenus=ids=>{qaCapturedPicks=[...ids];state.selectedMenus=[...ids];return true;};
+var selectedPrepTasks=()=>[];
+var selectedDishes=()=>[];
+var completeDayPrepTask=()=>{};
+var dom={menuSelectOverlay:{classList:{remove(){}}}};
+const qaMenuDay=state.day;
+for(let day=1;day<=7;day++){
+  state.day=day;state.phase=GAME_PHASES.MENU_SELECT;state.selectedMenus=[];state.inventory={};
+  qaCapturedPicks=null;
+  qaFinishTodayPrep();
+  const wanted=qaSpecialGuestDishIdsForToday();
+  check(wanted.length>0,"Day "+day+" 특별 손님이 찾는 음식을 찾지 못했습니다.");
+  check(wanted.every(id=>qaCapturedPicks.includes(id)),
+    "Day "+day+" QA 자동 메뉴에 특별 손님 정답 음식이 빠졌습니다."
+    +"\\npicks: "+JSON.stringify(qaCapturedPicks)+" / wanted: "+JSON.stringify(wanted));
+  check(qaCapturedPicks.length===DAY_DATA[day].minSelectedMenus,
+    "Day "+day+" QA 자동 메뉴는 그날 선택 개수를 그대로 지켜야 합니다.");
+}
+state.day=qaMenuDay;state.selectedMenus=[];state.inventory={};
+
 check(JSON.stringify(state.story)===progressBefore,
   "QA 목록·영업일지·분기 탐색은 실제 이야기 진행 상태를 변경하면 안 됩니다.");
 runtimeChecks;
