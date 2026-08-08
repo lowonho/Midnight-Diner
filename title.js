@@ -532,7 +532,8 @@ function sameEndingRetryAction(left,right){
     &&left.type==="endingRetryMenu"
     &&right.type==="endingRetryMenu"
     &&left.judgementSceneId===right.judgementSceneId
-    &&left.endingSceneId===right.endingSceneId;
+    &&left.endingSceneId===right.endingSceneId
+    &&(left.acceptPolicy||"nextLoop")===(right.acceptPolicy||"nextLoop");
 }
 
 function showPendingEndingRetryCheckpoint(){

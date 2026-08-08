@@ -613,13 +613,25 @@ function initializeStoryUI(){
   document.getElementById("storyText").addEventListener("click",storyAdvance);
   document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
   document.getElementById("endingRetryBranchButton")?.addEventListener("click",retryLastEndingBranch);
-  document.getElementById("endingNewLoopButton")?.addEventListener("click",startNewLoopAfterEnding);
-  // 엔딩 결론창은 닫을 수 없는 선택 화면입니다. 캡처 단계에서 ESC를 막아
-  // 뒤쪽 게임 설정창이 함께 열리지 않도록 합니다.
+  document.getElementById("endingAcceptButton")?.addEventListener("click",acceptCurrentEnding);
+  // 엔딩 결론창은 닫을 수 없는 선택 화면입니다. ESC가 뒤쪽 설정창으로
+  // 전파되지 않게 막고, Tab 포커스도 두 선택지 안에서만 순환시킵니다.
   window.addEventListener("keydown",event=>{
-    if(event.key!=="Escape"||!endingRetryMenuIsOpen())return;
+    if(!endingRetryMenuIsOpen())return;
+    if(event.key==="Escape"){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if(event.key!=="Tab")return;
+    const {branchButton,acceptButton}=endingRetryElements();
+    const buttons=[branchButton,acceptButton].filter(button=>button&&!button.disabled);
+    if(!buttons.length)return;
+    let index=buttons.indexOf(document.activeElement);
+    if(index<0)index=event.shiftKey?0:-1;
+    const nextIndex=(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length;
     event.preventDefault();
-    event.stopImmediatePropagation();
+    buttons[nextIndex].focus();
   },true);
   window.addEventListener("resize",()=>{
     clearTimeout(storySubtitleResizeTimer);
@@ -1597,9 +1609,22 @@ function queueStoryConclusion(scene){
     type:"endingRetryMenu",
     judgementSceneId:scene.retryJudgementSceneId,
     endingSceneId:scene.id,
-    endingTitle:scene.endingTitle||scene.title
+    endingTitle:scene.endingTitle||scene.title,
+    acceptPolicy:"nextLoop"
   };
-  else if(scene.trueEndingEpilogue)storySession.conclusionAction={type:"trueEnding"};
+  else if(scene.trueEndingEpilogue){
+    const ending=STORY_SCENES[scene.endingSceneId];
+    // 후일담까지 본 시점에 영구 기록을 먼저 남깁니다. 다른 선택으로 돌아가도
+    // 이미 확인한 진엔딩 후일담은 타이틀 영업일지에서 사라지지 않습니다.
+    window.MoonlightTableSave?.unlockTrueEndingEpilogues?.();
+    storySession.conclusionAction={
+      type:"endingRetryMenu",
+      judgementSceneId:ending?.retryJudgementSceneId,
+      endingSceneId:ending?.id,
+      endingTitle:ending?.endingTitle||ending?.title,
+      acceptPolicy:"trueEnding"
+    };
+  }
 }
 
 function completeStoryScene(){
@@ -1913,7 +1938,8 @@ function endingRetryElements(){
     overlay:document.getElementById("endingRetryOverlay"),
     title:document.getElementById("endingRetryTitle"),
     description:document.getElementById("endingRetryDescription"),
-    branchButton:document.getElementById("endingRetryBranchButton")
+    branchButton:document.getElementById("endingRetryBranchButton"),
+    acceptButton:document.getElementById("endingAcceptButton")
   };
 }
 
@@ -1924,17 +1950,22 @@ function endingRetryMenuIsOpen(){
 function validEndingRetryAction(action){
   const judgement=STORY_SCENES[action?.judgementSceneId];
   const ending=STORY_SCENES[action?.endingSceneId];
+  const acceptPolicy=action?.acceptPolicy||"nextLoop";
   return action?.type==="endingRetryMenu"
     &&!!judgement
     &&!!ending
-    &&ending.continuePolicy==="endingRetryMenu"
-    &&ending.retryJudgementSceneId===judgement.id;
+    &&ending.retryJudgementSceneId===judgement.id
+    &&(
+      (acceptPolicy==="nextLoop"&&ending.continuePolicy==="endingRetryMenu")
+      ||(acceptPolicy==="trueEnding"&&ending.trueEnding===true)
+    );
 }
 
 function closeEndingRetryMenu(){
   const {overlay}=endingRetryElements();
   overlay?.classList.remove("open");
   overlay?.setAttribute("aria-hidden","true");
+  overlay?.setAttribute("inert","");
   pendingEndingRetryAction=null;
 }
 
@@ -1942,14 +1973,16 @@ function showEndingRetryMenu(action,{restoredCheckpoint=false}={}){
   const {overlay,title,description,branchButton}=endingRetryElements();
   if(!overlay||!validEndingRetryAction(action)){
     if(restoredCheckpoint)window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
+    else if(action?.acceptPolicy==="trueEnding")finishTrueEnding();
     else beginNextStoryLoop({toTitle:false});
     return false;
   }
   if(!restoredCheckpoint)window.MoonlightTableSave?.saveEndingRetryCheckpoint?.(action);
   pendingEndingRetryAction={...action,restoredCheckpoint:!!restoredCheckpoint};
   state.paused=true;
-  if(title)title.textContent=`「${action.endingTitle||"엔딩"}」 기록 완료`;
-  if(description)description.textContent="이 결말은 타이틀 영업일지에 남았습니다. 마지막 선택을 다시 보거나 새 회차를 시작할 수 있습니다.";
+  if(title)title.textContent=`「${action.endingTitle||"엔딩"}」`;
+  if(description)description.textContent="그때, 나는 다른 선택을 할 수도 있지 않았을까?";
+  overlay.removeAttribute("inert");
   overlay.classList.add("open");
   overlay.setAttribute("aria-hidden","false");
   branchButton?.focus?.();
@@ -1968,6 +2001,9 @@ function restoreEndingChoiceCheckpoint(action){
   if(!judgement||!ending)return false;
   delete state.story.completed[storySceneProgressKey(judgement)];
   delete state.story.completed[storySceneProgressKey(ending)];
+  if(ending.trueEnding&&ending.nextSceneId&&STORY_SCENES[ending.nextSceneId]){
+    delete state.story.completed[storySceneProgressKey(STORY_SCENES[ending.nextSceneId])];
+  }
   delete state.story.choices[judgement.id];
   state.story.endingSeen=false;
   state.story.judgmentComplete=false;
@@ -1989,7 +2025,7 @@ function retryLastEndingBranch(){
   if(!restoreEndingChoiceCheckpoint(action))beginNextStoryLoop({toTitle:false});
 }
 
-function startNewLoopAfterEnding(){
+function acceptCurrentEnding(){
   const action=pendingEndingRetryAction;
   if(!action)return;
   if(!restoreStoredEndingRetryState(action)){
@@ -1999,7 +2035,8 @@ function startNewLoopAfterEnding(){
   }
   window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
   closeEndingRetryMenu();
-  beginNextStoryLoop({toTitle:false});
+  if(action.acceptPolicy==="trueEnding")finishTrueEnding();
+  else beginNextStoryLoop({toTitle:false});
 }
 
 function finishTrueEnding(){

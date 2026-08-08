@@ -443,20 +443,32 @@
 
 .ending-retry-overlay { z-index: 115; }
 .ending-retry-window {
-  width: min(calc(540 * var(--upx)),92vw);
-  padding: calc(30 * var(--upx));
-  text-align: center;
+  width: min(calc(620 * var(--upx)),92vw);
+  padding: calc(30 * var(--upx)) calc(34 * var(--upx));
+  border: calc(3 * var(--upx)) solid #8f5b31;
+  background: linear-gradient(rgba(33,19,13,.98),rgba(18,10,7,.99));
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #25130c,inset 0 0 0 calc(5 * var(--upx)) #c1843e,0 calc(14 * var(--upx)) calc(40 * var(--upx)) rgba(0,0,0,.82);
+  text-align: left;
+}
+.ending-retry-speaker {
+  margin: 0 0 calc(13 * var(--upx));
+  padding-bottom: calc(10 * var(--upx));
+  border-bottom: 1px solid rgba(224,163,77,.38);
+  color: #ffe09a;
+  font-size: calc(20 * var(--upx));
+  font-weight: 800;
 }
 .ending-retry-window h2 {
-  margin: 0 0 calc(12 * var(--upx));
-  color: #ffe09a;
-  font-size: calc(28 * var(--upx));
+  margin: 0 0 calc(14 * var(--upx));
+  color: #cda96d;
+  font-size: calc(17 * var(--upx));
+  font-weight: 700;
 }
-.ending-retry-window > p:not(.eyebrow) {
+.ending-retry-window > p:not(.ending-retry-speaker) {
   margin: 0;
-  color: #d8c09a;
-  font-size: calc(15 * var(--upx));
-  line-height: 1.65;
+  color: #f1e0c2;
+  font-size: calc(20 * var(--upx));
+  line-height: 1.7;
   word-break: keep-all;
 }
 .ending-retry-actions {
@@ -469,6 +481,10 @@
   min-height: calc(48 * var(--upx));
   padding-inline: calc(14 * var(--upx));
   word-break: keep-all;
+}
+.ending-retry-actions button:focus-visible {
+  outline: calc(2 * var(--upx)) solid #ffe09a;
+  outline-offset: calc(3 * var(--upx));
 }
 
 @media (prefers-reduced-motion: reduce) {

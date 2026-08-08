@@ -1038,6 +1038,7 @@ const STORY_SCENES = {
     endingTitle: "함께 오는 아침",
     endingBackground: "assets/story/bg/05_morning_together_restaurant_unified_v2.png",
     continuePolicy: "clearRunKeepMeta",
+    retryJudgementSceneId: "SCN-J03",
     nextSceneId: "SCN-EPI01",
     lines: [
       storyNarration("다은은 달빛을 독점하거나 포기하지 않고 식탁 위에 돌려놓는다.\n손님들도 붙잡았던 밤을 스스로 놓는다. 여덟 조각은 모두의 길을 잇는 내일로 가는 문이 된다."),
@@ -1057,6 +1058,7 @@ const STORY_SCENES = {
     character: "protagonist",
     ending: true,
     trueEndingEpilogue: true,
+    endingSceneId: "END-04",
     endingStill: "morningAlley",
     disableContinue: true,
     clearProgressSaves: true,

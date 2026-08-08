@@ -393,17 +393,18 @@
       class="global-overlay ending-retry-overlay"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="endingRetryTitle"
+      aria-labelledby="endingRetrySpeaker endingRetryTitle"
       aria-describedby="endingRetryDescription"
       aria-hidden="true"
+      inert
     >
       <div class="ending-retry-window wood-panel">
-        <p class="eyebrow">ENDING RECORDED</p>
-        <h2 id="endingRetryTitle">엔딩 기록 완료</h2>
-        <p id="endingRetryDescription">이 결말은 타이틀 영업일지에 남았습니다.</p>
-        <div class="ending-retry-actions">
-          <button id="endingRetryBranchButton" class="gold-button" type="button">마지막 분기로 돌아가기</button>
-          <button id="endingNewLoopButton" class="dark-button" type="button">새 회차 시작</button>
+        <p id="endingRetrySpeaker" class="ending-retry-speaker">김다은(속말)</p>
+        <h2 id="endingRetryTitle">「엔딩」</h2>
+        <p id="endingRetryDescription">그때, 나는 다른 선택을 할 수도 있지 않았을까?</p>
+        <div class="ending-retry-actions" role="group" aria-label="엔딩 이후 선택">
+          <button id="endingRetryBranchButton" class="gold-button" type="button">다른 선택을 해 본다</button>
+          <button id="endingAcceptButton" class="dark-button" type="button">이 선택을 받아들인다</button>
         </div>
       </div>
     </section>

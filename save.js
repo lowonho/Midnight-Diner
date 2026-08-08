@@ -214,6 +214,7 @@ function normalizeEndingRetryAction(action){
     type:"endingRetryMenu",
     judgementSceneId,
     endingSceneId,
+    acceptPolicy:action.acceptPolicy==="trueEnding"?"trueEnding":"nextLoop",
     endingTitle:typeof action.endingTitle==="string"
       ?action.endingTitle.slice(0,120)
       :""

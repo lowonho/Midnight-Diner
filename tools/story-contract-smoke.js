@@ -14,13 +14,22 @@ const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf
   "endingRetryOverlay",
   "endingRetryTitle",
   "endingRetryDescription",
+  "endingRetrySpeaker",
   "endingRetryBranchButton",
-  "endingNewLoopButton"
+  "endingAcceptButton"
 ].forEach(id=>{
   if(!indexSource.includes(`id="${id}"`))throw new Error(`엔딩 후 선택 UI 누락: ${id}`);
 });
 if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".ending-retry-actions")){
   throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
+}
+if(!indexSource.includes("김다은(속말)")
+  ||!indexSource.includes("그때, 나는 다른 선택을 할 수도 있지 않았을까?")
+  ||!indexSource.includes("다른 선택을 해 본다")
+  ||!indexSource.includes("이 선택을 받아들인다")
+  ||indexSource.includes("ENDING RECORDED")
+  ||indexSource.includes("엔딩 기록 완료")){
+  throw new Error("엔딩 후 질문은 시스템 알림이 아니라 김다은의 속말과 두 선택지로 보여야 합니다.");
 }
 if(!indexSource.includes('id="storyEndingBackground"')
   ||!storyCssSource.includes(".story-ending-background")
@@ -479,11 +488,12 @@ assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requir
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
   ["endingRetryMenu","endingRetryMenu","endingRetryMenu","clearRunKeepMeta"],
   "엔딩별 이어하기 정책");
-same(["END-01","END-02","END-03"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
-  ["SCN-J02","SCN-J02","SCN-J03"],
-  "일반 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
+same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
+  ["SCN-J02","SCN-J02","SCN-J03","SCN-J03"],
+  "루프를 제외한 네 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
 assert(STORY_SCENES["END-04"].trueEnding
-  &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01",
+  &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01"
+  &&STORY_SCENES["SCN-EPI01"].endingSceneId==="END-04",
   "함께 오는 아침에서 진엔딩 에필로그로 이어져야 합니다.");
 assert(STORY_SCENES["SCN-EPI01"].disableContinue
   &&STORY_SCENES["SCN-EPI01"].clearProgressSaves
@@ -505,17 +515,54 @@ assert(String(runStoryConclusion).includes("beginNextStoryLoop")
   &&String(runStoryConclusion).includes("showEndingRetryMenu")
   &&String(runStoryConclusion).includes("finishTrueEnding"),
   "자동 회귀·일반 엔딩 후 선택·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
+assert(String(queueStoryConclusion).includes("scene.trueEndingEpilogue")
+  &&String(queueStoryConclusion).includes('acceptPolicy:"trueEnding"')
+  &&String(queueStoryConclusion).includes("unlockTrueEndingEpilogues"),
+  "진엔딩 후일담을 본 뒤 영구 기록을 남기고 재선택 질문을 열어야 합니다.");
 assert(String(restoreEndingChoiceCheckpoint).includes("playStoryScenes")
-  &&String(startNewLoopAfterEnding).includes("beginNextStoryLoop"),
-  "엔딩 기록 뒤 마지막 분기 재생과 새 회차 시작 기능을 모두 제공해야 합니다.");
+  &&String(restoreEndingChoiceCheckpoint).includes("ending.nextSceneId")
+  &&String(acceptCurrentEnding).includes("beginNextStoryLoop")
+  &&String(acceptCurrentEnding).includes("finishTrueEnding"),
+  "엔딩 뒤에는 마지막 분기 재생과 현재 결말 수용을 모두 제공해야 합니다.");
 assert(String(showEndingRetryMenu).includes("saveEndingRetryCheckpoint")
-  &&String(showEndingRetryMenu).includes("restoredCheckpoint"),
-  "일반 엔딩 화면은 현재 결말을 숨은 체크포인트로 저장하고 복구 표시를 구분해야 합니다.");
+  &&String(showEndingRetryMenu).includes("restoredCheckpoint")
+  &&String(showEndingRetryMenu).includes("다른 선택을 할 수도 있지 않았을까")
+  &&String(showEndingRetryMenu).includes('removeAttribute("inert")'),
+  "엔딩 질문은 현재 결말을 숨은 체크포인트로 저장하고 김다은의 속말로 열려야 합니다.");
 assert(String(retryLastEndingBranch).includes("restoreStoredEndingRetryState")
   &&String(retryLastEndingBranch).includes("clearEndingRetryCheckpoint")
-  &&String(startNewLoopAfterEnding).includes("restoreStoredEndingRetryState")
-  &&String(startNewLoopAfterEnding).includes("clearEndingRetryCheckpoint"),
+  &&String(acceptCurrentEnding).includes("restoreStoredEndingRetryState")
+  &&String(acceptCurrentEnding).includes("clearEndingRetryCheckpoint"),
   "복구된 엔딩 화면의 두 버튼은 상태를 되살린 뒤 숨은 체크포인트를 삭제해야 합니다.");
+assert(!STORY_SCENES["SCN-J01"].retryJudgementSceneId
+  &&String(validEndingRetryAction).includes('acceptPolicy==="trueEnding"')
+  &&String(initializeStoryUI).includes('event.key!=="Tab"'),
+  "자동 회귀에는 재선택을 붙이지 않고 엔딩 질문의 포커스는 두 선택지 안에 유지해야 합니다.");
+const retryActions=[
+  ["END-01","SCN-J02","nextLoop"],
+  ["END-02","SCN-J02","nextLoop"],
+  ["END-03","SCN-J03","nextLoop"],
+  ["END-04","SCN-J03","trueEnding"]
+].map(([endingSceneId,judgementSceneId,acceptPolicy])=>({
+  type:"endingRetryMenu",endingSceneId,judgementSceneId,acceptPolicy
+}));
+assert(retryActions.every(validEndingRetryAction),
+  "루프를 제외한 네 엔딩의 재선택 동작이 모두 유효해야 합니다.");
+let trueEndingEpilogueUnlocks=0;
+window.MoonlightTableSave={unlockTrueEndingEpilogues(){trueEndingEpilogueUnlocks++;}};
+storySession={conclusionAction:null};
+queueStoryConclusion(STORY_SCENES["SCN-EPI01"]);
+same(storySession.conclusionAction,{
+  type:"endingRetryMenu",
+  judgementSceneId:"SCN-J03",
+  endingSceneId:"END-04",
+  endingTitle:"함께 오는 아침",
+  acceptPolicy:"trueEnding"
+},"진엔딩 후일담 종료 뒤 재선택 질문 동작");
+assert(trueEndingEpilogueUnlocks===1,
+  "진엔딩 후일담은 재선택 여부와 무관하게 본 즉시 영구 기록되어야 합니다.");
+storySession=null;
+delete window.MoonlightTableSave;
 assert(String(finishTrueEnding).includes("clearEndingRetryCheckpoint")
   &&String(finishTrueEnding).indexOf("clearEndingRetryCheckpoint")
     <String(finishTrueEnding).indexOf("clearAutoSaveForTrueEnding"),

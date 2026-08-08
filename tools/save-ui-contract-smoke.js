@@ -281,11 +281,13 @@ assert(!saveSource.includes('addEventListener("pagehide"')
   "화면 이탈·백그라운드 전환은 자동 저장을 새로 만들면 안 됩니다.");
 assert(saveSource.includes("saveEndingRetryCheckpoint")
   &&saveSource.includes("readEndingRetryCheckpoint")
-  &&saveSource.includes("clearEndingRetryCheckpoint"),
-  "일반 엔딩은 이어하기 슬롯과 분리된 숨은 재시도 체크포인트 API를 제공해야 합니다.");
+  &&saveSource.includes("clearEndingRetryCheckpoint")
+  &&saveSource.includes('acceptPolicy:action.acceptPolicy==="trueEnding"?"trueEnding":"nextLoop"'),
+  "선택형 엔딩은 이어하기 슬롯과 분리된 재선택 체크포인트와 수용 정책을 제공해야 합니다.");
 assert(titleSource.includes("showPendingEndingRetryCheckpoint")
   &&titleSource.includes("restoreEndingRetryCheckpointGame")
-  &&titleSource.includes("clearEndingRetryCheckpoint"),
+  &&titleSource.includes("clearEndingRetryCheckpoint")
+  &&titleSource.includes('left.acceptPolicy||"nextLoop"'),
   "타이틀은 숨은 엔딩 체크포인트를 표시·복원하고 새 게임에서 정리해야 합니다.");
 assert(storySource.includes('window.addEventListener("keydown"')
   &&storySource.includes("endingRetryMenuIsOpen()")

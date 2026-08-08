@@ -461,8 +461,9 @@ same(MANUAL_SAVE_SLOTS.map(rawSlot),manualsBeforeEndingCheckpoint,
   "엔딩 재시도 체크포인트가 수동 저장 3칸을 바꾸면 안 됩니다.");
 const endingCheckpoint=readEndingRetryCheckpoint();
 assert(endingCheckpoint?.action?.endingSceneId==="END-01"
+  &&endingCheckpoint?.action?.acceptPolicy==="nextLoop"
   &&endingCheckpoint?.saveData?.state?.story?.choices?.["SCN-J02"]===0,
-  "숨은 체크포인트는 엔딩 동작과 마지막 선택 상태를 함께 보존해야 합니다.");
+  "기존 일반 엔딩 체크포인트는 새 회차 수용 정책과 마지막 선택 상태를 함께 보존해야 합니다.");
 assert(readAllSaveSlots().length===4
   &&!readAllSaveSlots().some(slot=>slot.id===ENDING_RETRY_CHECKPOINT_KEY),
   "숨은 엔딩 체크포인트는 이어하기 네 슬롯에 노출되면 안 됩니다.");
@@ -474,6 +475,19 @@ const replacedEndingCheckpoint=readEndingRetryCheckpoint();
 assert(replacedEndingCheckpoint?.action?.endingSceneId==="END-02"
   &&replacedEndingCheckpoint?.saveData?.state?.story?.choices?.["SCN-J02"]===1,
   "중복 페이지를 만들지 않고 가장 최근 엔딩 체크포인트 하나만 유지해야 합니다.");
+state.story.choices["SCN-J03"]=1;
+assert(saveEndingRetryCheckpoint({
+  type:"endingRetryMenu",
+  judgementSceneId:"SCN-J03",
+  endingSceneId:"END-04",
+  endingTitle:"함께 오는 아침",
+  acceptPolicy:"trueEnding"
+}),"진엔딩도 다른 선택을 위한 숨은 체크포인트를 저장해야 합니다.");
+const trueEndingCheckpoint=readEndingRetryCheckpoint();
+assert(trueEndingCheckpoint?.action?.endingSceneId==="END-04"
+  &&trueEndingCheckpoint?.action?.acceptPolicy==="trueEnding"
+  &&trueEndingCheckpoint?.saveData?.state?.story?.choices?.["SCN-J03"]===1,
+  "진엔딩 체크포인트는 진엔딩 수용 정책과 마지막 선택 상태를 보존해야 합니다.");
 assert(clearEndingRetryCheckpoint()&&readEndingRetryCheckpoint()===null,
   "엔딩 선택을 마치면 숨은 체크포인트를 삭제할 수 있어야 합니다.");
 
