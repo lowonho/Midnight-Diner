@@ -14,7 +14,10 @@
               save.js 의 QA_REMOVE 두 줄을 지우면 끝입니다.
    ============================================================ */
 
-const QA_MODE_ENABLED=new URLSearchParams(window.location.search).get("qa")==="1";
+const QA_QUERY_PARAMS=new URLSearchParams(window.location.search);
+// qa-story 직접 주소도 저장을 건드리지 않는 QA 세션이어야 합니다. 예:
+// ?qa-story=END-01 또는 ?qa=1&qa-story=END-01
+const QA_MODE_ENABLED=QA_QUERY_PARAMS.get("qa")==="1"||QA_QUERY_PARAMS.has("qa-story");
 window.QA_MODE=Object.freeze({enabled:QA_MODE_ENABLED});
 
 const QA_UNLOCK_CLICKS=10;        // 처마를 몇 번 눌러야 QA 버튼이 나오는지
@@ -806,6 +809,17 @@ function qaStoryStep(delta){
 
 function qaStoryPreviewChoice(choice,index){
   if(!qaStoryPreviewIsActive())return false;
+  const nextSceneId=choice?.nextSceneId;
+  if(nextSceneId&&STORY_SCENES[nextSceneId]){
+    // 실제 진행 데이터에는 선택을 기록하지 않고, 대상 장면만 QA 미리보기로
+    // 이어 줍니다. 엔딩 선택지를 눌렀을 때 해당 배경도 즉시 확인할 수 있습니다.
+    const contextDay=qaStoryDayForScene(STORY_SCENES[nextSceneId],storySession.qaContextDay);
+    const opened=qaOpenStoryScene(nextSceneId,0,{contextDay});
+    if(opened)qaRefreshPanel(
+      `선택 ${Number(index)+1}: ${choice?.text||""}\n${STORY_SCENES[nextSceneId].title} 미리보기를 열었습니다.`
+    );
+    return opened;
+  }
   const reply=choice?.reply
     ||Object.values(choice?.orderCook?.replies||{}).map(value=>
       typeof value==="object"?value.text:value

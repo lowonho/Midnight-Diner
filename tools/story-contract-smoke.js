@@ -286,8 +286,10 @@ assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
 assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
   &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
   "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
-assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="SCN-P01 · 지친 밤 - 퇴근길",
-  "장면 카드는 새 문서의 장면 코드와 제목을 표시해야 합니다.");
+assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="지친 밤 - 퇴근길"
+  &&!storySceneCardText(STORY_SCENES["SCN-J01"]).includes("SCN-")
+  &&!storySceneCardText(STORY_SCENES["END-01"]).includes("END-"),
+  "플레이어용 장면 카드에는 내부 장면 코드를 표시하지 않아야 합니다.");
 assert(!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-A"])
   &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-B"])
   &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-완벽"])
@@ -302,6 +304,9 @@ const l01=STORY_SCENES["SCN-L01"];
 const l02=STORY_SCENES["SCN-L02"];
 assert(l01.minLoop===2&&l01.repeatEachLoop&&l01.autoOpenJournal,
   "2회차 첫째 날에는 영업일지를 자동으로 열어야 합니다.");
+assert(l01.lines.some(line=>line.speakerLabel==="김다은(속말)"
+  &&line.text==="손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
+  "회귀 첫 장면에서 손님에게 초면처럼 대하려는 다은의 판단을 알려야 합니다.");
 assert(l02.minLoop===2&&l02.repeatEachLoop&&l02.dynamicJournalHint,
   "2회차 이후 날짜별 동적 영업일지 안내를 사용해야 합니다.");
 same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
@@ -356,9 +361,10 @@ assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadow
 assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문")&&rule.includes("달빛 조각으로만"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
   "영업일지 첫 장은 세부 등급을 선공개하지 않고 달빛 조각으로 내일의 문을 여는 목표만 알려야 합니다.");
-same(l01.lines.slice(-3).map(line=>line.text),[
+same(l01.lines.slice(-4).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
+  "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다.",
   "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼."
 ],"회귀 후 첫째 날의 영업일지 안내 대사");
 assert(l02.journalVariants.shard[0].text.includes("지난 회차")

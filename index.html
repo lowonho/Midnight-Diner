@@ -72,7 +72,7 @@
             <div class="hud-stats">
               <div class="stat-day"><span>DAY</span><strong id="dayText">1</strong></div>
               <div class="stat-time"><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
-              <div class="stat-satisfaction"><span>평균 만족도</span><strong id="satisfactionText">-</strong></div>
+              <div class="stat-satisfaction"><span>손님 반응</span><strong id="satisfactionText">-</strong></div>
               <div class="retired-economy-ui" aria-hidden="true"><span>인기도</span><strong id="popularityText">0</strong></div>
               <div class="stat-money retired-economy-ui" aria-hidden="true"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
               <button id="codexButton" class="square-button" type="button" aria-label="영업일지 열기">📖</button>
@@ -242,8 +242,8 @@
               <h2 id="resultTitle">오늘의 영업 기록</h2>
               <div class="result-grid">
                 <div><span>서빙한 손님</span><strong id="servedResult">0</strong></div>
-                <div><span>평균 만족도</span><strong id="satisfactionResult">0점</strong></div>
-                <div><span>별 5개 접시</span><strong id="fiveStarResult">0</strong></div>
+                <div><span>손님들의 반응</span><strong id="satisfactionResult">-</strong></div>
+                <div><span>오늘의 접시</span><strong id="fiveStarResult">-</strong></div>
                 <div class="retired-economy-ui" aria-hidden="true"><span>인기도 변화</span><strong id="popularityResult">-</strong></div>
                 <div class="retired-economy-ui" aria-hidden="true"><span>폐기·남은 재고 손실</span><strong id="wasteResult">0원</strong></div>
                 <div class="retired-economy-ui" aria-hidden="true"><span>오늘 순이익</span><strong id="revenueResult">0원</strong></div>
@@ -256,7 +256,7 @@
       </section>
     </main>
 
-    <section id="settingsOverlay" class="global-overlay settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <section id="settingsOverlay" class="global-overlay settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true">
       <!-- 판·버튼·토글 그림은 assets/UI/Setting 입니다. 게임 중(ingame)과
            타이틀(lobby)은 판 그림과 크기가 다른데, 그 차이는 오버레이에
            붙는 .is-lobby 하나로 css/settings.css 가 처리합니다.

@@ -212,15 +212,21 @@ function tryEndNight(reason="complete"){
   const pendingPlans=state.story?.pendingNightGuests||[];
   const unservedStoryOrder=state.orders.some(order=>order.customerType==="story"||order.storySceneId);
   const storyGuestLeaving=state.departures.some(item=>!!item.guestId);
+  const generalGuestLeaving=state.departures.some(item=>!item.guestId);
   const unfinishedStory=storyIsActive()
     ||pendingPlans.length>0
     ||unservedStoryOrder
     ||storyGuestLeaving
     ||!!state.story?.pendingResultSceneId;
-  if(!unfinishedStory){
+  if(!unfinishedStory&&!generalGuestLeaving){
     endNight();
     return true;
   }
+
+  // 마지막 일반 손님도 접시를 비우고 반응한 뒤 자리에서 완전히 사라져야
+  // 영업 종료 화면으로 넘어갑니다. 이 대기는 특별 손님과 무관하므로
+  // 아래의 "특별 손님 이야기" 안내도 띄우지 않습니다.
+  if(!unfinishedStory&&generalGuestLeaving)return false;
 
   if(pendingPlans.length){
     const occupied=new Set(state.orders.map(order=>order.slot));
@@ -253,8 +259,12 @@ function renderNightResult(){
   const target=nightGeneralOrderTarget();
   const unserved=Math.max(0,target-state.generalServed);
   dom.servedResult.textContent=`${state.generalServed} / ${target}건`;
-  dom.satisfactionResult.textContent=`${avg}점`;
-  dom.fiveStarResult.textContent=state.fiveStar;
+  dom.satisfactionResult.textContent=avg>=90?"아주 좋았어요":avg>=75?"좋았어요":"조금 아쉬웠어요";
+  dom.fiveStarResult.textContent=state.fiveStar<=0
+    ?"다음에는 더 잘할 수 있어요"
+    :state.fiveStar>=state.served
+    ?"모든 접시에 정성이 전해졌어요"
+    :"기억에 남은 접시가 있었어요";
   const finalDay=state.day>=DayManager.maxDay;
   dom.nextDayButton.textContent=finalDay
     ?state.story?.endingSeen?"엔딩 완료":`Day ${DayManager.maxDay} 완료`
@@ -437,14 +447,14 @@ function serveOrder(order) {
   const storyResult=applyStoryCookingResult(order,serviceScore);
   const resumedStory=finishSuspendedStoryCook(order,serviceScore);
   const mismatchedStoryDish=storyResult?.matched===false;
-  const tier=storyCookingTier(serviceScore);
-  const departureText=storyResult?.text||pickGeneralGuestBubble(tier);
-  state.departures.push({
-    slot:order.slot,variant:order.variant,guestId:order.guestId||null,
-    bubble:departureText,life:3.2,
-    stars:mismatchedStoryDish?0:stars,
-    satisfaction:mismatchedStoryDish?null:serviceScore
-  });
+  if(!isStoryOrder){
+    const tier=storyCookingTier(serviceScore);
+    state.departures.push({
+      slot:order.slot,variant:order.variant,guestId:null,
+      bubble:pickGeneralGuestBubble(tier),life:3.2,
+      stars,satisfaction:serviceScore
+    });
+  }
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;
   syncSelectedOrderToQueue();
   if(state.generalSpawnedCustomers<nightGeneralOrderTarget()||(state.story?.pendingNightGuests?.length||0))scheduleOrderRespawn(order.slot,3.1);
@@ -467,11 +477,8 @@ function updateNightObjective(){
   const progress=`일반 주문 ${state.generalServed} / ${nightGeneralOrderTarget()}건 · 시간제한 없음`;
   const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
   if(state.carrying){
-    const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId),inv=state.inventory[d.id];
-    const storyOrder=o?.customerType==="story";
-    const expected=satisfactionScore(inv,state.carrying.cookScore);
-    const expectedLabel=storyOrder?"예상 평가":"예상 만족도";
-    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성 · 조리 ${state.carrying.cookScore}점 · ${expectedLabel} ${expected}점</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
+    const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId);
+    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
     return;
   }
   if(!order){

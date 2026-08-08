@@ -374,7 +374,40 @@ function showGameHud(show) {
   [dom.topHud,dom.leftHud,dom.rightHud,dom.mobileControls].forEach(el => el.classList.toggle(UI_CLASS.hudHidden,!show));
 }
 
+let settingsReturnFocus=null;
+const SETTINGS_FOCUSABLE_SELECTOR=[
+  "button:not(:disabled)",
+  "[href]",
+  "input:not(:disabled)",
+  "select:not(:disabled)",
+  "textarea:not(:disabled)",
+  '[tabindex]:not([tabindex="-1"])'
+].join(",");
+
+function settingsFocusableElements(){
+  return [...dom.settingsOverlay.querySelectorAll(SETTINGS_FOCUSABLE_SELECTOR)]
+    .filter(element=>!element.hidden&&element.getClientRects().length>0);
+}
+
+function setSettingsBackgroundInert(inert){
+  // 설정창은 appRoot 안에서 게임·타이틀 화면과 나란히 있으므로 appRoot 자체를
+  // 잠그면 설정창도 조작할 수 없게 됩니다. 실제 배경 두 화면만 잠급니다.
+  [dom.titleScreen,dom.gameScreen].forEach(screen=>{
+    if(!screen)return;
+    if(inert)screen.setAttribute("inert","");
+    else screen.removeAttribute("inert");
+  });
+}
+
+function focusFirstSettingsControl(){
+  const preferred=dom.resumeButton&&!dom.resumeButton.disabled&&!dom.resumeButton.hidden
+    ?dom.resumeButton
+    :settingsFocusableElements()[0];
+  preferred?.focus?.({preventScroll:true});
+}
+
 function openSettings(from=state.screen) {
+  if(settingsOverlayIsOpen())return;
   const fromTitle=from==="title";
   // 공용 조리 미니게임뿐 아니라 독립 오버레이로 도는 냉장고 재료 찾기도
   // 진행 중 저장·타이틀 이동을 막습니다. 특히 완료 직후의 냉장고 상태를 저장하면
@@ -397,20 +430,95 @@ function openSettings(from=state.screen) {
   // 여기서는 어느 쪽인지만 알려 줍니다.
   dom.settingsOverlay.classList.toggle("is-lobby",fromTitle);
   syncAudioControls();
-  dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);audio.pauseLoops();
+  settingsReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  setSettingsBackgroundInert(true);
+  dom.settingsOverlay.classList.add(UI_CLASS.overlayOpen);
+  dom.settingsOverlay.setAttribute("aria-hidden","false");
+  focusFirstSettingsControl();
+  audio.pauseLoops();
 }
 function closeSettings() {
   // 저장 슬롯 창이 떠 있으면 그것만 닫고 설정창은 남깁니다.
   if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()){closeSaveSlotDialog();return;}
   dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
+  setSettingsBackgroundInert(false);
   resumeMiniAsyncTasks();
   state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
   if(state.settingsFrom!=="title")audio.resumeLoops();
+  const focusTarget=settingsReturnFocus;
+  settingsReturnFocus=null;
+  if(focusTarget?.isConnected&&!focusTarget.hidden&&!focusTarget.closest?.("[inert]")){
+    focusTarget.focus?.({preventScroll:true});
+  }else if(dom.settingsOverlay.contains(document.activeElement)){
+    document.activeElement?.blur?.();
+  }
+  dom.settingsOverlay.setAttribute("aria-hidden","true");
 }
 
 function settingsOverlayIsOpen(){
   return dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen);
 }
+
+function settingsAllowsEventTarget(target){
+  if(dom.settingsOverlay.contains(target))return true;
+  const saveOverlay=document.getElementById("saveSlotOverlay");
+  return !!(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen()&&saveOverlay?.contains(target));
+}
+
+// inert 를 지원하지 않는 오래된 브라우저에서도 배경 버튼이 작동하지 않도록
+// 실제 활성화 이벤트를 한 번 더 막습니다. 저장 슬롯은 설정창 위에 여는
+// 자식 대화상자이므로 예외로 두어 기존 저장/불러오기 흐름을 유지합니다.
+document.addEventListener("click",event=>{
+  if(!settingsOverlayIsOpen()||settingsAllowsEventTarget(event.target))return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+},true);
+
+window.addEventListener("keydown",event=>{
+  if(!settingsOverlayIsOpen())return;
+  if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())return;
+
+  if(event.key==="Tab"){
+    const focusable=settingsFocusableElements();
+    if(!focusable.length){event.preventDefault();return;}
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(!dom.settingsOverlay.contains(document.activeElement)){
+      event.preventDefault();
+      (event.shiftKey?last:first).focus();
+    }else if(event.shiftKey&&document.activeElement===first){
+      event.preventDefault();last.focus();
+    }else if(!event.shiftKey&&document.activeElement===last){
+      event.preventDefault();first.focus();
+    }
+    return;
+  }
+
+  // 어떤 이유로 포커스가 뒤쪽 화면에 남아 있더라도 Enter/Space 등의 기본
+  // 버튼 동작이 실행되지 않게 하고 설정창 안으로 되돌립니다.
+  if(!dom.settingsOverlay.contains(event.target)){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    focusFirstSettingsControl();
+  }
+},true);
+
+document.addEventListener("focusin",event=>{
+  if(!settingsOverlayIsOpen())return;
+  if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())return;
+  if(!dom.settingsOverlay.contains(event.target))focusFirstSettingsControl();
+},true);
+
+// 불러오기·타이틀 복귀 코드는 화면 전환과 함께 설정창 클래스를 직접
+// 걷습니다. 그 경로에서도 inert 가 남아 새 화면을 조작할 수 없게 되는 일이
+// 없도록, 실제로 창이 사라졌는지를 기준으로 마지막 안전 해제를 합니다.
+new MutationObserver(()=>{
+  if(settingsOverlayIsOpen())return;
+  if(dom.settingsOverlay.contains(document.activeElement))document.activeElement?.blur?.();
+  dom.settingsOverlay.setAttribute("aria-hidden","true");
+  setSettingsBackgroundInert(false);
+  resumeMiniAsyncTasks();
+  settingsReturnFocus=null;
+}).observe(dom.settingsOverlay,{attributes:true,attributeFilter:["class"]});
 
 /* 반짝임(fx_perfect_sparkle)을 달 음식인지. 요리사가 손에 들고 있을 때만
    씁니다 (player.js syncCarriedFoodFx). 메뉴판 카드·손님 말풍선에서는 뺐습니다.
@@ -596,13 +704,22 @@ function update(dt) {
     if(state.screen==="game"&&storyDialogueIsActive())updateAutosave(dt);
     return;
   }
+  const pauseNightCustomerPresentation=state.phase==="night"&&!!state.mini;
   if(state.phase==="night"){
-    updateNightOrderEntrances(dt);
-    state.respawns.forEach(r=>r.time-=dt);const ready=state.respawns.filter(r=>r.time<=0);state.respawns=state.respawns.filter(r=>r.time>0);ready.forEach(processOrderRespawn);
+    // 조리판 뒤에서 일반 손님의 등장·대기·식사·퇴장이 지나가 버리면
+    // 미니게임을 닫았을 때 반응을 볼 수 없습니다. 특별 손님의 페이드만
+    // 기존 안전 차례 규칙을 유지하고, 일반 손님 연출과 재등장은 그대로 둡니다.
+    updateNightOrderEntrances(dt,pauseNightCustomerPresentation);
+    if(!pauseNightCustomerPresentation){
+      state.respawns.forEach(r=>r.time-=dt);
+      const ready=state.respawns.filter(r=>r.time<=0);
+      state.respawns=state.respawns.filter(r=>r.time>0);
+      ready.forEach(processOrderRespawn);
+    }
     if(typeof processStoryNightTrigger==="function")processStoryNightTrigger();
-    ensureNightOrders();
+    if(!pauseNightCustomerPresentation)ensureNightOrders();
     const noActiveOrders=state.orders.length===0&&!state.carrying&&state.respawns.length===0;
-    if(noActiveOrders&&state.generalServed>=nightGeneralOrderTarget()){
+    if(!pauseNightCustomerPresentation&&noActiveOrders&&state.generalServed>=nightGeneralOrderTarget()){
       if(tryEndNight("complete"))return;
     }
   }
@@ -611,11 +728,16 @@ function update(dt) {
       order.waitingTime=0;order.bubbleTime=0;
       return;
     }
+    if(pauseNightCustomerPresentation&&order.customerType!=="story")return;
     order.waitingTime=(order.waitingTime||0)+dt;
     if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);
     else if(!order.waitingBubbleShown&&order.waitingTime>=12){order.waitingBubbleShown=true;order.bubble=pickGeneralGuestBubble("waiting");order.bubbleTime=4;}
   });
-  state.departures.forEach(item=>item.life-=dt);state.departures=state.departures.filter(item=>item.life>0);
+  state.departures.forEach(item=>{
+    if(pauseNightCustomerPresentation&&!item.guestId)return;
+    item.life-=dt;
+  });
+  state.departures=state.departures.filter(item=>item.life>0);
   updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
   updateAutosave(dt);
 }
@@ -653,7 +775,7 @@ function updateUI(force=false) {
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
   dom.timeText.textContent=isOpen?UI_TEXT.guestsLeft(nightGuestsRemaining()):isDayPreparation?UI_TEXT.timeNoLimit:UI_TEXT.blank;
-  dom.satisfactionText.textContent=state.served?UI_TEXT.score(avgSatisfaction()):UI_TEXT.blank;
+  dom.satisfactionText.textContent=state.served?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
@@ -765,7 +887,10 @@ function draw(){
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
-dom.phaseButton.addEventListener("click",beginNight);
+dom.phaseButton.addEventListener("click",()=>{
+  if(settingsOverlayIsOpen())return;
+  beginNight();
+});
 dom.nextDayButton.addEventListener("click",advanceToNextDay);
 dom.menuSelectConfirm.addEventListener("click",confirmMenuSelection);
 dom.actionButton.addEventListener("click",()=>{if(state.mini)miniAction();else interact();});
@@ -800,15 +925,19 @@ dom.sfxAudioToggle.addEventListener("click",()=>{
 
 window.addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();
-  if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
   if(k==="escape"){
+    // 엔딩 결론은 반드시 두 선택지 중 하나로만 닫습니다. 다른 오버레이보다
+    // 먼저 확인해야 뒤쪽 설정창이 열리거나 닫히는 일도 없습니다.
+    if(typeof endingRetryMenuIsOpen==="function"&&endingRetryMenuIsOpen())return;
     if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())closeSaveSlotDialog();
     else if(dom.settingsOverlay.classList.contains(UI_CLASS.overlayOpen))closeSettings();
     else if(state.screen==="game")openSettings("game");
     return;
   }
-  // 설정창 뒤에서 미니게임 키 입력이 처리되지 않게 합니다.
+  // 설정창 뒤에서 미니게임 키 입력은 막되, 설정 안의 슬라이더 방향키와
+  // 버튼 Space 같은 브라우저 기본 조작은 그대로 쓸 수 있어야 합니다.
   if(settingsOverlayIsOpen())return;
+  if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
   // 화면 위에 보이는 대화가 뒤쪽 미니게임보다 항상 입력 우선권을 가집니다.
   if(storyDialogueIsActive()){
     if(k==="e"||e.code==="Space")storyAdvance();

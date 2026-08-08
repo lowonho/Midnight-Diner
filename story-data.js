@@ -484,6 +484,7 @@ const STORY_SCENES = {
       storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌지만, 확인한 기록은 영업일지에 남아 있다."),
       storyLine("protagonist", "달빛 조각은 사라졌지만 기록은 남아 있어."),
       storyLine("protagonist", "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야."),
+      storyCaption("김다은(속말)", "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
       storyLine("protagonist", "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼.")
     ]
   },

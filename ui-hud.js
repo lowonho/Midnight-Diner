@@ -41,7 +41,9 @@ const UI_TEXT = Object.freeze({
   blank: "-",
 
   money: value => `${value.toLocaleString()}원`,
-  score: value => `${value}점`,
+  // 내부 점수는 조리 판정에 그대로 쓰되 HUD에서는 손님의 표정처럼
+  // 정성적인 반응만 보여 줍니다.
+  guestResponse: value => value>=90?"아주 만족":value>=75?"만족":"아쉬움",
   percent: value => `${value}%`,
 
   /* ── 좌측 HUD ─────────────────────────────────────── */
@@ -73,7 +75,7 @@ const UI_TEXT = Object.freeze({
   // 스토리 튜토리얼 조리 (사장이 옆에서 알려주는 단계)
   miniTitleTutorial: title => `조리 안내 · ${title}`,
   miniDescTutorial: desc => `${desc} 사장의 안내에 따라 천천히 조리해 보세요.`,
-  miniScore: score => score>=90?`완벽해요! ${score}점`:score>=70?`좋아요! ${score}점`:`조금 아쉬워요. ${score}점`,
+  miniScore: score => score>=90?"완벽해요!":score>=70?"좋아요!":"조금 아쉬워요.",
 
   /* ── 토스트 ───────────────────────────────────────── */
   toast: Object.freeze({
@@ -99,7 +101,7 @@ const UI_TEXT = Object.freeze({
 
   /* ── 화면에 튀어오르는 글자 (fx.js spawnPopup) ────── */
   popup: Object.freeze({
-    prepGain: (name,quality) => `${name} 준비 완료 · 품질 ${quality}`,
+    prepGain: name => `${name} 준비 완료`,
     cookDone: "완성!"
   })
 });

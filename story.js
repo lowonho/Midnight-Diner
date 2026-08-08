@@ -505,7 +505,9 @@ function storySceneShowsIntroCard(scene){
 function storySceneCardText(scene){
   if(!scene)return "";
   if(!storySceneShowsIntroCard(scene))return STORY_CHARACTERS[scene.character]?.name||"특별 손님";
-  return `${scene.id} · ${scene.title}`;
+  // SCN-P01, END-01 같은 문자열은 진행을 위한 내부 식별자입니다.
+  // 플레이어에게는 자연스러운 장면 제목만 보여 줍니다.
+  return String(scene.title||"").trim();
 }
 
 function storySceneDayLabel(scene){
