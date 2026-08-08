@@ -568,6 +568,8 @@
 }
 .journal-page-right {
   display: flex;
+  /* 글 아래로 손글씨 그림이 이어 붙습니다(주의사항 장에서만 켜집니다). */
+  flex-direction: column;
   padding-left: calc(67 * var(--upx));
   overflow-x: hidden;
   overflow-y: auto;
@@ -706,6 +708,17 @@
   white-space: pre-line;
   word-break: keep-all;
 }
+/* 주의사항 장에서 마지막 줄 아래 남는 종이를 채우는 손글씨입니다.
+   남는 높이를 그대로 받아(flex:1) 종이 폭에 맞춰 최대로 커집니다. 원화 비율은
+   contain 이 지켜 주니 줄 수가 늘거나 줄어도 찌그러지지 않습니다.
+   좌우 여백은 위 글자와 같은 자리에서 시작·끝나도록 p 의 안쪽 여백과 맞췄습니다. */
+.journal-page-note-art {
+  flex: 1;
+  min-height: 0;
+  margin: calc(6 * var(--upx)) calc(11 * var(--upx)) calc(4 * var(--upx)) calc(4 * var(--upx));
+  background: center/contain no-repeat url("../assets/UI/Journal/journal_warning.webp");
+}
+.journal-page-note-art[hidden] { display: none; }
 /* [주의사항] 같은 구역 머리와 '이름 ·' 같은 항목 이름만 굵게 씁니다. */
 .journal-page p .journal-note-label {
   color: #4b2b1a;

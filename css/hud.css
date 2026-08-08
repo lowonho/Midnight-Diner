@@ -9,12 +9,14 @@
   height: 14.7%;
   display: grid;
   /* 세 칸: 로고 판 · 메뉴 카드 줄 · 우상단 스탯 묶음.
-     [오른쪽 24%] 스탯 칸(DAY·손님·특별 손님·일지·설정)이 좁아 글자와 아이콘이
-     눌려 보여서 18.5% → 24% 로 넓혔습니다. 늘린 만큼 가운데 1fr 이 줄어듭니다.
-     ⚠️ 가운데는 메뉴 카드 5장(200 x5) + 간격 10 x4 = **1040** 아래로 내려가면
-        카드가 200 을 못 지키고 같이 줄어듭니다. 1920 기준으로 26.4% 가 그 한계라,
-        24% 는 약 43px 여유를 남긴 값입니다. 더 늘리려면 카드 폭부터 다시 보세요. */
-  grid-template-columns: 15% 1fr 24%;
+     [오른쪽 20.25%] 스탯 칸(DAY·손님·특별 손님·일지·설정)이 좁아 글자와 아이콘이
+     눌려 보여서 18.5% 에서 넓힌 값입니다. 늘린 만큼 가운데 1fr 이 줄어들어
+     메뉴 카드 줄이 왼쪽으로 밀리므로, 넓히는 폭은 '꼭 필요한 만큼'만 잡습니다
+     (24% 까지 갔다가 메뉴판이 너무 쏠려 보여 되돌린 값입니다 — 어느 칸을 얼마나
+      넓혔는지는 아래 .hud-stats 주석 참고).
+     ⚠️ 가운데가 메뉴 카드 5장(200 x5) + 간격 10 x4 = **1040** 아래로 내려가면
+        카드가 200 을 못 지키고 같이 줄어듭니다. 1920 기준 한계는 26.4% 입니다. */
+  grid-template-columns: 15% 1fr 20.25%;
   /* 줄 높이를 못박아 둡니다. 자동으로 두면 줄이 '가장 키 큰 칸'을 따라가서,
      왼쪽 타이틀 판을 키우는 순간 가운데 메뉴 카드(.menu-cards 는 이 줄의 90%)와
      오른쪽 스탯 칸(60%)까지 같이 커집니다. 133 은 판을 키우기 전 줄 높이입니다 —
@@ -168,10 +170,18 @@
    우측 HUD 는 right 1.35% 라 x 1890.1 에서 끝납니다. 그 차이 19.1 을 음수 여백으로
    되돌리면 두 판의 오른쪽 모서리가 한 줄에 섭니다(그만큼 칸도 같이 넓어집니다).
    ⚠️ 우측 HUD 의 right/width(.right-hud)를 고치면 이 값도 같이 고쳐야 선이 안 어긋납니다. */
+/* [칸 비율] 다섯 칸을 다 넓히면 가운데 메뉴 카드 줄이 그만큼 왼쪽으로 쏠려 보입니다.
+   그래서 **손님 수·특별 손님 칸은 예전 폭 언저리로 두고** 버튼 두 개만 넓혔습니다.
+   그 뒤 칸 안 글자 길이에 맞춰 두 칸을 서로 주고받았습니다 —
+     DAY(.7→.6)      「DAY / 1」뿐이라 제일 헐거웠습니다. 준 만큼
+     손님 수(.73→.83) 낮 「방문 예정 손님」이 제일 빠듯해서 그대로 받았습니다.
+   합(3.34fr)이 같아서 나머지 세 칸 폭은 안 건드려집니다.
+   1920 기준 결과: DAY 67.7 · 손님 수 93.6 · 특별 손님 102.7 · 일지 56.4 · 설정 56.4.
+   ⚠️ 위 .top-hud 의 20.25% 와 짝입니다. 한쪽만 고치면 칸 폭이 전부 어긋납니다. */
 .hud-stats {
   height: 60%;
   display: grid;
-  grid-template-columns: .7fr 1fr 1.25fr .5fr .5fr;
+  grid-template-columns: .6fr .83fr .91fr .5fr .5fr;
   gap: calc(3 * var(--upx));
   margin-right: calc(-19.1 * var(--upx));
 }
@@ -185,13 +195,16 @@
   border-radius: calc(4 * var(--upx));
   background: #160c08;
 }
-.hud-stats span { color: #b98d59; font-size: calc(8 * var(--upx)); }
+/* 칸을 넓힌 만큼 글자도 같이 키웠습니다(이름 8→10 · 값 12→15 · 버튼 14→20).
+   ⚠️ 이름(span)은 nowrap 이 아니라 칸보다 길면 두 줄로 접힙니다. 가장 빠듯한 것이
+      낮 「방문 예정 손님」(칸 82.4)이라, 10 보다 더 키우면 여기부터 줄이 접힙니다. */
+.hud-stats span { color: #b98d59; font-size: calc(10 * var(--upx)); }
 .hud-stats strong {
   color: #f7d58a;
-  font-size: calc(12 * var(--upx));
+  font-size: calc(15 * var(--upx));
   white-space: nowrap;
 }
-.hud-stats .square-button { font-size: calc(14 * var(--upx)); line-height: 1; }
+.hud-stats .square-button { font-size: calc(20 * var(--upx)); line-height: 1; }
 
 /* 보유금: '보유금' 글자 대신 동전 아이콘을 금액 왼쪽에 둡니다. */
 .stat-money {
@@ -233,7 +246,7 @@
 .phase-prep .stat-satisfaction strong {
   max-width: 100%;
   overflow: hidden;
-  font-size: calc(10 * var(--upx));
+  font-size: calc(12 * var(--upx));   /* 밤 값(15)보다 한 단계 작게 — 위 .hud-stats strong 와 짝 */
   text-overflow: ellipsis;
 }
 .phase-prep .right-hud { min-height: 24%; }

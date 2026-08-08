@@ -28,11 +28,16 @@ assert(indexSource.includes('id="storyCutscene"')
   && (indexSource.match(/story-cutscene-layer/g) || []).length >= 2,
   "대사 오버레이 안에 컷씬 판과 교차 페이드용 레이어 두 장이 있어야 합니다.");
 assert(/\.story-overlay\.story-cinematic-active[\s\S]*?\.story-stage\s*\{[\s\S]*?visibility:\s*hidden/.test(storyCssSource),
-  "컷씬 중에는 배우 무대를 감춰야 합니다(원화 안에 김다은이 이미 있습니다).");
-/* 컷 안에 김다은이 그려져 있으면 대화용 원화를 겹쳐 세우면 안 됩니다.
-   story.js 가 이 판단을 story-cinematic.js 에 물어보는지 확인합니다. */
-assert(storySource.includes("storyCinematicDrawsProtagonist"),
-  "컷씬 중 원화를 올릴지는 그 컷에 김다은이 그려져 있는지로 정해야 합니다.");
+  "컷씬 중에는 배우 무대를 기본으로 감춰야 합니다(그림 한 장이 곧 그 순간입니다).");
+/* 감춘 무대를 '말하는 줄'에서 다시 올리는 규칙이 있어야 합니다. 없으면 컷이
+   덮은 구간의 대사가 전부 배우 없이 지나갑니다(SCN-P03 은 장면 전체가 한 컷). */
+assert(/\.story-overlay\.story-cinematic-active\.story-cinematic-speaking[^{]*\.story-stage\s*\{[^}]*visibility:\s*visible/
+  .test(storyCssSource),
+  "컷씬 중 말하는 줄에서는 배우 무대를 다시 올려야 합니다(.story-cinematic-speaking).");
+/* 올릴지 말지는 컷마다 다릅니다(speakerArt). story.js 가 그 판단을
+   story-cinematic.js 에 물어보는지 확인합니다. */
+assert(storySource.includes("storyCinematicShowsSpeakerArt"),
+  "컷씬 중 원화를 올릴지는 그 컷의 speakerArt 로 정해야 합니다.");
 
 /* 컷씬 원화는 대사 오버레이 안 인라인 style 로 들어갑니다. 경로가 틀리면
    화면이 새까맣게 나올 뿐 에러가 안 나므로 여기서 파일 존재를 확인합니다. */
@@ -41,6 +46,15 @@ assert(artPaths.length >= 3, `등록된 컷씬 원화가 너무 적습니다 (�
 for (const art of artPaths) {
   assert(fs.existsSync(path.join(root, art)),
     `컷씬 원화가 없습니다: ${art}\n  npm run build:cutscene 으로 PNG 에서 뽑으세요.`);
+}
+
+/* 컷마다 speakerArt 를 적어 두었는지. 안 적으면 '세운다'로 흐르는데, 조각 전달
+   컷처럼 세우면 안 되는 그림을 새로 넣을 때 조용히 인물이 둘이 됩니다. */
+const cutBlocks = [...cinematicSource.matchAll(/^ {2}(\w+):Object\.freeze\(\{([\s\S]*?)^ {2}\}\)/gm)];
+assert(cutBlocks.length >= 12, `등록된 컷을 다 못 읽었습니다 (지금 ${cutBlocks.length}개).`);
+for (const [, name, body] of cutBlocks) {
+  assert(/speakerArt:\s*(true|false)\b/.test(body),
+    `컷 "${name}" 에 speakerArt 가 없습니다. 이 컷 위에서 말하는 줄에 대화 원화를 세울지 적어 주세요.`);
 }
 
 /* story-data.js 가 쓰는 컷 이름이 story-cinematic.js 에 실제로 있는지.
@@ -276,6 +290,19 @@ assertRuntime(revealed===2&&releaseStoryCinematicHold()===false,
   "장면이 바뀌면 사라진 대사의 조각 오버레이가 뒤늦게 뜨면 안 됩니다.");
 assertRuntime(!overlayClassNames().includes("story-cinematic-hold"),
   "장면이 바뀌면 감추는 클래스도 떼야 합니다.");
+
+/* [컷 위에 대화 원화를 세울지]
+   프롤로그 컷은 한 컷이 대사 여러 줄을 덮으므로 말하는 줄에서는 세웁니다.
+   조각 전달 컷은 두 사람이 이미 그려져 있어 세우면 안 됩니다. */
+clearStoryCinematic();
+assertRuntime(storyCinematicShowsSpeakerArt()===true,
+  "컷씬이 없으면 원화를 막을 이유가 없습니다(평소 대화가 이 값에 걸리면 안 됩니다).");
+applyStoryCinematic({cinematic:{cut:"prologueEmptyRestaurant"}});
+assertRuntime(storyCinematicShowsSpeakerArt()===true,
+  "프롤로그 컷 위에서는 말하는 사람의 대화 원화가 서야 합니다.");
+applyStoryCinematic({cinematic:{cut:"shard_first_raindrop"}});
+assertRuntime(storyCinematicShowsSpeakerArt()===false,
+  "조각 전달 컷 위에는 대화 원화를 세우면 안 됩니다(같은 사람이 둘이 됩니다).");
 
 clearStoryCinematic();
 assertRuntime(applyStoryCinematic({kind:"line"})===false,

@@ -3,10 +3,12 @@
 /* ============================================================
    스토리 컷씬 배경
    ------------------------------------------------------------
-   프롤로그처럼 "가게 밖"에서 벌어지는 장면은 배우(원화)를 세우는 대신
-   컷씬 원화 한 장을 화면 전체에 깔고 그 위에 대사만 얹습니다.
-   원화 안에 이미 김다은이 그려져 있어서 배우를 같이 세우면 둘이 됩니다.
-   그래서 css/story.css 가 컷씬 중에는 .story-stage 를 통째로 감춥니다.
+   프롤로그처럼 "가게 밖"에서 벌어지는 장면은 배경 대신 컷씬 원화 한 장을
+   화면 전체에 깝니다. css/story.css 는 컷씬이 깔리는 동안 배우 무대
+   (.story-stage)를 기본으로 감춥니다 — 그림 한 장이 곧 그 순간이라,
+   아무 때나 배우가 서면 연출이 흐려집니다.
+
+   다만 '말하는 줄'에서는 다시 올립니다. 아래 speakerArt 설명을 보세요.
 
    ------------------------------------------------------------
    [대사 한 줄이 아니라 '구간'에 걸립니다]  ★ 여기가 핵심입니다
@@ -44,36 +46,53 @@
 /* 컷 이름 → 원화. 원본 PNG 에서 tools/build-cutscene-webp.js 가 뽑습니다.
    새 컷을 추가하면 그 스크립트의 FILES 에도 같이 넣으세요.
 
-   [protagonist]
-   그 컷 안에 김다은이 이미 그려져 있는지입니다. 그려져 있으면 대화용 원화를
-   같이 세우지 않습니다 — 같은 사람이 화면에 둘이 됩니다.
-   (story.js 의 updateStoryCinematicSpeaking 이 이 값을 보고 정합니다) */
+   ------------------------------------------------------------
+   [speakerArt] 이 컷 위에서 말하는 줄에 대화 원화를 세울지  ★
+   ------------------------------------------------------------
+   컷은 대사 한 줄이 아니라 '구간'에 걸립니다(위 설명). 그래서 원화를 안 세우면
+   그 구간의 대사 전부가 배우 없이 지나갑니다. SCN-P03 은 장면 전체가 한 컷이라
+   김다은이 네 마디를 하는 동안 컷 속 자세 하나로만 서 있었습니다 — 누가
+   말하는지도, 표정이 어떻게 바뀌는지도 화면에 안 나왔습니다.
+
+   그래서 프롤로그 컷은 모두 true 입니다. 컷 안에도 김다은이 그려져 있어 말하는
+   동안에는 화면에 둘이 보이지만, "지금 말하는 사람"이 서는 쪽이 낫다고 봤습니다.
+   컷을 혼자 보여 주는 첫 박자(hold)에는 어차피 아무도 안 섭니다 — 화자가 없는
+   내레이션이 그 자리를 맡고 있어서, 그림만 보는 한 박자는 그대로 남습니다.
+
+   조각 전달 컷(shard_*)만 false 입니다. 그쪽은 대사가 아니라 그림이 절정이고,
+   김다은과 손님이 마주 보고 그려져 있어 누가 서든 그 사람이 둘이 됩니다.
+   (지금은 컷이 화자 없는 마지막 내레이션 한 줄에만 걸려서 세울 일 자체가
+    없지만, 뒤에 대사를 붙이는 날을 위해 값으로 못박아 둡니다)
+
+   판단은 story.js 의 updateStoryCinematicSpeaking() 이 아래
+   storyCinematicShowsSpeakerArt() 에 물어봅니다. */
 const STORY_CUTSCENES=Object.freeze({
   prologueOffice:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_02_reprimand_variant.webp",
-    protagonist:true,
+    speakerArt:true,
     why:"SCN-P01 앞부분 · 야근 중 상사에게 지적받는 사무실"
   }),
   prologueCommute:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_01_commute_variant.webp",
-    protagonist:true,
+    speakerArt:true,
     why:"SCN-P01 뒷부분 · 회사를 나와 혼자 걷는 밤 퇴근길"
   }),
   prologueRainAlley:Object.freeze({
     art:"assets/Cutscene/prologue/rainy_alley_woman_high_angle_4k.webp",
-    protagonist:true,
+    speakerArt:true,
     why:"SCN-P02 앞부분 · 비 쏟아지는 골목에 선 김다은(부감)"
   }),
   prologueRainEntry:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_03_rain_entry.webp",
-    protagonist:true,
+    speakerArt:true,
     why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면"
   }),
   /* SCN-P03 은 장면 전체가 한 컷입니다. 나갔다 다시 들어오는 대사까지 같은
-     가게 안이라, 컷을 바꿀 자리가 없습니다. */
+     가게 안이라, 컷을 바꿀 자리가 없습니다. 대사 네 줄이 이 한 컷 위에서
+     오가므로 speakerArt 가 특히 중요한 컷입니다. */
   prologueEmptyRestaurant:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_empty_restaurant_journal_variant_03_4k.webp",
-    protagonist:true,
+    speakerArt:true,
     why:"SCN-P03 전체 · 주인 없는 식당, 카운터 위에 놓인 영업일지"
   }),
 
@@ -91,45 +110,46 @@ const STORY_CUTSCENES=Object.freeze({
      이름을 만들면 짝이 어긋날 수가 없습니다(검사는
      tools/story-cinematic-contract-smoke.js).
 
-     여덟 장 모두 김다은이 손님과 마주 보고 그려져 있어서 protagonist:true 입니다. */
+     여덟 장 모두 김다은이 손님과 마주 보고 그려져 있어서 speakerArt:false 입니다
+     — 이 컷 위에서는 누가 말하든 그 사람이 화면에 둘이 됩니다. */
   shard_first_raindrop:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_01_rain_child_variant_b.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G1-완벽 · 비에 젖은 아이가 첫 빗방울을 건넨다"
   }),
   shard_remaining_warmth:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_02_lantern_head_variant_a.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G2-완벽 · 등불을 머리에 인 손님이 남은 온기를 건넨다"
   }),
   shard_two_half_names:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_03_joined_shadows_variant_b.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G3-완벽 · 둘이 붙은 그림자가 반쪽 이름 두 개를 건넨다"
   }),
   shard_undelivered_letter:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_04_crow_postman_variant_a.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G4-완벽 · 까마귀 우편배달부가 배달되지 못한 편지를 건넨다"
   }),
   shard_golden_salt:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_05_star_eater_variant_b.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G5-완벽 · 별을 먹는 작은 짐승이 금빛 소금을 건넨다"
   }),
   shard_eastern_scale:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_06_sea_guest_variant_b.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G6-완벽 · 바닷물로 된 손님이 동쪽의 비늘을 건넨다"
   }),
   shard_stopped_minute_hand:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_07_stopped_school_doll_variant_a.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G7-완벽 · 멈춰버린 교복 인형이 멈춘 분침을 건넨다"
   }),
   shard_daeuns_tomorrow:Object.freeze({
     art:"assets/Cutscene/Moonpiece/cutscene_special_08_faceless_daeun_variant_b.webp",
-    protagonist:true,
+    speakerArt:false,
     why:"SCN-G8-완벽 · 얼굴 없는 김다은이 김다은의 내일을 건넨다"
   })
 });
@@ -147,11 +167,14 @@ function storyCutsceneArt(cut){
   return Object.prototype.hasOwnProperty.call(STORY_CUTSCENES,cut)?STORY_CUTSCENES[cut].art:null;
 }
 
-/* 지금 깔린 컷 안에 김다은이 그려져 있는지. story.js 가 대화용 원화를 올릴지
-   말지 여기에 물어봅니다. 컷씬이 없으면 false 라 평소 대화에는 영향이 없습니다. */
-function storyCinematicDrawsProtagonist(){
+/* 지금 깔린 컷 위에 말하는 사람의 대화 원화를 세워도 되는지(위 speakerArt).
+   story.js 의 updateStoryCinematicSpeaking() 이 여기에 물어봅니다.
+   컷씬이 안 깔려 있으면 막을 이유가 없으므로 true 입니다 — 평소 대화는 애초에
+   무대를 감추는 클래스가 안 붙어서 이 값과 상관없이 배우가 섭니다. */
+function storyCinematicShowsSpeakerArt(){
   const cut=storyCinematicRuntime?.cut;
-  return !!(cut&&STORY_CUTSCENES[cut]?.protagonist);
+  if(!cut)return true;
+  return STORY_CUTSCENES[cut]?.speakerArt!==false;
 }
 
 /* [미리 받아 두는 범위는 '지금 장면'까지입니다]

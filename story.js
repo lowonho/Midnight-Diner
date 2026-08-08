@@ -1646,13 +1646,14 @@ const STORY_ACTOR_MARGIN=8;
 const STORY_ACTOR_GUTTER=1.5;
 
 /* [컷씬 중에도 말하는 줄에서는 원화를 올립니다]
-   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css).
-   그러면 그 장면 내내 김다은 원화가 한 번도 안 나옵니다.
+   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css). 컷은 대사 한
+   줄이 아니라 '구간'에 걸리므로, 그대로 두면 그 구간의 대사가 전부 배우 없이
+   지나갑니다 — 장면 전체가 한 컷인 SCN-P03 은 김다은이 네 마디를 하는 동안
+   컷 속 자세 하나로만 서 있었습니다.
 
-   그렇다고 항상 세우면 같은 사람이 화면에 둘이 될 수 있습니다 — 프롤로그 세
-   컷처럼 원화 안에 김다은이 이미 그려져 있는 경우입니다. 그래서 '말하는 줄'
-   이면서 '그 컷에 김다은이 안 그려져 있을 때'만 올립니다. 컷마다의 그 여부는
-   story-cinematic.js 의 STORY_CUTSCENES[].protagonist 에 적혀 있습니다. */
+   그래서 '말하는 줄'에서는 무대를 다시 올립니다. 다만 컷에 따라서는 올리면
+   안 됩니다(조각 전달 컷은 그 사람이 이미 그려져 있어 둘이 됩니다). 그 판단은
+   컷마다 story-cinematic.js 의 STORY_CUTSCENES[].speakerArt 에 적혀 있습니다. */
 function updateStoryCinematicSpeaking(line){
   const overlay=document.getElementById("storyOverlay");
   if(!overlay)return;
@@ -1665,11 +1666,9 @@ function updateStoryCinematicSpeaking(line){
         원화만 보라고 일부러 비워 두는 자리라, 여기서 이어받으면 그 위에
         배우가 서서 연출이 사라집니다. */
   const speakerId=line?.cinematic?.hold?(line?.speaker||null):storyStageSpeaker(line?.speaker||null);
-  const drawnInCut=typeof storyCinematicDrawsProtagonist==="function"&&storyCinematicDrawsProtagonist();
-  // 컷에 그려져 있는 건 김다은뿐이므로, 이 이유로 막는 것도 김다은일 때만입니다.
-  // 같은 컷 위에서 손님이 말하는 장면이 생기면 그 원화는 그대로 올라와야 합니다.
-  const duplicate=speakerId==="protagonist"&&drawnInCut;
-  const speaking=!!speakerId&&storySpeakerHasPortrait(speakerId)&&!duplicate;
+  // 컷씬이 안 깔려 있으면 true 라 평소 대화에는 영향이 없습니다.
+  const allowedByCut=typeof storyCinematicShowsSpeakerArt!=="function"||storyCinematicShowsSpeakerArt();
+  const speaking=!!speakerId&&storySpeakerHasPortrait(speakerId)&&allowedByCut;
   overlay.classList.toggle("story-cinematic-speaking",speaking);
 }
 
