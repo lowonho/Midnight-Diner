@@ -9,6 +9,12 @@ const files = ["game-data.js", "story-data.js", "story.js"];
 const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
+const titleSource = fs.readFileSync(path.join(root, "title.js"), "utf8");
+
+if(!titleSource.includes("function openGameplayJournalPage(pageId)")
+  ||!titleSource.includes('journalLastGameplayPageId=String(pageId||"")')){
+  throw new Error("영업 마감 일지는 현재 날짜 페이지를 지정해서 열 수 있어야 합니다.");
+}
 
 [
   "endingRetryOverlay",
@@ -79,6 +85,8 @@ function resetDay(){}
 function resetStoryStage(){}
 function clearStoryCinematic(){}
 function applyStoryCinematic(){return false;}
+var openedGameplayJournalPage=null;
+function openGameplayJournalPage(pageId){openedGameplayJournalPage=pageId;return true;}
 `;
 
 const test = `
@@ -331,6 +339,9 @@ assert(!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-A"])
   &&!storySceneCardText(STORY_SCENES["SCN-G1-완벽"]).includes("SCN-G1")
   &&!storySceneCardText(STORY_SCENES["SCN-G1-완벽"]).includes("완벽"),
   "특별 손님의 등장·미준비·평가 장면은 내부 코드와 결과명 카드를 숨겨야 합니다.");
+assert(!storySceneShowsIntroCard(STORY_SCENES["SCN-L02"])
+  &&!["SCN-J01","SCN-J02","SCN-J03"].some(id=>storySceneShowsIntroCard(STORY_SCENES[id])),
+  "영업일지 단서와 엔딩 판정은 시스템 정보 제목 카드 없이 바로 대사로 시작해야 합니다.");
 assert(String(showStorySceneIntro).includes("storySceneShowsIntroCard")
   &&String(showStorySceneIntro).includes("showStoryLine"),
   "특별 손님은 메타 카드 없이 바로 대화 장면으로 들어가야 합니다.");
@@ -339,8 +350,12 @@ const l01=STORY_SCENES["SCN-L01"];
 const l02=STORY_SCENES["SCN-L02"];
 assert(storySpeakerLabel({speakerLabel:"김다은(속말)"})==="김다은",
   "예전 체크포인트의 속말 이름표도 플레이 화면에서는 김다은으로 보정해야 합니다.");
-assert(l01.minLoop===2&&l01.repeatEachLoop&&l01.autoOpenJournal,
-  "2회차 첫째 날에는 영업일지를 자동으로 열어야 합니다.");
+assert(l01.minLoop===2&&l01.repeatEachLoop
+  &&l01.autoOpenJournal!==true
+  &&l01.lines.at(-1)?.openJournalOnAdvance===true
+  &&l01.lines.at(-1)?.journalPageId==="gameplay-day-1"
+  &&storySceneHasRequiredInteraction(l01),
+  "2회차 첫째 날에는 마지막 대사를 읽고 영업일지를 연 뒤에만 다음 단서로 이어져야 합니다.");
 assert(l01.lines.some(line=>line.speaker==="protagonist"
   &&line.text==="손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
   "회귀 첫 장면에서 손님에게 초면처럼 대하려는 다은의 판단을 알려야 합니다.");
@@ -357,6 +372,8 @@ assert(p04.lines.some(line=>line.openJournalOnAdvance===true)
   &&p04.autoOpenJournal!==true
   &&p04.opensMenuSelection!==true,
   "프롤로그 대사 도중 영업일지를 읽고, 장면 뒤에는 냉장고에서 메뉴를 선택해야 합니다.");
+assert(String(storyAdvance).includes("openGameplayJournalPage(line.journalPageId)"),
+  "회귀 장면은 현재 날짜의 기록 장을 지정해서 열어야 하며 프롤로그의 기본 일지 열기는 유지해야 합니다.");
 const p04DiscoveryText=p04.lines[0]?.text||"";
 assert(STORY_SCENES["SCN-P03"].lines.at(-1)?.text==="나 여기 갇힌건가??"
   &&p04DiscoveryText.includes("다은은 다른 출구를 찾기 위해 식당을 둘러본다.")
@@ -572,11 +589,16 @@ assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requir
   "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
 
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
-  ["endingRetryMenu","endingRetryMenu","endingRetryMenu","clearRunKeepMeta"],
+  ["nextLoop","nextLoop","nextLoop","clearRunKeepMeta"],
   "엔딩별 이어하기 정책");
-same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
-  ["SCN-J02","SCN-J02","SCN-J03","SCN-J03"],
-  "루프를 제외한 네 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
+assert(["END-01","END-02","END-03"].every(id=>!STORY_SCENES[id].retryJudgementSceneId)
+  &&STORY_SCENES["END-04"].retryJudgementSceneId==="SCN-J03",
+  "일반 엔딩에는 재선택을 붙이지 않고 진엔딩만 마지막 분기로 돌아갈 수 있어야 합니다.");
+storySession={conclusionAction:null};
+queueStoryConclusion(STORY_SCENES["END-01"]);
+same(storySession.conclusionAction,{type:"nextLoop",toTitle:false},
+  "일반 엔딩은 재선택 메뉴나 타이틀을 거치지 않고 다음 회차 첫째 날로 돌아가야 합니다.");
+storySession=null;
 assert(STORY_SCENES["END-04"].trueEnding
   &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01"
   &&STORY_SCENES["SCN-EPI01"].endingSceneId==="END-04",
@@ -600,7 +622,7 @@ assert(completeSceneRuntimeSource.includes("conclusionQueued")
 assert(String(runStoryConclusion).includes("beginNextStoryLoop")
   &&String(runStoryConclusion).includes("showEndingRetryMenu")
   &&String(runStoryConclusion).includes("finishTrueEnding"),
-  "자동 회귀·일반 엔딩 후 선택·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
+  "자동 회귀·일반 엔딩 회귀·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
 assert(String(queueStoryConclusion).includes("scene.trueEndingEpilogue")
   &&String(queueStoryConclusion).includes('acceptPolicy:"trueEnding"')
   &&String(queueStoryConclusion).includes("unlockTrueEndingEpilogues"),
@@ -625,15 +647,12 @@ assert(!STORY_SCENES["SCN-J01"].retryJudgementSceneId
   &&String(initializeStoryUI).includes('event.key!=="Tab"'),
   "자동 회귀에는 재선택을 붙이지 않고 엔딩 질문의 포커스는 두 선택지 안에 유지해야 합니다.");
 const retryActions=[
-  ["END-01","SCN-J02","nextLoop"],
-  ["END-02","SCN-J02","nextLoop"],
-  ["END-03","SCN-J03","nextLoop"],
   ["END-04","SCN-J03","trueEnding"]
 ].map(([endingSceneId,judgementSceneId,acceptPolicy])=>({
   type:"endingRetryMenu",endingSceneId,judgementSceneId,acceptPolicy
 }));
 assert(retryActions.every(validEndingRetryAction),
-  "루프를 제외한 네 엔딩의 재선택 동작이 모두 유효해야 합니다.");
+  "진엔딩의 재선택 동작은 계속 유효해야 합니다.");
 let trueEndingEpilogueUnlocks=0;
 window.MoonlightTableSave={unlockTrueEndingEpilogues(){trueEndingEpilogueUnlocks++;}};
 storySession={conclusionAction:null};
@@ -971,10 +990,47 @@ getStoryGuestResult("crowCourier").fragmentState="partial";
 assert(storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
   "현재 회차 부분·완전 조각 합계 4개는 중간 엔딩 판정이어야 합니다.");
 
+// 영업 마감 때는 그날의 기록 장을 닫기 전까지 다음 흐름, 특히 Day 7
+// 엔딩 판정을 시작하지 않습니다. 닫은 사실은 저장 상태에 남습니다.
+state.story=createStoryState();
+state.day=3;
+state.phase=GAME_PHASES.RESULT;
+openedGameplayJournalPage=null;
+let dayThreeJournalContinued=false;
+queueStoryMoments(["nightEnd"],()=>{dayThreeJournalContinued=true;});
+assert(openedGameplayJournalPage==="gameplay-day-3"
+  &&!storyDailyJournalWasShown(3)
+  &&!storySession
+  &&!dayThreeJournalContinued,
+  "3일차 종료 직후에는 3일차 영업일지가 먼저 열리고 다음 진행은 대기해야 합니다.");
+resumeStoryAfterJournal();
+assert(storyDailyJournalWasShown(3)&&dayThreeJournalContinued,
+  "영업일지를 닫은 뒤에만 그날 마감 흐름이 이어져야 합니다.");
+assert(normalizeStoryState(state.story).dailyJournalShownDays["3"]===true,
+  "닫은 영업일지 날짜는 저장·불러오기 뒤에도 유지되어 같은 마감에 다시 열리지 않아야 합니다.");
+
+state.story=createStoryState();
+state.day=7;
+state.phase=GAME_PHASES.RESULT;
+openedGameplayJournalPage=null;
+const realPlayStoryScenes=playStoryScenes;
+let queuedAfterDaySevenJournal=[];
+playStoryScenes=ids=>{queuedAfterDaySevenJournal=[...ids];return true;};
+queueStoryMoments(["nightEnd"]);
+assert(openedGameplayJournalPage==="gameplay-day-7"
+  &&queuedAfterDaySevenJournal.length===0
+  &&!storySession,
+  "7일차 영업일지를 닫기 전에는 엔딩 판정 장면을 큐에 넣으면 안 됩니다.");
+resumeStoryAfterJournal();
+same(queuedAfterDaySevenJournal,["SCN-J01"],
+  "7일차 영업일지를 닫은 뒤에만 현재 조각 수에 맞는 엔딩 판정을 시작해야 합니다.");
+playStoryScenes=realPlayStoryScenes;
+
 state.story=createStoryState();
 state.day=7;
 state.story.completed.persistedScene=true;
 state.story.seenScenes.persistedScene=true;
+state.story.dailyJournalShownDays={"7":true};
 state.story.storyCookResults.current={score:65,tier:"warm",day:7,dishId:"kimchi"};
 const loopResult=getStoryGuestResult("rainyChild");
 loopResult.visited=true;
@@ -994,6 +1050,7 @@ assert(state.story.loop===2&&state.day===1
   &&getStoryGuestResult("rainyChild").fragmentState==="none"
   &&getStoryGuestResult("rainyChild").evaluationTier==null
   &&Object.keys(state.story.storyCookResults).length===0
+  &&Object.keys(state.story.dailyJournalShownDays).length===0
   &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
   "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 

@@ -498,13 +498,12 @@ const STORY_SCENES = {
     character: "protagonist",
     minLoop: 2,
     repeatEachLoop: true,
-    autoOpenJournal: true,
     lines: [
       storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌지만, 확인한 기록은 영업일지에 남아 있다."),
       storyLine("protagonist", "달빛 조각은 사라졌지만 기록은 남아 있어.", { motion: "sad" }),
       storyLine("protagonist", "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.", { motion: "resolve" }),
       storyLine("protagonist", "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다.", { motion: "think" }),
-      storyLine("protagonist", "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼.", { motion: "calm" })
+      storyLine("protagonist", "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼.", { motion: "calm", openJournalOnAdvance: true, journalPageId: "gameplay-day-1" })
     ]
   },
 
@@ -994,8 +993,7 @@ const STORY_SCENES = {
     endingId: "alone_morning",
     endingTitle: "혼자 맞은 아침",
     endingBackground: "assets/story/bg/02_morning_alone_loop_restaurant_unified_v7.png",
-    continuePolicy: "endingRetryMenu",
-    retryJudgementSceneId: "SCN-J02",
+    continuePolicy: "nextLoop",
     lines: [
       storyNarration("다은은 모은 달빛으로 한 사람이 지나갈 수 있는 내일로 가는 문을 만들고 혼자 현실로 돌아간다.\n조각을 돌려받지 못한 손님들은 식당에 남는다."),
       storyLine("protagonist", "나는 나왔지만… 그 밤은 아직 끝나지 않았어.", { motion: "cry" })
@@ -1014,8 +1012,7 @@ const STORY_SCENES = {
     endingId: "guests_dawn",
     endingTitle: "손님들의 새벽",
     endingBackground: "assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
-    continuePolicy: "endingRetryMenu",
-    retryJudgementSceneId: "SCN-J02",
+    continuePolicy: "nextLoop",
     lines: [
       storyNarration("다은은 가진 달빛 조각을 원래 주인들에게 돌려준다.\n기억을 되찾은 손님들은 각자의 아침으로 떠나지만, 다은은 자신의 길을 밝힐 달빛을 쓰지 않고 식당에 남는다."),
       storyLine("protagonist", "오늘의 식사는 여기까지입니다. 이제 돌아가세요.", { motion: "soft" }),
@@ -1035,8 +1032,7 @@ const STORY_SCENES = {
     endingId: "open_forever",
     endingTitle: "영원히 영업 중",
     endingBackground: "assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
-    continuePolicy: "endingRetryMenu",
-    retryJudgementSceneId: "SCN-J03",
+    continuePolicy: "nextLoop",
     lines: [
       storyNarration("다은은 달빛을 어느 길에도 비추지 않고 식당을 유지한다.\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다."),
       storyLine("protagonist", "어서 오세요.", { motion: "calm" }),
