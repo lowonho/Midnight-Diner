@@ -1226,6 +1226,13 @@ function startStorySubtitleTyping(line){
   return true;
 }
 
+function resolveStoryAssetUrl(asset){
+  const value=String(asset||"").trim();
+  if(!value)return "";
+  try{return new URL(value,document.baseURI).href;}
+  catch{return value;}
+}
+
 function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
@@ -1238,7 +1245,7 @@ function applyStoryFragmentHandoff(line){
     layer.dataset.shardId=String(handoff.shardId||"");
     layer.dataset.shardName=String(handoff.shardName||"");
     layer.dataset.fragmentState=String(handoff.state||"");
-    const asset=String(handoff.asset||"").trim();
+    const asset=resolveStoryAssetUrl(handoff.asset);
     layer.classList?.toggle("has-art",!!asset);
     if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
     else layer.style?.removeProperty?.("--fragment-art");
@@ -1258,7 +1265,7 @@ function applyStoryEndingBackground(scene){
   const layer=document.getElementById("storyEndingBackground");
   const overlay=document.getElementById("storyOverlay");
   if(!layer)return false;
-  const asset=String(scene?.endingBackground||"").trim();
+  const asset=resolveStoryAssetUrl(scene?.endingBackground);
   const show=!!asset;
   layer.classList?.toggle("show",show);
   layer.setAttribute?.("aria-hidden",show?"false":"true");

@@ -62,6 +62,7 @@ const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
 const window={QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={
+  baseURI:"file:///C:/Midnight%20Diner/index.html",
   addEventListener(){},
   getElementById(){return null;}
 };
@@ -142,7 +143,8 @@ assert(applyStoryEndingBackground(STORY_SCENES["END-01"])
   &&endingLayerClasses.has("show")
   &&endingOverlayClasses.has("story-ending-active")
   &&endingLayer.dataset.sceneId==="END-01"
-  &&endingLayerStyles["--story-ending-art"].includes(expectedEndingBackgrounds["END-01"])
+  &&endingLayerStyles["--story-ending-art"].includes("file:///C:/Midnight%20Diner/assets/story/bg/")
+  &&!endingLayerStyles["--story-ending-art"].includes("/css/assets/")
   &&endingLayerAttributes["aria-hidden"]==="false",
   "엔딩 진입 시 해당 일러스트와 배경 전용 상태를 표시해야 합니다.");
 assert(!applyStoryEndingBackground(null)
@@ -152,6 +154,35 @@ assert(!applyStoryEndingBackground(null)
   &&!("--story-ending-art" in endingLayerStyles)
   &&endingLayerAttributes["aria-hidden"]==="true",
   "엔딩 종료 시 일러스트와 배경 전용 상태를 완전히 해제해야 합니다.");
+document.getElementById=originalGetElementById;
+
+const fragmentLayerClasses=new Set();
+const fragmentLayerStyles={};
+const fragmentLayer={
+  dataset:{},
+  classList:{
+    toggle(name,enabled){enabled?fragmentLayerClasses.add(name):fragmentLayerClasses.delete(name);},
+    remove(name){fragmentLayerClasses.delete(name);}
+  },
+  style:{
+    setProperty(name,value){fragmentLayerStyles[name]=value;},
+    removeProperty(name){delete fragmentLayerStyles[name];}
+  },
+  setAttribute(){}
+};
+const fragmentName={textContent:""};
+document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer:id==="storyFragmentName"?fragmentName:null;
+const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
+assert(applyStoryFragmentHandoff(fullFragmentLine)
+  &&fragmentLayerClasses.has("show")
+  &&fragmentLayerClasses.has("has-art")
+  &&fragmentLayerStyles["--fragment-art"].includes("file:///C:/Midnight%20Diner/assets/customer/Special/MoonPiece/")
+  &&!fragmentLayerStyles["--fragment-art"].includes("/css/assets/"),
+  "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
+assert(!applyStoryFragmentHandoff(null)
+  &&!("--fragment-art" in fragmentLayerStyles)
+  &&!fragmentLayerClasses.has("show"),
+  "달빛 조각 전달이 끝나면 절대 URL과 표시 상태를 해제해야 합니다.");
 document.getElementById=originalGetElementById;
 
 const expectedCharacterIds=[
@@ -876,6 +907,7 @@ const context = {
   Boolean,
   RegExp,
   Error,
+  URL,
   setTimeout,
   clearTimeout
 };
