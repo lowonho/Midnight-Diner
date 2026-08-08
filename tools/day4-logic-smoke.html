@@ -359,7 +359,7 @@ try{
   }
   assert(tteokHeatMini.complete&&finishedScore>=85,"E4 tteokbokki full-range bouncing target is completable with direction-aware hold/release tracking");
 
-  /* E5 굽기 — 게이지·Space 를 걷어내고 **신호 + 클릭/드래그**로 바뀐 뒤의 검사입니다.
+  /* E5 굽기 — Space 를 걷어내고 **신호 + 홀드/드래그**로 바뀐 뒤의 검사입니다.
      예전 검사(익힘 게이지 위치로 판정 구간 맞추기 · ↑꾹→↓ 반동 뒤집기)는 그 조작이
      사라져 통째로 갈았습니다. */
   const stageOf=stage=>twoSideCookVisualStage({units:[{sides:[twoSideSideFromStage(stage),twoSideSideFromStage(stage)]}]});
@@ -384,59 +384,68 @@ try{
   MINI_ENGINES.twoSideCook.setup(pancakeMini,{set:(title,description,time)=>{pancakeMini.time=time;},dish:dishById("kimchi")});
   assertNightScoreCard("E5 pancake");
   const pancakeUnit=pancakeMini.data.units[0];
-  // 하단 게이지 줄(익힘 게이지 · Space 버튼)이 다시 생기면 조리 칸이 457 로 낮아집니다
-  assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5&&!dom.miniContent.querySelector(".doneness-gauge")&&!dom.miniContent.querySelector("#miniAction")&&!dom.miniContent.querySelector(".ts-key"),"E5 no doneness gauge, no Space button, no key caps");
-  // 익힘 신호를 켜고 **꾹 눌러** 굽습니다 — 김치전은 톡 누르는 것이 아니라 눌러 두는 것입니다
+  assert(twoSideCueWindow(pancakeMini.data,"cook")===1&&twoSideCueWindow(pancakeMini.data,"flip")===1&&twoSideCueWindow({dishStyle:"skewer"},"flip")===TWO_SIDE_CUE.flip.window,"E5 pancake cook and flip cues last one second without changing the skewer window");
+  // 예전 하단 Space 게이지는 없고, 김치전 안에는 마우스로 맞히는 전용 타이밍 게이지만 있습니다
+  assert(dom.miniContent.querySelector(".pancake-cook.cook-raw")&&dom.miniContent.querySelectorAll(".cook-bubbles b").length===5
+    &&dom.miniContent.querySelector("#pancakeTimingGauge .pancake-gauge-zone")
+    &&dom.miniContent.querySelector("#pancakeTimingGauge .pancake-gauge-marker")
+    &&!dom.miniContent.querySelector(".ts-hold-ring")&&!dom.miniContent.querySelector(".pancake-cook > .ts-tap-hint")
+    &&!dom.miniContent.querySelector(".doneness-gauge")&&!dom.miniContent.querySelector("#miniAction")&&!dom.miniContent.querySelector(".ts-key"),"E5 pancake uses its click timing gauge with no hold ring, Space gauge, button, or key caps");
+  // 첫 굽기 신호에서 꾹 누르기 시작하고, 초록 구간 한가운데에서 손을 뗍니다
   openTwoSideCue(pancakeMini,pancakeUnit);
-  pancakeUnit.cueTimer=TWO_SIDE_CUE.cook.window*.6;
-  assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook"),"E5 cue lights up the food itself");
-  assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===0,"E5 a pancake cook cue does not accept a tap");
-  assert(beginTwoSideHold(pancakeMini,0)===true&&pancakeMini.data.hold?.index===0,"E5 pressing down starts the hold");
-  tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC*.5);
-  assert(pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 half a hold does not cook yet");
-  cancelTwoSideHold(pancakeMini);
-  assert(!pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 letting go early cancels the hold with no penalty");
-  // 꾹 누르기는 김치전 굽기 신호에만 적용됩니다
-  assert(twoSideHoldNeeded(pancakeMini.data,pancakeUnit)===true,"E5 only the pancake cook cue needs a hold");
-  beginTwoSideHold(pancakeMini,0);
-  tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC+.01);
+  const firstGauge=pancakeGaugeBounds(pancakeUnit),firstGaugeCenter=(firstGauge.start+firstGauge.end)/2;
+  assert(beginPancakeGaugeHold(pancakeMini,0)===true&&pancakeUnit.gaugeHolding,"E5 pressing down starts the pancake timing gauge");
+  MINI_ENGINES.twoSideCook.update(pancakeMini,PANCAKE_GAUGE_HOLD_SEC*firstGaugeCenter);
+  const pancakeGauge=dom.miniContent.querySelector("#pancakeTimingGauge");
+  assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook")&&pancakeGauge.classList.contains("holding")&&pancakeUnit.cueTimer===pancakeUnit.cueWindow&&Math.abs(parseFloat(pancakeGauge.style.getPropertyValue("--pancake-marker"))-75)<.001&&pancakeGaugeHit(pancakeUnit),"E5 holding freezes the start deadline and moves the marker into the green zone at 75 percent");
+  assert(releasePancakeGaugeHold(pancakeMini,0)===true&&pancakeUnit.stepIndex===1&&pancakeMini.data.cookErrors===0&&MINI_ENGINES.twoSideCook.score(pancakeMini)===100,"E5 releasing inside green succeeds with no deduction and consumes the cook cue");
   /* ⚠️ 익는 것은 **불에 닿아 있는 아래 면**입니다. 처음에는 앞면(0)이 아래이고
      보이는 면은 뒷면(1)이라, 굽고 나서도 **화면 색은 그대로**여야 합니다
      ("아래를 굽는데 왜 윗면 색이 변하냐" 를 고친 자리). */
   assert(pancakeUnit.stepIndex===1&&twoSideCookingSide(pancakeUnit)===0&&twoSideFacingSide(pancakeUnit)===1,"E5 the side touching the pan is the one that cooks");
   assert(pancakeUnit.sides[0].cook===1&&pancakeUnit.sides[1].cook===0
-    &&cookArtStep(pancakeUnit,PANCAKE_COOK_STEPS)===0&&MINI_ENGINES.twoSideCook.score(pancakeMini)>0
-    &&pancakeMini.data.hits[0]>=94&&pancakeMini.data.cooked===1,"E5 cooking the bottom side leaves the visible side unchanged");
-  // 뒤집기는 클릭이 아니라 드래그입니다 — 클릭은 아무 일도 일으키지 않아야 합니다
+    &&cookArtStep(pancakeUnit,PANCAKE_COOK_STEPS)===0&&MINI_ENGINES.twoSideCook.score(pancakeMini)===100
+    &&pancakeMini.data.hits[0]===100&&pancakeMini.data.cooked===1,"E5 a green-zone release cooks the bottom side without a timing-derived score");
+  // 뒤집기는 클릭이 아니라 드래그입니다 — 클릭하면 10점이 깎이지만 같은 신호에서 재시도할 수 있습니다
   openTwoSideCue(pancakeMini,pancakeUnit);
-  assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===1,"E5 a flip cue does not accept a click");
+  assert(pressTwoSideCue(pancakeMini,0)===false&&pancakeUnit.stepIndex===1&&pancakeMini.data.flipErrors===1&&MINI_ENGINES.twoSideCook.score(pancakeMini)===90,"E5 clicking during a flip cue deducts ten points and still allows a retry");
   playedSfx.length=0;flickTwoSideCue(pancakeMini,0);
   // 뒤집으면 방금 구운 면이 드러나며 그때 색이 바뀝니다
   assert(pancakeUnit.stepIndex===2&&pancakeUnit.flips===1&&playedSfx.join(",")==="pancake_flip"
     &&twoSideFacingSide(pancakeUnit)===0&&cookArtStep(pancakeUnit,PANCAKE_COOK_STEPS)===1,"E5 flipping reveals the side that was just cooked");
-  /* 놓치면 **그때 불에 닿아 있던 면**이 한 칸 탑니다. 다만 덜 익은 면은 아직
-     '살짝 탐'까지 가지 않습니다 (성공 2 + 놓침 으로 세기 때문입니다). */
+  /* 두 번째 굽기는 초록 구간 밖에서 손을 뗍니다. 한 번의 홀드로 10점이 깎이고
+     재시도 없이 그 차례가 소비되며, 그때 불에 닿은 면만 한 칸 탑니다. */
   openTwoSideCue(pancakeMini,pancakeUnit);
   const missedAt=pancakeUnit.stepIndex,bottom=twoSideCookingSide(pancakeUnit);
-  MINI_ENGINES.twoSideCook.update(pancakeMini,TWO_SIDE_CUE.cook.window+.01);
+  beginPancakeGaugeHold(pancakeMini,0);MINI_ENGINES.twoSideCook.update(pancakeMini,PANCAKE_GAUGE_HOLD_SEC*.05);
+  assert(!pancakeGaugeHit(pancakeUnit)&&releasePancakeGaugeHold(pancakeMini,0)===true,"E5 releasing outside green is judged immediately");
   assert(pancakeMini.data.cookErrors===1
     &&pancakeUnit.sides[bottom].burn===1&&pancakeUnit.sides[1-bottom].burn===0
-    &&pancakeUnit.phase==="wait","E5 a missed cue burns only the side that was on the heat");
+    &&pancakeUnit.phase==="wait"&&MINI_ENGINES.twoSideCook.score(pancakeMini)===80,"E5 an outside gauge release deducts ten and burns only the heated side");
   /* 놓친 차례는 **다시 오지 않습니다** — 같은 자리에서 맴돌면 판이 늘어지기만 합니다.
      굽기 횟수(cooked)는 안 올라가므로 놓친 만큼 진행도가 모자랍니다. */
   assert(pancakeUnit.stepIndex===missedAt+1,"E5 a missed cue moves on to the next step instead of repeating it");
-  assert(pancakeMini.data.cooked===1,"E5 a missed cook cue does not count toward the progress");
+  // 두 번째 뒤집기는 성공시키고, 마지막 굽기는 1초 동안 클릭하지 않아 놓칩니다
+  openTwoSideCue(pancakeMini,pancakeUnit);flickTwoSideCue(pancakeMini,0,"flip");
+  openTwoSideCue(pancakeMini,pancakeUnit);
+  MINI_ENGINES.twoSideCook.update(pancakeMini,twoSideCueWindow(pancakeMini.data,"cook")+.01);
+  updateMiniScore(pancakeMini);
+  assert(pancakeMini.data.cooked===1&&pancakeMini.data.cookErrors===2&&pancakeUnit.done
+    &&MINI_ENGINES.twoSideCook.score(pancakeMini)===70&&dom.miniContent.querySelector("[data-mini-score]").textContent==="70","E5 outside release, no press, and wrong flip each deduct ten while successful timing does not affect score");
   assert(TWO_SIDE_CUE.retryWait===undefined,"E5 has no retry wait any more (nothing repeats)");
   // 성공 경로는 요청한 다섯 동작을 마친 뒤 앞면 방향에서 바로 완료됩니다.
   const pancakeFlowMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeFlowMini;
   MINI_ENGINES.twoSideCook.setup(pancakeFlowMini,{set:(title,description,time)=>{pancakeFlowMini.time=time;},dish:dishById("kimchi")});
   const pancakeFlowUnit=pancakeFlowMini.data.units[0];
-  const pressPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);beginTwoSideHold(pancakeFlowMini,0);tickTwoSideHold(pancakeFlowMini,TWO_SIDE_HOLD_SEC+.01);};
+  const gaugeCenters=[];
+  const pressPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);const bounds=pancakeGaugeBounds(pancakeFlowUnit),center=(bounds.start+bounds.end)/2;gaugeCenters.push(center);beginPancakeGaugeHold(pancakeFlowMini,0);MINI_ENGINES.twoSideCook.update(pancakeFlowMini,PANCAKE_GAUGE_HOLD_SEC*center);releasePancakeGaugeHold(pancakeFlowMini,0);};
   const flipPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);flickTwoSideCue(pancakeFlowMini,0,"flip");};
   pressPancake();flipPancake();pressPancake();flipPancake();pressPancake();
   assert(pancakeFlowUnit.done&&pancakeFlowUnit.stepIndex===5&&pancakeFlowUnit.flips===2
     &&twoSideCookingSide(pancakeFlowUnit)===0&&pancakeFlowUnit.sides[0].cook===2&&pancakeFlowUnit.sides[1].cook===1
-    &&TWO_SIDE_VIEW.pancake.total===3,"E5 pancake completes after front press, back press, and final front press with two flips");
+    &&gaugeCenters.every(center=>Math.abs(center-.75)<1e-9)&&PANCAKE_GAUGE_WIDTH===.1&&TWO_SIDE_VIEW.pancake.total===3&&MINI_ENGINES.twoSideCook.score(pancakeFlowMini)===100&&twoSideCookGrade(pancakeFlowMini.data)==="perfect","E5 pancake keeps a ten-percent green zone at 75 percent and completes at 100 after all five cues");
+  const timedOutPancake=createTwoSideData("pancake");timedOutPancake.timedOut=true;
+  assert(pancakeRemainingSteps(timedOutPancake)===5&&pancakeScore(timedOutPancake)===50,"E5 pancake timeout deducts ten points for each of five unfinished cues");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
   assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
