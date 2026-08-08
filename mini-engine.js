@@ -140,10 +140,11 @@ function miniCurrentScore(m = state.mini) {
   return Math.round(clamp(Number.isFinite(score) ? score : 0, 0, 100));
 }
 
-function miniScorePanelMarkup(panelClass, titleClass, m = state.mini) {
+function miniScorePanelMarkup(panelClass, titleClass, m = state.mini, extra = "") {
   return `<div class="${panelClass} mini-score-panel">
       <h3 class="${titleClass}">점수</h3>
       <p class="mini-score-value"><b data-mini-score>${miniCurrentScore(m)}</b><span>점</span></p>
+      ${extra}
     </div>`;
 }
 

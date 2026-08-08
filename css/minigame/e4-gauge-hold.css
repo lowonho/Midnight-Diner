@@ -92,13 +92,6 @@
 .heat-count { text-align: center; }
 .heat-count-value { margin: 0; color: var(--gold-bright); font-size: calc(40 * var(--upx)); font-weight: 900; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .heat-count-value b { color: #f2a03c; }
-/* 남은 시간. 겉모습은 E10 `.anchovy-time` 과 같은 값입니다 — 두 화면이 나란히
-   나오지는 않지만, 같은 뜻의 줄이 게임마다 달라 보이면 새로 배워야 합니다. */
-.heat-time { margin: calc(9 * var(--upx)) 0 0; padding-top: calc(8 * var(--upx)); border-top: 1px solid rgba(232,190,111,.28); display: grid; place-items: center; gap: calc(1 * var(--upx)); color: #c9b58d; font-size: calc(13 * var(--upx)); font-weight: 800; }
-.heat-time b { color: #f4d58b; font-size: calc(22 * var(--upx)); line-height: 1.1; font-variant-numeric: tabular-nums; }
-.heat-time.warning b { color: #ff725f; animation: heat-time-warning .7s ease-in-out infinite alternate; }
-@keyframes heat-time-warning { to { opacity: .58; transform: scale(1.04); } }
-
 /* ── 오른쪽 아래 : 조작 ─────────────────────────────────────
    누르는 동안 상승하고 떼면 하강하는 한 버튼입니다(키보드·마우스 둘 다 지원). */
 .heat-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(12 * var(--upx)); text-align: center; }
@@ -554,8 +547,8 @@
   transform:translateY(50%);
   transition:bottom .06s linear;
 }
-/* 진행도 카드 안 유지 시간 띠. 카드 140.6 안에 들어가도록 얇습니다
-   (E5 `.ts-time` 9 · E6 `.fry-time-bar` 10 과 같은 자리입니다). */
+/* 점수 아래 적정 온도 유지 진행도. 원래 진행도 카드에서 쓰던 초록 띠를
+   점수 카드 안 맨 아래로 옮겼습니다. */
 .heat-hold { width:100%; height:calc(11 * var(--upx)); overflow:hidden; border:2px solid #6e4930; border-radius:calc(6 * var(--upx)); background:#1b100b; }
 .heat-hold > i { display:block; width:0; height:100%; background:linear-gradient(90deg,#799b50,#d9e887); transition:width .08s linear; }
 
