@@ -9,7 +9,7 @@ E1 타이밍 칼질 미니게임의 재료와 칼 이미지는 모두 이 폴더
 - 새로운 재료나 단계를 추가하면 `DAY_PREP_ASSET_PATHS`에도 경로를 등록합니다.
 
 대파는 `green-onion-0.png`부터 `green-onion-7.png`까지 입력 7회와 일대일로 대응합니다.
-떡볶이 양배추는 `cabbage-0.png`부터 `cabbage-12.png`까지 입력 12회와 일대일로 대응합니다.
+떡볶이 양배추는 `cabbage-0.png`부터 `cabbage-6.png`까지 입력 6회와 일대일로 대응합니다.
 닭은 `chicken-0.png`부터 `chicken-11.png`까지 절단 11회와 일대일로 대응하며, 절단선마다 2회 입력합니다.
 김치는 `kimchi-0.png`부터 `kimchi-9.png`까지 입력 9회와 일대일로 대응하며 두부김치와 김치전이 함께 사용합니다.
 무는 `radish-0.png`부터 `radish-7.png`까지 입력 7회와 일대일로 대응합니다.

@@ -110,7 +110,7 @@ const CUT_INGREDIENT_LABEL=Object.freeze({radish:"무",fishCake:"어묵",kimchi:
 const CUT_POSITION_PERCENTAGES=Object.freeze({
   radish:Object.freeze([89.8,79,67.8,56.5,45.7,34.1,22.3]),
   fishCake:Object.freeze([74.3,51.3,26.7]),
-  cabbage:Object.freeze([92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5]),
+  cabbage:Object.freeze([86.4,71.8,57.8,43.5,29.3,15.7]),
   chicken:Object.freeze([91.4,83.4,75,65.8,55.9,46.7,38.3,30,21.4,13.1,6.5]),
   greenOnion:Object.freeze([87.7,76.3,63.8,52.6,39,26.6,15.2]),
   kimchi:Object.freeze([89.6,79.9,70.3,60.8,51.7,42.2,32.7,22.9,14.3]),
@@ -119,7 +119,7 @@ const CUT_POSITION_PERCENTAGES=Object.freeze({
 
 // 새 절단 횟수가 기존 진행 스프라이트보다 많아도 그림이 중간에 끊기지 않게
 // 완료 비율을 현재 보유한 마지막 스프라이트 단계에 비례시킵니다.
-const CUT_ASSET_STAGE_MAX=Object.freeze({radish:7,fishCake:4,cabbage:12,chicken:11,greenOnion:7,kimchi:9,tofu:6});
+const CUT_ASSET_STAGE_MAX=Object.freeze({radish:7,fishCake:4,cabbage:6,chicken:11,greenOnion:7,kimchi:9,tofu:6});
 
 function cutAssetStage(data,completed=data.successes||0){
   const max=data.assetStageMax??CUT_ASSET_STAGE_MAX[data.ingredient]??data.total;

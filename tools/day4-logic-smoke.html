@@ -77,15 +77,16 @@ try{
   assert(CUT_FEEL_CONFIG.hitZoneScale===.7&&CUT_FEEL_CONFIG.travelSpeedScale===1.15&&CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.flowVisualSettleMs===180&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startCountdownStepSeconds===.5&&CUT_FEEL_CONFIG.startSignalMs===300,"E1 tighter, faster, continuous path timing config");
   assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:3.4,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===3.4,"E1 ingredient-specific tuned hit boxes");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="16,19,22"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 slows the twelve-cut cabbage and speeds up the four-cut fish cake");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="6,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="16,19,22"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 uses six cabbage cuts and speeds up the four-cut fish cake");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,3.4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===3.4,"E1 tteokbokki ingredients use tuned hit boxes");
 
-  dayPrepAssets.tteokCabbage0={src:"assets/minigame/E1/cabbage-0.png"};
-  dayPrepAssets.tteokCabbage1={src:"assets/minigame/E1/cabbage-1.png"};
+  Array.from({length:7},(_,index)=>{
+    dayPrepAssets[`tteokCabbage${index}`]={src:`assets/minigame/E1/cabbage-${index}.png`};
+  });
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,title:"E1 smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,title:"E1 smoke",description:"smoke"});
   const cabbageMini=state.mini,cabbageStart=cabbageMini.data.knifeX;
-  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-18.4)<1e-9,"E1 applies the tighter hit zone while keeping twelve-cut cabbage at the slower 18.4 speed");
+  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-18.4)<1e-9,"E1 applies the tighter hit zone while keeping six-cut cabbage at the slower 18.4 speed");
   timingCutAction();
   assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3!"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
   MINI_ENGINES.timing.update(cabbageMini,.51);
@@ -94,36 +95,41 @@ try{
   assert(dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="1!","E1 fast countdown advances to one");
   MINI_ENGINES.timing.update(cabbageMini,.51);
   assert(cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&!dom.miniContent.querySelector("#dayPrepAction").disabled&&dom.miniContent.querySelector("#cutStartCountdown.go strong").textContent==="시작!","E1 starts only after the three-two-one countdown");
-  assert(Math.abs((cabbageStart-suppliedCutPosition("cabbage",0,12))-(suppliedCutPosition("cabbage",0,12)-suppliedCutPosition("cabbage",1,12)))<.01,"E1 first beat uses the same travel distance as the following supplied cut gap");
+  assert(Math.abs((cabbageStart-suppliedCutPosition("cabbage",0,6))-(suppliedCutPosition("cabbage",0,6)-suppliedCutPosition("cabbage",1,6)))<.01,"E1 first beat uses the same travel distance as the following supplied cut gap");
   const waitingKnifeX=dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x");
   const movingMarker=dom.miniContent.querySelector("#dayPrepMarker"),markerStart=movingMarker.style.left;
   advanceTimingKnife(cabbageMini,.1);
   assert(cabbageMini.data.knifeX<cabbageStart&&movingMarker.style.left!==markerStart,"E1 bottom marker advances in one direction at the configured constant speed");
-  assert(waitingKnifeX===`${suppliedCutPosition("cabbage",0,12)}%`&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x")===waitingKnifeX,"E1 knife waits on the next cut line while the bottom marker moves");
-  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,12);
+  assert(waitingKnifeX===`${suppliedCutPosition("cabbage",0,6)}%`&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x")===waitingKnifeX,"E1 knife waits on the next cut line while the bottom marker moves");
+  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,6);
   const pathBar=dom.miniContent.querySelector(".cut-path-timing");
   syncTimingKnife(cabbageMini.data);
   const pathZone=pathBar.querySelector(".prep-success-zone"),pathMarker=pathBar.querySelector("#dayPrepMarker");
   const barAt=()=>parseFloat(pathMarker.style.left);
   const zoneCenter=parseFloat(pathZone.style.left)+parseFloat(pathZone.style.width)/2;
-  assert(pathBar.querySelectorAll(".prep-success-zone").length===12&&pathBar.querySelectorAll(".prep-perfect-zone").length===12&&pathZone.classList.contains("active")&&Math.abs(zoneCenter-barAt())<.2,"E1 shows every cut hit zone up front and centers the active zone on the marker");
+  assert(pathBar.querySelectorAll(".prep-success-zone").length===6&&pathBar.querySelectorAll(".prep-perfect-zone").length===6&&pathZone.classList.contains("active")&&Math.abs(zoneCenter-barAt())<.2,"E1 shows every cut hit zone up front and centers the active zone on the marker");
   /* 바는 "칼이 지나는 구간"을 폭 전체로 폅니다 — 재료가 도마에서 차지한 만큼만
      쓰던 예전 방식은 포인터가 좁게 움직여 속도감이 없었습니다.
      ⚠️ 판정은 재료 좌표 그대로라, 여기 숫자가 바뀌어도 절단선·타이밍은 그대로입니다. */
   const zoneWidthOnBar=parseFloat(pathZone.style.width);
   cabbageMini.data.knifeX=cabbageMini.data.startKnifeX;syncTimingKnife(cabbageMini.data);
   const barStart=barAt();
-  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",11,12)-cabbageMini.data.hitTolerance;syncTimingKnife(cabbageMini.data);
+  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",5,6)-cabbageMini.data.hitTolerance;syncTimingKnife(cabbageMini.data);
   const barEnd=barAt();
   assert(barStart>96&&barEnd<4&&zoneWidthOnBar>4,"E1 bottom bar stretches the whole knife travel across its full width");
-  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,12);syncTimingKnife(cabbageMini.data);
+  cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,6);syncTimingKnife(cabbageMini.data);
   assert(cutPathGrade(cabbageMini.data)==="perfect","E1 judgment is measured from the knife's actual cut-line distance");
   timingCutAction();
-  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 immediately flows to the next hit zone while the cut effect settles");
+  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===5&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 immediately flows to the next hit zone while the cut effect settles");
   const tteokCabbage=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="cabbage");
-  const cabbageStages=Array.from({length:13},(_,successes)=>cutAssetStage({ingredient:"cabbage",total:12,successes})).join(",");
-  assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5"&&CUT_ASSET_STAGE_MAX.cabbage===12,"E1 cabbage uses all twelve supplied cut gaps");
-  assert(cabbageStages==="0,1,2,3,4,5,6,7,8,9,10,11,12"&&tteokCabbage.progressSprites.length===13&&DAY_PREP_ASSET_PATHS.tteokCabbage12==="assets/minigame/E1/cabbage-12.png","E1 cabbage maps twelve cuts one-to-one onto thirteen progress assets");
+  const cabbageStages=Array.from({length:7},(_,successes)=>cutAssetStage({ingredient:"cabbage",total:6,successes})).join(",");
+  assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="86.4,71.8,57.8,43.5,29.3,15.7"&&CUT_ASSET_STAGE_MAX.cabbage===6,"E1 cabbage uses the six wide supplied cut gaps");
+  assert(cabbageStages==="0,1,2,3,4,5,6"&&tteokCabbage.progressSprites.length===7&&DAY_PREP_ASSET_PATHS.tteokCabbage6==="assets/minigame/E1/cabbage-6.png"&&!DAY_PREP_ASSET_PATHS.tteokCabbage7,"E1 cabbage maps six cuts one-to-one onto seven progress assets");
+  while(cabbageMini.data.successes<cabbageMini.data.total){
+    cabbageMini.data.knifeX=timingCutTarget(cabbageMini.data).value;
+    timingCutAction();
+  }
+  assert(cabbageMini.data.successes===6&&cabbageMini.data.phase==="complete"&&dom.miniTimer.textContent==="6 / 6"&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===0&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===0&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-6.png","E1 cabbage completes on the sixth cut and displays the final retained frame");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeMiss",ingredient:"radish",requiredHits:2,hitTolerance:CUT_HIT_TOLERANCE.radish,travelSpeed:22,title:"E1 miss smoke",description:"smoke"});
