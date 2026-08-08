@@ -39,6 +39,10 @@ function hasOrderableStock(){return orderableDishes().length>0;}
 function updateNightOrderEntrances(dt,storyOnly=false){
   state.orders.forEach(order=>{
     if(storyOnly&&order.customerType!=="story")return;
+    if((Number(order.entryDelay)||0)>0){
+      order.entryDelay=Math.max(0,Number(order.entryDelay)-dt);
+      return;
+    }
     order.entered=clamp((Number(order.entered)||0)+dt*2.1,0,1);
   });
 }
@@ -69,13 +73,16 @@ function waitingForLastStoryGuest(){
 }
 function storyPlansForSpawn(force=false){
   const plans=state.story?.pendingNightGuests||[];
+  const arrived=typeof storyGeneralArrivals==="function"
+    ?storyGeneralArrivals()
+    :Math.max(0,Math.floor(Number(state.generalSpawnedCustomers)||0));
   return plans
     .map((plan,index)=>({plan,index}))
     .filter(item=>
       (!Object.prototype.hasOwnProperty.call(item.plan,"ready")||item.plan.ready===true)
       &&
       storyPlanArrivalReady(item.plan)
-      &&(force||state.generalServed>=storyArrivalThreshold(item.plan))
+      &&(force||arrived>=storyArrivalThreshold(item.plan))
     )
     .sort((a,b)=>storyArrivalRank(a.plan)-storyArrivalRank(b.plan)||a.index-b.index)
     .map(item=>item.plan);
@@ -106,6 +113,21 @@ function scheduleOrderRespawn(slot,time=3.1,forceStory=false){
 function processOrderRespawn(respawn){
   if(!respawn)return false;
   const forceStory=!!respawn.forceStory;
+  if(typeof processStoryNightTrigger==="function")processStoryNightTrigger();
+  const dueStoryPlan=(state.story?.pendingNightGuests||[]).some(plan=>
+    typeof storyNightPlanReady==="function"&&storyNightPlanReady(plan)
+  );
+  // 특별 손님이 다음 도착 순번을 받았으면 빈자리가 생길 때까지 그 순서를
+  // 예약합니다. 미니게임 중이라고 일반 손님이 먼저 들어와 추월하지 않습니다.
+  if(!forceStory&&dueStoryPlan){
+    scheduleOrderRespawn(respawn.slot,.2,false);
+    return false;
+  }
+  // 화면에 대기하는 손님은 특별 손님을 포함해 둘까지 유지합니다.
+  if(!forceStory&&state.orders.length>=2){
+    scheduleOrderRespawn(respawn.slot,.2,false);
+    return false;
+  }
   const spawned=spawnOrder(respawn.slot,{forceStory});
   if(!spawned&&(forceStory||waitingForLastStoryGuest())){
     // 마지막 일반 손님의 퇴장 연출이 끝나기 전이라면 시도를 버리지 않습니다.
@@ -130,10 +152,13 @@ function ensureNightOrders(){
   });
   if(beforePlanWaiting||beforeGuestActive)return false;
 
+  const dueStoryPlan=(state.story?.pendingNightGuests||[]).some(plan=>
+    typeof storyNightPlanReady==="function"&&storyNightPlanReady(plan)
+  );
+  if(dueStoryPlan)return false;
+
   const desiredWaiting=Math.min(2,nightGuestsRemaining());
-  const activeGeneral=state.orders.filter(order=>order.customerType!=="story").length;
-  const queuedGeneral=state.respawns.filter(respawn=>!respawn.forceStory).length;
-  let waiting=activeGeneral+queuedGeneral;
+  let waiting=state.orders.length+state.respawns.length;
   let spawned=false;
 
   while(waiting<desiredWaiting&&state.generalSpawnedCustomers<nightGeneralOrderTarget()){
@@ -143,7 +168,7 @@ function ensureNightOrders(){
     const freeSlot=CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
     if(freeSlot<0)break;
     if(!spawnOrder(freeSlot,{generalOnly:true}))break;
-    waiting++;
+    waiting=state.orders.length+state.respawns.length;
     spawned=true;
   }
   return spawned;
@@ -187,15 +212,21 @@ function tryEndNight(reason="complete"){
   const pendingPlans=state.story?.pendingNightGuests||[];
   const unservedStoryOrder=state.orders.some(order=>order.customerType==="story"||order.storySceneId);
   const storyGuestLeaving=state.departures.some(item=>!!item.guestId);
+  const generalGuestLeaving=state.departures.some(item=>!item.guestId);
   const unfinishedStory=storyIsActive()
     ||pendingPlans.length>0
     ||unservedStoryOrder
     ||storyGuestLeaving
     ||!!state.story?.pendingResultSceneId;
-  if(!unfinishedStory){
+  if(!unfinishedStory&&!generalGuestLeaving){
     endNight();
     return true;
   }
+
+  // 마지막 일반 손님도 접시를 비우고 반응한 뒤 자리에서 완전히 사라져야
+  // 영업 종료 화면으로 넘어갑니다. 이 대기는 특별 손님과 무관하므로
+  // 아래의 "특별 손님 이야기" 안내도 띄우지 않습니다.
+  if(!unfinishedStory&&generalGuestLeaving)return false;
 
   if(pendingPlans.length){
     const occupied=new Set(state.orders.map(order=>order.slot));
@@ -228,8 +259,12 @@ function renderNightResult(){
   const target=nightGeneralOrderTarget();
   const unserved=Math.max(0,target-state.generalServed);
   dom.servedResult.textContent=`${state.generalServed} / ${target}건`;
-  dom.satisfactionResult.textContent=`${avg}점`;
-  dom.fiveStarResult.textContent=state.fiveStar;
+  dom.satisfactionResult.textContent=avg>=90?"아주 좋았어요":avg>=75?"좋았어요":"조금 아쉬웠어요";
+  dom.fiveStarResult.textContent=state.fiveStar<=0
+    ?"다음에는 더 잘할 수 있어요"
+    :state.fiveStar>=state.served
+    ?"모든 접시에 정성이 전해졌어요"
+    :"기억에 남은 접시가 있었어요";
   const finalDay=state.day>=DayManager.maxDay;
   dom.nextDayButton.textContent=finalDay
     ?state.story?.endingSeen?"엔딩 완료":`Day ${DayManager.maxDay} 완료`
@@ -302,16 +337,16 @@ function spawnOrder(slot,options={}) {
   const order=decorateStoryOrder({
     // variant = 일반 손님 그림 번호. 종류 수는 customers.js 가 정합니다.
     id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*CUSTOMER_VARIANT_COUNT),
-    entered:0,cookStep:0,cookScores:[]
+    entered:0,
+    // 일반 손님과 같은 프레임에 예약된 특별 손님도 화면에서는 그 다음에
+    // 들어오도록 짧게 늦춥니다. 영업 전 첫 손님과 마지막 손님은 바로 나타납니다.
+    entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0,
+    cookStep:0,cookScores:[]
   },plan);
   state.orders.push(order);
   state.spawnedCustomers++;
   if(order.customerType!=="story")state.generalSpawnedCustomers++;
-  // 특별 손님이 주문할 수 있는 상태로 등장하면 남아 있던 일반 주문보다
-  // 먼저 처리합니다. 이야기 직후 목표가 다시 일반 손님을 가리키면 중요한
-  // 방문이 묻히므로, 등장 시점에 선택을 넘기고 떠날 때까지 우선권을 둡니다.
-  if(order.customerType==="story"&&isCookableOrder(order))state.selectedOrderId=order.id;
-  else if(state.selectedOrderId==null&&isCookableOrder(order))state.selectedOrderId=order.id;
+  syncSelectedOrderToQueue();
   if(order.deferUntilArrival&&!spawningInitialNightOrders){
     saveGame(true);
     resumeDeferredStoryOrderScene();
@@ -320,27 +355,38 @@ function spawnOrder(slot,options={}) {
   return true;
 }
 
-function selectOrder(id) {
-  if(state.carrying){showToast("먼저 들고 있는 음식을 주문한 손님에게 가져다주세요.",true);return;}
-  const priorityStoryOrder=state.orders.find(order=>order.customerType==="story"&&isCookableOrder(order));
-  if(priorityStoryOrder&&id!==priorityStoryOrder.id){
-    state.selectedOrderId=priorityStoryOrder.id;
-    showToast("먼저 이야기 손님의 주문을 준비해 주세요.");
-    updateUI(true);
-    return;
-  }
-  const lockedOrderId=activeStoryCookOrderId();
-  if(lockedOrderId!=null&&id!==lockedOrderId){showToast("먼저 이야기 손님의 주문을 완성해 주세요.");return;}
-  const order=state.orders.find(o=>o.id===id&&isCookableOrder(o));if(!order)return;
-  state.selectedOrderId=id;updateUI(true);saveGame();
+function ordersInArrivalOrder(){
+  return state.orders
+    .map((order,index)=>({order,index}))
+    .sort((a,b)=>(Number(a.order.id)||0)-(Number(b.order.id)||0)||a.index-b.index)
+    .map(item=>item.order);
 }
 
-function currentOrder(){return state.orders.find(o=>o.id===state.selectedOrderId&&isCookableOrder(o))||null;}
+function alreadyStartedOrder(){
+  const activeId=state.carrying?.orderId
+    ??state.mini?.context?.orderId
+    ??(typeof activeStoryCookOrderId==="function"?activeStoryCookOrderId():null);
+  if(activeId!=null)return state.orders.find(order=>order.id===activeId)||null;
+  const selected=state.orders.find(order=>order.id===state.selectedOrderId);
+  return selected&&(Number(selected.cookStep)||0)>0?selected:null;
+}
+
+function syncSelectedOrderToQueue(){
+  // 이미 시작한 접시만 마저 끝낼 수 있게 두고, 새 접시는 언제나 가장 먼저
+  // 들어온 손님부터 처리합니다. 특별 손님도 일반 손님을 추월하지 않습니다.
+  const order=alreadyStartedOrder()||ordersInArrivalOrder()[0]||null;
+  const cookable=isCookableOrder(order)?order:null;
+  state.selectedOrderId=cookable?.id??null;
+  return cookable;
+}
+
+function currentOrder(){return syncSelectedOrderToQueue();}
 
 function renderNightOrderList(){
-  const activeOrders=state.orders.filter(isCookableOrder);
+  const activeOrders=ordersInArrivalOrder();
+  syncSelectedOrderToQueue();
   const signature=`open|${state.selectedOrderId}|${state.carrying?.orderId||0}|${activeOrders.map(order=>
-    `${order.id}:${order.cookStep}:${order.specialRecipe?1:0}:${order.guestId?storyDisplayName(order.guestId):""}`
+    `${order.id}:${order.cookStep}:${order.guestOrder?1:0}:${order.specialRecipe?1:0}:${order.guestId?storyDisplayName(order.guestId):""}`
   ).join(",")}`;
   if(dom.inventoryList.dataset.signature===signature)return;
   dom.inventoryList.dataset.signature=signature;
@@ -348,12 +394,18 @@ function renderNightOrderList(){
     dom.inventoryList.innerHTML='<div class="order-empty">현재 대기 중인 주문이 없습니다.</div>';
     return;
   }
-  dom.inventoryList.innerHTML=`<div class="order-list">${activeOrders.map(order=>{
-    const dish=dishById(order.dishId),selected=order.id===state.selectedOrderId;
-    const status=state.carrying?.orderId===order.id?"완성 · 제공 대기":order.cookStep?`조리 ${order.cookStep}/${dish.cook.length}`:"조리 대기";
-    return `<button class="order-row ${selected?"selected":""}" data-order-id="${order.id}" type="button"><span>${order.slot+1}</span><strong>${dish.name}</strong>${order.specialRecipe?'<small class="special-order">특별</small>':""}<em>${status}</em></button>`;
+  dom.inventoryList.innerHTML=`<div class="order-list">${activeOrders.map((order,index)=>{
+    const cookable=isCookableOrder(order),dish=cookable?dishById(order.dishId):null;
+    const selected=order.id===state.selectedOrderId;
+    const name=dish?.name||storyOrderLabel(order);
+    const status=state.carrying?.orderId===order.id
+      ?"완성 · 제공 대기"
+      :!cookable
+        ?index===0?"대화 대기":`${index+1}번째 차례 · 대기`
+        :order.cookStep?`조리 ${order.cookStep}/${dish.cook.length}`
+        :selected?"현재 차례 · 조리 대기":`${index+1}번째 차례 · 대기`;
+    return `<div class="order-row ${selected?"selected":""}"${selected?' aria-current="true"':""}><span>${index+1}</span><strong>${name}</strong>${order.specialRecipe?'<small class="special-order">특별</small>':""}<em>${status}</em></div>`;
   }).join("")}</div>`;
-  dom.inventoryList.querySelectorAll("[data-order-id]").forEach(button=>button.addEventListener("click",()=>selectOrder(Number(button.dataset.orderId))));
 }
 
 function startCookMini(stationId) {
@@ -395,23 +447,22 @@ function serveOrder(order) {
   const storyResult=applyStoryCookingResult(order,serviceScore);
   const resumedStory=finishSuspendedStoryCook(order,serviceScore);
   const mismatchedStoryDish=storyResult?.matched===false;
-  const tier=storyCookingTier(serviceScore);
-  const departureText=storyResult?.text||pickGeneralGuestBubble(tier);
-  state.departures.push({
-    slot:order.slot,variant:order.variant,guestId:order.guestId||null,
-    bubble:departureText,life:3.2,
-    stars:mismatchedStoryDish?0:stars,
-    satisfaction:mismatchedStoryDish?null:serviceScore
-  });
+  if(!isStoryOrder){
+    const tier=storyCookingTier(serviceScore);
+    state.departures.push({
+      slot:order.slot,variant:order.variant,guestId:null,
+      bubble:pickGeneralGuestBubble(tier),life:3.2,
+      stars,satisfaction:serviceScore
+    });
+  }
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;
-  state.selectedOrderId=state.orders.find(isCookableOrder)?.id||null;
+  syncSelectedOrderToQueue();
   if(state.generalSpawnedCustomers<nightGeneralOrderTarget()||(state.story?.pendingNightGuests?.length||0))scheduleOrderRespawn(order.slot,3.1);
-  if(!mismatchedStoryDish)spawnPopup(CUSTOMER_SEATS[order.slot],500,`${"★".repeat(stars)} ${serviceScore}점`);
   showToast(mismatchedStoryDish
     ?`${storyResult.name}에게 내어 준 음식이 찾던 음식과 달랐습니다. 들은 단서를 영업일지에 남깁니다.`
     :storyResult
-    ?`${storyResult.name}${storyResult.special?"의 특별 조리":"에게 한 접시 제공"} · 만족도 ${serviceScore}점`
-    :`${dish.name} 제공 · 만족도 ${serviceScore}점`);
+    ?`${storyResult.name}${storyResult.special?"의 특별 조리를 마쳤습니다.":"에게 한 접시를 내었습니다."}`
+    :`${dish.name} 제공 완료`);
   audio.serve();updateUI(true);
   if(typeof processStoryNightTrigger==="function")processStoryNightTrigger();
   // 주문 조리 대사가 재개된 경우에는 장면 완료 시점에 저장합니다.
@@ -426,16 +477,13 @@ function updateNightObjective(){
   const progress=`일반 주문 ${state.generalServed} / ${nightGeneralOrderTarget()}건 · 시간제한 없음`;
   const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
   if(state.carrying){
-    const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId),inv=state.inventory[d.id];
-    const storyOrder=o?.customerType==="story";
-    const expected=satisfactionScore(inv,state.carrying.cookScore);
-    const expectedLabel=storyOrder?"예상 평가":"예상 만족도";
-    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성 · 조리 ${state.carrying.cookScore}점 · ${expectedLabel} ${expected}점</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
+    const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId);
+    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
     return;
   }
   if(!order){
     const storyVisitor=state.orders.some(item=>item.customerType==="story"&&!isCookableOrder(item));
-    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>${storyVisitor?"특별 손님과 이야기를 나누고 있습니다.":"다음 손님을 기다리고 있습니다."}</div>`;
+    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>${storyVisitor?"특별 손님이 자신의 차례를 기다리고 있습니다.":"다음 손님을 기다리고 있습니다."}</div>`;
     return;
   }
   const d=dishById(order.dishId),step=d.cook[order.cookStep];

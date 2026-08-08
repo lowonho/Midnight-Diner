@@ -26,6 +26,8 @@ assert(qaModeSource.includes("qaStoryJournalStates")
   && qaModeSource.includes("resultSceneIds")
   && qaModeSource.includes("missingMenuSceneId"),
 "QA 스토리 탭은 영업일지 상태와 특별 손님 분기 계약을 읽어야 합니다.");
+assert(qaModeSource.includes('QA_QUERY_PARAMS.has("qa-story")'),
+"qa-story 직접 주소만으로도 저장이 차단된 QA 미리보기가 활성화되어야 합니다.");
 assert(qaModeSource.includes("qaContextDay")
   && qaModeSource.includes("options?.contextDay"),
 "day:null 장면은 선택한 QA Day 맥락으로 열려야 합니다.");
@@ -66,6 +68,7 @@ assert(saveSource.includes("if(window.QA_MODE?.enabled)return false;"),
 
 const bootstrap = `
 var state={day:4,story:{sentinel:true}};
+var storySession=null;
 const window={
   location:{search:"?qa=1",href:"http://localhost/?qa=1"},
   addEventListener(){}
@@ -149,6 +152,26 @@ same(j03Branches.map(entry=>entry.sceneId),["END-03","END-04"],
   "조각 8개 엔딩 선택 분기 표시");
 check(j03Branches[1].text==="내일을 모두에게 돌려준다",
   "END-04 선택 문구를 QA 패널에서 확인할 수 있어야 합니다.");
+check(String(qaStoryPreviewChoice).includes("qaOpenStoryScene(nextSceneId")
+  &&String(qaStoryPreviewChoice).includes("STORY_SCENES[nextSceneId]"),
+  "QA의 실제 선택지에서도 대상 엔딩 장면과 배경 미리보기로 이동해야 합니다.");
+const originalQaOpenStoryScene=qaOpenStoryScene;
+const originalQaRefreshPanel=qaRefreshPanel;
+let qaOpenedEnding=null;
+qaOpenStoryScene=(sceneId,lineIndex,options)=>{
+  qaOpenedEnding={sceneId,lineIndex,contextDay:options?.contextDay};
+  return true;
+};
+qaRefreshPanel=()=>{};
+storySession={qaPreview:true,qaContextDay:7};
+check(qaStoryPreviewChoice(j02.lines.find(line=>line.choices).choices[0],0)===true
+  &&qaOpenedEnding?.sceneId==="END-01"
+  &&qaOpenedEnding?.lineIndex===0
+  &&qaOpenedEnding?.contextDay===7,
+  "QA 판정 장면에서 선택지를 누르면 END-01 엔딩 화면으로 바로 이어져야 합니다.");
+storySession=null;
+qaOpenStoryScene=originalQaOpenStoryScene;
+qaRefreshPanel=originalQaRefreshPanel;
 
 const p01=STORY_SCENES["SCN-P01"];
 check(qaStoryClampLineIndex(p01,-20)===0,"음수 대사 위치는 첫 줄로 보정해야 합니다.");
@@ -201,5 +224,24 @@ const runtimeChecks = vm.runInNewContext(
   context,
   {filename:"qa-story-contract-smoke.bundle.js"}
 );
+
+const directQaContext={
+  window:{
+    location:{search:"?qa-story=END-01",href:"http://localhost/?qa-story=END-01"},
+    addEventListener(){}
+  },
+  document:{getElementById(){return null;}},
+  sessionStorage:{getItem(){return null;},setItem(){}},
+  URL,
+  URLSearchParams,
+  Object,
+  setTimeout,
+  setInterval,
+  clearTimeout,
+  clearInterval
+};
+vm.runInNewContext(qaModeSource,directQaContext,{filename:"qa-story-direct-entry.js"});
+assert(directQaContext.window.QA_MODE?.enabled===true,
+  "qa-story 직접 주소는 qa=1이 없어도 QA 저장 방지 모드로 열려야 합니다.");
 
 console.log(`QA_STORY_CONTRACT_OK ${staticChecks+runtimeChecks}`);

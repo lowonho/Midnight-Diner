@@ -14,17 +14,48 @@ const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf
   "endingRetryOverlay",
   "endingRetryTitle",
   "endingRetryDescription",
+  "endingRetrySpeaker",
   "endingRetryBranchButton",
-  "endingNewLoopButton"
+  "endingAcceptButton"
 ].forEach(id=>{
   if(!indexSource.includes(`id="${id}"`))throw new Error(`엔딩 후 선택 UI 누락: ${id}`);
 });
 if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".ending-retry-actions")){
   throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
 }
+if(!indexSource.includes("김다은(속말)")
+  ||!indexSource.includes("그때, 나는 다른 선택을 할 수도 있지 않았을까?")
+  ||!indexSource.includes("다른 선택을 해 본다")
+  ||!indexSource.includes("이 선택을 받아들인다")
+  ||indexSource.includes("ENDING RECORDED")
+  ||indexSource.includes("엔딩 기록 완료")){
+  throw new Error("엔딩 후 질문은 시스템 알림이 아니라 김다은의 속말과 두 선택지로 보여야 합니다.");
+}
+if(!indexSource.includes('id="storyEndingBackground"')
+  ||!storyCssSource.includes(".story-ending-background")
+  ||!storyCssSource.includes("background-size: cover")
+  ||!storyCssSource.includes(".story-overlay.story-ending-active .story-stage")){
+  throw new Error("엔딩 일러스트 배경 레이어와 배우 무대 숨김 스타일이 필요합니다.");
+}
 if(!indexSource.includes('id="storyFragmentHandoff"')
-  ||!storyCssSource.includes(".story-fragment-handoff")){
-  throw new Error("달빛 조각 전달용 빈 전용 레이어가 필요합니다.");
+  ||!indexSource.includes('id="storyFragmentName"')
+  ||!indexSource.includes('class="story-fragment-art"')
+  ||!storyCssSource.includes(".story-fragment-handoff")
+  ||!storyCssSource.includes(".story-fragment-handoff.show .story-fragment-focus")){
+  throw new Error("완전한 달빛 조각의 암전·중앙 에셋 전달 레이어가 필요합니다.");
+}
+const fragmentAssetPaths=[...sources[1].matchAll(/\b\w+:\s*"(assets\/customer\/Special\/MoonPiece\/[^"]+\.webp)"/g)]
+  .map(match=>match[1]);
+if(fragmentAssetPaths.length!==8
+  ||fragmentAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("특별 손님 8명의 완전한 달빛 조각 에셋이 모두 존재해야 합니다.");
+}
+const endingAssetPaths=[...sources[1].matchAll(/endingBackground:\s*"(assets\/story\/bg\/[^"]+\.png)"/g)]
+  .map(match=>match[1]);
+if(endingAssetPaths.length!==5
+  ||new Set(endingAssetPaths).size!==5
+  ||endingAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("다섯 엔딩 장면은 서로 다른 실제 배경 파일을 사용해야 합니다.");
 }
 
 const bootstrap = `
@@ -64,10 +95,64 @@ assert(String(showStoryLine).includes("applyStoryFragmentHandoff(line)")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
+assert(String(showStoryLine).includes("applyStoryEndingBackground(scene)")
+  &&String(resetStoryStage).includes("applyStoryEndingBackground(null)")
+  &&String(clearStoryRuntime).includes("applyStoryEndingBackground(null)"),
+  "엔딩 배경은 장면 재생 경로에서 적용되고 장면·런타임 종료에서 해제되어야 합니다.");
+assert(String(applyStoryFragmentHandoff).includes('handoff?.state==="full"')
+  &&String(applyStoryFragmentHandoff).includes('document.getElementById("storyFragmentName")')
+  &&String(applyStoryFragmentHandoff).includes('layer.classList?.toggle("show",showFull)'),
+  "중앙 조각 연출은 완전한 조각에서만 열리고 조각 이름을 함께 표시해야 합니다.");
 const same=(actual,expected,message)=>{
   assert(JSON.stringify(actual)===JSON.stringify(expected),
     message+"\\nactual: "+JSON.stringify(actual)+"\\nexpected: "+JSON.stringify(expected));
 };
+
+const expectedEndingBackgrounds={
+  "SCN-J01":"assets/story/bg/01_loop_daeun_reenters_restaurant_entrance_v3.png",
+  "END-01":"assets/story/bg/02_morning_alone_loop_restaurant_unified_v7.png",
+  "END-02":"assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
+  "END-03":"assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
+  "END-04":"assets/story/bg/05_morning_together_restaurant_unified_v2.png"
+};
+same(Object.fromEntries(Object.keys(expectedEndingBackgrounds).map(id=>[id,STORY_SCENES[id].endingBackground])),
+  expectedEndingBackgrounds,"다섯 엔딩 장면별 배경 에셋 매핑");
+assert(new Set(Object.values(expectedEndingBackgrounds)).size===5,
+  "다섯 엔딩 배경은 서로 다른 파일을 사용해야 합니다.");
+
+const endingLayerClasses=new Set();
+const endingOverlayClasses=new Set();
+const endingLayerStyles={};
+const endingLayerAttributes={};
+const endingLayer={
+  dataset:{},
+  classList:{toggle(name,enabled){enabled?endingLayerClasses.add(name):endingLayerClasses.delete(name);}},
+  style:{
+    setProperty(name,value){endingLayerStyles[name]=value;},
+    removeProperty(name){delete endingLayerStyles[name];}
+  },
+  setAttribute(name,value){endingLayerAttributes[name]=value;}
+};
+const endingOverlay={
+  classList:{toggle(name,enabled){enabled?endingOverlayClasses.add(name):endingOverlayClasses.delete(name);}}
+};
+const originalGetElementById=document.getElementById;
+document.getElementById=id=>id==="storyEndingBackground"?endingLayer:id==="storyOverlay"?endingOverlay:null;
+assert(applyStoryEndingBackground(STORY_SCENES["END-01"])
+  &&endingLayerClasses.has("show")
+  &&endingOverlayClasses.has("story-ending-active")
+  &&endingLayer.dataset.sceneId==="END-01"
+  &&endingLayerStyles["--story-ending-art"].includes(expectedEndingBackgrounds["END-01"])
+  &&endingLayerAttributes["aria-hidden"]==="false",
+  "엔딩 진입 시 해당 일러스트와 배경 전용 상태를 표시해야 합니다.");
+assert(!applyStoryEndingBackground(null)
+  &&!endingLayerClasses.has("show")
+  &&!endingOverlayClasses.has("story-ending-active")
+  &&!("sceneId" in endingLayer.dataset)
+  &&!("--story-ending-art" in endingLayerStyles)
+  &&endingLayerAttributes["aria-hidden"]==="true",
+  "엔딩 종료 시 일러스트와 배경 전용 상태를 완전히 해제해야 합니다.");
+document.getElementById=originalGetElementById;
 
 const expectedCharacterIds=[
   "protagonist","recalledBoss","journal","moonlightTable",
@@ -168,6 +253,22 @@ STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 
 same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
   "날짜별 일반 주문 수");
 same(STORY_SCORE_THRESHOLDS,{warm:50,great:80},"스토리 평가 점수 기준");
+same(GENERAL_GUEST_BUBBLES.arrival,[
+  "[음식명] 하나 부탁드릴게요.",
+  "오늘은 [음식명][이/가] 먹고 싶네요.",
+  "좋은 냄새가 나네요. [음식명] 하나 주세요."
+],"일반 손님 음식명 포함 방문 대사");
+same(GENERAL_GUEST_BUBBLES.soft,
+  ["조금 아쉽지만 잘 먹었습니다.","정성이 느껴져서 좋았어요."],
+  "일반 손님 아쉽다 평가 대사");
+assert(formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요.","kimchi")
+  ==="오늘은 김치전이 먹고 싶네요."
+  &&formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요.","tofu")
+  ==="오늘은 두부김치가 먹고 싶네요.",
+  "일반 손님 방문 대사는 메뉴 이름과 이/가 조사를 자연스럽게 표시해야 합니다.");
+assert(String(decorateStoryOrder).includes('pickGeneralGuestBubble("arrival",order.dishId)')
+  &&!GENERAL_GUEST_BUBBLES.arrival.includes("천천히 해 주세요. 기다릴게요."),
+  "일반 손님 주문 음식명을 방문 대사에 전달하고 제외한 기다림 문장을 다시 넣으면 안 됩니다.");
 assert(storyCookingTier(49,STORY_SCORE_THRESHOLDS)==="soft"
   &&storyCookingTier(50,STORY_SCORE_THRESHOLDS)==="warm"
   &&storyCookingTier(79,STORY_SCORE_THRESHOLDS)==="warm"
@@ -185,8 +286,10 @@ assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
 assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
   &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
   "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
-assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="SCN-P01 · 지친 밤 - 퇴근길",
-  "장면 카드는 새 문서의 장면 코드와 제목을 표시해야 합니다.");
+assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="지친 밤 - 퇴근길"
+  &&!storySceneCardText(STORY_SCENES["SCN-J01"]).includes("SCN-")
+  &&!storySceneCardText(STORY_SCENES["END-01"]).includes("END-"),
+  "플레이어용 장면 카드에는 내부 장면 코드를 표시하지 않아야 합니다.");
 assert(!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-A"])
   &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-B"])
   &&!storySceneShowsIntroCard(STORY_SCENES["SCN-G1-완벽"])
@@ -201,6 +304,9 @@ const l01=STORY_SCENES["SCN-L01"];
 const l02=STORY_SCENES["SCN-L02"];
 assert(l01.minLoop===2&&l01.repeatEachLoop&&l01.autoOpenJournal,
   "2회차 첫째 날에는 영업일지를 자동으로 열어야 합니다.");
+assert(l01.lines.some(line=>line.speakerLabel==="김다은(속말)"
+  &&line.text==="손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
+  "회귀 첫 장면에서 손님에게 초면처럼 대하려는 다은의 판단을 알려야 합니다.");
 assert(l02.minLoop===2&&l02.repeatEachLoop&&l02.dynamicJournalHint,
   "2회차 이후 날짜별 동적 영업일지 안내를 사용해야 합니다.");
 same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
@@ -246,17 +352,19 @@ same(Object.keys(FIRST_SPECIAL_GUEST_BUBBLES),expectedGameplayJournalGuestIds,
 assert(Object.values(FIRST_SPECIAL_GUEST_BUBBLES).every(text=>text&&!text.includes("오늘도")),
   "첫 방문 특별 손님은 재방문처럼 말하면 안 됩니다.");
 assert(String(prepareStoryNight).includes("guest?.visits")
-  &&String(decorateStoryOrder).includes("FIRST_SPECIAL_GUEST_BUBBLES"),
-  "첫 방문과 재방문 말풍선은 실제 만남 기록으로 구분해야 합니다.");
+  &&String(decorateStoryOrder).includes('order.bubble=""')
+  &&String(decorateStoryOrder).includes("FIFO 차례"),
+  "특별 손님은 좌석에서 선대사하지 않고 자기 차례의 이야기 화면에서 말해야 합니다.");
 assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
 assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문")&&rule.includes("달빛 조각으로만"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
   "영업일지 첫 장은 세부 등급을 선공개하지 않고 달빛 조각으로 내일의 문을 여는 목표만 알려야 합니다.");
-same(l01.lines.slice(-3).map(line=>line.text),[
+same(l01.lines.slice(-4).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
+  "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다.",
   "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼."
 ],"회귀 후 첫째 날의 영업일지 안내 대사");
 assert(l02.journalVariants.shard[0].text.includes("지난 회차")
@@ -316,13 +424,16 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
     prefix+" 맛있다 결과");
   assert(great?.resultTier==="great"&&great.grantsShard&&great.uniqueShard,
     prefix+" 최초 완벽 달빛 조각 결과");
+  assert([missing,soft,warm,great].every(scene=>
+    scene.lines[0]?.kind==="direction"&&!!scene.lines[1]?.speaker),
+    prefix+" 행동 묘사 뒤에는 내레이션이 손님의 말을 선점하지 않아야 합니다.");
   const warmHandoff=warm.lines.at(-1)?.fragmentHandoff;
   const greatHandoff=great.lines.at(-1)?.fragmentHandoff;
-  assert(number===8?!warmHandoff:warmHandoff?.state==="partial",
+  assert(number===8?!warmHandoff:warmHandoff?.state==="partial"&&warmHandoff.asset===null,
     prefix+" 맛있다 부분 조각 전달 연출");
   assert(greatHandoff?.state==="full"&&greatHandoff.shardId===shardId
-    &&greatHandoff.asset===null,
-    prefix+" 완벽 조각 전달 연출과 향후 에셋 자리");
+    &&greatHandoff.asset===STORY_FRAGMENT_ASSETS[shardId],
+    prefix+" 완벽 조각 전달 연출과 실제 손님별 에셋");
   assert(!soft.lines.some(line=>line.fragmentHandoff),prefix+" 아쉽다 조각 미지급");
   assert([soft,warm,great].every(scene=>scene.preservesUnlockedMemory),
     prefix+" 재평가가 기존 기억과 조각을 회수하면 안 됩니다.");
@@ -359,6 +470,9 @@ const g8IdentityIndex=g8GreatLines.findIndex(line=>
 const g8RevealedNameIndex=g8GreatLines.findIndex(line=>line.speaker==="anotherDaeun");
 assert(g8IdentityIndex>=0&&g8RevealedNameIndex>g8IdentityIndex,
   "얼굴 없는 손님이 스스로 김다은이라고 밝힌 다음 줄부터 이름표가 바뀌어야 합니다.");
+assert(g8GreatLines[g8IdentityIndex+1]?.text
+  ==="그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다.",
+  "G8 완벽 장면은 얼굴 등장 연출만 남기고 다음 대사의 설명을 미리 말하면 안 됩니다.");
 
 same(STORY_ENDING_RULES,{
   low:{minShards:0,maxShards:3,judgementSceneId:"SCN-J01"},
@@ -381,11 +495,12 @@ assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requir
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
   ["endingRetryMenu","endingRetryMenu","endingRetryMenu","clearRunKeepMeta"],
   "엔딩별 이어하기 정책");
-same(["END-01","END-02","END-03"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
-  ["SCN-J02","SCN-J02","SCN-J03"],
-  "일반 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
+same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].retryJudgementSceneId),
+  ["SCN-J02","SCN-J02","SCN-J03","SCN-J03"],
+  "루프를 제외한 네 엔딩은 자신이 나온 마지막 분기로 돌아갈 수 있어야 합니다.");
 assert(STORY_SCENES["END-04"].trueEnding
-  &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01",
+  &&STORY_SCENES["END-04"].nextSceneId==="SCN-EPI01"
+  &&STORY_SCENES["SCN-EPI01"].endingSceneId==="END-04",
   "함께 오는 아침에서 진엔딩 에필로그로 이어져야 합니다.");
 assert(STORY_SCENES["SCN-EPI01"].disableContinue
   &&STORY_SCENES["SCN-EPI01"].clearProgressSaves
@@ -407,17 +522,54 @@ assert(String(runStoryConclusion).includes("beginNextStoryLoop")
   &&String(runStoryConclusion).includes("showEndingRetryMenu")
   &&String(runStoryConclusion).includes("finishTrueEnding"),
   "자동 회귀·일반 엔딩 후 선택·진엔딩은 각각의 최종 처리 경로를 유지해야 합니다.");
+assert(String(queueStoryConclusion).includes("scene.trueEndingEpilogue")
+  &&String(queueStoryConclusion).includes('acceptPolicy:"trueEnding"')
+  &&String(queueStoryConclusion).includes("unlockTrueEndingEpilogues"),
+  "진엔딩 후일담을 본 뒤 영구 기록을 남기고 재선택 질문을 열어야 합니다.");
 assert(String(restoreEndingChoiceCheckpoint).includes("playStoryScenes")
-  &&String(startNewLoopAfterEnding).includes("beginNextStoryLoop"),
-  "엔딩 기록 뒤 마지막 분기 재생과 새 회차 시작 기능을 모두 제공해야 합니다.");
+  &&String(restoreEndingChoiceCheckpoint).includes("ending.nextSceneId")
+  &&String(acceptCurrentEnding).includes("beginNextStoryLoop")
+  &&String(acceptCurrentEnding).includes("finishTrueEnding"),
+  "엔딩 뒤에는 마지막 분기 재생과 현재 결말 수용을 모두 제공해야 합니다.");
 assert(String(showEndingRetryMenu).includes("saveEndingRetryCheckpoint")
-  &&String(showEndingRetryMenu).includes("restoredCheckpoint"),
-  "일반 엔딩 화면은 현재 결말을 숨은 체크포인트로 저장하고 복구 표시를 구분해야 합니다.");
+  &&String(showEndingRetryMenu).includes("restoredCheckpoint")
+  &&String(showEndingRetryMenu).includes("다른 선택을 할 수도 있지 않았을까")
+  &&String(showEndingRetryMenu).includes('removeAttribute("inert")'),
+  "엔딩 질문은 현재 결말을 숨은 체크포인트로 저장하고 김다은의 속말로 열려야 합니다.");
 assert(String(retryLastEndingBranch).includes("restoreStoredEndingRetryState")
   &&String(retryLastEndingBranch).includes("clearEndingRetryCheckpoint")
-  &&String(startNewLoopAfterEnding).includes("restoreStoredEndingRetryState")
-  &&String(startNewLoopAfterEnding).includes("clearEndingRetryCheckpoint"),
+  &&String(acceptCurrentEnding).includes("restoreStoredEndingRetryState")
+  &&String(acceptCurrentEnding).includes("clearEndingRetryCheckpoint"),
   "복구된 엔딩 화면의 두 버튼은 상태를 되살린 뒤 숨은 체크포인트를 삭제해야 합니다.");
+assert(!STORY_SCENES["SCN-J01"].retryJudgementSceneId
+  &&String(validEndingRetryAction).includes('acceptPolicy==="trueEnding"')
+  &&String(initializeStoryUI).includes('event.key!=="Tab"'),
+  "자동 회귀에는 재선택을 붙이지 않고 엔딩 질문의 포커스는 두 선택지 안에 유지해야 합니다.");
+const retryActions=[
+  ["END-01","SCN-J02","nextLoop"],
+  ["END-02","SCN-J02","nextLoop"],
+  ["END-03","SCN-J03","nextLoop"],
+  ["END-04","SCN-J03","trueEnding"]
+].map(([endingSceneId,judgementSceneId,acceptPolicy])=>({
+  type:"endingRetryMenu",endingSceneId,judgementSceneId,acceptPolicy
+}));
+assert(retryActions.every(validEndingRetryAction),
+  "루프를 제외한 네 엔딩의 재선택 동작이 모두 유효해야 합니다.");
+let trueEndingEpilogueUnlocks=0;
+window.MoonlightTableSave={unlockTrueEndingEpilogues(){trueEndingEpilogueUnlocks++;}};
+storySession={conclusionAction:null};
+queueStoryConclusion(STORY_SCENES["SCN-EPI01"]);
+same(storySession.conclusionAction,{
+  type:"endingRetryMenu",
+  judgementSceneId:"SCN-J03",
+  endingSceneId:"END-04",
+  endingTitle:"함께 오는 아침",
+  acceptPolicy:"trueEnding"
+},"진엔딩 후일담 종료 뒤 재선택 질문 동작");
+assert(trueEndingEpilogueUnlocks===1,
+  "진엔딩 후일담은 재선택 여부와 무관하게 본 즉시 영구 기록되어야 합니다.");
+storySession=null;
+delete window.MoonlightTableSave;
 assert(String(finishTrueEnding).includes("clearEndingRetryCheckpoint")
   &&String(finishTrueEnding).indexOf("clearEndingRetryCheckpoint")
     <String(finishTrueEnding).indexOf("clearAutoSaveForTrueEnding"),
@@ -647,6 +799,7 @@ assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerA
 
 getStoryGuestResult("schoolDoll").fragmentState="full";
 state.generalServed=5;
+state.generalSpawnedCustomers=5;
 same(storyFragmentCounts({baseOnly:true}),{count:7,partial:0,full:7},
   "기본 손님 7명의 완전 조각 계산");
 assert(storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A"),

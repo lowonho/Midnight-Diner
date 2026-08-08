@@ -149,6 +149,36 @@
   text-shadow: 0 0 calc(28 * var(--upx)) rgba(255,195,98,.24);
 }
 
+/* 엔딩 전용 일러스트는 대사창 아래, 기존 배우 무대보다 뒤에 둡니다.
+   각 장면의 실제 에셋은 story.js가 --story-ending-art로 주입합니다. */
+.story-ending-background {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  background-color: #080605;
+  background-image: var(--story-ending-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.015);
+  transition: opacity .45s ease,visibility .45s ease,transform 1.2s ease;
+  pointer-events: none;
+}
+.story-ending-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,rgba(5,4,3,.04),rgba(5,4,3,.02) 56%,rgba(5,4,3,.30) 76%,rgba(5,4,3,.64));
+}
+.story-ending-background.show {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
 /* 배우 무대: 주인공은 항상 왼쪽 끝, 대화 상대는 등장 순서대로 오른쪽 끝까지 균등 배치됩니다.
    위치와 폭은 story.js가 --actor-x / --actor-w 로 넣어 주며, 인원이 늘면 부드럽게 다시 벌어집니다. */
 .story-stage {
@@ -177,17 +207,16 @@
   clip-path: inset(-100% -100% calc(-8 * var(--upx)) -100%);
 }
 
-/* 달빛 조각 전달 전용 레이어입니다. 지금은 빈 화면만 사용하고,
-   추후 --fragment-art에 정식 조각 에셋을 연결합니다. */
+/* 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은 위에
+   그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
 .story-fragment-handoff {
   position: absolute;
   z-index: 3;
   inset: 0;
-  background-color: rgba(8,6,12,.96);
-  background-image: var(--fragment-art,none);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(120,174,255,.16),transparent 34%),
+    rgba(5,4,10,.91);
   opacity: 0;
   visibility: hidden;
   transition: opacity .22s ease,visibility .22s ease;
@@ -197,10 +226,75 @@
   opacity: 1;
   visibility: visible;
 }
+.story-fragment-focus {
+  position: absolute;
+  inset: 6% 0 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10 * var(--upx));
+  opacity: 0;
+  transform: translateY(calc(18 * var(--upx))) scale(.9);
+}
+.story-fragment-handoff.show .story-fragment-focus {
+  animation: storyFragmentReveal .58s cubic-bezier(.18,.82,.24,1) forwards;
+}
+.story-fragment-focus::before {
+  content: "";
+  position: absolute;
+  width: calc(310 * var(--upx));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle,rgba(151,205,255,.24),rgba(96,139,222,.08) 42%,transparent 70%);
+  filter: blur(calc(5 * var(--upx)));
+  animation: storyFragmentGlow 2.3s ease-in-out infinite;
+}
+.story-fragment-kicker,
+.story-fragment-name {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 calc(18 * var(--upx)) rgba(129,190,255,.72),0 calc(2 * var(--upx)) calc(5 * var(--upx)) #000;
+}
+.story-fragment-kicker {
+  color: #b9d9ff;
+  font-size: calc(14 * var(--upx));
+  letter-spacing: .16em;
+}
+.story-fragment-name {
+  color: #fff0bd;
+  font-size: calc(25 * var(--upx));
+  letter-spacing: .02em;
+}
+.story-fragment-art {
+  position: relative;
+  z-index: 1;
+  width: min(32vw,calc(300 * var(--upx)));
+  height: min(32vw,calc(300 * var(--upx)));
+  background-image: var(--fragment-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 0 calc(12 * var(--upx)) rgba(125,190,255,.78)) drop-shadow(0 calc(8 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.85));
+  animation: storyFragmentFloat 2.5s ease-in-out .58s infinite;
+}
+@keyframes storyFragmentReveal {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes storyFragmentFloat {
+  0%,100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(calc(-7 * var(--upx))) rotate(1deg); }
+}
+@keyframes storyFragmentGlow {
+  0%,100% { opacity: .72; transform: scale(.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
 .story-overlay.scene-intro .story-stage,
 .story-overlay.scene-intro .story-dialogue-box,
 .story-overlay.scene-intro .story-choices,
-.story-overlay.story-cinematic-active .story-stage {
+.story-overlay.story-cinematic-active .story-stage,
+.story-overlay.story-ending-active .story-stage {
   opacity: 0;
   visibility: hidden;
 }
@@ -512,20 +606,32 @@
 
 .ending-retry-overlay { z-index: 115; }
 .ending-retry-window {
-  width: min(calc(540 * var(--upx)),92vw);
-  padding: calc(30 * var(--upx));
-  text-align: center;
+  width: min(calc(620 * var(--upx)),92vw);
+  padding: calc(30 * var(--upx)) calc(34 * var(--upx));
+  border: calc(3 * var(--upx)) solid #8f5b31;
+  background: linear-gradient(rgba(33,19,13,.98),rgba(18,10,7,.99));
+  box-shadow: inset 0 0 0 calc(3 * var(--upx)) #25130c,inset 0 0 0 calc(5 * var(--upx)) #c1843e,0 calc(14 * var(--upx)) calc(40 * var(--upx)) rgba(0,0,0,.82);
+  text-align: left;
+}
+.ending-retry-speaker {
+  margin: 0 0 calc(13 * var(--upx));
+  padding-bottom: calc(10 * var(--upx));
+  border-bottom: 1px solid rgba(224,163,77,.38);
+  color: #ffe09a;
+  font-size: calc(20 * var(--upx));
+  font-weight: 800;
 }
 .ending-retry-window h2 {
-  margin: 0 0 calc(12 * var(--upx));
-  color: #ffe09a;
-  font-size: calc(28 * var(--upx));
+  margin: 0 0 calc(14 * var(--upx));
+  color: #cda96d;
+  font-size: calc(17 * var(--upx));
+  font-weight: 700;
 }
-.ending-retry-window > p:not(.eyebrow) {
+.ending-retry-window > p:not(.ending-retry-speaker) {
   margin: 0;
-  color: #d8c09a;
-  font-size: calc(15 * var(--upx));
-  line-height: 1.65;
+  color: #f1e0c2;
+  font-size: calc(20 * var(--upx));
+  line-height: 1.7;
   word-break: keep-all;
 }
 .ending-retry-actions {
@@ -539,11 +645,20 @@
   padding-inline: calc(14 * var(--upx));
   word-break: keep-all;
 }
+.ending-retry-actions button:focus-visible {
+  outline: calc(2 * var(--upx)) solid #ffe09a;
+  outline-offset: calc(3 * var(--upx));
+}
 
 @media (prefers-reduced-motion: reduce) {
   .story-scene-meta,
+  .story-ending-background,
   .story-stage,
-  .story-dialogue-box { transition: none; }
+  .story-dialogue-box,
+  .story-fragment-handoff { transition: none; }
+  .story-fragment-handoff.show .story-fragment-focus,
+  .story-fragment-focus::before,
+  .story-fragment-art { animation: none; opacity: 1; transform: none; }
 }
 
 @media (max-width: 620px) {

@@ -19,10 +19,17 @@ const title=read("title.js");
 const gameData=read("game-data.js");
 const miniFrame=read("ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
+const orderPlace=read("engine-e8-order-place.js");
 const index=read("index.html");
 
-assert(game.includes("if(state.mini&&!settingsOpen){updateMini(dt);updateUI(false);}"),
-  "설정창이 열린 동안 미니게임 갱신을 멈춰야 합니다.");
+assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}"),
+  "설정창이나 이야기 대화가 열린 동안 미니게임 갱신을 멈춰야 합니다.");
+assert(game.includes('const pauseNightCustomerPresentation=state.phase==="night"&&!!state.mini;')
+  &&game.includes("updateNightOrderEntrances(dt,pauseNightCustomerPresentation);")
+  &&game.includes("if(!pauseNightCustomerPresentation)ensureNightOrders();")
+  &&game.includes('if(pauseNightCustomerPresentation&&order.customerType!=="story")return;')
+  &&game.includes("if(pauseNightCustomerPresentation&&!item.guestId)return;"),
+  "밤 미니게임 중에는 일반 손님의 등장·재등장·대기 말풍선·퇴장 수명이 멈춰야 합니다.");
 assert(ingredient.includes("if(state.paused)return;"),
   "설정 중에는 냉장고 경과 기록도 멈춰야 합니다.");
 assert(miniFrame.includes('id="miniPause"')
@@ -47,14 +54,49 @@ assert(game.includes('if(k==="escape")')
   &&game.includes('else if(state.screen==="game")openSettings("game");')
   &&game.includes("if(settingsOverlayIsOpen())return;"),
   "모든 미니게임에서 ESC로 설정을 열고 설정 뒤쪽 입력은 차단해야 합니다.");
+const endingRetryGuard=game.indexOf('if(typeof endingRetryMenuIsOpen==="function"&&endingRetryMenuIsOpen())return;');
+const saveDialogEscapeGuard=game.indexOf('if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())',endingRetryGuard);
+assert(game.includes('setSettingsBackgroundInert(true);')
+  &&game.includes('setSettingsBackgroundInert(false);')
+  &&game.includes('new MutationObserver(()=>{')
+  &&game.includes('window.addEventListener("keydown",event=>{')
+  &&game.includes('if(event.key==="Tab")')
+  &&/if\(settingsOverlayIsOpen\(\)\)return;\s*beginNight\(\);/.test(game)
+  &&endingRetryGuard>=0
+  &&saveDialogEscapeGuard>endingRetryGuard,
+  "설정창은 배경을 inert 처리하고 포커스를 가두며 영업 시작과 엔딩창 뒤 ESC를 차단해야 합니다.");
+const settingsInputGuard=game.indexOf('if(settingsOverlayIsOpen())return;',game.indexOf('window.addEventListener("keydown",e=>{'));
+const gameKeyPrevent=game.indexOf('e.preventDefault();',settingsInputGuard);
+assert(settingsInputGuard>=0&&gameKeyPrevent>settingsInputGuard,
+  "설정창 안에서는 게임 키 입력만 차단하고 슬라이더 방향키와 버튼 Space 기본 조작은 허용해야 합니다.");
+
+const hud=read("ui-hud.js");
+assert(index.includes('<span>손님 반응</span><strong id="satisfactionText">-</strong>')
+  &&index.includes('<span>손님들의 반응</span><strong id="satisfactionResult">-</strong>')
+  &&index.includes('<span>오늘의 접시</span><strong id="fiveStarResult">-</strong>')
+  &&!hud.match(/miniScore:\s*score\s*=>[^\n]*\$\{score\}/)
+  &&!hud.match(/prepGain:\s*\([^)]*quality[^)]*\)\s*=>[^\n]*\$\{quality\}/)
+  &&game.includes("UI_TEXT.guestResponse(avgSatisfaction())"),
+  "조리 피드백과 HUD·정산 화면은 정확한 점수 대신 정성적인 반응을 보여야 합니다.");
+assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
+  &&miniFrameCss.includes("-webkit-user-select: none;")
+  &&miniFrameCss.includes("user-select: none;")
+  &&miniFrameCss.includes("touch-action: none;")
+  &&miniFrameCss.includes(".mini-overlay.open .mini-stage img,")
+  &&miniFrameCss.includes("-webkit-user-drag: none;")
+  &&/source\.addEventListener\("pointerdown",event=>\{[\s\S]*?source\.disabled\)return;[\s\S]*?event\.preventDefault\(\);/.test(orderPlace),
+  "드래그 미니게임에서는 텍스트 블록 지정과 브라우저 기본 이미지 드래그를 막아야 합니다.");
 
 assert(game.includes("prepTaskScores:{}")
   &&day.includes("state.prepTaskScores[taskId]")
   &&day.includes("const quality=Math.round(taskScores.reduce"),
   "낮 준비 작업 점수를 메뉴 품질 평균으로 저장해야 합니다.");
-assert(night.includes("const serviceScore=satisfaction;")
-  &&night.includes("const expected=satisfactionScore(inv,state.carrying.cookScore);"),
+assert(night.includes("const satisfaction=satisfactionScore(inv,cookScore);")
+  &&night.includes("const serviceScore=satisfaction;"),
   "낮 준비 품질은 일반·이야기 손님의 저녁 평가에 모두 반영되어야 합니다.");
+assert(!night.includes("const expected=satisfactionScore(inv,state.carrying.cookScore);")
+  &&!night.includes("${expectedLabel} ${expected}점"),
+  "손님 반응 전에 운반 UI가 예상 평가 점수를 공개하면 안 됩니다.");
 
 assert(day.includes("function openMenuSelectionAtFridge()")
   &&game.includes('if(state.phase===GAME_PHASES.MENU_SELECT)return "fridge";')
@@ -65,17 +107,32 @@ assert(day.includes("function openMenuSelectionAtFridge()")
 assert(title.includes('dom.menuSelectOverlay.classList.remove("open");'),
   "메뉴 선택 저장을 불러와도 선택창을 자동으로 띄우면 안 됩니다.");
 
-assert(night.includes('if(order.customerType==="story"&&isCookableOrder(order))state.selectedOrderId=order.id;')
-  &&night.includes("const priorityStoryOrder=state.orders.find"),
-  "조리 가능한 특별 손님은 일반 주문보다 우선 선택·처리되어야 합니다.");
+assert(night.includes("function ordersInArrivalOrder()")
+  &&night.includes("function syncSelectedOrderToQueue()")
+  &&night.includes("const order=alreadyStartedOrder()||ordersInArrivalOrder()[0]||null;")
+  &&!night.includes("function selectOrder(")
+  &&!night.includes("data-order-id")
+  &&!game.includes('["1","2","3","4"].includes(k)')
+  &&!index.includes("손님 선택"),
+  "손님은 클릭·숫자 선택 없이 실제 도착 순서대로만 처리되어야 합니다.");
+assert(story.includes("function storyGeneralArrivals()")
+  &&story.includes("if(!storyOrderDialogueReady(order))return false;")
+  &&story.includes('if(state.mini||state.carrying)return false;')
+  &&story.includes('if(state.departures?.length)return false;')
+  &&night.includes('entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0'),
+  "특별 손님은 예약된 도착 순서를 지키고 안전한 FIFO 차례에서만 대화를 시작해야 합니다.");
 assert(story.includes('prompt:"어떤 음식을 내줄까?"')
   &&story.includes("order.dishId=chosenDish.id;")
   &&story.includes("order.awaitingDishChoice=false;")
   &&story.includes("scene?.wrongDishSceneId||scene?.missingMenuSceneId"),
   "특별 손님은 준비 메뉴 선택 뒤 그 음식으로 기존 조리를 진행하고 오답은 단서 장면으로 보내야 합니다.");
-assert(night.includes("const mismatchedStoryDish=storyResult?.matched===false;")
-  &&night.includes("if(!mismatchedStoryDish)spawnPopup"),
-  "잘못 고른 특별 손님 음식은 점수 평가 팝업으로 오인되지 않아야 합니다.");
+const serveOrderSource=night.match(/function serveOrder\(order\) \{[\s\S]+?\n\}/)?.[0]||"";
+assert(serveOrderSource.includes("const mismatchedStoryDish=storyResult?.matched===false;")
+  &&serveOrderSource.includes("if(!isStoryOrder){")
+  &&serveOrderSource.includes("bubble:pickGeneralGuestBubble(tier)")
+  &&!serveOrderSource.includes("spawnPopup(CUSTOMER_SEATS")
+  &&!serveOrderSource.includes("만족도 ${serviceScore}점"),
+  "일반 손님 평가는 말풍선으로만 보여 주고 특별 손님은 결과 대화 뒤 같은 반응을 반복하면 안 됩니다.");
 
 assert(dayPrep.includes("현재 작업은 초기화되어 다음에 처음부터 다시 해야 합니다."),
   "준비 미니게임 닫기 안내는 이어하기가 아닌 초기화를 알려야 합니다.");
@@ -84,4 +141,4 @@ const dayRules=[...gameData.matchAll(/\b\d:\{day:\d,requiredMenus:\[\],optionalM
 assert(dayRules.length===7&&dayRules.every(match=>match[1]==="5"&&match[2]==="5"),
   "요청에 따라 현재 일차별 조리 메뉴 수는 다섯 개로 유지해야 합니다.");
 
-console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · prep quality · fridge menu · story priority");
+console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · prep quality · fridge menu · FIFO story arrival");
