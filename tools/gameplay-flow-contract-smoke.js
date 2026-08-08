@@ -54,13 +54,16 @@ assert(game.includes('if(k==="escape")')
   &&game.includes('else if(state.screen==="game")openSettings("game");')
   &&game.includes("if(settingsOverlayIsOpen())return;"),
   "모든 미니게임에서 ESC로 설정을 열고 설정 뒤쪽 입력은 차단해야 합니다.");
+const endingRetryGuard=game.indexOf('if(typeof endingRetryMenuIsOpen==="function"&&endingRetryMenuIsOpen())return;');
+const saveDialogEscapeGuard=game.indexOf('if(typeof isSaveSlotDialogOpen==="function"&&isSaveSlotDialogOpen())',endingRetryGuard);
 assert(game.includes('setSettingsBackgroundInert(true);')
   &&game.includes('setSettingsBackgroundInert(false);')
   &&game.includes('new MutationObserver(()=>{')
   &&game.includes('window.addEventListener("keydown",event=>{')
   &&game.includes('if(event.key==="Tab")')
-  &&game.includes('if(settingsOverlayIsOpen())return;\n  beginNight();')
-  &&game.includes('if(typeof endingRetryMenuIsOpen==="function"&&endingRetryMenuIsOpen())return;\n    if(typeof isSaveSlotDialogOpen'),
+  &&/if\(settingsOverlayIsOpen\(\)\)return;\s*beginNight\(\);/.test(game)
+  &&endingRetryGuard>=0
+  &&saveDialogEscapeGuard>endingRetryGuard,
   "설정창은 배경을 inert 처리하고 포커스를 가두며 영업 시작과 엔딩창 뒤 ESC를 차단해야 합니다.");
 const settingsInputGuard=game.indexOf('if(settingsOverlayIsOpen())return;',game.indexOf('window.addEventListener("keydown",e=>{'));
 const gameKeyPrevent=game.indexOf('e.preventDefault();',settingsInputGuard);
