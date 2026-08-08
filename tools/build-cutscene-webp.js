@@ -68,6 +68,8 @@ const FILES = [
     why:"SCN-P02 앞부분 · 비 쏟아지는 골목에 선 김다은(부감)" },
   { file:"prologue/cutscene_03_rain_entry.png", size:[1920,1080],
     why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면" },
+  { file:"prologue/cutscene_empty_restaurant_journal_variant_03_4k.png", size:[1920,1080],
+    why:"SCN-P03 전체 · 주인 없는 식당, 카운터 위의 영업일지" },
 
   /* 완전한 달빛 조각을 건네받는 순간(SCN-G*-완벽 의 마지막 대사) 깔립니다.
      파일 이름 앞 번호가 곧 손님 번호이고, story-cinematic.js 는 조각 id

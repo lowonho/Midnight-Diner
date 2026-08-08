@@ -470,7 +470,13 @@ const STORY_SCENES = {
     interactionTarget: "journal",
     nextSceneId: "SCN-P04",
     lines: [
-      storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
+      {
+        ...storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
+        /* 이 장면은 처음부터 끝까지 한 컷입니다. 나갔다 다시 들어오는 뒤쪽
+           대사도 같은 가게 안이라 컷이 바뀌지 않습니다. hold 라서 그림이 먼저
+           한 번 뜨고, 스페이스바나 클릭 한 번에 대사창이 올라옵니다. */
+        cinematic: { cut: "prologueEmptyRestaurant", hold: true }
+      },
       storyLine("protagonist", "아무도 없나…?", { motion: "think" }),
       storyNarration("다은은 들어왔던 문을 다시 열고 빗속으로 발을 내딛는다.\n그러나 다음 발을 딛는 순간, 다은은 다시 식당 안에 서 있다."),
       storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?", { motion: "think" }),

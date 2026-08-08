@@ -17,6 +17,7 @@
               3번 대사 → prologueCommute     "그냥 내일이 오지 않았으면 좋겠다." 까지
      SCN-P02  1번 대사 → prologueRainAlley   "갑자기 무슨 비야… 우산도 없는데." 까지
               3번 대사 → prologueRainEntry   "저런 식당이 여기 있었나…" 까지
+     SCN-P03  1번 대사 → prologueEmptyRestaurant   장면 끝까지 (컷 하나)
 
    중간 대사에는 아무것도 안 적습니다. cinematic 이 없는 대사는 "컷씬이
    끝났다"가 아니라 "직전 컷을 그대로 둔다"는 뜻이기 때문입니다(아래
@@ -67,6 +68,13 @@ const STORY_CUTSCENES=Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_03_rain_entry.webp",
     protagonist:true,
     why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면"
+  }),
+  /* SCN-P03 은 장면 전체가 한 컷입니다. 나갔다 다시 들어오는 대사까지 같은
+     가게 안이라, 컷을 바꿀 자리가 없습니다. */
+  prologueEmptyRestaurant:Object.freeze({
+    art:"assets/Cutscene/prologue/cutscene_empty_restaurant_journal_variant_03_4k.webp",
+    protagonist:true,
+    why:"SCN-P03 전체 · 주인 없는 식당, 카운터 위에 놓인 영업일지"
   }),
 
   /* ── 완전한 달빛 조각을 건네받는 순간 ──────────────────────
