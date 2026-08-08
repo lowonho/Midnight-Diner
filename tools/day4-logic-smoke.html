@@ -220,7 +220,7 @@ try{
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.join(",")==="left,up,right,down"&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
   // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.directions.every(way=>DAY_PREP_ASSET_PATHS[fryKimchiStirAssetKey(way)])&&DAY_PREP_ASSET_PATHS.fryKimchiBase&&["frySpatulaClean","frySpatulaStirring","frySpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 kimchi has one flipped frame per direction plus three spatula states");
-  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===10&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba uses ten full sweeping gestures");
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===10&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45&&DIRECTION_SEQUENCE_CONFIG.yakisoba.wrongPenalty===10&&DIRECTION_SEQUENCE_CONFIG.yakisoba.wrongOncePerStep,"Yakisoba uses ten full sweeping gestures worth ten points each");
   // 볶음우동도 김치 볶기와 같은 한 벌입니다 — 방향마다 볶은 면 한 장 + 뒤집개 3자세.
   // 뒤집개는 두 자루지만 **한 장을 좌우로 뒤집어 나눠 쓰므로** 그림은 3장 그대로입니다.
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.every(way=>DAY_PREP_ASSET_PATHS[stirUdonPoseAssetKey(way)])&&DAY_PREP_ASSET_PATHS.stirUdonBase&&["stirSpatulaClean","stirSpatulaStirring","stirSpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 yakisoba has one flipped frame per direction plus three spatula states");
@@ -315,6 +315,13 @@ try{
   assert([...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="clean"),"E3 yakisoba spatulas start clean");
   const stirDirection=stirMini.data.arrows[0];slideE3Surface(dom.miniContent.querySelector(".yk-scene"),stirDirection,32);
   assert(stirMini.data.index===1&&stirMini.data.errors===0&&MINI_ENGINES.stir.score(stirMini)===100&&dom.miniContent.querySelectorAll(".yk-spatula").length===2&&dom.miniContent.querySelectorAll(".yk-noodle").length===22&&dom.miniContent.querySelector(`#stirWorkArea.scrape-${stirDirection}`),"E3 yakisoba keeps 100 after a correct sweep");
+  const stirPenaltyMini={engine:"stir",complete:false,data:{configId:"yakisoba",index:0,errors:0,wrongSteps:[],arrows:Array(10).fill("left")}};
+  processDirectionSequenceInput(stirPenaltyMini,"right",{sequenceKey:"arrows",indexKey:"index"});
+  processDirectionSequenceInput(stirPenaltyMini,"right",{sequenceKey:"arrows",indexKey:"index"});
+  assert(stirPenaltyMini.data.index===0&&stirPenaltyMini.data.errors===1&&MINI_ENGINES.stir.score(stirPenaltyMini)===90,"E3 yakisoba deducts ten once for a wrong direction while keeping the same arrow available");
+  processDirectionSequenceInput(stirPenaltyMini,"left",{sequenceKey:"arrows",indexKey:"index"});
+  processDirectionSequenceInput(stirPenaltyMini,"right",{sequenceKey:"arrows",indexKey:"index"});
+  assert(stirPenaltyMini.data.index===1&&stirPenaltyMini.data.errors===2&&MINI_ENGINES.stir.score(stirPenaltyMini)===80,"E3 each of the ten yakisoba arrows can independently lose ten points");
   // 한 획을 볶고 손을 뗐으면 두 자루 다 면이 묻은 장으로 바뀝니다 (한쪽만 바뀌면 짝이 안 맞습니다)
   assert(stirMini.data.stirred&&[...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="rested"),"E3 yakisoba both spatulas pick up noodles after a sweep");
   while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);

@@ -77,7 +77,8 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
     directions:Object.freeze(["left","up","right","down"]),
     // 철판도 한 획마다 짧은 변의 45%를 크게 밀도록 김치 볶기와 통일합니다.
     slideStep:.45,
-    wrongPenalty:12
+    wrongPenalty:10,
+    wrongOncePerStep:true
   })
 });
 
@@ -100,7 +101,11 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
   if(!data||!config||m.complete||data.inputLocked||data.transitioning||data.phase==="complete")return false;
   const index=data[indexKey];
   if(!sequenceMatches(data[sequenceKey],index,direction)){
-    data.errors=(data.errors||0)+1;
+    const alreadyWrong=config.wrongOncePerStep&&data.wrongSteps?.includes(index);
+    if(!alreadyWrong){
+      data.errors=(data.errors||0)+1;
+      if(config.wrongOncePerStep)(data.wrongSteps||(data.wrongSteps=[])).push(index);
+    }
     audio.bad();
     onWrong?.(data,index);
     return true;
@@ -551,7 +556,7 @@ function setStirSpatulaState(data,dragging){
 registerMiniEngine("stir",{
   score(m){
     const data=m?.data;
-    return Math.max(70,100-(data?.errors||0)*STIR_WRONG_PENALTY);
+    return Math.max(0,100-(data?.errors||0)*STIR_WRONG_PENALTY);
   },
   setup(m,{set}){
     set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
@@ -560,6 +565,7 @@ registerMiniEngine("stir",{
       arrows:randomFryDirections(STIR_DIRECTIONS,STIR_TOTAL),
       index:0,
       errors:0,
+      wrongSteps:[],
       total:STIR_TOTAL,
       phase:"ready",
       inputLocked:false,
@@ -651,7 +657,8 @@ function stirInput(direction,repeat=false){
     sequenceKey:"arrows",indexKey:"index",
     onWrong(){
       if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");miniSetTimeout(()=>current.classList.remove("wrong"),260);}
-      lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요.`);
+      lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요. (${MINI_ENGINES.stir.score(m)}점)`);
+      updateMiniScore(m);
     },
     onCorrect(){
       audio.play?.("metal_scrape",{owner:m});
@@ -678,7 +685,7 @@ function stirInput(direction,repeat=false){
       workSelector:"#stirWorkArea",
       feedback:grade=>grade==="perfect"?"철판 위 우동을 완벽하게 볶았습니다!":"우동을 맛있게 볶았습니다!",
       score:MINI_ENGINES.stir.score(m),
-      onDone:()=>finishMini(Math.max(70,100-data.errors*STIR_WRONG_PENALTY))
+      onDone:()=>finishMini(Math.max(0,100-data.errors*STIR_WRONG_PENALTY))
     });}
   });
 }
