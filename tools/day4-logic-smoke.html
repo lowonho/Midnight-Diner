@@ -552,7 +552,7 @@ try{
   MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
   assertNightScoreCard("E6 shrimp");
   // 하단 공용 띠(.mg-strip)를 쓰지 않는 화면입니다 — 띠가 다시 생기면 3열 세로가 613.2 에서 잘립니다
-  assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen: five raw items, oil pot, rack, and no bottom strip");
+  assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&fryMini.data.errors===0&&MINI_ENGINES.fry.score(fryMini)===100&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen starts at 100 with five raw items, an oil pot, a rack, and no bottom strip");
   for(let i=0;i<5;i++)dropFryPiece();
   assert(FRY_COOK.potLimit===5&&FRY_POT_SEATS.length===FRY_COOK.potLimit&&fryMini.data.pot.length===5&&fryMini.data.raw===0&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===5,"E6 oil pot holds the whole batch of five at a time");
   // 기본 자리는 전부 기름 안(FRY_POT_RADIUS)에 있어야 합니다 — 넘으면 쇠테에 걸칩니다
@@ -565,8 +565,14 @@ try{
   assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&MINI_ENGINES.fry.score(fryMini)===100&&fryMini.data.pot.length===4&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 keeps 100 after one well-cooked piece reaches the rack");
   // 남겨 두면 탑니다. 탄 것도 망에 올라가야 진행이 막히지 않습니다.
   for(let frame=0;frame<360;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
-  assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&liftFryPiece(fryMini.data.pot[0].id)&&fryMini.data.done[1].stage==="burnt"&&MINI_ENGINES.fry.score(fryMini)===88,"E6 a burnt piece can still be lifted and deducts 12 points from the initial 100");
-  assert(fryScore({done:[{stage:"cooked"}]})===100&&fryScore({done:[{stage:"cooked"},{stage:"burnt"}]})===70&&fryCompletionGrade({done:[{stage:"cooked"},{stage:"burnt"}]})==="good","E6 score averages the doneness of what reached the rack");
+  assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&fryMini.data.errors===4&&MINI_ENGINES.fry.score(fryMini)===60,"E6 every piece deducts ten as soon as it enters the burnt stage");
+  assert(liftFryPiece(fryMini.data.pot[0].id)&&fryMini.data.done[1].stage==="burnt"&&fryMini.data.errors===4&&MINI_ENGINES.fry.score(fryMini)===60,"E6 lifting an already-scored burnt piece does not deduct twice");
+  assert(fryScore({errors:0})===100&&fryScore({errors:1})===90&&fryScore({errors:10})===0&&fryCompletionGrade({done:[{stage:"cooked"},{stage:"burnt"}]})==="good","E6 score deducts a flat ten per bad piece and floors at zero");
+
+  const underFry={engine:"fry",context:{mode:"cook",dishId:"shrimpTempura"},complete:false,data:{}};state.mini=underFry;
+  MINI_ENGINES.fry.setup(underFry,{set:(title,description,time)=>{underFry.time=time;},dish:dishById("shrimpTempura")});
+  dropFryPiece();liftFryPiece(underFry.data.pot[0].id);
+  assert(underFry.data.done[0].stage==="under"&&underFry.data.errors===1&&MINI_ENGINES.fry.score(underFry)===90,"E6 lifting an undercooked piece deducts ten once");
   // 5개를 전부 잘 익은 상태로 올리면 PERFECT
   const perfectFry={engine:"fry",context:{mode:"cook",dishId:"fries"},complete:false,data:{}};state.mini=perfectFry;
   MINI_ENGINES.fry.setup(perfectFry,{set:(title,description,time)=>{perfectFry.time=time;},dish:dishById("fries")});
