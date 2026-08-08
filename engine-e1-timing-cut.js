@@ -147,12 +147,7 @@ function playCutIngredientSfx(data,tapStep=0){
   audio.play?.(name,{owner:state.mini});
 }
 
-function timingCutAverageScore(data){
-  const scores=data.cutScores||[];
-  return scores.length
-    ?Math.round(scores.reduce((sum,score)=>sum+score,0)/scores.length)
-    :100;
-}
+function cutMistakeScore(data){return clamp(100-(data?.mistakes??0)*10,0,100);}
 
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
@@ -283,10 +278,7 @@ function flashCutTimingBar(grade){
 registerDayPrepEngine("timing",{
   score(m){
     if(m?.context?.mode==="dayPrep")return 100;
-    const data=m?.data,scores=data?.cutScores||[];
-    if(!data?.total)return 100;
-    const penalty=scores.reduce((sum,score)=>sum+(100-score),0);
-    return 100-penalty/data.total;
+    return cutMistakeScore(m?.data);
   },
   update(m,dt){
     const data=m.data;
@@ -662,6 +654,7 @@ function timingCutAction(){
   const grade=cutPathGrade(data);
   if(grade==="miss"){
     if(timingKnifeIsEarly(data)){
+      data.mistakes=(data.mistakes||0)+1;
       flashCutTimingBar("early");
       const earlyJudgement=dom.miniContent.querySelector("#cutJudgement");
       if(earlyJudgement){earlyJudgement.textContent="EARLY";earlyJudgement.className="cut-judgement show miss";}
@@ -844,16 +837,19 @@ function showNightChopImpact(m,cutIndex,grade){
   const nextAssetKey=timingAssetKey(data.ingredient,data.cuts,data.assetPrefix||"");
   const objectImage=work?.querySelector(".prep-object-asset");
   if(objectImage&&hasDayPrepAsset(nextAssetKey))objectImage.src=dayPrepAssets[nextAssetKey].src;
-  work?.classList.remove("slice-hit","slice-good","slice-perfect");
-  board?.classList.remove("cut-good","cut-perfect");
-  if(work){void work.offsetWidth;work.classList.add("slice-hit",grade==="perfect"?"slice-perfect":"slice-good");}
-  board?.classList.add(grade==="perfect"?"cut-perfect":"cut-good");
-  if(judgement){judgement.textContent=grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
+  work?.classList.remove("slice-hit","slice-miss","slice-missed","slice-good","slice-perfect");
+  board?.classList.remove("cut-miss","cut-good","cut-perfect");
+  if(work){
+    void work.offsetWidth;
+    work.classList.add(grade==="miss"?"slice-miss":"slice-hit",grade==="miss"?"slice-missed":grade==="perfect"?"slice-perfect":"slice-good");
+  }
+  board?.classList.add(grade==="miss"?"cut-miss":grade==="perfect"?"cut-perfect":"cut-good");
+  if(judgement){judgement.textContent=grade==="miss"?"MISS":grade==="perfect"?"PERFECT":"GOOD";judgement.className=`cut-judgement show ${grade}`;}
   updateCutCountCard(data.cuts,data.total);
   miniSetTimeout(()=>{
     if(state.mini!==m)return;
-    work?.classList.remove("slice-hit","slice-good","slice-perfect");
-    board?.classList.remove("cut-good","cut-perfect");
+    work?.classList.remove("slice-hit","slice-miss","slice-missed","slice-good","slice-perfect");
+    board?.classList.remove("cut-miss","cut-good","cut-perfect");
   },240);
 }
 
@@ -875,10 +871,7 @@ function moveNightChopTarget(m){
 
 registerMiniEngine("chop",{
   score(m){
-    const data=m?.data,scores=data?.hits||[];
-    if(!data?.total)return 100;
-    const penalty=scores.reduce((sum,score)=>sum+(100-score),0);
-    return 100-penalty/data.total;
+    return cutMistakeScore(m?.data);
   },
   setup(m,{set,difficulty=1}){
     const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
@@ -894,7 +887,7 @@ registerMiniEngine("chop",{
         travelSpeed:DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed*difficulty,
         title:"두부 썰기",
         description:"칼날의 왼쪽 끝이 점선에 닿을 때 Space를 눌러주세요. 총 6번 썹니다.",
-        onComplete:()=>finishMini(timingCutAverageScore(m.data))
+        onComplete:()=>finishMini(cutMistakeScore(m.data))
       });
       return;
     }
@@ -906,8 +899,8 @@ registerMiniEngine("chop",{
       10
     );
     m.data=isTofu
-      ?{marker:0,dir:1,speed:.78,hits:[],cuts:0,total:6,tofuStyle:true,ingredient:"tofu",ingredientLabel:"두부",ingredientCount:1,assetPrefix:"",zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
-      :{marker:0,dir:1,speed:.92,hits:[],cuts:0,total:5,tofuStyle:false,ingredient:"radish",ingredientLabel:"절임무",ingredientCount:1,assetPrefix:"",zoneWidth:.24,zoneStarts:[.38,.38,.38,.38,.38]};
+      ?{marker:0,dir:1,speed:.78,hits:[],mistakes:0,cuts:0,total:6,tofuStyle:true,ingredient:"tofu",ingredientLabel:"두부",ingredientCount:1,assetPrefix:"",zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
+      :{marker:0,dir:1,speed:.92,hits:[],mistakes:0,cuts:0,total:5,tofuStyle:false,ingredient:"radish",ingredientLabel:"절임무",ingredientCount:1,assetPrefix:"",zoneWidth:.24,zoneStarts:[.38,.38,.38,.38,.38]};
     if(isTofu)dom.miniTimer.textContent="0 / 6";
     renderNightChop(m);
   },
@@ -926,13 +919,14 @@ registerMiniEngine("chop",{
     if(m.data.tofuStyle){tofuChopAction(m);return;}
     if(m.data.finishing)return;
     const data=m.data,cutIndex=data.cuts;
-    const score=markerScore(m,.5),grade=cutTimingGrade(data.marker,data.zoneStarts[cutIndex],data.zoneWidth)==="perfect"?"perfect":"good";
-    data.hits.push(score);data.cuts++;playCutIngredientSfx(data);
+    const score=markerScore(m,.5),grade=cutTimingGrade(data.marker,data.zoneStarts[cutIndex],data.zoneWidth);
+    data.hits.push(score);data.cuts++;
+    if(grade==="miss"){data.mistakes++;audio.bad();}else playCutIngredientSfx(data);
     showNightChopImpact(m,cutIndex,grade);
     data.marker=0;data.dir=1;data.speed+=.08;
     if(data.cuts>=data.total){
       data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
-      miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((a,b)=>a+b,0)/data.hits.length));},320);
+      miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(cutMistakeScore(data));},320);
       return;
     }
     moveNightChopTarget(m);
@@ -943,6 +937,7 @@ function tofuChopAction(m){
   const data=m.data;if(data.finishing)return;
   const cutIndex=data.cuts,zoneStart=data.zoneStarts[cutIndex];
   if(!isInsideCutZone(data.marker,zoneStart,data.zoneWidth)){
+    data.mistakes=(data.mistakes||0)+1;
     flashCutTimingBar("miss");
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 초록 구간에서 다시 썰어주세요.";audio.bad();return;
   }
@@ -954,7 +949,7 @@ function tofuChopAction(m){
   if(data.cuts>=data.total){
     data.finishing=true;dom.miniContent.querySelector(".cut-board")?.classList.add("cut-complete");
     dom.miniFeedback.textContent="두부 썰기 완료!";
-    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(Math.round(data.hits.reduce((sum,score)=>sum+score,0)/data.hits.length));},320);
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishMini(cutMistakeScore(data));},320);
     return;
   }
   data.marker=0;data.dir=1;data.speed+=.05;moveNightChopTarget(m);

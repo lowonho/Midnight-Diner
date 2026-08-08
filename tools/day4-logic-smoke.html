@@ -205,10 +205,12 @@ try{
   MINI_ENGINES.timing.update(cookTofuMini,3.1);
   const cookTofuKnifeStart=cookTofuMini.data.knifeX;
   MINI_ENGINES.timing.update(cookTofuMini,.1);
-  assert(cookTofuMini.data.knifeX<cookTofuKnifeStart&&!MINI_ENGINES.timing.timerRuns(cookTofuMini)&&timingCutAverageScore({cutScores:[100,85,45]})===77,"Open-hours tofu advances the E1 knife and uses E1 score aggregation without a legacy timer");
+  assert(cookTofuMini.data.knifeX<cookTofuKnifeStart&&!MINI_ENGINES.timing.timerRuns(cookTofuMini)&&cutMistakeScore({mistakes:0})===100&&cutMistakeScore({mistakes:4})===60&&cutMistakeScore({mistakes:11})===0,"Open-hours tofu advances the E1 knife and deducts ten points per mistake without a legacy timer");
   cookTofuMini.data.knifeX=suppliedCutPosition("tofu",0,6);
   timingCutAction();
-  assert(cookTofuMini.data.successes===1&&MINI_ENGINES.timing.score(cookTofuMini)>0&&cookTofuMini.data.phase==="ready"&&!cookTofuMini.data.inputLocked&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses continuous E1 blade judgment, earns score, and advances its supplied asset without a pause");
+  assert(cookTofuMini.data.successes===1&&MINI_ENGINES.timing.score(cookTofuMini)===100&&cookTofuMini.data.phase==="ready"&&!cookTofuMini.data.inputLocked&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu keeps 100 after a correct cut and advances its supplied asset without a pause");
+  timingCutAction();updateMiniScore(cookTofuMini);
+  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.mistakes===1&&MINI_ENGINES.timing.score(cookTofuMini)===90&&dom.miniContent.querySelector("[data-mini-score]").textContent==="90","Open-hours tofu deducts ten points for an EARLY input without consuming the cut");
   if(new URLSearchParams(location.search).get("scope")==="e1")throw new Error("E1_PATH_TEST_COMPLETE");
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===12,"E12 mandoline stroke counts are doubled and each stroke drops a full dozen shreds");
