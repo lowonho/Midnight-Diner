@@ -598,8 +598,13 @@ function interact() {
     return;
   }
   const required=currentRequirement();
-  const station=nearestStation(required);
+  const station=nearestStation(state.phase==="night"&&state.carrying?"trash":required);
   if(state.phase==="night" && state.carrying) {
+    if(station?.id==="trash"){
+      state.player.facing=station.facing;
+      discardCarriedDish();
+      return;
+    }
     tryDeliver();
     return;
   }
@@ -737,7 +742,7 @@ function update(dt) {
     item.life-=dt;
   });
   state.departures=state.departures.filter(item=>item.life>0);
-  updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
+  updateMini(dt);updatePlayer(dt);updateParticles(dt);updateUI(false);
   updateAutosave(dt);
 }
 
@@ -816,7 +821,12 @@ function updatePrompt(){
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
-    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+    const trash=nearestStation("trash");
+    const dish=dishById(state.carrying.dishId);
+    if(trash?.id==="trash"&&dish){
+      text=UI_TEXT.prompt.discard(dish.name);
+      x=trash.ix;y=promptYFor(trash);
+    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }

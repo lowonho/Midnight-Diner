@@ -76,6 +76,22 @@ assert(index.includes('<span>손님 반응</span><strong id="satisfactionText">-
   &&!hud.match(/prepGain:\s*\([^)]*quality[^)]*\)\s*=>[^\n]*\$\{quality\}/)
   &&game.includes("UI_TEXT.guestResponse(avgSatisfaction())"),
   "조리 피드백과 HUD·정산 화면은 정확한 점수 대신 정성적인 반응을 보여야 합니다.");
+assert(game.includes('nearestStation(state.phase==="night"&&state.carrying?"trash":required)')
+  &&game.includes('if(station?.id==="trash"){')
+  &&game.includes("discardCarriedDish();")
+  &&game.includes('const trash=nearestStation("trash");')
+  &&game.includes("text=UI_TEXT.prompt.discard(dish.name);")
+  &&night.includes("function discardCarriedDish(){")
+  &&night.includes("order.cookStep=0;")
+  &&night.includes("order.cookScores=[];")
+  &&night.includes("saveGame(storyCookingIsActive());")
+  &&kitchen.includes('if(state.carrying)return s.id==="trash";')
+  &&kitchen.includes('const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();')
+  &&kitchen.includes("function playTrashDiscardAnimation")
+  &&hud.includes('discard: name => `E · ${name} 폐기`')
+  &&!game.includes("autoDelivery();")
+  &&!night.includes("function autoDelivery()"),
+  "완성 음식은 쓰레기통 가까이에서 E를 눌러 폐기하고 같은 주문을 처음부터 다시 조리해야 합니다.");
 assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
   &&miniFrameCss.includes("-webkit-user-select: none;")
   &&miniFrameCss.includes("user-select: none;")

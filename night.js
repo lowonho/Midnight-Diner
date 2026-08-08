@@ -424,6 +424,25 @@ function tryDeliver() {
   serveOrder(order);
 }
 
+function discardCarriedDish(){
+  if(state.phase!==GAME_PHASES.OPEN||state.paused||state.mini||!state.carrying)return false;
+  const trash=nearestStation("trash");
+  if(!trash||trash.id!=="trash")return false;
+  const order=state.orders.find(item=>item.id===state.carrying.orderId);
+  const dish=dishById(state.carrying.dishId);
+  if(!order||!dish)return false;
+
+  order.cookStep=0;
+  order.cookScores=[];
+  state.carrying=null;
+  syncSelectedOrderToQueue();
+  if(typeof playTrashDiscardAnimation==="function")playTrashDiscardAnimation();
+  showToast(UI_TEXT.toast.discardDone(dish.name));
+  updateUI(true);
+  saveGame(storyCookingIsActive());
+  return true;
+}
+
 /* 만족도 = 준비 품질 + 조리 점수. 청결도 항목(0.05)이 있었지만 청결도
    시스템을 걷어내면서 남은 두 항목에 나눠 얹어 만점 100 을 유지합니다.
    여기와 updateNightObjective 의 예상 만족도가 늘 같은 식이어야 합니다. */
@@ -469,8 +488,6 @@ function serveOrder(order) {
   // 그 전에는 조리 직전 저장을 남겨 두어, 재접속 때 주문 없는 미완료 장면이 생기지 않게 합니다.
   if(!resumedStory)saveGame();
 }
-
-function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}
 
 function updateNightObjective(){
   normalizeNightOrderCounters();
