@@ -63,6 +63,12 @@ const SHARDS=[
   ["golden_salt","금빛 소금"],["eastern_scale","동쪽의 비늘"],
   ["stopped_minute_hand","멈춘 분침"],["daeuns_tomorrow","김다은의 내일"]
 ];
+// 엔딩도 story-data.js 의 순서·id 그대로입니다 (컷씬 그림 짝짓기 확인용).
+const ENDINGS=[
+  ["loop_return","다시 첫째 날"],["alone_morning","혼자 맞은 아침"],
+  ["guests_dawn","손님들의 새벽"],["open_forever","영원히 영업 중"],
+  ["morning_together","함께 오는 아침"]
+];
 
 function getGameplayJournalPages(){
   const total=1+DISHES.length+7;
@@ -116,8 +122,10 @@ window.MoonlightTableSave={
       epilogueUnlocked:index<2,epilogue:"그 뒤로도 가끔 문을 두드린다.",
       unlockedAt:Date.now()
     }));
-    const endings=Array.from({length:5},(unused,index)=>({
-      id:`ending-${index}`,kind:"ending",number:index+1,label:`엔딩 ${index+1}`,
+    // id 는 story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 그대로여야 합니다.
+    // 엔딩 컷씬 그림을 그 id 로 찾기 때문에, 가짜 id 를 쓰면 그림이 빠집니다.
+    const endings=ENDINGS.map(([id,title],index)=>({
+      id,kind:"ending",number:index+1,label:title,
       unlocked:index<2,notificationPending:false,
       summary:"달빛이 식탁 위에 오래 머물렀다.",lastLine:"다시 만나요.",unlockedAt:Date.now()
     }));
@@ -207,6 +215,13 @@ function setup(){
     document.body.dataset.relic=art&&!document.getElementById("journalPageRelic").hidden
       ?`${getComputedStyle(art).backgroundImage.replace(/^url\("?|"?\)$/g,"").split("/").pop()}`
         +` ${Math.round(art.getBoundingClientRect().width)}px`
+      :"(없음)";
+    // 엔딩 장의 컷씬 그림. 잠긴 엔딩에서는 "(없음)" 이어야 합니다.
+    const portrait=document.getElementById("journalPagePortrait");
+    const portraitRect=portrait.getBoundingClientRect();
+    document.body.dataset.cutscene=portrait.classList.contains("has-cutscene")
+      ?`${getComputedStyle(portrait).backgroundImage.replace(/^url\("?|"?\)$/g,"").split("/").pop()}`
+        +` ${Math.round(portraitRect.width)}x${Math.round(portraitRect.height)}`
       :"(없음)";
     // 본문이 페이지 밖으로 넘쳤는지 (진행용 일지는 스크롤이 없어 잘립니다)
     const range=document.createRange();

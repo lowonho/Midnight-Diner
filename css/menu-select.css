@@ -13,7 +13,9 @@
 .menu-select-option.required { border-color: #d3a23c; }
 .menu-select-option:disabled { cursor: not-allowed; opacity: .86; }
 .menu-select-footer { display: flex; align-items: center; justify-content: space-between; gap: calc(16 * var(--upx)); margin-top: calc(18 * var(--upx)); }
-.menu-select-footer strong { color: #f7dfad; }
+.menu-select-footer strong { color: #f7dfad; white-space: nowrap; }
+/* 기본 .gold-button 은 width:100% 라 푸터 가로를 다 먹습니다. 여기서만 폭을 글자에 맞춰 줄입니다. */
+.menu-select-footer .gold-button { flex: 0 0 auto; width: auto; padding-left: calc(34 * var(--upx)); padding-right: calc(34 * var(--upx)); }
 @media (max-width:700px) {
   .menu-select-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .menu-select-option { min-height: calc(78 * var(--upx)); }

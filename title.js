@@ -42,6 +42,25 @@ function journalMoonPieceArt(page){
   return file?`${JOURNAL_MOON_PIECE_DIR}/${file}`:"";
 }
 
+// 엔딩 장의 가로 직사각형에 깔리는 그 엔딩의 컷씬 그림입니다.
+// 파일은 tools/build-story-ending-webp.js 가 PNG 원본에서 뽑습니다.
+// 열쇠는 story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 의 id 입니다.
+const JOURNAL_ENDING_ART_DIR="assets/story/bg";
+const JOURNAL_ENDING_ART=Object.freeze({
+  loop_return:"01_loop_daeun_reenters_restaurant_entrance_v3.webp",
+  alone_morning:"02_morning_alone_loop_restaurant_unified_v7.webp",
+  guests_dawn:"03_guests_dawn_loop_restaurant_unified_v2.webp",
+  open_forever:"04_eternally_open_trapped_balanced_texture_v9.webp",
+  morning_together:"05_morning_together_restaurant_unified_v2.webp"
+});
+
+// 아직 못 본 엔딩은 그림을 숨깁니다. 결말이 미리 보이면 안 됩니다.
+function journalEndingArt(page){
+  if(!page||page.kind!=="ending"||!page.unlocked)return "";
+  const file=JOURNAL_ENDING_ART[String(page.id||"")];
+  return file?`${JOURNAL_ENDING_ART_DIR}/${file}`:"";
+}
+
 function journalElements(){
   return {
     overlay:document.getElementById("journalOverlay"),
@@ -420,10 +439,14 @@ function renderJournalPage({acknowledge=false}={}){
     const row=Math.floor(portraitRow);
     elements.pagePortrait.style.setProperty("--journal-portrait-y",row===5?"100%":`${row*20}%`);
   }
+  // 본 엔딩은 ☾ 자리에 그 엔딩의 컷씬 그림이 대신 들어갑니다.
+  const endingArt=journalEndingArt(page);
+  elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt);
+  elements.pagePortrait.style.backgroundImage=endingArt?`url("${endingArt}")`:"";
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
     :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
-      :page.kind==="ending"?"☾":"";
+      :page.kind==="ending"?endingArt?"":"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.innerHTML=journalPageNote(page);
   elements.pageMeta.textContent=journalPageMeta(page);

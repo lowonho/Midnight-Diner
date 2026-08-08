@@ -42,7 +42,9 @@
     "build:conversation": "node tools/build-conversation-webp.js",
     "verify:conversation": "node tools/build-conversation-webp.js --verify",
     "build:cutscene": "node tools/build-cutscene-webp.js",
-    "verify:cutscene": "node tools/build-cutscene-webp.js --verify"
+    "verify:cutscene": "node tools/build-cutscene-webp.js --verify",
+    "build:story-ending": "node tools/build-story-ending-webp.js",
+    "verify:story-ending": "node tools/build-story-ending-webp.js --verify"
   },
   "repository": {
     "type": "git",

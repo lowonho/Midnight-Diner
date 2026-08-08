@@ -41,7 +41,7 @@
      타이틀 : --title-logo-w 500 x 208  → 1080x449 (2배보다 조금 큽니다.
               로고를 540 에서 500 으로 줄일 때 파일은 그대로 두었습니다 —
               더 큰 쪽으로 남는 것은 화질에 손해가 없어서입니다)
-     HUD    : --hud-logo-w   210 x  87  →  420x175
+     HUD    : --hud-logo-w   240 x 100  →  480x200
    ⚠️ css/title.css 의 --title-logo-w · css/hud.css 의 --hud-logo-w 를
       고치면 아래 크기 표도 같이 고쳐야 합니다.
    ⚠️ 로고 원화를 다른 변형으로 갈아끼우면 비율이 달라집니다(variant_01 은
@@ -53,7 +53,7 @@
    영업 상태 간판), 무손실은 그 1.5배 용량입니다.
    near-lossless q60 이면 RGB 최대 오차가 2 — 무손실과 눈으로 같습니다.
 
-   [HUD판이 무손실인 이유] 420x175 라 무손실도 100KB 남짓입니다.
+   [HUD판이 무손실인 이유] 480x200 이라 무손실도 120KB 남짓입니다.
    이 크기에서는 손실로 아낄 이유가 없습니다.
    ============================================================ */
 
@@ -76,7 +76,7 @@ const FILES = [
   { file:"ui_title_moonlight_table_variant_03_main.png", out:"ui_title_logo_main.webp",
     size:[1080,449], nearLossless:true, quality:60, why:"타이틀 로고 --title-logo-w 500x208 의 2배 이상" },
   { file:"ui_title_moonlight_table_variant_03_main.png", out:"ui_title_logo_hud.webp",
-    size:[420,175], lossless:true, why:"인게임 좌상단 로고 --hud-logo-w 210x87 x2" }
+    size:[480,200], lossless:true, why:"인게임 좌상단 로고 --hud-logo-w 240x100 x2" }
 ];
 
 const QUALITY = 92;   // quality 를 따로 안 준 손실 항목의 기본값

@@ -295,6 +295,30 @@ shardIds.forEach(shardId=>{
   assert(fs.existsSync(path.join(moonPieceDir,file.replace(/\.webp$/,".png"))),
     `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
 });
+// 엔딩 장의 컷씬 그림
+const endingArtDir=path.join(root,"assets","story","bg");
+const endingArtSource=titleSource.match(
+  /const JOURNAL_ENDING_ART=Object\.freeze\(\{[\s\S]+?\}\);/
+)?.[0]||"";
+const endingDefsSource=storyDataSource.match(
+  /const TITLE_JOURNAL_ENDING_DEFS[\s\S]+?\]\.map\(ending=>Object\.freeze\(ending\)\)\);/
+)?.[0]||"";
+const endingIds=[...endingDefsSource.matchAll(/\{id:"([^"]+)"/g)].map(match=>match[1]);
+assert(endingIds.length===5,
+  `엔딩 다섯 개의 id 를 읽어야 합니다. (읽은 개수 ${endingIds.length})`);
+endingIds.forEach(endingId=>{
+  const file=endingArtSource.match(new RegExp(`${endingId}:"([^"]+)"`))?.[1];
+  assert(!!file,`엔딩 '${endingId}' 에 짝지은 컷씬 그림이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(endingArtDir,file)),
+    `${file} 이 없습니다. npm run build:story-ending 으로 PNG 에서 다시 뽑으세요.`);
+  assert(fs.existsSync(path.join(endingArtDir,file.replace(/\.webp$/,".png"))),
+    `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
+});
+assert(titleSource.includes('if(!page||page.kind!=="ending"||!page.unlocked)return "";'),
+  "아직 못 본 엔딩의 컷씬 그림은 미리 보여 주면 안 됩니다.");
+assert(titleSource.includes('elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt)')
+  &&settingsCssSource.includes(".journal-page.is-ending .journal-page-portrait.has-cutscene"),
+  "본 엔딩의 컷씬 그림은 엔딩 장의 가로 직사각형 자리에 깔려야 합니다.");
 // 인게임 세 구역 모두 액자 원화를 씁니다.
 ["rules","recipe","day"].forEach(kind=>assert(
   titleSource.includes(`frame-${kind}`)&&settingsCssSource.includes(`.journal-page-portrait.frame-${kind}`),

@@ -43,7 +43,7 @@ const PREP_TASKS=Object.freeze({
   cleanAnchovy:{id:"cleanAnchovy",menuId:"oden",label:"멸치 손질",objectLabel:"멸치 바구니",objectKind:"anchovy",miniGame:"anchovy",prepOrder:3,isImplemented:true},
   cutTofuBlock:{id:"cutTofuBlock",menuId:"tofu",label:"두부 썰기",objectLabel:"두부",objectKind:"tofu",miniGame:"cut",prepOrder:9,isImplemented:true},
   cutTofuKimchi:{id:"cutTofuKimchi",menuId:"tofu",label:"두부김치용 김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",prepOrder:10,isImplemented:true},
-  cutPancakeKimchi:{id:"cutPancakeKimchi",menuId:"kimchi",label:"김치전용 김치 썰기",objectLabel:"김치전용 김치",objectKind:"kimchi",miniGame:"cut",prepOrder:20,isImplemented:true},
+  cutPancakeKimchi:{id:"cutPancakeKimchi",menuId:"kimchi",label:"김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",prepOrder:20,isImplemented:true},
   cutSkewerChicken:{id:"cutSkewerChicken",menuId:"skewer",label:"닭 썰기",objectLabel:"닭고기",objectKind:"chicken",miniGame:"cut",prepOrder:30,isImplemented:true},
   cutSkewerGreenOnion:{id:"cutSkewerGreenOnion",menuId:"skewer",label:"대파 썰기",objectLabel:"대파",objectKind:"greenOnion",miniGame:"cut",dependsOn:["cutSkewerChicken"],prepOrder:40,isImplemented:true},
   fryTofuKimchi:{id:"fryTofuKimchi",menuId:"tofu",label:"두부김치용 김치 볶기",objectLabel:"김치 볶기 팬",objectKind:"pan",miniGame:"kimchiFry",dependsOn:["cutTofuKimchi"],prepOrder:50,isImplemented:true},
