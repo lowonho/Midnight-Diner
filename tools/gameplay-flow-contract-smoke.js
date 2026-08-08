@@ -22,8 +22,8 @@ const miniFrameCss=read("css/minigame-frame.css");
 const orderPlace=read("engine-e8-order-place.js");
 const index=read("index.html");
 
-assert(game.includes("if(state.mini&&!settingsOpen){updateMini(dt);updateUI(false);}"),
-  "설정창이 열린 동안 미니게임 갱신을 멈춰야 합니다.");
+assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}"),
+  "설정창이나 이야기 대화가 열린 동안 미니게임 갱신을 멈춰야 합니다.");
 assert(ingredient.includes("if(state.paused)return;"),
   "설정 중에는 냉장고 경과 기록도 멈춰야 합니다.");
 assert(miniFrame.includes('id="miniPause"')
@@ -74,9 +74,20 @@ assert(day.includes("function openMenuSelectionAtFridge()")
 assert(title.includes('dom.menuSelectOverlay.classList.remove("open");'),
   "메뉴 선택 저장을 불러와도 선택창을 자동으로 띄우면 안 됩니다.");
 
-assert(night.includes('if(order.customerType==="story"&&isCookableOrder(order))state.selectedOrderId=order.id;')
-  &&night.includes("const priorityStoryOrder=state.orders.find"),
-  "조리 가능한 특별 손님은 일반 주문보다 우선 선택·처리되어야 합니다.");
+assert(night.includes("function ordersInArrivalOrder()")
+  &&night.includes("function syncSelectedOrderToQueue()")
+  &&night.includes("const order=alreadyStartedOrder()||ordersInArrivalOrder()[0]||null;")
+  &&!night.includes("function selectOrder(")
+  &&!night.includes("data-order-id")
+  &&!game.includes('["1","2","3","4"].includes(k)')
+  &&!index.includes("손님 선택"),
+  "손님은 클릭·숫자 선택 없이 실제 도착 순서대로만 처리되어야 합니다.");
+assert(story.includes("function storyGeneralArrivals()")
+  &&story.includes("if(!storyOrderDialogueReady(order))return false;")
+  &&story.includes('if(state.mini||state.carrying)return false;')
+  &&story.includes('if(state.departures?.length)return false;')
+  &&night.includes('entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0'),
+  "특별 손님은 예약된 도착 순서를 지키고 안전한 FIFO 차례에서만 대화를 시작해야 합니다.");
 assert(story.includes('prompt:"어떤 음식을 내줄까?"')
   &&story.includes("order.dishId=chosenDish.id;")
   &&story.includes("order.awaitingDishChoice=false;")
@@ -96,4 +107,4 @@ const dayRules=[...gameData.matchAll(/\b\d:\{day:\d,requiredMenus:\[\],optionalM
 assert(dayRules.length===7&&dayRules.every(match=>match[1]==="5"&&match[2]==="5"),
   "요청에 따라 현재 일차별 조리 메뉴 수는 다섯 개로 유지해야 합니다.");
 
-console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · prep quality · fridge menu · story priority");
+console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · prep quality · fridge menu · FIFO story arrival");

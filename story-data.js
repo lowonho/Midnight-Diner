@@ -536,7 +536,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 1,
     journalClue: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("첫 번째 일반 손님이 나가자 빗소리가 갑자기 가까워진다.\n문이 열린 흔적은 없지만 젖은 우비를 입은 아이가 창가 자리에 앉아 있다."),
+      storyNarration("첫 번째 일반 손님이 식사를 마치고 자리에서 사라진다.\n그 손님 뒤로 들어와 창가에서 기다리던 젖은 우비의 아이가 다은을 바라본다."),
       storyLine("rainyChild", "비 오는 날 먹는 거 있어요?"),
       storyLine("protagonist", "어떤 음식인데?"),
       storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.")
@@ -626,7 +626,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 2,
     journalClue: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다.",
     arrivalLines: [
-      storyNarration("두 번째 일반 손님이 나가고 두 자리가 동시에 비는 순간, 한 사람처럼 보이는 손님이 그 사이에 앉는다.\n바닥에는 그림자가 두 개다."),
+      storyNarration("두 번째 일반 손님이 식사를 마치고 자리를 떠난다.\n두 손님 뒤로 들어와 기다리던 한 사람처럼 보이는 손님이 다은을 바라본다. 바닥에는 그림자가 두 개다."),
       storyLine("leftShadow", "흰 것이 먼저였어."),
       storyLine("rightShadow", "아니야. 붉은 것이 옆에 있었어."),
       storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.")
@@ -674,7 +674,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 3,
     journalClue: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("주방이 가장 분주해지기 시작하는 순간, 빈 테이블 곁에서 검은 깃털이 소용돌이친다.\n깃털이 걷히자 검은 외투를 입은 배달부가 나타나 있다. 가방 안에는 배달되지 않은 편지 한 통이 있다."),
+      storyNarration("세 번째 일반 손님이 식사를 마치자, 먼저 빈 테이블 곁에 나타나 기다리던 검은 외투의 배달부가 가방을 고쳐 멘다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
       storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다."),
       storyLine("protagonist", "어떤 모양이었죠?"),
       storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.")
@@ -719,7 +719,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 3,
     journalClue: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다.",
     arrivalLines: [
-      storyNarration("식당 조명이 잠시 어두워진다.\n테이블 아래에서 작은 짐승이 기어 나와 가장 그늘진 자리에 웅크린다. 몸 안에는 삼킨 별빛이 움직인다."),
+      storyNarration("세 번째 일반 손님이 식사를 마치자, 먼저 가장 그늘진 자리에 웅크려 기다리던 작은 짐승이 고개를 든다.\n몸 안에는 삼킨 별빛이 움직인다."),
       storyLine("starBeast", "손으로 집어 먹는 노란 거 있어?"),
       storyLine("protagonist", "더 기억나는 건?"),
       storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.")

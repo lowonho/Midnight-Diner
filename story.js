@@ -865,6 +865,7 @@ function resumeDeferredStoryOrderScene(){
     return item.customerType==="story"&&item.deferUntilArrival&&scene&&!storySceneCompleted(scene);
   });
   if(!order)return false;
+  if(!storyOrderDialogueReady(order))return false;
   const scene=STORY_SCENES[order.storySceneId];
   if(order.missingMenu){
     const queue=[scene.id,scene.missingMenuSceneId].filter(Boolean);
@@ -878,7 +879,8 @@ function finishMissingStoryVisit(order){
   const stillPresent=state.orders.some(item=>item.id===order.id);
   if(stillPresent){
     state.orders=state.orders.filter(item=>item.id!==order.id);
-    if(state.selectedOrderId===order.id)state.selectedOrderId=state.orders[0]?.id||null;
+    if(typeof syncSelectedOrderToQueue==="function")syncSelectedOrderToQueue();
+    else if(state.selectedOrderId===order.id)state.selectedOrderId=null;
     state.departures.push({
       slot:order.slot,variant:order.variant,guestId:order.guestId||null,
       bubble:"다음 밤에 다시 올게요.",life:2.6,stars:0,satisfaction:null,storyMystic:true
@@ -1800,7 +1802,8 @@ function suspendStoryForOrderCook(scene,config,metadata={}){
     choiceIndex:Number.isInteger(metadata.choiceIndex)?metadata.choiceIndex:null,
     lineIndex:Number.isInteger(metadata.lineIndex)?metadata.lineIndex:storySession.lineIndex
   };
-  state.selectedOrderId=order.id;
+  if(typeof syncSelectedOrderToQueue==="function")syncSelectedOrderToQueue();
+  else state.selectedOrderId=order.id;
   state.paused=false;
   document.getElementById("storyOverlay").classList.remove("open");
   showToast(config.special
@@ -2121,12 +2124,34 @@ function prepareStoryNight(){
   state.story.pendingNightGuests=plans;
 }
 
+function storyGeneralArrivals(){
+  const explicit=Number(state.generalSpawnedCustomers);
+  if(Number.isFinite(explicit))return Math.max(0,Math.floor(explicit));
+  const served=Math.max(0,Math.floor(Number(state.generalServed)||0));
+  const waiting=(state.orders||[]).filter(order=>order.customerType!=="story").length;
+  return served+waiting;
+}
+
 function storyNightPlanReady(plan){
   if(!plan||plan.ready)return !!plan?.ready;
   if((Number(plan.requiredBaseShards)||0)>storyShardCount({baseOnly:true,fullOnly:true}))return false;
-  const served=Math.max(0,Number(state.generalServed)||0);
-  if(plan.triggerTiming==="before")return served===0;
-  return served>=Math.max(0,Number(plan.triggerAfterGeneral)||0);
+  const arrived=storyGeneralArrivals();
+  if(plan.triggerTiming==="before")return arrived===0;
+  return arrived>=Math.max(0,Number(plan.triggerAfterGeneral)||0);
+}
+
+function storyOrderDialogueReady(order){
+  if(!order||order.customerType!=="story"||state.mini||state.carrying)return false;
+  if((Number(order.entryDelay)||0)>0||(Number(order.entered)||0)<1)return false;
+  // 앞 손님의 식사 반응과 퇴장까지 보여 준 뒤 다음 차례의 대화를 엽니다.
+  if(state.departures?.length)return false;
+  const first=typeof ordersInArrivalOrder==="function"
+    ?ordersInArrivalOrder()[0]
+    :(state.orders||[])[0];
+  if(!first||first.id!==order.id)return false;
+  const scene=STORY_SCENES[order.storySceneId]||null;
+  const served=Math.max(0,Math.floor(Number(state.generalServed)||0));
+  return served>=Math.max(0,Number(scene?.triggerAfterGeneral)||0);
 }
 
 function processStoryNightTrigger(){
@@ -2146,9 +2171,9 @@ function processStoryNightTrigger(){
   });
   const plan=plans.find(candidate=>storyNightPlanReady(candidate));
   if(!plan)return false;
-  // "손님이 나가자"라는 대본과 화면이 어긋나지 않도록 일반 손님의
-  // 퇴장 페이드가 끝난 뒤에 다음 특별 손님을 등장시킵니다.
-  if(plan.triggerTiming==="after"&&state.departures.some(item=>!item.guestId))return false;
+  // 특별 손님의 다음 도착 순번은 유지하되, 조작을 가리는 미니게임이나
+  // 음식 운반 중에는 화면 입장도 시작하지 않습니다.
+  if(state.mini||state.carrying)return false;
   plan.ready=true;
   const occupied=new Set(state.orders.map(order=>order.slot));
   state.departures.forEach(item=>occupied.add(item.slot));
@@ -2194,10 +2219,10 @@ function decorateStoryOrder(order,plan=null){
   order.variant=Number.isFinite(character?.portraitRow)
     ?Math.max(0,Math.floor(character.portraitRow))
     :order.variant;
-  order.bubble=plan.repeat
-    ?REGULAR_GUEST_BUBBLES[plan.guestId]||"오늘도 잘 부탁드려요."
-    :FIRST_SPECIAL_GUEST_BUBBLES[plan.guestId]||"처음 뵙겠습니다.";
-  order.bubbleTime=5.5;
+  // 방문 대사는 FIFO 차례가 되어 이야기 화면이 열린 뒤에만 말합니다.
+  // 좌석에서 기다리는 동안 일반 손님용 말풍선이 먼저 내용을 누설하지 않습니다.
+  order.bubble="";
+  order.bubbleTime=0;
   return order;
 }
 
@@ -2220,6 +2245,7 @@ function normalizeStoryOrder(order){
   order.menuSelected=order.menuSelected!==false;
   order.missingMenu=!!order.missingMenu;
   order.storyMystic=!!(order.storyMystic||order.customerType==="story");
+  order.entryDelay=Number.isFinite(Number(order.entryDelay))?Math.max(0,Number(order.entryDelay)):0;
   if(!Number.isFinite(order.bubbleTime))order.bubbleTime=0;
   if(!Number.isFinite(order.waitingTime))order.waitingTime=0;
   order.waitingBubbleShown=!!order.waitingBubbleShown;

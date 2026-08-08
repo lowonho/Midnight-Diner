@@ -579,6 +579,9 @@ function restoreGameState(data){
     console.warn("스토리 체크포인트를 복원하지 못했습니다.",error);
     if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   }
+  // 구 저장의 selectedOrderId가 뒤 손님을 가리켜도 새 조리를 시작하기 전에는
+  // 도착 순서로 바로잡습니다. 이미 진행 중인 이야기 조리는 복원값을 유지합니다.
+  if(typeof syncSelectedOrderToQueue==="function"&&!storyCookingIsActive())syncSelectedOrderToQueue();
   autosaveElapsed=0;
 }
 

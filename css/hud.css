@@ -287,7 +287,7 @@
   border-radius: calc(5 * var(--upx));
   background: #170e0a;
   color: #d8bb89;
-  cursor: pointer;
+  cursor: default;
   text-align: left;
 }
 .order-row.selected { border-color: #e0a74e; background: #29170e; }

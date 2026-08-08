@@ -80,7 +80,7 @@ const UI_TEXT = Object.freeze({
     prepTooFar: "앞 테이블의 준비 재료 가까이 이동하세요.",
     stationTooFar: "사용할 집기 가까이 이동하세요.",
     wrongStep: label => `지금은 ${label} 단계입니다.`,
-    orderSelect: "주문 선택",
+    orderSelect: "다음 손님 대기",
     prepDone: name => `${name} 준비 완료!`,
     prepNext: label => `다음 단계: ${label}`,
     cookDone: name => `${name} 완성! 주문한 손님에게 가져다주세요.`,

@@ -347,8 +347,9 @@ same(Object.keys(FIRST_SPECIAL_GUEST_BUBBLES),expectedGameplayJournalGuestIds,
 assert(Object.values(FIRST_SPECIAL_GUEST_BUBBLES).every(text=>text&&!text.includes("오늘도")),
   "첫 방문 특별 손님은 재방문처럼 말하면 안 됩니다.");
 assert(String(prepareStoryNight).includes("guest?.visits")
-  &&String(decorateStoryOrder).includes("FIRST_SPECIAL_GUEST_BUBBLES"),
-  "첫 방문과 재방문 말풍선은 실제 만남 기록으로 구분해야 합니다.");
+  &&String(decorateStoryOrder).includes('order.bubble=""')
+  &&String(decorateStoryOrder).includes("FIFO 차례"),
+  "특별 손님은 좌석에서 선대사하지 않고 자기 차례의 이야기 화면에서 말해야 합니다.");
 assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
@@ -792,6 +793,7 @@ assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerA
 
 getStoryGuestResult("schoolDoll").fragmentState="full";
 state.generalServed=5;
+state.generalSpawnedCustomers=5;
 same(storyFragmentCounts({baseOnly:true}),{count:7,partial:0,full:7},
   "기본 손님 7명의 완전 조각 계산");
 assert(storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A"),

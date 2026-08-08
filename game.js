@@ -361,7 +361,7 @@ const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
   "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
   // 냉장고 칸(.fridge-slot)은 넣지 않습니다 — 찾았을 때/아닐 때 소리를 게임이 직접 냅니다.
-  "#menuSelectConfirm",".menu-select-option",".order-row",
+  "#menuSelectConfirm",".menu-select-option",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause","#ingredientPause"
 ].join(",");
 document.addEventListener("click",event=>{
@@ -582,9 +582,10 @@ function update(dt) {
   audio.syncBgm?.();
   if(state.paused){
     const settingsOpen=settingsOverlayIsOpen();
-    // 이야기 대화 때문에 paused인 동안에는 기존 조리/손님 등장 연출 규칙을
-    // 유지하되, 설정창이 원인인 경우에는 낮·밤 미니게임을 완전히 멈춥니다.
-    if(state.mini&&!settingsOpen){updateMini(dt);updateUI(false);}
+    const storyDialogueOpen=storyDialogueIsActive();
+    // 이야기 화면이 미니게임을 가린 상태에서 제한시간과 판정이 흐르지 않게
+    // 합니다. 정상 흐름에서는 대화 자체도 안전한 차례까지 열리지 않습니다.
+    if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}
     // 대화 연출·설정 창처럼 멈춰 있는 동안에도 상호작용 표시(키캡 E)는
     // 갱신되어야 합니다. 안 부르면 멈추기 직전 상태로 계속 떠 있습니다.
     // updatePrompt() 안에서 state.paused 를 보고 스스로 숨습니다.
@@ -606,6 +607,10 @@ function update(dt) {
     }
   }
   state.orders.forEach(order=>{
+    if(order.customerType==="story"&&order.guestOrder===false){
+      order.waitingTime=0;order.bubbleTime=0;
+      return;
+    }
     order.waitingTime=(order.waitingTime||0)+dt;
     if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);
     else if(!order.waitingBubbleShown&&order.waitingTime>=12){order.waitingBubbleShown=true;order.bubble=pickGeneralGuestBubble("waiting");order.bubbleTime=4;}
@@ -804,6 +809,11 @@ window.addEventListener("keydown",e=>{
   }
   // 설정창 뒤에서 미니게임 키 입력이 처리되지 않게 합니다.
   if(settingsOverlayIsOpen())return;
+  // 화면 위에 보이는 대화가 뒤쪽 미니게임보다 항상 입력 우선권을 가집니다.
+  if(storyDialogueIsActive()){
+    if(k==="e"||e.code==="Space")storyAdvance();
+    return;
+  }
   if(state.mini){
     // 어떤 키를 어떻게 처리할지는 각 엔진이 압니다(mini-engine.js 등록소 참고).
     // key 가 true 를 반환하면 그 엔진이 처리했다는 뜻이라 여기서 끝냅니다.
@@ -814,15 +824,10 @@ window.addEventListener("keydown",e=>{
     if(!engine?.key?.(state.mini,k,e)&&e.code==="Space")miniAction();
     return;
   }
-  if(storyDialogueIsActive()){
-    if(k==="e"||e.code==="Space")storyAdvance();
-    return;
-  }
   if(k==="e"){interact();return;}
-  if(state.phase==="night"&&["1","2","3","4"].includes(k)){const order=state.orders.find(o=>o.slot===Number(k)-1);if(order)selectOrder(order.id);return;}
 });
 window.addEventListener("keyup",e=>{
-  if(settingsOverlayIsOpen())return;
+  if(settingsOverlayIsOpen()||storyDialogueIsActive())return;
   if(!state.mini)return;
   const engine=miniEngine(state.mini);
   if(engine?.noKeyboard)return;                 // 마우스 전용 게임 (위 keydown 과 같은 이유)
