@@ -6,6 +6,10 @@ const STORY_GUEST_IDS=[
   "rainyChild","lanternGuest","twinShadows","crowCourier",
   "starBeast","seawaterGuest","schoolDoll","facelessDaeun"
 ];
+const STORY_FULL_FRAGMENT_SFX_BY_DAY=Object.freeze({
+  1:"fragment_full_d1",2:"fragment_full_d2",3:"fragment_full_d3",4:"fragment_full_d4",
+  5:"fragment_full_d5",6:"fragment_full_d6",7:"fragment_full_d7"
+});
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
@@ -1346,6 +1350,22 @@ function resolveStoryAssetUrl(asset){
   catch{return value;}
 }
 
+function playStoryFullFragmentSfx(line){
+  const handoff=line?.fragmentHandoff;
+  const scene=storySession?.scene;
+  if(handoff?.state!=="full"||!scene)return false;
+  const guestId=storyGuestIdForScene(scene);
+  if(!STORY_GUEST_IDS.slice(0,7).includes(guestId))return false;
+  if(getStoryGuestResult(guestId).fragmentState==="full")return false;
+  const day=Math.max(1,Math.min(7,Math.floor(Number(scene.day)||Number(state.day)||1)));
+  const cue=STORY_FULL_FRAGMENT_SFX_BY_DAY[day];
+  const key=`${scene.id}:${handoff.shardId||day}`;
+  if(!cue||storySession.playedFragmentSfx?.[key])return false;
+  if(!storySession.playedFragmentSfx)storySession.playedFragmentSfx={};
+  storySession.playedFragmentSfx[key]=true;
+  return !!audio?.play?.(cue,{gain:.9});
+}
+
 function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
@@ -1367,6 +1387,7 @@ function applyStoryFragmentHandoff(line){
     if(asset)layer.style?.setProperty?.("--fragment-art",storyPortraitArtValue(asset));
     else layer.style?.removeProperty?.("--fragment-art");
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
+    playStoryFullFragmentSfx(line);
   }else{
     layer.classList?.remove?.("has-art");
     delete layer.dataset.shardId;

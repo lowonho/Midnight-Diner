@@ -210,7 +210,14 @@ const audio = {
     anchovy_tension:["assets/sfx/sfx_anchovy_tension1.MP3","assets/sfx/sfx_anchovy_tension2.MP3"],
     anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"],
     story_rain:["assets/sfx/story/sfx_rain.MP3"],
-    story_open_door:["assets/sfx/story/sfx_open_door.MP3"]
+    story_open_door:["assets/sfx/story/sfx_open_door.MP3"],
+    fragment_full_d1:["assets/sfx/story/fragments/sfx_d1_finish.MP3"],
+    fragment_full_d2:["assets/sfx/story/fragments/sfx_d2_finish.MP3"],
+    fragment_full_d3:["assets/sfx/story/fragments/sfx_d3_finish.MP3"],
+    fragment_full_d4:["assets/sfx/story/fragments/sfx_d4_finish.MP3"],
+    fragment_full_d5:["assets/sfx/story/fragments/sfx_d5_finish.MP3"],
+    fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
+    fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"]
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
   bgmElements:new Map(),bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,

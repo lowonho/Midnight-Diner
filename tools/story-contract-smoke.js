@@ -17,7 +17,8 @@ const titleSource = fs.readFileSync(path.join(root, "title.js"), "utf8");
   "assets/bgm/story/bgm_in_first_sikdang.mp3",
   "assets/sfx/story/sfx_rain.MP3",
   "assets/sfx/story/sfx_open_door.MP3",
-  "assets/sfx/ui/sfx_next_book.MP3"
+  "assets/sfx/ui/sfx_next_book.MP3",
+  ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`)
 ].forEach(asset=>{
   if(!fs.existsSync(path.join(root,...asset.split("/"))))throw new Error(`스토리 음원 누락: ${asset}`);
 });
@@ -25,7 +26,10 @@ if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
   ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
   ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
   ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
-  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')){
+  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')
+  ||!Array.from({length:7},(_,index)=>index+1).every(day=>
+    gameSource.includes(`fragment_full_d${day}:["assets/sfx/story/fragments/sfx_d${day}_finish.MP3"]`)
+  )){
   throw new Error("스토리·영업일지 음원은 BGM/SFX 레지스트리에 등록되어야 합니다.");
 }
 if(!titleSource.includes('openGameScreen();queueStoryMoments(["newGame","dayStart"]);')
@@ -205,6 +209,12 @@ assert(applyStoryFragmentHandoff(fullFragmentLine)
   &&fragmentLayerStyles["--fragment-art"].includes("file:///C:/Midnight%20Diner/assets/customer/Special/MoonPiece/")
   &&!fragmentLayerStyles["--fragment-art"].includes("/css/assets/"),
   "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
+assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
+  &&Object.entries(STORY_FULL_FRAGMENT_SFX_BY_DAY).every(([day,cue])=>cue===`fragment_full_d${day}`)
+  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.slice(0,7)")
+  &&String(playStoryFullFragmentSfx).includes('handoff?.state!=="full"')
+  &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
+  "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
 assert(!applyStoryFragmentHandoff(null)
   &&!("--fragment-art" in fragmentLayerStyles)
   &&!fragmentLayerClasses.has("show"),
