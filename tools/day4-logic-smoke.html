@@ -458,7 +458,7 @@ try{
      자루마다 신호 간격 배수가 달라야 3자루가 서로 다른 속도로 익습니다. */
   assert(TWO_SIDE_VIEW.skewer.total===SKEWER_BATCH_SIZE&&dom.miniContent.querySelectorAll(".gs-slot.empty").length===3&&!dom.miniContent.querySelector(".cook-food .grill-skewer"),"E5 the grill starts empty and shows three slots");
   assert(dom.miniContent.querySelectorAll("[data-ts-place]").length===SKEWER_BATCH_SIZE,"E5 every skewer waits in the ingredient card as a drag source");
-  assert(new Set(skewerCookMini.data.units.map(unit=>unit.speed)).size===SKEWER_BATCH_SIZE,"E5 each skewer cooks at its own pace");
+  assert(new Set(skewerCookMini.data.units.map(unit=>unit.speed)).size===SKEWER_BATCH_SIZE&&MINI_ENGINES.twoSideCook.score(skewerCookMini)===100,"E5 each skewer cooks at its own pace and starts at 100 points");
   /* 2번 자루만 올립니다 — 그 자루만 시계가 돌고, 나머지 둘은 그대로 기다립니다.
      ⚠️ 자리는 **놓은 자리**이지 자루 번호가 아닙니다. 2번 자루를 첫 칸에 놓으면
         첫 칸에 서야 합니다(예전에는 자루 번호대로 오른쪽으로 날아갔습니다). */
@@ -477,7 +477,6 @@ try{
   /* 닭꼬치 네 단계 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기. */
   openTwoSideCue(skewerCookMini,skewerUnit);
   assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 the first cue sauces the front side");
-  assert(pressTwoSideCue(skewerCookMini,1)===false&&!skewerUnit.done,"E5 a sauce cue does not accept a click");
   assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===1
     &&skewerUnit.sides[0].cook===2&&skewerUnit.sides[1].cook===0&&twoSideSideStage(skewerUnit.sides[0])===2&&skewerUnit.saucedSides[0]&&!skewerUnit.saucedSides[1]
     &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 front sauce brings in the brush and fully cooks only the front side");
@@ -499,6 +498,46 @@ try{
   finishedScore=null;skewerCookMini.data.hits=[100];skewerCookMini.data.units.forEach(unit=>{unit.done=true;unit.served=true;});
   finishTwoSideCook(skewerCookMini);
   assert(skewerCookMini.complete&&finishedScore===100&&dom.miniContent.querySelector("#e5Result.perfect.show"),"E5 shared perfect completion and result");
+
+  const retrySkewerMini={engine:"twoSideCook",complete:false,time:20,data:createTwoSideData("skewer")};
+  const retrySkewer=retrySkewerMini.data.units[1];retrySkewer.placed=true;retrySkewer.slot=0;
+  openTwoSideCue(retrySkewerMini,retrySkewer);
+  assert(pressTwoSideCue(retrySkewerMini,1)===false&&pressTwoSideCue(retrySkewerMini,1)===false
+    &&retrySkewer.stepIndex===0&&retrySkewer.phase==="cue"&&retrySkewerMini.data.skewerErrors===1&&MINI_ENGINES.twoSideCook.score(retrySkewerMini)===90,"E5 a wrong skewer input deducts ten only once in the cue and leaves it open for retry");
+  assert(flickTwoSideCue(retrySkewerMini,1,"sauce")===true&&retrySkewer.stepIndex===1&&MINI_ENGINES.twoSideCook.score(retrySkewerMini)===90,"E5 a correct retry consumes the cue without another timing penalty");
+  openTwoSideCue(retrySkewerMini,retrySkewer);
+  pressTwoSideCue(retrySkewerMini,1);
+  const burntSide=twoSideCookingSide(retrySkewer),burnBefore=retrySkewer.sides[burntSide].burn;
+  MINI_ENGINES.twoSideCook.update(retrySkewerMini,TWO_SIDE_CUE.flip.window+.01);
+  assert(retrySkewer.stepIndex===2&&retrySkewerMini.data.skewerErrors===2&&MINI_ENGINES.twoSideCook.score(retrySkewerMini)===80
+    &&retrySkewer.sides[burntSide].burn===burnBefore+1,"E5 a missed cue burns the heated side but does not double-charge a mistake already scored in that cue");
+
+  const burnSkewerMini={engine:"twoSideCook",complete:false,time:20,data:createTwoSideData("skewer")};
+  const burnSkewer=burnSkewerMini.data.units[0];burnSkewer.placed=true;burnSkewer.slot=0;burnSkewer.sides[0].cook=2;
+  openTwoSideCue(burnSkewerMini,burnSkewer);
+  MINI_ENGINES.twoSideCook.update(burnSkewerMini,TWO_SIDE_CUE.sauce.window+.01);
+  assert(burnSkewerMini.data.skewerErrors===1&&MINI_ENGINES.twoSideCook.score(burnSkewerMini)===90&&twoSideSideStage(burnSkewer.sides[0])===3
+    &&SKEWER_COOK_STEPS[3].suffix==="SlightlyBurnt"&&SKEWER_COOK_STEPS[4].suffix==="Burnt"
+    &&skewerCookAssetKey("chicken",3)==="cookSkewerChickenSlightlyBurnt"&&skewerCookAssetKey("chicken",4)==="cookSkewerChickenBurnt"
+    &&skewerCookAssetKey("greenOnion",3)==="cookSkewerGreenOnionSlightlyBurnt"&&skewerCookAssetKey("greenOnion",4)==="cookSkewerGreenOnionBurnt","E5 an untouched cue deducts ten and advances a fully cooked side into the real slightly-burnt and burnt asset stages");
+  const timedOutSkewer=createTwoSideData("skewer");timedOutSkewer.timedOut=true;
+  assert(skewerRemainingSteps(timedOutSkewer)===12&&skewerScore(timedOutSkewer)===0,"E5 skewer timeout deducts ten for each unfinished cue and floors the displayed score at zero");
+
+  const platingMini={engine:"twoSideCook",complete:false,time:20,data:createTwoSideData("skewer")};
+  const platingSkewer=platingMini.data.units[0];platingSkewer.placed=true;platingSkewer.slot=0;platingSkewer.done=true;platingSkewer.phase="done";platingSkewer.serveTimer=SKEWER_SERVE_GRACE_SEC;
+  MINI_ENGINES.twoSideCook.update(platingMini,SKEWER_SERVE_GRACE_SEC-.01);
+  assert(platingMini.data.skewerErrors===0&&MINI_ENGINES.twoSideCook.score(platingMini)===100,"E5 plating keeps 100 points throughout the generous serving grace period");
+  MINI_ENGINES.twoSideCook.update(platingMini,.02);
+  MINI_ENGINES.twoSideCook.update(platingMini,10);
+  assert(platingSkewer.serveMistakeCharged&&platingSkewer.serveTimer===null&&platingMini.data.skewerErrors===1&&MINI_ENGINES.twoSideCook.score(platingMini)===90,"E5 late plating deducts ten exactly once per finished skewer");
+  serveTwoSideUnit(platingMini,0);
+  assert(platingSkewer.served&&MINI_ENGINES.twoSideCook.score(platingMini)===90,"E5 a late skewer can still be plated without another deduction");
+
+  const fastPlateMini={engine:"twoSideCook",complete:false,time:20,data:createTwoSideData("skewer")};
+  const fastPlateSkewer=fastPlateMini.data.units[0];fastPlateSkewer.placed=true;fastPlateSkewer.slot=0;fastPlateSkewer.done=true;fastPlateSkewer.phase="done";fastPlateSkewer.serveTimer=SKEWER_SERVE_GRACE_SEC;
+  serveTwoSideUnit(fastPlateMini,0);
+  MINI_ENGINES.twoSideCook.update(fastPlateMini,SKEWER_SERVE_GRACE_SEC+1);
+  assert(fastPlateSkewer.served&&fastPlateSkewer.serveTimer===null&&MINI_ENGINES.twoSideCook.score(fastPlateMini)===100,"E5 plating within the grace period cancels the timer and preserves 100 points");
 
   assert(fryStageAt(1)==="under"&&fryStageAt(FRY_COOK.underUntil)==="cooked"&&fryStageAt(FRY_COOK.cookedUntil)==="burnt"&&FRY_COOK.cookedUntil-FRY_COOK.underUntil>=4,"E6 three doneness stages with a wide enough window to lift");
   finishedScore=null;

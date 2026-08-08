@@ -412,6 +412,19 @@ function pancakeMistakes(data){
 
 function pancakeScore(data){return clamp(100-pancakeMistakes(data)*10,0,100);}
 
+function skewerRemainingSteps(data){
+  return twoSideUnits(data).reduce((sum,unit)=>sum+Math.max(0,(unit.steps?.length||0)-(unit.stepIndex||0)),0);
+}
+
+function skewerMistakes(data){
+  const unfinished=data?.timedOut
+    ?Math.max(0,skewerRemainingSteps(data)-twoSideUnits(data).filter(unit=>unit.phase==="cue"&&unit.cueMistakeCharged).length)
+    :0;
+  return (data?.skewerErrors||0)+unfinished;
+}
+
+function skewerScore(data){return clamp(100-skewerMistakes(data)*10,0,100);}
+
 registerMiniEngine("twoSideCook", {
   // 이 화면에는 키 안내가 하나도 없습니다 — 키도 받지 않습니다 (mini-engine.js 참고)
   noKeyboard:true,
@@ -419,6 +432,7 @@ registerMiniEngine("twoSideCook", {
   score(m){
     const data=m?.data,units=twoSideUnits(data||{});
     if(data?.dishStyle==="pancake")return pancakeScore(data);
+    if(data?.dishStyle==="skewer")return skewerScore(data);
     const total=units.reduce((sum,unit)=>sum+(unit.steps?.length||0),0);
     if(!total)return 100;
     const timingPenalty=(data.hits||[]).reduce((sum,score)=>sum+(100-score),0)/total;
@@ -478,7 +492,7 @@ registerMiniEngine("twoSideCook", {
 function createTwoSideData(dishStyle,{timeLimit=TWO_SIDE_COOK_CONFIG[dishStyle].timeLimit}={}){
   return {
     dishStyle, units:createTwoSideUnits(dishStyle),
-    cooked:0, hits:[], flipErrors:0, cookErrors:0, timeLimit, timedOut:false,
+    cooked:0, hits:[], flipErrors:0, cookErrors:0, skewerErrors:0, timeLimit, timedOut:false,
     skewerPatterns: dishStyle==="skewer" ? skewerCookPatterns() : null
   };
 }
@@ -486,6 +500,7 @@ function createTwoSideData(dishStyle,{timeLimit=TWO_SIDE_COOK_CONFIG[dishStyle].
 /* 남은 시간 표시. 진행도 카드 아래 가는 띠와, 멸치 손질과 같은 "남은 시간 N초" 줄입니다.
    ⚠️ 시간을 여기서 깎지 않습니다 — game.js 의 updateMini 가 m.time 을 세고 있습니다. */
 const TWO_SIDE_TIME_WARNING=7;
+const SKEWER_SERVE_GRACE_SEC=3.5;
 
 function updateTwoSideTime(m){
   const data=m.data;
@@ -502,7 +517,23 @@ function updateTwoSideTime(m){
    재료 카드에서 기다리는 꼬치는 시간이 흘러도 익지 않습니다. */
 function tickTwoSideUnit(m,unit,dt){
   const data=m.data;
-  if(data.timedOut||!unit.placed||unit.done)return;
+  if(data.timedOut||!unit.placed)return;
+  if(unit.done){
+    if(data.dishStyle==="skewer"&&!unit.served&&Number.isFinite(unit.serveTimer)){
+      unit.serveTimer-=dt;
+      if(unit.serveTimer<=0){
+        unit.serveTimer=null;
+        if(!unit.serveMistakeCharged){
+          unit.serveMistakeCharged=true;
+          data.skewerErrors=(data.skewerErrors||0)+1;
+          dom.miniFeedback.textContent=`플레이팅이 늦었어요! 완성 접시로 옮겨주세요. (${skewerScore(data)}점)`;
+          audio.bad();
+          updateMiniScore(m);
+        }
+      }
+    }
+    return;
+  }
   if(unit.phase==="wait"){
     unit.cueTimer-=dt;
     const step=twoSideStep(unit);
@@ -644,6 +675,19 @@ function chargePancakeCueMistake(m,unit,message){
   return true;
 }
 
+/* 닭꼬치는 같은 신호에서 몇 번 잘못 그어도 최초 한 번만 10점이 깎입니다.
+   신호는 그대로 남아 있어 제한시간 안에 올바른 방향으로 다시 시도할 수 있습니다. */
+function chargeSkewerCueMistake(m,unit,message){
+  const data=m?.data,step=twoSideStep(unit);
+  if(data?.dishStyle!=="skewer"||unit?.phase!=="cue"||!(step?.kind==="sauce"||step?.kind==="flip")||unit.cueMistakeCharged)return false;
+  data.skewerErrors=(data.skewerErrors||0)+1;
+  unit.cueMistakeCharged=true;
+  dom.miniFeedback.textContent=`${message} 남은 시간에 다시 시도하세요. (${skewerScore(data)}점)`;
+  audio.bad();
+  updateMiniScore(m);
+  return true;
+}
+
 function pressTwoSideCue(m,unitIndex){
   if(!m)return false;
   const data=m.data,unit=twoSideUnit(data,unitIndex);
@@ -660,7 +704,10 @@ function pressTwoSideCue(m,unitIndex){
       const message=step.kind==="sauce"
         ?"붓질하듯 위아래로 드래그해 양념을 발라주세요!"
         :(data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!");
-      if(!chargePancakeCueMistake(m,unit,"잘못 눌렀어요! 위로 튕겨 다시 뒤집어 보세요."))dom.miniFeedback.textContent=message;
+      const charged=data.dishStyle==="skewer"
+        ?chargeSkewerCueMistake(m,unit,"클릭이 아니라 드래그해야 해요!")
+        :chargePancakeCueMistake(m,unit,"잘못 눌렀어요! 위로 튕겨 다시 뒤집어 보세요.");
+      if(!charged)dom.miniFeedback.textContent=message;
     }
     return false;
   }
@@ -712,8 +759,9 @@ function flickTwoSideCue(m,unitIndex,kind="flip"){
 function missTwoSideCue(m,unit){
   const data=m.data,step=twoSideStep(unit);
   if(!step)return;
-  const alreadyCharged=data.dishStyle==="pancake"&&unit.cueMistakeCharged;
+  const alreadyCharged=(data.dishStyle==="pancake"||data.dishStyle==="skewer")&&unit.cueMistakeCharged;
   if(!alreadyCharged){
+    if(data.dishStyle==="skewer")data.skewerErrors=(data.skewerErrors||0)+1;
     if(step.kind==="cook")data.cookErrors=(data.cookErrors||0)+1;
     else data.flipErrors=(data.flipErrors||0)+1;
   }
@@ -725,6 +773,7 @@ function missTwoSideCue(m,unit){
       flip:"뒤집지 못했어요 — 그 면이 계속 불에 닿습니다.",
       sauce:"양념 바를 때를 놓쳤어요. 다음 차례로 넘어갑니다."}[step.kind];
   if(!alreadyCharged)audio.bad();
+  updateMiniScore(m);
   /* ⚠️ **같은 할 일을 다시 시키지 않습니다.** 예전에는 놓치면 그 신호가 다시 왔는데,
      잘하는 사람과 못하는 사람이 같은 자리에서 계속 맴돌아 판이 늘어지기만 했습니다.
      지나간 차례는 지나간 대로 두고 다음으로 넘어갑니다 — 대신 그 대가로 아래 면이
@@ -759,12 +808,14 @@ function finishTwoSideUnit(m,unit){
     const element=twoSideTargetElement(data,unit);
     element?.classList.add("unit-done");
     if(data.dishStyle==="skewer"&&!unit.served){
+      unit.serveTimer=SKEWER_SERVE_GRACE_SEC;
+      unit.serveMistakeCharged=false;
       // 이제부터 이 자루는 완성 칸으로 끌어다 놓을 수 있습니다
       element?.classList.add("ready-to-serve");
       element?.setAttribute("data-ts-serve",String(unit.index));
       bindTwoSideServePointers();
       audio.play?.("ui_click",{owner:m,gain:.6});
-      dom.miniFeedback.textContent=`${unit.index+1}번 꼬치 완성! 완성 칸으로 옮겨주세요.`;
+      dom.miniFeedback.textContent=`${unit.index+1}번 꼬치 완성! ${SKEWER_SERVE_GRACE_SEC}초 안에 완성 칸으로 옮겨주세요.`;
       updateTwoSideHint(data);
     }
     if(twoSideAllDone(data))finishTwoSideCook(m);
@@ -794,6 +845,7 @@ function serveTwoSideUnit(m,index){
   const data=m.data,unit=twoSideUnit(data,index);
   if(!unit||!unit.done||unit.served||data.timedOut)return;
   unit.served=true;
+  unit.serveTimer=null;
   // 화로의 그 자리를 다시 비웁니다 (아직 안 올린 꼬치가 있으면 그 자리에 올릴 수 있습니다)
   const slot=dom.miniContent?.querySelector(`.gs-slot.slot-${unit.slot+1}`);
   if(slot){
@@ -975,7 +1027,12 @@ function bindTwoSideCookPointer(){
     }
     if(!holding&&event.type==="pointerup"&&drag.moved&&!drag.spent){
       const activeUnit=twoSideUnit(m?.data,unit);
-      if(twoSideStep(activeUnit)?.kind==="flip")chargePancakeCueMistake(m,activeUnit,"뒤집는 방향이나 거리가 부족해요! 위로 다시 튕겨 주세요.");
+      const kind=twoSideStep(activeUnit)?.kind;
+      if(m?.data?.dishStyle==="skewer"&&(kind==="flip"||kind==="sauce")){
+        chargeSkewerCueMistake(m,activeUnit,kind==="sauce"
+          ?"양념 방향이나 거리가 부족해요! 위아래로 길게 그어 주세요."
+          :"뒤집는 방향이나 거리가 부족해요! 좌우로 길게 굴려 주세요.");
+      }else if(kind==="flip")chargePancakeCueMistake(m,activeUnit,"뒤집는 방향이나 거리가 부족해요! 위로 다시 튕겨 주세요.");
     }
     drag=null;
     try{if(board.hasPointerCapture?.(event.pointerId))board.releasePointerCapture?.(event.pointerId);}catch{}
@@ -1559,6 +1616,7 @@ function renderTwoSideCook() {
    ⚠️ 시간이 끝나 못 마친 자루가 있으면 PERFECT 가 아닙니다. */
 function twoSideCookGrade(data){
   if(data?.dishStyle==="pancake")return twoSideAllDone(data)&&!data.timedOut&&pancakeMistakes(data)===0?"perfect":"good";
+  if(data?.dishStyle==="skewer")return twoSideAllDone(data)&&!data.timedOut&&skewerMistakes(data)===0?"perfect":"good";
   return twoSideAllDone(data)&&!data.timedOut
     &&data.hits.every(score=>score>=94)&&!(data.flipErrors||0)&&!(data.cookErrors||0)?"perfect":"good";
 }
@@ -1572,6 +1630,8 @@ function finishTwoSideCook(m){
   const missing=twoSideUnits(data).filter(unit=>!unit.done).length;
   const score=data.dishStyle==="pancake"
     ?pancakeScore(data)
+    :data.dishStyle==="skewer"
+    ?skewerScore(data)
     :grade==="perfect"?100
     :Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4-missing*12,40,95));
   const result=dom.miniContent.querySelector("#e5Result");
