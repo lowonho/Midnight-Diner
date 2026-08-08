@@ -200,6 +200,7 @@ const expectedGameplayJournalGuestIds=[
 ];
 same(Object.keys(STORY_CHARACTERS),expectedCharacterIds,"새 시나리오 화자 목록");
 assert(STORY_CHARACTERS.protagonist.name==="김다은","주인공 이름은 김다은이어야 합니다.");
+assert(STORY_CHARACTERS.recalledBoss.name==="상사","회상 장면의 상사 이름표는 상사로 표시해야 합니다.");
 assert(STORY_CHARACTERS.rainyChild.name==="비에 젖은 아이"
   &&STORY_CHARACTERS.facelessDaeun.name==="얼굴 없는 손님"
   &&STORY_CHARACTERS.anotherDaeun.name==="또 다른 김다은",
@@ -779,7 +780,7 @@ const dayOnePage=getGameplayJournalPages().find(page=>page.day===1);
 const rainyPage=dayOnePage.entries.find(entry=>entry.guestId==="rainyChild");
 assert(dayOnePage.recorded&&rainyPage
   &&rainyPage.dishNote.includes("김치전")
-  &&rainyPage.reactionNote==="“맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.”"
+  &&rainyPage.reactionNote==="'맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.'"
   &&rainyPage.shardNote.includes("첫 빗방울")
   &&!("previousLoopEvaluation" in rainyPage)
   &&!("revealedStory" in rainyPage)
@@ -797,8 +798,8 @@ recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
 dayOneEntry=getGameplayJournalPages().find(page=>page.day===1)
   .entries.find(entry=>entry.guestId==="rainyChild");
 assert(dayOneEntry?.reactionNote===[
-  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”",
-  "“제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요”"
+  "'이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.'",
+  "'제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요'"
 ].join("\\n"),
 "음식 미준비·오답 기록에는 판정명 대신 해당 손님이 실제 한 말을 모두 남겨야 합니다.");
 
@@ -807,8 +808,8 @@ recordStorySceneOutcome(STORY_SCENES["SCN-G3-맛있다"]);
 const twinEntry=getGameplayJournalPages().find(page=>page.day===3)
   .entries.find(entry=>entry.guestId==="twinShadows");
 assert(twinEntry?.reactionNote===[
-  "“나는 떠나고 싶었어.”",
-  "“나는 남고 싶었어.”"
+  "'나는 떠나고 싶었어.'",
+  "'나는 남고 싶었어.'"
 ].join("\\n"),
 "둘이 붙은 그림자는 왼쪽·오른쪽 그림자의 실제 반응을 모두 기록해야 합니다.");
 
@@ -818,8 +819,8 @@ let daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
   .entries.find(entry=>entry.guestId==="facelessDaeun");
 assert(daySevenEntry?.guestName==="얼굴 없는 손님"
   &&daySevenEntry.reactionNote===[
-    "“이건 그날 우리가 나눠 먹던 음식이 아니야.”",
-    "“굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.”"
+    "'이건 그날 우리가 나눠 먹던 음식이 아니야.'",
+    "'굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.'"
   ].join("\\n"),
   "마지막 예약 손님의 정체 공개 전 영업일지는 이름을 숨기고 실제 오답 반응을 기록해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G8-완벽"]);
@@ -827,14 +828,18 @@ daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
   .entries.find(entry=>entry.guestId==="facelessDaeun");
 assert(daySevenEntry?.guestName==="얼굴 없는 김다은"
   &&daySevenEntry.reactionNote===[
-    "“나는 김다은. 네가 포기한 내일이야.”",
-    "“우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.”",
-    "“아직 무엇을 할지 몰라도, 내일은 올 수 있어.”"
+    "'나는 김다은. 네가 포기한 내일이야.'",
+    "'우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.'",
+    "'아직 무엇을 할지 몰라도, 내일은 올 수 있어.'"
   ].join("\\n"),
   "마지막 예약 손님의 정체는 완벽 결과로 기억이 공개된 뒤에만 영업일지에 기록해야 합니다.");
 assert(![rainyPage,dayOneEntry,twinEntry,daySevenEntry].some(entry=>
   /(평가 기록:|아쉽다|맛있다|완벽|평가 없음|미평가)/.test(entry?.reactionNote||"")
 ),"영업일지의 손님 반응에는 내부 판정명이나 평가 없음 문구가 노출되면 안 됩니다.");
+assert([rainyPage,dayOneEntry,twinEntry,daySevenEntry].every(entry=>
+  (entry?.reactionNote||"").split("\\n").filter(Boolean)
+    .every(line=>/^'.*'$/.test(line)&&!/[“”]/.test(line))
+),"영업일지의 모든 손님 반응은 줄마다 작은따옴표 하나로 감싸야 합니다.");
 state.story=journalStoryBeforeReactionTests;
 
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
@@ -846,7 +851,7 @@ assert(rainy.previousLoopTier==="warm"&&rainy.previousLoopScore===73
 const rainyAfterMissingLoop=getGameplayJournalPages().find(page=>page.day===1)
   .entries.find(entry=>entry.guestId==="rainyChild");
 assert(rainyAfterMissingLoop?.reactionNote.startsWith(
-  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”"
+  "'이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.'"
 ),"음식 미준비 반응은 과거 평가 수치를 지우지 않으면서도 직전 회차 멘트로 남아야 합니다.");
 
 state.story=createStoryState();

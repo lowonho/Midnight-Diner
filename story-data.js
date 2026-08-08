@@ -5,7 +5,7 @@
 // 조리 미니게임의 구성과 메뉴 ID는 game-data.js의 기존 정의를 그대로 사용합니다.
 const STORY_CHARACTERS = {
   protagonist: { name: "김다은", role: "주인공", portraitRow: null, alwaysKnown: true },
-  recalledBoss: { name: "상사(회상)", role: "김다은이 다니는 회사의 상사", portraitRow: null, alwaysKnown: true },
+  recalledBoss: { name: "상사", role: "김다은이 다니는 회사의 상사", portraitRow: null, alwaysKnown: true },
   journal: { name: "영업일지", role: "달빛식탁의 장부", portraitRow: null, alwaysKnown: true },
   moonlightTable: { name: "달빛식탁", role: "달빛식탁의 목소리", portraitRow: null, alwaysKnown: true },
   rainyChild: { name: "비에 젖은 아이", role: "첫째 날 특별 손님", portraitRow: 0, alwaysKnown: true },

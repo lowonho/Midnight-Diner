@@ -335,7 +335,7 @@ function storyJournalGuestReactionNote(definition,guest,result){
   );
   return (scene.lines||[])
     .filter(line=>speakerIds.has(line?.speaker)&&typeof line.text==="string"&&line.text.trim())
-    .map(line=>`“${line.text.trim()}”`)
+    .map(line=>`'${line.text.trim()}'`)
     .join("\n");
 }
 
@@ -1737,7 +1737,7 @@ function applyStoryPortraitArt(portrait,speakerId){
 }
 
 /* 몸이 없는 화자는 무대에 세우지 않습니다.
-   상사(회상)·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
+   상사·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
    없는 배역입니다. 예전에는 이들 자리에 ✦ 하나만 있는 빈 갈색 패널(.story-portrait
    .role)이 대신 섰는데, 컷씬이 무대를 가려 준 덕에 눈에 안 띄었을 뿐입니다.
    이름표와 대사만으로 충분한 화자들이라 아예 안 세웁니다.

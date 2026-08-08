@@ -210,13 +210,25 @@ assert(migratedPermanentGuest?.label==="비에 젖은 아이"
   "저장 슬롯 초기화가 영업일지 메타 기록을 삭제하면 안 됩니다.");
 assert(migratedPermanentGuest.guestName==="비에 젖은 아이"
   &&migratedPermanentGuest.dishNote==="이 손님이 기억하는 음식은 김치전이었다."
-  &&migratedPermanentGuest.reactionNote==="“이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요.”"
+  &&migratedPermanentGuest.reactionNote==="'이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요.'"
   &&migratedPermanentGuest.shardNote==="달빛 조각 「첫 빗방울」을 건넸다.",
   "다섯 줄 snapshot이 없던 구 v2 해금 기록도 실제 완벽 반응 대사로 보완해야 합니다.");
 assert(titleJournalGuestRecord(TITLE_JOURNAL_GUEST_DEFS[0],{
   reactionNote:"평가 기록: 완벽"
 }).reactionNote===migratedPermanentGuest.reactionNote,
 "구 v2에 판정명만 저장된 반응도 삭제 없이 실제 완벽 반응 대사로 교체해야 합니다.");
+assert(titleJournalStoredReaction([
+  "“예전 큰따옴표 반응”",
+  String.fromCharCode(34)+"예전 직선 큰따옴표 반응"+String.fromCharCode(34),
+  "'이미 작은따옴표인 반응'",
+  "따옴표가 없던 반응"
+].join("\\r\\n"))===[
+  "'예전 큰따옴표 반응'",
+  "'예전 직선 큰따옴표 반응'",
+  "'이미 작은따옴표인 반응'",
+  "'따옴표가 없던 반응'"
+].join("\\n"),
+"구 타이틀 영업일지의 여러 따옴표 형식도 줄마다 작은따옴표 하나로 정규화해야 합니다.");
 localStorage.setItem(saveKeyForSlot("auto"),"new-version-data");
 assert(migrateSaveStorage()===false&&rawSlot("auto")==="new-version-data",
   "완료된 저장 마이그레이션을 다시 실행해 새 저장을 지우면 안 됩니다.");
@@ -340,7 +352,7 @@ assert(perfectGuest?.unlocked===true&&perfectGuest?.newlyUnlocked===true,
 assert(perfectGuest.guestName==="등불을 머리에 인 손님"
   &&perfectGuest.clue===TITLE_JOURNAL_GUEST_DEFS[1].clue
   &&perfectGuest.dishNote==="이 손님이 기억하는 음식은 어묵탕이었다."
-  &&perfectGuest.reactionNote==="“모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요.”"
+  &&perfectGuest.reactionNote==="'모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요.'"
   &&perfectGuest.shardNote==="달빛 조각 「남은 온기」를 건넸다.",
   "타이틀의 영구 손님 기록은 진행 일지와 같은 다섯 줄 snapshot을 저장해야 합니다.");
 const repeatedPerfectGuest=recordJournalGuest("lanternGuest",{
@@ -351,14 +363,14 @@ assert(repeatedPerfectGuest?.unlocked===true&&!repeatedPerfectGuest?.newlyUnlock
   "이미 해금한 손님 페이지를 다시 신규 해금으로 알리면 안 됩니다.");
 const storedPermanentGuest=JSON.parse(localStorage.getItem(JOURNAL_KEY))
   ?.guests?.lanternGuest;
-assert(storedPermanentGuest?.reactionNote==="“모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요.”"
+assert(storedPermanentGuest?.reactionNote==="'모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요.'"
   &&storedPermanentGuest?.dishNote==="이 손님이 기억하는 음식은 어묵탕이었다.",
   "영구 손님 snapshot은 해금 당시 실제 반응을 저장하고 재방문으로 덮어쓰면 안 됩니다.");
 const facelessPerfectGuest=recordJournalGuest("facelessDaeun",{tier:"great"});
 assert(facelessPerfectGuest?.reactionNote===[
-  "“나는 김다은. 네가 포기한 내일이야.”",
-  "“우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.”",
-  "“아직 무엇을 할지 몰라도, 내일은 올 수 있어.”"
+  "'나는 김다은. 네가 포기한 내일이야.'",
+  "'우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.'",
+  "'아직 무엇을 할지 몰라도, 내일은 올 수 있어.'"
 ].join("\\n"),
 "화자가 바뀌는 완벽 결과도 주인공을 제외한 손님의 실제 대사를 모두 기록해야 합니다.");
 assert(!/평가 기록|(?:^|\\n)(?:아쉽다|맛있다|완벽|없음)(?:$|\\n)/.test(facelessPerfectGuest.reactionNote),

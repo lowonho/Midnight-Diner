@@ -327,7 +327,12 @@ function titleJournalStoredReaction(value){
   if(/^평가 기록(?:\s*:|\s+없음)/.test(reaction)
     ||/^(?:아쉽다|맛있다|완벽|없음)(?:\s*\(이전 회차\))?$/.test(reaction)
     ||/^(?:이번에|전에) 음식을 맛본 뒤/.test(reaction))return "";
-  return reaction;
+  return reaction.split(/\r?\n/).map(value=>{
+    const line=value.trim();
+    const wrapped=line.match(/^(?:“([\s\S]*)”|"([\s\S]*)"|'([\s\S]*)'|‘([\s\S]*)’)$/);
+    const text=(wrapped?(wrapped[1]??wrapped[2]??wrapped[3]??wrapped[4]):line).trim();
+    return text?`'${text}'`:"";
+  }).filter(Boolean).join("\n");
 }
 
 function titleJournalPerfectReaction(definition){
@@ -362,7 +367,7 @@ function titleJournalPerfectReaction(definition){
       &&line.speaker!=="protagonist"
       &&typeof line.text==="string"
       &&line.text.trim())
-    .map(line=>`“${line.text.trim()}”`)
+    .map(line=>`'${line.text.trim()}'`)
     .join("\n");
 }
 
