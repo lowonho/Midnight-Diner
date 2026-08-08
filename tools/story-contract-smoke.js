@@ -316,6 +316,9 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
     prefix+" 맛있다 결과");
   assert(great?.resultTier==="great"&&great.grantsShard&&great.uniqueShard,
     prefix+" 최초 완벽 달빛 조각 결과");
+  assert([missing,soft,warm,great].every(scene=>
+    scene.lines[0]?.kind==="direction"&&!!scene.lines[1]?.speaker),
+    prefix+" 행동 묘사 뒤에는 내레이션이 손님의 말을 선점하지 않아야 합니다.");
   const warmHandoff=warm.lines.at(-1)?.fragmentHandoff;
   const greatHandoff=great.lines.at(-1)?.fragmentHandoff;
   assert(number===8?!warmHandoff:warmHandoff?.state==="partial",
@@ -359,6 +362,9 @@ const g8IdentityIndex=g8GreatLines.findIndex(line=>
 const g8RevealedNameIndex=g8GreatLines.findIndex(line=>line.speaker==="anotherDaeun");
 assert(g8IdentityIndex>=0&&g8RevealedNameIndex>g8IdentityIndex,
   "얼굴 없는 손님이 스스로 김다은이라고 밝힌 다음 줄부터 이름표가 바뀌어야 합니다.");
+assert(g8GreatLines[g8IdentityIndex+1]?.text
+  ==="그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다.",
+  "G8 완벽 장면은 얼굴 등장 연출만 남기고 다음 대사의 설명을 미리 말하면 안 됩니다.");
 
 same(STORY_ENDING_RULES,{
   low:{minShards:0,maxShards:3,judgementSceneId:"SCN-J01"},
