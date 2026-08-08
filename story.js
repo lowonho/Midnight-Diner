@@ -539,7 +539,10 @@ function storyDisplayName(id){
 
 function storySpeakerLabel(line){
   if(line?.speaker)return storyDisplayName(line.speaker);
-  return typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+  const label=typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+  // 예전 저장의 진행 중 대사에는 과거 이름표가 그대로 들어 있을 수 있습니다.
+  // 체크포인트를 이어 해도 플레이어 화면에는 현재 표기인 김다은만 보여 줍니다.
+  return label==="김다은(속말)"?"김다은":label;
 }
 
 function storySceneShowsIntroCard(scene){

@@ -23,13 +23,16 @@ const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf
 if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".ending-retry-actions")){
   throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
 }
-if(!indexSource.includes("김다은(속말)")
+if(!indexSource.includes('class="ending-retry-speaker">김다은</p>')
   ||!indexSource.includes("그때, 나는 다른 선택을 할 수도 있지 않았을까?")
   ||!indexSource.includes("다른 선택을 해 본다")
   ||!indexSource.includes("이 선택을 받아들인다")
   ||indexSource.includes("ENDING RECORDED")
   ||indexSource.includes("엔딩 기록 완료")){
-  throw new Error("엔딩 후 질문은 시스템 알림이 아니라 김다은의 속말과 두 선택지로 보여야 합니다.");
+  throw new Error("엔딩 후 질문은 시스템 알림이 아니라 김다은의 대사와 두 선택지로 보여야 합니다.");
+}
+if(sources[1].includes('storyCaption("김다은(속말)"')){
+  throw new Error("새 대본에는 김다은 속말 자막이 아니라 주인공의 일반 대사를 사용해야 합니다.");
 }
 if(!indexSource.includes('id="storyEndingBackground"')
   ||!storyCssSource.includes(".story-ending-background")
@@ -333,9 +336,11 @@ assert(String(showStorySceneIntro).includes("storySceneShowsIntroCard")
 
 const l01=STORY_SCENES["SCN-L01"];
 const l02=STORY_SCENES["SCN-L02"];
+assert(storySpeakerLabel({speakerLabel:"김다은(속말)"})==="김다은",
+  "예전 체크포인트의 속말 이름표도 플레이 화면에서는 김다은으로 보정해야 합니다.");
 assert(l01.minLoop===2&&l01.repeatEachLoop&&l01.autoOpenJournal,
   "2회차 첫째 날에는 영업일지를 자동으로 열어야 합니다.");
-assert(l01.lines.some(line=>line.speakerLabel==="김다은(속말)"
+assert(l01.lines.some(line=>line.speaker==="protagonist"
   &&line.text==="손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
   "회귀 첫 장면에서 손님에게 초면처럼 대하려는 다은의 판단을 알려야 합니다.");
 assert(l02.minLoop===2&&l02.repeatEachLoop&&l02.dynamicJournalHint,
@@ -344,8 +349,8 @@ same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
   "영업일지 상태별 안내 종류");
 Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&lines.length>0,
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
-assert(Object.values(l02.journalVariants).flat().every(line=>line.speakerLabel==="김다은(속말)"&&!line.speaker),
-  "회귀 기록을 아는 다은의 반응은 손님에게 아는 척하는 대사가 아니라 속말이어야 합니다.");
+assert(Object.values(l02.journalVariants).flat().every(line=>line.speaker==="protagonist"&&!line.speakerLabel),
+  "회귀 기록을 확인한 다은의 반응은 모두 김다은의 일반 대사여야 합니다.");
 const p04=STORY_SCENES["SCN-P04"];
 assert(p04.lines.some(line=>line.openJournalOnAdvance===true)
   &&p04.autoOpenJournal!==true
@@ -593,7 +598,7 @@ assert(String(showEndingRetryMenu).includes("saveEndingRetryCheckpoint")
   &&String(showEndingRetryMenu).includes("restoredCheckpoint")
   &&String(showEndingRetryMenu).includes("다른 선택을 할 수도 있지 않았을까")
   &&String(showEndingRetryMenu).includes('removeAttribute("inert")'),
-  "엔딩 질문은 현재 결말을 숨은 체크포인트로 저장하고 김다은의 속말로 열려야 합니다.");
+  "엔딩 질문은 현재 결말을 숨은 체크포인트로 저장하고 김다은의 대사로 열려야 합니다.");
 assert(String(retryLastEndingBranch).includes("restoreStoredEndingRetryState")
   &&String(retryLastEndingBranch).includes("clearEndingRetryCheckpoint")
   &&String(acceptCurrentEnding).includes("restoreStoredEndingRetryState")

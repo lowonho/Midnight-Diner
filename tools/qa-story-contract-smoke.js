@@ -179,8 +179,10 @@ check(qaStoryClampLineIndex(p01,9999)===p01.lines.length-1,
   "범위를 넘은 대사 위치는 마지막 줄로 보정해야 합니다.");
 check(qaStoryLineSpeaker({speaker:"rainyChild"})==="비에 젖은 아이",
   "서술형 특별 손님 이름을 목록에 그대로 표시해야 합니다.");
-check(qaStoryLineSpeaker({speakerLabel:"김다은(속말)"})==="김다은(속말)",
-  "표시 전용 화자명을 보존해야 합니다.");
+check(qaStoryLineSpeaker({speaker:"protagonist"})==="김다은",
+  "김다은의 일반 대사는 주인공 이름으로 표시해야 합니다.");
+check(qaStoryLineSpeaker({speakerLabel:"김다은(속말)"})==="김다은",
+  "예전 체크포인트의 속말 이름표도 현재 김다은 표기로 보정해야 합니다.");
 check(qaStoryLineSpeaker({kind:"direction"})==="",
   "상황 설명 자막에는 별도 명칭을 표시하지 않아야 합니다.");
 

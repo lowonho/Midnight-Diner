@@ -147,7 +147,7 @@ function storyCinematicCutBefore(lineIndex){
 function applyStoryCinematic(line){
   const config=storyCinematicConfig(line);
   // 대사에 새 컷이 없다는 것은 컷씬이 끝났다는 뜻이 아닙니다. 같은 장면의
-  // 속말·대사 동안 지금 컷을 그대로 유지하고, 실제 장면 전환 때
+  // 대사 동안 지금 컷을 그대로 유지하고, 실제 장면 전환 때
   // resetStoryStage() 가 clearStoryCinematic() 을 호출해 정리합니다.
   if(!config){
     if(storyCinematicRuntime)return true;
