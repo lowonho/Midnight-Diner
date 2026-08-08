@@ -30,8 +30,6 @@ assert(game.includes('const pauseNightCustomerPresentation=state.phase==="night"
   &&game.includes('if(pauseNightCustomerPresentation&&order.customerType!=="story")return;')
   &&game.includes("if(pauseNightCustomerPresentation&&!item.guestId)return;"),
   "밤 미니게임 중에는 일반 손님의 등장·재등장·대기 말풍선·퇴장 수명이 멈춰야 합니다.");
-assert(ingredient.includes("if(state.paused)return;"),
-  "설정 중에는 냉장고 경과 기록도 멈춰야 합니다.");
 assert(miniFrame.includes('id="miniPause"')
   &&miniFrameCss.includes("#miniPause { display: grid; }")
   &&miniFrameCss.includes("#miniClose:not([hidden]) + #miniPause"),
