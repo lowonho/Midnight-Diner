@@ -263,7 +263,7 @@ function journalPageMeta(page){
 function journalSectionDefs(){
   if(journalMode==="gameplay")return [
     {id:"rules",label:"주의사항",matches:page=>page.pageType==="rules"},
-    {id:"recipe",label:"요리",matches:page=>page.pageType==="recipe"},
+    {id:"recipe",label:"레시피",matches:page=>page.pageType==="recipe"},
     {id:"day",label:"일기",matches:page=>page.pageType==="day"}
   ];
   return [
@@ -326,28 +326,46 @@ function renderJournalTabs(elements){
   elements.tabs?.replaceChildren(...build(sections.filter(section=>section.slot>=activeSlot)));
 }
 
-// 달빛 조각 그림은 로비 컬렉션의 특별 손님 페이지에만 붙습니다.
-// (엔딩 페이지와 인게임 진행용 일지에는 없습니다.)
+// 제목 아래에 그림 한 장이 더 붙는 장이 둘 있습니다.
+//   relic — 로비 컬렉션 특별 손님 장의 달빛 조각 (엔딩 장에는 없습니다)
+//   dish  — 인게임 레시피 장의 음식 프롭 (이름은 제목에 이미 있어 캡션 없음)
+function journalFigure(page){
+  if(journalMode==="collection"&&!!page&&page.kind!=="ending"&&journalMoonPieceArt(page)){
+    return {kind:"relic",src:journalMoonPieceArt(page)};
+  }
+  if(journalMode==="gameplay"&&page?.pageType==="recipe"&&typeof foodPropUrl==="function"){
+    // 완성된 모습이 제일 잘 보이는 등급으로 보여 줍니다.
+    const src=foodPropUrl(page.dishId,"perfect");
+    if(src)return {kind:"dish",src};
+  }
+  return null;
+}
+
+// 달빛 조각 이름은 요약 줄에서 빼야 하므로 그 장인지만 따로 봅니다.
 function journalRelicVisible(page){
-  return journalMode==="collection"&&!!page&&page.kind!=="ending"&&!!journalMoonPieceArt(page);
+  return journalFigure(page)?.kind==="relic";
 }
 
 function renderJournalRelic(elements,page){
   if(!elements.relic)return;
-  const visible=journalRelicVisible(page);
-  elements.relic.hidden=!visible;
-  // 표제 면이 초상화 + 조각 두 장을 담아야 해서, 붙는 장만 자리를 좁힙니다.
-  elements.page?.classList.toggle("has-relic",visible);
-  if(!visible){
+  const figure=journalFigure(page);
+  elements.relic.hidden=!figure;
+  // 조각 장은 표제 면에 초상화까지 둘이 들어가서 그 장만 자리를 좁힙니다.
+  // 레시피 장은 그림이 가로로 납작해 좁히지 않아도 들어갑니다.
+  elements.page?.classList.toggle("has-relic",figure?.kind==="relic");
+  elements.page?.classList.toggle("has-dish",figure?.kind==="dish");
+  elements.relic.classList.toggle("is-dish",figure?.kind==="dish");
+  if(!figure){
     elements.relicArt.style.backgroundImage="";
     return;
   }
   // 잠긴 손님은 그림 대신 자리만 남깁니다. 조각 모양이 미리 보이면 안 됩니다.
-  const unlocked=!!page.unlocked;
+  const unlocked=figure.kind!=="relic"||!!page.unlocked;
   elements.relic.classList.toggle("is-locked",!unlocked);
-  elements.relicArt.style.backgroundImage=unlocked?`url("${journalMoonPieceArt(page)}")`:"";
+  elements.relicArt.style.backgroundImage=unlocked?`url("${figure.src}")`:"";
   elements.relicArt.textContent=unlocked?"":"?";
-  elements.relicName.textContent=unlocked?`「${page.shardName}」`:"「???」";
+  elements.relicName.textContent=figure.kind!=="relic"?""
+    :unlocked?`「${page.shardName}」`:"「???」";
 }
 
 function renderJournalPage({acknowledge=false}={}){

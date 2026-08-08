@@ -197,6 +197,12 @@
 
           <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySceneTitle">
             <button id="storySkipButton" class="story-skip" type="button" hidden>SKIP</button>
+            <!-- 컷씬 배경(프롤로그 등). 그림 경로는 story-cinematic.js 가 넣습니다.
+                 레이어가 두 장인 것은 컷이 바뀔 때 교차 페이드하기 위해서입니다. -->
+            <div id="storyCutscene" class="story-cutscene" aria-hidden="true" hidden>
+              <div class="story-cutscene-layer"></div>
+              <div class="story-cutscene-layer"></div>
+            </div>
             <div id="storySceneMeta" class="story-scene-meta">
               <span id="storyDayLabel">DAY 1</span>
               <strong id="storySceneTitle">지친 밤 - 퇴근길</strong>
@@ -210,9 +216,11 @@
                 <span id="storyRevealNotice" class="story-reveal-notice">이름을 알게 되었습니다</span>
               </div>
               <p id="storyText" class="story-text" aria-live="polite"></p>
-              <div id="storyChoices" class="story-choices" aria-label="대화 선택지"></div>
               <button id="storyNextButton" class="story-next" type="button">계속 <span>▼</span></button>
             </div>
+            <!-- 선택지는 대사창 안이 아니라 화면 한가운데 뜨는 별도 오버레이입니다.
+                 대사창 뒤가 아니라 앞에 깔려야 해서 DOM 순서도 대사창 다음입니다. -->
+            <div id="storyChoices" class="story-choices" role="group" aria-label="대화 선택지"></div>
           </section>
 
           <!-- 미니게임 공용 프레임이 들어올 자리.

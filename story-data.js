@@ -380,17 +380,25 @@ const STORY_SCENES = {
     sceneType: "prologue",
     timeOfDay: "night",
     character: "protagonist",
-    // 달빛식탁에 들어가기 전이라 아직 회사원 복장입니다. 주방 복장 원화 대신
-    // 회사원 원화를 씁니다(story.js STORY_PROTAGONIST_COSTUMES).
+    /* 프롤로그 네 장면(P01~P04)은 아직 회사원 복장입니다. 첫 영업을 시작하겠다고
+       마음먹는 SCN-P04 의 마지막 대사까지가 회사원이고, 그 뒤로는 전부 주방
+       복장입니다. 주방 복장 원화 대신 회사원 원화를 씁니다
+       (story.js STORY_PROTAGONIST_COSTUMES). */
     protagonistCostume: "office",
     nextSceneId: "SCN-P02",
     lines: [
       {
         ...storyNarration("몇 달째 줄어든 인원으로 신제품 일정을 버티던 김다은은 두 사람 몫의 일정과 보고서를 떠안았다.\n퇴근 직전의 수정 지시와 주말 연락이 반복되었고, 원가를 맞추면 상품성이 없다는 평가가, 맛을 살리면 원가가 높다는 지적이 돌아왔다.\n마지막 메뉴도 수차례 수정 끝에 처음 의도와 전혀 다른 상품이 되었다. 다은은 늦은 밤이 되어서야 회사 건물을 나선다."),
-        cinematic: { id: "pr01Exterior", beat: "exit" }
+        /* [컷씬은 대사 한 줄이 아니라 여기서부터 다음 컷 전까지의 '구간'입니다]
+           cinematic 이 없는 대사는 직전 컷을 그대로 이어받습니다. 그래서 컷이
+           바뀌는 첫 줄에만 적습니다. 자세한 것은 story-cinematic.js 참고.
+
+           여기부터 "맛은 나쁘지 않아…" 까지 — 야근 중인 사무실. */
+        cinematic: { cut: "prologueOffice" }
       },
-      { ...storyLine("recalledBoss", "맛은 나쁘지 않아. 그런데 이걸 사람들이 사서 먹을까?"), cinematic: { id: "pr01Exterior", beat: "pause" } },
-      storyCaption("김다은(속말)", "또 처음부터 바꾸라고 하겠지."),
+      storyLine("recalledBoss", "맛은 나쁘지 않아. 그런데 이걸 사람들이 사서 먹을까?"),
+      // 여기부터 장면 끝까지 — 회사를 나와 혼자 걷는 밤 퇴근길.
+      { ...storyCaption("김다은(속말)", "또 처음부터 바꾸라고 하겠지."), cinematic: { cut: "prologueCommute" } },
       storyCaption("김다은(속말)", "더 버티면 내가 좋아했던 음식까지 싫어하게 될 것 같아."),
       storyLine("protagonist", "오늘도 겨우 퇴근이네.", { motion: "sad" }),
       storyCaption("김다은(속말)", "그냥 내일이 오지 않았으면 좋겠다.")
@@ -405,17 +413,19 @@ const STORY_SCENES = {
     sceneType: "prologue",
     timeOfDay: "night",
     character: "protagonist",
-    protagonistCostume: "office",   // 아직 가게 밖입니다. SCN-P01 주석 참고
+    protagonistCostume: "office",   // SCN-P01 주석 참고
     nextSceneId: "SCN-P03",
     interactionTarget: "restaurantDoor",
     lines: [
       {
         ...storyNarration("다은은 평소처럼 익숙한 퇴근길을 걷는다.\n비 예보는 없었지만 굵은 빗방울이 하나둘 떨어지더니 순식간에 거센 비가 쏟아진다.\n다은은 비를 피할 곳을 찾아 늘 지나던 골목 안쪽으로 뛰어간다."),
-        cinematic: { id: "pr01Exterior", beat: "rainRun" }
+        // 여기부터 "갑자기 무슨 비야… 우산도 없는데." 까지 — 비 쏟아지는 골목.
+        cinematic: { cut: "prologueRainAlley" }
       },
       storyLine("protagonist", "갑자기 무슨 비야… 우산도 없는데.", { motion: "angry" }),
-      storyNarration("고개를 들자 골목 끝에 작은 식당 하나가 보인다.\n매일 지나던 퇴근길인데도 한 번도 본 적 없는 식당이다."),
-      { ...storyLine("protagonist", "저런 식당이 여기 있었나? 일단 비부터 피하자.", { motion: "think" }), cinematic: { id: "pr01Exterior", beat: "enter" } }
+      // 여기부터 장면 끝까지 — 달빛식탁을 발견하고 문을 여는 장면.
+      { ...storyNarration("고개를 들자 골목 끝에 작은 식당 하나가 보인다.\n매일 지나던 퇴근길인데도 한 번도 본 적 없는 식당이다."), cinematic: { cut: "prologueRainEntry" } },
+      storyLine("protagonist", "저런 식당이 여기 있었나? 일단 비부터 피하자.", { motion: "think" })
     ]
   },
 
@@ -427,6 +437,7 @@ const STORY_SCENES = {
     sceneType: "prologueInteraction",
     timeOfDay: "night",
     character: "protagonist",
+    protagonistCostume: "office",   // SCN-P01 주석 참고
     interactionTarget: "journal",
     nextSceneId: "SCN-P04",
     lines: [
@@ -446,6 +457,8 @@ const STORY_SCENES = {
     sceneType: "prologueInteraction",
     timeOfDay: "night",
     character: "protagonist",
+    // 회사원 복장의 마지막 장면입니다. SCN-P01 주석 참고
+    protagonistCostume: "office",
     completesPrologue: true,
     lines: [
       {
@@ -453,11 +466,13 @@ const STORY_SCENES = {
         openJournalOnAdvance: true
       },
       storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
-      storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네.", { motion: "think" }),
+      storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네.", { motion: "sad" }),
       storyCaption("김다은(속말)", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지."),
       { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎는다. 햇빛이 들어찬다."), timeOfDay: "day" },
       { ...storyLine("protagonist", "방금까지 한밤중이었는데… 갑자기 낮이 됐어?", { motion: "think" }), timeOfDay: "day" },
-      { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.", { motion: "resolve" }), timeOfDay: "day" }
+      /* 회사원 김다은은 아직 지쳐 있는 인물이라 resolve(주먹+불꽃)처럼 밝은 동작은
+         쓰지 않습니다. 마지못한 결심이라 담담한 calm 으로 둡니다. */
+      { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.", { motion: "calm" }), timeOfDay: "day" }
     ]
   },
 

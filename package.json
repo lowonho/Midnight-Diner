@@ -39,7 +39,9 @@
     "build:ui-main": "node tools/build-ui-main-webp.js",
     "verify:ui-main": "node tools/build-ui-main-webp.js --verify",
     "build:conversation": "node tools/build-conversation-webp.js",
-    "verify:conversation": "node tools/build-conversation-webp.js --verify"
+    "verify:conversation": "node tools/build-conversation-webp.js --verify",
+    "build:cutscene": "node tools/build-cutscene-webp.js",
+    "verify:cutscene": "node tools/build-cutscene-webp.js --verify"
   },
   "repository": {
     "type": "git",

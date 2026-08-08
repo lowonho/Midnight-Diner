@@ -70,10 +70,22 @@ dataSource.split("\n").forEach((text, i) => {
 });
 if(missing.length) fail("주인공 대사 모션 누락:\n  " + missing.join("\n  "));
 
-/* ---- 5. 회사원 복장 장면이 실제로 표시돼 있는지 ----
-   이 표시가 사라지면 퇴근길에서 주방 복장을 입고 나옵니다.                 */
-if(!/protagonistCostume:\s*"office"/.test(dataSource)){
-  fail("story-data.js 에 protagonistCostume:\"office\" 장면이 없습니다. 프롤로그 퇴근길이 주방 복장으로 나옵니다.");
+/* ---- 5. 프롤로그가 전부 회사원 복장으로 표시돼 있는지 ----
+   김다은은 첫 영업을 시작하겠다고 마음먹는 SCN-P04 마지막 대사까지 회사원
+   복장입니다. 그래서 프롤로그 장면(prologue / prologueInteraction)에는 빠짐없이
+   protagonistCostume:"office" 가 붙어 있어야 합니다. 한 장면만 빠뜨리면 퇴근길
+   도중에 갑자기 주방 복장으로 갈아입은 것처럼 보입니다.
+
+   장면을 통째로 끊어 보고, 그 안에 프롤로그 표시가 있는데 복장 표시가 없으면
+   잡습니다.                                                                */
+const prologueMissing = dataSource
+  .split(/\n(?=\s{2}"[A-Z0-9-]+":\s*\{)/)
+  .filter(block => /sceneType:\s*"prologue(Interaction)?"/.test(block))
+  .filter(block => !/protagonistCostume:\s*"office"/.test(block))
+  .map(block => (block.match(/"([A-Z0-9-]+)":\s*\{/) || [])[1] || "(이름 모름)");
+if(prologueMissing.length){
+  fail(`프롤로그 장면에 protagonistCostume:"office" 가 없습니다: ${prologueMissing.join(", ")}\n`
+    + "  첫 영업을 시작하기 전까지는 회사원 복장이어야 합니다.");
 }
 
 /* ---- 6. 상대경로 함정과 복장별 상자 크기 ---- */

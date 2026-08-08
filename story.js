@@ -1101,9 +1101,22 @@ function storyPreparedMenuDishes(){
     .filter(dish=>typeof dishPreparedForService!=="function"||dishPreparedForService(dish.id));
 }
 
-function storySpecialGuestDishChoiceLine(scene){
+/* 선택지 화면에는 손님이 방금 한 말(=무엇을 찾는지에 대한 힌트)을 같이 붙여 둡니다.
+   대사창은 이 시점에 이미 "어떤 음식을 내줄까?" 로 넘어가 있어서, 힌트를 다시 볼 곳이
+   여기밖에 없습니다. 화자 이름은 그리는 시점에 풀어야(storyDisplayName) 대화 도중
+   이름을 알게 된 손님도 제대로 나옵니다 — 그래서 여기서는 화자 id 만 들고 갑니다. */
+const STORY_DISH_CHOICE_HINT_LIMIT=3;
+function storyDishChoiceHintLines(source){
+  return (source||[])
+    .filter(line=>line?.speaker&&line.speaker!=="protagonist"&&typeof line.text==="string"&&line.text.trim())
+    .slice(-STORY_DISH_CHOICE_HINT_LIMIT)
+    .map(line=>({speaker:line.speaker,text:line.text}));
+}
+
+function storySpecialGuestDishChoiceLine(scene,source){
   return {
     prompt:"어떤 음식을 내줄까?",
+    choiceHint:storyDishChoiceHintLines(source),
     choices:storyPreparedMenuDishes().map(dish=>({
       text:dish.name||dish.displayName||dish.id,
       orderCook:{
@@ -1129,10 +1142,11 @@ function storyLinesForScene(scene){
       "[음식명]":dish?.name||dish?.displayName||"아직 모르는 음식"
     };
   }
-  if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene)];
+  if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene,source)];
   return source.map(line=>{
     const copy={
       ...line,
+      choiceHint:line.choiceHint?line.choiceHint.map(hint=>({...hint})):line.choiceHint,
       choices:line.choices?.map(choice=>({
         ...choice,
         orderCook:choice.orderCook?{...choice.orderCook}:choice.orderCook
@@ -1140,6 +1154,9 @@ function storyLinesForScene(scene){
     };
     if(typeof copy.text==="string")Object.entries(replacements).forEach(([token,value])=>{copy.text=copy.text.split(token).join(value);});
     if(typeof copy.prompt==="string")Object.entries(replacements).forEach(([token,value])=>{copy.prompt=copy.prompt.split(token).join(value);});
+    copy.choiceHint?.forEach(hint=>{
+      Object.entries(replacements).forEach(([token,value])=>{hint.text=hint.text.split(token).join(value);});
+    });
     return copy;
   });
 }
@@ -1252,6 +1269,7 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
   setStoryPortrait(speakerId,line);
+  updateStoryCinematicSpeaking(line);
   updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
   setStoryNextButton(false);
@@ -1307,10 +1325,34 @@ function finishStoryTyping(){
   if(storySession.qaPreview&&typeof qaSyncStoryPreviewNextButton==="function")qaSyncStoryPreviewNextButton();
 }
 
+function renderStoryChoiceHint(line,wrap){
+  const hints=(Array.isArray(line?.choiceHint)?line.choiceHint:[]).filter(hint=>hint?.text);
+  if(!hints.length)return;
+  const box=document.createElement("div");
+  box.className="story-choice-hint";
+  hints.forEach((hint,index)=>{
+    const row=document.createElement("p");
+    row.className="story-choice-hint-line";
+    // 같은 손님이 연달아 말한 줄에는 이름을 다시 붙이지 않습니다(둘이 붙은 그림자처럼
+    // 화자가 바뀌는 경우에만 이름이 다시 나옵니다).
+    const name=hint.speaker&&hint.speaker!==hints[index-1]?.speaker?storyDisplayName(hint.speaker):"";
+    if(name){
+      const who=document.createElement("span");
+      who.className="story-choice-hint-speaker";
+      who.textContent=name;
+      row.appendChild(who);
+    }
+    row.appendChild(document.createTextNode(hint.text));
+    box.appendChild(row);
+  });
+  wrap.appendChild(box);
+}
+
 function renderStoryChoices(line){
   const wrap=document.getElementById("storyChoices");
   document.getElementById("storyNextButton").style.display="none";
   wrap.innerHTML="";
+  renderStoryChoiceHint(line,wrap);
   line.choices.forEach((choice,index)=>{
     const button=document.createElement("button");
     button.type="button";button.className="story-choice";button.textContent=choice.text;
@@ -1426,8 +1468,28 @@ const STORY_ACTOR_MAX_WIDTH=24;
 const STORY_ACTOR_MARGIN=8;
 const STORY_ACTOR_GUTTER=1.5;
 
+/* [컷씬 중에도 말하는 줄에서는 원화를 올립니다]
+   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css).
+   그러면 그 장면 내내 김다은 원화가 한 번도 안 나옵니다.
+
+   그렇다고 항상 세우면 같은 사람이 화면에 둘이 될 수 있습니다 — 프롤로그 세
+   컷처럼 원화 안에 김다은이 이미 그려져 있는 경우입니다. 그래서 '말하는 줄'
+   이면서 '그 컷에 김다은이 안 그려져 있을 때'만 올립니다. 컷마다의 그 여부는
+   story-cinematic.js 의 STORY_CUTSCENES[].protagonist 에 적혀 있습니다. */
+function updateStoryCinematicSpeaking(line){
+  const overlay=document.getElementById("storyOverlay");
+  if(!overlay)return;
+  const drawnInCut=typeof storyCinematicDrawsProtagonist==="function"&&storyCinematicDrawsProtagonist();
+  // 컷에 그려져 있는 건 김다은뿐이므로, 이 이유로 막는 것도 김다은일 때만입니다.
+  // 같은 컷 위에서 손님이 말하는 장면이 생기면 그 원화는 그대로 올라와야 합니다.
+  const duplicate=line?.speaker==="protagonist"&&drawnInCut;
+  const speaking=!!line?.speaker&&storySpeakerHasPortrait(line.speaker)&&!duplicate;
+  overlay.classList.toggle("story-cinematic-speaking",speaking);
+}
+
 function resetStoryStage(){
   clearStoryCinematic();
+  document.getElementById("storyOverlay")?.classList.remove("story-cinematic-speaking");
   applyStoryFragmentHandoff(null);
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
@@ -1537,8 +1599,21 @@ function applyStoryPortraitArt(portrait,speakerId){
   portrait.style.setProperty("--portrait-y",row===5?"100%":`${row*20}%`);
 }
 
+/* 몸이 없는 화자는 무대에 세우지 않습니다.
+   상사(회상)·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
+   없는 배역입니다. 예전에는 이들 자리에 ✦ 하나만 있는 빈 갈색 패널(.story-portrait
+   .role)이 대신 섰는데, 컷씬이 무대를 가려 준 덕에 눈에 안 띄었을 뿐입니다.
+   이름표와 대사만으로 충분한 화자들이라 아예 안 세웁니다.
+   ⚠️ 이 배역들에 나중에 원화를 붙이면 art 를 채우세요. 그러면 다시 섭니다. */
+function storySpeakerHasPortrait(speakerId){
+  if(speakerId==="protagonist")return true;   // 복장별 원화가 있습니다
+  const character=STORY_CHARACTERS[speakerId];
+  return !!character&&(!!character.art||character.portraitRow!=null);
+}
+
 function ensureStoryActor(speakerId){
   if(!storySession||!speakerId)return null;
+  if(!storySpeakerHasPortrait(speakerId))return null;
   if(!storySession.actors)storySession.actors=[];
   // 왼쪽/오른쪽/합쳐진 목소리는 모두 '둘이 붙은 그림자' 한 몸에서
   // 나옵니다. 이름표만 화자에 따라 바꾸고 무대 배우는 하나를 공유합니다.

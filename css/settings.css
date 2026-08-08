@@ -713,6 +713,14 @@
   gap: calc(6 * var(--upx));
 }
 .journal-page-relic[hidden] { display: none; }
+/* 레시피 장의 음식 프롭. 원본이 가로로 납작해서(264:152) 조각과 크기를
+   따로 잡습니다. 이름은 페이지 제목에 이미 있어 캡션은 비워 둡니다. */
+.journal-page-relic.is-dish {
+  --journal-relic-size: calc(200 * var(--upx));
+  margin-top: calc(14 * var(--upx));
+}
+.journal-page-relic.is-dish .journal-page-relic-art { aspect-ratio: 264 / 152; height: auto; }
+.journal-page-relic-name:empty { display: none; }
 .journal-page-relic-art {
   width: var(--journal-relic-size);
   height: var(--journal-relic-size);

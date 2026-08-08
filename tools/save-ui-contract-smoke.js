@@ -256,9 +256,9 @@ assert(!indexSource.includes('id="journalPageTabs"')
 const journalSectionDefsSource=titleSource.match(
   /function journalSectionDefs\([\s\S]+?\r?\n}\r?\n/
 )?.[0]||"";
-assert(["주의사항","요리","일기"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`))
+assert(["주의사항","레시피","일기"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`))
   &&["특별 손님","엔딩"].every(label=>journalSectionDefsSource.includes(`label:"${label}"`)),
-  "견출지는 인게임 주의사항·요리·일기, 로비 특별 손님·엔딩 순이어야 합니다.");
+  "견출지는 인게임 주의사항·레시피·일기, 로비 특별 손님·엔딩 순이어야 합니다.");
 assert(titleSource.includes("function journalSectionEntryIndex(section)")
   &&titleSource.includes('journalMode==="gameplay"&&section.id==="day"')
   &&titleSource.includes("return section.first;"),
@@ -302,8 +302,12 @@ shardIds.forEach(shardId=>{
 assert(titleSource.includes('journalMode==="collection"&&!!page&&page.kind!=="ending"'),
   "달빛 조각 그림은 로비 컬렉션의 특별 손님 장에만 붙어야 합니다.");
 assert(titleSource.includes('elements.relicArt.style.backgroundImage=unlocked?')
-  &&titleSource.includes('elements.relicName.textContent=unlocked?'),
+  &&titleSource.includes(':unlocked?`「${page.shardName}」`:"「???」"'),
   "잠긴 손님의 달빛 조각은 그림도 이름도 미리 보여 주면 안 됩니다.");
+// 레시피 장에는 완성된 음식 프롭이 제목 아래에 붙습니다.
+assert(titleSource.includes('foodPropUrl(page.dishId,"perfect")')
+  &&settingsCssSource.includes(".journal-page-relic.is-dish"),
+  "레시피 장 제목 아래에 음식 프롭 그림이 붙어야 합니다.");
 assert(settingsCssSource.includes(".journal-page-relic-art")
   &&settingsCssSource.includes("--journal-relic-size")
   &&/id="journalPageRelic"/.test(indexSource),
