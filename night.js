@@ -420,7 +420,7 @@ function tryDeliver() {
   if(!state.carrying)return;
   const order=state.orders.find(o=>o.id===state.carrying.orderId);if(!order)return;
   const x=CUSTOMER_SEATS[order.slot],y=CUSTOMER_SERVICE_Y;
-  if(distance(state.player.x,state.player.y,x,y)>82){showToast("주문한 손님 앞까지 음식을 가져가세요.",true);return;}
+  if(distance(state.player.x,state.player.y,x,y)>CUSTOMER_SERVE_REACH){showToast("주문한 손님 바로 앞까지 음식을 가져가세요.",true);return;}
   serveOrder(order);
 }
 
@@ -470,7 +470,7 @@ function serveOrder(order) {
   if(!resumedStory)saveGame();
 }
 
-function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}
+function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<CUSTOMER_AUTO_SERVE_REACH)serveOrder(order);}
 
 function updateNightObjective(){
   normalizeNightOrderCounters();

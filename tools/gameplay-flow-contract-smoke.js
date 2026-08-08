@@ -14,6 +14,7 @@ const ingredient=read("ingredient-select.js");
 const kitchen=read("kitchen.js");
 const player=read("player.js");
 const night=read("night.js");
+const customers=read("customers.js");
 const story=read("story.js");
 const title=read("title.js");
 const gameData=read("game-data.js");
@@ -113,6 +114,13 @@ assert(night.includes("function ordersInArrivalOrder()")
   &&!game.includes('["1","2","3","4"].includes(k)')
   &&!index.includes("손님 선택"),
   "손님은 클릭·숫자 선택 없이 실제 도착 순서대로만 처리되어야 합니다.");
+assert(customers.includes("const CUSTOMER_SERVICE_Y = toLogic(CHEF_WALK_AREA.bottomY);")
+  &&customers.includes("const CUSTOMER_SERVE_REACH = 12;")
+  &&customers.includes("const CUSTOMER_AUTO_SERVE_REACH = 8;")
+  &&game.includes("<=CUSTOMER_SERVE_REACH")
+  &&night.includes(">CUSTOMER_SERVE_REACH")
+  &&night.includes("<CUSTOMER_AUTO_SERVE_REACH"),
+  "서빙은 손님 정면에 밀착했을 때만 수동 또는 자동으로 완료되어야 합니다.");
 assert(story.includes("function storyGeneralArrivals()")
   &&story.includes("if(!storyOrderDialogueReady(order))return false;")
   &&story.includes('if(state.mini||state.carrying)return false;')
