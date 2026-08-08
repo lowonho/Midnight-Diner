@@ -310,8 +310,9 @@ const audio = {
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
   bad(){ this.play("input_wrong",{gain:.9}); },
   result(scoreOrGrade){
-    const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
-    const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
+    const numeric=Number(scoreOrGrade);
+    const perfect=scoreOrGrade==="perfect"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="perfect");
+    const good=scoreOrGrade==="good"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="tasty");
     if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
   },
   serve(){ this.play("food_serve",{gain:.9}); },
@@ -639,6 +640,7 @@ function setupMini() {
   };
   engine.setup?.(m,{dish,set,difficulty});
   if((m.context.special||m.context.tutorial)&&Number.isFinite(m.data.speed))m.data.speed*=difficulty;
+  updateMiniScore(m);
 }
 
 // Space · ACTION 버튼 · 미니게임 안 조작 버튼이 모두 여기로 들어옵니다.
@@ -652,6 +654,7 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  updateMiniScore(m,score);
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   audio.result(score);
@@ -752,6 +755,7 @@ function updateMini(dt) {
     if(previousTime>3&&m.time<=3&&!m.timerWarningPlayed){m.timerWarningPlayed=true;audio.play("timer_warning",{owner:m,gain:.85});}
   }
   engine.update?.(m,dt);
+  updateMiniScore(m);
   if(Number.isFinite(m.time)&&m.time<=0){
     if(engine.timeout)engine.timeout(m);
     else finishMini(m.score||35);

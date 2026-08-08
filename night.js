@@ -259,7 +259,7 @@ function renderNightResult(){
   const target=nightGeneralOrderTarget();
   const unserved=Math.max(0,target-state.generalServed);
   dom.servedResult.textContent=`${state.generalServed} / ${target}건`;
-  dom.satisfactionResult.textContent=avg>=90?"아주 좋았어요":avg>=75?"좋았어요":"조금 아쉬웠어요";
+  dom.satisfactionResult.textContent=cookingScoreMessage(avg);
   dom.fiveStarResult.textContent=state.fiveStar<=0
     ?"다음에는 더 잘할 수 있어요"
     :state.fiveStar>=state.served
@@ -271,7 +271,8 @@ function renderNightResult(){
     :"다음 날 준비";
   dom.nextDayButton.disabled=finalDay;
 
-  const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
+  const tasteTier=cookingScoreTier(avg);
+  const tasteComment=tasteTier==="perfect"?"손님들이 완벽한 음식의 맛을 오래 기억할 것 같습니다.":tasteTier==="tasty"?"맛있는 한 끼의 정성이 손님들에게 잘 전해졌습니다.":"조금 아쉬운 맛이었습니다. 재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 일반 주문 목표까지 ${unserved}건 남았습니다.`:" 오늘의 일반 주문 목표를 모두 마쳤습니다.";
   dom.resultComment.textContent=`${tasteComment}${demandComment}`;
 }

@@ -173,10 +173,10 @@ function directionSequenceClasses(index,current){
   return index<=current+2?"upcoming":"queued";
 }
 
-function showDirectionGrade(grade){
+function showDirectionGrade(grade,score=null){
   const result=dom.miniContent.querySelector("#e3Result");
   if(!result)return;
-  result.textContent=grade==="perfect"?"PERFECT":"GOOD";
+  result.textContent=Number.isFinite(score)?cookingScoreMessage(score):grade==="perfect"?"PERFECT":"GOOD";
   result.className=`e3-result show ${grade}`;
 }
 
@@ -192,12 +192,12 @@ function lockDirectionInput(m,targetSelector,message){
   },E3_FEEL_CONFIG.wrongLockMs);
 }
 
-function completeDirectionSequence(m,{workSelector,feedback,onDone}){
+function completeDirectionSequence(m,{workSelector,feedback,onDone,score=null}){
   const data=m.data,grade=directionCompletionGrade(data);
   data.completionGrade=grade;
   data.transitioning=true;data.inputLocked=true;data.phase="complete";
   dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
-  showDirectionGrade(grade);
+  showDirectionGrade(grade,score);
   dom.miniFeedback.textContent=feedback(grade);
   miniSetTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
@@ -549,6 +549,10 @@ function setStirSpatulaState(data,dragging){
 }
 
 registerMiniEngine("stir",{
+  score(m){
+    const data=m?.data;
+    return Math.max(70,100-(data?.errors||0)*STIR_WRONG_PENALTY);
+  },
   setup(m,{set}){
     set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
     m.data={
@@ -612,10 +616,7 @@ function renderStirScene(){
       </div>
 
       <aside class="yk-col">
-        <div class="yk-panel yk-count">
-          <h3 class="yk-col-title">진행도</h3>
-          <strong id="stirCount">${data.index} / ${STIR_TOTAL}</strong>
-        </div>
+        ${miniScorePanelMarkup("yk-panel yk-count","yk-col-title")}
         <div class="yk-panel yk-next">
           <h3 class="yk-col-title">다음 순서</h3>
           <div class="yk-next-arrow" id="stirNextArrow">${directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset")}</div>
@@ -676,6 +677,7 @@ function stirInput(direction,repeat=false){
     onComplete(){completeDirectionSequence(m,{
       workSelector:"#stirWorkArea",
       feedback:grade=>grade==="perfect"?"철판 위 우동을 완벽하게 볶았습니다!":"우동을 맛있게 볶았습니다!",
+      score:MINI_ENGINES.stir.score(m),
       onDone:()=>finishMini(Math.max(70,100-data.errors*STIR_WRONG_PENALTY))
     });}
   });

@@ -283,7 +283,7 @@ assert(STORY_MENU_RULES.selectCount===5
 STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 메뉴 ID: "+id));
 same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
   "날짜별 일반 주문 수");
-same(STORY_SCORE_THRESHOLDS,{warm:50,great:80},"스토리 평가 점수 기준");
+same(STORY_SCORE_THRESHOLDS,{warm:71,great:100},"스토리 평가 점수 기준");
 same(GENERAL_GUEST_BUBBLES.arrival,[
   "[음식명] 하나 부탁드릴게요.",
   "오늘은 [음식명][이/가] 먹고 싶네요.",
@@ -300,11 +300,11 @@ assert(formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요
 assert(String(decorateStoryOrder).includes('pickGeneralGuestBubble("arrival",order.dishId)')
   &&!GENERAL_GUEST_BUBBLES.arrival.includes("천천히 해 주세요. 기다릴게요."),
   "일반 손님 주문 음식명을 방문 대사에 전달하고 제외한 기다림 문장을 다시 넣으면 안 됩니다.");
-assert(storyCookingTier(49,STORY_SCORE_THRESHOLDS)==="soft"
-  &&storyCookingTier(50,STORY_SCORE_THRESHOLDS)==="warm"
-  &&storyCookingTier(79,STORY_SCORE_THRESHOLDS)==="warm"
-  &&storyCookingTier(80,STORY_SCORE_THRESHOLDS)==="great",
-  "아쉽다/맛있다/완벽은 50점과 80점을 경계로 나뉘어야 합니다.");
+assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
+  &&storyCookingTier(71,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(99,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
+  "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
 
 assert(Object.keys(STORY_SCENES).length===55,"새 시나리오는 총 55개 장면이어야 합니다.");
 const requiredStaticScenes=[
@@ -444,7 +444,7 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
   same(arrival.resultSceneIds,
     {soft:prefix+"-아쉽다",warm:prefix+"-맛있다",great:prefix+"-완벽"},
     prefix+" 평가 장면 연결");
-  same(arrival.thresholds,{warm:50,great:80},prefix+" 평가 기준");
+  same(arrival.thresholds,{warm:71,great:100},prefix+" 평가 기준");
   assert(arrival.repeatEachLoop&&arrival.guestOrder&&arrival.specialCook,
     prefix+" 회차별 재방문과 기존 조리 연결");
   assert(missing?.missingMenu&&missing.wrongDish&&missing.journalClue&&missing.resultTier==null,

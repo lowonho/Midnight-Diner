@@ -1929,9 +1929,9 @@ function completeStoryScene(){
 
 function storyCookingTier(score,thresholds=null){
   const custom=thresholds&&typeof thresholds==="object"?thresholds:null;
-  const great=Number.isFinite(custom?.great)?custom.great:80;
+  const great=Number.isFinite(custom?.great)?custom.great:COOKING_SCORE_RULE.perfect;
   const hasWarm=custom?Object.prototype.hasOwnProperty.call(custom,"warm"):true;
-  const warm=hasWarm&&Number.isFinite(custom?.warm)?custom.warm:custom?null:50;
+  const warm=hasWarm&&Number.isFinite(custom?.warm)?custom.warm:custom?null:COOKING_SCORE_RULE.tastyMin;
   if(score>=great)return "great";
   if(warm!=null&&score>=warm)return "warm";
   return "soft";

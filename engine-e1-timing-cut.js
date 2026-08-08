@@ -188,6 +188,12 @@ function cutDoneSampleMarkup(data,total){
 // 넓어지고, 아래쪽 줄의 높이가 다른 미니게임과 같아집니다.
 // 비어 있으면 .mg-strip:empty 가 접어서 3열이 613.2 를 그대로 씁니다.
 function cutScreenMarkup(data,{board,done,total,footer=""}){
+  const scorePanel=state.mini?.context?.mode==="cook"||state.mini?.context?.mode==="story"
+    ?miniScorePanelMarkup("cut-card cut-count-card","cut-card-title")
+    :`<div class="cut-card cut-count-card">
+          <h3 class="cut-card-title">완성 개수</h3>
+          <p class="cut-count-value" id="cutCountValue"><b>${done}</b> / ${total}</p>
+        </div>`;
   return `<div class="cut-screen">
       <aside class="cut-col">
         <div class="cut-card cut-ing-panel">
@@ -204,10 +210,7 @@ function cutScreenMarkup(data,{board,done,total,footer=""}){
         <div class="cut-board">${board}</div>
       </div>
       <aside class="cut-side">
-        <div class="cut-card cut-count-card">
-          <h3 class="cut-card-title">완성 개수</h3>
-          <p class="cut-count-value" id="cutCountValue"><b>${done}</b> / ${total}</p>
-        </div>
+        ${scorePanel}
         <div class="cut-card cut-ref-card">
           <h3 class="cut-card-title">완성 예시</h3>
           <div class="cut-card-figure">${cutDoneSampleMarkup(data,total)}</div>
@@ -278,6 +281,13 @@ function flashCutTimingBar(grade){
    ============================================================ */
 
 registerDayPrepEngine("timing",{
+  score(m){
+    if(m?.context?.mode==="dayPrep")return 100;
+    const data=m?.data,scores=data?.cutScores||[];
+    if(!data?.total)return 100;
+    const penalty=scores.reduce((sum,score)=>sum+(100-score),0);
+    return 100-penalty/data.total;
+  },
   update(m,dt){
     const data=m.data;
     if(data.phase==="countdown"){
@@ -864,6 +874,12 @@ function moveNightChopTarget(m){
 }
 
 registerMiniEngine("chop",{
+  score(m){
+    const data=m?.data,scores=data?.hits||[];
+    if(!data?.total)return 100;
+    const penalty=scores.reduce((sum,score)=>sum+(100-score),0);
+    return 100-penalty/data.total;
+  },
   setup(m,{set,difficulty=1}){
     const isTofu=m.context.dishId==="tofu"&&(m.context.mode==="cook"||m.context.mode==="story");
     if(isTofu){

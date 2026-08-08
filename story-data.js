@@ -140,8 +140,11 @@ const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
   7: 5
 });
 
-// 기존 미니게임 점수를 이야기 평가 세 단계로 변환하는 기준입니다.
-const STORY_SCORE_THRESHOLDS = Object.freeze({ warm: 50, great: 80 });
+// 공용 음식 평가를 이야기의 아쉽다/맛있다/완벽 세 단계로 변환합니다.
+const STORY_SCORE_THRESHOLDS = Object.freeze({
+  warm: COOKING_SCORE_RULE.tastyMin,
+  great: COOKING_SCORE_RULE.perfect
+});
 
 // 특별 손님을 실제로 만난 뒤 날짜별 기록을 채울 때와 타이틀 영구
 // 컬렉션을 만들 때 쓰는 메타데이터입니다. 진행 영업일지의 미래 목차로는

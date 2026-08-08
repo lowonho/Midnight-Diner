@@ -371,12 +371,7 @@ function heatScreenMarkup(config){
       </aside>
       <div class="heat-play">${heatSceneMarkup(config)}</div>
       <aside class="heat-col">
-        <div class="heat-panel heat-count">
-          <h3 class="heat-col-title">진행도</h3>
-          <p class="heat-count-value"><b id="heatHoldValue">0.0</b> / ${config.targetHold.toFixed(1)}</p>
-          <div class="heat-hold" title="적정 온도 유지"><i id="heatHoldFill"></i></div>
-          <p class="heat-time" id="heatTime"><span>남은 시간</span><b>${config.timeLimit.toFixed(1)}초</b></p>
-        </div>
+        ${miniScorePanelMarkup("heat-panel heat-count","heat-col-title")}
         <div class="heat-panel heat-control">
           <h3 class="heat-col-title">조작</h3>
           ${heatControlMarkup()}
@@ -442,10 +437,11 @@ function settleHeatScene(m){
 
 function completeHeatHold(m){
   const grade=heatCompletionGrade(m.data),result=dom.miniContent.querySelector("#e4Result");
+  const score=grade==="perfect"?100:85;
   settleHeatScene(m);
   dom.miniContent.querySelector("#heatCookScene")?.classList.add("e4-complete");
-  if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.className=`e4-result show ${grade}`;}
-  finishMini(grade==="perfect"?100:85);
+  if(result){result.textContent=cookingScoreMessage(score);result.className=`e4-result show ${grade}`;}
+  finishMini(score);
 }
 
 /* 제한 시간 안에 5.0 을 못 채웠을 때. 아예 0점으로 끝내지는 않고 채운 만큼 줍니다 —
@@ -460,6 +456,10 @@ function timeoutHeatHold(m){
 }
 
 registerMiniEngine("heat",{
+  score(m){
+    const data=m?.data;
+    return data&&heatCompletionGrade(data)==="good"?85:100;
+  },
   setup(m,{set}){
     const configId=heatConfigId(m),config=HEAT_CONFIG[configId];
     // 세 번째 인자가 제한 시간입니다(m.time). 예전에는 여기에 targetHold 값을 넣고

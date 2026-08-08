@@ -644,6 +644,9 @@ function registerDayPrepSetup(miniGameKey,setupFn){
 function registerDayPrepEngine(modes,engine){
   const wrapped={
     timerRuns(){return false;},                 // 낮 준비에는 제한시간이 없습니다
+    // 일부 조작 엔진은 낮 준비와 영업 조리가 같은 컨트롤러를 공유합니다(E1 두부).
+    // 영업 화면의 공용 점수 카드가 그 컨트롤러의 실시간 점수를 읽을 수 있게 넘깁니다.
+    score:engine.score,
     update:engine.update,
     action:engine.action,
     keyup:engine.keyup,

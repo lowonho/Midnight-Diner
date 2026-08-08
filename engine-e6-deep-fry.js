@@ -200,6 +200,13 @@ function fryDish(data) { return FRY_DISHES[data.fryerStyle]; }
 /* ---- 엔진 등록 ---------------------------------------------- */
 
 registerMiniEngine("fry", {
+  score(m) {
+    const data = fryData(m);
+    if (!data) return 100;
+    const total = fryDish(data).count;
+    const penalty = data.done.reduce((score, piece) => score + 100 - (FRY_STAGE_SCORE[piece.stage] || 0), 0);
+    return 100 - penalty / total;
+  },
   // 제한시간이 없습니다 — 타는 것 자체가 시간 압박입니다.
   timerRuns() { return false; },
 
@@ -297,14 +304,11 @@ function renderFry() {
       <div class="fry-work-area">
         ${fryAssetMarkup("burner", "fry-burner-asset", "가스 버너")}
         ${fryPotMarkup(data, dish)}
-        ${data.finishing ? `<strong class="e6-result ${data.completionGrade || "good"} show" id="e6Result">${data.completionGrade === "perfect" ? "PERFECT" : "GOOD"}</strong>` : ""}
+        ${data.finishing ? `<strong class="e6-result ${data.completionGrade || "good"} show" id="e6Result">${cookingScoreMessage(fryScore(data))}</strong>` : ""}
       </div>
 
       <aside class="fry-side">
-        <div class="fry-card fry-progress-card">
-          <h3 class="fry-card-title">진행도</h3>
-          <p class="fry-progress-value"><b>${done}</b> / ${dish.count}</p>
-        </div>
+        ${miniScorePanelMarkup("fry-card fry-progress-card","fry-card-title")}
         <div class="fry-card fry-rack-panel">
           <h3 class="fry-card-title starred">완성</h3>
           ${fryRackMarkup(data, dish)}

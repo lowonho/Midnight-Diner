@@ -393,6 +393,15 @@ registerMiniEngine("twoSideCook", {
   // 이 화면에는 키 안내가 하나도 없습니다 — 키도 받지 않습니다 (mini-engine.js 참고)
   noKeyboard:true,
 
+  score(m){
+    const data=m?.data,units=twoSideUnits(data||{});
+    const total=units.reduce((sum,unit)=>sum+(unit.steps?.length||0),0);
+    if(!total)return 100;
+    const timingPenalty=(data.hits||[]).reduce((sum,score)=>sum+(100-score),0)/total;
+    const penalty=(data.flipErrors||0)*5+(data.cookErrors||0)*4;
+    return clamp(100-timingPenalty-penalty,0,100);
+  },
+
   setup(m, { set, dish }) {
     const isSkewer = dish.id === "skewer";
     const dishStyle=isSkewer?"skewer":"pancake",config=TWO_SIDE_COOK_CONFIG[dishStyle];
@@ -1428,31 +1437,19 @@ function twoSideStageMarkup(data, extraClass = "") {
     </div>`;
 }
 
-/* 오른쪽 칸. 두 얼개가 있습니다.
-     기본         [진행도 + 남은 시간 띠] · [조작 안내]        — 김치전
-     count-serve  [완성 개수 + 남은 시간 초] · [완성 담기]     — 닭꼬치
-                  (카드 크기·남은 시간 줄은 멸치 손질과 같은 규격입니다)
-   닭꼬치는 자루 3개가 따로 도는지라 "지금 할 일" 한 줄로 안내가 안 됩니다.
-   대신 남은 시간을 초로 크게 보여 주고, 조작은 아래 TIP 띠가 맡습니다. */
-function twoSideSideMarkup(view, data, { done, total, timePercent }) {
-  const time = `<p class="ts-time-left" id="tsTime"><span>남은 시간</span><b>${(data.timeLimit||0).toFixed(1)}초</b></p>`;
+/* 오른쪽 위는 두 요리 모두 공용 점수 카드이고, 아래만 요리에 따라 갈립니다.
+     김치전  [점수] · [조작 안내]
+     닭꼬치  [점수] · [완성 담기] */
+function twoSideSideMarkup(view, data) {
   if (view.sidePanel === "count-serve") {
-    return `<div class="ts-panel ts-count ts-count-big">
-          <h3 class="ts-col-title">${view.countLabel}</h3>
-          <strong><b id="tsDone">${done}</b> / ${total}</strong>
-          ${time}
-        </div>
+    return `${miniScorePanelMarkup("ts-panel ts-count ts-count-big","ts-col-title")}
         <div class="ts-panel ts-serve">
           <h3 class="ts-col-title">완성 담기</h3>
           <div class="ts-serve-figure">${twoSideServeMarkup(data)}</div>
           <p class="ts-now" id="tsNow"></p>
         </div>`;
   }
-  return `<div class="ts-panel ts-count">
-          <h3 class="ts-col-title">${view.countLabel}</h3>
-          <strong><b id="tsDone">${done}</b> / ${total}</strong>
-          <div class="ts-time" title="남은 시간"><i id="tsTimeBar" style="width:${timePercent}%"></i></div>
-        </div>
+  return `${miniScorePanelMarkup("ts-panel ts-count","ts-col-title")}
         <div class="ts-panel ts-control">
           <h3 class="ts-col-title">조작</h3>
           ${twoSideGuideMarkup(view)}
@@ -1473,7 +1470,7 @@ function twoSideScreenMarkup(view, data, { board, done, total, timePercent, scen
           <strong class="e5-result" id="e5Result" aria-live="polite"></strong>
         </div>
       </div>
-      <aside class="ts-col">${twoSideSideMarkup(view,data,{done,total,timePercent})}</aside>
+      <aside class="ts-col">${twoSideSideMarkup(view,data)}</aside>
     </div>`;
 }
 
@@ -1525,8 +1522,8 @@ function finishTwoSideCook(m){
     :Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4-missing*12,40,95));
   const result=dom.miniContent.querySelector("#e5Result");
   dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
-  if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.classList.add(grade,"show");}
-  dom.miniFeedback.textContent=grade==="perfect"?"양면을 완벽하게 익혔습니다!":"맛있게 구워냈습니다!";
+  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(grade,"show");}
+  dom.miniFeedback.textContent=cookingScoreMessage(score);
   finishMini(score);
 }
 
