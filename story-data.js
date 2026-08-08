@@ -37,6 +37,19 @@ const GENERAL_GUEST_BUBBLES = {
   departure: ["잘 먹었습니다.", "다음에 또 올게요."]
 };
 
+// 특별 손님이 완전한 달빛 조각을 건넬 때 중앙 연출에 사용하는 실제 에셋입니다.
+// 조각 ID와 파일을 한곳에서 연결해 이후 에셋을 교체해도 대본은 건드리지 않습니다.
+const STORY_FRAGMENT_ASSETS = Object.freeze({
+  first_raindrop: "assets/customer/Special/MoonPiece/01_raindrop_glass_keepsake.webp",
+  remaining_warmth: "assets/customer/Special/MoonPiece/02_miniature_lantern.webp",
+  two_half_names: "assets/customer/Special/MoonPiece/03_two_shadows_ornament.webp",
+  undelivered_letter: "assets/customer/Special/MoonPiece/04_letter_and_crow_feather.webp",
+  golden_salt: "assets/customer/Special/MoonPiece/05_constellation_pendant.webp",
+  eastern_scale: "assets/customer/Special/MoonPiece/06_wave_and_fish_frame.webp",
+  stopped_minute_hand: "assets/customer/Special/MoonPiece/07_stopped_pocket_watch.webp",
+  daeuns_tomorrow: "assets/customer/Special/MoonPiece/08_faceless_daeun_ribbon.webp"
+});
+
 const REGULAR_GUEST_BUBBLES = {};
 
 // 특별 손님이 이번 진행에서 처음 등장할 때 사용하는 짧은 말풍선입니다.
@@ -307,7 +320,7 @@ function createSpecialGuestArc(config) {
         shardId: config.shardId,
         shardName: config.shardName,
         state: fragmentState,
-        asset: null
+        asset: fragmentState === "full" ? STORY_FRAGMENT_ASSETS[config.shardId] || null : null
       }
     }];
     return {

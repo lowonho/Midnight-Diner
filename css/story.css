@@ -112,17 +112,16 @@
   transition: opacity .2s ease,visibility .2s ease;
 }
 
-/* 달빛 조각 전달 전용 레이어입니다. 지금은 빈 화면만 사용하고,
-   추후 --fragment-art에 정식 조각 에셋을 연결합니다. */
+/* 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은 위에
+   그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
 .story-fragment-handoff {
   position: absolute;
   z-index: 3;
   inset: 0;
-  background-color: rgba(8,6,12,.96);
-  background-image: var(--fragment-art,none);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(120,174,255,.16),transparent 34%),
+    rgba(5,4,10,.91);
   opacity: 0;
   visibility: hidden;
   transition: opacity .22s ease,visibility .22s ease;
@@ -131,6 +130,70 @@
 .story-fragment-handoff.show {
   opacity: 1;
   visibility: visible;
+}
+.story-fragment-focus {
+  position: absolute;
+  inset: 6% 0 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10 * var(--upx));
+  opacity: 0;
+  transform: translateY(calc(18 * var(--upx))) scale(.9);
+}
+.story-fragment-handoff.show .story-fragment-focus {
+  animation: storyFragmentReveal .58s cubic-bezier(.18,.82,.24,1) forwards;
+}
+.story-fragment-focus::before {
+  content: "";
+  position: absolute;
+  width: calc(310 * var(--upx));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle,rgba(151,205,255,.24),rgba(96,139,222,.08) 42%,transparent 70%);
+  filter: blur(calc(5 * var(--upx)));
+  animation: storyFragmentGlow 2.3s ease-in-out infinite;
+}
+.story-fragment-kicker,
+.story-fragment-name {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  text-shadow: 0 0 calc(18 * var(--upx)) rgba(129,190,255,.72),0 calc(2 * var(--upx)) calc(5 * var(--upx)) #000;
+}
+.story-fragment-kicker {
+  color: #b9d9ff;
+  font-size: calc(14 * var(--upx));
+  letter-spacing: .16em;
+}
+.story-fragment-name {
+  color: #fff0bd;
+  font-size: calc(25 * var(--upx));
+  letter-spacing: .02em;
+}
+.story-fragment-art {
+  position: relative;
+  z-index: 1;
+  width: min(32vw,calc(300 * var(--upx)));
+  height: min(32vw,calc(300 * var(--upx)));
+  background-image: var(--fragment-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 0 calc(12 * var(--upx)) rgba(125,190,255,.78)) drop-shadow(0 calc(8 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.85));
+  animation: storyFragmentFloat 2.5s ease-in-out .58s infinite;
+}
+@keyframes storyFragmentReveal {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes storyFragmentFloat {
+  0%,100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(calc(-7 * var(--upx))) rotate(1deg); }
+}
+@keyframes storyFragmentGlow {
+  0%,100% { opacity: .72; transform: scale(.92); }
+  50% { opacity: 1; transform: scale(1.06); }
 }
 .story-overlay.scene-intro .story-stage,
 .story-overlay.scene-intro .story-dialogue-box,
@@ -380,7 +443,11 @@
 @media (prefers-reduced-motion: reduce) {
   .story-scene-meta,
   .story-stage,
-  .story-dialogue-box { transition: none; }
+  .story-dialogue-box,
+  .story-fragment-handoff { transition: none; }
+  .story-fragment-handoff.show .story-fragment-focus,
+  .story-fragment-focus::before,
+  .story-fragment-art { animation: none; opacity: 1; transform: none; }
 }
 
 @media (max-width: 620px) {

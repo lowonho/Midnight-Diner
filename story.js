@@ -1213,22 +1213,28 @@ function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
   const handoff=line?.fragmentHandoff;
-  layer.classList?.toggle("show",!!handoff);
-  layer.setAttribute?.("aria-hidden",handoff?"false":"true");
-  if(handoff){
+  const showFull=handoff?.state==="full";
+  const name=document.getElementById("storyFragmentName");
+  layer.classList?.toggle("show",showFull);
+  layer.setAttribute?.("aria-hidden",showFull?"false":"true");
+  if(showFull){
     layer.dataset.shardId=String(handoff.shardId||"");
     layer.dataset.shardName=String(handoff.shardName||"");
     layer.dataset.fragmentState=String(handoff.state||"");
     const asset=String(handoff.asset||"").trim();
+    layer.classList?.toggle("has-art",!!asset);
     if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
     else layer.style?.removeProperty?.("--fragment-art");
+    if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
   }else{
+    layer.classList?.remove?.("has-art");
     delete layer.dataset.shardId;
     delete layer.dataset.shardName;
     delete layer.dataset.fragmentState;
     layer.style?.removeProperty?.("--fragment-art");
+    if(name)name.textContent="";
   }
-  return !!handoff;
+  return showFull;
 }
 
 function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){

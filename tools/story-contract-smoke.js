@@ -23,8 +23,17 @@ if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".
   throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
 }
 if(!indexSource.includes('id="storyFragmentHandoff"')
-  ||!storyCssSource.includes(".story-fragment-handoff")){
-  throw new Error("달빛 조각 전달용 빈 전용 레이어가 필요합니다.");
+  ||!indexSource.includes('id="storyFragmentName"')
+  ||!indexSource.includes('class="story-fragment-art"')
+  ||!storyCssSource.includes(".story-fragment-handoff")
+  ||!storyCssSource.includes(".story-fragment-handoff.show .story-fragment-focus")){
+  throw new Error("완전한 달빛 조각의 암전·중앙 에셋 전달 레이어가 필요합니다.");
+}
+const fragmentAssetPaths=[...sources[1].matchAll(/\b\w+:\s*"(assets\/customer\/Special\/MoonPiece\/[^"]+\.webp)"/g)]
+  .map(match=>match[1]);
+if(fragmentAssetPaths.length!==8
+  ||fragmentAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("특별 손님 8명의 완전한 달빛 조각 에셋이 모두 존재해야 합니다.");
 }
 
 const bootstrap = `
@@ -64,6 +73,10 @@ assert(String(showStoryLine).includes("applyStoryFragmentHandoff(line)")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
+assert(String(applyStoryFragmentHandoff).includes('handoff?.state==="full"')
+  &&String(applyStoryFragmentHandoff).includes('document.getElementById("storyFragmentName")')
+  &&String(applyStoryFragmentHandoff).includes('layer.classList?.toggle("show",showFull)'),
+  "중앙 조각 연출은 완전한 조각에서만 열리고 조각 이름을 함께 표시해야 합니다.");
 const same=(actual,expected,message)=>{
   assert(JSON.stringify(actual)===JSON.stringify(expected),
     message+"\\nactual: "+JSON.stringify(actual)+"\\nexpected: "+JSON.stringify(expected));
@@ -337,11 +350,11 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
     prefix+" 행동 묘사 뒤에는 내레이션이 손님의 말을 선점하지 않아야 합니다.");
   const warmHandoff=warm.lines.at(-1)?.fragmentHandoff;
   const greatHandoff=great.lines.at(-1)?.fragmentHandoff;
-  assert(number===8?!warmHandoff:warmHandoff?.state==="partial",
+  assert(number===8?!warmHandoff:warmHandoff?.state==="partial"&&warmHandoff.asset===null,
     prefix+" 맛있다 부분 조각 전달 연출");
   assert(greatHandoff?.state==="full"&&greatHandoff.shardId===shardId
-    &&greatHandoff.asset===null,
-    prefix+" 완벽 조각 전달 연출과 향후 에셋 자리");
+    &&greatHandoff.asset===STORY_FRAGMENT_ASSETS[shardId],
+    prefix+" 완벽 조각 전달 연출과 실제 손님별 에셋");
   assert(!soft.lines.some(line=>line.fragmentHandoff),prefix+" 아쉽다 조각 미지급");
   assert([soft,warm,great].every(scene=>scene.preservesUnlockedMemory),
     prefix+" 재평가가 기존 기억과 조각을 회수하면 안 됩니다.");
