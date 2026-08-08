@@ -208,13 +208,29 @@ function qaJumpToDay(day){
    없애기 위한 기능입니다. 날짜 버튼과 달리 Day 는 그대로 둡니다.
    ============================================================ */
 
+/* 오늘 밤 특별 손님이 찾는 음식들입니다(story-data.js 의 일차별 등장 장면 → dishId).
+   QA 가 메뉴를 대신 고를 때 이것부터 담아야 합니다. 그러지 않으면 목록 앞에서
+   다섯 개를 그냥 끊어 담게 되고, 5·6·7일차 정답(감자튀김·새우튀김·떡볶이)이
+   빠져서 특별 손님 선택지에 정답 자체가 안 나옵니다. */
+function qaSpecialGuestDishIdsForToday(){
+  if(typeof STORY_SPECIAL_GUEST_BY_DAY==="undefined")return [];
+  return (STORY_SPECIAL_GUEST_BY_DAY[state.day]||[])
+    .map(sceneId=>STORY_SCENES?.[sceneId]?.dishId)
+    .filter(id=>id&&dishById(id));
+}
+
 // 밤으로 넘어가려면 준비가 끝나 있어야 합니다(night.js beginNight 검사).
 // 그래서 건너뛰지 않고 오늘 목록을 실제 완료 함수로 처리해 재료 수량까지 맞춥니다.
 function qaFinishTodayPrep(){
   const dayData=getCurrentDayData();
   if(state.phase===GAME_PHASES.MENU_SELECT||!state.selectedMenus?.length){
+    const maxSelectedMenus=maxSelectedMenusForDay(dayData);
+    const allowed=new Set([...dayData.requiredMenus,...dayData.optionalMenus]);
     const picks=[...dayData.requiredMenus];
-    dayData.optionalMenus.forEach(id=>{if(picks.length<dayData.minSelectedMenus&&!picks.includes(id))picks.push(id);});
+    const addPick=(id,limit)=>{if(picks.length<limit&&allowed.has(id)&&!picks.includes(id))picks.push(id);};
+    // 정답 음식 먼저(최대치까지), 남는 자리는 앞에서부터 채웁니다.
+    qaSpecialGuestDishIdsForToday().forEach(id=>addPick(id,maxSelectedMenus));
+    dayData.optionalMenus.forEach(id=>addPick(id,dayData.minSelectedMenus));
     setSelectedMenus(picks);
   }
   state.phase=GAME_PHASES.PREP;state.paused=false;state.prepRun=null;

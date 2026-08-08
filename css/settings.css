@@ -693,6 +693,11 @@
   white-space: pre-line;
   word-break: keep-all;
 }
+/* [주의사항] 같은 구역 머리와 '이름 ·' 같은 항목 이름만 굵게 씁니다. */
+.journal-page p .journal-note-label {
+  color: #4b2b1a;
+  font-weight: 700;
+}
 /* 특별 손님 페이지 아래쪽에 붙는 달빛 조각 그림입니다.
    그림 크기를 바꾸면 tools/build-moonpiece-webp.js 의 SIZE(이 값 x2)도
    같이 키워야 합니다. */

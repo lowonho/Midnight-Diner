@@ -94,24 +94,38 @@ function journalPageKindLabel(page){
   return page.kind==="ending"?"엔딩":"특별 손님";
 }
 
+/* 일지 본문은 굵은 소제목을 쓰려고 HTML 로 그립니다.
+   그래서 사람이 쓴 글은 여기를 지나 온 뒤에만 본문에 들어갑니다. */
+function journalText(value){
+  return String(value).replace(/[&<>]/g,ch=>ch==="&"?"&amp;":ch==="<"?"&lt;":"&gt;");
+}
+
+function journalHeading(text){
+  return `<b class="journal-note-label">${journalText(text)}</b>`;
+}
+
+function journalLines(lines){
+  return (lines||[]).map(journalText);
+}
+
 function journalField(label,value){
   const text=Array.isArray(value)
     ?value.length?value.join(", "):"없음"
     :value==null||value===""?"???":String(value);
-  return `${label} · ${text}`;
+  return `${journalHeading(label)} · ${journalText(text)}`;
 }
 
 function journalSection(title,fields){
-  return [`[${title}]`,...fields].join("\n");
+  return [journalHeading(`[${title}]`),...fields].join("\n");
 }
 
 function gameplayJournalRecipeNote(page){
   const prepSteps=(page.prepSteps||[]).map((step,index)=>`${index+1}. ${step}`);
   const cookSteps=(page.cookSteps||[]).map((step,index)=>`${index+1}. ${step}`);
   return [
-    journalSection("재료",[(page.ingredients||[]).join(" · ")||"기록 없음"]),
-    journalSection("영업 전 준비",prepSteps.length?prepSteps:["기록 없음"]),
-    journalSection("주문 후 조리",cookSteps.length?cookSteps:["기록 없음"])
+    journalSection("재료",journalLines([(page.ingredients||[]).join(" · ")||"기록 없음"])),
+    journalSection("영업 전 준비",journalLines(prepSteps.length?prepSteps:["기록 없음"])),
+    journalSection("주문 후 조리",journalLines(cookSteps.length?cookSteps:["기록 없음"]))
   ].join("\n\n");
 }
 
@@ -133,17 +147,15 @@ function journalFirstUnlockLabel(page){
 
 function gameplayJournalEntryNote(entry){
   return [
-    `[${entry.guestName}]`,
-    `“${entry.clue}”`,
-    entry.dishNote,
-    entry.reactionNote,
-    entry.shardNote
+    journalHeading(`[${entry.guestName}]`),
+    entry.clue?journalText(`“${entry.clue}”`):"",
+    ...journalLines([entry.dishNote,entry.reactionNote,entry.shardNote].filter(Boolean))
   ].filter(Boolean).join("\n");
 }
 
 function journalPageNote(page){
   if(journalMode==="gameplay"&&page.pageType==="rules"){
-    return journalSection("주의사항",(page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`));
+    return journalSection("주의사항",journalLines((page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`)));
   }
   if(journalMode==="gameplay"&&page.pageType==="recipe"){
     return gameplayJournalRecipeNote(page);
@@ -413,7 +425,7 @@ function renderJournalPage({acknowledge=false}={}){
     :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
       :page.kind==="ending"?"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
-  elements.pageNote.textContent=journalPageNote(page);
+  elements.pageNote.innerHTML=journalPageNote(page);
   elements.pageMeta.textContent=journalPageMeta(page);
   renderJournalRelic(elements,page);
   elements.previous.disabled=journalPageIndex<=0;
