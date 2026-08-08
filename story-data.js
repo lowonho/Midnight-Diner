@@ -279,7 +279,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
 
 const TITLE_JOURNAL_GUEST_DEFS = GAMEPLAY_JOURNAL_PAGE_DEFS;
 const TITLE_JOURNAL_ENDING_DEFS = Object.freeze([
-  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 내일로 가는 문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자."},
+  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 내일로 가는 문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"이번에는 손님의 마음을 얻어보도록 노력하자."},
   {id:"alone_morning",number:2,title:"혼자 맞은 아침",summary:"다은만 현실의 아침으로 돌아가고 달빛을 돌려받지 못한 손님들은 식당에 남았다.",lastLine:"나는 나왔지만… 그 밤은 아직 끝나지 않았어."},
   {id:"guests_dawn",number:3,title:"손님들의 새벽",summary:"달빛을 손님들에게 돌려보내 각자의 아침으로 보내고 다은은 식당에 남았다.",lastLine:"남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게."},
   {id:"open_forever",number:4,title:"영원히 영업 중",summary:"다은은 달빛을 식탁에 붙잡아 두고 달빛식탁의 새 주인이 되었다.",lastLine:"오늘도 새벽은 오지 않습니다."},
@@ -544,8 +544,8 @@ const STORY_SCENES = {
     ],
     missingLines: [
       storyNarration("아이는 다은이 내어 준 음식을 한입 먹고 조용히 고개를 젓는다."),
-      storyLine("rainyChild", "이건 아니에요. 그래도 따뜻하게 만들어 줘서 고마워요."),
-      storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
+      storyLine("rainyChild", "이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다."),
+      storyLine("rainyChild", "제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요"),
       storyLine("protagonist", "알겠어. 다음에는 그 소리를 기억하면서 골라 볼게."),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
@@ -817,7 +817,7 @@ const STORY_SCENES = {
     ],
     missingLines: [
       storyNarration("인형은 다은이 내어 준 음식을 조심스럽게 맛보지만 벽시계는 움직이지 않는다."),
-      storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
+      storyLine("schoolDoll", "오늘도 4시 44분에 끝나겠네요."),
       storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
       storyLine("protagonist", "빨갛고 맵고 말랑한 음식… 다음에는 그 기억으로 골라 볼게."),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
@@ -912,8 +912,8 @@ const STORY_SCENES = {
     nextSceneId: "SCN-L01",
     lines: [
       storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 내일로 가는 문까지 닿지 못한다."),
-      storyNarration("영업일지 위에 글씨가 드러난다.\n「아직 하나의 길도 만들 수 없습니다. 영업은 첫째 날로 돌아갑니다.」"),
-      storyLine("protagonist", "또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자.")
+      storyNarration("영업일지에 글이 나타난다.\n「당신은 하나의 길도 만들지 못했습니다. 손님의 마음을 얻어 길을 만드십시오.」"),
+      storyLine("protagonist", "이번에는 손님의 마음을 얻어보도록 노력하자.")
     ]
   },
 

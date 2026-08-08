@@ -181,6 +181,12 @@ const journalNoteSource=titleSource.match(/function journalPageNote\([\s\S]+?\r?
 assert(journalNoteSource.includes('if(!page.recorded||!page.entries?.length)return "";')
   &&!journalNoteSource.includes("그날 손님을 직접 만난 뒤 얻은 단서와 결과가 여기에 기록됩니다."),
   "아직 손님을 만나지 않은 날짜 장의 본문은 설명문 없이 비어 있어야 합니다.");
+assert(journalNoteSource.includes('journalMode==="collection"')
+  &&journalNoteSource.includes("gameplayJournalEntryNote({")
+  &&journalNoteSource.includes('journalSection("진엔딩 이후 후일담"')
+  &&["guestName","clue","dishNote","reactionNote","shardNote"]
+    .every(field=>journalNoteSource.includes(`${field}:page.${field}`)||field==="guestName"),
+  "해금된 타이틀 특별 손님 장도 진행 일지와 같은 다섯 줄 렌더러를 사용하고 후일담을 유지해야 합니다.");
 const journalMetaSource=titleSource.match(/function journalPageMeta\([\s\S]+?\r?\n}\r?\n/)?.[0]||"";
 assert(journalMetaSource.includes('journalMode==="gameplay"')
   &&journalMetaSource.includes('page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:""'),
@@ -245,10 +251,9 @@ assert(/\.journal-heading-text/.test(settingsCssSource)
   &&indexSource.indexOf('class="journal-heading-text"')<indexSource.indexOf('id="journalDescription"')
   &&indexSource.indexOf('id="journalDescription"')<indexSource.indexOf('id="journalClose"'),
   "제목 아래 안내문은 제목과 같은 판 안에 있어야 합니다.");
-[
-  "이름","기억의 음식","좋아한 스타일","완성된 이야기","달빛 조각","진엔딩 이후 후일담"
-].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),
-  `타이틀 손님 페이지에 '${label}' 필드가 있어야 합니다.`));
+assert(["guestName","clue","dishNote","reactionNote","shardNote"]
+  .every(field=>journalNoteSource.includes(field)),
+  "타이틀 손님 페이지에는 진행 일지와 같은 이름·단서·음식·평가·조각 기록이 있어야 합니다.");
 [
   "엔딩 번호","엔딩 제목","요약","마지막 대사","최초 달성"
 ].forEach(label=>assert(titleSource.includes(`journalField("${label}"`),

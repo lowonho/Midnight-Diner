@@ -37,6 +37,7 @@ function createStoryGuestState(){
     previousLoopVisited:false,
     previousLoopTier:null,
     previousLoopScore:null,
+    previousLoopReactionSceneId:null,
     previousLoopFragmentState:"none",
     previouslyObtainedPartial:false,
     previouslyObtainedFull:false,
@@ -52,6 +53,7 @@ function createStoryGuestResult(){
     visited:false,
     evaluationTier:null,
     evaluationScore:null,
+    reactionSceneId:null,
     fragmentState:"none",
     fragmentName:null,
     seenStoryScenes:[]
@@ -145,6 +147,10 @@ function normalizeStoryState(raw){
     base.guestState[id].previousLoopTier=previousTier;
     base.guestState[id].previousLoopScore=Number.isFinite(previousScore)
       ?clamp(previousScore,0,100):null;
+    base.guestState[id].previousLoopReactionSceneId=
+      typeof base.guestState[id].previousLoopReactionSceneId==="string"
+      &&STORY_SCENES[base.guestState[id].previousLoopReactionSceneId]
+        ?base.guestState[id].previousLoopReactionSceneId:null;
     base.guestState[id].previousLoopFragmentState=["none","partial","full"].includes(
       base.guestState[id].previousLoopFragmentState
     )?base.guestState[id].previousLoopFragmentState:"none";
@@ -179,6 +185,9 @@ function normalizeStoryState(raw){
       ?result.evaluationTier:null;
     result.evaluationScore=Number.isFinite(result.evaluationScore)
       ?clamp(result.evaluationScore,0,100):null;
+    result.reactionSceneId=typeof result.reactionSceneId==="string"
+      &&STORY_SCENES[result.reactionSceneId]
+      ?result.reactionSceneId:null;
     result.fragmentState=["none","partial","full"].includes(result.fragmentState)
       ?result.fragmentState:"none";
     if(id==="facelessDaeun"&&result.fragmentState==="partial")result.fragmentState="none";
@@ -255,10 +264,6 @@ function storyEvaluationLabel(tier,score){
   return Number.isFinite(Number(score))?`${label} · ${Math.round(Number(score))}점`:label;
 }
 
-function storyJournalEvaluationLabel(tier,score){
-  return tier==="great"?"완벽":tier==="warm"?"맛있다":tier==="soft"?"아쉽다":"미평가";
-}
-
 function storyFragmentStateLabel(fragmentState){
   return fragmentState==="full"?"완전 획득":fragmentState==="partial"?"부분 획득":"미획득";
 }
@@ -291,6 +296,49 @@ const GAMEPLAY_JOURNAL_DAY_GUEST_IDS=Object.freeze([
   Object.freeze(["schoolDoll","facelessDaeun"])
 ]);
 
+function storyJournalObjectParticle(word){
+  const value=String(word||"").trim();
+  if(!value)return "을";
+  const last=value.charCodeAt(value.length-1);
+  return last>=0xac00&&last<=0xd7a3&&(last-0xac00)%28!==0?"을":"를";
+}
+
+const STORY_JOURNAL_GUEST_SPEAKER_IDS=Object.freeze({
+  twinShadows:Object.freeze(["leftShadow","rightShadow","twinShadows"]),
+  facelessDaeun:Object.freeze(["facelessDaeun","anotherDaeun"])
+});
+
+function storyJournalGuestOutcomeScene(definition,guest,result){
+  const arrival=storyGuestArrivalScenes().find(scene=>scene.character===definition.guestId);
+  if(!arrival)return null;
+  const resultSceneIds=Object.values(arrival.resultSceneIds||{});
+  const outcomeSceneIds=[arrival.missingMenuSceneId,...resultSceneIds].filter(Boolean);
+  const outcomeSceneIdSet=new Set(outcomeSceneIds);
+  const lastSeenOutcome=sceneIds=>[...(sceneIds||[])]
+    .reverse().find(sceneId=>outcomeSceneIdSet.has(sceneId))||null;
+  const currentSceneId=(outcomeSceneIdSet.has(result.reactionSceneId)&&result.reactionSceneId)
+    ||lastSeenOutcome(result.seenStoryScenes)
+    ||(result.evaluationTier?arrival.resultSceneIds?.[result.evaluationTier]:null);
+  if(currentSceneId&&STORY_SCENES[currentSceneId])return STORY_SCENES[currentSceneId];
+  const previousSceneId=(outcomeSceneIdSet.has(guest.previousLoopReactionSceneId)
+    &&guest.previousLoopReactionSceneId)
+    ||(guest.previousLoopTier?arrival.resultSceneIds?.[guest.previousLoopTier]:null)
+    ||(guest.previousLoopVisited?lastSeenOutcome(guest.seenStoryScenes):null);
+  return previousSceneId?STORY_SCENES[previousSceneId]||null:null;
+}
+
+function storyJournalGuestReactionNote(definition,guest,result){
+  const scene=storyJournalGuestOutcomeScene(definition,guest,result);
+  if(!scene)return "";
+  const speakerIds=new Set(
+    STORY_JOURNAL_GUEST_SPEAKER_IDS[definition.guestId]||[definition.guestId]
+  );
+  return (scene.lines||[])
+    .filter(line=>speakerIds.has(line?.speaker)&&typeof line.text==="string"&&line.text.trim())
+    .map(line=>`“${line.text.trim()}”`)
+    .join("\n");
+}
+
 function gameplayJournalGuestRecord(definition){
   if(!definition)return null;
   const guest=state.story?.guestState?.[definition.guestId]||createStoryGuestState();
@@ -305,27 +353,21 @@ function gameplayJournalGuestRecord(definition){
     ?result.fragmentState:"none";
   const hasKnownDish=!!guest.foodConfirmed;
   const hasClue=!!(guest.clueFound||hasKnownDish);
-  const currentEvaluation=storyJournalEvaluationLabel(
-    result.evaluationTier,
-    result.evaluationScore
-  );
-  const previousEvaluation=storyJournalEvaluationLabel(
-    guest.previousLoopTier,
-    guest.previousLoopScore
-  );
-  const reactionNote=result.evaluationTier
-    ?`이번에 음식을 맛본 뒤 “${currentEvaluation}”라고 했다.`
-    :guest.previousLoopTier
-      ?`전에 음식을 맛본 뒤 “${previousEvaluation}”라고 했다.`
-      :"아직 음식을 대접하지 못했다.";
+  // 판정명이나 점수 대신 그 결과 장면에서 손님이 실제로 한 말만 남깁니다.
+  // 반응 장면 ID만 저장하고 문장은 STORY_SCENES에서 읽어 대본과 기록이 어긋나지 않게 합니다.
+  const reactionNote=storyJournalGuestReactionNote(definition,guest,result);
   let shardNote="아직 달빛 조각은 받지 못했다.";
-  if(currentFragmentState==="full")shardNote=`달빛 조각 「${definition.shardName}」을 건넸다.`;
+  const shardParticle=storyJournalObjectParticle(definition.shardName);
+  if(currentFragmentState==="full")shardNote=`달빛 조각 「${definition.shardName}」${shardParticle} 건넸다.`;
   else if(currentFragmentState==="partial")shardNote=`달빛 조각 「${definition.shardName}」의 일부를 건넸다.`;
-  else if(guest.previouslyObtainedFull)shardNote=`전에 달빛 조각 「${definition.shardName}」을 건넨 적이 있다.`;
+  else if(guest.previouslyObtainedFull)shardNote=`전에 달빛 조각 「${definition.shardName}」${shardParticle} 건넨 적이 있다.`;
   else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
-    guestName:definition.displayName,
+    guestName:definition.guestId==="facelessDaeun"
+      &&!(guest.memoryUnlocked||Number(guest.revealedStoryLevel)>=3)
+      ?(STORY_CHARACTERS.facelessDaeun?.name||"얼굴 없는 손님")
+      :definition.displayName,
     clue:hasClue?definition.clue:"아직 음식에 관한 단서를 듣지 못했다.",
     dishNote:hasKnownDish
       ?`이 손님이 기억하는 음식은 ${definition.dishName}이었다.`
@@ -443,6 +485,7 @@ function recordStoryJournalGuest(guestId,scene=null){
   if(!character||!api?.recordGuest
     ||!(guest.previouslyObtainedFull||result.fragmentState==="full"))return null;
   const definition=GAMEPLAY_JOURNAL_PAGE_DEFS.find(page=>page.guestId===guestId);
+  const gameplayRecord=gameplayJournalGuestRecord(definition);
   return api.recordGuest(guestId,{
     unlocked:true,
     perfect:true,
@@ -450,6 +493,7 @@ function recordStoryJournalGuest(guestId,scene=null){
     day:Number(scene?.day)||Number(state.day)||1,
     dishId:definition?.dishId||scene?.dishId||null,
     shardId:definition?.shardId||scene?.shardId||null,
+    reactionNote:gameplayRecord?.reactionNote||"",
     note:"완벽 평가 · 기억 회복"
   });
 }
@@ -1226,6 +1270,13 @@ function startStorySubtitleTyping(line){
   return true;
 }
 
+function resolveStoryAssetUrl(asset){
+  const value=String(asset||"").trim();
+  if(!value)return "";
+  try{return new URL(value,document.baseURI).href;}
+  catch{return value;}
+}
+
 function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
@@ -1238,7 +1289,7 @@ function applyStoryFragmentHandoff(line){
     layer.dataset.shardId=String(handoff.shardId||"");
     layer.dataset.shardName=String(handoff.shardName||"");
     layer.dataset.fragmentState=String(handoff.state||"");
-    const asset=String(handoff.asset||"").trim();
+    const asset=resolveStoryAssetUrl(handoff.asset);
     layer.classList?.toggle("has-art",!!asset);
     if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
     else layer.style?.removeProperty?.("--fragment-art");
@@ -1258,7 +1309,7 @@ function applyStoryEndingBackground(scene){
   const layer=document.getElementById("storyEndingBackground");
   const overlay=document.getElementById("storyOverlay");
   if(!layer)return false;
-  const asset=String(scene?.endingBackground||"").trim();
+  const asset=resolveStoryAssetUrl(scene?.endingBackground);
   const show=!!asset;
   layer.classList?.toggle("show",show);
   layer.setAttribute?.("aria-hidden",show?"false":"true");
@@ -1565,6 +1616,7 @@ function recordStorySceneOutcome(scene){
     const result=getStoryGuestResult(guestId);
     guest.clueFound=true;
     result.visited=true;
+    result.reactionSceneId=scene.id;
     state.story.specialHandledDays[guestId]=state.story.loop;
     recordStoryJournalGuest(guestId,scene);
   }
@@ -1576,6 +1628,7 @@ function recordStorySceneOutcome(scene){
     guest.foodConfirmed=true;
     result.visited=true;
     result.evaluationTier=scene.resultTier;
+    result.reactionSceneId=scene.id;
     result.fragmentState=strongerStoryFragmentState(previousFragmentState,earnedFragmentState);
     if(result.fragmentState!=="none")result.fragmentName=scene.shardName||scene.shardId||null;
     guest.revealedStoryLevel=Math.max(
@@ -1902,6 +1955,7 @@ function archiveCurrentStoryLoopResults(){
       guest.previousLoopTier=result.evaluationTier;
       guest.previousLoopScore=Number.isFinite(result.evaluationScore)?result.evaluationScore:null;
     }
+    if(result.reactionSceneId)guest.previousLoopReactionSceneId=result.reactionSceneId;
     guest.previousLoopFragmentState=result.fragmentState;
     if(result.fragmentState==="partial")guest.previouslyObtainedPartial=true;
     if(result.fragmentState==="full")guest.previouslyObtainedFull=true;

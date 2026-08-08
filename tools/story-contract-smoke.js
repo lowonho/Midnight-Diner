@@ -62,6 +62,7 @@ const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
 const window={QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={
+  baseURI:"file:///C:/Midnight%20Diner/index.html",
   addEventListener(){},
   getElementById(){return null;}
 };
@@ -142,7 +143,8 @@ assert(applyStoryEndingBackground(STORY_SCENES["END-01"])
   &&endingLayerClasses.has("show")
   &&endingOverlayClasses.has("story-ending-active")
   &&endingLayer.dataset.sceneId==="END-01"
-  &&endingLayerStyles["--story-ending-art"].includes(expectedEndingBackgrounds["END-01"])
+  &&endingLayerStyles["--story-ending-art"].includes("file:///C:/Midnight%20Diner/assets/story/bg/")
+  &&!endingLayerStyles["--story-ending-art"].includes("/css/assets/")
   &&endingLayerAttributes["aria-hidden"]==="false",
   "엔딩 진입 시 해당 일러스트와 배경 전용 상태를 표시해야 합니다.");
 assert(!applyStoryEndingBackground(null)
@@ -152,6 +154,35 @@ assert(!applyStoryEndingBackground(null)
   &&!("--story-ending-art" in endingLayerStyles)
   &&endingLayerAttributes["aria-hidden"]==="true",
   "엔딩 종료 시 일러스트와 배경 전용 상태를 완전히 해제해야 합니다.");
+document.getElementById=originalGetElementById;
+
+const fragmentLayerClasses=new Set();
+const fragmentLayerStyles={};
+const fragmentLayer={
+  dataset:{},
+  classList:{
+    toggle(name,enabled){enabled?fragmentLayerClasses.add(name):fragmentLayerClasses.delete(name);},
+    remove(name){fragmentLayerClasses.delete(name);}
+  },
+  style:{
+    setProperty(name,value){fragmentLayerStyles[name]=value;},
+    removeProperty(name){delete fragmentLayerStyles[name];}
+  },
+  setAttribute(){}
+};
+const fragmentName={textContent:""};
+document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer:id==="storyFragmentName"?fragmentName:null;
+const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
+assert(applyStoryFragmentHandoff(fullFragmentLine)
+  &&fragmentLayerClasses.has("show")
+  &&fragmentLayerClasses.has("has-art")
+  &&fragmentLayerStyles["--fragment-art"].includes("file:///C:/Midnight%20Diner/assets/customer/Special/MoonPiece/")
+  &&!fragmentLayerStyles["--fragment-art"].includes("/css/assets/"),
+  "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
+assert(!applyStoryFragmentHandoff(null)
+  &&!("--fragment-art" in fragmentLayerStyles)
+  &&!fragmentLayerClasses.has("show"),
+  "달빛 조각 전달이 끝나면 절대 URL과 표시 상태를 해제해야 합니다.");
 document.getElementById=originalGetElementById;
 
 const expectedCharacterIds=[
@@ -447,6 +478,26 @@ same(STORY_SPECIAL_GUEST_BY_DAY,{
 const g8=STORY_SCENES["SCN-G8-A"];
 assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===5,
   "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 5건 뒤 등장해야 합니다.");
+same(
+  STORY_SCENES["SCN-G1-B"].lines.filter(line=>line.speaker==="rainyChild").map(line=>line.text),
+  [
+    "이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.",
+    "제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요"
+  ],
+  "G1 준비 음식 없음·오답 반응 대사"
+);
+assert(
+  STORY_SCENES["SCN-G7-B"].lines.some(line=>
+    line.speaker==="schoolDoll"&&line.text==="오늘도 4시 44분에 끝나겠네요."
+  ),
+  "G7 준비 음식 없음·오답 첫 반응 대사"
+);
+assert(
+  STORY_SCENES["SCN-G7-맛있다"].lines.at(-1)?.fragmentHandoff?.state==="partial"
+  &&storyFragmentStateForResult(STORY_SCENES["SCN-G7-맛있다"],"schoolDoll")==="partial"
+  &&!STORY_SCENES["SCN-G8-맛있다"].lines.some(line=>line.fragmentHandoff),
+  "G7 맛있다는 부분 조각을 지급하고 G8 맛있다는 조각을 지급하지 않아야 합니다."
+);
 assert(GAMEPLAY_JOURNAL_PAGE_DEFS.find(page=>page.guestId==="facelessDaeun").appearanceCondition
   .includes("현재 회차 기본 손님 7명의 완전한 달빛 조각"),
   "G8 진행 일지는 현재 회차 기본 완전 조각 7개 조건을 명확히 표시해야 합니다.");
@@ -481,6 +532,13 @@ same(STORY_ENDING_RULES,{
 },"달빛 조각 수에 따른 판정 장면");
 assert(STORY_SCENES["SCN-J01"].autoLoop&&STORY_SCENES["SCN-J01"].nextSceneId==="SCN-L01",
   "조각 0~3개는 선택지 없이 회귀해야 합니다.");
+assert(STORY_SCENES["SCN-J01"].lines[1]?.text
+  ==="영업일지에 글이 나타난다.\\n「당신은 하나의 길도 만들지 못했습니다. 손님의 마음을 얻어 길을 만드십시오.」"
+  &&STORY_SCENES["SCN-J01"].lines[2]?.text
+  ==="이번에는 손님의 마음을 얻어보도록 노력하자."
+  &&TITLE_JOURNAL_ENDING_DEFS.find(ending=>ending.id==="loop_return")?.lastLine
+  ==="이번에는 손님의 마음을 얻어보도록 노력하자.",
+  "첫 자동 회귀는 장부 기록을 안다고 전제하지 않고 손님의 마음을 얻겠다는 목표를 알려야 합니다.");
 same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
   ["END-01","END-02"],"조각 4~7개 엔딩 선택");
 same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.text),
@@ -703,7 +761,8 @@ assert(lantern.previousLoopTier==="great"&&lantern.previousLoopScore===91
 assert(STORY_GUEST_IDS.every(id=>{
   const result=getStoryGuestResult(id);
   return !result.visited&&result.evaluationTier==null&&result.evaluationScore==null
-    &&result.fragmentState==="none"&&result.fragmentName==null&&result.seenStoryScenes.length===0;
+    &&result.reactionSceneId==null&&result.fragmentState==="none"
+    &&result.fragmentName==null&&result.seenStoryScenes.length===0;
 }),"회귀 병합 뒤 현재 회차의 방문·평가·조각·본 장면은 모두 초기화되어야 합니다.");
 assert(state.story.completed.keepAcrossLoop&&state.story.seenScenes.keepAcrossLoop,
   "회귀 병합은 completed와 전역 seenScenes 기록을 지우면 안 됩니다.");
@@ -715,18 +774,75 @@ const dayOnePage=getGameplayJournalPages().find(page=>page.day===1);
 const rainyPage=dayOnePage.entries.find(entry=>entry.guestId==="rainyChild");
 assert(dayOnePage.recorded&&rainyPage
   &&rainyPage.dishNote.includes("김치전")
-  &&rainyPage.reactionNote.includes("맛있다")
+  &&rainyPage.reactionNote==="“맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.”"
   &&rainyPage.shardNote.includes("첫 빗방울")
   &&!("previousLoopEvaluation" in rainyPage)
   &&!("revealedStory" in rainyPage)
   &&!("currentLoopEvaluation" in rainyPage),
   "날짜별 영업일지는 회차별 시스템 필드 대신 손님·음식·반응·조각을 자연스럽게 기록해야 합니다.");
 
+const journalStoryBeforeReactionTests=state.story;
+state.story=createStoryState();
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-A"]);
+let dayOneEntry=getGameplayJournalPages().find(page=>page.day===1)
+  .entries.find(entry=>entry.guestId==="rainyChild");
+assert(dayOneEntry?.reactionNote==="",
+  "손님을 만났지만 결과 반응이 아직 없으면 영업일지에 평가 없음 문구를 만들면 안 됩니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
+dayOneEntry=getGameplayJournalPages().find(page=>page.day===1)
+  .entries.find(entry=>entry.guestId==="rainyChild");
+assert(dayOneEntry?.reactionNote===[
+  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”",
+  "“제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요”"
+].join("\\n"),
+"음식 미준비·오답 기록에는 판정명 대신 해당 손님이 실제 한 말을 모두 남겨야 합니다.");
+
+state.story=createStoryState();
+recordStorySceneOutcome(STORY_SCENES["SCN-G3-맛있다"]);
+const twinEntry=getGameplayJournalPages().find(page=>page.day===3)
+  .entries.find(entry=>entry.guestId==="twinShadows");
+assert(twinEntry?.reactionNote===[
+  "“나는 떠나고 싶었어.”",
+  "“나는 남고 싶었어.”"
+].join("\\n"),
+"둘이 붙은 그림자는 왼쪽·오른쪽 그림자의 실제 반응을 모두 기록해야 합니다.");
+
+state.story=createStoryState();
+recordStorySceneOutcome(STORY_SCENES["SCN-G8-B"]);
+let daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
+  .entries.find(entry=>entry.guestId==="facelessDaeun");
+assert(daySevenEntry?.guestName==="얼굴 없는 손님"
+  &&daySevenEntry.reactionNote===[
+    "“이건 그날 우리가 나눠 먹던 음식이 아니야.”",
+    "“굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.”"
+  ].join("\\n"),
+  "마지막 예약 손님의 정체 공개 전 영업일지는 이름을 숨기고 실제 오답 반응을 기록해야 합니다.");
+recordStorySceneOutcome(STORY_SCENES["SCN-G8-완벽"]);
+daySevenEntry=getGameplayJournalPages().find(page=>page.day===7)
+  .entries.find(entry=>entry.guestId==="facelessDaeun");
+assert(daySevenEntry?.guestName==="얼굴 없는 김다은"
+  &&daySevenEntry.reactionNote===[
+    "“나는 김다은. 네가 포기한 내일이야.”",
+    "“우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.”",
+    "“아직 무엇을 할지 몰라도, 내일은 올 수 있어.”"
+  ].join("\\n"),
+  "마지막 예약 손님의 정체는 완벽 결과로 기억이 공개된 뒤에만 영업일지에 기록해야 합니다.");
+assert(![rainyPage,dayOneEntry,twinEntry,daySevenEntry].some(entry=>
+  /(평가 기록:|아쉽다|맛있다|완벽|평가 없음|미평가)/.test(entry?.reactionNote||"")
+),"영업일지의 손님 반응에는 내부 판정명이나 평가 없음 문구가 노출되면 안 됩니다.");
+state.story=journalStoryBeforeReactionTests;
+
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-B"]);
 archiveCurrentStoryLoopResults();
 assert(rainy.previousLoopTier==="warm"&&rainy.previousLoopScore===73
+  &&rainy.previousLoopReactionSceneId==="SCN-G1-B"
   &&rainy.clueFound&&rainy.previousLoopVisited,
   "음식 미준비 회차는 단서와 방문만 남기고 과거 실제 평가를 지우면 안 됩니다.");
+const rainyAfterMissingLoop=getGameplayJournalPages().find(page=>page.day===1)
+  .entries.find(entry=>entry.guestId==="rainyChild");
+assert(rainyAfterMissingLoop?.reactionNote.startsWith(
+  "“이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.”"
+),"음식 미준비 반응은 과거 평가 수치를 지우지 않으면서도 직전 회차 멘트로 남아야 합니다.");
 
 state.story=createStoryState();
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
@@ -876,6 +992,7 @@ const context = {
   Boolean,
   RegExp,
   Error,
+  URL,
   setTimeout,
   clearTimeout
 };
