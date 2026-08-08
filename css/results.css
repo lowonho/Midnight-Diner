@@ -10,16 +10,25 @@
   border-radius: calc(7 * var(--upx));
   background: #160c08;
 }
+/* 칸이 좁아 "아주 좋았어/요" 처럼 낱말 한가운데가 잘리던 곳입니다.
+   keep-all 이면 한글도 띄어쓰기에서만 줄이 바뀝니다. 띄어쓰기가 없는
+   긴 낱말 하나가 칸을 넘칠 때만 anywhere 가 예외로 받아 줍니다. */
+.result-grid span,
+.result-grid strong {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
 .result-grid span {
   display: block;
   color: #af8c60;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(10 * var(--upx));
 }
 .result-grid strong {
   display: block;
   margin-top: calc(5 * var(--upx));
   color: #ffe09a;
-  font-size: calc(20 * var(--upx));
+  font-size: calc(17 * var(--upx));
+  line-height: 1.35;
 }
 .result-comment {
   margin: calc(13 * var(--upx)) 0;

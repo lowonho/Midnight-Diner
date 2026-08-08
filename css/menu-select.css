@@ -1,21 +1,104 @@
-.menu-select-overlay { z-index: 35; background: rgba(8,5,3,.82); }
-.menu-select-window { width: min(calc(720 * var(--upx)),92%); padding: calc(24 * var(--upx)); }
+/* ============================================================
+   오늘의 메뉴 선택창 — assets/UI/MenuSelect 에셋 적용
+   ------------------------------------------------------------
+   [테두리를 CSS 로 그리지 않는 이유]
+   창의 나뭇결·금테, 칸과 버튼의 크림빛 판과 테두리가 전부 그림 안에 있습니다.
+   마크업의 .wood-panel / .gold-button 에서 오는 border · border-radius ·
+   box-shadow · 배경 그라디언트를 여기서 전부 걷어냅니다. 남겨 두면 이중으로
+   겹칩니다. (css/save-slots.css · css/settings.css 와 같은 처리입니다)
+
+   [크기는 그림이 정하지 않습니다 — 반대입니다]
+   저장창은 그림 여섯 장이 서로 아귀가 맞게 그려져 있어서 판 크기 하나로
+   나머지가 따라왔습니다. 여기는 그렇지 않습니다. 창 높이는 "머리글 + 격자
+   + 푸터"가 쌓인 결과라 **내용이 정하고**, 그림은 그 자리에 늘어나 채웁니다
+   (background-size: 100% 100%). 그래서 아래 크기 값들은 에셋을 붙이기 전과
+   똑같고, 이 파일에 새 치수는 없습니다.
+
+   PNG 가 마스터, 실제로 쓰는 WebP 는 tools/build-ui-menuselect-webp.js 가
+   만듭니다. ⚠️ 창 폭(720)이나 칸 높이(108)를 키우면 그 스크립트의 크기 표도
+   같이 키워야 합니다 (안 그러면 확대되면서 뭉갭니다).
+   ============================================================ */
+.menu-select-overlay {
+  --ms-window: url("../assets/UI/MenuSelect/ui_menu_window_wood_v2.webp");
+  --ms-cell:   url("../assets/UI/MenuSelect/ui_menu_cell.webp");
+  --ms-button: url("../assets/UI/MenuSelect/ui_menu_complete_button.webp");
+
+  z-index: 35;
+  background: rgba(8,5,3,.82);
+}
+
+/* ── 창 ──────────────────────────────────────────────────── */
+.menu-select-overlay .menu-select-window {
+  width: min(calc(720 * var(--upx)),92%);
+  /* 금테는 그림 안에서 가장자리로부터 원본 2792px 기준 20px, 즉 폭의 0.7%
+     자리에 있습니다. 창 폭 720 에서 약 5px 이라 아래 24 여백 안에 넉넉히
+     들어갑니다. 여백을 10 밑으로 줄이면 글자가 금테를 밟습니다. */
+  padding: calc(24 * var(--upx));
+
+  /* .wood-panel 이 그리던 것 걷어내기 */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--ms-window) center / 100% 100% no-repeat;
+}
 .menu-select-window h2 { margin: calc(3 * var(--upx)) 0 calc(8 * var(--upx)); color: #f7dfad; }
 .menu-select-description { margin: 0 0 calc(16 * var(--upx)); color: #d8c29f; }
+
+/* ── 메뉴 칸 ──────────────────────────────────────────────── */
 .menu-select-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: calc(10 * var(--upx)); }
 .menu-select-option {
-  min-height: calc(108 * var(--upx)); padding: calc(12 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #7d5030; border-radius: calc(8 * var(--upx));
-  background: #ead2a5; color: #3e2416; cursor: pointer;
+  min-height: calc(108 * var(--upx)); padding: calc(12 * var(--upx)) calc(8 * var(--upx));
+  color: #3e2416; cursor: pointer;
+
+  border: 0;
+  border-radius: 0;
+  background: var(--ms-cell) center / 100% 100% no-repeat;
 }
 .menu-select-option strong,.menu-select-option small { display: block; }
 .menu-select-option small { margin-top: calc(7 * var(--upx)); color: #76523a; }
-.menu-select-option.selected { outline: calc(3 * var(--upx)) solid #f4c65f; background: #fff0bd; }
-.menu-select-option.required { border-color: #d3a23c; }
+
+/* 골라 놓은 칸. 칸 그림은 한 장뿐이라 "고른 상태" 그림이 따로 없습니다.
+   그래서 예전처럼 밖으로 금테를 두르고, 판은 밝기로만 띄웁니다.
+   outline 은 배경 그림 위에 그려지므로 그림을 가리지 않습니다. */
+.menu-select-option.selected {
+  outline: calc(3 * var(--upx)) solid #f4c65f;
+  filter: brightness(1.07) saturate(1.06);
+}
+/* 그 날 반드시 넣어야 하는 메뉴(특별음식). 예전엔 border-color 로 표시했는데
+   테두리가 이제 그림 안에 있어서, 그림 안쪽에 금선을 하나 덧대는 방식입니다. */
+.menu-select-option.required { box-shadow: inset 0 0 0 calc(2 * var(--upx)) #d3a23c; }
 .menu-select-option:disabled { cursor: not-allowed; opacity: .86; }
+
+/* ── 푸터 ────────────────────────────────────────────────── */
 .menu-select-footer { display: flex; align-items: center; justify-content: space-between; gap: calc(16 * var(--upx)); margin-top: calc(18 * var(--upx)); }
 .menu-select-footer strong { color: #f7dfad; white-space: nowrap; }
-/* 기본 .gold-button 은 width:100% 라 푸터 가로를 다 먹습니다. 여기서만 폭을 글자에 맞춰 줄입니다. */
-.menu-select-footer .gold-button { flex: 0 0 auto; width: auto; padding-left: calc(34 * var(--upx)); padding-right: calc(34 * var(--upx)); }
+
+/* 기본 .gold-button 은 width:100% 라 푸터 가로를 다 먹습니다. 여기서만 폭을 글자에 맞춰 줄입니다.
+   그라디언트·테두리·아래 그림자도 전부 버튼 그림 안에 있어서 같이 걷어냅니다.
+
+   여백이 8/34 가 아니라 10/36 인 것은, 걷어낸 2px 테두리를 여백으로 되돌려
+   버튼의 바깥 크기를 예전 그대로(141.6x41) 두기 위해서입니다. 그래야 에셋을
+   붙이면서 푸터 줄 높이가 달라지지 않습니다.
+   ⚠️ 좌우 여백은 버튼 폭을 정하는 값입니다. 줄이면 버튼이 좁아지면서
+      그림도 같이 눌립니다 (달빛식탁_메뉴선택_규격.md 4장).
+
+   margin-top 0 은 .gold-button 이 세로로 쌓이는 창(설정창 등)에서 쓰는
+   9upx 짜리 위 여백입니다. 여기는 가로 한 줄이라, 두면 버튼만 아래로
+   내려가 왼쪽 글자와 눈높이가 어긋납니다. */
+.menu-select-footer .gold-button {
+  flex: 0 0 auto; width: auto;
+  padding: calc(10 * var(--upx)) calc(36 * var(--upx));
+  margin-top: 0;
+
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--ms-button) center / 100% 100% no-repeat;
+}
+/* .gold-button:active 의 box-shadow 는 위에서 지운 그림자를 되살리므로 같이 막습니다.
+   눌리는 느낌은 translateY 만으로 남깁니다. */
+.menu-select-footer .gold-button:active { box-shadow: none; }
+
 @media (max-width:700px) {
   .menu-select-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .menu-select-option { min-height: calc(78 * var(--upx)); }
