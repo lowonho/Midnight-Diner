@@ -39,7 +39,7 @@ const HEAT_INGREDIENTS=Object.freeze({
     Object.freeze({id:"anchovy",label:"손질한 멸치",count:DAY_PREP_MINI_CONFIG.cleanAnchovy.total,asset:"anchovyGroup"})
   ]),
   tteokbokki:Object.freeze([
-    Object.freeze({id:"tteok",label:"불린 떡",count:null,asset:"soakTteok"}),
+    Object.freeze({id:"tteok",label:"떡",count:null,asset:"soakTteok"}),
     Object.freeze({id:"fishCake",label:"썬 어묵",count:TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="fishCake")?.requiredPieces??null,asset:"fishCake4"}),
     // 양념장 섞기(E7)에서 마지막에 완성된 그 볼 그림입니다 — 낮에 만든 것을
     // 그대로 냄비에 넣는 흐름이라 두 화면이 같은 장을 써야 이어져 보입니다.
@@ -52,7 +52,7 @@ const HEAT_CONFIG=Object.freeze({
     title:"어묵탕 끓이기",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:7,targetSpeed:.13,timeLimit:22,
+    targetSize:.22,targetHold:5,targetSpeed:.13,timeLimit:22,
     initialValue:.26,initialTarget:.54,initialTargetDirection:1,
     riseSpeed:.58,fallSpeed:.46,riseResponse:7.2,fallResponse:5.2
   }),
@@ -61,7 +61,7 @@ const HEAT_CONFIG=Object.freeze({
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
     // 구간이 좁고(.19) 더 빨라서(.16) 어묵탕보다 어렵습니다 — 그만큼 시간을 더 줍니다.
-    targetSize:.19,targetHold:7,targetSpeed:.16,timeLimit:25,
+    targetSize:.19,targetHold:5,targetSpeed:.16,timeLimit:25,
     initialValue:.28,initialTarget:.6,initialTargetDirection:-1,
     riseSpeed:.56,fallSpeed:.48,riseResponse:6.8,fallResponse:4.9
   }),
@@ -71,7 +71,7 @@ const HEAT_CONFIG=Object.freeze({
     title:"화력 조절",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:7,targetSpeed:.13,timeLimit:22,
+    targetSize:.22,targetHold:5,targetSpeed:.13,timeLimit:22,
     initialValue:.26,initialTarget:.54,initialTargetDirection:1,
     riseSpeed:.58,fallSpeed:.46,riseResponse:7,fallResponse:5
   })
@@ -412,7 +412,7 @@ function updateHeatVisual(data,config,timeLeft){
   const needle=dom.miniContent.querySelector("#heatNeedle");if(needle)needle.style.bottom=`${data.value*100}%`;
   /* 우측 진행도 카드. E10 멸치 머리 떼기의 '완성 개수' 카드와 같은 구성입니다 —
      큰 숫자 + 남은 시간. E4 만 그 사이에 가는 띠가 하나 더 있는데, 여기 진행도는
-     0.0~7.0 사이를 연속으로 오가는 값이라 숫자만으로는 늘고 주는 게 잘 안 보입니다.
+     0.0~5.0 사이를 연속으로 오가는 값이라 숫자만으로는 늘고 주는 게 잘 안 보입니다.
      ⚠️ 숫자에 '초' 를 붙이지 마세요. 이 값은 "적정 온도를 지킨 시간"이 아니라
         **채워야 하는 점수**입니다. 밖으로 나가면 도로 줄어드는데 '초' 라고 적혀
         있으면 시간이 거꾸로 가는 것처럼 보입니다. 시간은 아래 남은 시간 줄입니다. */
@@ -448,7 +448,7 @@ function completeHeatHold(m){
   finishMini(grade==="perfect"?100:85);
 }
 
-/* 제한 시간 안에 7.0 을 못 채웠을 때. 아예 0점으로 끝내지는 않고 채운 만큼 줍니다 —
+/* 제한 시간 안에 5.0 을 못 채웠을 때. 아예 0점으로 끝내지는 않고 채운 만큼 줍니다 —
    여기서 막히면 그날 장사를 통째로 다시 해야 해서 벌이 너무 큽니다.
    (30 ~ 80점. 다 채웠을 때의 85 · 100 보다는 반드시 낮아야 합니다) */
 function timeoutHeatHold(m){
@@ -462,7 +462,7 @@ function timeoutHeatHold(m){
 registerMiniEngine("heat",{
   setup(m,{set}){
     const configId=heatConfigId(m),config=HEAT_CONFIG[configId];
-    // 세 번째 인자가 제한 시간입니다(m.time). 예전에는 여기에 targetHold(7)을 넣고
+    // 세 번째 인자가 제한 시간입니다(m.time). 예전에는 여기에 targetHold 값을 넣고
     // timerRuns 를 false 로 꺼 두어서 시간 제한이 아예 없었습니다.
     set(config.title,config.description,config.timeLimit);
     m.data={
@@ -490,7 +490,7 @@ registerMiniEngine("heat",{
     updateHeatVisual(m.data,config,m.time);
   },
 
-  // 제한 시간 안에 진행도 7.0 을 채우는 게임입니다. 카운트다운은 game.js 가 m.time 을
+  // 제한 시간 안에 진행도 5.0 을 채우는 게임입니다. 카운트다운은 game.js 가 m.time 을
   // 깎으며 돌리고, 0 이 되면 아래 timeout 을 부릅니다.
   timerRuns(){return true;},
 

@@ -55,7 +55,6 @@
      E2 감자튀김    .fp-board:has(.fp-bag-scene)
      E2 새우튀김    .fp-board:has(.fp-shrimp-roll-scene)
      E8 불려두기    .soak-board
-     E11 플레이팅  .os-board
    위 나무 쟁반과 같은 자리·같은 방식이고 그림만 다릅니다.
 
    [불려두기가 쟁반이 아니라 여기인 이유] 물병을 볼 위로 **높이 들어 올려야**
@@ -88,8 +87,7 @@
 .fp-board:has(.md-scene),
 .fp-board:has(.fp-bag-scene),
 .fp-board:has(.fp-shrimp-roll-scene),
-.soak-board,
-.os-board {
+.soak-board {
   /* 테두리는 지우지 않고 색만 없앱니다 — 지우면 안쪽 상자가 12 커집니다 */
   border-color: transparent;
   border-radius: calc(20 * var(--upx));

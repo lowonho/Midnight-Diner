@@ -52,7 +52,7 @@
 }
 /* 지금 쓰는 재료 한 줄만 켭니다 (새우튀김의 단계 표시)
    원래 이 화면만 테두리가 #e3a94c 였고 배경도 따로였습니다. 나머지 화면
-   (E7 .sc-goal.selected · E8 .bt-ing-card.next · E11 .os-ing-card.selected)은
+   (E7 .sc-goal.selected · E8 .bt-ing-card.next)은
    전부 #ffe08d 라 공용 --mg-card-active 로 모았습니다.
    배경은 공용 카드 그대로 두고 테두리와 발광만 바꿉니다. */
 .fp-ing-card.active { border-color: var(--mg-card-active); box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,224,141,.32); }

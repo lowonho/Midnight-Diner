@@ -160,7 +160,7 @@
 .gs-slot:nth-child(even) .grill-skewer { --gs-tilt: 1deg; }
 
 /* 아직 안 올린 자리 — "여기에 올려 주세요" 점선 한 칸.
-   두부김치 플레이팅·김치전 반죽의 점선 안내와 같은 색·같은 깜빡임입니다. */
+   김치전 반죽의 점선 안내와 같은 색·같은 깜빡임입니다. */
 /* ⚠️ 점선 칸은 **꽂힌 조각 더미와 같은 자리**여야 합니다. 자루를 늘어놓는 상자는
    손잡이가 화로 아래로 삐져나오도록 세로가 길어서(310 · 아래 여백 38), 점선을
    그 상자에 꽉 채우면 화로 밖 나무 바닥까지 흘러내립니다.
@@ -256,8 +256,8 @@
    것이 아니라 겹치기만 해서, 어느 익힘 단계에서 발라도 그 그림 위에 윤기만 얹힙니다.
    ⚠️ 캔버스가 익힘 장과 같게 뽑혀 있어야 조각에 1:1 로 겹칩니다
       (tools/build-minigame-art-webp.js 의 pad).
-   ⚠️ 자루 단위(.grill-skewer.sauced)로 켭니다 — 조각마다 따로 켜는 것이 아니라
-      "이 자루는 양념을 발랐다" 한 가지 상태입니다. */
+   ⚠️ 현재 보이는 면에 양념을 발랐을 때만 자루에 .sauced를 켭니다.
+      앞·뒷면 상태는 unit.saucedSides가 따로 기억합니다. */
 .gs-piece-glaze {
   position: absolute;
   inset: 0;
@@ -836,7 +836,7 @@
 .ts-ing-panel { flex: 1; display: flex; flex-direction: column; gap: var(--mg-ing-panel-gap); }
 /* 카드 높이는 --mg-ing-card-h 를 넘지 않고, 남으면 세로 가운데로 모입니다.
    김치전은 재료가 하나뿐이라 1fr 이면 카드가 칸 전체(467.2)로 늘어나
-   E1 · E6 · E10 · E11(280)과 그림 자리가 어긋났습니다. */
+   다른 미니게임의 공용 카드(280)와 그림 자리가 어긋났습니다. */
 .ts-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--mg-ing-card-h)); align-content: center; gap: var(--mg-ing-list-gap); }
 /* 겉모습(여백·테두리·배경)은 공용 규칙이 정합니다 — css/minigame-parts.css.
    원래 이 화면만 테두리·배경이 없어 카드가 안 보였는데, 13화면을 한 벌로

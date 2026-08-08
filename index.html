@@ -159,12 +159,11 @@
                     </div>
                   </div>
 
-                  <!-- 우 : 완료 개수·걸린 시간(C 198.1) + 찾아야 할 재료(A2 403.1) — E10 멸치와 같은 배치 -->
+                  <!-- 우 : 완료 개수(C 198.1) + 찾아야 할 재료(A2 403.1) — E10 멸치와 같은 배치 -->
                   <aside class="fridge-right">
                     <div class="fridge-panel fridge-count-card">
                       <h3 class="fridge-col-title">완료 개수</h3>
                       <p id="ingredientTotalProgress" class="fridge-count"><b>0</b> / 0</p>
-                      <p id="ingredientTimer" class="fridge-time"><span>걸린 시간</span><b>0.0초</b></p>
                     </div>
                     <div class="fridge-panel fridge-goal-card">
                       <h3 class="fridge-col-title">찾아야 할 재료</h3>
@@ -469,18 +468,16 @@
   <script src="mini-engine.js"></script>          <!-- 등록소 + 공용 도우미 -->
   <script src="day-prep-minigames.js"></script>   <!-- 낮 준비 공용(에셋·열고닫기) + 등록 창구 -->
 
-  <!-- 엔진 13개. 파일 하나가 엔진 하나이며, 낮·밤 게임이 한 파일에 함께 있습니다. -->
+  <!-- 엔진 12개. 파일 하나가 엔진 하나이며, 낮·밤 게임이 한 파일에 함께 있습니다. -->
   <script src="engine-e1-timing-cut.js"></script>      <!-- E1  타이밍 칼질   게임 7 -->
   <script src="engine-e2-alternate-input.js"></script> <!-- E2  번갈아 입력   게임 2 -->
   <script src="engine-e3-direction-seq.js"></script>   <!-- E3  방향 시퀀스   게임 2 -->
   <script src="engine-e4-gauge-hold.js"></script>      <!-- E4  게이지 유지   게임 2 -->
   <script src="engine-e5-two-side-cook.js"></script>   <!-- E5  양면 굽기     게임 2 -->
   <script src="engine-e6-deep-fry.js"></script>        <!-- E6  튀기기       게임 2 -->
-  <script src="engine-e7-measure.js"></script>         <!-- E7  계량         게임 2 -->
-  <script src="engine-e8-order-place.js"></script>     <!-- E8  순서 배치     게임 4 -->
+  <script src="engine-e8-order-place.js"></script>     <!-- E8  순서 배치     게임 2 -->
   <script src="engine-e9-whisk.js"></script>           <!-- E9  원 그리기     게임 1 -->
   <script src="engine-e10-target-click.js"></script>   <!-- E10 표적 클릭     게임 1 -->
-  <script src="engine-e11-one-shot.js"></script>       <!-- E11 단발 액션     게임 2 -->
   <script src="engine-e12-grab-shake.js"></script>     <!-- E12 잡고 흔들기   게임 3 -->
   <script src="engine-e13-fridge-find.js"></script>    <!-- E13 재료 찾기     게임 1 -->
   <script src="engine-legacy-night.js"></script>       <!-- 표에 없음: 설거지 · 쓰레기 + 미사용 4종 -->

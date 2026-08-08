@@ -182,7 +182,7 @@
 
 /* ── 타이밍 칼질(E1) — 컨셉 화면 구성 ────────────────────────
    [재료 카드] [도마] [완성 개수 · 완성 예시] 3열입니다.
-   멸치(E10)·단발 액션(E11)과 같은 틀이라 칸 크기도 맞췄습니다.
+   멸치(E10)와 같은 틀이라 칸 크기도 맞췄습니다.
 
    공용 프레임(ui-mini-frame.js · css/minigame-frame.css)은 손대지 않고,
    이 게임이 떠 있는 동안에만 가운데 열 제한(.mini-content)을 풀어
@@ -362,18 +362,18 @@
   line-height:1;
   text-align:center;
   text-shadow:0 calc(6 * var(--upx)) 0 #6b3219,0 0 calc(24 * var(--upx)) rgba(255,196,76,.9);
-  animation:cut-countdown-pop .42s cubic-bezier(.2,.8,.2,1);
+  animation:cut-countdown-pop .3s cubic-bezier(.12,.9,.22,1);
 }
-.cut-start-countdown strong.tick { animation:cut-countdown-tick .42s cubic-bezier(.2,.8,.2,1); }
+.cut-start-countdown strong.tick { animation:cut-countdown-tick .3s cubic-bezier(.12,.9,.22,1); }
 .cut-start-countdown.go {
   pointer-events:none;
-  animation:cut-countdown-go .45s ease forwards;
+  animation:cut-countdown-go .3s ease forwards;
 }
 .cut-start-countdown.go strong {
   min-width:calc(260 * var(--upx));
   color:#ffe167;
   font-size:calc(76 * var(--upx));
-  animation:cut-countdown-start .45s ease forwards;
+  animation:cut-countdown-start .3s ease forwards;
 }
 @keyframes cut-countdown-pop {
   0% { opacity:0; transform:scale(.55); }
@@ -839,7 +839,17 @@
   background: linear-gradient(#c98a2a,#9c5f1a);
   box-shadow: inset 0 0 0 2px #eec277;
 }
-.cut-timing .prep-success-zone { background: linear-gradient(#5da84a,#3d8434); box-shadow: inset 0 0 0 2px #a6d97c; }
+.cut-timing .prep-success-zone {
+  background:linear-gradient(#568643,#396d32);
+  box-shadow:inset 0 0 0 1px rgba(193,226,151,.62);
+  opacity:.58;
+}
+.cut-timing .prep-success-zone.active {
+  z-index:1;
+  background:linear-gradient(#6dc956,#3f9138);
+  box-shadow:inset 0 0 0 2px #c5ed91,0 0 calc(8 * var(--upx)) rgba(130,216,83,.55);
+  opacity:1;
+}
 .cut-timing .prep-perfect-zone {
   position: absolute;
   inset-block: calc(2 * var(--upx));
@@ -848,7 +858,9 @@
   background: linear-gradient(rgba(255,226,119,.72),rgba(235,169,53,.72));
   box-shadow: 0 0 calc(7 * var(--upx)) rgba(255,220,105,.5);
   pointer-events: none;
+  opacity:.42;
 }
+.cut-timing .prep-perfect-zone.active { z-index:2; opacity:1; }
 .cut-timing .prep-timing-marker {
   top: calc(-9 * var(--upx));
   bottom: calc(-9 * var(--upx));

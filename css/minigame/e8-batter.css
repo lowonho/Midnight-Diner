@@ -129,8 +129,8 @@
    볼까지 절반(9)씩 함께 올라갑니다 — 위쪽 여백이 넉넉해 그래도 됩니다. */
 .bt-board:has(.bt-bowl-wrap[data-order-target="batter"]) .bt-progress { margin-bottom: calc(18 * var(--upx)); }
 
-/* 맨 처음 한 번만 나오는 "끌어다 놓으세요" 점선 — 두부김치 플레이팅(.os-drag-hint)과
-   같은 표시입니다. 재료를 하나라도 넣으면 engine-e8 이 안 그립니다.
+/* 맨 처음 한 번만 나오는 "끌어다 놓으세요" 점선입니다.
+   재료를 하나라도 넣으면 engine-e8 이 안 그립니다.
    자리는 쟁반 안쪽 왼끝(48)에서 볼 왼끝(가운데 - 230) 조금 앞까지입니다. */
 .bt-drag-hint {
   position: absolute;

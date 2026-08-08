@@ -87,9 +87,9 @@ assert(vm.runInContext("ticks",context)===1,"해제한 반복 작업은 다시 �
 const asyncFiles=[
   "day-prep-minigames.js","ingredient-select.js","engine-e1-timing-cut.js",
   "engine-e2-alternate-input.js","engine-e3-direction-seq.js","engine-e4-gauge-hold.js",
-  "engine-e5-two-side-cook.js","engine-e6-deep-fry.js","engine-e7-measure.js",
+  "engine-e5-two-side-cook.js","engine-e6-deep-fry.js",
   "engine-e8-order-place.js","engine-e9-whisk.js","engine-e10-target-click.js",
-  "engine-e11-one-shot.js","engine-e12-grab-shake.js","engine-e13-fridge-find.js",
+  "engine-e12-grab-shake.js","engine-e13-fridge-find.js",
   "engine-legacy-night.js"
 ];
 asyncFiles.forEach(file=>{

@@ -21,13 +21,13 @@ const DAY_PREP_MINI_CONFIG = {
   // E1은 칼날이 실제 절단선을 지나는 속도로 박자를 만듭니다.
   // travelSpeed는 재료 그림 너비 대비 초당 이동 퍼센트입니다.
   cutRadish:{title:"어묵탕 · 무 썰기",total:7,hitTolerance:CUT_HIT_TOLERANCE.radish,travelSpeed:22},
-  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true},
+  cutFishCake:{title:"어묵탕 · 어묵 썰기",total:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:22,horizontalLastCut:true},
   cutTofuKimchi:{title:"두부김치 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17},
   cutPancakeKimchi:{title:"김치전 · 김치 썰기",ingredient:"kimchi",total:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17},
   cutSkewerChicken:{title:"닭꼬치 · 닭 썰기",ingredient:"chicken",total:11,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true},
   cutSkewerGreenOnion:{title:"닭꼬치 · 대파 썰기",ingredient:"greenOnion",total:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19},
-  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:12},
-  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,timeLimit:25,requiredShakes:3,swingDistance:18}
+  cutTofuBlock:{title:"두부김치 · 두부 썰기",ingredient:"tofu",total:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:22},
+  cleanAnchovy:{title:"어묵탕 · 멸치 머리 떼기",total:7,requiredShakes:3,swingDistance:18}
 };
 
 // cycles 한 번 = ← → 두 번 (썰기 횟수 = cycles * 2)
@@ -160,53 +160,8 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   whiskMedium:"assets/minigame/E9/14_prop_whisk_batter_medium.webp",// 젓는 중
   // 오른쪽 '참고 모양'(고르게 섞인 반죽)은 마지막 장과 같은 그림입니다.
   batterDone:"assets/minigame/E9/11_food_kimchi_batter_mix_stage5_complete.webp",
-  // 소스 제조 (engine-e7). assets/minigame/E7/ 의 납품 에셋입니다.
-  // PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
-  //
-  //   소스볼 4장 x 2레시피 — **넣은 재료 개수**가 곧 장 번호입니다 (0 빈 볼 → 3 완성).
-  //   ⚠️ 파일 이름은 레시피 순서대로 재료가 쌓인 모습이지만, 실제로는 어떤 순서로
-  //      부어도 개수만 보고 고릅니다. 넣을 때마다 색이 짙어지는 연출이 목적이라
-  //      순서까지 맞춘 조합 그림(E8 반죽 9장 꼴)은 받지 않았습니다.
-  //      순서별 그림을 쓰려면 조합마다 한 장씩(2^3) 더 받아야 합니다.
-  sauceBowlTteokbokki0:"assets/minigame/E7/01_food_tteokbokki_sauce_bowl_empty.webp",
-  sauceBowlTteokbokki1:"assets/minigame/E7/02_food_tteokbokki_sauce_bowl_gochujang.webp",
-  sauceBowlTteokbokki2:"assets/minigame/E7/03_food_tteokbokki_sauce_bowl_gochujang_oligosaccharide.webp",
+  // 양념장 제조 게임은 제거됐지만, 완성 양념장 그림은 밤 떡볶이 조리에 사용합니다.
   sauceBowlTteokbokki3:"assets/minigame/E7/04_food_tteokbokki_sauce_bowl_final.webp",
-  sauceBowlYakisoba0:"assets/minigame/E7/01_food_yakisoba_sauce_bowl_empty.webp",
-  sauceBowlYakisoba1:"assets/minigame/E7/02_food_yakisoba_sauce_bowl_soy.webp",
-  sauceBowlYakisoba2:"assets/minigame/E7/03_food_yakisoba_sauce_bowl_soy_oyster.webp",
-  sauceBowlYakisoba3:"assets/minigame/E7/04_food_yakisoba_sauce_bowl_complete.webp",
-  //   소스통 3장 x 2레시피 — 조리대 위 소스통과 왼쪽 재료 카드가 **같은 장**을 씁니다.
-  //   ⚠️ 간장은 두 레시피에 다 나오지만 납품 그림이 서로 달라 키를 나눕니다.
-  //      그래서 키가 재료 id 하나가 아니라 `레시피 + 재료` 입니다
-  //      (engine-e7-measure.js 의 SAUCE_ASSET_KEY).
-  sauceBottleTteokbokkiGochujang:"assets/minigame/E7/food_tteokbokki_sauce_play_gochujang.webp",
-  sauceBottleTteokbokkiOligosaccharide:"assets/minigame/E7/food_tteokbokki_sauce_play_oligosaccharide.webp",
-  sauceBottleTteokbokkiSoy:"assets/minigame/E7/food_tteokbokki_sauce_play_soy_sauce.webp",
-  sauceBottleYakisobaSoy:"assets/minigame/E7/food_yakisoba_soy_sauce_play_labeled.webp",
-  sauceBottleYakisobaOyster:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_labeled.webp",
-  sauceBottleYakisobaChili:"assets/minigame/E7/food_yakisoba_chili_oil_play_labeled.webp",
-  //   뚜껑 연 소스통 3장 x 2레시피 — 병을 눌러 들어 올리는 동안만 이 그림으로 바뀝니다.
-  //   키는 위 닫힌 병 키에 Open 을 붙인 이름입니다 (engine-e7-measure.js 의 sauceBottleOpenAssetKey).
-  //   ⚠️ 닫힌 병과 **캔버스가 다릅니다** — 뚜껑을 뺀 만큼 짧은 것도 있고, 고추기름은
-  //      젖힌 뚜껑이 위로 삐져나와 오히려 큽니다. 그래서 같은 상자에 contain 으로
-  //      넣으면 안 되고, 닫힌 병과 같은 배율로 겹쳐야 합니다. 계산은 두 곳에
-  //      나뉘어 있습니다 — 크기는 tools/build-minigame-art-webp.js,
-  //      화면에 앉히는 자리는 engine-e7-measure.js 의 sauceOpenBottleStyle.
-  sauceBottleTteokbokkiGochujangOpen:"assets/minigame/E7/food_tteokbokki_gochujang_play_open.webp",
-  sauceBottleTteokbokkiOligosaccharideOpen:"assets/minigame/E7/food_tteokbokki_oligosaccharide_play_open.webp",
-  sauceBottleTteokbokkiSoyOpen:"assets/minigame/E7/food_tteokbokki_soy_sauce_play_open.webp",
-  sauceBottleYakisobaSoyOpen:"assets/minigame/E7/food_yakisoba_soy_sauce_play_open.webp",
-  sauceBottleYakisobaOysterOpen:"assets/minigame/E7/food_yakisoba_oyster_sauce_play_open.webp",
-  sauceBottleYakisobaChiliOpen:"assets/minigame/E7/food_yakisoba_chili_oil_play_open.webp",
-  //   소스통 → 볼 화살표. **아래 E2 새우와 같은 파일**입니다 (납품본이 바이트까지
-  //   같아 공용 폴더 한 장으로 합쳤습니다). E7 은 이 한 장을 CSS 에서 돌려 →·←·↓ 로 씁니다.
-  sauceArrow:"assets/minigame/ui_arrow_right_01.webp",
-  // 부어지는 줄기는 아직 CSS 도형입니다. 흰색 실루엣 마스크 3장을 아래 경로에
-  // 넣으면 재료 색은 E7 설정값(SAUCE_RECIPES 의 color)으로 입혀집니다.
-  sauceFlowThin:"assets/prep/sauce/flow-thin.png",
-  sauceFlowSyrup:"assets/prep/sauce/flow-syrup.png",
-  sauceFlowThick:"assets/prep/sauce/flow-thick.png",
   // 김치 볶기 (engine-e3). 화구는 아래 burnerGas1~3 레이어입니다.
   // ⚠️ fryingPan 은 **E5 김치전 굽기와 공용**입니다 (같은 후라이팬).
   //    손잡이까지 들어 있는 그림이라 몸통은 전체 폭의 79.7% 뿐입니다.
@@ -405,24 +360,6 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   shrimpIngFlour:"assets/minigame/E2/shrimp/food_tempura_flour_panel.webp",
   shrimpIngEgg:"assets/minigame/E2/shrimp/food_egg_wash_panel.webp",
   shrimpIngCrumbs:"assets/minigame/E2/shrimp/food_wet_breadcrumbs_panel.webp",
-  /* 단발 액션 (engine-e11 · 두부김치 자유 플레이팅). 여섯 장이 자리마다 나뉩니다.
-       osTofuSlices · osFriedKimchi   왼쪽 재료 카드 (더미로 그린 그림)
-       osTofuPiece · osKimchiPiece    접시에 한 조각씩 얹히는 낱개 그림
-       osPlate                        가운데 빈 접시
-       osPlateDone                    오른쪽 '참고 모양' — 다 담은 모습 한 장
-     카드와 낱개가 다른 파일인 것이 중요합니다. 카드는 더미, 접시 위는 낱개입니다.
-     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
-     ⚠️ 빈 접시 마스터는 1254 정사각 캔버스에 접시(1025x720)만 그려져 있습니다.
-        빌드에서 그 여백을 잘라내(crop) 참고 모양 그림과 같은 크기로 맞췄습니다 —
-        안 자르면 contain 이 여백까지 맞추느라 접시가 작게 그려집니다.
-     (어묵탕 냄비 그림 osRadish/osFishCake/osAnchovy/osBroth/osPot/osPotDone 은
-      "냄비에 넣기"·"육수 넣기" 를 없애면서 함께 뺐습니다) */
-  osTofuSlices:"assets/minigame/E11/food_tofu_kimchi_ingredient_tofu.webp",
-  osFriedKimchi:"assets/minigame/E11/food_tofu_kimchi_ingredient_kimchi.webp",
-  osTofuPiece:"assets/minigame/E11/food_tofu_kimchi_tofu_piece.webp",
-  osKimchiPiece:"assets/minigame/E11/food_tofu_kimchi_kimchi_piece.webp",
-  osPlate:"assets/minigame/E11/food_tofu_kimchi_plate_empty.webp",
-  osPlateDone:"assets/minigame/E11/food_tofu_kimchi_reference_complete.webp",
   // 김치전 굽기 · 닭꼬치 굽기 (engine-e5 · 밤 조리)의 왼쪽 재료 카드.
   // 파일을 넣기 전에는 CSS 임시 도형으로 그립니다.
   // 김치전 반죽 그릇 — assets/minigame/E5/ 의 납품 에셋입니다.
@@ -492,29 +429,8 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
   /* 굽기 신호 때 조리물 위에 겹치는 **누르는 손**. 닭꼬치(한 번 클릭)와 김치전(꾹 누르기)이
      같은 그림을 씁니다. 파일이 없으면 css 의 임시 손 모양(인라인 SVG)이 나옵니다. */
   cookGesturePress:"assets/minigame/E5/ui_gesture_press_hold_no_pressure_lines.webp",
-  /* E8 떡 · 우동면 불려두기.
-     PNG 가 마스터이고 여기서 쓰는 WebP 는 tools/build-minigame-art-webp.js 산출물입니다.
-
-     ⚠️ 볼 그림은 **물이 찬 정도까지 한 장에 그려져 있습니다**(SOAK_WATER_STEPS).
-        예전에는 빈 볼 한 장 위에 재료 조각과 물 높이를 CSS 로 얹었는데,
-        지금은 아래 11장을 겹쳐 두고 갈아 끼웁니다 (engine-e8-order-place.js).
-     ⚠️ 물병(soakWater)과 물방울(soakDrop)은 **한 장이 두 자리에 쓰입니다** —
-        물병은 판 위 + 왼쪽 물 카드, 물방울은 오른쪽 목표 + 진행도 게이지입니다. */
-  soakBowl:"assets/minigame/E8/Soaking/food_soak_bowl_empty.webp",
-  soakWater:"assets/minigame/E8/Soaking/prop_soak_water_pitcher.webp",
-  /* 붓는 자세 2장(25도 · 45도). 세워 둔 장을 CSS 로 돌리는 것이 아니라 갈아 끼웁니다 —
-     돌리면 병 안의 물 면까지 같이 기울어 물이 한쪽 벽에 붙어 보입니다. */
-  soakWaterTilt1:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_01.webp",
-  soakWaterTilt2:"assets/minigame/E8/Soaking/prop_soak_water_pitcher_tilt_02.webp",
-  soakDrop:"assets/minigame/E8/Soaking/food_soak_water_ingredient.webp",
-  // 왼쪽 재료 카드 (담기 전의 마른 떡·우동면). 떡은 E4 '불린 떡' 카드와 공용입니다.
-  soakTteok:"assets/minigame/E8/Soaking/food_soak_tteok_ingredient_bowl.webp",
-  soakUdon:"assets/minigame/E8/Soaking/food_soak_udon_ingredient_bowl.webp",
-  // 물이 찬 정도 5단계 x 2종. 키 뒷자리(00~100)가 곧 진행도 % 입니다.
-  ...Object.fromEntries(["tteok","udon"].flatMap(kind=>["00","25","50","75","100"].map(step=>[
-    `soak${kind==="tteok"?"Tteok":"Udon"}Water${step}`,
-    `assets/minigame/E8/Soaking/food_soak_${kind}_water_${step}.webp`
-  ])))
+  // 불리기 게임은 제거됐지만, 떡 재료 그림은 밤 떡볶이 조리에 사용합니다.
+  soakTteok:"assets/minigame/E8/Soaking/food_soak_tteok_ingredient_bowl.webp"
 });
 const dayPrepAssets={};
 

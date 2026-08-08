@@ -1,8 +1,8 @@
 순위,제작단계,엔진,파일명,설명,추천 검색어,규격,완료
 1,3차 시스템,서빙,sfx_food_serve,완성 접시를 손님 앞에 내려놓는 소리,ceramic plate serve table sound,0.2~0.5초,완료
-2,2차 디테일,E7·E11,sfx_pour_thin,간장·고추기름·육수처럼 묽은 액체 흐름,thin liquid pouring into bowl,1~2초,완료
+2,2차 디테일,E7,sfx_pour_thin,간장·고추기름처럼 묽은 액체 흐름,thin liquid pouring into bowl,1~2초,완료
 3,2차 디테일,E8,sfx_pour_water,볼에 맑은 물을 붓는 소리 (반죽·불리기 물),clean water pouring into bowl,1~2초,완료
-4,2차 디테일,E8·E11,sfx_ingredient_wet_drop,김치·떡·우동·무·어묵·멸치를 볼이나 냄비에 넣는 소리,food dropping into bowl sound,0.15~0.4초,미완료
+4,2차 디테일,E8,sfx_ingredient_wet_drop,김치를 볼에 넣는 소리,food dropping into bowl sound,0.15~0.4초,미완료
 5,2차 디테일,E2,sfx_potato_starch_shake,감자 전분 봉투를 흔드는 마른 가루 소리,plastic bag powder shake sound,0.15~0.35초,미완료
 6,2차 디테일,E2,sfx_shrimp_flour_coat,새우를 밀가루 그릇에서 굴려 고운 가루를 입히는 마른 소리,dry flour coating shrimp sound,0.15~0.35초,완료
 7,2차 디테일,E2,sfx_shrimp_egg_coat,새우를 계란물 안에서 굴리는 끈적한 출렁임,egg wash slosh sound,0.15~0.35초,완료
@@ -15,7 +15,6 @@
 14,2차 디테일,E10,sfx_anchovy_tension1,멸치 머리를 좌우로 흔들 때 접합부가 당겨지는 소리1,small fish bone tension sound,0.1~0.25초,완료
 15,2차 디테일,E10,sfx_anchovy_tension2,멸치 머리를 좌우로 흔들 때 접합부가 당겨지는 소리2,small fish bone tension sound,0.1~0.25초,완료
 16,2차 디테일,E10,sfx_anchovy_finish,멸치 머리가 완전히 뜯어져 도마에 떨어지는 마무리 소리,small fish tear finish drop sound,0.15~0.35초,완료
-17,2차 디테일,E11,sfx_plate_place,두부와 볶은 김치를 접시에 부드럽게 내려놓는 소리,soft food placed on ceramic plate,0.15~0.35초,미완료
 18,1차 필수,E3·E5,sfx_pan_sizzle_loop,김치볶기와 김치전 굽기 공통 팬 지글거림,food sizzling in frying pan loop,3~6초 무봉제 루프,완료
 19,1차 필수,E6,sfx_deep_fry_loop,새우와 감자가 기름에서 튀겨지는 강한 지속음,deep fryer bubbling loop,3~6초 무봉제 루프,완료
 20,1차 필수,E3,sfx_griddle_sizzle_loop,볶음우동 철판의 넓고 강한 지글거림,teppanyaki griddle sizzling loop,3~6초 무봉제 루프,완료

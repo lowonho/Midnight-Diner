@@ -127,7 +127,7 @@ const FRY_DISHES = Object.freeze({
 /* 냄비 안에서 조각 한가운데가 갈 수 있는 가장 바깥(냄비 칸 한가운데 기준 %).
    ⚠️ **.fry-pot 칸은 냄비 전체가 아니라 기름 타원입니다** (css 의 .fry-pot-asset
       참고). 그래서 기름 가장자리가 곧 반지름 50 이고, 조각이 쇠테에 걸치지 않게
-      26 으로 묶습니다. (E11 의 FREE_PLATE_RADIUS 와 같은 방식)
+      26 으로 묶습니다.
         26 + 조각 반지름(31% 짜리 그림의 대각선 절반 ≒ 21.2) = 47.2  <  50
    ⚠️ 다 익은 조각은 떠오르면서 1.08배까지 커집니다(css 의 fry-float). 그 몫까지
       들어간 값이라 더 키우지 마세요 — 대각선으로 가장 멀리 놓았을 때
@@ -536,7 +536,7 @@ function releaseFryHold() {
 }
 
 /* ---- 조작 : Pointer Events 드래그 · 클릭 · Space ------------
-   E11(단발 액션)과 같은 방식입니다. 마우스와 터치를 한 벌로 처리합니다. */
+   마우스와 터치를 한 벌로 처리합니다. */
 
 let fryPointer = null;
 let suppressFryClick = false;

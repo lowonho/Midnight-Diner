@@ -45,16 +45,15 @@
 | 21 | E2 | `sfx_dry_shake` | 감자 전분 봉투와 새우 밀가루·빵가루를 흔드는 마른 소리 | `plastic bag powder shake sound` | 0.15~0.35초 | ☐ |
 | 22 | E2 | `sfx_wet_coat` | 새우를 계란물 안에서 굴리는 끈적한 출렁임 | `egg wash slosh sound` | 0.15~0.35초 | ☐ |
 | 23 | E5 | `sfx_skewer_turn` | 닭꼬치 한 개를 집어 반대쪽으로 돌리는 소리 | `wooden skewer turning grill sound` | 0.15~0.35초 | ☐ |
-| 24 | E7·E8·E11 | `sfx_pour_thin` | 간장·고추기름·물·육수처럼 묽은 액체 흐름 | `thin liquid pouring into bowl` | 1~2초 | ☐ |
+| 24 | E7·E8 | `sfx_pour_thin` | 간장·고추기름·물처럼 묽은 액체 흐름 | `thin liquid pouring into bowl` | 1~2초 | ☐ |
 | 25 | E7 | `sfx_pour_syrup` | 올리고당처럼 점성이 있는 시럽 흐름 | `thick syrup pouring sound` | 1~2초 | ☐ |
 | 26 | E7 | `sfx_pour_thick` | 고추장·굴소스처럼 걸쭉한 소스가 떨어지는 소리 | `thick sauce squeeze pour sound` | 1~2초 | ☐ |
 | 27 | E8 | `sfx_ingredient_dry_dump` | 부침가루 같은 마른 가루를 볼에 붓는 소리 | `flour pouring into bowl sound` | 0.4~0.8초 | ☐ |
-| 28 | E8·E11 | `sfx_ingredient_wet_drop` | 김치·떡·우동·무·어묵·멸치를 볼이나 냄비에 넣는 소리 | `food dropping into bowl sound` | 0.15~0.4초 | ☐ |
+| 28 | E8 | `sfx_ingredient_wet_drop` | 김치를 볼에 넣는 소리 | `food dropping into bowl sound` | 0.15~0.4초 | ☐ |
 | 29 | E8 | `sfx_skewer_pierce` | 닭과 파를 나무 꼬치에 꽂는 작은 관통음 | `food piercing wooden skewer sound` | 0.1~0.25초 | ☐ |
 | 30 | E10 | `sfx_anchovy_tension` | 멸치 머리를 좌우로 흔들 때 접합부가 당겨지는 소리 | `small fish bone tension sound` | 0.1~0.25초 | ☐ |
 | 31 | E10 | `sfx_anchovy_tear` | 멸치 머리가 몸통에서 뜯어지는 순간 | `small fish tearing sound` | 0.15~0.35초 | ☐ |
 | 32 | E10 | `sfx_anchovy_head_land` | 분리된 멸치 머리가 도마에 작게 떨어지는 소리 | `small object drop wooden board` | 0.08~0.2초 | ☐ |
-| 33 | E11 | `sfx_plate_place` | 두부와 볶은 김치를 접시에 부드럽게 내려놓는 소리 | `soft food placed on ceramic plate` | 0.15~0.35초 | ☐ |
 
 ## 3차 · 최소 시스템음 5개
 

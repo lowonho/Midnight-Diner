@@ -26,11 +26,9 @@ function setMiniTipHint(){}
 <script src="../engine-e4-gauge-hold.js"></script>
 <script src="../engine-e5-two-side-cook.js"></script>
 <script src="../engine-e6-deep-fry.js"></script>
-<script src="../engine-e7-measure.js"></script>
 <script src="../engine-e8-order-place.js"></script>
 <script src="../engine-e9-whisk.js"></script>
 <script src="../engine-e10-target-click.js"></script>
-<script src="../engine-e11-one-shot.js"></script>
 <script src="../engine-e12-grab-shake.js"></script>
 <script>
 try{
@@ -45,20 +43,20 @@ try{
   });
 
   const day4Ids=selectedPrepTasks().map(task=>task.id);
-  assert(JSON.stringify(day4Ids)===JSON.stringify(["soakTteok","cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","mixTteokbokkiSauce","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
+  assert(JSON.stringify(day4Ids)===JSON.stringify(["cutTteokbokkiCabbage","cutTteokbokkiGreenOnion","cutTteokbokkiFishCake","sliceFriesPotato","shakeFriesStarch"]),`Day 4 order: ${day4Ids}`);
   const prepGroups=prepDishGroups();
-  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===5&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="soakTteok","Prep table keeps one grouped slot and next step per dish");
-  state.prepProgress.soakTteok=true;
-  assert(prepDishGroups()[0].task.id==="cutTteokbokkiCabbage"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Grouped prep slot and sequence advance to the dish's next task");
+  assert(prepGroups.length===2&&prepGroups[0].dish.id==="tteokbokki"&&prepGroups[0].tasks.length===3&&prepGroups[1].dish.id==="fries"&&prepGroups[1].tasks.length===2&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiCabbage","Prep table keeps one grouped slot and next step per dish");
+  state.prepProgress.cutTteokbokkiCabbage=true;
+  assert(prepDishGroups()[0].task.id==="cutTteokbokkiGreenOnion"&&nextPrepTaskForDish("tteokbokki").id==="cutTteokbokkiGreenOnion","Grouped prep slot and sequence advance to the dish's next task");
   let chainedPrepTask="";const originalStartDayPrepMini=startDayPrepMini;
-  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"soakTteok"}};state.mini=chainMini;
-  assert(advanceDayPrepDish(chainMini,"soakTteok")&&chainedPrepTask==="cutTteokbokkiCabbage","Completed prep step automatically starts the same dish's next step");
+  startDayPrepMini=task=>{chainedPrepTask=task.id;};const chainMini={context:{mode:"dayPrep",taskId:"cutTteokbokkiCabbage"}};state.mini=chainMini;
+  assert(advanceDayPrepDish(chainMini,"cutTteokbokkiCabbage")&&chainedPrepTask==="cutTteokbokkiGreenOnion","Completed prep step automatically starts the same dish's next step");
   startDayPrepMini=originalStartDayPrepMini;state.mini=null;
-  state.prepProgress.soakTteok=false;
+  state.prepProgress.cutTteokbokkiCabbage=false;
 
   state.day=3;state.selectedMenus=["yakisoba","shrimpTempura"];
   const day3Ids=selectedPrepTasks().map(task=>task.id);
-  assert(day3Ids.length===5&&day3Ids.includes("coatShrimp"),`Day 3 merged shrimp task: ${day3Ids}`);
+  assert(day3Ids.length===3&&day3Ids.includes("coatShrimp"),`Day 3 merged shrimp task: ${day3Ids}`);
 
   state.day=6;state.selectedMenus=["shrimpTempura","fries"];
   const laterIds=selectedPrepTasks().map(task=>task.id);
@@ -71,24 +69,25 @@ try{
   startCuttingMinigame=originalStartCutting;
   assert(cutRoute==="timing","E1 must keep timing cuts after Day 4");
   assert(cutTimingGrade(.5,.4,.2)==="perfect"&&cutTimingGrade(.41,.4,.2)==="good"&&cutTimingGrade(.2,.4,.2)==="miss","Legacy night-cut grading remains available");
-  assert(CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startSignalMs===450,"E1 path timing config");
+  assert(CUT_FEEL_CONFIG.hitZoneScale===.7&&CUT_FEEL_CONFIG.travelSpeedScale===1.15&&CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.flowVisualSettleMs===180&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startCountdownStepSeconds===.5&&CUT_FEEL_CONFIG.startSignalMs===300,"E1 tighter, faster, continuous path timing config");
   assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:3.4,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===3.4,"E1 ingredient-specific tuned hit boxes");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,16"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 tteokbokki cut counts, tempos, and fish-cake horizontal finish");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="12,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="16,19,22"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 slows the twelve-cut cabbage and speeds up the four-cut fish cake");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,3.4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===3.4,"E1 tteokbokki ingredients use tuned hit boxes");
 
   dayPrepAssets.tteokCabbage0={src:"assets/minigame/E1/cabbage-0.png"};
   dayPrepAssets.tteokCabbage1={src:"assets/minigame/E1/cabbage-1.png"};
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:22,title:"E1 smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,title:"E1 smoke",description:"smoke"});
   const cabbageMini=state.mini,cabbageStart=cabbageMini.data.knifeX;
+  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-18.4)<1e-9,"E1 applies the tighter hit zone while keeping twelve-cut cabbage at the slower 18.4 speed");
   timingCutAction();
-  assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
-  assert(cabbageMini.data.knifeX===cabbageStart&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="2","E1 countdown advances to two without moving the knife");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
-  assert(dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="1","E1 countdown advances to one");
-  MINI_ENGINES.timing.update(cabbageMini,1.01);
+  assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3!"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
+  assert(cabbageMini.data.knifeX===cabbageStart&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="2!","E1 fast countdown advances to two without moving the knife");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
+  assert(dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="1!","E1 fast countdown advances to one");
+  MINI_ENGINES.timing.update(cabbageMini,.51);
   assert(cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&!dom.miniContent.querySelector("#dayPrepAction").disabled&&dom.miniContent.querySelector("#cutStartCountdown.go strong").textContent==="시작!","E1 starts only after the three-two-one countdown");
   assert(Math.abs((cabbageStart-suppliedCutPosition("cabbage",0,12))-(suppliedCutPosition("cabbage",0,12)-suppliedCutPosition("cabbage",1,12)))<.01,"E1 first beat uses the same travel distance as the following supplied cut gap");
   const waitingKnifeX=dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-x");
@@ -102,7 +101,7 @@ try{
   const pathZone=pathBar.querySelector(".prep-success-zone"),pathMarker=pathBar.querySelector("#dayPrepMarker");
   const barAt=()=>parseFloat(pathMarker.style.left);
   const zoneCenter=parseFloat(pathZone.style.left)+parseFloat(pathZone.style.width)/2;
-  assert(Math.abs(zoneCenter-barAt())<.2,"E1 bottom-bar hit zone centers on the marker when the knife sits on the cut line");
+  assert(pathBar.querySelectorAll(".prep-success-zone").length===12&&pathBar.querySelectorAll(".prep-perfect-zone").length===12&&pathZone.classList.contains("active")&&Math.abs(zoneCenter-barAt())<.2,"E1 shows every cut hit zone up front and centers the active zone on the marker");
   /* 바는 "칼이 지나는 구간"을 폭 전체로 폅니다 — 재료가 도마에서 차지한 만큼만
      쓰던 예전 방식은 포인터가 좁게 움직여 속도감이 없었습니다.
      ⚠️ 판정은 재료 좌표 그대로라, 여기 숫자가 바뀌어도 절단선·타이밍은 그대로입니다. */
@@ -115,7 +114,7 @@ try{
   cabbageMini.data.knifeX=suppliedCutPosition("cabbage",0,12);syncTimingKnife(cabbageMini.data);
   assert(cutPathGrade(cabbageMini.data)==="perfect","E1 judgment is measured from the knife's actual cut-line distance");
   timingCutAction();
-  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="impact"&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 advances to the next supplied asset while removing only the extra completed seam");
+  assert(cabbageMini.data.successes===1&&cabbageMini.data.phase==="ready"&&!cabbageMini.data.inputLocked&&dom.miniContent.querySelector(".cut-board.cut-perfect")&&!dom.miniContent.querySelector(".cut-pile")&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===11&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===11&&!dom.miniContent.querySelector("#prepWorkObject .cut-line.done")&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/cabbage-1.png"&&dom.miniContent.querySelector(".cut-path-timing"),"E1 immediately flows to the next hit zone while the cut effect settles");
   const tteokCabbage=TTEOKBOKKI_CUT_SEQUENCE.find(item=>item.ingredientId==="cabbage");
   const cabbageStages=Array.from({length:13},(_,successes)=>cutAssetStage({ingredient:"cabbage",total:12,successes})).join(",");
   assert(CUT_POSITION_PERCENTAGES.cabbage.join(",")==="92.5,84.4,76.1,68.4,61.1,53.6,45.8,37.9,30.4,22.1,15,7.5"&&CUT_ASSET_STAGE_MAX.cabbage===12,"E1 cabbage uses all twelve supplied cut gaps");
@@ -126,7 +125,7 @@ try{
   const missMini=state.mini,missTarget=timingCutTarget(missMini.data).value;
   missMini.data.knifeX=missTarget-missMini.data.hitTolerance+.1;
   advanceTimingKnife(missMini,.01);
-  assert(missMini.data.successes===1&&missMini.data.mistakes===1&&missMini.data.phase==="impact","E1 passing a cut line consumes that beat as a miss and advances to the next score position");
+  assert(missMini.data.successes===1&&missMini.data.mistakes===1&&missMini.data.phase==="ready"&&!missMini.data.inputLocked,"E1 passing a cut line consumes that beat and immediately flows to the next score position");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeGreenOnion",ingredient:"greenOnion",requiredHits:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19,title:"E1 green onion smoke",description:"smoke"});
@@ -147,16 +146,18 @@ try{
   assert(CUT_ASSET_STAGE_MAX.radish===7&&radishStages==="0,1,2,3,4,5,6,7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E1 radish maps seven cuts one-to-one onto eight progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeFishCake",ingredient:"fishCake",requiredHits:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:22,horizontalLastCut:true,title:"E1 fish cake smoke",description:"smoke"});
   const fishCakeLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line:not(.tofu-horizontal-line)")].map(line=>line.style.left).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 fish cake uses three straight vertical cuts and one final horizontal cut");
+  assert(DAY_PREP_MINI_CONFIG.cutFishCake.total===4&&DAY_PREP_MINI_CONFIG.cutFishCake.horizontalLastCut&&fishCakeLines==="74.3%,51.3%,26.7%"&&!dom.miniContent.querySelector(".fishcake-diagonal")&&dom.miniContent.querySelector(".tofu-horizontal-line")&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===3,"E1 fish cake previews only its three vertical hit zones");
   const fishTarget=timingCutTarget(state.mini.data).value;
   state.mini.data.knifeX=fishTarget+state.mini.data.hitTolerance-.01;
   const fishEdgeGrade=cutPathGrade(state.mini.data);
   state.mini.data.knifeX=fishTarget+state.mini.data.hitTolerance+.01;
-  assert(state.mini.data.hitTolerance===3.4&&fishEdgeGrade==="good"&&cutPathGrade(state.mini.data)==="miss","E1 fish-cake hit box ends at 3.4% from the cut line");
+  assert(Math.abs(state.mini.data.hitTolerance-2.38)<1e-9&&Math.abs(state.mini.data.travelSpeed-25.3)<1e-9&&fishEdgeGrade==="good"&&cutPathGrade(state.mini.data)==="miss","E1 fish-cake uses the tighter 2.38-percent hit box and the faster 25.3 bar");
   state.mini.data.successes=3;state.mini.data.knifeY=12;renderTimingCut();
-  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y"&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-y")==="50%"&&state.mini.data.knifeY===12,"E1 fish cake waits at the horizontal cut line while its bottom marker starts moving");
+  const fishHorizontalZone=dom.miniContent.querySelector(".cut-path-timing .prep-success-zone");
+  const fishHorizontalCenter=parseFloat(fishHorizontalZone.style.left)+parseFloat(fishHorizontalZone.style.width)/2;
+  assert(dom.miniContent.querySelector("#prepWorkObject.horizontal-cut")&&timingCutTarget(state.mini.data).axis==="y"&&dom.miniContent.querySelector("#prepWorkObject").style.getPropertyValue("--knife-y")==="50%"&&state.mini.data.knifeY===12&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===1&&Math.abs(fishHorizontalCenter-50)<.1,"E1 fish cake reveals one centered hit zone only when the horizontal cut begins");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   startCuttingMinigame({taskId:"smokeKimchi",ingredient:"kimchi",requiredHits:9,hitTolerance:CUT_HIT_TOLERANCE.kimchi,travelSpeed:17,title:"E1 kimchi smoke",description:"smoke"});
@@ -166,9 +167,9 @@ try{
   assert(CUT_ASSET_STAGE_MAX.kimchi===9&&kimchiStages==="0,1,2,3,4,5,6,7,8,9"&&DAY_PREP_ASSET_PATHS.kimchiCut9==="assets/minigame/E1/kimchi-9.png","E1 kimchi maps nine cuts one-to-one onto ten progress assets");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:12,title:"E1 tofu smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeTofu",ingredient:"tofu",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.tofu,travelSpeed:22,title:"E1 tofu smoke",description:"smoke"});
   const tofuLines=[...dom.miniContent.querySelectorAll("#prepWorkObject .cut-line")].map(line=>line.style.left).join(",");
-  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===12&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line"),"E1 tofu keeps six cuts and the tuned heavy tempo");
+  assert(DAY_PREP_MINI_CONFIG.cutTofuBlock.total===6&&DAY_PREP_MINI_CONFIG.cutTofuBlock.travelSpeed===22&&Math.abs(state.mini.data.travelSpeed-25.3)<1e-9&&!DAY_PREP_MINI_CONFIG.cutTofuBlock.horizontalLastCut&&tofuLines==="85.2%,71.3%,57.5%,43.6%,29.7%,15.5%"&&!dom.miniContent.querySelector(".tofu-horizontal-line")&&dom.miniContent.querySelectorAll(".cut-path-timing .prep-success-zone").length===6,"E1 tofu shows all six hit zones and matches fish-cake speed at 25.3");
 
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
   playedSfx.length=0;
@@ -183,6 +184,11 @@ try{
   assert(playedSfx.join(",")==="cut_meat1","E1 chicken first tap plays meat sound 1");
   timingCutAction();assert(state.mini.data.successes===1&&state.mini.data.phase==="complete","E1 chicken second tap completes cut");
   assert(playedSfx.join(",")==="cut_meat1,cut_meat2","E1 chicken second tap plays meat sound 2");
+  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
+  startCuttingMinigame({taskId:"smokeChickenRecovery",ingredient:"chicken",requiredHits:2,hitTolerance:CUT_HIT_TOLERANCE.chicken,travelSpeed:15,requiresDoubleTap:true,title:"E1 chicken recovery smoke",description:"smoke"});
+  MINI_ENGINES.timing.update(state.mini,1.6);
+  state.mini.data.knifeX=suppliedCutPosition("chicken",0,2);timingCutAction();timingCutAction();
+  assert(state.mini.data.successes===1&&state.mini.data.phase==="impact"&&state.mini.data.inputLocked,"E1 chicken alone keeps the recovery pause between double-tap cuts");
 
   dayPrepAssets.tofu0={src:"assets/minigame/E1/tofu-0.png"};
   dayPrepAssets.tofu1={src:"assets/minigame/E1/tofu-1.png"};
@@ -196,7 +202,7 @@ try{
   assert(cookTofuMini.data.knifeX<cookTofuKnifeStart&&!MINI_ENGINES.timing.timerRuns(cookTofuMini)&&timingCutAverageScore({cutScores:[100,85,45]})===77,"Open-hours tofu advances the E1 knife and uses E1 score aggregation without a legacy timer");
   cookTofuMini.data.knifeX=suppliedCutPosition("tofu",0,6);
   timingCutAction();
-  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.phase==="impact"&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses the E1 blade position judgment and advances its supplied asset");
+  assert(cookTofuMini.data.successes===1&&cookTofuMini.data.phase==="ready"&&!cookTofuMini.data.inputLocked&&dom.miniContent.querySelectorAll("#prepWorkObject .cut-line").length===5&&dom.miniContent.querySelector("#prepWorkObject .prep-object-asset").getAttribute("src")==="assets/minigame/E1/tofu-1.png","Open-hours tofu uses continuous E1 blade judgment and advances its supplied asset without a pause");
   if(new URLSearchParams(location.search).get("scope")==="e1")throw new Error("E1_PATH_TEST_COMPLETE");
 
   assert(DAY3_MANDOLINE_CONFIG.sliceYakisobaCabbage.cycles===12&&DAY3_MANDOLINE_CONFIG.sliceYakisobaCarrot.cycles===10&&DAY4_PREP_CONFIG.potatoMandoline.totalInputs===20&&MANDOLINE_SHREDS_PER_CUT===12,"E12 mandoline stroke counts are doubled and each stroke drops a full dozen shreds");
@@ -206,7 +212,7 @@ try{
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.total===10&&DIRECTION_SEQUENCE_CONFIG.kimchi.directions.join(",")==="left,up,right,down"&&DIRECTION_SEQUENCE_CONFIG.kimchi.slideStep===.45,"Kimchi direction config and full sweeping gesture threshold");
   // 네 방향마다 뒤집힌 김치 그림이 한 장씩 있어야 합니다 — 없으면 그 방향만 base 로 남습니다
   assert(DIRECTION_SEQUENCE_CONFIG.kimchi.directions.every(way=>DAY_PREP_ASSET_PATHS[fryKimchiStirAssetKey(way)])&&DAY_PREP_ASSET_PATHS.fryKimchiBase&&["frySpatulaClean","frySpatulaStirring","frySpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 kimchi has one flipped frame per direction plus three spatula states");
-  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===12&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba direction config and full sweeping gesture threshold");
+  assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.total===10&&DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.length===4&&DIRECTION_SEQUENCE_CONFIG.yakisoba.slideStep===.45,"Yakisoba uses ten full sweeping gestures");
   // 볶음우동도 김치 볶기와 같은 한 벌입니다 — 방향마다 볶은 면 한 장 + 뒤집개 3자세.
   // 뒤집개는 두 자루지만 **한 장을 좌우로 뒤집어 나눠 쓰므로** 그림은 3장 그대로입니다.
   assert(DIRECTION_SEQUENCE_CONFIG.yakisoba.directions.every(way=>DAY_PREP_ASSET_PATHS[stirUdonPoseAssetKey(way)])&&DAY_PREP_ASSET_PATHS.stirUdonBase&&["stirSpatulaClean","stirSpatulaStirring","stirSpatulaRested"].every(key=>DAY_PREP_ASSET_PATHS[key]),"E3 yakisoba has one flipped frame per direction plus three spatula states");
@@ -223,6 +229,7 @@ try{
   state.day=6;state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupMandoline("sliceFriesPotato");mandolineInput("left",false);
   assert(MINI_ENGINES.mandoline&&DAY_PREP_SETUPS.mandoline&&DAY_PREP_SETUPS.potatoMandoline,"E12 owns mandoline engine and setup registration");
   assert(state.mini.data.totalInputs===20&&state.mini.data.successInputs===1&&state.mini.data.expected==="right"&&dom.miniContent.querySelector("#mandolineIngredient.move-left"),"E12 mandoline doubled input count and visual state");
+  assert(!dom.miniContent.querySelector(".md-drag-track"),"E12 mandoline no longer renders the dotted drag guide");
   assert(mandolineDragProjection(83.9,54.5)>99&&Math.abs(mandolineDragProjection(-54.5,83.9))<1,"E2 mandoline projects pointer motion onto the illustrated diagonal rail");
   const dragIngredient=dom.miniContent.querySelector("#mandolineIngredient"),dragPlate=dom.miniContent.querySelector(".md-plate");
   dragPlate.getBoundingClientRect=()=>({left:0,top:0,width:500,height:400,right:500,bottom:400});dom.miniContent.setPointerCapture=()=>{};dom.miniContent.releasePointerCapture=()=>{};dom.miniContent.hasPointerCapture=()=>true;
@@ -233,7 +240,7 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===7&&HEAT_CONFIG.tteokbokki.targetHold===7&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a seven-second hold and dish-specific tracking variants");
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.default.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.targetSpeed<HEAT_CONFIG.tteokbokki.targetSpeed,"Heat uses a five-second hold and dish-specific tracking variants");
   /* 적정 구간은 [출발점 → 목적지] 한 구간씩 계획하고 움직입니다.
      random 값을 손으로 먹여, 같은 거리라도 뽑힌 성격(pace)에 따라 걸리는 시간이
      달라지는지 · 도착 후 숨을 고르고 다음 이동을 새로 뽑는지 · 구간 폭이
@@ -300,7 +307,7 @@ try{
   assert(state.mini.data.successes===1&&state.mini.data.errors===0&&dom.miniContent.querySelector(".kf-wood-spatula")&&dom.miniContent.querySelector(`#fryWorkArea.stir-${kimchiDirection}`),"E3 kimchi accepts only one full sweep per drag");
   const stirMini={engine:"stir",complete:false,data:{}};state.mini=stirMini;
   MINI_ENGINES.stir.setup(stirMini,{set:()=>{}});
-  assert(typeof MINI_ENGINES.stir.key==="undefined"&&stirMini.data.index===0,"E3 yakisoba arrow keys are not registered as game input");
+  assert(typeof MINI_ENGINES.stir.key==="undefined"&&stirMini.data.index===0&&stirMini.data.arrows.length===10&&dom.miniContent.querySelectorAll(".yk-chip").length===10,"E3 yakisoba renders ten gesture steps with no arrow-key input");
   // 볶기 전에는 두 자루 다 깨끗한 장입니다 (김치 볶기의 나무 주걱과 같은 세 자세)
   assert([...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="clean"),"E3 yakisoba spatulas start clean");
   const stirDirection=stirMini.data.arrows[0];slideE3Surface(dom.miniContent.querySelector(".yk-scene"),stirDirection,32);
@@ -309,7 +316,7 @@ try{
   assert(stirMini.data.stirred&&[...dom.miniContent.querySelectorAll(".yk-spatula")].every(tool=>tool.dataset.spatula==="rested"),"E3 yakisoba both spatulas pick up noodles after a sweep");
   while(stirMini.data.index<STIR_TOTAL)stirInput(stirMini.data.arrows[stirMini.data.index],false);
   assert(stirMini.data.phase==="complete"&&stirMini.data.inputLocked&&dom.miniContent.querySelector("#e3Result.perfect"),"E3 full sequence grade and delayed completion state");
-  state.mini={complete:false,data:{configId:"yakisoba",index:11,errors:0,arrows:Array(12).fill("left")}};
+  state.mini={complete:false,data:{configId:"yakisoba",index:9,errors:0,arrows:Array(10).fill("left")}};
   processDirectionSequenceInput(state.mini,"left",{sequenceKey:"arrows",indexKey:"index",onComplete:()=>finishMini(100)});
   assert(finishedScore===100,"E3 shared controller completion");
 
@@ -324,13 +331,13 @@ try{
   assert(MINI_ENGINES.heat.timerRuns()===true&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
   /* 진행도(채워야 하는 점수)와 남은 시간(줄어드는 시간)은 서로 다른 값이라 한 줄에 섞으면
      안 됩니다. 진행도 숫자에 '초' 가 붙으면 밖으로 나갈 때 시간이 거꾸로 가는 것처럼
-     보였습니다 — 그래서 단위 없이 "0.0 / 7.0", 시간은 아래 남은 시간 줄로 갈랐습니다. */
-  assert(heatMini.time===HEAT_CONFIG.oden.timeLimit&&HEAT_CONFIG.oden.timeLimit>HEAT_CONFIG.oden.targetHold&&HEAT_CONFIG.tteokbokki.timeLimit>HEAT_CONFIG.oden.timeLimit&&/^\d+\.\d \/ 7\.0$/.test(dom.miniContent.querySelector(".heat-count-value").textContent.trim())&&dom.miniContent.querySelector("#heatTime b").textContent==="22.0초","E4 fills a 7.0 progress score inside a time limit, with seconds only on the countdown row");
+     보였습니다 — 그래서 단위 없이 "0.0 / 5.0", 시간은 아래 남은 시간 줄로 갈랐습니다. */
+  assert(heatMini.time===HEAT_CONFIG.oden.timeLimit&&HEAT_CONFIG.oden.timeLimit>HEAT_CONFIG.oden.targetHold&&HEAT_CONFIG.tteokbokki.timeLimit>HEAT_CONFIG.oden.timeLimit&&/^\d+\.\d \/ 5\.0$/.test(dom.miniContent.querySelector(".heat-count-value").textContent.trim())&&dom.miniContent.querySelector("#heatTime b").textContent==="22.0초","E4 fills a 5.0 progress score inside a time limit, with seconds only on the countdown row");
   heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(heatMini.data.inZone<2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good","E4 grace, decay, and GOOD warning");
   // 완료 판정만 보려는 곳이라 적정 구간은 세워 둡니다(도착 + 긴 멈춤 + 좁아짐 예약 뒤로).
-  heatMini.data.target=.5;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=6.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  heatMini.data.target=.5;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   /* 시간이 다 됐을 때. 0점으로 끝내면 그날 장사를 통째로 다시 해야 해서 벌이 너무 큽니다 —
@@ -338,9 +345,9 @@ try{
   finishedScore=null;
   const heatTimeoutMini={context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatTimeoutMini;
   MINI_ENGINES.heat.setup(heatTimeoutMini,{set:(title,description,time)=>{heatTimeoutMini.time=time;}});
-  heatTimeoutMini.data.inZone=3.5;
+  heatTimeoutMini.data.inZone=2.5;
   MINI_ENGINES.heat.timeout(heatTimeoutMini);
-  assert(finishedScore===55&&finishedScore<85&&heatTimeoutMini.data.phase==="complete"&&dom.miniContent.querySelector("#e4Result.timeout")&&dom.miniContent.querySelector("#heatTime b").textContent==="0.0초","E4 running out of time scores by how much of the 7.0 progress was filled");
+  assert(finishedScore===55&&finishedScore<85&&heatTimeoutMini.data.phase==="complete"&&dom.miniContent.querySelector("#e4Result.timeout")&&dom.miniContent.querySelector("#heatTime b").textContent==="0.0초","E4 running out of time scores by how much of the 5.0 progress was filled");
   playedSfx.length=0;
   const tteokHeatMini={context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
@@ -365,11 +372,11 @@ try{
   const pancakeSteps=buildTwoSideUnitSteps("pancake"),skewerSteps=buildTwoSideUnitSteps("skewer");
   const kinds=steps=>steps.reduce((count,step)=>({...count,[step.kind]:(count[step.kind]||0)+1}),{});
   const plan=steps=>steps.map(step=>step.kind).join(">");
-  /* 순서가 곧 "지금 어느 면이 아래인가" 입니다 — 두 요리 다 한 면에 성공 두 번씩입니다.
+  /* 순서가 곧 "지금 어느 면이 아래인가" 입니다.
      (할 일 목록은 **자루 하나 몫**이고, 자루 3개가 같은 목록을 따로 소화합니다) */
-  assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook>flip>cook","E5 pancake plan: front/back cooked twice each with flips between");
-  assert(plan(skewerSteps)==="cook>flip>cook>flip>sauce>flip>sauce","E5 skewer plan: cook both sides, then sauce both sides");
-  assert(kinds(skewerSteps).flip===3&&kinds(skewerSteps).sauce===2,"E5 skewer plan flips three times and sauces both sides");
+  assert(plan(pancakeSteps)==="cook>flip>cook>flip>cook","E5 pancake plan: press front, flip to back, press back, flip to front, press front");
+  assert(plan(skewerSteps)==="sauce>flip>sauce>flip","E5 skewer plan: sauce front, flip to back, sauce back, flip to front");
+  assert(kinds(skewerSteps).flip===2&&kinds(skewerSteps).sauce===2&&!kinds(skewerSteps).cook,"E5 skewer plan has two sauces and two flips with no separate cook cue");
   assert(MINI_ENGINES.twoSideCook.noKeyboard===true,"E5 is mouse-only (no keyboard route)");
   // 진행도 분모는 순서표에서 세어 옵니다 (손으로 적어 두면 순서를 바꿀 때 화면만 어긋납니다)
   assert(TWO_SIDE_VIEW.pancake.total===kinds(pancakeSteps).cook&&Number.isInteger(TWO_SIDE_VIEW.pancake.total),"E5 pancake progress denominator comes from the step plan");
@@ -388,7 +395,7 @@ try{
   assert(pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 half a hold does not cook yet");
   cancelTwoSideHold(pancakeMini);
   assert(!pancakeMini.data.hold&&pancakeUnit.stepIndex===0,"E5 letting go early cancels the hold with no penalty");
-  // 닭꼬치는 그대로 한 번 클릭입니다 — 자루 셋을 번갈아 눌러야 해서 누르고 있게 하면 안 됩니다
+  // 꾹 누르기는 김치전 굽기 신호에만 적용됩니다
   assert(twoSideHoldNeeded(pancakeMini.data,pancakeUnit)===true,"E5 only the pancake cook cue needs a hold");
   beginTwoSideHold(pancakeMini,0);
   tickTwoSideHold(pancakeMini,TWO_SIDE_HOLD_SEC+.01);
@@ -419,6 +426,16 @@ try{
   assert(pancakeUnit.stepIndex===missedAt+1,"E5 a missed cue moves on to the next step instead of repeating it");
   assert(pancakeMini.data.cooked===1,"E5 a missed cook cue does not count toward the progress");
   assert(TWO_SIDE_CUE.retryWait===undefined,"E5 has no retry wait any more (nothing repeats)");
+  // 성공 경로는 요청한 다섯 동작을 마친 뒤 앞면 방향에서 바로 완료됩니다.
+  const pancakeFlowMini={engine:"twoSideCook",context:{mode:"cook",dishId:"kimchi"},complete:false,data:{}};state.mini=pancakeFlowMini;
+  MINI_ENGINES.twoSideCook.setup(pancakeFlowMini,{set:(title,description,time)=>{pancakeFlowMini.time=time;},dish:dishById("kimchi")});
+  const pancakeFlowUnit=pancakeFlowMini.data.units[0];
+  const pressPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);beginTwoSideHold(pancakeFlowMini,0);tickTwoSideHold(pancakeFlowMini,TWO_SIDE_HOLD_SEC+.01);};
+  const flipPancake=()=>{openTwoSideCue(pancakeFlowMini,pancakeFlowUnit);flickTwoSideCue(pancakeFlowMini,0,"flip");};
+  pressPancake();flipPancake();pressPancake();flipPancake();pressPancake();
+  assert(pancakeFlowUnit.done&&pancakeFlowUnit.stepIndex===5&&pancakeFlowUnit.flips===2
+    &&twoSideCookingSide(pancakeFlowUnit)===0&&pancakeFlowUnit.sides[0].cook===2&&pancakeFlowUnit.sides[1].cook===1
+    &&TWO_SIDE_VIEW.pancake.total===3,"E5 pancake completes after front press, back press, and final front press with two flips");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
   const graded=units=>({units,hits:[100,96,98],flipErrors:0,cookErrors:0});
   assert(twoSideCookGrade(graded([{done:true,served:true}]))==="perfect"
@@ -446,16 +463,20 @@ try{
   placeTwoSideUnit(skewerCookMini,0);
   raiseTwoSideCookStep(skewerCookMini.data,skewerCookMini.data.units[0]);
   assert(skewerCookMini.data.units[0].sides[0].cook===1&&skewerUnit.sides[0].cook===0,"E5 doneness is per skewer, not shared");
-  /* 양념 신호 : **위아래 붓질 드래그**로 답합니다 (클릭이 아닙니다).
-     마지막 할 일(7번째)이 뒷면 양념이라, 그것까지 마치면 그 자루가 다 구워집니다. */
-  skewerUnit.stepIndex=skewerUnit.steps.length-1;
+  /* 닭꼬치 네 단계 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기. */
   openTwoSideCue(skewerCookMini,skewerUnit);
-  assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 sauce cue lights the skewer being finished");
+  assert(twoSideStep(skewerUnit).kind==="sauce"&&dom.miniContent.querySelector(".grill-skewer.skewer-2.cue-on.cue-sauce"),"E5 the first cue sauces the front side");
   assert(pressTwoSideCue(skewerCookMini,1)===false&&!skewerUnit.done,"E5 a sauce cue does not accept a click");
-  const saucedSide=twoSideCookingSide(skewerUnit),sauceCookBefore=skewerUnit.sides[saucedSide].cook;
-  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true,"E5 a vertical brush drag answers the sauce cue");
-  assert(skewerUnit.done&&skewerUnit.sides[saucedSide].cook===sauceCookBefore+1
-    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 saucing brings in the brush and cooks that side one more step");
+  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===1
+    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===0&&skewerUnit.saucedSides[0]&&!skewerUnit.saucedSides[1]
+    &&dom.miniContent.querySelector(".grill-skewer.skewer-2 .ts-sauce-brush"),"E5 front sauce brings in the brush and cooks only the front side");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.stepIndex===2&&skewerUnit.flips===1&&twoSideCookingSide(skewerUnit)===1,"E5 first flip turns the skewer from front to back");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"sauce")===true&&skewerUnit.stepIndex===3
+    &&skewerUnit.sides[0].cook===1&&skewerUnit.sides[1].cook===1&&skewerUnit.saucedSides.every(Boolean),"E5 back sauce cooks and coats only the back side");
+  openTwoSideCue(skewerCookMini,skewerUnit);
+  assert(flickTwoSideCue(skewerCookMini,1,"flip")===true&&skewerUnit.done&&skewerUnit.flips===2&&twoSideCookingSide(skewerUnit)===0,"E5 final flip returns the finished skewer to the front side");
   /* 다 구웠다고 끝이 아닙니다 — 튀김처럼 **완성 칸에 담아야** 한 개로 셉니다.
      담기 전에는 진행도가 0 이고, 담으면 화로 자리가 다시 비면서 접시에 쌓입니다. */
   assert(!skewerUnit.served&&twoSideDone(skewerCookMini.data)===0&&twoSideServableUnits(skewerCookMini.data).length===1,"E5 a cooked skewer is not counted until it is served");
@@ -497,21 +518,6 @@ try{
     [...perfectFry.data.pot].forEach(piece=>liftFryPiece(piece.id));
   }
   assert(perfectFry.data.finishing&&perfectFry.data.completionGrade==="perfect"&&fryScore(perfectFry.data)===100&&dom.miniContent.querySelector("#e6Result.perfect.show"),"E6 five well-cooked pieces complete PERFECT");
-
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.flow).join(",")==="thick,syrup,thin"&&DAY_PREP_ASSET_PATHS.sauceFlowThin&&DAY_PREP_ASSET_PATHS.sauceFlowSyrup&&DAY_PREP_ASSET_PATHS.sauceFlowThick,"E7 data-driven viscosity and three reusable stream assets");
-  state.mini={context:{mode:"dayPrep"},complete:false,data:{}};setupSauceRecipe("tteokbokki");
-  const sauceMini=state.mini;
-  assert(dom.miniContent.querySelectorAll(".sc-goal").length===3&&!dom.miniContent.querySelector(".sc-goal-meter")&&!dom.miniContent.querySelector(".sc-undo")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thick")&&dom.miniContent.querySelector(".sc-pour-stream.flow-syrup")&&dom.miniContent.querySelector(".sc-pour-stream.flow-thin"),"E7 one-pour cards and viscosity-specific streams");
-  MINI_ENGINES.sauceMeasure.key(sauceMini," ",{repeat:true});
-  assert(sauceMini.data.sauces[0].amount===0,"E7 held Space cannot auto-pour repeatedly");
-  addYakisobaSauce("gochujang");
-  assert(sauceMini.data.sauces[0].amount===120&&sauceMini.data.cursor===0&&sauceMini.data.pendingCursor===1&&sauceMini.data.pourLocked&&dom.miniContent.querySelector('[data-sauce-id="gochujang"].pouring .sc-pour-visual'),"E7 one click pours the full recipe amount while the bottle flies");
-  finishSaucePour(sauceMini);
-  assert(sauceMini.data.cursor===1&&!sauceMini.data.pourLocked,"E7 next ingredient is selected after bottle returns");
-  addYakisobaSauce("oligosaccharide");finishSaucePour(sauceMini);
-  assert(sauceMini.data.sauces[1].amount===60&&sauceMini.data.cursor===2&&sauceCompletionGrade(sauceMini.data)==="perfect","E7 second ingredient is also a single full pour");
-  addYakisobaSauce("soy");finishSaucePour(sauceMini);
-  assert(sauceMini.data.finishing&&sauceMini.data.sauces.every(item=>item.amount===item.target)&&sauceMini.data.completionGrade==="perfect"&&dom.miniContent.querySelector(".sc-board.mixing")&&dom.miniContent.querySelector("#sauceResult.perfect.show"),"E7 three one-time pours mix and complete PERFECT");
 
   const batter=createOrderPlacementState("batter");
   assert(!placeOrderedItem(batter,"water").accepted,"E8 wrong order must be rejected");
@@ -555,16 +561,6 @@ try{
     if(Number.isInteger(liveSkewer.holdIndex)){liveSkewer.holdIndex=null;renderChickenSkewer();}
   });
   assert(liveSkewer.finishing&&liveSkewer.completionGrade==="good"&&skewerDoneCount(liveSkewer)===3&&!!dom.miniContent.querySelector(".order-result.good"),"E8 three pattern-matched skewers complete through the live renderer");
-  state.day=4;state.mini={context:{mode:"dayPrep",taskId:"soakTteok"},complete:false,data:{}};setupTteokSoak();
-  const soakTarget=()=>dom.miniContent.querySelector('[data-order-target="soak"]');
-  addTteokSoakItem("water",soakTarget());
-  assert(!state.mini.data.water&&!state.mini.data.added.water,"E8 soak takes no water from the ingredient card — only the pitcher pours");
-  addTteokSoakItem("tteok",soakTarget());
-  for(let index=0;index<4;index++)pourSoakWaterOnce();
-  // 마지막 한 모금이 화면에 보이도록 finishSoakWater 는 다시 그리기를 SOAK_POUR_MS 뒤로
-  // 미룹니다. 이 검사는 타이머 없이 도는 동기 흐름이라 여기서 직접 다시 그립니다.
-  renderTteokSoak();
-  assert(state.mini.data.finishing&&state.mini.data.water===100&&state.mini.data.added.water&&!!dom.miniContent.querySelector(".soak-bubbles"),"E8 soak settles once four pitcher tilts fill the bowl");
   assert(WHISK_CONFIG.kimchiBatter.targetTurns===4&&WHISK_CONFIG.kimchiBatter.target===100&&WHISK_CONFIG.kimchiBatter.taskId==="mixKimchiBatter","E9 four-turn data config");
   const smoothWhisk=createWhiskState();
   for(let index=0;index<=130;index++)sampleWhiskMotion(smoothWhisk,index*Math.PI*2/32,.35);
@@ -587,7 +583,7 @@ try{
   state.mini={context:{mode:"dayPrep",taskId:"cleanAnchovy"},complete:false,data:{}};
   setupAnchovyPrep();
   const anchovyHead=dom.miniContent.querySelector("#anchovyWorkArea .anchovy-head");
-  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&!dom.miniContent.querySelector("#anchovyWorkArea .anchovy-joint"),"E10 renders seven anchovies without the removed artificial joint overlay");
+  assert(dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy").length===7&&!dom.miniContent.querySelector("#anchovyWorkArea .anchovy-joint")&&!dom.miniContent.querySelector("#anchovyTime")&&!Object.hasOwn(DAY_PREP_MINI_CONFIG.cleanAnchovy,"timeLimit")&&!Object.hasOwn(state.mini.data,"timeLeft")&&MINI_ENGINES.anchovy.timerRuns()===false,"E10 renders seven anchovies with no timer or time limit");
   anchovyHead.setPointerCapture=()=>{};anchovyHead.releasePointerCapture=()=>{};
   startAnchovyTug(anchovyHead,{pointerId:7,pointerType:"mouse",button:0,clientX:0,clientY:0,preventDefault(){}});
   const secondAnchovyHead=dom.miniContent.querySelectorAll("#anchovyWorkArea .anchovy-head")[1];
@@ -597,51 +593,17 @@ try{
   assert(anchovyHead.closest(".anchovy").dataset.tug==="1"&&!anchovyHead.closest(".anchovy").classList.contains("torn"),"E10 first reversal weakens the joint without detaching the head");
   [20,-1].forEach(clientX=>moveAnchovyTug(anchovyHead,{pointerId:7,clientX,clientY:0,preventDefault(){}}));
   assert(state.mini.data.cleaned===1&&anchovyHead.closest(".anchovy").classList.contains("torn")&&anchovyHead.closest(".anchovy").style.getPropertyValue("--tear-x").includes("-38"),`E10 pointer tug completes outward and leaves one head beside the body: cleaned=${state.mini.data.cleaned}, classes=${anchovyHead.closest(".anchovy").className}`);
-  MINI_ENGINES.anchovy.update(state.mini,25);
-  assert(state.mini.data.timeLimit===25&&state.mini.data.timedOut&&!!dom.miniContent.querySelector(".anchovy-timeout")&&!dom.miniContent.querySelector(".anchovy-timeout button"),"E10 anchovy time over ends the task with no retry button");
-  assert(typeof startOneShot==="function"&&typeof placeOneShotItem==="function","E11 shared one-shot controller");
-  assert(ONE_SHOT_VARIANTS.place.finishDelay>ONE_SHOT_VARIANTS.drop.finishDelay&&ONE_SHOT_VARIANTS.pour.pourDuration===900,"E11 place, drop, and pour variants share input but keep separate finish timing");
-  assert(!ONE_SHOT_VESSELS.pot&&!ONE_SHOT_PIECES.broth&&typeof showOdenIngredientDrop==="undefined"&&typeof setupOdenBroth==="undefined","E11 oden pot drop and broth pour are removed");
-  state.mini={complete:false,data:{}};
-  startOneShot({variant:"place",vessel:ONE_SHOT_VESSELS.plate,items:["tofu","friedKimchi"],onDone:()=>finishMini(100)});
-  assert(oneShotData().items.length===2&&oneShotData().vessel===ONE_SHOT_VESSELS.plate,"E11 shared one-shot data");
-  const osSource=dom.miniContent.querySelector('[data-os-item="tofu"]'),osDrop=dom.miniContent.querySelector(".os-drop");osSource.setPointerCapture=()=>{};
-  const e11ElementFromPoint=document.elementFromPoint;document.elementFromPoint=()=>osDrop;
-  osSource.dispatchEvent(new PointerEvent("pointerdown",{pointerId:51,pointerType:"mouse",button:0,clientX:0,clientY:0,bubbles:true}));
-  osSource.dispatchEvent(new PointerEvent("pointermove",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
-  osSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:51,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));document.elementFromPoint=e11ElementFromPoint;
-  assert(oneShotData().placed[0]==="tofu"&&!document.querySelector(".os-drag-ghost")&&dom.miniContent.querySelector(".os-board.variant-place"),"E11 custom pointer drag places tofu and cleans its ghost");
-  placeOneShotItem("friedKimchi");
-  assert(oneShotData().finishing&&oneShotData().actionPhase==="complete"&&dom.miniContent.querySelectorAll(".os-drop .os-food").length===2&&dom.miniContent.querySelector(".os-complete-sparks"),"E11 plating snaps both foods to their asset-safe slots and finishes visually");
-  // 자유 플레이팅(두부김치) : 조각을 하나씩, 놓은 자리 그대로
-  state.mini={complete:false,data:{}};
-  MINI_ENGINES.plateKimchi.setup(state.mini,{set(){},difficulty:1});
-  const freePlate=oneShotData();
-  assert(freePlate.free&&freePlate.variant==="free"&&oneShotTotal(freePlate)===12&&oneShotLeft(freePlate,"tofu")===6&&oneShotLeft(freePlate,"friedKimchi")===6,`E11 free plating stocks 6 tofu + 6 kimchi: total=${oneShotTotal(freePlate)}`);
-  // 두부는 각도를 못박고(pieceTilt), 조각 한가운데가 갈 수 있는 자리는 접시 안쪽입니다
-  assert(ONE_SHOT_PIECES.tofu.pieceTilt===0&&ONE_SHOT_PIECES.friedKimchi.pieceTilt===undefined&&FREE_PLATE_RADIUS.x<50&&FREE_PLATE_RADIUS.y<50,"E11 tofu keeps one fixed angle and piece centers stay on the plate");
-  const freeDrop=dom.miniContent.querySelector(".os-drop");
-  freeDrop.getBoundingClientRect=()=>({left:0,top:0,width:400,height:300});
-  placeOneShotItem("tofu",{drop:freeDrop,clientX:120,clientY:90});
-  const firstSpot=freePlate.placements[0];
-  assert(freePlate.placements.length===1&&firstSpot.id==="tofu"&&firstSpot.x===30&&firstSpot.y===30,`E11 free plating keeps the dropped point: x=${firstSpot.x}, y=${firstSpot.y}`);
-  assert(dom.miniContent.querySelector('[data-os-item="tofu"] .os-ing-name b').textContent==="×5"&&dom.miniContent.querySelector(".os-food.free").style.getPropertyValue("--x")==="30%","E11 free plating counts the card down and draws the piece where it landed");
-  placeOneShotItem("tofu",{drop:freeDrop,clientX:900,clientY:150});
-  const clamped=freePlate.placements[1];
-  assert(Math.round(clamped.x)===50+FREE_PLATE_RADIUS.x&&Math.round(clamped.y)===50,`E11 free plating pulls an off-plate drop back inside the rim: x=${clamped.x}, y=${clamped.y}`);
-  for(let i=0;i<10;i++)placeOneShotItem(nextOneShotItemId(oneShotData()));
-  assert(oneShotData().placements.length===12&&oneShotData().finishing&&dom.miniContent.querySelectorAll(".os-drop .os-food.free").length===12&&dom.miniContent.querySelector(".os-board.variant-free.complete"),`E11 free plating finishes at twelve pieces: placed=${oneShotData().placements.length}`);
-  assert(oneShotData().placements.filter(spot=>spot.id==="tofu").every(spot=>spot.rot===0),"E11 every tofu piece lands at the same angle");
-  assert(nextOneShotItemId(oneShotData())===null&&dom.miniContent.querySelectorAll(".os-ing-card[disabled]").length===2,"E11 free plating empties both ingredient cards when the plate is full");
+  assert(!dom.miniContent.querySelector(".anchovy-timeout")&&!Object.hasOwn(state.mini.data,"timedOut"),"E10 anchovy has no time-over state or overlay");
   const odenMenu=menuDataById("oden");
   assert(odenMenu.requiredPrepTasks.join(",")==="cutRadish,cutFishCake,cleanAnchovy"&&!PREP_TASKS.addOdenBroth,"Oden prep ends at the three cutting/cleaning tasks");
   const tofuMenu=menuDataById("tofu");
-  assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop,fridge/plateKimchi","Tofu cutting moved from prep to first open-hours cook step");
+  assert(tofuMenu.requiredPrepTasks.join(",")==="cutTofuKimchi,fryTofuKimchi"&&tofuMenu.cook.map(step=>`${step.station}/${step.game}`).join(",")==="board/chop"&&tofuMenu.openFlow.join(",")==="board,counter"&&!tofuMenu.cookware.includes("fridge")&&!MINI_ENGINES.plateKimchi,"Tofu finishes after chopping with no plating step or fridge stop");
   state.mini={context:{mode:"cook",dishId:"tofu"},complete:false,data:{}};
   MINI_ENGINES.chop.setup(state.mini,{set(){},difficulty:1});
   assert(state.mini.engine==="timing"&&state.mini.data.mode==="timing"&&state.mini.data.ingredient==="tofu"&&state.mini.data.total===6&&state.mini.data.phase==="countdown"&&dom.miniContent.querySelector(".cut-path-mode"),"Open-hours tofu chop uses the shared E1 moving-knife controller");
   assert(SKEWER_BATCH_SIZE===3&&dishById("skewer").prepYield===3,"Chicken skewer batch size");
-  assert(SAUCE_RECIPES.tteokbokki.ingredients.map(item=>item.target).join(",")==="120,60,30"&&SAUCE_RECIPES.tteokbokki.ingredients.every(item=>!("step" in item)),"Tteokbokki sauce uses one full pour per ingredient");
+  assert(!PREP_TASKS.soakUdon&&!PREP_TASKS.soakTteok&&!PREP_TASKS.mixYakisobaSauce&&!PREP_TASKS.mixTteokbokkiSauce,"Soaking and sauce-making prep games stay removed");
+  assert(!["udonSoak","tteokSoak","yakisobaSauce","tteokbokkiSauce"].some(key=>DAY_PREP_SETUPS[key]),"Removed prep games have no runtime setup registration");
 
   document.title="MINIGAME_LOGIC_OK";document.body.textContent="MINIGAME_LOGIC_OK 100";
 }catch(error){

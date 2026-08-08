@@ -9,14 +9,14 @@
    지금은 **게이지도 키보드도 없습니다.** 재료에 신호가 뜨고, 마우스로 답합니다.
      · 익힘 신호(노란 불빛)  → 재료를 **클릭**   → "치이익" 하고 그 면이 익습니다
      · 뒤집기 신호(흰 불빛)  → 재료를 **드래그** → 김치전은 위로 튕기듯, 닭꼬치는 옆으로
-     · 양념 신호(붉은 불빛)  → 꼬치를 **클릭**   → 붓이 들어와 양념을 바릅니다 (닭꼬치만)
+     · 양념 신호(붉은 불빛)  → 꼬치를 **위아래로 드래그** → 붓이 들어와 양념을 바릅니다 (닭꼬치만)
 
    [한 판의 구성]  **자루(unit)마다 자기 할 일 목록을 하나씩 소화합니다.**
    불에 닿아 있는 **아래 면**만 익으므로, 순서가 곧 "지금 어느 면이 아래인가" 입니다.
      김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
-     닭꼬치 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 양념 → 뒤집기 → 뒷면 양념
-   두 요리 다 **한 면에 성공 두 번씩**이라 양쪽이 고르게 익습니다 (TWO_SIDE_STEP_PLAN).
-   신호를 놓치면 **건너뛰지 않고** 같은 일이 조금 뒤에 다시 옵니다.
+     닭꼬치 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기
+   닭꼬치는 양념을 바르는 동안 해당 면이 한 단계 익습니다 (TWO_SIDE_STEP_PLAN).
+   신호를 놓치면 해당 면에 벌점이 붙고 다음 단계로 넘어갑니다.
 
    [답하는 손짓]  굽기는 **클릭**, 뒤집기와 양념은 **드래그**입니다.
      뒤집기  김치전 위로 튕기기 · 닭꼬치 옆으로 굴리기
@@ -50,16 +50,16 @@
    **불에 닿아 있는 면(아래)** 만 익습니다. 그래서 순서가 곧 "지금 어느 면이 아래인가" 입니다.
    뒤집을 때마다 아래 면이 앞↔뒤로 바뀝니다 (아래 면 = flips % 2).
 
-     닭꼬치 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 양념 → 뒤집기 → 뒷면 양념
+     닭꼬치 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기
      김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
 
-   두 요리 다 **한 면에 성공 두 번씩**이라, 양쪽이 고르게 '잘 익음'까지 갑니다
-   (익힘 셈은 아래 twoSideSideStage 참고).
+   김치전은 한 면에 두 번씩 굽고, 닭꼬치는 한 면에 양념을 한 번씩 바릅니다.
+   양념 성공이 해당 면의 익힘도도 한 단계 올립니다 (익힘 셈은 아래 twoSideSideStage 참고).
    ⚠️ 예전에는 cyclesPerUnit 로 만들어 냈는데, 두 요리의 순서가 서로 달라져
       규칙으로는 못 만들게 됐습니다. 순서 그대로 적는 것이 읽기도 쉽습니다. */
 const TWO_SIDE_STEP_PLAN=Object.freeze({
-  pancake:Object.freeze(["cook","flip","cook","flip","cook","flip","cook"]),
-  skewer: Object.freeze(["cook","flip","cook","flip","sauce","flip","sauce"])
+  pancake:Object.freeze(["cook","flip","cook","flip","cook"]),
+  skewer: Object.freeze(["sauce","flip","sauce","flip"])
 });
 
 const TWO_SIDE_COOK_CONFIG=Object.freeze({
@@ -71,9 +71,8 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
   skewer:Object.freeze({
     units:SKEWER_BATCH_SIZE, // 낮에 꽂아 둔 꼬치 3자루
     flipAxis:"side",         // side = 좌우 아무 쪽으로나 굴리기
-    /* 45 → 58 → 72. 올리는 것부터 플레이어 몫인 데다, 자루마다 할 일이 4개에서
-       7개로 늘고 신호 창도 넓어졌습니다. 세 자루를 겹쳐 구우면 넉넉한 값입니다. */
-    timeLimit:72
+    // 꼬치 올리기 + 네 단계 조작을 세 자루 모두 마칠 수 있는 제한시간입니다.
+    timeLimit:58
     // ⚠️ 예전에 있던 `foodAsset:"cookSkewerFood"`(꼬치 한 자루가 통째로 그려진 그림 한 장)은
     //    뺐습니다. 지금은 낮에 꽂은 배치대로 **조각을 한 개씩** 쌓습니다 — 아래 grillSkewerMarkup.
   })
@@ -227,12 +226,13 @@ function createTwoSideUnits(dishStyle){
   /* sides : **앞면(0) · 뒷면(1)** 이 따로 익습니다.
        cook  그 면에 제때 답한 횟수 (성공)
        burn  그 면이 불에 닿아 있는 동안 놓친 횟수 (탐)
-     보이는 그림 번호는 twoSideSideStage 가 이 둘로 셉니다. */
+     닭꼬치는 양념 성공도 cook 한 번으로 셉니다. 보이는 그림 번호는
+     twoSideSideStage 가 이 둘로 계산합니다. */
   return Array.from({length:config.units},(_,index)=>({
     index, placed:onPan, slot:onPan?index:null, done:false, served:onPan,
     steps:buildTwoSideUnitSteps(dishStyle), stepIndex:0,
     phase:onPan?"wait":"idle", cueTimer:0, preheated:false,
-    sides:[{cook:0,burn:0},{cook:0,burn:0}], renderedCookStep:-1,
+    sides:[{cook:0,burn:0},{cook:0,burn:0}], saucedSides:[false,false], renderedCookStep:-1,
     flips:0, speed:speeds[index]
   }));
 }
@@ -250,10 +250,19 @@ function twoSideStep(unit){return unit?.steps?.[unit.stepIndex]||null;}
 function twoSideCookingSide(unit){return (unit?.flips||0)%2;}
 function twoSideFacingSide(unit){return 1-twoSideCookingSide(unit);}
 
+// 닭꼬치 양념도 앞·뒷면을 따로 기억합니다. 현재 면에만 윤기를 보여 주므로
+// 첫 양념 뒤 뒤집었을 때 아직 바르지 않은 뒷면이 먼저 반짝이지 않습니다.
+function updateTwoSideSauceVisual(data,unit){
+  if(data?.dishStyle!=="skewer"||!unit)return;
+  const skewer=dom.miniContent?.querySelector(`.grill-skewer.skewer-${unit.index+1}`);
+  skewer?.classList.toggle("sauced",!!unit.saucedSides?.[twoSideCookingSide(unit)]);
+}
+
 /* 한 면의 그림 번호(0~4).
      성공(cook)은 2(잘 익음)까지만 올립니다 — 잘 구우면 절대 타지 않습니다.
      놓침(burn)은 거기서 한 칸씩 더 올립니다 → 3 살짝 탐 · 4 탐.
-   두 요리 다 한 면에 성공이 두 번씩이라, 제때 답하면 양쪽이 2 에서 멈춥니다.
+   김치전은 한 면에 두 번씩 성공해 2에서 멈추고, 닭꼬치는 양념 한 번씩으로
+   양쪽이 1에서 멈춥니다.
    ⚠️ 아직 덜 익은 면(cook 0~1)을 놓치면 3 으로 건너뛰지 않고 1~2 로만 갑니다.
       "안 익은 것이 갑자기 새까매지는" 일이 없게 하려는 것입니다. */
 function twoSideSideStage(side){
@@ -387,7 +396,7 @@ registerMiniEngine("twoSideCook", {
     const dishStyle=isSkewer?"skewer":"pancake",config=TWO_SIDE_COOK_CONFIG[dishStyle];
     set(
       isSkewer ? "닭꼬치 굽기" : "김치전 굽기",
-      isSkewer ? "불빛이 켜지면 그 꼬치를 클릭하고, 뒤집기 신호에는 옆으로 굴리듯 드래그하세요."
+      isSkewer ? "양념 신호에는 위아래로 붓질하고, 뒤집기 신호에는 옆으로 굴리듯 드래그하세요."
                : "불빛이 켜지면 김치전을 꾹 누르고, 뒤집기 신호에는 위로 튕기듯 드래그하세요.",
       config.timeLimit
     );
@@ -400,7 +409,7 @@ registerMiniEngine("twoSideCook", {
     if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
-    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 클릭 : 굽기 · 옆으로 드래그 : 뒤집기 · 위아래 드래그 : 양념":"꾹 누르기 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
+    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 위아래 드래그 : 양념 · 옆으로 드래그 : 뒤집기":"꾹 누르기 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
     renderTwoSideCook();
     // 팬 위에 이미 올라가 있는 자루(= 김치전)만 바로 첫 신호를 겁니다.
     twoSideUnits(m.data).forEach(unit=>{if(unit.placed)armTwoSideCue(m,unit);});
@@ -534,8 +543,7 @@ function twoSideCueScore(unit,kind){
 /* ── 꾹 누르기 (김치전 전용) ──────────────────────────────────
    김치전의 굽기 신호는 **한 번 톡 누르는 것이 아니라 눌러 두는 것**입니다.
    팬에 올린 반죽을 지그시 눌러 붙이는 손짓이라 그렇습니다.
-   닭꼬치는 그대로 한 번 클릭입니다 — 자루 세 개를 번갈아 눌러야 해서
-   누르고 있게 하면 나머지 둘의 신호를 놓칩니다.
+   닭꼬치에는 별도 굽기 신호가 없으므로 이 홀드 로직을 사용하지 않습니다.
 
    [점수는 **누르기 시작한 순간**으로 셉니다] 붙잡고 있는 시간은 누구나 같으므로,
    그 시간까지 점수에 넣으면 빨리 반응한 보람이 사라집니다. */
@@ -804,6 +812,7 @@ function performTwoSideFlip(m,unit){
     skewer?.classList.remove("turning");
     skewer?.classList.toggle("flipped",unit.flips%2===1);
     updateTwoSideCookVisual(data,unit);   // 굴러서 드러난 면의 익힘으로 갈아 끼웁니다
+    updateTwoSideSauceVisual(data,unit);  // 새로 드러난 면에 바른 양념만 보여 줍니다
   },300);
   dom.miniFeedback.textContent=`${unit.index+1}번 꼬치를 굴렸습니다!`;
 }
@@ -819,18 +828,21 @@ function sauceBrushMarkup(){
   return `<i class="ts-sauce-brush ${asset?"has-asset":""}" aria-hidden="true">${asset}</i>`;
 }
 
-function applyTwoSideSauce(m,unit){
+function applyTwoSideSauce(m,unitIndex){
   const data=m.data;
-  const skewer=dom.miniContent.querySelector(`.grill-skewer.skewer-${unit+1}`);
+  const unit=twoSideUnit(data,unitIndex);if(!unit)return;
+  const side=twoSideCookingSide(unit);
+  unit.saucedSides=unit.saucedSides||[false,false];unit.saucedSides[side]=true;
+  const skewer=dom.miniContent.querySelector(`.grill-skewer.skewer-${unitIndex+1}`);
   audio.play?.("pour_thick",{owner:m,gain:.9});
-  dom.miniFeedback.textContent=`${unit+1}번 꼬치에 양념을 발랐습니다!`;
+  dom.miniFeedback.textContent=`${unitIndex+1}번 꼬치 ${side?"뒷":"앞"}면에 양념을 발랐습니다!`;
   if(!skewer)return;
   skewer.insertAdjacentHTML("beforeend",sauceBrushMarkup());
   const brush=skewer.querySelector(".ts-sauce-brush");
   /* 쓸고 지나간 뒤부터 윤기가 돕니다 (연출 한가운데).
      ⚠️ 두 시각은 css 의 붓질 길이와 짝입니다 — 원화는 ts-brush-sweep-long 0.9초,
         임시 도형은 ts-brush-sweep 0.74초입니다. 긴 쪽에 맞춰 둡니다. */
-  miniSetTimeout(()=>{if(state.mini===m)skewer.classList.add("sauced");},430);
+  miniSetTimeout(()=>{if(state.mini===m)updateTwoSideSauceVisual(data,unit);},430);
   miniSetTimeout(()=>brush?.remove(),940);
 }
 
@@ -1153,17 +1165,18 @@ function grillSkewerMarkup(pattern, index, data) {
   const pieces = [...pattern].reverse().map(ingredient => grillSkewerPieceMarkup(ingredient, hasArt, cookArt, step)).join("");
   const label = pattern.map(ingredient => SKEWER_LABEL[ingredient]).join(" · ");
   const flipped = (unit?.flips || 0) % 2 === 1;
+  const sauced = !!unit?.saucedSides?.[twoSideCookingSide(unit)];
   // .ts-cue-halo  : 신호가 켜졌을 때 자루 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
   // .ts-drag-arrow: 어느 쪽으로 끌어야 하는지 알려 주는 화살표. **자루 위에 겹칩니다.**
   //   늘 넣어 두고 보이고 안 보이고는 css 가 신호 클래스로 가립니다 —
   //   뒤집기(cue-flip)는 옆으로 ↔, 양념(cue-sauce)은 위아래로 ↕ 입니다.
-  return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
+  return `<span class="grill-skewer skewer-${index + 1} ${hasArt ? "has-pieces" : ""} ${hasDayPrepAsset("skewerStick") ? "has-rod-art" : ""} ${flipped ? "flipped" : ""} ${sauced ? "sauced" : ""}" data-skewer-index="${index}" aria-label="${index + 1}번 꼬치 · ${label}">
       <i class="ts-cue-halo" aria-hidden="true"></i>${grillSkewerRodMarkup()}<span class="gs-pieces">${pieces}</span>${twoSideDragArrowMarkup("skewer")}${twoSideTapHintMarkup()}
     </span>`;
 }
 
 /* 화로의 자리 세 칸. 아직 아무도 안 놓인 자리는 점선으로 "여기에 올려 주세요"만
-   그립니다 (두부김치 플레이팅·김치전 반죽의 점선 안내와 같은 결).
+   그립니다 (김치전 반죽의 점선 안내와 같은 결).
    ⚠️ 칸은 처음부터 세 개 다 만들어 둡니다. 자루를 올릴 때 칸 안쪽만 갈아 끼우면
       되므로 화면을 통째로 다시 그리지 않아도 됩니다 (renderTwoSideCook 주석 참고).
    ⚠️ **자리 번호(slotIndex)와 자루 번호는 다릅니다.** 어느 자리에 무엇이 놓였는지는
@@ -1243,10 +1256,10 @@ function charcoalSkewerMarkup(data) {
 
 const TWO_SIDE_VIEW = Object.freeze({
   pancake: Object.freeze({
-    subtitle: "불빛 신호에 맞춰 김치전을 굽고 뒤집으세요!",
+    subtitle: "앞면을 누르고 뒤집어 뒷면을 누른 뒤, 다시 앞면을 눌러 주세요!",
     ingredients: [{ id: "pancakeBatter", label: "김치전 반죽", count: 1, asset: "cookPancakeBatter" }],
     // 진행도의 분모 = 할 일 목록의 굽기 횟수. **순서표에서 세어 옵니다** —
-    // 손으로 4 를 적어 두면 순서를 바꿀 때 화면만 조용히 옛 숫자로 남습니다.
+    // 숫자를 손으로 적어 두면 순서를 바꿀 때 화면만 조용히 옛 값으로 남습니다.
     total: TWO_SIDE_STEP_PLAN.pancake.filter(kind => kind === "cook").length,
     countLabel: "굽기",
     guide: [
@@ -1255,7 +1268,7 @@ const TWO_SIDE_VIEW = Object.freeze({
     ]
   }),
   skewer: Object.freeze({
-    subtitle: "제한시간 안에 꼬치를 올리고, 불빛 신호에 맞춰 구워 주세요!",
+    subtitle: "앞면과 뒷면에 양념을 바르고 다시 앞면으로 뒤집어 주세요!",
     // art:"skewer" → 그림 한 장이 아니라 낮에 꽂아 둔 배치를 그대로 쌓습니다
     // (twoSideSkewerCardMarkup). cookSkewerRaw 는 그 그림들이 없을 때의 마지막 대비책입니다.
     ingredients: [{ id: "skewerRaw", label: "닭꼬치", count: SKEWER_BATCH_SIZE, asset: "cookSkewerRaw", art: "skewer" }],
@@ -1268,9 +1281,8 @@ const TWO_SIDE_VIEW = Object.freeze({
     sidePanel: "count-serve",
     guide: [
       { icon: "drag-side", name: "꼬치를 화로로 드래그", desc: "올린 꼬치부터 익습니다" },
-      { icon: "click", name: "불빛이 켜지면 클릭", desc: "치이익 — 그 꼬치가 익습니다" },
-      { icon: "drag-side", name: "뒤집기 신호엔 드래그", desc: "옆으로 굴리듯 샥!" },
-      { icon: "sauce", name: "양념 신호엔 위아래 드래그", desc: "붓질하듯 쓸어 양념을 바릅니다" }
+      { icon: "sauce", name: "양념 신호엔 위아래 드래그", desc: "앞면부터 붓질하듯 양념을 바릅니다" },
+      { icon: "drag-side", name: "뒤집기 신호엔 드래그", desc: "양념 뒤 옆으로 굴리듯 샥!" }
     ]
   })
 });

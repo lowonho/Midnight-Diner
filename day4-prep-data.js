@@ -4,9 +4,9 @@
 // 떡볶이 재료 칼질. 예전에는 셋을 한 화면에서 이어서 썰었지만
 // 지금은 재료마다 별도의 준비 작업이라 taskId 로 찾아 씁니다.
 const TTEOKBOKKI_CUT_SEQUENCE=Object.freeze([
-  Object.freeze({taskId:"cutTteokbokkiCabbage",ingredientId:"cabbage",assetPrefix:"tteokCabbage",displayName:"양배추",requiredPieces:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:22,progressSprites:Object.freeze(Array.from({length:13},(_,index)=>`assets/minigame/E1/cabbage-${index}.png`))}),
+  Object.freeze({taskId:"cutTteokbokkiCabbage",ingredientId:"cabbage",assetPrefix:"tteokCabbage",displayName:"양배추",requiredPieces:12,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,progressSprites:Object.freeze(Array.from({length:13},(_,index)=>`assets/minigame/E1/cabbage-${index}.png`))}),
   Object.freeze({taskId:"cutTteokbokkiGreenOnion",ingredientId:"greenOnion",assetPrefix:"tteokGreenOnion",displayName:"대파",requiredPieces:7,hitTolerance:CUT_HIT_TOLERANCE.greenOnion,travelSpeed:19,progressSprites:Object.freeze(Array.from({length:8},(_,index)=>`assets/minigame/E1/green-onion-${index}.png`))}),
-  Object.freeze({taskId:"cutTteokbokkiFishCake",ingredientId:"fishCake",assetPrefix:"tteokFishCake",displayName:"어묵",requiredPieces:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:16,horizontalLastCut:true,progressSprites:Object.freeze(Array.from({length:5},(_,index)=>`assets/minigame/E1/fish-cake-${index}.png`))})
+  Object.freeze({taskId:"cutTteokbokkiFishCake",ingredientId:"fishCake",assetPrefix:"tteokFishCake",displayName:"어묵",requiredPieces:4,hitTolerance:CUT_HIT_TOLERANCE.fishCake,horizontalHitTolerance:CUT_HORIZONTAL_HIT_TOLERANCE.fishCake,travelSpeed:22,horizontalLastCut:true,progressSprites:Object.freeze(Array.from({length:5},(_,index)=>`assets/minigame/E1/fish-cake-${index}.png`))})
 ]);
 
 // 새우 튀김옷은 하나의 준비 작업 안에서 세 단계가 연속으로 이어집니다.
@@ -18,33 +18,7 @@ const SHRIMP_COAT_STEPS=Object.freeze([
   Object.freeze({step:2,id:"breadcrumbs",label:"빵가루",shrimpCount:5})
 ]);
 
-const SAUCE_RECIPES=Object.freeze({
-  yakisoba:Object.freeze({
-    title:"볶음우동 소스 레시피",
-    taskId:"mixYakisobaSauce",
-    completionMessage:"볶음우동 소스 제조 완료",
-    bowlColor:"#6b341b",bowlDark:"#32160d",
-    ingredients:Object.freeze([
-      Object.freeze({id:"soy",label:"간장",target:200,flow:"thin",color:"#633019"}),
-      Object.freeze({id:"oyster",label:"굴소스",target:100,flow:"thick",color:"#482014"}),
-      Object.freeze({id:"chili",label:"고추기름",target:30,flow:"thin",color:"#c44d22"})
-    ])
-  }),
-  tteokbokki:Object.freeze({
-    title:"떡볶이 양념장 레시피",
-    taskId:"mixTteokbokkiSauce",
-    completionMessage:"떡볶이 양념장 계량 완료",
-    bowlColor:"#a93222",bowlDark:"#4d160e",
-    ingredients:Object.freeze([
-      Object.freeze({id:"gochujang",label:"고추장",target:120,flow:"thick",color:"#b83a25"}),
-      Object.freeze({id:"oligosaccharide",label:"올리고당",target:60,flow:"syrup",color:"#d59a47"}),
-      Object.freeze({id:"soy",label:"간장",target:30,flow:"thin",color:"#633019"})
-    ])
-  })
-});
-
 const DAY4_PREP_CONFIG=Object.freeze({
-  soak:{taskId:"soakTteok",required:["tteok","water"]},
   potatoMandoline:{taskId:"sliceFriesPotato",ingredient:"potato",label:"감자",directions:["left","right"],totalInputs:20},
   potatoStarch:{taskId:"shakeFriesStarch",requiredPresses:14,stages:[0,35,70,100]}
 });

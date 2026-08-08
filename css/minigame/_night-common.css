@@ -13,9 +13,6 @@
    css/minigame-frame.css 에서 한 번에 관리합니다. 이 파일은 각 미니게임의
    플레이 영역 내부 요소만 담습니다. */
 
-/* 두부김치 플레이팅(밤 조리)은 낮 준비와 같은 단발 액션 화면을 씁니다.
-   → css/day-prep-minigames.css 의 "단발 액션 (engine-e11)" 구역 */
-
 .serving-oden-pot {
   position: relative;
   width: calc(210 * var(--upx));

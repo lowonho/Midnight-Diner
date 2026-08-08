@@ -42,7 +42,6 @@
               <div class="fridge-panel fridge-count-card">
                 <h3 class="fridge-col-title">완료 개수</h3>
                 <p id="ingredientTotalProgress" class="fridge-count"><b>0</b> / 0</p>
-                <p id="ingredientTimer" class="fridge-time"><span>걸린 시간</span><b>0.0초</b></p>
               </div>
               <div class="fridge-panel fridge-goal-card">
                 <h3 class="fridge-col-title">찾아야 할 재료</h3>
@@ -75,7 +74,7 @@
     // ?menus=tofu,shrimpTempura,... 로 그날 메뉴를 직접 지정할 수 있습니다(찾을 재료 개수 확인용)
     const smokeMenus=(smokeQuery.get("menus")||"").split(",").filter(id=>MENU_DATA.some(menu=>menu.id===id));
     const state={screen:"game",phase:GAME_PHASES.MENU_SELECT,paused:false,selectedMenus:smokeMenus.length?smokeMenus:smokeAllMenus?MENU_DATA.map(menu=>menu.id):["oden","tteokbokki"],ingredientSelection:null};
-    const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress","ingredientTimer"];
+    const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress"];
     const dom=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
     // 자리만 바꾸는 진짜 섞기(씨앗 고정). game.js 의 shuffle 과 같은 성질입니다.
     let seed=20260806;
@@ -86,6 +85,7 @@
     const foodPropUrl=id=>foodFiles[id]?`../assets/food/prop/${foodFiles[id]}_normal.webp`:"";
     const audio={bad(){},success(){}};
     const saveGame=()=>true,updateUI=()=>{},showToast=()=>{};
+    const miniSetTimeout=setTimeout,miniClearTimeout=clearTimeout,miniSetInterval=setInterval,miniClearInterval=clearInterval;
   </script>
   <script src="../engine-e13-fridge-find.js"></script>
   <script src="../ingredient-select.js"></script>
@@ -109,10 +109,10 @@
         assert(ingredientDishGallery.querySelectorAll(".fridge-dish").length===state.selectedMenus.length,"today's dishes are listed");
         assert(ingredientChecklist.querySelectorAll(".fridge-goal").length===required.length,"goal panel lists every required ingredient");
         assert(ingredientTotalProgress.textContent.replace(/\s/g,"")===`0/${required.length}`,"progress starts at zero");
-        assert(ingredientTimer.querySelector("b").textContent==="0.0초","elapsed time starts at zero");
+        assert(!document.querySelector(".fridge-time"),"fridge has no elapsed-time display");
         assert(!("pork" in FRIDGE_INGREDIENTS)&&!ingredientRecipe("tofu").includes("pork"),"pork removed from fridge and tofu kimchi");
         assert(ingredientInfo("chicken").asset.endsWith("assets/minigame/E1/chicken-0.png"),"original chicken asset used");
-        assert(ingredientInfo("tofu").asset.includes("E1/tofu-0"),"whole tofu block, not the sliced E11 art");
+        assert(ingredientInfo("tofu").asset.includes("E1/tofu-0"),"whole tofu block, not the sliced plating art");
         assert(Object.values(FRIDGE_EXTRAS).every(item=>item.asset),"every fridge-only extra has real art now");
         // 그림 파일이 실제로 열리는지는 맨 아래에서 따로 봅니다(로딩이 비동기라 여기서는 아직 0x0 입니다)
         const artSrcs=[...document.querySelectorAll("#ingredientGrid img,#fridgeColdAir img,#ingredientChecklist img")].map(img=>img.src);
@@ -129,9 +129,7 @@
         ingredientGrid.querySelector(`[data-slot="${wrongIndex}"]`).click();
         assert(progress().slots[wrongIndex]!==null&&progress().misses===1,"wrong pick keeps the ingredient in place");
         assert(ingredientSelectFeedback.textContent.includes("오늘 쓰지 않아요"),"wrong pick explains itself");
-        assert(progress().elapsed>=3,"wrong pick adds three seconds");
-        assert(ingredientTimer.querySelector("b").textContent==="3.0초","the clock shows the penalty right away");
-        assert(document.querySelector(".fridge-penalty")?.textContent==="+3초","+3초 pops up in the middle of the fridge");
+        assert(!Object.hasOwn(progress(),"elapsed")&&!document.querySelector(".fridge-penalty"),"wrong pick has no time state or penalty popup");
         assert(!ingredientChecklist.querySelector("small"),"goal panel has no name labels");
         assert(!ingredientDishGallery.querySelector("strong"),"dish cards have no name labels");
 
@@ -144,7 +142,7 @@
 
         required.slice(1).forEach(id=>slotButton(id).click());
         assert(currentIngredientRoundComplete(),"finding everything completes the round");
-        assert(document.querySelector(".fridge-clear"),"clear banner is shown");
+        assert(document.querySelector(".fridge-clear")&&!document.querySelector(".fridge-clear span"),"clear banner is shown without an elapsed-time record");
         continueIngredientSelection();
         assert(state.phase===GAME_PHASES.PREP,"continues to prep");
 

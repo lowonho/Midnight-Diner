@@ -13,6 +13,15 @@ const sandbox={};
 vm.runInNewContext(`${gameDataSource}\n;globalThis.__prepContract={PREP_TASKS,MENU_DATA,DAY_DATA};`,sandbox,{filename:"game-data.js"});
 const {PREP_TASKS,MENU_DATA,DAY_DATA}=sandbox.__prepContract;
 
+const removedPrepTaskIds=["soakUdon","soakTteok","mixYakisobaSauce","mixTteokbokkiSauce"];
+assert(removedPrepTaskIds.every(id=>!PREP_TASKS[id]),"우동·떡 불리기와 양념장 만들기 작업이 다시 등록되면 안 됩니다.");
+assert(MENU_DATA.find(menu=>menu.id==="yakisoba").requiredPrepTasks.join(",")==="sliceYakisobaCabbage,sliceYakisobaCarrot",
+  "볶음우동 낮 준비에는 채썰기 두 작업만 남아야 합니다.");
+assert(MENU_DATA.find(menu=>menu.id==="tteokbokki").requiredPrepTasks.join(",")==="cutTteokbokkiCabbage,cutTteokbokkiGreenOnion,cutTteokbokkiFishCake",
+  "떡볶이 낮 준비에는 썰기 세 작업만 남아야 합니다.");
+assert(Object.values(PREP_TASKS).every(task=>(task.dependsOn||[]).every(id=>!removedPrepTaskIds.includes(id))),
+  "남은 준비 작업이 삭제된 작업을 선행 조건으로 참조하면 안 됩니다.");
+
 assert(MENU_DATA.every(menu=>menu.unlockDay===1),"모든 메뉴가 Day 1부터 열려야 합니다.");
 assert(Object.values(PREP_TASKS).every(task=>!("minDay" in task)),"준비 작업에 minDay 제한이 남아 있습니다.");
 const allMenuIds=MENU_DATA.map(menu=>menu.id).sort();
@@ -31,6 +40,8 @@ assert(!/state\.day/.test(prepSource),"준비 미니게임 엔진에 날짜 의�
 assert(!/task\.minDay/.test(prepSource),"준비 미니게임 진입부에 minDay 제한이 남아 있습니다.");
 
 const setupKeys=new Set([...prepSource.matchAll(/registerDayPrepSetup\(\s*"([^"]+)"/g)].map(match=>match[1]));
+assert(["udonSoak","tteokSoak","yakisobaSauce","tteokbokkiSauce"].every(key=>!setupKeys.has(key)),
+  "삭제한 불리기·양념장 게임의 시작 함수가 다시 등록되면 안 됩니다.");
 const missing=Object.values(PREP_TASKS).filter(task=>task.isImplemented&&!setupKeys.has(task.miniGame));
 assert(!missing.length,`시작 함수가 없는 준비 작업: ${missing.map(task=>task.id).join(", ")}`);
 

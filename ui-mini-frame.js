@@ -117,18 +117,13 @@ const MINI_SUBTITLE = Object.freeze({
   kimchiFry:        "화살표를 순서대로 눌러 김치를 볶아주세요!",
   batter:           "재료를 순서대로 볼에 넣고 저어주세요!",
   skewer:           "닭과 파를 번갈아 순서대로 꽂아주세요!",
-  yakisobaSauce:    "재료를 정확한 양만큼 계량해 넣어주세요!",
-  tteokbokkiSauce:  "재료를 정확한 양만큼 계량해 넣어주세요!",
-  udonSoak:         "우동면을 담고 물병을 기울여 물을 채워주세요!",
-  tteokSoak:        "떡을 담고 물병을 기울여 물을 채워주세요!",
   // mandoline · potatoMandoline · potatoStarch · shrimpCoat 는 engine-e2 가 직접 채웁니다
 
   // ---- 밤 조리 ----
   heat:             "스페이스바를 누르고 떼며 움직이는 적정 온도를 따라가세요!",
   stir:             "화살표를 순서대로 눌러 볶아주세요!",
   fry:              "재료를 기름에 튀긴 뒤, 집게로 건져 완성 그릇에 옮겨주세요!",
-  chop:             "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!",
-  plateKimchi:      "두부와 김치를 한 조각씩 접시에 담아주세요!"
+  chop:             "칼이 초록 구간에 들어왔을 때 눌러 썰어주세요!"
   // twoSideCook 은 engine-e5 가 요리별로 직접 채웁니다
 });
 
