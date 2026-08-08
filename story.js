@@ -2099,7 +2099,7 @@ function processStoryNightTrigger(){
 function decorateStoryOrder(order,plan=null){
   order.customerType="general";order.guestId=null;order.specialRecipe=false;order.storySceneId=null;order.repeatVisit=false;
   order.storyDishId=null;order.storyArrival=null;order.deferUntilArrival=false;order.guestOrder=false;order.awaitingDishChoice=false;
-  order.bubble=pickGeneralGuestBubble("arrival");order.bubbleTime=4.5;order.waitingTime=0;order.waitingBubbleShown=false;
+  order.bubble=pickGeneralGuestBubble("arrival",order.dishId);order.bubbleTime=4.5;order.waitingTime=0;order.waitingBubbleShown=false;
   if(!plan)return order;
   const plans=state.story?.pendingNightGuests||[];
   const planIndex=plans.indexOf(plan);
@@ -2206,9 +2206,25 @@ function applyStoryCookingResult(order,satisfaction){
   };
 }
 
-function pickGeneralGuestBubble(type){
+function koreanSubjectParticle(word){
+  const value=String(word||"").trim();
+  if(!value)return "이";
+  const last=value.charCodeAt(value.length-1);
+  return last>=0xac00&&last<=0xd7a3&&(last-0xac00)%28!==0?"이":"가";
+}
+
+function formatGeneralGuestBubble(template,dishId=null){
+  if(!String(template).includes("[음식명]"))return String(template);
+  const dish=dishById(dishId);
+  const dishName=dish?.name||dish?.displayName||"따뜻한 음식";
+  return String(template)
+    .split("[음식명]").join(dishName)
+    .split("[이/가]").join(koreanSubjectParticle(dishName));
+}
+
+function pickGeneralGuestBubble(type,dishId=null){
   const pool=GENERAL_GUEST_BUBBLES[type]||GENERAL_GUEST_BUBBLES.warm||["잘 먹겠습니다."];
-  return pool[Math.floor(Math.random()*pool.length)];
+  return formatGeneralGuestBubble(pool[Math.floor(Math.random()*pool.length)],dishId);
 }
 
 function cookingDifficultyMultiplier(context){return context?.tutorial?.9:context?.special?1.25:1;}

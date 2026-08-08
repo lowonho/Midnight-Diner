@@ -168,6 +168,22 @@ STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 
 same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
   "날짜별 일반 주문 수");
 same(STORY_SCORE_THRESHOLDS,{warm:50,great:80},"스토리 평가 점수 기준");
+same(GENERAL_GUEST_BUBBLES.arrival,[
+  "[음식명] 하나 부탁드릴게요.",
+  "오늘은 [음식명][이/가] 먹고 싶네요.",
+  "좋은 냄새가 나네요. [음식명] 하나 주세요."
+],"일반 손님 음식명 포함 방문 대사");
+same(GENERAL_GUEST_BUBBLES.soft,
+  ["조금 아쉽지만 잘 먹었습니다.","정성이 느껴져서 좋았어요."],
+  "일반 손님 아쉽다 평가 대사");
+assert(formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요.","kimchi")
+  ==="오늘은 김치전이 먹고 싶네요."
+  &&formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요.","tofu")
+  ==="오늘은 두부김치가 먹고 싶네요.",
+  "일반 손님 방문 대사는 메뉴 이름과 이/가 조사를 자연스럽게 표시해야 합니다.");
+assert(String(decorateStoryOrder).includes('pickGeneralGuestBubble("arrival",order.dishId)')
+  &&!GENERAL_GUEST_BUBBLES.arrival.includes("천천히 해 주세요. 기다릴게요."),
+  "일반 손님 주문 음식명을 방문 대사에 전달하고 제외한 기다림 문장을 다시 넣으면 안 됩니다.");
 assert(storyCookingTier(49,STORY_SCORE_THRESHOLDS)==="soft"
   &&storyCookingTier(50,STORY_SCORE_THRESHOLDS)==="warm"
   &&storyCookingTier(79,STORY_SCORE_THRESHOLDS)==="warm"
