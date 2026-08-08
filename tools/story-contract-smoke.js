@@ -9,6 +9,32 @@ const files = ["game-data.js", "story-data.js", "story.js"];
 const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
+const gameSource = fs.readFileSync(path.join(root, "game.js"), "utf8");
+const titleSource = fs.readFileSync(path.join(root, "title.js"), "utf8");
+
+[
+  "assets/bgm/story/bgm_company_story.mp3",
+  "assets/bgm/story/bgm_in_first_sikdang.mp3",
+  "assets/sfx/story/sfx_rain.MP3",
+  "assets/sfx/story/sfx_open_door.MP3",
+  "assets/sfx/ui/sfx_next_book.MP3"
+].forEach(asset=>{
+  if(!fs.existsSync(path.join(root,...asset.split("/"))))throw new Error(`스토리 음원 누락: ${asset}`);
+});
+if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
+  ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
+  ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
+  ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
+  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')){
+  throw new Error("스토리·영업일지 음원은 BGM/SFX 레지스트리에 등록되어야 합니다.");
+}
+if(!titleSource.includes('openGameScreen();queueStoryMoments(["newGame","dayStart"]);')
+  ||!titleSource.includes("audio.startBgm();")){
+  throw new Error("새 게임은 프롤로그 BGM을 선택한 뒤 재생을 시작해야 합니다.");
+}
+if(!titleSource.includes('if(changed)audio?.play?.("journal_page_turn",{gain:.9});')){
+  throw new Error("영업일지 페이지가 실제로 바뀔 때 책장 넘김 효과음을 재생해야 합니다.");
+}
 
 [
   "endingRetryOverlay",
@@ -306,17 +332,48 @@ assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
   &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
   "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
 
-assert(Object.keys(STORY_SCENES).length===55,"새 시나리오는 총 55개 장면이어야 합니다.");
+assert(Object.keys(STORY_SCENES).length===56,"새 시나리오는 총 56개 장면이어야 합니다.");
 const requiredStaticScenes=[
-  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-L01","SCN-L02","SCN-D01",
+  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D01",
   "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
 ];
 requiredStaticScenes.forEach(id=>assert(STORY_SCENES[id]?.id===id,"필수 장면 누락: "+id));
 assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
   "영업일지 규칙 확인 뒤 프롤로그가 끝나야 합니다.");
+const dayOnePrepTransition=STORY_SCENES["SCN-P05"];
+assert(dayOnePrepTransition.title==="영업 준비"
+  &&dayOnePrepTransition.day===1
+  &&dayOnePrepTransition.moment==="dayStart"
+  &&dayOnePrepTransition.transitionOnly===true
+  &&dayOnePrepTransition.storyBgm==="day"
+  &&dayOnePrepTransition.storyBgmCrossfade===1700
+  &&dayOnePrepTransition.lines.length===0,
+  "프롤로그 뒤에는 DAY 1 영업 준비 카드와 1.7초 BGM 크로스페이드가 있어야 합니다.");
+assert(String(applyStorySceneAudio).includes("crossfadeDuration")
+  &&String(storyAdvance).includes("storySession.scene?.transitionOnly")
+  &&gameSource.includes("crossfadeBgm(track,duration=this.bgmFadeDuration)"),
+  "영업 준비 카드는 자동 진행되며 식당·낮 BGM을 부드럽게 교차해야 합니다.");
 assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
   &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
   "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
+assert(STORY_SCENES["SCN-P01"].storyBgm==="storyCompany"
+  &&STORY_SCENES["SCN-P02"].storyBgm==="storyCompany"
+  &&STORY_SCENES["SCN-P02"].storyAmbient?.name==="story_rain"
+  &&STORY_SCENES["SCN-P03"].storyBgm==="storySikdang"
+  &&STORY_SCENES["SCN-P04"].storyBgm==="storySikdang",
+  "회사·빗길·첫 식당 장면의 BGM과 빗소리 큐가 장면 경계에 맞아야 합니다.");
+const prologueDoorLine=STORY_SCENES["SCN-P02"].lines.find(line=>line.text?.includes("일단 비부터 피하자"));
+assert(!prologueDoorLine?.sfxOnComplete
+  &&STORY_SCENES["SCN-P03"].storyEntrySfx?.name==="story_open_door"
+  &&STORY_SCENES["SCN-P03"].storyEntrySfx?.delayBgmUntilComplete===true,
+  "달빛식탁에 갇히다 장면 진입 시 문소리를 먼저 재생한 뒤 식당 BGM을 시작해야 합니다.");
+assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
+  &&String(restoreStoryCheckpoint).includes("applyStorySceneAudio(scene)")
+  &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
+  &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
+  &&String(clearStoryRuntime).includes("clearStoryAudio()")
+  &&String(finishStorySession).includes("clearStoryAudio()"),
+  "스토리 음향은 장면 시작·중간 복원·종료 수명주기를 따라야 합니다.");
 assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="지친 밤 - 퇴근길"
   &&!storySceneCardText(STORY_SCENES["SCN-J01"]).includes("SCN-")
   &&!storySceneCardText(STORY_SCENES["END-01"]).includes("END-"),
@@ -367,6 +424,10 @@ assert(String(storyAdvance).includes("openJournalOnAdvance")
   &&String(resumeStoryAfterJournal).includes("waitingForJournal")
   &&String(resumeStoryAfterJournal).includes("showStoryLine"),
   "프롤로그는 해당 자막 뒤 책을 열고, 닫은 뒤 다음 자막으로 복귀해야 합니다.");
+const storyAdvanceAudioSource=`${String(storyAdvance)}\n${String(chooseStoryOption)}`;
+assert(storyAdvanceAudioSource.includes("audio?.uiClick?.()")
+  &&!storyAdvanceAudioSource.includes("audio?.click()"),
+  "대사 진행과 선택지 확정은 합성 기계음이 아니라 설정된 UI 클릭음을 사용해야 합니다.");
 assert(p04.lines.slice(-3).every(line=>line.timeOfDay==="day")
   &&String(storyTimeOfDayOverride).includes("line.timeOfDay"),
   "프롤로그의 밤→첫째 날 낮 전환은 대사뿐 아니라 실제 배경 시간에도 반영되어야 합니다.");
@@ -403,7 +464,7 @@ assert(l02.journalVariants.shard[0].text.includes("지난 회차")
   "과거 조각 기록은 남아도 이번 회차에 조각을 다시 얻어야 합니다.");
 
 same(STORY_EVENT_SCHEDULE.newGame[1],
-  ["SCN-P01","SCN-P02","SCN-P03","SCN-P04"],"프롤로그 진입 일정");
+  ["SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05"],"프롤로그 진입 일정");
 for(let day=1;day<=7;day++){
   assert(STORY_EVENT_SCHEDULE.nightStart[day][0]==="SCN-D01",
     "매일 영업 준비 완료 뒤 밤 영업 시작 장면을 실행해야 합니다.");
@@ -972,7 +1033,7 @@ assert(state.story.loop===2&&state.day===1
   &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
   "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 
-console.log("STORY_CONTRACT_OK 55");
+console.log("STORY_CONTRACT_OK 56");
 `;
 
 const context = {

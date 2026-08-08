@@ -974,7 +974,6 @@ function normalizeStoryCheckpoint(checkpoint){
   if(new Set(checkpoint.actorIds).size!==checkpoint.actorIds.length)return null;
   if(typeof checkpoint.waitingForCook!=="boolean"||typeof checkpoint.suspended!=="boolean"||typeof checkpoint.wasPaused!=="boolean")return null;
   if(checkpoint.waitingForCook!==checkpoint.suspended)return null;
-
   const pendingCook=checkpoint.pendingCook==null?null:checkpoint.pendingCook;
   if(checkpoint.suspended){
     if(!isStoryCheckpointRecord(pendingCook)||pendingCook.sceneId!==checkpoint.sceneId)return null;
@@ -1034,6 +1033,7 @@ function captureStoryCheckpoint(){
 
 function clearStoryRuntime(){
   const hadRuntime=!!storySession||!!state.story?.activeStoryCook;
+  clearStoryAudio();
   clearStoryTyping();
   clearStorySceneIntro();
   setStoryGameUiVisible(false);
@@ -1091,6 +1091,7 @@ function restoreStoryCheckpoint(checkpoint){
 
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
+  applyStorySceneAudio(scene);
   restored.actorIds.forEach(ensureStoryActor);
 
   if(restored.suspended){
@@ -1250,12 +1251,63 @@ function beginNextStoryScene(){
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
+  applyStorySceneAudio(scene);
   updateStorySkipButton();
   showStorySceneIntro();
 }
 
 function clearStoryTyping(){
   if(storyTypingTimer){clearTimeout(storyTypingTimer);storyTypingTimer=null;}
+}
+
+function stopStoryAmbient(){
+  const entry=storySession?.ambientAudio||null;
+  if(entry)audio?.stopFile?.(entry);
+  if(storySession)storySession.ambientAudio=null;
+}
+
+function stopStoryEntrySfx(){
+  const entry=storySession?.entryAudio||null;
+  if(entry)audio?.stopFile?.(entry);
+  if(storySession)storySession.entryAudio=null;
+}
+
+function applyStorySceneAudio(scene){
+  stopStoryAmbient();
+  stopStoryEntrySfx();
+  const cue=scene?.storyAmbient;
+  if(cue?.name&&storySession){
+    storySession.ambientAudio=audio?.play?.(cue.name,{loop:true,owner:storySession,gain:cue.gain??1})||null;
+  }
+  const entryCue=scene?.storyEntrySfx;
+  if(entryCue?.name&&entryCue.delayBgmUntilComplete&&storySession){
+    audio?.setStoryBgm?.(null);
+    const sceneId=scene.id;
+    const entry=audio?.play?.(entryCue.name,{owner:storySession,gain:entryCue.gain??1})||null;
+    storySession.entryAudio=entry;
+    if(entry){
+      let settled=false;
+      const startSceneBgm=()=>{
+        if(settled)return;
+        settled=true;
+        if(storySession?.scene?.id!==sceneId)return;
+        storySession.entryAudio=null;
+        audio?.setStoryBgm?.(scene.storyBgm||null);
+      };
+      entry.element.addEventListener("ended",startSceneBgm,{once:true});
+      entry.element.addEventListener("error",startSceneBgm,{once:true});
+      return;
+    }
+  }
+  audio?.setStoryBgm?.(scene?.storyBgm||null,{
+    crossfadeDuration:Math.max(0,Number(scene?.storyBgmCrossfade)||0)
+  });
+}
+
+function clearStoryAudio(){
+  stopStoryAmbient();
+  stopStoryEntrySfx();
+  audio?.setStoryBgm?.(null);
 }
 
 function storyLineText(line){return line.prompt||line.text||"";}
@@ -1481,7 +1533,7 @@ function chooseStoryOption(choice,index){
   if(choice.flag)state.story.flags[choice.flag]=true;
   if(choice.notice)showToast(choice.notice);
   if(choice.orderCook){
-    audio?.click();
+    audio?.uiClick?.();
     suspendStoryForOrderCook(scene,choice.orderCook,{
       choice:{...choice},choiceIndex:index,lineIndex:storySession.lineIndex
     });
@@ -1491,7 +1543,7 @@ function chooseStoryOption(choice,index){
     const insertAt=storySession.queueIndex+1;
     if(storySession.queue[insertAt]!==choice.nextSceneId)storySession.queue.splice(insertAt,0,choice.nextSceneId);
     storySession.lineIndex=storySession.lines.length;
-    audio?.click();
+    audio?.uiClick?.();
     completeStoryScene();
     return true;
   }
@@ -1499,13 +1551,16 @@ function chooseStoryOption(choice,index){
   const reply={speaker:choice.speaker||scene.character||"protagonist",text:choice.reply||"고개를 끄덕였다."};
   storySession.lines.splice(storySession.lineIndex+1,0,reply);
   storySession.lineIndex++;
-  audio?.click();
+  audio?.uiClick?.();
   showStoryLine();
 }
 
 function storyAdvance(){
   if(!storySession)return false;
-  if(storySession.sceneIntroActive)return finishStorySceneIntro();
+  if(storySession.sceneIntroActive){
+    if(storySession.scene?.transitionOnly)return true;
+    return finishStorySceneIntro();
+  }
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   if(showNextStorySubtitlePage())return true;
   // QA_REMOVE: 미리보기에서는 조리·선택·완료 처리 없이 대사 인덱스만 이동합니다.
@@ -1521,7 +1576,7 @@ function storyAdvance(){
     storySession.subtitle=null;
     storySession.typing=null;
     storySession.waitingForJournal=true;
-    audio?.click();
+    audio?.uiClick?.();
     const opened=typeof openGameplayJournal==="function"&&openGameplayJournal();
     if(!opened){storySession.waitingForJournal=false;showStoryLine();}
     else saveGame(true);
@@ -1530,17 +1585,17 @@ function storyAdvance(){
   if(line?.choices)return true;
   if(storySession.waitingForCook)return true;
   if(line?.cook){
-    audio?.click();
+    audio?.uiClick?.();
     startStoryCookChallenge(storySession.scene,line.cook,{lineIndex:storySession.lineIndex});
     return true;
   }
   if(line?.orderCook){
-    audio?.click();
+    audio?.uiClick?.();
     suspendStoryForOrderCook(storySession.scene,line.orderCook,{lineIndex:storySession.lineIndex});
     return true;
   }
   storySession.lineIndex++;
-  audio?.click();
+  audio?.uiClick?.();
   showStoryLine();
   return true;
 }
@@ -2326,6 +2381,7 @@ function runStoryConclusion(action){
 
 function finishStorySession(){
   if(!storySession)return;
+  clearStoryAudio();
   clearStoryTyping();
   clearStorySceneIntro();
   setStoryGameUiVisible(false);
@@ -2340,6 +2396,7 @@ function finishStorySession(){
   const openMenuAfterFinish=!!storySession.openMenuAfterFinish;
   storySession=null;
   state.paused=state.phase==="result"?true:wasPaused;
+  audio?.syncBgm?.();
   if(state.phase===GAME_PHASES.RESULT){
     const finalDay=state.day>=DayManager.maxDay;
     dom.nextDayButton.textContent=finalDay
