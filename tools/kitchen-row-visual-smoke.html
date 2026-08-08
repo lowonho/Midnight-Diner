@@ -13,7 +13,8 @@
      쓰는 법 (저장소 루트에서):
        npx http-server -p 8123 .        또는 아무 정적 서버
        tools/kitchen-row-visual-smoke.html?phase=day
-       tools/kitchen-row-visual-smoke.html?phase=night&frame=3
+       tools/kitchen-row-visual-smoke.html?phase=night
+       …&clean=1 을 붙이면 안내선 없이 그림만 찍습니다.
 
      [왜 kitchen.js 를 그대로 불러오나] 배치 계산을 여기 옮겨 적으면
      하네스만 맞고 게임은 틀어지는 일이 생깁니다. 진짜 STATION_LAYOUT 과
@@ -50,10 +51,6 @@
 </script>
 <script src="kitchen.js"></script>
 <script>
-  /* 시트 칸을 고정하고 싶을 때 (?frame=3). 안 주면 실제로 돌아갑니다. */
-  const fixedFrame=params.has("frame")?Number(params.get("frame")):null;
-  if(fixedFrame!==null) stationSheetFrame=(id,frames)=>((fixedFrame%frames)+frames)%frames;
-
   // 집기 그림이 다 준비될 때까지 기다립니다. 안 기다리면 도형 플레이스홀더가 찍힙니다.
   const expected=STATION_SLICES.flatMap(s=>[`${s.id}_day`,...(s.night?[`${s.id}_night`]:[])])
                                .concat(["trash_day","trash_active"]);
@@ -82,7 +79,7 @@
     drawStations();
     if(!params.has("clean")) guides();
     document.getElementById("log").textContent =
-      `phase=${state.phase}  칸=${fixedFrame??"자동"}  준비된 그림 ${ready().length}/${expected.length}` +
+      `phase=${state.phase}  준비된 그림 ${ready().length}/${expected.length}` +
       (ready().length<expected.length?`  (아직: ${expected.filter(k=>!stationArt[k]).join(", ")})`:"");
     requestAnimationFrame(frame);
   }

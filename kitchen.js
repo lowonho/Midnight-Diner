@@ -105,12 +105,15 @@ const STATION_SPEC = {
    집기 옆구리가 좌우 벽 속으로 파고듭니다. HUD 좌우 패널이 대칭이라
    화면 중앙이 곧 HUD 사이 빈 칸의 중앙이기도 합니다.
 
-   [낮 · 밤] 집기 그림은 낮/밤으로 갈립니다.
-     냉장고 · 싱크대 · 도마   낮밤 같은 그림 한 장
-     식기세척기              낮/밤 각각 한 장
-     냄비 · 후라이팬 · 직화구이 · 튀김기
-                            낮은 한 장, 밤은 6칸 스프라이트 시트
-   시트는 §1-2 가 칸을 잘라 돌립니다.
+   [낮 · 밤] 지금은 식기세척기 하나만 낮/밤 그림이 다릅니다.
+   나머지 7종은 한 장으로 낮밤을 다 씁니다. night 를 안 적으면 낮 그림을
+   그대로 쓰므로(§1-2 drawStationArt), 밤 그림이 생기면 그 줄에 night 만
+   더하면 됩니다.
+
+   조리 4종(냄비·후라이팬·직화구이·튀김기)은 한때 밤에 6칸 스프라이트
+   시트를 돌렸습니다. 시트가 낮 조각과 규격이 안 맞아 밤에만 집기 사이가
+   벌어져서 걷어냈고, 지금은 낮 그림 한 장으로 통일돼 있습니다.
+   (시트를 돌리던 코드는 커밋 a3f42cd 에 있습니다)
 
    [주의 — 없어진 연출] 예전 에셋에 있던 "쓰는 중" 그림(냉장고 문 열림,
    싱크대 물줄기)은 새 원화에 짝이 없어 빠졌습니다. 다시 살리려면 같은
@@ -141,39 +144,22 @@ const STATION_ROW = {
               npm run verify:utensils 의 "불투명 영역" 이 찍어 줍니다.
               판정 사각형과 이름표 높이가 이 값에서 나옵니다.
    day/night  그림 파일. night 를 적지 않으면 낮 그림을 밤에도 씁니다.
-   frames     night 가 스프라이트 시트일 때 칸 수. 없으면 한 장짜리입니다. */
+
+   [밤 그림을 더할 때] 낮 조각과 **같은 크롭·배율**로 받아야 합니다.
+   폭 w, 높이 480 의 같은 캔버스에 그려져 있으면 여기 night 만 적으면 끝이고,
+   집기가 낮↔밤에 한 픽셀도 움직이지 않습니다. 규격이 다른 그림을 넣으면
+   그 집기만 자리가 틀어지거나 이웃과 벌어집니다. */
 const STATION_SLICES = [
   {id:"fridge",     w:277, top: 16, bottom:452, day:"fix_fridge_active"},
   {id:"sink",       w:227, top: 16, bottom:444, day:"fix_sink_active"},
   {id:"board",      w:245, top:125, bottom:446, day:"fix_cutting_board_active"},
-  {id:"pot",        w:197, top:111, bottom:449, day:"fix_pot_active",
-   night:"fix_pot_cooking_6f",              frames:6, nightRect:[  2.7, -64.8, 191.7, 607.3]},
-  {id:"pan",        w:192, top:152, bottom:449, day:"fix_frying_pan_active",
-   night:"fix_frying_pan_cooking_6f",       frames:6, nightRect:[ -9.7, -33.1, 206.8, 655.0]},
-  {id:"grill",      w:237, top:123, bottom:449, day:"fix_open_flame_grill_active",
-   night:"fix_open_flame_grill_cooking_6f", frames:6, nightRect:[  1.5,-102.2, 249.5, 759.7]},
-  {id:"fryer",      w:193, top:120, bottom:447, day:"fix_fryer_active",
-   night:"fix_fryer_cooking_6f",            frames:6, nightRect:[ -9.7, -86.2, 214.3, 672.1]},
+  {id:"pot",        w:197, top:111, bottom:449, day:"fix_pot_active"},
+  {id:"pan",        w:192, top:152, bottom:449, day:"fix_frying_pan_active"},
+  {id:"grill",      w:237, top:123, bottom:449, day:"fix_open_flame_grill_active"},
+  {id:"fryer",      w:193, top:120, bottom:447, day:"fix_fryer_active"},
   {id:"dishwasher", w:189, top:116, bottom:449, day:"fix_dishwasher_day",
    night:"fix_dishwasher_active"}
 ];
-
-/* [nightRect 는 임시값입니다 — 시트를 다시 뽑으면 지우세요]
-   ------------------------------------------------------------
-   낮 조각은 줄 한 장을 자른 것인데, 지금 받은 밤 시트 4종은 집기를 하나씩
-   따로 그린 것이라 규격이 다릅니다. 옆면이 저마다 완결돼 있고 낮 조각보다
-   좁습니다 (냄비 33px · 직화구이 23px · 후라이팬 11px · 튀김기 7px).
-   그래서 밤에는 조리기구 사이가 그만큼 벌어집니다.
-
-   nightRect [x, y, w, h] 는 그 시트를 "낮 조각의 몸통과 겹치는 자리"에
-   놓기 위한 값입니다. 조각 좌표(에셋 px)이고, 낮 그림의 하부장과 밤 시트의
-   하부장이 가장 잘 포개지는 위치를 실측해서 넣었습니다. 덕분에 낮↔밤이
-   바뀌어도 집기가 튀지는 않습니다. 다만 벌어진 틈은 그림 문제라 여기서
-   메울 수 없습니다 — 늘리면 낮보다 최대 20% 커져서 그게 더 눈에 띕니다.
-
-   시트를 낮 조각과 같은 크롭·배율로 다시 뽑으면 이 줄들을 지우면 됩니다.
-   그러면 밤 시트도 조각 캔버스(폭 w, 높이 480)를 그대로 쓰게 되고
-   (아래 nightArtRect 의 기본값), 낮과 똑같이 빈틈이 사라집니다. */
 
 const STATION_ROW_TOTAL = STATION_SLICES.reduce((sum,slice)=>sum+slice.w,0);   // 1757
 const STATION_ROW_SCALE = STATION_ROW.width/STATION_ROW_TOTAL;                 // VIEW px / 에셋 px
@@ -184,13 +170,10 @@ const STATION_ROW_LEFT = STATION_ROW.centerX-STATION_ROW.width/2;
 const rowX = assetX => STATION_ROW_LEFT+assetX*STATION_ROW_SCALE;
 const rowY = assetY => STATION_GROUND_Y-(STATION_ROW.contentBottom-assetY)*STATION_ROW_SCALE;
 
-// 밤 그림을 얹을 자리(조각 좌표). 안 적었으면 낮 조각과 같은 캔버스입니다.
-const nightArtRect = slice => slice.nightRect??[0,0,slice.w,STATION_ROW.canvasH];
-
 /* 배치값 → 화면 사각형(논리 좌표).
    body   집기 몸통. 판정·이름표가 쓰는 사각형입니다.
-   canvas 낮 그림 한 장을 통째로 얹을 자리. 몸통보다 큽니다(위쪽 여백).
-   night  밤 그림(또는 시트 한 칸)을 얹을 자리.
+   canvas 그림 한 장을 통째로 얹을 자리. 몸통보다 큽니다(위쪽 여백).
+          낮·밤 그림이 같은 캔버스에 그려져 있어서 자리도 하나면 됩니다.
 
    [폭이 아니라 양쪽 끝을 반올림합니다]
    VIEW 픽셀에 딱 떨어지게 맞춰야 합니다 — 미리 줄여 둔 캔버스와 1:1 로
@@ -202,21 +185,17 @@ const nightArtRect = slice => slice.nightRect??[0,0,slice.w,STATION_ROW.canvasH]
    옆 조각의 왼쪽 끝은 이 조각의 오른쪽 끝과 같은 식에서 같은 값이 나오므로,
    배율이 얼마든 두 조각은 반드시 같은 픽셀에서 맞닿습니다. */
 function stationRowLayout(slice,assetX){
-  const [nx,ny,nw,nh]=nightArtRect(slice);
   // 가로는 줄 좌표(rowX), 세로는 바닥선 기준(rowY) 으로 양 끝을 잡습니다.
   const span=(from,to,project)=>{
     const a=Math.round(project(from)), b=Math.round(project(to));
     return {at:toLogic(a), size:toLogic(b-a)};
   };
   const x=span(assetX,assetX+slice.w,rowX);
-  const nX=span(assetX+nx,assetX+nx+nw,rowX);
   const bodyY=span(slice.top,slice.bottom+1,rowY);
   const canvasY=span(0,STATION_ROW.canvasH,rowY);
-  const nY=span(ny,ny+nh,rowY);
   return {
-    body:  {x:x.at,  y:bodyY.at,   w:x.size,  h:bodyY.size},
-    canvas:{x:x.at,  y:canvasY.at, w:x.size,  h:canvasY.size},
-    night: {x:nX.at, y:nY.at,      w:nX.size, h:nY.size}
+    body:  {x:x.at, y:bodyY.at,   w:x.size, h:bodyY.size},
+    canvas:{x:x.at, y:canvasY.at, w:x.size, h:canvasY.size}
   };
 }
 
@@ -296,49 +275,24 @@ const STATION_REACH = 55;
    픽셀(toView 가 정수로 떨어짐)이라 이후 복사는 리샘플링 없이 지나갑니다.
    ------------------------------------------------------------ */
 
-const stationArt = {};   // "<집기id>_<상태>" → 미리 줄여 둔 캔버스 (시트면 칸 배열)
+const stationArt = {};   // "<집기id>_<상태>" → 미리 줄여 둔 캔버스
 
 /* 그림 한 장을 화면에서 쓸 크기로 줄여 캔버스에 담습니다.
    rect 는 그 그림을 얹을 자리(논리 좌표)입니다. */
-function prerenderStationArt(rect,image,source){
+function prerenderStationArt(rect,image){
   const canvas=document.createElement("canvas");
   canvas.width=Math.round(toView(rect.w));
   canvas.height=Math.round(toView(rect.h));
   const g=canvas.getContext("2d");
   g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
-  if(source) g.drawImage(image,source.x,source.y,source.w,source.h,0,0,canvas.width,canvas.height);
-  else       g.drawImage(image,0,0,canvas.width,canvas.height);
+  g.drawImage(image,0,0,canvas.width,canvas.height);
   return canvas;
-}
-
-/* 스프라이트 시트를 칸별로 잘라 미리 줄여 둡니다.
-   ------------------------------------------------------------
-   [칸 폭을 파일에서 잰다] 시트 파일의 실제 폭을 칸 수로 나눠서 씁니다.
-   여기 숫자로 적어 두지 않는 이유는, 빌드가 칸 밀림을 되돌리면서 칸 폭을
-   조금 넓히기 때문입니다 (tools/build-utensils-webp.js). 넓어진 폭을 코드에
-   또 적어 두면 원본을 다시 뽑을 때마다 두 곳을 맞춰야 하고, 한쪽만 고치면
-   칸이 어긋난 채로 재생됩니다. 파일에서 재면 그럴 일이 없습니다.
-
-   [잘라 둬야 하는 이유] 매 프레임 시트에서 칸을 떠다 축소하면 프레임마다
-   리샘플링이 돕니다. 미리 칸별로 줄여 두면 이후에는 1:1 복사만 하면 되고,
-   칸마다 정확히 같은 크기라 재생 중에 크기가 흔들리지 않습니다. */
-function sliceStationSheet(rect,image,frames){
-  const cellW=image.naturalWidth/frames;
-  if(!Number.isInteger(cellW))
-    console.warn(`집기 시트의 칸 폭이 정수가 아닙니다: ${image.src} (${image.naturalWidth}/${frames})`);
-  return Array.from({length:frames},(_,i)=>
-    prerenderStationArt(rect,image,{x:Math.round(i*cellW),y:0,w:Math.round(cellW),h:image.naturalHeight}));
 }
 
 function loadStationArt(id,stateKey,file,options={},ext=".webp"){
   const dir=options.dir??STATION_ART_DIR;
   const image=new Image();
-  image.onload=()=>{
-    const rect=options.rect??STATION_LAYOUT[id].canvas;
-    stationArt[`${id}_${stateKey}`]=options.frames
-      ? sliceStationSheet(rect,image,options.frames)
-      : prerenderStationArt(rect,image);
-  };
+  image.onload=()=>{stationArt[`${id}_${stateKey}`]=prerenderStationArt(STATION_LAYOUT[id].canvas,image);};
   image.onerror=()=>{
     if(ext===".webp"){loadStationArt(id,stateKey,file,options,".png");return;}   // WebP 미지원 브라우저
     console.warn(`집기 에셋을 불러오지 못했습니다: ${file} (도형 플레이스홀더로 그립니다)`);
@@ -348,27 +302,11 @@ function loadStationArt(id,stateKey,file,options={},ext=".webp"){
 
 STATION_SLICES.forEach(slice=>{
   loadStationArt(slice.id,"day",slice.day);
-  // night 를 안 적은 집기는 밤에도 낮 그림을 씁니다 (아래 stationArtFor 가 되돌립니다).
-  if(slice.night)
-    loadStationArt(slice.id,"night",slice.night,
-                   {rect:STATION_LAYOUT[slice.id].night, frames:slice.frames});
+  // night 를 안 적은 집기는 밤에도 낮 그림을 씁니다 (아래 drawStationArt 가 되돌립니다).
+  if(slice.night) loadStationArt(slice.id,"night",slice.night);
 });
 loadStationArt("trash","day",TRASH_ART.day,{dir:TRASH_ART.dir});
 loadStationArt("trash","active",TRASH_ART.active,{dir:TRASH_ART.dir});
-
-/* 밤 조리 연출 재생 속도.
-   6칸을 1초에 한 바퀴 돕니다. 끓는 냄비·타오르는 불꽃이라 칸마다 그림 차이가
-   커서, 이보다 빠르면 어른거리고 느리면 뚝뚝 끊겨 보입니다. */
-const STATION_SHEET_FPS = 6;
-
-/* 지금 보여 줄 칸 번호.
-   집기마다 시작 칸을 어긋나게 둡니다 — 냄비·후라이팬·직화구이·튀김기가
-   한 줄에 나란히 서 있어서, 같은 칸을 동시에 넘기면 네 집기가 한 몸처럼
-   깜빡입니다. id 글자에서 뽑은 고정값이라 매번 같은 자리에서 시작합니다. */
-function stationSheetFrame(id,frames){
-  const offset=[...id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)%frames;
-  return (Math.floor(performance.now()/1000*STATION_SHEET_FPS)+offset)%frames;
-}
 
 
 /* ------------------------------------------------------------
@@ -492,14 +430,13 @@ function stationUsable(s,near){
    예전에는 순서가 중요했습니다. 집기마다 폭을 따로 정하고 이웃과 8px 씩
    겹쳐 놨기 때문에, 어느 쪽을 위에 얹느냐에 따라 옆면이 잘려 보였습니다.
 
-   지금은 겹치는 부분이 없습니다. 낮 8종이 원화 한 장을 자른 조각이라
+   지금은 겹치는 부분이 없습니다. 8종이 원화 한 장을 자른 조각이라
    한 픽셀은 정확히 한 조각에만 속합니다. (§1-1) 그래서 순서를 바꿔도
    결과가 같고, 읽기 쉬우라고 원화에 그려진 순서 그대로 둡니다.
 
-   [밤은 조금 겹칠 수 있습니다] 밤 시트는 규격이 달라 자리가 서로
-   조금 물릴 수 있습니다(§1-1 nightRect). 그때도 왼쪽부터 그리면 오른쪽
-   집기가 위에 오는데, 원화가 왼쪽 옆면을 보여 주는 3/4 시점이라
-   이 방향이 맞습니다.
+   규격이 다른 그림을 섞어서 자리가 서로 물리게 되면 그때는 순서가
+   다시 중요해집니다. 왼쪽부터 그리면 오른쪽 집기가 위에 오는데,
+   원화가 왼쪽 옆면을 보여 주는 3/4 시점이라 그 방향이 맞습니다.
    ------------------------------------------------------------ */
 const STATION_DRAW_ORDER = STATION_SLICES.map(slice=>slice.id);   // 쓰레기통은 아래에서 따로
 
@@ -661,17 +598,11 @@ function stationArtState(id){
    도형 플레이스홀더로 넘깁니다. (§1-2)
    미리 축소해 둔 캔버스를 같은 크기로 얹기만 하므로 배율 계산이 없습니다. */
 function drawStationArt(s){
-  const phase=stationArtState(s.id);
-  // 밤 그림이 있으면 그것을, 없으면(냉장고·싱크대·도마) 낮 그림을 씁니다.
-  const night=phase==="night"?stationArt[`${s.id}_night`]:null;
-  const art=night??stationArt[`${s.id}_${phase}`]??stationArt[`${s.id}_day`];
+  // 그 상태 그림이 없으면(밤 그림이 없는 7종) 낮 그림으로 되돌립니다.
+  const art=stationArt[`${s.id}_${stationArtState(s.id)}`]??stationArt[`${s.id}_day`];
   if(!art)return false;
-
-  // 시트면 칸 배열이 들어 있습니다.
-  const image=Array.isArray(art)?art[stationSheetFrame(s.id,art.length)]:art;
-  // 밤 그림을 얹을 자리는 낮 조각과 다를 수 있습니다 (§1-1 nightRect).
-  const r=night?STATION_LAYOUT[s.id].night:STATION_LAYOUT[s.id].canvas;
-  ctx.drawImage(image,r.x,r.y,r.w,r.h);
+  const r=STATION_LAYOUT[s.id].canvas;
+  ctx.drawImage(art,r.x,r.y,r.w,r.h);
   return true;
 }
 
