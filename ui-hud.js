@@ -31,16 +31,22 @@ const UI_TEXT = Object.freeze({
   }),
   phaseNameFallback: "영업 준비",
 
-  timeLabelPrep: "준비",
+  // 낮에도 밤과 같은 칸이 뜨지만, 낮에는 아직 아무도 오지 않았으므로
+  // 오늘 밤 받을 손님 수를 미리 알려 줍니다(밤이 되면 남은 수로 줄어듭니다).
+  timeLabelPrep: "방문 예정 손님",
   // 밤에는 시간이 아니라 남은 손님 수로 마감을 셉니다. 그래서 같은 칸의
   // 이름과 값이 밤에만 손님 수로 바뀝니다.
   timeLabelOpen: "남은 손님",
   timeLabelOther: "남은 시간",
-  timeNoLimit: "제한 없음",
   guestsLeft: count => `${count}명`,
   blank: "-",
 
   money: value => `${value.toLocaleString()}원`,
+  // 낮에는 같은 칸이 그날의 특별 손님 이름표가 됩니다. 처음 가는 날짜의
+  // 이름은 미리 알려 주지 않습니다(hud-special-guest.js 가 판정합니다).
+  satisfactionLabelPrep: "오늘의 특별 손님",
+  satisfactionLabelOther: "손님 반응",
+  specialGuestUnknown: "???",
   // 내부 점수는 조리 판정에 그대로 쓰되 HUD에서는 손님의 표정처럼
   // 정성적인 반응만 보여 줍니다.
   guestResponse: value => value>=90?"아주 만족":value>=75?"만족":"아쉬움",

@@ -125,13 +125,15 @@ const MOTIONS = [
 const PORTRAITS = [
   { key:"protagonistChef",   dir:"char_cust_kim_daeun_chef",      stem:"char_cust_kim_daeun",           flip:false, why:"김다은 · 주방 복장(가게에 들어온 뒤 전부)" },
   { key:"protagonistOffice", dir:"char_cust_kim_daeun_office",    stem:"char_cust_kim_daeun_office",    flip:false, why:"김다은 · 회사원 복장(프롤로그)" },
-  { key:"rainyChild",        dir:"char_cust_rain_child",          stem:"char_cust_rain_child",          flip:true,  why:"1일차 · 비에 젖은 아이" },
+  // 아이라 어른들보다 작게 세웁니다. 원화가 캔버스를 꽉 채우게 그려져 있어서
+  // 정규화만 하면 김다은과 키가 같아집니다.
+  { key:"rainyChild",        dir:"char_cust_rain_child",          stem:"char_cust_rain_child",          flip:true,  scale:0.85, why:"1일차 · 비에 젖은 아이" },
   { key:"lanternGuest",      dir:"char_cust_lantern_head",        stem:"char_cust_lantern_head",        flip:true,  why:"2일차 · 등불을 머리에 인 손님" },
   { key:"twinShadows",       dir:"char_cust_joined_shadows",      stem:"char_cust_joined_shadows",      flip:true,  why:"3일차 · 둘이 붙은 그림자" },
   { key:"crowCourier",       dir:"char_cust_crow_postman",        stem:"char_cust_crow_postman",        flip:true,  why:"4일차 · 까마귀 우편배달부" },
   /* '작은 짐승'이라 작게 세웁니다. 납작하게 웅크린 그림이라 키를 남들과 맞추면
      폭이 화면 절반을 먹습니다. 그래서 대사창 턱에 걸터앉히고 크기를 낮춥니다. */
-  { key:"starBeast",         dir:"char_cust_star_eating_beast",   stem:"char_cust_star_eating_beast",   flip:true,  scale:0.62, anchor:"feet", why:"5일차 · 별을 먹는 작은 짐승" },
+  { key:"starBeast",         dir:"char_cust_star_eating_beast",   stem:"char_cust_star_eating_beast",   flip:true,  scale:0.50, anchor:"feet", why:"5일차 · 별을 먹는 작은 짐승" },
   { key:"seawaterGuest",     dir:"char_cust_seawater_guest",      stem:"char_cust_seawater_guest",      flip:true,  why:"6일차 · 바닷물로 된 손님" },
   { key:"schoolDoll",        dir:"char_cust_stopped_school_doll", stem:"char_cust_stopped_school_doll", flip:true,  why:"7일차 · 멈춰버린 교복 인형" },
   { key:"facelessDaeun",     dir:"char_cust_faceless_kim_daeun",  stem:"char_cust_faceless_kim_daeun",  flip:true,  why:"마지막 예약 · 얼굴 없는 김다은" }

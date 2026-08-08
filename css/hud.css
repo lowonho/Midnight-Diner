@@ -207,14 +207,22 @@
 .right-hud { right: 1.35%; width: 15.2%; }
 
 .phase-prep .relationship-box,
-.phase-prep .open-only-control,
-.phase-prep .stat-time,
-.phase-prep .stat-satisfaction {
+.phase-prep .open-only-control {
   display: none;
   pointer-events: none;
 }
-/* 낮에는 진행·만족도 칸도 숨겨져 DAY · 도감 · 설정 3칸입니다. */
-.phase-prep .hud-stats { grid-template-columns: 1fr .65fr .65fr; }
+/* 우상단 스탯은 낮에도 밤과 같은 5칸입니다(DAY · 방문 예정 손님 ·
+   오늘의 특별 손님 · 도감 · 설정). 칸 이름과 값만 game.js 가 낮·밤으로
+   갈아 끼웁니다 — 배치를 낮에만 다르게 두면 낮에서 밤으로 넘어갈 때
+   칸이 튀어 보였습니다. */
+/* 낮 칸에는 "아주 만족" 대신 손님 이름이 들어가 한두 글자 더 깁니다.
+   칸을 넓혀 배치를 흔들지 않고 글자만 줄입니다. */
+.phase-prep .stat-satisfaction strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: calc(10 * var(--upx));
+  text-overflow: ellipsis;
+}
 .phase-prep .right-hud { min-height: 24%; }
 .phase-open .left-hud { min-height: 28%; }
 

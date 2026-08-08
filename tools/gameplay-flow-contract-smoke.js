@@ -69,13 +69,39 @@ assert(settingsInputGuard>=0&&gameKeyPrevent>settingsInputGuard,
   "설정창 안에서는 게임 키 입력만 차단하고 슬라이더 방향키와 버튼 Space 기본 조작은 허용해야 합니다.");
 
 const hud=read("ui-hud.js");
-assert(index.includes('<span>손님 반응</span><strong id="satisfactionText">-</strong>')
+assert(index.includes('<span id="satisfactionLabel">오늘의 특별 손님</span><strong id="satisfactionText">-</strong>')
+  &&hud.includes('satisfactionLabelOther: "손님 반응"')
   &&index.includes('<span>손님들의 반응</span><strong id="satisfactionResult">-</strong>')
   &&index.includes('<span>오늘의 접시</span><strong id="fiveStarResult">-</strong>')
   &&!hud.match(/miniScore:\s*score\s*=>[^\n]*\$\{score\}/)
   &&!hud.match(/prepGain:\s*\([^)]*quality[^)]*\)\s*=>[^\n]*\$\{quality\}/)
   &&game.includes("UI_TEXT.guestResponse(avgSatisfaction())"),
   "조리 피드백과 HUD·정산 화면은 정확한 점수 대신 정성적인 반응을 보여야 합니다.");
+
+/* 낮 우상단 스탯은 밤과 같은 5칸이고, 두 칸의 이름·값만 낮으로 바뀝니다.
+   그날의 특별 손님 이름은 그 날짜를 플레이해 만난 적이 있을 때만 밝힙니다. */
+const hudCss=read("css/hud.css");
+const hudSpecialGuest=read("hud-special-guest.js");
+const save=read("save.js");
+assert(!hudCss.includes(".phase-prep .stat-time")
+  &&!/\.phase-prep \.hud-stats \{ grid-template-columns/.test(hudCss)
+  &&index.includes('<span id="timeLabel">방문 예정 손님</span>')
+  &&index.includes('<script src="hud-special-guest.js">')
+  &&hud.includes('timeLabelPrep: "방문 예정 손님"')
+  &&hud.includes('satisfactionLabelPrep: "오늘의 특별 손님"')
+  &&game.includes("UI_TEXT.guestsLeft(nightGeneralOrderTarget(state.day))")
+  &&game.includes("dom.satisfactionLabel.textContent=isDayPreparation?UI_TEXT.satisfactionLabelPrep:UI_TEXT.satisfactionLabelOther;")
+  &&game.includes("?hudSpecialGuestLabel(state.day)"),
+  "낮 영업시간의 우상단 UI는 밤과 같은 5칸으로, 방문 예정 손님 수와 오늘의 특별 손님을 보여야 합니다.");
+assert(hud.includes('specialGuestUnknown: "???"')
+  &&hudSpecialGuest.includes("function hudSpecialGuestLabel(")
+  &&hudSpecialGuest.includes("window.MoonlightTableSave?.guestMet?.(guestId)")
+  &&hudSpecialGuest.includes("return UI_TEXT.specialGuestUnknown;")
+  &&save.includes("metGuests:{}")
+  &&save.includes("base.metGuests=normalizeJournalCollection(raw.metGuests);")
+  &&save.includes("guestMet:journalGuestMet,")
+  &&story.includes("window.MoonlightTableSave?.recordGuestMeeting?.(guestId,{"),
+  "특별 손님 이름은 그 날짜에서 만난 영구 기록이 있을 때만 열리고, 처음 가는 날짜는 ??? 여야 합니다.");
 assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
   &&miniFrameCss.includes("-webkit-user-select: none;")
   &&miniFrameCss.includes("user-select: none;")

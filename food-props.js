@@ -1,14 +1,14 @@
 "use strict";
 
 /* ============================================================
-   음식 프롭 이미지 (메뉴 8종 x 조리 등급 3단계)
+   음식 프롭 이미지 (메뉴 8종 x 조리 등급 3단계 + 낮 준비물 1장)
    ------------------------------------------------------------
    담당 범위: 음식 그림 파일과 메뉴 id 의 연결 · 로딩 · 텍스처 등록 ·
               캔버스/Phaser/HTML 세 군데에 같은 그림을 내주는 헬퍼
 
    담당 범위가 아님: 어디에 얼마나 크게 그릴지
               → customers.js(주문 말풍선) / player.js(들고 있는 접시) /
-                css/hud.css(메뉴 카드)
+                prep.js(낮 준비물 자리) / css/hud.css(메뉴 카드)
 
    [예전 방식] 64x64 x6 스프라이트시트(삭제됨) 를 MENU_DATA 의 icon
    인덱스로 잘라 썼습니다. 이제 메뉴별 파일이라 인덱스가 필요 없어
@@ -28,14 +28,16 @@
 /* ------------------------------------------------------------
    1. 메뉴 ↔ 그림 파일 표  ← 에셋을 교체·추가할 때 고칠 곳
    ------------------------------------------------------------
-   id   = MENU_DATA 의 메뉴 id (game-data.js)
-   file = 확장자·등급 접미사를 뺀 파일명. 실제 파일은 <file>_<등급> 입니다.
+   id       = MENU_DATA 의 메뉴 id (game-data.js)
+   file     = 확장자·등급 접미사를 뺀 파일명. 실제 파일은 <file>_<등급> 입니다.
+   prepFile = 낮 준비물 그림의 파일명(접미사 _prep 제외). 대부분 file 과 같아서
+              생략하고, 원화 파일명이 다를 때만 적습니다.
    ------------------------------------------------------------ */
 
 const FOOD_PROPS = [
   { id:"oden",          file:"food_eomuk_tang"  },  // 어묵탕
   { id:"tofu",          file:"food_dubu_kimchi" },  // 두부김치
-  { id:"kimchi",        file:"food_kimchijeon"  },  // 김치전
+  { id:"kimchi",        file:"food_kimchijeon", prepFile:"food_kimchi_jeon" },  // 김치전
   { id:"skewer",        file:"food_dak_kkochi"  },  // 닭꼬치
   { id:"yakisoba",      file:"food_bokkeum_udon"},  // 볶음우동
   { id:"shrimpTempura", file:"food_saeu_twigim" },  // 새우튀김
@@ -72,12 +74,31 @@ const FOOD_GRADE_DEFAULT = "normal";
 // Phaser 텍스처 키 접두사. 다른 에셋 키와 겹치지 않게만 하면 됩니다.
 const FOOD_PROP_TEXTURE_PREFIX = "foodProp_";
 
+/* 낮 준비물 그림 — 메뉴 하나당 한 장, 등급 구분이 없습니다.
+   완성된 요리가 아니라 그 메뉴에 들어갈 **재료를 담은 바구니**라
+   prop 이 아니라 prop_ready 폴더에 따로 있습니다. 쓰는 곳은 prep.js 뿐입니다. */
+const FOOD_PREP_DIR = "assets/food/prop_ready/";
+
+/* 준비물 그림의 기준 캔버스 = 메뉴 그림의 **4배**입니다.
+   2026-08-08 에 원화 8장이 1056x608 로 업스케일되어 다시 들어왔습니다.
+   ⚠️ 여기서 FOOD_PROP_SIZE(264x152)를 그대로 쓰면 바 위의 바구니가
+      그날부로 **네 배로 커집니다**. 자를 같이 4배로 키워야 화면 크기가
+      그대로입니다 — 원화 해상도만 올리고 보이는 크기는 안 건드리는 것이
+      이 상수의 목적입니다.
+   그림 크기가 아니라 캔버스로 배율을 잡는 이유는 FOOD_PROP_SIZE 주석과
+   같습니다: 원본이 장마다 799x528 ~ 992x528 로 달라서, 그림 크기에 맞추면
+   바 위에서 감자튀김 바구니만 유독 커집니다. */
+const FOOD_PREP_SIZE = { w:1056, h:608 };
+const FOOD_PREP_SUFFIX = "_prep";
+const FOOD_PREP_TEXTURE_PREFIX = "foodPrep_";
+
 
 /* ------------------------------------------------------------
    2. 조회
    ------------------------------------------------------------ */
 
 const foodPropImages = {};   // 텍스처 키 → HTMLImageElement
+const foodPrepImages = {};   // 텍스처 키 → HTMLImageElement (낮 준비물)
 
 function foodPropEntry(dishId){
   return FOOD_PROPS.find(prop=>prop.id===dishId)||null;
@@ -114,6 +135,22 @@ function foodPropUrl(dishId,grade=FOOD_GRADE_DEFAULT){
   return file?`${FOOD_PROP_DIR}${file}${FOOD_PROP_EXT}`:null;
 }
 
+// 낮 준비물 그림. 등급이 없어서 메뉴 id 하나로 끝납니다.
+function foodPrepFile(dishId){
+  const entry=foodPropEntry(dishId);
+  return entry?`${entry.prepFile||entry.file}${FOOD_PREP_SUFFIX}`:null;
+}
+
+function foodPrepImage(dishId){
+  const file=foodPrepFile(dishId);
+  return file?foodPrepImages[FOOD_PREP_TEXTURE_PREFIX+file]||null:null;
+}
+
+function foodPrepUrl(dishId){
+  const file=foodPrepFile(dishId);
+  return file?`${FOOD_PREP_DIR}${file}${FOOD_PROP_EXT}`:null;
+}
+
 
 /* ------------------------------------------------------------
    3. 로딩 · 텍스처 등록
@@ -133,10 +170,24 @@ function loadFoodPropImage(file){
   });
 }
 
+/* 준비물 그림은 낮에만 쓰지만 로딩은 같이 합니다. 8장 110KB 라
+   따로 지연 로딩할 만큼 무겁지 않고, 낮이 시작되자마자 바 위에
+   빈 자리가 잠깐 보이는 편이 더 눈에 띕니다. */
+function loadFoodPrepImage(dishId){
+  const file=foodPrepFile(dishId);
+  return new Promise((resolve,reject)=>{
+    const image=new Image();
+    image.onload=()=>{foodPrepImages[FOOD_PREP_TEXTURE_PREFIX+file]=image;resolve(image);};
+    image.onerror=()=>reject(new Error(`준비물 이미지를 불러오지 못했습니다: ${file}${FOOD_PROP_EXT}`));
+    image.src=`${FOOD_PREP_DIR}${file}${FOOD_PROP_EXT}`;
+  });
+}
+
 // game.js 의 에셋 로딩 Promise.all 에 넣어서 씁니다. 연출 시트도 같이 받습니다.
 function loadFoodPropAssets(){
   return Promise.all([
     ...foodPropVariants().map(loadFoodPropImage),
+    ...FOOD_PROPS.map(entry=>loadFoodPrepImage(entry.id)),
     ...Object.keys(FOOD_FX).map(loadFoodFxImage)
   ]);
 }
@@ -169,6 +220,42 @@ function drawFoodProp(dishId,centerX,centerY,maxW,maxH,grade=FOOD_GRADE_DEFAULT)
   const scale=Math.min(maxW/FOOD_PROP_SIZE.w,maxH/FOOD_PROP_SIZE.h);
   const w=image.width*scale,h=image.height*scale;
   ctx.drawImage(image,centerX-w/2,centerY-h/2,w,h);
+}
+
+/* 낮 준비물 그림이 maxW x maxH 칸 안에서 실제로 차지할 크기.
+   배율 기준은 그림 크기가 아니라 기준 캔버스입니다(위 FOOD_PREP_SIZE 주석).
+   아직 로딩 전이면 null 입니다 — 부르는 쪽(prep.js)이 예비 도형으로
+   넘어갈지, 그림자와 완료 도장을 어디에 놓을지 이 값으로 정합니다. */
+function foodPrepSize(dishId,maxW,maxH){
+  const image=foodPrepImage(dishId);
+  if(!image)return null;
+  const scale=Math.min(maxW/FOOD_PREP_SIZE.w,maxH/FOOD_PREP_SIZE.h);
+  return { w:image.width*scale, h:image.height*scale };
+}
+
+/* 낮 준비물 그림용. drawFoodProp 과 규칙이 같고, 그린 크기를 돌려줍니다.
+
+   ⚠️ 이 그림만 보간을 켜고 그립니다. 프레임 캔버스는 stage.js 가
+   imageSmoothingEnabled=false (nearest) 로 만들어 둡니다. nearest 는 축소할 때
+   평균을 내지 않고 픽셀 하나를 골라 쓰는데, 준비물 원화는 4배(903px)를
+   123px 로 **7.3배 줄여서** 그립니다 — 원본 7x7 약 54픽셀 중 1개만 남습니다.
+   그러면 바구니 살·배추 결처럼 가는 무늬가 평균으로 뭉쳐지지 않고 어느
+   픽셀이 걸리느냐에 따라 튀어서, 모래알 같은 얼룩이 됩니다.
+   (업스케일 전 1배 원화는 1.8배 축소라 이 문제가 거의 없었습니다.
+    원화 해상도를 올릴수록 nearest 에서는 오히려 나빠집니다)
+
+   save/restore 로 감싸는 이유는 이 캔버스를 kitchen.js·customers.js·fx.js 가
+   같이 쓰기 때문입니다. 켠 채로 두면 다른 그림의 축소 방식까지 바뀝니다.
+   캔버스 상태에 imageSmoothingEnabled/Quality 가 포함되어 restore 로 되돌아갑니다. */
+function drawFoodPrepProp(dishId,centerX,centerY,maxW,maxH){
+  const size=foodPrepSize(dishId,maxW,maxH);
+  if(!size)return null;
+  ctx.save();
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+  ctx.drawImage(foodPrepImage(dishId),centerX-size.w/2,centerY-size.h/2,size.w,size.h);
+  ctx.restore();
+  return size;
 }
 
 /* Phaser 스프라이트용. 텍스처만 바꿉니다. 변형 24종이 모두 같은 원본

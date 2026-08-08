@@ -11,6 +11,7 @@
     "test:save": "node tools/save-slots-contract-smoke.js",
     "test:save-ui": "node tools/save-ui-contract-smoke.js",
     "test:story-cinematic": "node tools/story-cinematic-contract-smoke.js",
+    "test:story-prop": "node tools/story-prop-reveal-contract-smoke.js",
     "test:story-motion": "node tools/story-motion-contract-smoke.js",
     "test:prep-days": "node tools/prep-all-days-contract-smoke.js",
     "test:gameplay-flow": "node tools/gameplay-flow-contract-smoke.js",
@@ -43,6 +44,8 @@
     "verify:conversation": "node tools/build-conversation-webp.js --verify",
     "build:cutscene": "node tools/build-cutscene-webp.js",
     "verify:cutscene": "node tools/build-cutscene-webp.js --verify",
+    "build:story-prop": "node tools/build-story-prop-webp.js",
+    "verify:story-prop": "node tools/build-story-prop-webp.js --verify",
     "build:story-ending": "node tools/build-story-ending-webp.js",
     "verify:story-ending": "node tools/build-story-ending-webp.js --verify"
   },

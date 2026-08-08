@@ -92,10 +92,16 @@ const assert=(condition,message)=>{
   if(!condition)throw new Error(message);
 };
 
-assert(String(showStoryLine).includes("applyStoryFragmentHandoff(line)")
+/* 조각 전달 레이어는 줄이 바뀔 때마다 다시 정해져야 합니다. showStoryLine 이
+   매 줄 applyStoryFragmentHandoff 를 부르고, 켤지 말지는 fragmentRevealedAt
+   으로 판단합니다(대사를 읽고 한 번 더 눌러야 뜹니다). */
+assert(String(showStoryLine).includes("applyStoryFragmentHandoff(")
+  &&String(showStoryLine).includes("fragmentRevealedAt")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
+assert(String(storyAdvance).includes("fragmentRevealedAt"),
+  "달빛 조각은 대사를 다 읽고 한 번 더 눌렀을 때 떠야 합니다(storyAdvance 의 조각 박자).");
 assert(String(showStoryLine).includes("applyStoryEndingBackground(scene)")
   &&String(resetStoryStage).includes("applyStoryEndingBackground(null)")
   &&String(clearStoryRuntime).includes("applyStoryEndingBackground(null)"),
