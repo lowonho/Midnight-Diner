@@ -18,6 +18,8 @@
     "test:night-queue": "node tools/night-queue-contract-smoke.js",
     "test:skewer-handoff": "node tools/skewer-day-to-night-contract-smoke.js",
     "build:counter": "node tools/build-counter-webp.js",
+    "build:decoration": "node tools/build-decoration-webp.js",
+    "verify:decoration": "node tools/build-decoration-webp.js --verify",
     "build:food": "node tools/build-food-webp.js",
     "verify:food": "node tools/build-food-webp.js --verify",
     "build:utensils": "node tools/build-utensils-webp.js",

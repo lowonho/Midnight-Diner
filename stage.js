@@ -135,6 +135,7 @@ function loadStageImage(key){
 function loadStageAssets(){
   return Promise.all([
     ...BACKGROUND_LAYERS.map(layer=>loadStageImage(layer.key)),
+    loadDecorationAssets(),
     loadChefSheets(),
     loadCommonCustomerSheet()
   ]);
@@ -178,6 +179,9 @@ function createStage(scene){
     stageLayers.bg_floor_night,
     stageLayers.bg_floor_day
   ]);
+
+  // 배경 소품(서비스 벨·전등·벽 장식·좌측벽 화분). 배치값은 decoration.js 한 곳에 모여 있습니다.
+  createDecoration(scene);
 
   timeOfDay=timeOfDay||"day";
   applyTimeOfDay(timeOfDay,true);

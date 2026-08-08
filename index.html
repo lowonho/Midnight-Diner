@@ -448,6 +448,7 @@
     (game.js 의 state 초기값이 player.js 의 PLAYER_START 를 읽습니다)
     각 파일은 자기 요소의 좌표·크기·연출만 갖습니다. 게임 규칙은 game.js.
   -->
+  <script src="decoration.js"></script>  <!-- 배경 소품(서비스 벨 · 전등 · 벽 장식 · 좌측벽 화분). stage.js 가 부르므로 먼저 -->
   <script src="stage.js"></script>       <!-- 화면 크기 · 좌표 배율 · 레이어 · 배경 · 낮밤 -->
   <script src="draw-utils.js"></script>  <!-- 프레임 캔버스(ctx) · 공용 드로잉 헬퍼 -->
   <script src="food-props.js"></script>  <!-- 음식 그림 8종 x 조리 등급 3단계 -->
