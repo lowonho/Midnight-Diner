@@ -22,6 +22,12 @@ const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf
 if(!storyCssSource.includes(".ending-retry-window")||!storyCssSource.includes(".ending-retry-actions")){
   throw new Error("엔딩 후 선택 UI 스타일이 story.css에 있어야 합니다.");
 }
+if(!indexSource.includes('id="storyEndingBackground"')
+  ||!storyCssSource.includes(".story-ending-background")
+  ||!storyCssSource.includes("background-size: cover")
+  ||!storyCssSource.includes(".story-overlay.story-ending-active .story-stage")){
+  throw new Error("엔딩 일러스트 배경 레이어와 배우 무대 숨김 스타일이 필요합니다.");
+}
 if(!indexSource.includes('id="storyFragmentHandoff"')
   ||!indexSource.includes('id="storyFragmentName"')
   ||!indexSource.includes('class="story-fragment-art"')
@@ -34,6 +40,13 @@ const fragmentAssetPaths=[...sources[1].matchAll(/\b\w+:\s*"(assets\/customer\/S
 if(fragmentAssetPaths.length!==8
   ||fragmentAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
   throw new Error("특별 손님 8명의 완전한 달빛 조각 에셋이 모두 존재해야 합니다.");
+}
+const endingAssetPaths=[...sources[1].matchAll(/endingBackground:\s*"(assets\/story\/bg\/[^"]+\.png)"/g)]
+  .map(match=>match[1]);
+if(endingAssetPaths.length!==5
+  ||new Set(endingAssetPaths).size!==5
+  ||endingAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("다섯 엔딩 장면은 서로 다른 실제 배경 파일을 사용해야 합니다.");
 }
 
 const bootstrap = `
@@ -73,6 +86,10 @@ assert(String(showStoryLine).includes("applyStoryFragmentHandoff(line)")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
+assert(String(showStoryLine).includes("applyStoryEndingBackground(scene)")
+  &&String(resetStoryStage).includes("applyStoryEndingBackground(null)")
+  &&String(clearStoryRuntime).includes("applyStoryEndingBackground(null)"),
+  "엔딩 배경은 장면 재생 경로에서 적용되고 장면·런타임 종료에서 해제되어야 합니다.");
 assert(String(applyStoryFragmentHandoff).includes('handoff?.state==="full"')
   &&String(applyStoryFragmentHandoff).includes('document.getElementById("storyFragmentName")')
   &&String(applyStoryFragmentHandoff).includes('layer.classList?.toggle("show",showFull)'),
@@ -81,6 +98,52 @@ const same=(actual,expected,message)=>{
   assert(JSON.stringify(actual)===JSON.stringify(expected),
     message+"\\nactual: "+JSON.stringify(actual)+"\\nexpected: "+JSON.stringify(expected));
 };
+
+const expectedEndingBackgrounds={
+  "SCN-J01":"assets/story/bg/01_loop_daeun_reenters_restaurant_entrance_v3.png",
+  "END-01":"assets/story/bg/02_morning_alone_loop_restaurant_unified_v7.png",
+  "END-02":"assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
+  "END-03":"assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
+  "END-04":"assets/story/bg/05_morning_together_restaurant_unified_v2.png"
+};
+same(Object.fromEntries(Object.keys(expectedEndingBackgrounds).map(id=>[id,STORY_SCENES[id].endingBackground])),
+  expectedEndingBackgrounds,"다섯 엔딩 장면별 배경 에셋 매핑");
+assert(new Set(Object.values(expectedEndingBackgrounds)).size===5,
+  "다섯 엔딩 배경은 서로 다른 파일을 사용해야 합니다.");
+
+const endingLayerClasses=new Set();
+const endingOverlayClasses=new Set();
+const endingLayerStyles={};
+const endingLayerAttributes={};
+const endingLayer={
+  dataset:{},
+  classList:{toggle(name,enabled){enabled?endingLayerClasses.add(name):endingLayerClasses.delete(name);}},
+  style:{
+    setProperty(name,value){endingLayerStyles[name]=value;},
+    removeProperty(name){delete endingLayerStyles[name];}
+  },
+  setAttribute(name,value){endingLayerAttributes[name]=value;}
+};
+const endingOverlay={
+  classList:{toggle(name,enabled){enabled?endingOverlayClasses.add(name):endingOverlayClasses.delete(name);}}
+};
+const originalGetElementById=document.getElementById;
+document.getElementById=id=>id==="storyEndingBackground"?endingLayer:id==="storyOverlay"?endingOverlay:null;
+assert(applyStoryEndingBackground(STORY_SCENES["END-01"])
+  &&endingLayerClasses.has("show")
+  &&endingOverlayClasses.has("story-ending-active")
+  &&endingLayer.dataset.sceneId==="END-01"
+  &&endingLayerStyles["--story-ending-art"].includes(expectedEndingBackgrounds["END-01"])
+  &&endingLayerAttributes["aria-hidden"]==="false",
+  "엔딩 진입 시 해당 일러스트와 배경 전용 상태를 표시해야 합니다.");
+assert(!applyStoryEndingBackground(null)
+  &&!endingLayerClasses.has("show")
+  &&!endingOverlayClasses.has("story-ending-active")
+  &&!("sceneId" in endingLayer.dataset)
+  &&!("--story-ending-art" in endingLayerStyles)
+  &&endingLayerAttributes["aria-hidden"]==="true",
+  "엔딩 종료 시 일러스트와 배경 전용 상태를 완전히 해제해야 합니다.");
+document.getElementById=originalGetElementById;
 
 const expectedCharacterIds=[
   "protagonist","recalledBoss","journal","moonlightTable",

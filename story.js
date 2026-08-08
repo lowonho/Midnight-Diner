@@ -979,6 +979,7 @@ function clearStoryRuntime(){
   setStoryGameUiVisible(false);
   clearStoryCinematic();
   applyStoryFragmentHandoff(null);
+  applyStoryEndingBackground(null);
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
@@ -1237,6 +1238,25 @@ function applyStoryFragmentHandoff(line){
   return showFull;
 }
 
+function applyStoryEndingBackground(scene){
+  const layer=document.getElementById("storyEndingBackground");
+  const overlay=document.getElementById("storyOverlay");
+  if(!layer)return false;
+  const asset=String(scene?.endingBackground||"").trim();
+  const show=!!asset;
+  layer.classList?.toggle("show",show);
+  layer.setAttribute?.("aria-hidden",show?"false":"true");
+  overlay?.classList?.toggle("story-ending-active",show);
+  if(show){
+    layer.dataset.sceneId=String(scene.id||"");
+    layer.style?.setProperty?.("--story-ending-art",`url(${JSON.stringify(asset)})`);
+  }else{
+    delete layer.dataset.sceneId;
+    layer.style?.removeProperty?.("--story-ending-art");
+  }
+  return show;
+}
+
 function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   if(!storySession)return;
   clearStoryTyping();
@@ -1251,6 +1271,7 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   const speakerId=line.speaker||null;
   const speakerLabel=storySpeakerLabel(line);
   setStoryGameUiVisible(line.showGameUI===true);
+  applyStoryEndingBackground(scene);
   applyStoryCinematic(line);
   applyStoryFragmentHandoff(line);
   speakerEl.classList.remove("revealed");
@@ -1428,6 +1449,7 @@ const STORY_ACTOR_GUTTER=1.5;
 function resetStoryStage(){
   clearStoryCinematic();
   applyStoryFragmentHandoff(null);
+  applyStoryEndingBackground(null);
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
   if(storySession)storySession.actors=[];

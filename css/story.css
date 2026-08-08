@@ -100,6 +100,36 @@
   text-shadow: 0 0 calc(28 * var(--upx)) rgba(255,195,98,.24);
 }
 
+/* 엔딩 전용 일러스트는 대사창 아래, 기존 배우 무대보다 뒤에 둡니다.
+   각 장면의 실제 에셋은 story.js가 --story-ending-art로 주입합니다. */
+.story-ending-background {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  background-color: #080605;
+  background-image: var(--story-ending-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.015);
+  transition: opacity .45s ease,visibility .45s ease,transform 1.2s ease;
+  pointer-events: none;
+}
+.story-ending-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,rgba(5,4,3,.04),rgba(5,4,3,.02) 56%,rgba(5,4,3,.30) 76%,rgba(5,4,3,.64));
+}
+.story-ending-background.show {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
 /* 배우 무대: 주인공은 항상 왼쪽 끝, 대화 상대는 등장 순서대로 오른쪽 끝까지 균등 배치됩니다.
    위치와 폭은 story.js가 --actor-x / --actor-w 로 넣어 주며, 인원이 늘면 부드럽게 다시 벌어집니다. */
 .story-stage {
@@ -197,7 +227,8 @@
 }
 .story-overlay.scene-intro .story-stage,
 .story-overlay.scene-intro .story-dialogue-box,
-.story-overlay.story-cinematic-active .story-stage {
+.story-overlay.story-cinematic-active .story-stage,
+.story-overlay.story-ending-active .story-stage {
   opacity: 0;
   visibility: hidden;
 }
@@ -442,6 +473,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .story-scene-meta,
+  .story-ending-background,
   .story-stage,
   .story-dialogue-box,
   .story-fragment-handoff { transition: none; }

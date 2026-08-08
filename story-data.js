@@ -906,6 +906,7 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     shardRange: [0, 3],
+    endingBackground: "assets/story/bg/01_loop_daeun_reenters_restaurant_entrance_v3.png",
     autoLoop: true,
     nextSceneId: "SCN-L01",
     lines: [
@@ -972,6 +973,7 @@ const STORY_SCENES = {
     ending: true,
     endingId: "alone_morning",
     endingTitle: "혼자 맞은 아침",
+    endingBackground: "assets/story/bg/02_morning_alone_loop_restaurant_unified_v7.png",
     continuePolicy: "endingRetryMenu",
     retryJudgementSceneId: "SCN-J02",
     lines: [
@@ -991,6 +993,7 @@ const STORY_SCENES = {
     ending: true,
     endingId: "guests_dawn",
     endingTitle: "손님들의 새벽",
+    endingBackground: "assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
     continuePolicy: "endingRetryMenu",
     retryJudgementSceneId: "SCN-J02",
     lines: [
@@ -1011,6 +1014,7 @@ const STORY_SCENES = {
     ending: true,
     endingId: "open_forever",
     endingTitle: "영원히 영업 중",
+    endingBackground: "assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
     continuePolicy: "endingRetryMenu",
     retryJudgementSceneId: "SCN-J03",
     lines: [
@@ -1032,6 +1036,7 @@ const STORY_SCENES = {
     trueEnding: true,
     endingId: "morning_together",
     endingTitle: "함께 오는 아침",
+    endingBackground: "assets/story/bg/05_morning_together_restaurant_unified_v2.png",
     continuePolicy: "clearRunKeepMeta",
     nextSceneId: "SCN-EPI01",
     lines: [
