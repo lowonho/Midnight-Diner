@@ -312,18 +312,105 @@ function journalDefinitionLabel(definition,id=journalDefinitionId(definition)){
   return definition?.displayName||definition?.label||definition?.name||definition?.title||id;
 }
 
+function titleJournalObjectParticle(word){
+  const value=String(word||"").trim();
+  if(!value)return "을";
+  const last=value.charCodeAt(value.length-1);
+  return last>=0xac00&&last<=0xd7a3&&(last-0xac00)%28!==0?"을":"를";
+}
+
+function titleJournalStoredReaction(value){
+  if(typeof value!=="string"||!value.trim())return "";
+  const reaction=value.trim();
+  // 잠깐 배포됐던 판정명 기반 기록도 v2 데이터이므로 버전을 올려 지우지
+  // 않고, 아래의 실제 완벽 결과 대사로 자연스럽게 보완합니다.
+  if(/^평가 기록(?:\s*:|\s+없음)/.test(reaction)
+    ||/^(?:아쉽다|맛있다|완벽|없음)(?:\s*\(이전 회차\))?$/.test(reaction)
+    ||/^(?:이번에|전에) 음식을 맛본 뒤/.test(reaction))return "";
+  return reaction;
+}
+
+function titleJournalPerfectReaction(definition){
+  const defined=titleJournalStoredReaction(
+    definition?.perfectReactionNote||definition?.greatReactionNote
+  );
+  if(defined)return defined;
+  const scenes=typeof STORY_SCENES!=="undefined"&&STORY_SCENES
+    &&typeof STORY_SCENES==="object"
+    ?STORY_SCENES
+    :{};
+  const arrival=Object.values(scenes).find(scene=>
+    scene?.sceneType==="specialGuestArrival"
+    &&scene?.resultSceneIds?.great
+    &&(
+      scene.character===definition?.guestId
+      ||scene.shardId===definition?.shardId
+      ||scene.dishId===definition?.dishId
+    )
+  );
+  const result=arrival?scenes[arrival.resultSceneIds.great]:Object.values(scenes).find(scene=>
+    scene?.sceneType==="specialGuestResult"
+    &&scene?.resultTier==="great"
+    &&(
+      scene.shardId===definition?.shardId
+      ||scene.dishId===definition?.dishId
+    )
+  );
+  if(!Array.isArray(result?.lines))return "";
+  return result.lines
+    .filter(line=>typeof line?.speaker==="string"
+      &&line.speaker!=="protagonist"
+      &&typeof line.text==="string"
+      &&line.text.trim())
+    .map(line=>`“${line.text.trim()}”`)
+    .join("\n");
+}
+
+// 타이틀의 특별 손님 장은 진행 세이브가 사라진 뒤에도 남아야 하므로,
+// 완벽 평가를 받았을 당시 진행용 영업일지의 다섯 줄을 영구 기록에 함께
+// 보관합니다. 예전 v2 기록에는 이 필드가 없으므로 완벽 결과 장면의 실제
+// 손님 대사로 보충해 별도의 데이터 삭제나 버전 초기화 없이 마이그레이션합니다.
+function titleJournalGuestRecord(definition,stored={}){
+  const text=(value,fallback)=>typeof value==="string"&&value.trim()
+    ?value.trim()
+    :fallback;
+  const guestName=text(stored.guestName,journalDefinitionLabel(definition));
+  const clue=text(stored.clue,definition?.clue||"아직 음식에 관한 단서를 듣지 못했다.");
+  const dishNote=text(stored.dishNote,definition?.dishName
+    ?`이 손님이 기억하는 음식은 ${definition.dishName}이었다.`
+    :"아직 어떤 음식을 기억하는지는 알 수 없다.");
+  const shardNote=text(stored.shardNote,definition?.shardName
+    ?`달빛 조각 「${definition.shardName}」${titleJournalObjectParticle(definition.shardName)} 건넸다.`
+    :"아직 달빛 조각은 받지 못했다.");
+  const reactionNote=titleJournalStoredReaction(stored.reactionNote)
+    ||titleJournalPerfectReaction(definition);
+  return {
+    guestName,
+    clue,
+    dishNote,
+    // 타이틀 손님 장은 최초 완벽 평가에서만 열리므로 낮은 재방문 평가로
+    // 영구 컬렉션의 해금 당시 기록을 덮어쓰지 않습니다.
+    reactionNote,
+    shardNote
+  };
+}
+
 function fixedJournalCollection(definitions,stored={}){
   return Object.fromEntries(definitions.map(definition=>{
     const id=journalDefinitionId(definition);
     const saved=stored[id]&&typeof stored[id]==="object"?stored[id]:{};
-    return [id,{
+    const entry={
       ...definition,
       ...saved,
       id,
       label:journalDefinitionLabel(definition,id),
       unlocked:!!saved.unlocked,
       notificationPending:!!saved.notificationPending
-    }];
+    };
+    if(definition?.guestId&&entry.unlocked){
+      Object.assign(entry,titleJournalGuestRecord(definition,saved));
+    }
+    return [id,entry];
   }).filter(([id])=>!!id));
 }
 
@@ -415,7 +502,7 @@ function unlockFixedJournalEntry(collection,id,details={}){
   const previous=journal[collection][id];
   const newlyUnlocked=!previous?.unlocked;
   const now=Date.now();
-  journal[collection][id]={
+  const entry={
     ...previous,
     ...(details&&typeof details==="object"?details:{}),
     ...definition,
@@ -427,6 +514,11 @@ function unlockFixedJournalEntry(collection,id,details={}){
     unlockedAt:previous?.unlockedAt||now,
     notificationPending:newlyUnlocked?true:!!previous?.notificationPending
   };
+  if(collection==="guests")Object.assign(entry,titleJournalGuestRecord(
+    definition,
+    newlyUnlocked?{...previous,...details}:previous
+  ));
+  journal[collection][id]=entry;
   const saved=writeJournalData(journal)?.[collection]?.[id];
   return saved?{...saved,newlyUnlocked}:null;
 }
@@ -438,7 +530,7 @@ function recordJournalGuest(id,details={}){
   const journal=readJournalData();
   const previous=journal.guests[id];
   const now=Date.now();
-  journal.guests[id]={
+  const entry={
     ...previous,
     ...(details&&typeof details==="object"?details:{}),
     ...definition,
@@ -449,6 +541,8 @@ function recordJournalGuest(id,details={}){
     firstRecordedAt:previous?.firstRecordedAt||now,
     lastRecordedAt:now
   };
+  if(entry.unlocked)Object.assign(entry,titleJournalGuestRecord(definition,previous));
+  journal.guests[id]=entry;
   const saved=writeJournalData(journal)?.guests?.[id];
   return saved?{...saved,newlyUnlocked:false}:null;
 }

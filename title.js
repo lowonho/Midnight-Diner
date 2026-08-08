@@ -199,14 +199,19 @@ function journalPageNote(page){
     ].join("\n");
   }
   if(journalMode==="collection"){
+    // 타이틀의 영구 컬렉션도 진행용 날짜 장과 같은 다섯 줄로 읽힙니다.
+    // 값은 진행 세이브가 아니라 save.js가 완벽 달성 때 남긴 영구 snapshot입니다.
+    const guestRecord=gameplayJournalEntryNote({
+      guestName:page.guestName||page.displayName||page.label,
+      clue:page.clue,
+      dishNote:page.dishNote,
+      reactionNote:page.reactionNote,
+      shardNote:page.shardNote
+    });
     return [
-      journalField("이름",page.displayName||page.label),
-      journalField("기억의 음식",page.dishName),
-      journalField("좋아한 스타일",page.preferredStyle),
-      journalField("완성된 이야기",page.completedStory),
-      journalField("달빛 조각",page.shardName),
-      journalField("진엔딩 이후 후일담",page.epilogueUnlocked?page.epilogue:"???")
-    ].join("\n");
+      guestRecord,
+      journalSection("진엔딩 이후 후일담",[page.epilogueUnlocked?page.epilogue:"???"])
+    ].join("\n\n");
   }
   return [
     journalSection("손님 정보",[

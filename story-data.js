@@ -544,8 +544,8 @@ const STORY_SCENES = {
     ],
     missingLines: [
       storyNarration("아이는 다은이 내어 준 음식을 한입 먹고 조용히 고개를 젓는다."),
-      storyLine("rainyChild", "이건 아니에요. 그래도 따뜻하게 만들어 줘서 고마워요."),
-      storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
+      storyLine("rainyChild", "이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다."),
+      storyLine("rainyChild", "제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요"),
       storyLine("protagonist", "알겠어. 다음에는 그 소리를 기억하면서 골라 볼게."),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
@@ -817,7 +817,7 @@ const STORY_SCENES = {
     ],
     missingLines: [
       storyNarration("인형은 다은이 내어 준 음식을 조심스럽게 맛보지만 벽시계는 움직이지 않는다."),
-      storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
+      storyLine("schoolDoll", "오늘도 4시 44분에 끝나겠네요."),
       storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
       storyLine("protagonist", "빨갛고 맵고 말랑한 음식… 다음에는 그 기억으로 골라 볼게."),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
