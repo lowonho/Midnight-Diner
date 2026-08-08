@@ -271,7 +271,7 @@ function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
-    if(page.pageType==="rules")return "주의사항 3개 · 음식 레시피 8장";
+    if(page.pageType==="rules")return "주의사항 2개 · 음식 레시피 8장";
     if(page.pageType==="recipe")return `재료 ${(page.ingredients||[]).length}가지 · 준비 ${(page.prepSteps||[]).length}단계 · 조리 ${(page.cookSteps||[]).length}단계`;
     if(page.pageType==="day")return page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:"";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);

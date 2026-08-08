@@ -235,26 +235,14 @@ function foodPrepSize(dishId,maxW,maxH){
 
 /* 낮 준비물 그림용. drawFoodProp 과 규칙이 같고, 그린 크기를 돌려줍니다.
 
-   ⚠️ 이 그림만 보간을 켜고 그립니다. 프레임 캔버스는 stage.js 가
-   imageSmoothingEnabled=false (nearest) 로 만들어 둡니다. nearest 는 축소할 때
-   평균을 내지 않고 픽셀 하나를 골라 쓰는데, 준비물 원화는 4배(903px)를
-   123px 로 **7.3배 줄여서** 그립니다 — 원본 7x7 약 54픽셀 중 1개만 남습니다.
-   그러면 바구니 살·배추 결처럼 가는 무늬가 평균으로 뭉쳐지지 않고 어느
-   픽셀이 걸리느냐에 따라 튀어서, 모래알 같은 얼룩이 됩니다.
-   (업스케일 전 1배 원화는 1.8배 축소라 이 문제가 거의 없었습니다.
-    원화 해상도를 올릴수록 nearest 에서는 오히려 나빠집니다)
-
-   save/restore 로 감싸는 이유는 이 캔버스를 kitchen.js·customers.js·fx.js 가
-   같이 쓰기 때문입니다. 켠 채로 두면 다른 그림의 축소 방식까지 바뀝니다.
-   캔버스 상태에 imageSmoothingEnabled/Quality 가 포함되어 restore 로 되돌아갑니다. */
+   [축소가 유독 큽니다] 4배 원화(약 900px)를 123px 로 **7.3배** 줄여 그립니다.
+   프레임 캔버스가 보간을 켜 두기 때문에(stage.js createStageFrameTexture)
+   평균을 내서 줄어듭니다. 그 설정이 꺼지면 이 그림이 제일 먼저 무너집니다 —
+   원본 7x7 약 54픽셀 중 1개만 남아서 모래알처럼 부서집니다. */
 function drawFoodPrepProp(dishId,centerX,centerY,maxW,maxH){
   const size=foodPrepSize(dishId,maxW,maxH);
   if(!size)return null;
-  ctx.save();
-  ctx.imageSmoothingEnabled=true;
-  ctx.imageSmoothingQuality="high";
   ctx.drawImage(foodPrepImage(dishId),centerX-size.w/2,centerY-size.h/2,size.w,size.h);
-  ctx.restore();
   return size;
 }
 

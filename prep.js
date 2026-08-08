@@ -30,7 +30,7 @@ const PREP_LAYOUT = {
   // 왼쪽 시작은 1번 의자보다 이만큼 왼쪽입니다.
   // (의자 중심 = counter.js COUNTER_CHAIR_CENTERS. VIEW 좌표라 toLogic 으로 옮깁니다)
   chairLeadIn: 30,
-  // 오른쪽 끝은 간판(signage.js OPEN_SIGN, 논리 x 1105~) 앞까지 씁니다.
+  // 오른쪽 끝은 간판(signage.js OPEN_SIGN, 논리 x 1104~) 앞까지 씁니다.
   // 간판은 논리 y 588 부터라 준비물 상자(530~572)와 세로로 겹치지 않아서
   // 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
   signOverlap: 10,

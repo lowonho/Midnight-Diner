@@ -403,8 +403,7 @@ function getGameplayJournalPages(){
     locked:false,
     rules:[
       menuRule,
-      "손님에게 항상 친절하게 대한다.",
-      "내일로 가는 문은 달빛 조각으로만 열 수 있다."
+      "손님에게 항상 친절하게 대한다."
     ],
     menuRule,
     menuNames

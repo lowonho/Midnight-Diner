@@ -254,9 +254,8 @@ same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
 same(initialGameplayJournal[0].rules,[
   "매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.",
-  "손님에게 항상 친절하게 대한다.",
-  "내일로 가는 문은 달빛 조각으로만 열 수 있다."
-],"영업일지의 간결한 주의사항 세 가지");
+  "손님에게 항상 친절하게 대한다."
+],"영업일지의 간결한 주의사항 두 가지");
 same(initialRecipePages.map(page=>page.dishId),STORY_MENU_RULES.dishIds,
   "음식별 레시피 여덟 장의 순서");
 assert(initialRecipePages.every(page=>page.ingredients.length>0&&page.prepSteps.length>0&&page.cookSteps.length>0),
@@ -395,9 +394,11 @@ assert(String(prepareStoryNight).includes("guest?.visits")
 assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
-assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문")&&rule.includes("달빛 조각으로만"))
+// 내일의 문을 여는 목표는 프롤로그 대사(SCN-P04)가 이미 짚어 줍니다.
+// 주의사항 장에는 매일 지켜야 할 두 가지만 남기고 목표 문장은 빼 둡니다.
+assert(!initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
-  "영업일지 첫 장은 세부 등급을 선공개하지 않고 달빛 조각으로 내일의 문을 여는 목표만 알려야 합니다.");
+  "영업일지 첫 장은 세부 등급도 내일의 문 목표도 적지 않고 매일의 영업 규칙만 남겨야 합니다.");
 same(l01.lines.slice(-4).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",

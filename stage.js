@@ -195,11 +195,33 @@ function createStarLayer(scene){
   return layer;
 }
 
-// 집기·손님·이펙트를 그리는 프레임 캔버스. 1920x1080 으로 만들고
-// 드로잉 쪽은 beginStageFrame() 이 걸어주는 배율 위에서 논리 좌표를 씁니다.
+/* 집기·손님·이펙트를 그리는 프레임 캔버스. 1920x1080 으로 만들고
+   드로잉 쪽은 beginStageFrame() 이 걸어주는 배율 위에서 논리 좌표를 씁니다.
+
+   [보간을 켜 두는 이유]
+   2026-08-08 이전에는 imageSmoothingEnabled=false (최근접 이웃) 였습니다.
+   이 플래그는 **drawImage 에만** 걸립니다 — 도형·글자는 패스 래스터라이저가
+   그리므로 켜든 끄든 똑같습니다. 그래서 실제로 영향받는 것은 이 캔버스에
+   올라가는 그림 몇 장뿐입니다.
+
+   끄면 축소할 때 평균을 내지 않고 픽셀 하나를 골라 씁니다. 원본이 그리는
+   크기보다 클수록 버리는 비율이 커져서, 낮 준비물 바구니(4배 원화를 7.3배로
+   축소)가 모래알처럼 부서졌습니다. 원화 해상도를 올릴수록 나빠지는 방식이라
+   보간을 켜는 쪽으로 바꿨습니다.
+
+   프로젝트의 다른 설정도 전부 같은 방향입니다 — Phaser pixelArt:false /
+   antialias:true, css/app-shell.css image-rendering:auto. 픽셀아트가 아니라
+   일러스트 톤이라, 혹시 원본보다 크게 그리게 되더라도 계단보다 흐림이
+   덜 튑니다.
+
+   ⚠️ 1:1 로 그리는 그림은 VIEW 좌표가 **정수**여야 합니다. 반픽셀에 걸치면
+      예전에는 반올림돼 선명했지만 이제는 양쪽에 반씩 섞여 흐려집니다.
+      (그래서 signage.js OPEN_SIGN.x 를 1105 → 1104 로 옮겼습니다) */
 function createStageFrameTexture(scene,key,depth=STAGE_DEPTH.overlay){
   const texture=scene.textures.createCanvas(key,VIEW_W,VIEW_H);
-  texture.getContext().imageSmoothingEnabled=false;
+  const context=texture.getContext();
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality="high";
   scene.add.image(0,0,key).setOrigin(0).setDepth(depth);
   return texture;
 }
