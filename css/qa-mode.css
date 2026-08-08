@@ -1,15 +1,35 @@
 /* QA 전용 스타일. qa-mode.js 와 함께 통째로 지우면 됩니다. */
 
-/* ---- 숨은 입구: 타이틀 왼쪽 등 ----------------------------
-   qa-mode.js 가 왼쪽 등과 같은 자리에 투명한 클릭 판(.qa-lamp-hit)을 깔고
-   10번 클릭을 셉니다. 위치·크기는 JS가 등의 실제 크기에서 계산해 넣습니다.
-   커서는 일부러 기본값으로 둡니다(눌러 보라는 티를 내지 않습니다). */
-.qa-lamp-hit { position: absolute; z-index: 3; pointer-events: auto; background: transparent; }
-.title-screen .title-lamp.qa-knock { animation: qa-lamp-flicker .18s steps(2) 2; }
-.title-screen .title-lamp.qa-knock-strong { animation: qa-lamp-flicker .16s steps(2) 3; filter: brightness(1.4); }
-@keyframes qa-lamp-flicker { 50% { opacity: .3; } }
+/* ---- 숨은 입구: 배경 그림 속 '달빛식탁' 간판 ----------------
+   qa-mode.js 가 간판 자리에 투명한 클릭 판(.qa-sign-hit)을 깔고 10번
+   클릭을 셉니다. 커서는 일부러 기본값으로 둡니다(눌러 보라는 티를 내지 않습니다).
 
-.qa-title-button { width: min(280px,75%); margin: 11px auto 0; padding: 13px 18px; border-color: #d49b3f; color: #f5cb78; font-size: 18px; }
+   자리는 아래 % 가 전부입니다. 배경 그림이 16:9 무대(.title-stage)에
+   100% 100% 로 깔려서 창 비율과 무관하게 같은 % 가 같은 지점을 가리킵니다.
+   (예전 등 방식은 얇은 CSS 도형이라 JS 가 매번 실측해 넣어야 했습니다)
+
+   ⚠️ 이 숫자는 bg_title_modern.webp 의 간판을 실측한 값입니다
+      (1920x1080 기준 x 1229~1526 · y 190~300). 배경 그림을 다른 구도로
+      교체하면 다시 재야 합니다. 여유를 조금 두고 잡았습니다. */
+.qa-sign-hit {
+  position: absolute;
+  z-index: 3;
+  left: 63.6%;
+  top: 17%;
+  width: 16.4%;
+  height: 11.4%;
+  pointer-events: auto;
+  background: transparent;
+}
+/* 눌렸다는 신호. 간판은 그림이라 밝기를 못 건드리니 클릭 판 자신이
+   따뜻한 빛으로 한 번 번쩍입니다. */
+.qa-sign-hit.qa-knock { animation: qa-sign-knock .18s steps(2) 2; }
+.qa-sign-hit.qa-knock-strong { animation: qa-sign-knock-strong .16s steps(2) 3; }
+@keyframes qa-sign-knock { 50% { background: rgba(255,214,140,.14); } }
+@keyframes qa-sign-knock-strong { 50% { background: rgba(255,224,160,.3); } }
+
+/* 크기는 옆의 새 게임·이어하기(.title-start)에 맞춥니다. */
+.qa-title-button { width: min(calc(360 * var(--upx)),94%); margin: calc(11 * var(--upx)) auto 0; padding: calc(13 * var(--upx)) calc(18 * var(--upx)); border-color: #d49b3f; color: #f5cb78; font-size: calc(18 * var(--upx)); }
 .qa-title-button::before { content: "🛠 "; }
 .qa-title-button.qa-just-unlocked { animation: qa-reveal 1.4s ease-out; }
 @keyframes qa-reveal {

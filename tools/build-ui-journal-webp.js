@@ -23,8 +23,8 @@
       바꿔야 합니다. (비율이 어긋나면 background-size:100% 100% 라 찌그러집니다)
 
      책          1046 x 544   .journal-page
-     제목 판      880 x  96   .journal-heading
-     닫기          48 x  51   .journal-close
+     제목 판      880 x  92   .journal-heading
+     닫기          34 x  32   .journal-close (여기만 일부러 가로로 늘려 씁니다)
      화살표        72 x  58   .journal-page-arrow
      견출지 3종    130 x 자동  .journal-section-tab (aspect-ratio 로 높이 결정)
      그림 자리     112 x 자동  .journal-page-portrait.has-frame
@@ -45,6 +45,7 @@ const sharp = require("sharp");
 const UI_DIR = path.join(__dirname, "..", "assets", "UI", "Journal");
 
 /* [file]     UI_DIR 기준 파일 이름 (PNG 마스터)
+   [out]      산출물 이름을 마스터와 다르게 할 때만 (기본은 .png → .webp)
    [size]     뽑아낼 WebP 크기 [가로, 세로] = CSS 크기 x2
    [lossless] 무손실로 뽑을 것
    [why]      그 크기의 근거. 주석용입니다. */
@@ -54,8 +55,11 @@ const FILES = [
   { file:"ui_journal_book_open.png", size:[2092,1088], why:"책 1046x544 x2" },
 
   /* ── 제목 판 ───────────────────────────────────────────────
-     가로로 아주 긴 나무 명패라 원본이 3155x344 입니다. */
-  { file:"ui_journal_title_panel.png", size:[1760,192], why:"제목 판 880x96 x2" },
+     가로로 아주 긴 나무 명패입니다. 2026-08-08 에 어두운 판 + 얇은 금테로
+     교체했습니다(원본 3280x344). 이전 밝은 판 ui_journal_title_panel.png 는
+     안 쓰지만 마스터라 지우지 않고 남겨 둡니다. */
+  { file:"ui_business_journal_title_panel_dark_thin_gold_4x.png",
+    out:"ui_journal_title_panel_dark.webp", size:[1760,184], why:"제목 판 880x92 x2" },
 
   /* ── 작은 버튼 3종 (작아서 무손실) ─────────────────────────
      금테 가장자리가 눈에 띄는 것들입니다. */
@@ -70,10 +74,10 @@ const FILES = [
   { file:"ui_journal_tab_cooking.png", size:[260,137], why:"요리 견출지 130x68.4 x2" },
   { file:"ui_journal_tab_diary.png",   size:[260,121], why:"일기 견출지 130x60.4 x2" },
 
-  /* ── 인게임 그림 자리 2종 ──────────────────────────────────
-     주의사항·일기 장의 동그란 액자입니다. (요리 장은 아직 원화가 없어
-     CSS 원으로 그립니다) */
+  /* ── 인게임 그림 자리 3종 ──────────────────────────────────
+     주의사항·요리·일기 장의 동그란 액자입니다. */
   { file:"ui_journal_picture_caution.png", size:[224,230], why:"주의사항 그림 자리 112x115 x2" },
+  { file:"ui_journal_picture_cooking.png", size:[224,238], why:"요리 그림 자리 112x119 x2" },
   { file:"ui_journal_picture_diary.png",   size:[224,233], why:"일기 그림 자리 112x116.5 x2" }
 ];
 
@@ -84,7 +88,7 @@ const EFFORT = 6;     // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 �
 const ASPECT_TOLERANCE = 0.02;
 
 function outPath(f){
-  return path.join(UI_DIR, f.file.replace(/\.png$/, ".webp"));
+  return path.join(UI_DIR, f.out || f.file.replace(/\.png$/, ".webp"));
 }
 
 function kb(bytes){ return Math.round(bytes/1024); }

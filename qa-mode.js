@@ -5,10 +5,10 @@
 
    들어가는 길은 두 가지입니다.
      1) 주소에 ?qa=1 을 직접 붙인다
-     2) 타이틀 화면 왼쪽 등을 10번 클릭한다 → QA 버튼이 나타난다
+     2) 타이틀 배경 그림 속 '달빛식탁' 간판을 10번 클릭한다 → QA 버튼이 나타난다
 
    타이틀 화면 마크업(index.html)에는 QA 관련 요소가 하나도 없습니다.
-   버튼은 잠금이 풀렸을 때 이 파일이 직접 만들어 붙입니다.
+   버튼과 간판 클릭 판은 이 파일이 직접 만들어 붙입니다.
 
    제거 방법: 이 파일 · css/qa-mode.css · index.html 의 <script> 한 줄 ·
               save.js 의 QA_REMOVE 두 줄을 지우면 끝입니다.
@@ -17,7 +17,7 @@
 const QA_MODE_ENABLED=new URLSearchParams(window.location.search).get("qa")==="1";
 window.QA_MODE=Object.freeze({enabled:QA_MODE_ENABLED});
 
-const QA_UNLOCK_CLICKS=10;        // 처마를 몇 번 눌러야 QA 버튼이 나오는지
+const QA_UNLOCK_CLICKS=10;        // 간판을 몇 번 눌러야 QA 버튼이 나오는지
 const QA_UNLOCK_RESET_MS=2500;    // 이 간격 안에 이어 눌러야 연속 클릭으로 셉니다
 const QA_UNLOCK_KEY="midnightDiner.qaUnlocked";
 const QA_STORY_MOMENT_ORDER=Object.freeze({
@@ -115,33 +115,22 @@ function qaRevealTitleButton(justUnlocked=false){
   return button;
 }
 
-/* 왼쪽 등(.title-lamp.lamp-one)은 클릭이 통과하는 .title-backdrop 안에 있고,
-   그 위를 .title-window(z-index:2)가 덮고 있습니다.
-   그래서 등과 같은 자리에 투명한 클릭 판을 하나 깔아 씁니다.
-     · 등 본체는 선 하나라 아주 얇습니다. 갓(::after)과 불빛까지 눌리도록
-       실제 크기에서 사방으로 여유를 줍니다
-     · 등의 자식이 아니라 형제로 두는 이유: 깜빡임 연출(filter)이 걸리면
-       등이 쌓임 맥락을 만들어 클릭 판이 창 아래로 내려가기 때문입니다
-     · 혹시 버튼을 덮었다면 그 버튼에게 클릭을 넘기고 횟수는 세지 않습니다 */
-function qaSyncLampHit(lamp,hit){
-  if(!document.getElementById("titleScreen")?.classList.contains("active"))return;
-  const base=hit.parentElement?.getBoundingClientRect(),rect=lamp.getBoundingClientRect();
-  if(!base||!rect.height)return;
-  const pad=Math.max(20,rect.height*.25);
-  hit.style.left=`${rect.left-base.left-pad}px`;
-  hit.style.top=`${rect.top-base.top-pad*.4}px`;
-  hit.style.width=`${rect.width+pad*2}px`;
-  hit.style.height=`${rect.height+pad}px`;
-}
-
-function qaSetupLampUnlock(){
-  const lamp=document.querySelector("#titleScreen .title-lamp.lamp-one");
-  if(!lamp?.parentElement)return;
+/* 두드릴 곳은 배경 그림 속 '달빛식탁' 간판입니다.
+   간판은 그림의 일부라 누를 DOM 이 없어서, 그 자리에 투명한 클릭 판을
+   하나 깔아 씁니다.
+     · 자리(% )는 css/qa-mode.css 의 --qa-sign-* 에 적어 두었습니다.
+       배경이 16:9 무대(.title-stage)에 100% 100% 로 깔려서 창 비율이
+       달라져도 같은 % 가 항상 간판을 가리킵니다 — JS 로 위치를 계산해
+       넣을 필요가 없습니다 (예전 등 방식은 그래야 했습니다)
+     · 클릭 판은 .title-window(z-index:2) 보다 위에 있습니다. 간판은 그림
+       오른쪽이고 UI 는 왼쪽이라 원래 겹치지 않지만, 혹시 버튼을 덮었다면
+       그 버튼에게 클릭을 넘기고 횟수는 세지 않습니다 */
+function qaSetupSignUnlock(){
+  const stage=document.querySelector("#titleScreen .title-stage");
+  if(!stage)return;
   const hit=document.createElement("i");
-  hit.className="qa-lamp-hit";hit.setAttribute("aria-hidden","true");
-  lamp.parentElement.appendChild(hit);
-  qaSyncLampHit(lamp,hit);
-  window.addEventListener("resize",()=>qaSyncLampHit(lamp,hit));
+  hit.className="qa-sign-hit";hit.setAttribute("aria-hidden","true");
+  stage.appendChild(hit);
 
   let clicks=0,lastClickAt=-Infinity;
   hit.addEventListener("click",event=>{
@@ -151,10 +140,10 @@ function qaSetupLampUnlock(){
     if(qaUnlocked()){qaRevealTitleButton();return;}
     clicks=event.timeStamp-lastClickAt>QA_UNLOCK_RESET_MS?1:clicks+1;
     lastClickAt=event.timeStamp;
-    // 남은 횟수는 알려 주지 않고, 후반부에만 등이 더 크게 깜빡입니다.
-    lamp.classList.remove("qa-knock","qa-knock-strong");
-    void lamp.offsetWidth;
-    lamp.classList.add(clicks>=QA_UNLOCK_CLICKS/2?"qa-knock-strong":"qa-knock");
+    // 남은 횟수는 알려 주지 않고, 후반부에만 간판이 더 크게 깜빡입니다.
+    hit.classList.remove("qa-knock","qa-knock-strong");
+    void hit.offsetWidth;
+    hit.classList.add(clicks>=QA_UNLOCK_CLICKS/2?"qa-knock-strong":"qa-knock");
     if(clicks<QA_UNLOCK_CLICKS)return;
     clicks=0;
     qaRememberUnlock();
@@ -1126,7 +1115,7 @@ function qaBuildPanel(){
 }
 
 function initializeQaMode(){
-  qaSetupLampUnlock();
+  qaSetupSignUnlock();
   if(qaUnlocked())qaRevealTitleButton();
   if(!QA_MODE_ENABLED)return;
   document.body.classList.add("qa-mode-enabled");

@@ -377,12 +377,14 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
   elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!hasPortrait);
   elements.pagePortrait.classList.toggle("journal-page-icon",isGameplayRecord);
-  // 주의사항·일기 장에는 원화 액자가 있습니다. (요리 장은 아직 없어 CSS 원)
+  // 인게임 세 구역은 각자 원화 액자를 씁니다.
   const frame=!isGameplayRecord?""
     :page.pageType==="rules"?"rules"
-      :page.pageType==="day"?"day":"";
+      :page.pageType==="recipe"?"recipe"
+        :page.pageType==="day"?"day":"";
   elements.pagePortrait.classList.toggle("has-frame",!!frame);
   elements.pagePortrait.classList.toggle("frame-rules",frame==="rules");
+  elements.pagePortrait.classList.toggle("frame-recipe",frame==="recipe");
   elements.pagePortrait.classList.toggle("frame-day",frame==="day");
   if(hasPortrait){
     const row=Math.floor(portraitRow);

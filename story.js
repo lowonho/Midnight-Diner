@@ -1251,7 +1251,7 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   speakerEl.hidden=!speakerLabel;
   speakerEl.textContent=speakerLabel;
   badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
-  setStoryPortrait(speakerId);
+  setStoryPortrait(speakerId,line);
   updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
   setStoryNextButton(false);
@@ -1416,7 +1416,14 @@ function resumeStoryAfterJournal(){
 // 무대 배치 규칙: 주인공은 항상 맨 왼쪽 자리, 나머지 화자는 등장 순서대로 오른쪽 끝까지 균등 배치합니다.
 // (상대 1명이면 오른쪽, 2명이면 중앙·오른쪽, 그 이상은 같은 간격으로 계속 벌어집니다.)
 const STORY_ACTOR_MAX_WIDTH=24;
-const STORY_ACTOR_MARGIN=2;
+/* 좌우 여백. 2 였을 때는 두 사람이 14% / 86% 에 서서 화면 양끝에 붙어 보였고,
+   14 로 넓혔더니 이번엔 25% / 75% 로 너무 가운데에 몰렸습니다. 지금 8 은
+   두 사람이 20% / 80% 에 서는 값입니다.
+
+   ⚠️ 원화(.story-portrait.art)의 실제 폭은 --actor-w 보다 넓습니다. 상자를 그림
+   비율에 맞춰 절대 배치하기 때문에 이 자리 계산에는 안 잡힙니다. 그래서 여백을
+   여기서 더 키우면 세 명이 서는 장면(SCN-G8-완벽)에서 원화가 옆 사람과 겹칩니다. */
+const STORY_ACTOR_MARGIN=8;
 const STORY_ACTOR_GUTTER=1.5;
 
 function resetStoryStage(){
@@ -1427,14 +1434,104 @@ function resetStoryStage(){
   if(storySession)storySession.actors=[];
 }
 
+/* ------------------------------------------------------------------
+   주인공 원화(assets/Conversation)
+   ------------------------------------------------------------------
+   대사마다 문맥에 맞는 동작으로 갈아 끼웁니다. 짝짓기는 story-data.js 가
+   각 대사 줄에 motion:"..." 으로 적어 두고, 안 적힌 줄은 DEFAULT 로 섭니다.
+
+   복장은 두 벌입니다. 가게에 들어가기 전 퇴근길은 회사원, 그 뒤로는 전부
+   주방 복장입니다. 장면 쪽에서 protagonistCostume 으로 고릅니다.
+
+   두 복장 열여덟 장 모두 tools/build-conversation-webp.js 가 '같은 크롭
+   박스'로 뽑았기 때문에 얼굴 위치가 어긋나지 않습니다. 그래서 배경 이미지만
+   바꿔도 표정만 바뀐 것처럼 보이고 인물이 덜컹거리지 않습니다.
+   (복장 사이의 크기 차이는 css/story.css 의 --art-height 가 맞춥니다)
+   ------------------------------------------------------------------ */
+const STORY_PROTAGONIST_MOTIONS=Object.freeze({
+  calm:"01",     // 손 모으고 잔잔한 미소 · 기본값
+  soft:"02",     // 머리카락 넘기며 미소 · 다정하게 건네는 말
+  think:"03",    // 검지를 턱에 대고 골똘 · 질문과 고민
+  sad:"04",      // 고개 숙이고 눈 내리깔기 · 지치고 가라앉음
+  cook:"05",     // 팬을 들고 요리 · 조리와 영업 이야기
+  resolve:"06",  // 두 주먹 쥐고 불꽃 · 각오와 의욕
+  happy:"07",    // 두 손 들고 반짝 웃음 · 기쁨과 감탄
+  cry:"08",      // 눈물 훔치기 · 깊은 슬픔
+  angry:"09"     // 주먹 들고 화남 · 분노와 항의
+});
+const STORY_PROTAGONIST_DEFAULT_MOTION="calm";
+
+/* 복장. dir/stem 은 tools/build-conversation-webp.js 의 COSTUMES 와 같아야
+   합니다. cssClass 는 css/story.css 가 상자 크기를 복장별로 덮어쓰는 열쇠입니다
+   (주방 복장은 기본값이라 클래스가 없습니다). */
+const STORY_PROTAGONIST_COSTUMES=Object.freeze({
+  chef:{dir:"char_cust_kim_daeun_chef",stem:"char_cust_kim_daeun",cssClass:""},
+  office:{dir:"char_cust_kim_daeun_office",stem:"char_cust_kim_daeun_office",cssClass:"office"}
+});
+const STORY_PROTAGONIST_DEFAULT_COSTUME="chef";
+
+// 장면이 안 정했으면 주방 복장입니다. 회사원은 프롤로그 퇴근길뿐입니다.
+function storyProtagonistCostume(){
+  const name=storySession?.scene?.protagonistCostume;
+  return STORY_PROTAGONIST_COSTUMES[name]?name:STORY_PROTAGONIST_DEFAULT_COSTUME;
+}
+
+function storyProtagonistMotionArt(motion,costumeName=storyProtagonistCostume()){
+  const costume=STORY_PROTAGONIST_COSTUMES[costumeName]||STORY_PROTAGONIST_COSTUMES[STORY_PROTAGONIST_DEFAULT_COSTUME];
+  const index=STORY_PROTAGONIST_MOTIONS[motion]||STORY_PROTAGONIST_MOTIONS[STORY_PROTAGONIST_DEFAULT_MOTION];
+  return `assets/Conversation/${costume.dir}/${costume.stem}_motion_${index}.webp`;
+}
+
+/* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
+   커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
+   풀립니다. 그래서 "assets/..." 는 "css/assets/..." 가 되어 404 가 납니다.
+   인라인 style 로 넣어도 마찬가지입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
+function storyPortraitArtValue(source){
+  return `url("${new URL(source,document.baseURI).href}")`;
+}
+
+/* 대사마다 그림을 바꾸므로, 처음 쓰이는 순간 받아오면 한 박자 비어 보입니다.
+   장면이 시작될 때 그 복장 아홉 장을 미리 받아 둡니다(복장당 1MB 안팎).
+   두 복장을 다 받지는 않습니다. 회사원 복장은 프롤로그에서 한 번 쓰고 끝이라
+   주방 복장만 보는 플레이에서는 받을 이유가 없습니다. */
+const storyProtagonistArtPreloaded=new Set();
+function preloadStoryProtagonistArt(costumeName){
+  if(storyProtagonistArtPreloaded.has(costumeName))return;
+  storyProtagonistArtPreloaded.add(costumeName);
+  Object.keys(STORY_PROTAGONIST_MOTIONS).forEach(motion=>{
+    const image=new Image();
+    image.src=storyProtagonistMotionArt(motion,costumeName);
+  });
+}
+
+// 주인공이 말하는 줄에서만 동작을 바꿉니다. 다른 사람이 말하는 동안에는
+// 마지막 동작 그대로 어두워진 채 서 있습니다.
+function applyStoryProtagonistMotion(line){
+  if(line?.speaker!=="protagonist")return;
+  const actor=(storySession?.actors||[]).find(entry=>entry.id==="protagonist");
+  const portrait=actor?.element.querySelector(".story-portrait.art");
+  if(!portrait)return;
+  portrait.style.setProperty("--portrait-art",storyPortraitArtValue(storyProtagonistMotionArt(line.motion)));
+}
+
 function applyStoryPortraitArt(portrait,speakerId){
   const character=STORY_CHARACTERS[speakerId];
   if(character?.art){
     portrait.classList.add("art");
-    portrait.style.setProperty("--portrait-art",`url("${character.art}")`);
+    portrait.style.setProperty("--portrait-art",storyPortraitArtValue(character.art));
     return;
   }
-  if(speakerId==="protagonist"){portrait.classList.add("chef");return;}
+  if(speakerId==="protagonist"){
+    const costumeName=storyProtagonistCostume();
+    preloadStoryProtagonistArt(costumeName);
+    portrait.classList.add("art");
+    // 복장별 상자 크기를 CSS 가 덮어쓸 수 있게 표시합니다(주방 복장은 기본값).
+    const cssClass=STORY_PROTAGONIST_COSTUMES[costumeName].cssClass;
+    if(cssClass)portrait.classList.add(cssClass);
+    portrait.style.setProperty("--portrait-art",
+      storyPortraitArtValue(storyProtagonistMotionArt(STORY_PROTAGONIST_DEFAULT_MOTION,costumeName)));
+    return;
+  }
   if(!character||character.portraitRow==null){portrait.classList.add("role");return;}
   const row=clamp(character.portraitRow,0,5);
   portrait.style.setProperty("--portrait-y",row===5?"100%":`${row*20}%`);
@@ -1483,7 +1580,7 @@ function layoutStoryActors(){
   });
 }
 
-function setStoryPortrait(speakerId){
+function setStoryPortrait(speakerId,line=null){
   if(!storySession)return;
   if(speakerId)ensureStoryActor(speakerId);
   const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)
@@ -1493,6 +1590,7 @@ function setStoryPortrait(speakerId){
   (storySession.actors||[]).forEach(actor=>{
     actor.element.classList.toggle("is-active",!!speakerId&&actor.id===activeActorId);
   });
+  applyStoryProtagonistMotion(line);
 }
 
 function storyGuestIdForScene(scene){

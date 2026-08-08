@@ -110,6 +110,22 @@
   opacity: 1;
   visibility: visible;
   transition: opacity .2s ease,visibility .2s ease;
+  /* [대사창 아래로는 배우를 그리지 않습니다]
+     원화는 무대보다 크게 서기 때문에 발끝이 대사창 밑으로 내려갑니다. 그건
+     의도한 것이지만, 대사창 아래 여백에 종아리와 부츠가 삐져나와 보였습니다.
+     그래서 대사창 윗변에서 잘라 냅니다.
+
+     - 아래쪽만 자르고 위·옆은 음수로 넓혀 둡니다. 원화 상자는 무대 위쪽으로도
+       솟아 있어서(머리 위 여백) 위를 0 으로 두면 정수리가 잘립니다.
+     - 자르는 선을 무대 바닥이 아니라 8upx 아래에 두는 건, 무대와 대사창 사이가
+       .story-overlay 의 gap(8upx)만큼 떠 있기 때문입니다. 무대 바닥에서 자르면
+       그 틈으로 배경이 얇게 비쳐 인물이 공중에서 잘린 것처럼 보입니다.
+     - 배우(.story-actor)가 아니라 무대에 겁니다. 배우에는 transform 이 걸려
+       있어(말하는 사람만 3.2% 떠오름) 자르는 선까지 같이 올라갑니다.
+       무대는 transform 이 없어 선이 항상 같은 자리에 있습니다.
+     - overflow:hidden 이 아니라 clip-path 인 것도 이유가 있습니다. overflow 는
+       한 축만 자를 수 없어서, 배우 슬롯보다 넓은 원화의 좌우가 함께 잘립니다. */
+  clip-path: inset(-100% -100% calc(-8 * var(--upx)) -100%);
 }
 
 /* 달빛 조각 전달 전용 레이어입니다. 지금은 빈 화면만 사용하고,
@@ -181,8 +197,42 @@
   background-size: 400% 800%;
   background-position: 0 0;
 }
-/* STORY_CHARACTERS[id].art 에 원화 경로를 넣으면 액자 없이 전신 일러스트로 표시됩니다. */
+/* 원화가 있는 배우는 도트 액자(갈색 테두리 + 어두운 판)를 통째로 걷어내고
+   배경 없이 전신 일러스트만 세웁니다. 원화는 가장자리가 바로 잘려 있어서
+   뒤에 판이 깔리면 인물이 상자에 갇힌 것처럼 보입니다.
+   지금은 주인공 김다은이 이 경로를 씁니다(story.js applyStoryPortraitArt).
+   손님도 STORY_CHARACTERS[id].art 에 경로를 넣으면 똑같이 적용됩니다. */
+/* 원화는 도트 액자와 달리 무대(.story-stage) 밖으로 넘칩니다. 인물을 크게
+   세우고 허벅지 아래는 대사창 뒤로 흘려보내기 위한 것입니다. 전신이 다 보이면
+   인물이 작아지고, 발끝까지 무대 안에 세우려니 대사창과 사이가 붕 떴습니다.
+   대화에 나오는 인물이 김다은과 특별 손님뿐이라 크게 세우는 쪽이 낫습니다.
+
+   대사창보다 뒤에 깔리는 건 .story-stage(z-index:2)가 쌓임 맥락을 만들고
+   대사창이 z-index:4 라서입니다. 배우의 z-index:5 는 무대 안에서만 통합니다.
+
+   [--art-height / --art-drop 은 손으로 고친 값이 아닙니다]
+   원화 안에서 인물이 실제로 어디부터 어디까지인지 재서 계산한 값입니다.
+   복장마다 캔버스에 그려진 크기가 달라(회사원 치마가 길어 더 크게 그려져
+   있습니다) 값도 복장마다 다릅니다. 원화를 바꾸면 다시 뽑으세요:
+
+     node tools/build-conversation-webp.js --css
+
+   그 결과를 아래 두 블록에 그대로 붙여 넣으면 어느 복장이든 화면에서 같은
+   키로 서고, 같은 몸 지점(지금은 허벅지)이 대사창 윗변에 걸립니다.
+   더 크게/작게 잡고 싶으면 그 도구의 CUT_BODY 를 바꾸세요. */
 .story-portrait.art {
+  position: absolute;
+  left: 50%;
+  /* 주방 복장 기준값. 회사원 복장은 아래 .office 가 덮어씁니다. */
+  bottom: var(--art-drop,-67.9%);
+  height: var(--art-height,172%);
+  width: auto;
+  max-width: none;
+  /* tools/build-conversation-webp.js 의 공통 크롭 박스(2862x5598) 비율입니다.
+     상자를 그림에 딱 맞춰야 background-size:contain 이 여백 없이 채웁니다.
+     BOX 를 바꾸면 여기도 같이 바꿔야 인물이 상자 안에서 뜹니다. */
+  aspect-ratio: 2862 / 5598;
+  transform: translateX(-50%);
   border: 0;
   background: none;
   background-image: var(--portrait-art);
@@ -191,6 +241,12 @@
   background-size: contain;
   box-shadow: none;
   image-rendering: auto;
+}
+/* 회사원 복장(프롤로그 퇴근길). 같은 캔버스에 더 크게 그려져 있어서 상자를
+   그만큼 줄여야 주방 복장과 키·발끝이 맞습니다. --css 로 뽑은 값입니다. */
+.story-portrait.art.office {
+  bottom: var(--art-drop,-58.9%);
+  height: var(--art-height,155%);
 }
 .story-portrait.role {
   display: grid;

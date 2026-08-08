@@ -79,8 +79,11 @@ assert(
 
 assert(indexSource.includes("<title>달빛식탁 - 낮의 준비, 밤의 한 접시</title>"),
   "브라우저 제목에 새 게임명 달빛식탁이 표시되어야 합니다.");
-assert(indexSource.includes("<strong>달빛식탁</strong>"),
-  "타이틀과 게임 HUD 로고에 달빛식탁이 표시되어야 합니다.");
+/* 타이틀·HUD 로고는 글자가 아니라 납품된 금박 그림입니다(assets/UI/Main).
+   그림에는 글자가 없으니 게임 이름은 aria-label 로만 남습니다. */
+assert(/id="gameTitle"[^>]*role="img"[^>]*aria-label="달빛식탁[^"]*"/.test(indexSource)
+  &&/class="hud-logo"[^>]*role="img"[^>]*aria-label="달빛식탁"/.test(indexSource),
+  "타이틀과 게임 HUD 로고 그림은 달빛식탁을 접근성 이름으로 가져야 합니다.");
 assert(indexSource.includes('aria-label="달빛식탁 게임 화면"')
   &&indexSource.includes('aria-label="달빛식탁 게임"'),
   "게임 화면 접근성 이름도 달빛식탁으로 변경되어야 합니다.");
@@ -130,27 +133,66 @@ assert(settingsCssSource.includes('--journal-book-image: url("../assets/UI/Journ
   &&settingsCssSource.includes(".journal-page-right"),
   "영업일지는 펼친 책 원화를 깐 중앙 펼침책 레이아웃이어야 합니다.");
 
-// 영업일지 UI 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+/* 영업일지 UI 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+   제목 판만 마스터 이름과 산출물 이름이 다릅니다(어두운 판으로 교체하면서
+   build-ui-journal-webp.js 의 out 으로 이름을 정리했습니다). */
 const journalArtDir=path.join(root,"assets","UI","Journal");
 [
-  "ui_journal_book_open","ui_journal_title_panel","ui_journal_close",
-  "ui_journal_arrow_prev","ui_journal_arrow_next",
-  "ui_journal_tab_caution","ui_journal_tab_cooking","ui_journal_tab_diary",
-  "ui_journal_picture_caution","ui_journal_picture_diary"
-].forEach(name=>{
-  assert(fs.existsSync(path.join(journalArtDir,`${name}.png`)),
-    `${name}.png 원본이 있어야 합니다.`);
-  assert(fs.existsSync(path.join(journalArtDir,`${name}.webp`)),
-    `${name}.webp 이 없습니다. npm run build:ui-journal 로 PNG 에서 다시 뽑으세요.`);
-  assert(settingsCssSource.includes(`ui/Journal/${name}.webp`)
-    ||settingsCssSource.includes(`UI/Journal/${name}.webp`),
-    `css/settings.css 가 ${name}.webp 을 써야 합니다.`);
+  ["ui_journal_book_open"],
+  ["ui_business_journal_title_panel_dark_thin_gold_4x","ui_journal_title_panel_dark"],
+  ["ui_journal_close"],
+  ["ui_journal_arrow_prev"],["ui_journal_arrow_next"],
+  ["ui_journal_tab_caution"],["ui_journal_tab_cooking"],["ui_journal_tab_diary"],
+  ["ui_journal_picture_caution"],["ui_journal_picture_cooking"],["ui_journal_picture_diary"]
+].forEach(([master,out=master])=>{
+  assert(fs.existsSync(path.join(journalArtDir,`${master}.png`)),
+    `${master}.png 원본이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(journalArtDir,`${out}.webp`)),
+    `${out}.webp 이 없습니다. npm run build:ui-journal 로 PNG 에서 다시 뽑으세요.`);
+  assert(settingsCssSource.includes(`ui/Journal/${out}.webp`)
+    ||settingsCssSource.includes(`UI/Journal/${out}.webp`),
+    `css/settings.css 가 ${out}.webp 을 써야 합니다.`);
 });
 // 견출지는 책보다 뒤(z-index 0)에 깔려 아래쪽이 책에 가려집니다.
 assert(/\.journal-tab-strip\s*\{[\s\S]*?z-index:\s*0/.test(settingsCssSource)
   &&/\.journal-page\s*\{[\s\S]*?z-index:\s*1/.test(settingsCssSource)
   &&settingsCssSource.includes("--journal-tab-out"),
   "견출지는 책 뒤에 깔려 아래쪽이 책에 끼워진 것처럼 보여야 합니다.");
+
+/* 타이틀 화면 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
+   (영업일지 원화와 같은 규칙입니다. 마스터 이름과 산출물 이름이 다른 것은
+    tools/build-ui-main-webp.js 의 out 항목 때문입니다) */
+const mainArtDir=path.join(root,"assets","UI","Main");
+[
+  { master:"bg_title_variant_04_modern_4x", out:"bg_title_modern", css:titleCssSource },
+  { master:"ui_title_moonlight_table_variant_03_main", out:"ui_title_logo_main", css:titleCssSource },
+  { master:"ui_title_moonlight_table_variant_03_main", out:"ui_title_logo_hud", css:hudCssSource }
+].forEach(({master,out,css})=>{
+  assert(fs.existsSync(path.join(mainArtDir,`${master}.png`)),
+    `${master}.png 원본이 있어야 합니다.`);
+  assert(fs.existsSync(path.join(mainArtDir,`${out}.webp`)),
+    `${out}.webp 이 없습니다. npm run build:ui-main 으로 PNG 에서 다시 뽑으세요.`);
+  assert(css.includes(`UI/Main/${out}.webp`),
+    `${out}.webp 을 쓰는 CSS 가 없습니다.`);
+});
+/* 타이틀은 게임 화면과 같은 16:9 무대 안에서 그려야 합니다. 배경 그림 속 간판을
+   % 좌표로 짚는 QA 숨은 입구가 이 전제에 기대고 있습니다. */
+assert(indexSource.includes('class="title-stage"')
+  &&/\.title-stage\s*\{[\s\S]*?aspect-ratio:\s*16\s*\/\s*9/.test(titleCssSource),
+  "타이틀 화면은 16:9 무대(.title-stage) 안에 배경을 깔아야 합니다.");
+/* 로고 그림의 비율은 두 CSS 와 tools/build-ui-main-webp.js 세 곳이 같아야 합니다.
+   어긋나면 글씨가 눌리거나 늘어납니다. */
+[["css/title.css",titleCssSource],["css/hud.css",hudCssSource]].forEach(([name,css])=>
+  assert(css.includes("aspect-ratio: 1697 / 706"),
+    `${name} 의 로고 비율이 납품 원본(1697x706)과 달라졌습니다.`));
+/* 왼쪽 칸은 배경 그림 속 가게 건물(37.2% 지점) 앞에서 끝나야 합니다. */
+const titleWindowRule=titleCssSource.match(/\.title-window\s*\{[\s\S]*?\}/)?.[0]||"";
+const windowLeft=Number(titleWindowRule.match(/left:\s*([\d.]+)%/)?.[1]);
+const windowWidth=Number(titleWindowRule.match(/width:\s*([\d.]+)%/)?.[1]);
+assert(titleWindowRule.includes("position: absolute")&&windowLeft>0&&windowWidth>0,
+  "타이틀 로고와 버튼은 배경 그림 위 한 자리에 고정 배치되어야 합니다.");
+assert(windowLeft+windowWidth<=37,
+  `왼쪽 칸이 ${windowLeft+windowWidth}% 까지 나와 가게 건물(37.2%)에 겹칩니다.`);
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
   "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
@@ -253,6 +295,10 @@ shardIds.forEach(shardId=>{
   assert(fs.existsSync(path.join(moonPieceDir,file.replace(/\.webp$/,".png"))),
     `${file} 의 PNG 원본이 있어야 합니다. WebP 는 빌드 산출물입니다.`);
 });
+// 인게임 세 구역 모두 액자 원화를 씁니다.
+["rules","recipe","day"].forEach(kind=>assert(
+  titleSource.includes(`frame-${kind}`)&&settingsCssSource.includes(`.journal-page-portrait.frame-${kind}`),
+  `${kind} 장의 그림 자리에 액자 원화를 붙여야 합니다.`));
 assert(titleSource.includes('journalMode==="collection"&&!!page&&page.kind!=="ending"'),
   "달빛 조각 그림은 로비 컬렉션의 특별 손님 장에만 붙어야 합니다.");
 assert(titleSource.includes('elements.relicArt.style.backgroundImage=unlocked?')

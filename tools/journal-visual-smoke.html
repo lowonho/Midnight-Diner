@@ -204,7 +204,9 @@ function setup(){
     range.selectNodeContents(body);
     const textHeight=Math.round(range.getBoundingClientRect().height);
     const room=Math.round(body.getBoundingClientRect().bottom-body.getBoundingClientRect().top);
-    document.body.dataset.overflow=(textHeight>room?"넘침 ":"괜찮음 ")+`글 ${textHeight} / 자리 ${room}`;
+    document.body.dataset.overflow=(textHeight>room?"넘침 ":"괜찮음 ")
+      +`글 ${textHeight} / 자리 ${room} / 본문 폭 ${Math.round(body.getBoundingClientRect().width)}`
+      +` / 줄 ${range.getClientRects().length}`;
     document.body.dataset.progress=document.getElementById("journalPageProgress").textContent;
     document.body.dataset.title=document.getElementById("journalPageTitle").textContent;
     document.body.dataset.desc=document.getElementById("journalDescription").textContent;

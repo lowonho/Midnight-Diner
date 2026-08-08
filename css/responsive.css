@@ -19,7 +19,9 @@
   .relationship-box { display: none; }
   .choice-grid { grid-template-columns: 1fr 1fr; }
   .arrow-grid { width: 100%; grid-template-columns: repeat(4,1fr); }
-  .title-screen .title-window { width: 92%; }
+  /* 좁은 창에서는 버튼 글자가 너무 눌려서 칸을 가게 건물 앞까지 넓힙니다.
+     QA 간판 클릭 판을 덮지는 않습니다(간판은 63.6% 부터). */
+  .title-screen .title-window { left: 4%; width: 44%; }
 }
 
 @media (max-width:820px) {

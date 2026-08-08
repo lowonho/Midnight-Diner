@@ -1,103 +1,79 @@
-.title-overlay {
-  z-index: 50;
+/* ============================================================
+   타이틀 화면
+   ------------------------------------------------------------
+   배경은 납품된 밤거리 그림 한 장입니다(assets/UI/Main).
+   예전에는 처마·등·김·바닥 불빛을 전부 CSS 도형으로 그렸는데,
+   그림이 들어오면서 그 도형들과 마크업을 같이 걷어냈습니다.
+
+   [16:9 무대(.title-stage)를 두는 이유]
+   .app-screen 은 창 전체(100vw x 100vh)입니다. 배경을 거기에 cover 로
+   깔면 창 비율에 따라 그림의 좌우나 위아래가 잘리고, 그때마다
+   그림 속 간판 위치가 움직입니다. 그런데 QA 숨은 입구가 바로 그
+   간판을 % 좌표로 짚습니다(css/qa-mode.css --qa-sign-*).
+   그래서 게임 화면(.game-frame)과 똑같은 16:9 무대를 만들고 그 안에
+   그림을 100% 100% 로 채웁니다 — 창이 어떤 비율이어도 무대 안의 % 는
+   그림의 같은 지점을 가리킵니다. --upx 의 기준(1920x1080)과도 같습니다.
+
+   PNG 가 마스터, 실제로 쓰는 WebP 는 tools/build-ui-main-webp.js 가
+   만듭니다. ⚠️ 아래 --title-logo-w 를 고치면 그 스크립트의 크기 표도
+   같이 고쳐야 합니다.
+   ============================================================ */
+
+.title-screen {
+  position: relative;
+  place-items: center;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(125,72,35,.28), transparent 35%),
-    linear-gradient(rgba(7,4,3,.38),rgba(5,3,2,.88));
+  background: #070504;   /* 창이 16:9 가 아닐 때 무대 밖에 남는 띠 */
 }
-.title-scene { position: absolute; inset: 0; pointer-events: none; }
-.title-lamp {
+.title-stage {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.title-backdrop {
   position: absolute;
-  top: 8%;
-  width: calc(18 * var(--upx));
-  height: calc(110 * var(--upx));
-  border-left: calc(3 * var(--upx)) solid #5c3923;
-}
-.title-lamp::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: calc(-24 * var(--upx));
-  width: calc(48 * var(--upx));
-  height: calc(35 * var(--upx));
-  border-radius: 50% 50% 38% 38%;
-  background: #c37b32;
-  box-shadow: 0 0 calc(55 * var(--upx)) calc(20 * var(--upx)) rgba(255,172,73,.22);
-}
-.lamp-one { left: 25%; }
-.lamp-two { right: 25%; }
-.title-steam {
-  position: absolute;
-  bottom: 14%;
-  left: 48%;
-  width: calc(20 * var(--upx));
-  height: calc(100 * var(--upx));
-  border-left: calc(4 * var(--upx)) solid rgba(255,235,205,.25);
-  border-radius: 50%;
-  animation: steam 2s infinite ease-in-out;
-}
-.steam-two { left: 52%; animation-delay: -1s; }
-@keyframes steam {
-  0% { transform: translateY(calc(25 * var(--upx))) rotate(-8deg); opacity: 0; }
-  35% { opacity: 1; }
-  100% { transform: translateY(calc(-45 * var(--upx))) rotate(9deg); opacity: 0; }
+  inset: 0;
+  /* 무대가 그림과 같은 16:9 이므로 cover 가 아니라 100% 100% 입니다.
+     cover 는 반올림 차이로 1px 씩 잘려 간판 좌표가 흔들립니다. */
+  background: url("../assets/UI/Main/bg_title_modern.webp") center/100% 100% no-repeat;
+  pointer-events: none;
 }
 
+/* ------------------------------------------------------------
+   왼쪽 칸 — 로고와 버튼
+   배경 그림은 오른쪽이 가게(밝음), 왼쪽이 빈 밤거리 벽(어두움)입니다.
+   그래서 UI 를 가운데가 아니라 그 왼쪽 빈자리에 세로로 모아 둡니다.
+
+   [오른쪽 한계가 37% 인 이유] 가게 건물의 왼쪽 끝(배관·계량기 상자)이
+   그림의 37.2% 지점입니다(bg_title_modern.webp 를 1920 으로 재면 x=714).
+   칸을 7%~37% 로 잡아 그 앞까지 밀어 두었습니다 — 벽면 밝기를 재 보면
+   왼쪽 끝(17)보다 이 자리(6~8)가 더 어두워서 금박 글씨도 더 잘 뜁니다.
+   더 오른쪽으로 밀려면 로고를 줄여야 합니다(안 줄이면 건물에 겹칩니다).
+   ------------------------------------------------------------ */
 .title-window {
-  position: relative;
-  width: min(calc(620 * var(--upx)),85%);
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30%;
   text-align: center;
 }
 .title-logo {
-  position: relative;
-  width: min(calc(520 * var(--upx)),100%);
-  aspect-ratio: 520/150;
-  margin: 0 auto calc(18 * var(--upx));
-  padding-top: 5%;
-  background: url("../assets/sign_frame.png") center/100% 100% no-repeat;
-  filter: drop-shadow(0 calc(14 * var(--upx)) calc(20 * var(--upx)) #000);
-}
-.title-logo small {
-  display: block;
-  color: #d6a963;
-  font-size: calc(14 * var(--upx));
-  letter-spacing: .22em;
-}
-.title-logo strong {
-  display: block;
-  color: #ffe19b;
-  font-family: Georgia,"Malgun Gothic",serif;
-  font-size: calc(72 * var(--upx));
-  line-height: .95;
-  letter-spacing: -.1em;
-  text-shadow: calc(3 * var(--upx)) calc(3 * var(--upx)) #562817;
-}
-.title-logo em {
-  display: block;
-  margin-top: calc(5 * var(--upx));
-  color: #d09a50;
-  font-size: calc(13 * var(--upx));
-  font-style: normal;
-}
-.logo-spark {
-  position: absolute;
-  left: 16%;
-  top: 30%;
-  color: #ffe09a;
-  animation: twinkle 1.5s steps(2) infinite;
-}
-@keyframes twinkle { 50% { opacity: .3; } }
-
-.title-window > p {
-  max-width: calc(560 * var(--upx));
-  margin: 0 auto calc(19 * var(--upx));
-  color: #e3cda9;
-  line-height: 1.65;
-  font-size: calc(16 * var(--upx));
-  text-shadow: 1px 1px #000;
+  --title-logo-w: 540;   /* 1920 프레임 기준 px. 에셋은 이 크기의 2배로 뽑습니다 */
+  width: min(calc(var(--title-logo-w) * var(--upx)),100%);
+  /* 납품 원본 1697x706. 높이를 직접 적지 않고 비율로 두어야 로고 폭만
+     고쳐도 글씨가 눌리지 않습니다. */
+  aspect-ratio: 1697 / 706;
+  margin: 0 auto calc(20 * var(--upx));
+  background: url("../assets/UI/Main/ui_title_logo_main.webp") center/contain no-repeat;
+  /* 그림에 이미 광채가 들어 있어 그림자는 벽에서 떼어 놓을 만큼만 얕게 줍니다. */
+  filter: drop-shadow(0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.7));
 }
 .title-start {
-  width: min(calc(280 * var(--upx)),75%);
+  width: min(calc(360 * var(--upx)),94%);
   margin: 0 auto;
   padding: calc(13 * var(--upx)) calc(18 * var(--upx));
   font-size: calc(18 * var(--upx));
@@ -110,11 +86,12 @@
   display: block;
   min-height: calc(18 * var(--upx));
   margin: calc(8 * var(--upx)) auto 0;
-  color: #ad8b62;
+  color: #b79a72;
   font-size: calc(11 * var(--upx));
+  text-shadow: 0 1px 2px #000;
 }
 .title-meta-actions {
-  width: min(calc(280 * var(--upx)),75%);
+  width: min(calc(360 * var(--upx)),94%);
   margin: calc(11 * var(--upx)) auto 0;
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
@@ -127,7 +104,7 @@
   padding: calc(9 * var(--upx)) calc(10 * var(--upx));
   border: 1px solid #8c592f;
   border-radius: calc(5 * var(--upx));
-  background: linear-gradient(#301d13,#160d09);
+  background: linear-gradient(rgba(48,29,19,.92),rgba(22,13,9,.92));
   box-shadow: inset 0 0 0 1px rgba(255,214,143,.08),0 calc(3 * var(--upx)) 0 #090504;
   color: #e8c47f;
   font-weight: 700;
@@ -139,60 +116,3 @@
   color: #ffe09a;
   outline: none;
 }
-
-.title-screen {
-  position: relative;
-  place-items: center;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 46%, rgba(171,105,47,.22), transparent 30%),
-    linear-gradient(180deg, #11101a 0 48%, #0a0808 72%, #030303 100%);
-}
-.title-backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.title-backdrop::before {
-  content: "";
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 7%;
-  bottom: 7%;
-  border: calc(10 * var(--upx)) solid #2e1b13;
-  background:
-    linear-gradient(90deg, transparent 0 7%, rgba(255,202,111,.07) 7% 7.4%, transparent 7.4% 92.6%, rgba(255,202,111,.07) 92.6% 93%, transparent 93%),
-    repeating-linear-gradient(90deg, #1b120e 0 calc(56 * var(--upx)), #241711 calc(56 * var(--upx)) calc(112 * var(--upx)));
-  box-shadow: inset 0 0 0 calc(4 * var(--upx)) #6b4328, inset 0 0 calc(80 * var(--upx)) #000, 0 calc(28 * var(--upx)) calc(90 * var(--upx)) #000;
-}
-.store-awning {
-  position: absolute;
-  left: 14%;
-  right: 14%;
-  top: 10%;
-  height: 12%;
-  border: calc(5 * var(--upx)) solid #442719;
-  background: repeating-linear-gradient(90deg, #773521 0 calc(64 * var(--upx)), #d3a76a calc(64 * var(--upx)) calc(128 * var(--upx)));
-  box-shadow: 0 calc(12 * var(--upx)) 0 #21120d, 0 calc(24 * var(--upx)) calc(38 * var(--upx)) rgba(0,0,0,.55);
-}
-.street-glow {
-  position: absolute;
-  left: 24%;
-  right: 24%;
-  bottom: 7%;
-  height: 17%;
-  border-radius: 50%;
-  background: rgba(255,164,65,.08);
-  filter: blur(calc(22 * var(--upx)));
-}
-.title-screen .title-window {
-  z-index: 2;
-  width: min(calc(660 * var(--upx)),88%);
-  padding-top: 4vh;
-}
-.title-screen .title-lamp { top: 18%; }
-.title-screen .lamp-one { left: 22%; }
-.title-screen .lamp-two { right: 22%; }
-.title-screen .title-steam { bottom: 8%; }
