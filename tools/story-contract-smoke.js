@@ -512,6 +512,13 @@ same(STORY_ENDING_RULES,{
 },"달빛 조각 수에 따른 판정 장면");
 assert(STORY_SCENES["SCN-J01"].autoLoop&&STORY_SCENES["SCN-J01"].nextSceneId==="SCN-L01",
   "조각 0~3개는 선택지 없이 회귀해야 합니다.");
+assert(STORY_SCENES["SCN-J01"].lines[1]?.text
+  ==="영업일지에 글이 나타난다.\\n「당신은 하나의 길도 만들지 못했습니다. 손님의 마음을 얻어 길을 만드십시오.」"
+  &&STORY_SCENES["SCN-J01"].lines[2]?.text
+  ==="이번에는 손님의 마음을 얻어보도록 노력하자."
+  &&TITLE_JOURNAL_ENDING_DEFS.find(ending=>ending.id==="loop_return")?.lastLine
+  ==="이번에는 손님의 마음을 얻어보도록 노력하자.",
+  "첫 자동 회귀는 장부 기록을 안다고 전제하지 않고 손님의 마음을 얻겠다는 목표를 알려야 합니다.");
 same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.nextSceneId),
   ["END-01","END-02"],"조각 4~7개 엔딩 선택");
 same(STORY_SCENES["SCN-J02"].lines.find(line=>line.choices).choices.map(choice=>choice.text),

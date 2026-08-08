@@ -279,7 +279,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
 
 const TITLE_JOURNAL_GUEST_DEFS = GAMEPLAY_JOURNAL_PAGE_DEFS;
 const TITLE_JOURNAL_ENDING_DEFS = Object.freeze([
-  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 내일로 가는 문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자."},
+  {id:"loop_return",number:1,title:"다시 첫째 날",summary:"달빛 조각이 네 개에 닿지 못해 내일로 가는 문이 열리지 않고 시간이 첫째 날로 돌아갔다.",lastLine:"이번에는 손님의 마음을 얻어보도록 노력하자."},
   {id:"alone_morning",number:2,title:"혼자 맞은 아침",summary:"다은만 현실의 아침으로 돌아가고 달빛을 돌려받지 못한 손님들은 식당에 남았다.",lastLine:"나는 나왔지만… 그 밤은 아직 끝나지 않았어."},
   {id:"guests_dawn",number:3,title:"손님들의 새벽",summary:"달빛을 손님들에게 돌려보내 각자의 아침으로 보내고 다은은 식당에 남았다.",lastLine:"남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게."},
   {id:"open_forever",number:4,title:"영원히 영업 중",summary:"다은은 달빛을 식탁에 붙잡아 두고 달빛식탁의 새 주인이 되었다.",lastLine:"오늘도 새벽은 오지 않습니다."},
@@ -912,8 +912,8 @@ const STORY_SCENES = {
     nextSceneId: "SCN-L01",
     lines: [
       storyNarration("모인 달빛은 식탁 가장자리에서 끊기고 내일로 가는 문까지 닿지 못한다."),
-      storyNarration("영업일지 위에 글씨가 드러난다.\n「아직 하나의 길도 만들 수 없습니다. 영업은 첫째 날로 돌아갑니다.」"),
-      storyLine("protagonist", "또 돌아가는구나. 다음에는 장부의 기록을 놓치지 말자.")
+      storyNarration("영업일지에 글이 나타난다.\n「당신은 하나의 길도 만들지 못했습니다. 손님의 마음을 얻어 길을 만드십시오.」"),
+      storyLine("protagonist", "이번에는 손님의 마음을 얻어보도록 노력하자.")
     ]
   },
 
