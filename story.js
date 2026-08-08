@@ -1257,7 +1257,11 @@ function applyStoryFragmentHandoff(line){
     layer.dataset.fragmentState=String(handoff.state||"");
     const asset=String(handoff.asset||"").trim();
     layer.classList?.toggle("has-art",!!asset);
-    if(asset)layer.style?.setProperty?.("--fragment-art",`url(${JSON.stringify(asset)})`);
+    /* ⚠️ 여기도 --portrait-art 와 같은 함정입니다. 커스텀 속성 안의 url() 은 그
+       값을 쓰는 스타일시트(css/story.css) 기준으로 풀려서, 상대경로를 그대로
+       넣으면 "css/assets/..." 를 찾다가 404 가 납니다. 그러면 빛무리만 뜨고
+       가운데 조각 그림이 안 보입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
+    if(asset)layer.style?.setProperty?.("--fragment-art",storyPortraitArtValue(asset));
     else layer.style?.removeProperty?.("--fragment-art");
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
   }else{
@@ -1567,25 +1571,53 @@ const STORY_PROTAGONIST_MOTIONS=Object.freeze({
 });
 const STORY_PROTAGONIST_DEFAULT_MOTION="calm";
 
-/* 복장. dir/stem 은 tools/build-conversation-webp.js 의 COSTUMES 와 같아야
-   합니다. cssClass 는 css/story.css 가 상자 크기를 복장별로 덮어쓰는 열쇠입니다
-   (주방 복장은 기본값이라 클래스가 없습니다). */
-const STORY_PROTAGONIST_COSTUMES=Object.freeze({
-  chef:{dir:"char_cust_kim_daeun_chef",stem:"char_cust_kim_daeun",cssClass:""},
-  office:{dir:"char_cust_kim_daeun_office",stem:"char_cust_kim_daeun_office",cssClass:"office"}
-});
-const STORY_PROTAGONIST_DEFAULT_COSTUME="chef";
+/* 등장인물별 원화.
+   dir/stem 은 tools/build-conversation-webp.js 의 PORTRAITS 와 같아야 합니다.
 
-// 장면이 안 정했으면 주방 복장입니다. 회사원은 프롤로그 퇴근길뿐입니다.
-function storyProtagonistCostume(){
-  const name=storySession?.scene?.protagonistCostume;
-  return STORY_PROTAGONIST_COSTUMES[name]?name:STORY_PROTAGONIST_DEFAULT_COSTUME;
+   height/drop 은 그 도구가 원화 안 인물을 실측해 계산한 값입니다(단위 %).
+   손으로 고치지 마세요. 원화를 새로 받으면 이렇게 다시 뽑아 붙입니다:
+
+     node tools/build-conversation-webp.js --css
+
+   height 는 원화 상자를 무대 높이의 몇 %로 세울지, drop 은 그 상자 바닥을
+   무대 바닥보다 얼마나 내릴지입니다. drop 이 인물마다 다른 건 저마다 캔버스
+   안 발끝 높이가 달라서이고, 이 값 덕분에 모두 같은 바닥선에 섭니다.
+   height 가 대체로 같은 건 '그려진 크기 그대로' 두기 때문입니다 —
+   작은 짐승만 눈에 띄게 작은 것이 의도한 결과입니다. */
+const STORY_PORTRAIT_ART=Object.freeze({
+  protagonistChef:{dir:"char_cust_kim_daeun_chef",stem:"char_cust_kim_daeun",height:181.3,drop:73.3},
+  protagonistOffice:{dir:"char_cust_kim_daeun_office",stem:"char_cust_kim_daeun_office",height:163.1,drop:63.7},
+  rainyChild:{dir:"char_cust_rain_child",stem:"char_cust_rain_child",height:167.6,drop:64.9},
+  lanternGuest:{dir:"char_cust_lantern_head",stem:"char_cust_lantern_head",height:177.3,drop:74.0},
+  twinShadows:{dir:"char_cust_joined_shadows",stem:"char_cust_joined_shadows",height:167.0,drop:64.6},
+  crowCourier:{dir:"char_cust_crow_postman",stem:"char_cust_crow_postman",height:176.6,drop:73.7},
+  // 작은 짐승만 대사창 턱에 걸터앉는 방식입니다(도구의 anchor:"feet").
+  starBeast:{dir:"char_cust_star_eating_beast",stem:"char_cust_star_eating_beast",height:188.3,drop:51.7},
+  seawaterGuest:{dir:"char_cust_seawater_guest",stem:"char_cust_seawater_guest",height:167.0,drop:66.1},
+  schoolDoll:{dir:"char_cust_stopped_school_doll",stem:"char_cust_stopped_school_doll",height:167.0,drop:66.1},
+  facelessDaeun:{dir:"char_cust_faceless_kim_daeun",stem:"char_cust_faceless_kim_daeun",height:167.0,drop:66.1}
+});
+
+/* 화자 → 원화 열쇠. 여기에 없는 화자는 원화가 없다는 뜻입니다.
+   - 김다은은 장면의 protagonistCostume 에 따라 두 벌 중 하나입니다.
+   - 왼쪽/오른쪽 그림자는 한 몸이라 배우도 원화도 twinShadows 하나를 씁니다.
+   - '또 다른 김다은'은 얼굴 없는 손님의 얼굴이 드러난 모습이라 같은 원화입니다. */
+function storyPortraitKey(speakerId){
+  if(speakerId==="protagonist"){
+    return storySession?.scene?.protagonistCostume==="office"
+      ?"protagonistOffice"
+      :"protagonistChef";
+  }
+  if(["leftShadow","rightShadow","twinShadows"].includes(speakerId))return "twinShadows";
+  if(speakerId==="anotherDaeun")return "facelessDaeun";
+  return STORY_PORTRAIT_ART[speakerId]?speakerId:null;
 }
 
-function storyProtagonistMotionArt(motion,costumeName=storyProtagonistCostume()){
-  const costume=STORY_PROTAGONIST_COSTUMES[costumeName]||STORY_PROTAGONIST_COSTUMES[STORY_PROTAGONIST_DEFAULT_COSTUME];
+function storyPortraitMotionArt(portraitKey,motion){
+  const art=STORY_PORTRAIT_ART[portraitKey];
+  if(!art)return "";
   const index=STORY_PROTAGONIST_MOTIONS[motion]||STORY_PROTAGONIST_MOTIONS[STORY_PROTAGONIST_DEFAULT_MOTION];
-  return `assets/Conversation/${costume.dir}/${costume.stem}_motion_${index}.webp`;
+  return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
 }
 
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
@@ -1597,45 +1629,52 @@ function storyPortraitArtValue(source){
 }
 
 /* 대사마다 그림을 바꾸므로, 처음 쓰이는 순간 받아오면 한 박자 비어 보입니다.
-   장면이 시작될 때 그 복장 아홉 장을 미리 받아 둡니다(복장당 1MB 안팎).
-   두 복장을 다 받지는 않습니다. 회사원 복장은 프롤로그에서 한 번 쓰고 끝이라
-   주방 복장만 보는 플레이에서는 받을 이유가 없습니다. */
-const storyProtagonistArtPreloaded=new Set();
-function preloadStoryProtagonistArt(costumeName){
-  if(storyProtagonistArtPreloaded.has(costumeName))return;
-  storyProtagonistArtPreloaded.add(costumeName);
+   무대에 오르는 인물의 아홉 장을 그때 한꺼번에 미리 받아 둡니다(인물당 1.5MB
+   안팎). 열 명분을 전부 받지는 않습니다 — 한 장면에 서는 건 많아야 셋이고,
+   그 날 안 나오는 손님까지 받으면 15MB 를 통째로 내려받게 됩니다. */
+const storyPortraitArtPreloaded=new Set();
+function preloadStoryPortraitArt(portraitKey){
+  if(!portraitKey||storyPortraitArtPreloaded.has(portraitKey))return;
+  storyPortraitArtPreloaded.add(portraitKey);
   Object.keys(STORY_PROTAGONIST_MOTIONS).forEach(motion=>{
     const image=new Image();
-    image.src=storyProtagonistMotionArt(motion,costumeName);
+    image.src=storyPortraitMotionArt(portraitKey,motion);
   });
 }
 
-// 주인공이 말하는 줄에서만 동작을 바꿉니다. 다른 사람이 말하는 동안에는
-// 마지막 동작 그대로 어두워진 채 서 있습니다.
-function applyStoryProtagonistMotion(line){
-  if(line?.speaker!=="protagonist")return;
-  const actor=(storySession?.actors||[]).find(entry=>entry.id==="protagonist");
+/* 말하는 사람의 동작만 바꿉니다. 나머지 배우는 마지막 동작 그대로 어두워진 채
+   서 있습니다 — 대사마다 전원이 같이 움직이면 누가 말하는지 흐려집니다. */
+function applyStorySpeakerMotion(line){
+  const speakerId=line?.speaker;
+  if(!speakerId)return;
+  const portraitKey=storyPortraitKey(speakerId);
+  if(!portraitKey)return;
+  // 그림자 셋은 배우 하나를 공유하므로 배우 id 로 다시 찾습니다.
+  const actorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)?"twinShadows":speakerId;
+  const actor=(storySession?.actors||[]).find(entry=>entry.id===actorId);
   const portrait=actor?.element.querySelector(".story-portrait.art");
   if(!portrait)return;
-  portrait.style.setProperty("--portrait-art",storyPortraitArtValue(storyProtagonistMotionArt(line.motion)));
+  portrait.style.setProperty("--portrait-art",
+    storyPortraitArtValue(storyPortraitMotionArt(portraitKey,line.motion)));
 }
 
 function applyStoryPortraitArt(portrait,speakerId){
+  const portraitKey=storyPortraitKey(speakerId);
+  if(portraitKey){
+    const art=STORY_PORTRAIT_ART[portraitKey];
+    preloadStoryPortraitArt(portraitKey);
+    portrait.classList.add("art");
+    // 인물마다 캔버스에 그려진 크기와 발끝 높이가 달라 상자 치수를 따로 넣습니다.
+    portrait.style.setProperty("--art-height",`${art.height}%`);
+    portrait.style.setProperty("--art-drop",`${-art.drop}%`);
+    portrait.style.setProperty("--portrait-art",
+      storyPortraitArtValue(storyPortraitMotionArt(portraitKey,STORY_PROTAGONIST_DEFAULT_MOTION)));
+    return;
+  }
   const character=STORY_CHARACTERS[speakerId];
   if(character?.art){
     portrait.classList.add("art");
     portrait.style.setProperty("--portrait-art",storyPortraitArtValue(character.art));
-    return;
-  }
-  if(speakerId==="protagonist"){
-    const costumeName=storyProtagonistCostume();
-    preloadStoryProtagonistArt(costumeName);
-    portrait.classList.add("art");
-    // 복장별 상자 크기를 CSS 가 덮어쓸 수 있게 표시합니다(주방 복장은 기본값).
-    const cssClass=STORY_PROTAGONIST_COSTUMES[costumeName].cssClass;
-    if(cssClass)portrait.classList.add(cssClass);
-    portrait.style.setProperty("--portrait-art",
-      storyPortraitArtValue(storyProtagonistMotionArt(STORY_PROTAGONIST_DEFAULT_MOTION,costumeName)));
     return;
   }
   if(!character||character.portraitRow==null){portrait.classList.add("role");return;}
@@ -1650,7 +1689,7 @@ function applyStoryPortraitArt(portrait,speakerId){
    이름표와 대사만으로 충분한 화자들이라 아예 안 세웁니다.
    ⚠️ 이 배역들에 나중에 원화를 붙이면 art 를 채우세요. 그러면 다시 섭니다. */
 function storySpeakerHasPortrait(speakerId){
-  if(speakerId==="protagonist")return true;   // 복장별 원화가 있습니다
+  if(storyPortraitKey(speakerId))return true;   // 대화씬 원화가 있는 인물
   const character=STORY_CHARACTERS[speakerId];
   return !!character&&(!!character.art||character.portraitRow!=null);
 }
@@ -1709,7 +1748,7 @@ function setStoryPortrait(speakerId,line=null){
   (storySession.actors||[]).forEach(actor=>{
     actor.element.classList.toggle("is-active",!!speakerId&&actor.id===activeActorId);
   });
-  applyStoryProtagonistMotion(line);
+  applyStorySpeakerMotion(line);
 }
 
 function storyGuestIdForScene(scene){

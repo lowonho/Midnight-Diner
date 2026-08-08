@@ -38,7 +38,9 @@
    ------------------------------------------------------------
    CSS 레이아웃 크기(1920 프레임 기준 px) x2 로 잡았습니다.
    높이는 폭 ÷ 원본 비율(1697/706 = 2.404)이라 CSS 의 aspect-ratio 와 같습니다.
-     타이틀 : --title-logo-w 540 x 225  → 1080x449
+     타이틀 : --title-logo-w 500 x 208  → 1080x449 (2배보다 조금 큽니다.
+              로고를 540 에서 500 으로 줄일 때 파일은 그대로 두었습니다 —
+              더 큰 쪽으로 남는 것은 화질에 손해가 없어서입니다)
      HUD    : --hud-logo-w   210 x  87  →  420x175
    ⚠️ css/title.css 의 --title-logo-w · css/hud.css 의 --hud-logo-w 를
       고치면 아래 크기 표도 같이 고쳐야 합니다.
@@ -72,7 +74,7 @@ const FILES = [
   { file:"bg_title_variant_04_modern_4x.png", out:"bg_title_modern.webp",
     size:[1920,1080], quality:88, why:"타이틀 16:9 무대(.title-stage) 최대 크기 = --upx 기준 1920x1080" },
   { file:"ui_title_moonlight_table_variant_03_main.png", out:"ui_title_logo_main.webp",
-    size:[1080,449], nearLossless:true, quality:60, why:"타이틀 로고 --title-logo-w 540x225 x2" },
+    size:[1080,449], nearLossless:true, quality:60, why:"타이틀 로고 --title-logo-w 500x208 의 2배 이상" },
   { file:"ui_title_moonlight_table_variant_03_main.png", out:"ui_title_logo_hud.webp",
     size:[420,175], lossless:true, why:"인게임 좌상단 로고 --hud-logo-w 210x87 x2" }
 ];

@@ -35,20 +35,25 @@ const motions = new Map();
 for(const [, key, index] of tableBlock[1].matchAll(/(\w+)\s*:\s*"(\d+)"/g)) motions.set(key, index);
 if(!motions.size) fail("STORY_PROTAGONIST_MOTIONS 가 비어 있습니다.");
 
-/* ---- 2. 복장마다, 모션마다 webp 가 실제로 있는지 ---- */
-const costumeBlock = storySource.match(/const STORY_PROTAGONIST_COSTUMES=Object\.freeze\(\{([\s\S]*?)\}\);/);
-if(!costumeBlock) fail("story.js 에서 STORY_PROTAGONIST_COSTUMES 표를 못 찾았습니다.");
-const costumes = [...costumeBlock[1].matchAll(/(\w+):\{dir:"([^"]+)",stem:"([^"]+)",cssClass:"([^"]*)"\}/g)]
-  .map(([, name, dir, stem, cssClass]) => ({ name, dir, stem, cssClass }));
-if(!costumes.length) fail("STORY_PROTAGONIST_COSTUMES 를 읽지 못했습니다.");
+/* ---- 2. 인물마다, 모션마다 webp 가 실제로 있는지 ---- */
+const artBlock = storySource.match(/const STORY_PORTRAIT_ART=Object\.freeze\(\{([\s\S]*?)\n\}\);/);
+if(!artBlock) fail("story.js 에서 STORY_PORTRAIT_ART 표를 못 찾았습니다.");
+const portraits = [...artBlock[1].matchAll(/(\w+):\{dir:"([^"]+)",stem:"([^"]+)",height:([\d.]+),drop:([-\d.]+)\}/g)]
+  .map(([, name, dir, stem, height, drop]) => ({ name, dir, stem, height:+height, drop:+drop }));
+if(!portraits.length) fail("STORY_PORTRAIT_ART 를 읽지 못했습니다.");
 
-for(const costume of costumes){
+for(const portrait of portraits){
   for(const [key, index] of motions){
-    const file = path.join(root, "assets", "Conversation", costume.dir, `${costume.stem}_motion_${index}.webp`);
+    const file = path.join(root, "assets", "Conversation", portrait.dir, `${portrait.stem}_motion_${index}.webp`);
     if(!fs.existsSync(file)){
-      fail(`복장 "${costume.name}" 의 모션 "${key}" 그림이 없습니다: ${path.relative(root, file)}\n`
+      fail(`"${portrait.name}" 의 모션 "${key}" 그림이 없습니다: ${path.relative(root, file)}\n`
         + "  → npm run build:conversation 을 먼저 돌리세요.");
     }
+  }
+  // 실측으로 뽑는 값이라 0 이나 음수면 --css 를 안 돌리고 손으로 적은 것입니다.
+  if(!(portrait.height > 0) || !(portrait.drop > 0)){
+    fail(`"${portrait.name}" 의 height/drop 이 이상합니다(${portrait.height}/${portrait.drop}).\n`
+      + "  → node tools/build-conversation-webp.js --css 로 다시 뽑으세요.");
   }
 }
 
@@ -96,15 +101,31 @@ if(!storySource.includes("new URL(source,document.baseURI)")){
 if(!/\.story-portrait\.art\s*\{[^}]*border:\s*0/.test(cssSource)){
   fail("css/story.css 의 .story-portrait.art 가 액자 테두리를 걷어내지 않습니다.");
 }
-for(const costume of costumes.filter(entry => entry.cssClass)){
-  const rule = new RegExp(`\\.story-portrait\\.art\\.${costume.cssClass}\\s*\\{[^}]*--art-height`);
-  if(!rule.test(cssSource)){
-    fail(`css/story.css 에 .story-portrait.art.${costume.cssClass} 의 상자 크기가 없습니다.\n`
-      + `  복장 "${costume.name}" 만 혼자 크거나 작게 섭니다.\n`
-      + "  → node tools/build-conversation-webp.js --css 로 값을 뽑아 넣으세요.");
-  }
+// 상자 치수는 이제 story.js 가 인라인으로 넣습니다. CSS 에는 안전값만 남습니다.
+if(!/--art-height/.test(storySource)){
+  fail("story.js 가 --art-height 를 인물별로 넣지 않습니다.\n"
+    + "  그러면 모든 인물이 김다은 기준 크기로 서서 발끝이 어긋납니다.");
+}
+
+/* ---- 7. 원화가 있는 화자는 모든 대사에 motion 이 있어야 합니다 ----
+   화자 이름은 STORY_PORTRAIT_ART 의 열쇠에서 그대로 가져옵니다. 그래야 새
+   손님 원화를 넣는 순간 그 손님 대사도 자동으로 검사 대상이 됩니다.        */
+const speakerAliases = { twinShadows:["twinShadows","leftShadow","rightShadow"], facelessDaeun:["facelessDaeun","anotherDaeun"] };
+const artSpeakers = new Set(portraits.flatMap(p => {
+  if(p.name.startsWith("protagonist")) return ["protagonist"];
+  return speakerAliases[p.name] || [p.name];
+}));
+const lineMissing = [];
+dataSource.split("\n").forEach((text, i) => {
+  const hit = text.match(/storyLine\("(\w+)"/);
+  if(!hit || !artSpeakers.has(hit[1])) return;
+  if(!text.includes("motion:")) lineMissing.push(`${i + 1}행 ${hit[1]} — ${text.trim().slice(0, 56)}`);
+});
+if(lineMissing.length){
+  fail(`원화가 있는 화자인데 motion 이 없는 대사 ${lineMissing.length}줄:\n  ` + lineMissing.slice(0, 12).join("\n  ")
+    + (lineMissing.length > 12 ? `\n  ... 외 ${lineMissing.length - 12}줄` : ""));
 }
 
 const unused = [...motions.keys()].filter(key => !used.has(key));
-console.log(`STORY_MOTION_CONTRACT_OK 복장 ${costumes.length}벌 · 모션 ${motions.size}종 · 사용 ${used.size}종`
+console.log(`STORY_MOTION_CONTRACT_OK 인물 ${portraits.length}종 · 모션 ${motions.size}종 · 사용 ${used.size}종`
   + (unused.length ? ` · 아직 안 쓰는 모션: ${unused.join(", ")}` : ""));

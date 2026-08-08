@@ -376,15 +376,18 @@
 .story-portrait.art {
   position: absolute;
   left: 50%;
-  /* 주방 복장 기준값. 회사원 복장은 아래 .office 가 덮어씁니다. */
-  bottom: var(--art-drop,-67.9%);
-  height: var(--art-height,172%);
+  /* 인물마다 다른 값이라 story.js 가 STORY_PORTRAIT_ART 를 보고 인라인으로
+     넣어 줍니다. 여기 기본값은 주방 복장 김다은 기준이며, 원화 없는 인물이
+     실수로 이 경로를 타도 화면이 깨지지 않게 두는 안전값입니다. */
+  bottom: var(--art-drop,-73.3%);
+  height: var(--art-height,181.3%);
   width: auto;
   max-width: none;
-  /* tools/build-conversation-webp.js 의 공통 크롭 박스(2862x5598) 비율입니다.
+  /* tools/build-conversation-webp.js 의 공통 크롭 박스(4096x5898) 비율입니다.
+     열 인물이 모두 같은 상자로 잘려 있어서 비율도 하나로 끝납니다.
      상자를 그림에 딱 맞춰야 background-size:contain 이 여백 없이 채웁니다.
      BOX 를 바꾸면 여기도 같이 바꿔야 인물이 상자 안에서 뜹니다. */
-  aspect-ratio: 2862 / 5598;
+  aspect-ratio: 4096 / 5898;
   transform: translateX(-50%);
   border: 0;
   background: none;
@@ -394,12 +397,6 @@
   background-size: contain;
   box-shadow: none;
   image-rendering: auto;
-}
-/* 회사원 복장(프롤로그 퇴근길). 같은 캔버스에 더 크게 그려져 있어서 상자를
-   그만큼 줄여야 주방 복장과 키·발끝이 맞습니다. --css 로 뽑은 값입니다. */
-.story-portrait.art.office {
-  bottom: var(--art-drop,-58.9%);
-  height: var(--art-height,155%);
 }
 .story-portrait.role {
   display: grid;

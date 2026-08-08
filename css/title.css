@@ -62,15 +62,44 @@
   text-align: center;
 }
 .title-logo {
-  --title-logo-w: 540;   /* 1920 프레임 기준 px. 에셋은 이 크기의 2배로 뽑습니다 */
+  --title-logo-w: 500;   /* 1920 프레임 기준 px. 에셋은 이 크기의 2배 이상으로 뽑습니다 */
   width: min(calc(var(--title-logo-w) * var(--upx)),100%);
   /* 납품 원본 1697x706. 높이를 직접 적지 않고 비율로 두어야 로고 폭만
      고쳐도 글씨가 눌리지 않습니다. */
   aspect-ratio: 1697 / 706;
-  margin: 0 auto calc(20 * var(--upx));
+  /* 아래 여백은 로고와 '새 게임' 버튼 사이 간격입니다. 둥둥 뜨는 폭(±3px)
+     까지 감안해 버튼에 닿지 않을 만큼 넉넉히 둡니다. */
+  margin: 0 auto calc(52 * var(--upx));
   background: url("../assets/UI/Main/ui_title_logo_main.webp") center/contain no-repeat;
   /* 그림에 이미 광채가 들어 있어 그림자는 벽에서 떼어 놓을 만큼만 얕게 줍니다. */
   filter: drop-shadow(0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.7));
+  /* 벽에서 살짝 떠 있는 느낌. 위아래로만 흔듭니다.
+     [끊어서 뜨는 이유] 옛날 도트 게임의 둥둥 뜨는 물건처럼 보이게 하려고
+     부드럽게 미끄러지지 않고 한 칸씩 툭툭 옮겨 앉습니다. step-end 를 주면
+     각 키프레임 값이 다음 키프레임까지 그대로 버텨서(보간 없음) 8칸짜리
+     스프라이트 애니메이션처럼 보입니다 — 1.6s ÷ 8 = 한 칸당 0.2초.
+     칸 값은 1px(1920 기준) 단위의 정수로만 잡습니다. 어중간한 소수로 두면
+     브라우저가 반픽셀에 그려서 도트 느낌 대신 흐릿하게만 보입니다.
+     간격이 1·2px 로 들쭉날쭉한 건 일부러입니다 — 끝(±3)에서 한 칸을
+     좁게 두면 도트 애니메이션에서 흔히 쓰는, 위아래에서 잠깐 머무는
+     느낌이 납니다. 폭이 좁아도 균등하게 오가는 것보다 덜 기계적입니다.
+     will-change 는 두지 않습니다 — 초당 5번 바뀌는 정도라 레이어를
+     따로 잡아 둘 이득보다 메모리 낭비가 큽니다. */
+  animation: title-logo-float 1.6s step-end infinite;
+}
+@keyframes title-logo-float {
+  0%      { transform: translateY(calc(-3 * var(--upx))); }
+  12.5%   { transform: translateY(calc(-2 * var(--upx))); }
+  25%     { transform: translateY(0); }
+  37.5%   { transform: translateY(calc(2 * var(--upx))); }
+  50%     { transform: translateY(calc(3 * var(--upx))); }
+  62.5%   { transform: translateY(calc(2 * var(--upx))); }
+  75%     { transform: translateY(0); }
+  87.5%   { transform: translateY(calc(-2 * var(--upx))); }
+  100%    { transform: translateY(calc(-3 * var(--upx))); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-logo { animation: none; transform: none; }
 }
 .title-start {
   width: min(calc(360 * var(--upx)),94%);

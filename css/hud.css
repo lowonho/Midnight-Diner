@@ -8,7 +8,7 @@
   top: 1.5%;
   height: 14.7%;
   display: grid;
-  grid-template-columns: 13% 1fr 18.5%;
+  grid-template-columns: 16% 1fr 18.5%;
   align-items: center;
   gap: .8%;
   padding: .65% .85%;
@@ -30,7 +30,9 @@
    ⚠️ PNG 가 마스터입니다. --hud-logo-w 를 고치면 tools/build-ui-main-webp.js
       의 크기 표(이 값의 2배)도 같이 고쳐야 합니다.
    폭이 --hud-logo-w 를 넘지 않게 두는 이유: 상단 HUD 왼쪽 칸은 프레임 폭의
-   13% 라 1920 에서 약 242px 인데, 좁은 창에서는 100% 쪽이 먼저 걸립니다. */
+   16% 라 1920 에서 약 293px 인데, 좁은 창에서는 100% 쪽이 먼저 걸립니다.
+   ⚠️ 칸을 넓혀도 로고는 210px 그대로 둡니다. 로고 그림은 1:1 로 뽑아 둔
+      webp 라 늘리면 뭉갭니다 — 넓어진 만큼은 판 좌우 여백으로 갑니다. */
 .small-logo .hud-logo {
   --hud-logo-w: 210;   /* 1920 프레임 기준 px */
   display: block;      /* <i> 는 원래 inline 이라 폭·비율이 안 먹습니다 */

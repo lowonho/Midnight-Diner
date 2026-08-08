@@ -557,32 +557,32 @@ const STORY_SCENES = {
     journalClue: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다.",
     arrivalLines: [
       storyNarration("첫 번째 일반 손님이 식사를 마치고 자리에서 사라진다.\n그 손님 뒤로 들어와 창가에서 기다리던 젖은 우비의 아이가 다은을 바라본다."),
-      storyLine("rainyChild", "비 오는 날 먹는 거 있어요?"),
+      storyLine("rainyChild", "비 오는 날 먹는 거 있어요?", { motion: "calm" }),
       storyLine("protagonist", "어떤 음식인데?", { motion: "think" }),
-      storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.")
+      storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("아이는 다은이 내어 준 음식을 한입 먹고 조용히 고개를 젓는다."),
-      storyLine("rainyChild", "이건 아니에요. 그래도 따뜻하게 만들어 줘서 고마워요."),
-      storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요."),
+      storyLine("rainyChild", "이건 아니에요. 그래도 따뜻하게 만들어 줘서 고마워요.", { motion: "sad" }),
+      storyLine("rainyChild", "팬 위에서 둥글게 퍼지고, 빗소리보다 크게 지글거렸어요.", { motion: "think" }),
       storyLine("protagonist", "알겠어. 다음에는 그 소리를 기억하면서 골라 볼게.", { motion: "think" }),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
     softLines: [
       storyNarration("아이는 뜨거운 한입을 조심스럽게 베어 물고 잠시 미소 짓는다.\n곧 지글거리던 소리를 떠올리려는 듯 고개를 기울인다."),
-      storyLine("rainyChild", "이 음식은 맞는 것 같은데… 비 오는 날 들었던 소리와는 조금 달라요."),
+      storyLine("rainyChild", "이 음식은 맞는 것 같은데… 비 오는 날 들었던 소리와는 조금 달라요.", { motion: "cook" }),
       storyLine("protagonist", "김치전은 맞는 거네. 다음에 다시 오면 더 잘 만들어 볼게.", { motion: "cook" }),
       storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ],
     warmLines: [
       storyNarration("바삭한 가장자리가 부서지는 소리에 아이의 어깨가 가볍게 들썩인다.\n아이는 빗소리를 잊은 듯 따뜻한 김치전을 연달아 먹는다."),
-      storyLine("rainyChild", "맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요."),
+      storyLine("rainyChild", "맞아요. 비 오는 날 누군가랑 같이 먹었어요. 그런데 비가 그치면 그 사람도 떠날 것 같았어요.", { motion: "sad" }),
       storyLine("protagonist", "비가 그쳐도 같이 먹었던 일까지 없어지는 건 아니잖아.", { motion: "soft" }),
       storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ],
     greatLines: [
       storyNarration("노릇한 가장자리와 촉촉한 속을 번갈아 맛본 아이가 환하게 웃는다.\n빈 접시를 내려놓는 손끝에서 빗물이 맑은 빛으로 반짝인다."),
-      storyLine("rainyChild", "이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요."),
+      storyLine("rainyChild", "이 맛이에요. 비가 그치면 모두 날 두고 갈까 봐 달빛을 빗속에 숨겼어요.", { motion: "happy" }),
       storyLine("protagonist", "그 빛은 이제 식탁에 두자. 비가 그쳐도 네 기억은 남아.", { motion: "soft" }),
       storyCaption("김다은(속말)", "나가기 위해 시작한 영업인데, 저 아이가 웃는 걸 보니 조금 안심된다.")
     ]
@@ -602,32 +602,32 @@ const STORY_SCENES = {
     journalClue: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다.",
     arrivalLines: [
       storyNarration("간판이 켜지자 식당 바닥에 길쭉한 불빛이 번진다.\n빛이 모인 자리에는 머리 대신 낡은 종이등을 단 손님이 어느새 나타나 있다."),
-      storyLine("lanternGuest", "손끝이 따뜻해지는 국물이 있습니까?"),
+      storyLine("lanternGuest", "손끝이 따뜻해지는 국물이 있습니까?", { motion: "calm" }),
       storyLine("protagonist", "무슨 국물인지 기억나요?", { motion: "think" }),
-      storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.")
+      storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("손님은 다은이 내어 준 음식을 천천히 맛보지만 종이등의 불빛은 가늘어진다."),
-      storyLine("lanternGuest", "정성은 따뜻하지만, 제가 기억하는 그릇은 아니군요."),
-      storyLine("lanternGuest", "나무꼬치에 꿰인 긴 것들이 따뜻한 국물에 잠겨 있었습니다."),
+      storyLine("lanternGuest", "정성은 따뜻하지만, 제가 기억하는 그릇은 아니군요.", { motion: "sad" }),
+      storyLine("lanternGuest", "나무꼬치에 꿰인 긴 것들이 따뜻한 국물에 잠겨 있었습니다.", { motion: "think" }),
       storyLine("protagonist", "다음에는 그 모습을 떠올리면서 골라 볼게요.", { motion: "think" }),
       { kind: "journal", text: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다." }
     ],
     softLines: [
       storyNarration("손님은 그릇을 두 손으로 감싸고 국물을 천천히 삼킨다.\n종이등 안의 불꽃이 잠깐 포근한 빛을 내다가 다시 가늘어진다."),
-      storyLine("lanternGuest", "따뜻하군요. 하지만 길을 떠나기 전 받았던 온기에는 아직 닿지 못했습니다."),
+      storyLine("lanternGuest", "따뜻하군요. 하지만 길을 떠나기 전 받았던 온기에는 아직 닿지 못했습니다.", { motion: "cook" }),
       storyLine("protagonist", "찾던 음식은 맞네요. 다음에 다시 만들어 드릴게요.", { motion: "cook" }),
       storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ],
     warmLines: [
       storyNarration("따뜻한 국물이 목을 타고 내려가자 종이등의 빛이 식탁을 부드럽게 물들인다.\n손님은 그릇을 놓지 않은 채 오래도록 남은 온기를 즐긴다."),
-      storyLine("lanternGuest", "이 국물로 많은 사람을 돌려보냈습니다. 그런데 제 길만 기억나지 않는군요."),
+      storyLine("lanternGuest", "이 국물로 많은 사람을 돌려보냈습니다. 그런데 제 길만 기억나지 않는군요.", { motion: "sad" }),
       storyLine("protagonist", "계속 남의 길만 비추느라 자기 길은 못 찾았던 거군요.", { motion: "sad" }),
       storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ],
     greatLines: [
       storyNarration("손님이 어묵과 국물을 남김없이 비우자 종이등이 환하게 밝아진다.\n그 빛은 눈부시기보다 오래 기다린 집의 불빛처럼 따뜻하다."),
-      storyLine("lanternGuest", "모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요."),
+      storyLine("lanternGuest", "모두에게 돌아갈 곳이 있었는데, 나만 없었습니다. 그래서 이 빛을 놓지 못했지요.", { motion: "cry" }),
       storyLine("protagonist", "돌아갈 곳이 정해져 있지 않아도, 이제부터 찾을 수 있어요.", { motion: "soft" }),
       storyCaption("김다은(속말)", "손님이 온기를 되찾는 동안, 굳어 있던 내 어깨도 조금 풀린 것 같다.")
     ]
@@ -647,35 +647,35 @@ const STORY_SCENES = {
     journalClue: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다.",
     arrivalLines: [
       storyNarration("두 번째 일반 손님이 식사를 마치고 자리를 떠난다.\n두 손님 뒤로 들어와 기다리던 한 사람처럼 보이는 손님이 다은을 바라본다. 바닥에는 그림자가 두 개다."),
-      storyLine("leftShadow", "흰 것이 먼저였어."),
-      storyLine("rightShadow", "아니야. 붉은 것이 옆에 있었어."),
-      storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.")
+      storyLine("leftShadow", "흰 것이 먼저였어.", { motion: "think" }),
+      storyLine("rightShadow", "아니야. 붉은 것이 옆에 있었어.", { motion: "angry" }),
+      storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.", { motion: "calm" })
     ],
     missingLines: [
       storyNarration("두 그림자는 다은이 내어 준 음식을 번갈아 맛보고 동시에 고개를 젓는다."),
-      storyLine("leftShadow", "흰 것이 빠졌어."),
-      storyLine("rightShadow", "붉은 것도 함께 있어야 했어."),
-      storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어."),
+      storyLine("leftShadow", "흰 것이 빠졌어.", { motion: "sad" }),
+      storyLine("rightShadow", "붉은 것도 함께 있어야 했어.", { motion: "sad" }),
+      storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어.", { motion: "think" }),
       storyLine("protagonist", "둘이 함께 있던 음식이라는 건 기억해 둘게.", { motion: "think" }),
       { kind: "journal", text: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다." }
     ],
     softLines: [
       storyNarration("두 그림자는 흰 음식과 붉은 음식을 번갈아 한입씩 맛본다.\n잠시 말다툼을 멈추지만 서로 붙은 경계는 그대로다."),
-      storyLine("leftShadow", "둘이 함께 있는 음식은 맞아."),
-      storyLine("rightShadow", "하지만 아직 우리를 하나로 떠올리게 하진 못해."),
+      storyLine("leftShadow", "둘이 함께 있는 음식은 맞아.", { motion: "cook" }),
+      storyLine("rightShadow", "하지만 아직 우리를 하나로 떠올리게 하진 못해.", { motion: "sad" }),
       storyLine("protagonist", "둘 다 같은 음식을 기억하는 건 맞네. 다음에 다시 해 볼게.", { motion: "cook" }),
       storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ],
     warmLines: [
       storyNarration("부드러운 흰 음식과 매콤한 붉은 음식이 한입에서 어우러지자 두 그림자가 동시에 웃는다.\n둘의 목소리는 처음으로 다투지 않고 같은 높이로 겹친다."),
-      storyLine("leftShadow", "나는 떠나고 싶었어."),
-      storyLine("rightShadow", "나는 남고 싶었어."),
+      storyLine("leftShadow", "나는 떠나고 싶었어.", { motion: "sad" }),
+      storyLine("rightShadow", "나는 남고 싶었어.", { motion: "soft" }),
       storyLine("protagonist", "떠나고 싶은 마음도, 남고 싶은 마음도 둘 다 네 마음이잖아.", { motion: "soft" }),
       storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ],
     greatLines: [
       storyNarration("두 그림자는 서로 다른 순서로 두부김치를 먹다가 마지막 한입을 함께 나눈다.\n접시가 비자 바닥의 두 그림자가 가볍고 선명하게 흔들린다."),
-      storyLine("twinShadows", "선택하지 않은 우리도 사라지는 건 아니었어."),
+      storyLine("twinShadows", "선택하지 않은 우리도 사라지는 건 아니었어.", { motion: "happy" }),
       storyLine("protagonist", "하나를 고른다고 다른 쪽이 없던 일이 되는 건 아니야.", { motion: "soft" }),
       storyCaption("김다은(속말)", "나도 도망치고 싶은 마음과 그대로 버티려는 마음을 한꺼번에 품고 있었구나.")
     ]
@@ -695,32 +695,32 @@ const STORY_SCENES = {
     journalClue: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다.",
     arrivalLines: [
       storyNarration("세 번째 일반 손님이 식사를 마치자, 먼저 빈 테이블 곁에 나타나 기다리던 검은 외투의 배달부가 가방을 고쳐 멘다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
-      storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다."),
+      storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다.", { motion: "calm" }),
       storyLine("protagonist", "어떤 모양이었죠?", { motion: "think" }),
-      storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.")
+      storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("배달부는 다은이 내어 준 음식을 살펴본 뒤 가방을 다시 고쳐 멘다."),
-      storyLine("crowCourier", "이 음식으로는 멈춘 발걸음이 떠오르지 않는군요."),
-      storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다."),
+      storyLine("crowCourier", "이 음식으로는 멈춘 발걸음이 떠오르지 않는군요.", { motion: "sad" }),
+      storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다.", { motion: "think" }),
       storyLine("protagonist", "불 냄새와 꼬치… 다음에는 그 단서로 골라 볼게요.", { motion: "think" }),
       { kind: "journal", text: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다." }
     ],
     softLines: [
       storyNarration("배달부는 꼬치를 한 손에 들고 급하게 몇 점을 먹는다.\n불향에 굳었던 날개가 잠시 느슨해지지만 편지를 쥔 손에는 힘이 남아 있다."),
-      storyLine("crowCourier", "음식은 맞습니다. 하지만 아직 발걸음을 떼기엔 부족하군요."),
+      storyLine("crowCourier", "음식은 맞습니다. 하지만 아직 발걸음을 떼기엔 부족하군요.", { motion: "cook" }),
       storyLine("protagonist", "찾던 음식은 맞네요. 그래도 아직 편지를 놓기는 어려운가 봐요.", { motion: "sad" }),
       storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ],
     warmLines: [
       storyNarration("불향 밴 조각을 씹을 때마다 배달부의 검은 깃털이 차분히 가라앉는다.\n그는 오랜 이동 끝에 처음 쉬는 사람처럼 천천히 꼬치를 비운다."),
-      storyLine("crowCourier", "이 편지를 전하면 누군가 떠날 것 같았습니다. 그래서 계속 미뤘지요."),
+      storyLine("crowCourier", "이 편지를 전하면 누군가 떠날 것 같았습니다. 그래서 계속 미뤘지요.", { motion: "sad" }),
       storyLine("protagonist", "전하지 않으면 기다리는 사람도 계속 그 자리에 있어요.", { motion: "soft" }),
       storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ],
     greatLines: [
       storyNarration("배달부는 마지막 불향까지 음미하고 만족스러운 듯 부리를 가볍게 다문다.\n빈 꼬치를 내려놓자 편지를 누르던 손끝에서도 힘이 빠진다."),
-      storyLine("crowCourier", "제가 미룬 건 배달이 아니라 그 사람의 내일이었습니다."),
+      storyLine("crowCourier", "제가 미룬 건 배달이 아니라 그 사람의 내일이었습니다.", { motion: "cry" }),
       storyLine("protagonist", "이제는 그 사람이 직접 다음을 정할 수 있게 전해 주세요.", { motion: "soft" }),
       storyCaption("김다은(속말)", "미뤄 둔 말은 기다리는 사람까지 그 자리에 세워 둘 수 있겠구나.")
     ]
@@ -740,32 +740,32 @@ const STORY_SCENES = {
     journalClue: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다.",
     arrivalLines: [
       storyNarration("세 번째 일반 손님이 식사를 마치자, 먼저 가장 그늘진 자리에 웅크려 기다리던 작은 짐승이 고개를 든다.\n몸 안에는 삼킨 별빛이 움직인다."),
-      storyLine("starBeast", "손으로 집어 먹는 노란 거 있어?"),
+      storyLine("starBeast", "손으로 집어 먹는 노란 거 있어?", { motion: "calm" }),
       storyLine("protagonist", "더 기억나는 건?", { motion: "think" }),
-      storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.")
+      storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("작은 짐승은 다은이 내어 준 음식을 냄새 맡고 한입 베어 물지만 귀를 축 늘어뜨린다.\n몸 안의 별빛도 여전히 웅크려 있다."),
-      storyLine("starBeast", "이것도 맛은 있는데, 내가 찾던 건 아니야."),
-      storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데."),
+      storyLine("starBeast", "이것도 맛은 있는데, 내가 찾던 건 아니야.", { motion: "sad" }),
+      storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데.", { motion: "think" }),
       storyLine("protagonist", "손끝에 소금이 남는 길고 노란 음식… 기억해 둘게.", { motion: "think" }),
       { kind: "journal", text: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다." }
     ],
     softLines: [
       storyNarration("작은 짐승은 노란 조각을 앞발로 집어 바삭 소리가 나게 깨문다.\n귀가 잠시 쫑긋 서지만 몸 안의 별빛은 여전히 웅크려 있다."),
-      storyLine("starBeast", "노란 건 맞아. 그런데 내 안의 별은 아직 나오기 싫대."),
+      storyLine("starBeast", "노란 건 맞아. 그런데 내 안의 별은 아직 나오기 싫대.", { motion: "cook" }),
       storyLine("protagonist", "찾던 음식은 맞구나. 다음에 다시 와도 돼.", { motion: "soft" }),
       storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ],
     warmLines: [
       storyNarration("소금이 반짝이는 감자튀김을 와삭 깨물자 작은 짐승의 꼬리가 절로 흔들린다.\n몸속 별빛도 기분 좋은 박자에 맞춰 천천히 움직인다."),
-      storyLine("starBeast", "밝아지면 모두가 날 볼까 봐 가장 밝은 별을 먹었어."),
+      storyLine("starBeast", "밝아지면 모두가 날 볼까 봐 가장 밝은 별을 먹었어.", { motion: "sad" }),
       storyLine("protagonist", "보이는 게 무서워서 숨고 싶었던 거구나.", { motion: "sad" }),
       storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ],
     greatLines: [
       storyNarration("작은 짐승은 바삭한 조각을 신나게 먹고 손끝의 소금까지 핥는다.\n배부른 듯 몸을 둥글게 말자 안에 갇혀 있던 별빛이 환하게 번진다."),
-      storyLine("starBeast", "무서웠던 건 아침이 아니라 빛 속의 눈들이었어. 이제 별을 돌려줄게."),
+      storyLine("starBeast", "무서웠던 건 아침이 아니라 빛 속의 눈들이었어. 이제 별을 돌려줄게.", { motion: "happy" }),
       storyLine("protagonist", "별을 돌려줘도 괜찮아. 밝은 곳에 있어도 네가 사라지는 건 아니야.", { motion: "soft" }),
       storyCaption("김다은(속말)", "밝은 곳에서 평가받는 게 두려워 숨고 싶은 마음이라면, 나도 조금은 알아.")
     ]
@@ -785,32 +785,32 @@ const STORY_SCENES = {
     journalClue: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다.",
     arrivalLines: [
       storyNarration("마지막 일반 손님이 나가자 문 아래로 얕은 물결이 밀려 들어온다.\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."),
-      storyLine("seawaterGuest", "바다에서 온 음식이 있습니까?"),
+      storyLine("seawaterGuest", "바다에서 온 음식이 있습니까?", { motion: "calm" }),
       storyLine("protagonist", "국물 요리인가요?", { motion: "think" }),
-      storyLine("seawaterGuest", "아닙니다. 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 바다 냄새가 나지요.")
+      storyLine("seawaterGuest", "아닙니다. 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 바다 냄새가 나지요.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("손님은 다은이 내어 준 음식을 맛보지만 몸 안의 물결은 방향을 찾지 못한다."),
-      storyLine("seawaterGuest", "정성은 느껴집니다만, 이 음식에서는 제 바다가 보이지 않는군요."),
-      storyLine("seawaterGuest", "바삭한 겉과 그 안에 남은 바다 냄새만 기억합니다."),
+      storyLine("seawaterGuest", "정성은 느껴집니다만, 이 음식에서는 제 바다가 보이지 않는군요.", { motion: "sad" }),
+      storyLine("seawaterGuest", "바삭한 겉과 그 안에 남은 바다 냄새만 기억합니다.", { motion: "think" }),
       storyLine("protagonist", "뜨거운 기름을 지나 바삭해진 바다의 음식… 기억해 둘게요.", { motion: "think" }),
       { kind: "journal", text: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다." }
     ],
     softLines: [
       storyNarration("손님은 바삭한 튀김옷을 조심스럽게 깨물고 안쪽의 향을 오래 음미한다.\n몸 안의 물결이 잠시 잔잔해지지만 이내 다시 방향을 잃는다."),
-      storyLine("seawaterGuest", "찾던 음식은 맞습니다. 하지만 제 이름은 아직 떠오르지 않는군요."),
+      storyLine("seawaterGuest", "찾던 음식은 맞습니다. 하지만 제 이름은 아직 떠오르지 않는군요.", { motion: "cook" }),
       storyLine("protagonist", "다음에 다시 오면 조금 더 기억날지도 몰라요.", { motion: "soft" }),
       storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ],
     warmLines: [
       storyNarration("바삭한 소리 뒤로 촉촉한 바다 향이 퍼지자 손님 몸속의 물고기들이 힘차게 헤엄친다.\n손님은 고향의 파도를 만난 듯 편안한 표정으로 접시를 바라본다."),
-      storyLine("seawaterGuest", "동쪽으로 돌아가면 이곳에서 불리던 이름을 잃을까 두렵습니다."),
+      storyLine("seawaterGuest", "동쪽으로 돌아가면 이곳에서 불리던 이름을 잃을까 두렵습니다.", { motion: "sad" }),
       storyLine("protagonist", "돌아간다고 여기서 있었던 일까지 없어지지는 않아요.", { motion: "soft" }),
       storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ],
     greatLines: [
       storyNarration("손님은 바삭한 튀김과 그 안의 바다 향을 남김없이 즐긴다.\n접시가 비자 몸속에 작은 파도가 일고 물고기들이 반짝이는 비늘을 남긴다."),
-      storyLine("seawaterGuest", "멈춘 이름을 남기는 대신, 변해 가는 나로 돌아가겠습니다."),
+      storyLine("seawaterGuest", "멈춘 이름을 남기는 대신, 변해 가는 나로 돌아가겠습니다.", { motion: "resolve" }),
       storyLine("protagonist", "내가 기억할게요. 이름이 달라져도 여기 왔던 당신을요.", { motion: "calm" }),
       storyCaption("김다은(속말)", "어디로 돌아가든 이 식탁에서 나눈 순간까지 없어지는 건 아니겠지.")
     ]
@@ -830,32 +830,32 @@ const STORY_SCENES = {
     journalClue: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다.",
     arrivalLines: [
       storyNarration("영업 준비 완료를 누르는 순간 벽시계가 4시 44분에서 멈추고 멀리서 학교 종소리가 울린다.\n문 앞에는 교복을 입은 소녀가 서 있다. 가까이 보면 피부는 나무와 천으로 만들어져 있다."),
-      storyLine("schoolDoll", "학교 끝나고 먹던 게 있어요?"),
+      storyLine("schoolDoll", "학교 끝나고 먹던 게 있어요?", { motion: "calm" }),
       storyLine("protagonist", "무슨 음식인데?", { motion: "think" }),
-      storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.")
+      storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.", { motion: "think" })
     ],
     missingLines: [
       storyNarration("인형은 다은이 내어 준 음식을 조심스럽게 맛보지만 벽시계는 움직이지 않는다."),
-      storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요."),
-      storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠."),
+      storyLine("schoolDoll", "오늘도 4시 44분에서 끝나겠네요.", { motion: "sad" }),
+      storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠.", { motion: "think" }),
       storyLine("protagonist", "빨갛고 맵고 말랑한 음식… 다음에는 그 기억으로 골라 볼게.", { motion: "think" }),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
     ],
     softLines: [
       storyNarration("인형은 붉은 소스가 묻은 한입을 천천히 씹는다.\n말랑한 식감에 입가가 살짝 올라가지만 벽시계의 초침은 움직이지 않는다."),
-      storyLine("schoolDoll", "그때 먹던 음식은 맞는데… 시계가 움직이지 않아요."),
+      storyLine("schoolDoll", "그때 먹던 음식은 맞는데… 시계가 움직이지 않아요.", { motion: "cook" }),
       storyLine("protagonist", "음식은 찾았는데, 아직 다음으로 갈 마음은 안 난 거구나.", { motion: "sad" }),
       storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ],
     warmLines: [
       storyNarration("매콤한 소스와 말랑한 떡을 맛본 인형의 뺨에 옅은 온기가 돈다.\n종이컵을 두 손으로 감싸자 멈춘 초침이 작게 떨린다."),
-      storyLine("schoolDoll", "졸업하면 뭘 해야 할지 몰랐어요. 그래서 방과 후를 멈췄어요."),
+      storyLine("schoolDoll", "졸업하면 뭘 해야 할지 몰랐어요. 그래서 방과 후를 멈췄어요.", { motion: "sad" }),
       storyLine("protagonist", "모르는 채로 가도 돼. 나도 아직 뭘 할지 모르니까.", { motion: "soft" }),
       storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ],
     greatLines: [
       storyNarration("인형은 방과 후의 맛을 되찾은 듯 떡볶이를 즐겁게 비운다.\n마지막 한입을 삼키는 순간 벽시계가 째깍 소리를 내며 4시 45분으로 넘어간다."),
-      storyLine("schoolDoll", "틀리지 않으려고 멈추면, 맞을 기회도 없었네요."),
+      storyLine("schoolDoll", "틀리지 않으려고 멈추면, 맞을 기회도 없었네요.", { motion: "soft" }),
       storyLine("protagonist", "맞아. 멈춰 있으면 다음 선택은 생기지 않아. 우리 둘 다 가 보자.", { motion: "resolve" }),
       storyCaption("김다은(속말)", "손님들의 시간이 움직이는 걸 보면서도, 나는 이 밤에 계속 머물고 싶어질까?")
     ]
@@ -879,39 +879,39 @@ const STORY_SCENES = {
     journalClue: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다.",
     arrivalLines: [
       storyNarration("식당의 모든 조명이 꺼진 뒤 주방 위 조명 하나만 다시 켜진다.\n카운터에는 김다은과 같은 옷을 입었지만 얼굴이 없는 손님이 앉아 있다. 장부의 일곱째 날 기록 맨 아래에 「마지막 손님」이라는 문구가 그제야 나타난다."),
-      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶아 나누어 먹던 음식이 있었지."),
+      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶아 나누어 먹던 음식이 있었지.", { motion: "calm" }),
       storyNarration("그 말을 듣는 순간 오래전 냄새가 스친다.\n입사 첫해 상품 테스트가 끝난 늦은 밤, 남은 우동면을 팬에 볶아 동료들과 나누었던 기억이다."),
-      storyLine("facelessDaeun", "그때는 잘 팔릴 음식보다, 앞에 앉은 사람들이 맛있게 먹는지가 더 중요했지."),
+      storyLine("facelessDaeun", "그때는 잘 팔릴 음식보다, 앞에 앉은 사람들이 맛있게 먹는지가 더 중요했지.", { motion: "soft" }),
       storyLine("protagonist", "당신은 누구야?", { motion: "think" }),
-      storyLine("facelessDaeun", "네가 오지 않기를 바랐던 내일에서 왔어."),
+      storyLine("facelessDaeun", "네가 오지 않기를 바랐던 내일에서 왔어.", { motion: "sad" }),
       storyLine("protagonist", "내가 바라지 않았던 내일에서…?", { motion: "sad" })
     ],
     missingLines: [
       storyNarration("얼굴 없는 손님은 다은이 내어 준 음식을 한입 먹고 접시를 조용히 밀어 놓는다."),
-      storyLine("facelessDaeun", "이건 그날 우리가 나눠 먹던 음식이 아니야."),
-      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지."),
+      storyLine("facelessDaeun", "이건 그날 우리가 나눠 먹던 음식이 아니야.", { motion: "sad" }),
+      storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.", { motion: "think" }),
       storyLine("protagonist", "굵은 면을 팬에 볶은 음식… 내가 만들었던 기억을 찾아야 해.", { motion: "think" }),
       { kind: "journal", text: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다." }
     ],
     softLines: [
       storyNarration("얼굴 없는 손님은 볶음우동을 한 젓가락 먹고 익숙한 향을 확인하듯 잠시 멈춘다.\n따뜻한 면을 삼켜도 비어 있는 얼굴에는 아직 아무 표정도 생기지 않는다."),
-      storyLine("facelessDaeun", "이 음식은 맞아. 그런데 아직 네가 만들었던 맛은 아니야."),
+      storyLine("facelessDaeun", "이 음식은 맞아. 그런데 아직 네가 만들었던 맛은 아니야.", { motion: "cook" }),
       storyLine("protagonist", "이 음식이 맞다는 건 기억나. 다시 만들어 볼게.", { motion: "cook" }),
       storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어.")
     ],
     warmLines: [
       storyNarration("볶은 면의 고소한 향이 퍼지자 얼굴 없는 손님의 입가에 희미한 미소가 그려진다.\n손님은 예전의 늦은 밤을 천천히 되짚듯 면을 한 젓가락씩 음미한다."),
-      storyLine("facelessDaeun", "입사한 첫해, 이걸 동료들과 나눠 먹었어. 그때는 누가 맛있어하는지 직접 보고 있었지."),
+      storyLine("facelessDaeun", "입사한 첫해, 이걸 동료들과 나눠 먹었어. 그때는 누가 맛있어하는지 직접 보고 있었지.", { motion: "soft" }),
       storyLine("protagonist", "그때의 나는 결과보다 먹는 사람을 먼저 보고 있었네.", { motion: "sad" }),
       storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어.")
     ],
     greatLines: [
       storyNarration("얼굴 없는 손님은 윤기 나는 면을 맛있게 먹고 빈 접시를 오래 바라본다.\n다은이 기억하던 동료들의 웃음과 따뜻한 팬의 온기가 식탁 위로 되살아난다."),
-      storyLine("facelessDaeun", "나는 김다은. 네가 포기한 내일이야."),
+      storyLine("facelessDaeun", "나는 김다은. 네가 포기한 내일이야.", { motion: "calm" }),
       storyNarration("그 말을 마치자 비어 있던 얼굴 위로 김다은과 같은 눈과 입이 천천히 나타난다."),
-      storyLine("anotherDaeun", "우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어."),
+      storyLine("anotherDaeun", "우리가 붙잡은 달빛과 네 소원이 이 밤을 만들었어.", { motion: "soft" }),
       storyLine("protagonist", "내가 닫은 문이라면, 이제 이 밤을 어떻게 끝낼지도 내가 정할게.", { motion: "resolve" }),
-      storyLine("anotherDaeun", "아직 무엇을 할지 몰라도, 내일은 올 수 있어."),
+      storyLine("anotherDaeun", "아직 무엇을 할지 몰라도, 내일은 올 수 있어.", { motion: "happy" }),
       storyCaption("김다은(속말)", "탈출하려고 손님을 받기 시작했는데, 어느새 누군가가 맛있게 먹는 모습을 기다리고 있었어."),
       storyCaption("김다은(속말)", "내일이 두려워 오늘을 반복할지, 그래도 아침을 열지. 이제 선택은 내 몫이다.")
     ]

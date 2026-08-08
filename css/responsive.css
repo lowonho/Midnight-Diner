@@ -2,7 +2,7 @@
   .mobile-controls { display: flex; }
   .left-hud, .right-hud { width: 18.5%; }
   .controls-help { display: none; }
-  .top-hud { grid-template-columns: 14% 1fr 21%; }
+  .top-hud { grid-template-columns: 17% 1fr 21%; }
   .hud-stats { grid-template-columns: .7fr 1fr .8fr 1fr .5fr .5fr; }
   .hud-stats .stat-satisfaction { display: none; }
   .station-prompt { bottom: 18%; }
