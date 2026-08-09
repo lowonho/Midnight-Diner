@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FRY_SFX_PENDING</title>
+<body>FRY_SFX_PENDING</body>
+<script>
+"use strict";
+const MINI_ENGINES={};
+function registerMiniEngine(name,engine){MINI_ENGINES[name]=engine;}
+function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+const state={mini:null};
+const dom={miniFeedback:{textContent:""},miniContent:document.createElement("div")};
+const played=[];
+const audio={
+  play(name){played.push(name);},
+  bad(){played.push("bad");},
+  loop(){},
+  stop(){}
+};
+</script>
+<script src="../js/engine-e6-deep-fry.js"></script>
+<script>
+"use strict";
+try{
+  renderFry=()=>{};
+  state.mini={
+    engine:"fry",complete:false,
+    data:{
+      fryerStyle:"shrimp",raw:1,pot:[],done:[],errors:0,nextId:1,
+      selected:null,diveId:null,finishing:false,completionGrade:null
+    }
+  };
+  if(!dropFryPiece())throw new Error("drop action failed");
+  if(played.at(-1)!=="fry_basket_lift")
+    throw new Error(`drop cue: ${played.at(-1)}`);
+  state.mini.data.pot[0].stage="cooked";
+  if(!liftFryPiece(state.mini.data.pot[0].id))throw new Error("lift action failed");
+  if(played.at(-1)!=="fry_basket_shake")
+    throw new Error(`rack cue: ${played.at(-1)}`);
+  document.title="FRY_SFX_OK";
+  document.body.textContent=`FRY_SFX_OK ${played.join(" -> ")}`;
+}catch(error){
+  document.title="FRY_SFX_FAIL";
+  document.body.textContent=`FRY_SFX_FAIL ${error.stack||error}`;
+}
+</script>

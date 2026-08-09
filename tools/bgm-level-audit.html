@@ -6,7 +6,7 @@
 try{
   const paths=[
     "assets/bgm/bgm_day.mp3",
-    "assets/bgm/bgm_night.mp3",
+    "assets/bgm/bgm_night_leveled.mp3",
     "assets/bgm/story/bgm_company_story.mp3",
     "assets/bgm/story/bgm_in_first_sikdang.mp3",
     "assets/bgm/story/bgm_story_faceless_daeun.MP3",
@@ -18,11 +18,11 @@ try{
   ];
   const context=new AudioContext();
   const gains={
-    "bgm_day.mp3":1,"bgm_night.mp3":3.685,"bgm_company_story.mp3":.95,"bgm_in_first_sikdang.mp3":.571,
-    "bgm_story_faceless_daeun.MP3":.3433,
-    "bgm_ending_loop_return.MP3":.7233,"bgm_ending_alone_morning.MP3":.3972,
-    "bgm_ending_guests_dawn.MP3":.394,"bgm_ending_open_forever.MP3":.6087,
-    "bgm_ending_morning_together.MP3":.4126
+    "bgm_day.mp3":1,"bgm_night_leveled.mp3":1.0469,"bgm_company_story.mp3":.9718,"bgm_in_first_sikdang.mp3":.566,
+    "bgm_story_faceless_daeun.MP3":.3327,
+    "bgm_ending_loop_return.MP3":.691,"bgm_ending_alone_morning.MP3":.3754,
+    "bgm_ending_guests_dawn.MP3":.386,"bgm_ending_open_forever.MP3":.6129,
+    "bgm_ending_morning_together.MP3":.4062
   };
   const db=value=>value>0?20*Math.log10(value):-Infinity;
   const round=value=>Number.isFinite(value)?Number(value.toFixed(2)):null;

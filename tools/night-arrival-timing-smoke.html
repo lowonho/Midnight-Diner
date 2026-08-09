@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Night arrival timing smoke</title>
+</head>
+<body>
+  <pre id="result">RUNNING</pre>
+  <script>
+    "use strict";
+    var state={day:1,generalSpawnedCustomers:0,respawns:[]};
+    const DAY_DATA={
+      1:{generalOrderTarget:6},2:{generalOrderTarget:6},3:{generalOrderTarget:6},
+      4:{generalOrderTarget:6},5:{generalOrderTarget:6},6:{generalOrderTarget:6},
+      7:{generalOrderTarget:6}
+    };
+  </script>
+  <script src="../js/night.js"></script>
+  <script>
+    "use strict";
+    (async()=>{
+      const result=document.getElementById("result");
+      const failures=[];
+      const assert=(condition,message)=>{if(!condition)failures.push(message);};
+      const close=(actual,expected)=>Math.abs(actual-expected)<1e-9;
+      const originalRandom=Math.random;
+
+      try{
+        const expected={
+          1:[2.15,2.90,1.15,1.65],2:[2.05,2.80,1.10,1.60],
+          3:[1.95,2.70,1.05,1.55],4:[1.90,2.60,1.00,1.50],
+          5:[1.80,2.50,.95,1.45],6:[1.70,2.40,.90,1.40],
+          7:[1.60,2.30,.85,1.35]
+        };
+        Object.entries(expected).forEach(([day,[min,max,lastMin,lastMax]])=>{
+          state.day=Number(day);
+          state.generalSpawnedCustomers=0;
+          Math.random=()=>0;
+          assert(close(generalOrderArrivalDelay(),min),`day ${day} regular minimum`);
+          Math.random=()=>1;
+          assert(close(generalOrderArrivalDelay(),max),`day ${day} regular maximum`);
+          state.generalSpawnedCustomers=5;
+          Math.random=()=>0;
+          assert(close(generalOrderArrivalDelay(),lastMin),`day ${day} last minimum`);
+          Math.random=()=>1;
+          assert(close(generalOrderArrivalDelay(),lastMax),`day ${day} last maximum`);
+          assert(lastMin<min&&lastMax<max,`day ${day} last guest is accelerated`);
+        });
+
+        Math.random=()=>.5;
+        assert(close(generalOrderEntranceSpeed(),2.1),"entrance speed midpoint");
+        assert(close(generalOrderEntranceDelay(),.17),"entrance stagger midpoint");
+
+        state.respawns=[];
+        state.day=4;
+        state.generalSpawnedCustomers=0;
+        scheduleOrderRespawn(2);
+        assert(state.respawns.length===1,"random respawn scheduled");
+        assert(state.respawns[0].time>=1.9&&state.respawns[0].time<=2.6,
+          "day 4 respawn is inside configured range");
+        scheduleOrderRespawn(3,.2);
+        assert(close(state.respawns.find(item=>item.slot===3).time,.2),
+          "explicit story retry delay remains unchanged");
+
+        const gameSource=await fetch("../js/game.js").then(response=>response.text());
+        const tickIndex=gameSource.indexOf("state.respawns.forEach(r=>r.time-=dt);");
+        const readyIndex=gameSource.indexOf("const ready=state.respawns.filter(r=>r.time<=0);");
+        assert(tickIndex>=0&&readyIndex>tickIndex,
+          "respawn timer advances before presentation resumes");
+      }catch(error){
+        failures.push(error&&error.stack?error.stack:String(error));
+      }finally{
+        Math.random=originalRandom;
+      }
+
+      if(failures.length){
+        result.textContent=`NIGHT_ARRIVAL_TIMING_FAIL\n${failures.join("\n")}`;
+        document.title="NIGHT_ARRIVAL_TIMING_FAIL";
+      }else{
+        result.textContent="NIGHT_ARRIVAL_TIMING_OK";
+        document.title="NIGHT_ARRIVAL_TIMING_OK";
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -30,10 +30,12 @@ assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMi
   "설정창이나 이야기 대화가 열린 동안 미니게임 갱신을 멈춰야 합니다.");
 assert(game.includes('const pauseNightCustomerPresentation=state.phase==="night"&&!!state.mini;')
   &&game.includes("updateNightOrderEntrances(dt,pauseNightCustomerPresentation);")
+  &&game.includes("state.respawns.forEach(r=>r.time-=dt);")
+  &&game.indexOf("state.respawns.forEach(r=>r.time-=dt);")<game.indexOf("const ready=state.respawns.filter(r=>r.time<=0);")
   &&game.includes("if(!pauseNightCustomerPresentation)ensureNightOrders();")
   &&game.includes('if(pauseNightCustomerPresentation&&order.customerType!=="story")return;')
   &&game.includes("if(pauseNightCustomerPresentation&&!item.guestId)return;"),
-  "밤 미니게임 중에는 일반 손님의 등장·재등장·대기 말풍선·퇴장 수명이 멈춰야 합니다.");
+  "밤 미니게임 중에는 손님 연출은 멈추되 재등장 대기시간은 계속 흘러야 합니다.");
 assert(game.includes('if(order.customerType==="story"){')
   &&game.includes('const hadGeneralWaitingBubble=order.waitingBubbleShown===true;')
   &&game.includes('order.waitingTime=0;order.waitingBubbleShown=false;')

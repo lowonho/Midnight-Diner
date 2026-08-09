@@ -37,16 +37,42 @@ try{
     const prefix=`SCN-G${number}`;
     if(!STORY_SCENES[`${prefix}-A`]?.storyEntrySfx?.name)
       throw new Error(`${prefix} arrival one-shot`);
+    if(STORY_SCENES[`${prefix}-A`]?.storyEntrySfx?.fadeOut!==1200)
+      throw new Error(`${prefix} arrival fade-out`);
     for(const suffix of ["B","아쉽다","맛있다","완벽"]){
       if(STORY_SCENES[`${prefix}-${suffix}`]?.storyEntrySfx)
         throw new Error(`${prefix}-${suffix} repeats arrival sound`);
     }
+    const partialLine=STORY_SCENES[`${prefix}-맛있다`]?.lines?.find(line=>line.fragmentHandoff);
+    const fullLine=STORY_SCENES[`${prefix}-완벽`]?.lines?.find(line=>line.fragmentHandoff);
+    if(partialLine?.fragmentHandoff?.state!=="partial")
+      throw new Error(`${prefix} partial fragment handoff`);
+    if(fullLine?.fragmentHandoff?.state!=="full")
+      throw new Error(`${prefix} full fragment handoff`);
   }
+  const gameRequest=new XMLHttpRequest();
+  gameRequest.open("GET","../js/game.js",false);
+  gameRequest.send();
+  if(gameRequest.status&&gameRequest.status!==200)throw new Error(`game.js HTTP ${gameRequest.status}`);
+  const storyRequest=new XMLHttpRequest();
+  storyRequest.open("GET","../js/story.js",false);
+  storyRequest.send();
+  if(storyRequest.status&&storyRequest.status!==200)throw new Error(`story.js HTTP ${storyRequest.status}`);
+  if(!gameRequest.responseText.includes('fragment_partial:["assets/sfx/story/fragments/sfx_half_piece.MP3"]'))
+    throw new Error("partial fragment audio registry");
+  if(!gameRequest.responseText.includes('"assets/sfx/story/fragments/sfx_half_piece.MP3":.2808'))
+    throw new Error("partial fragment audio normalization");
+  if(!storyRequest.responseText.includes('handoff.state==="partial"\n    ?STORY_PARTIAL_FRAGMENT_SFX'))
+    throw new Error("partial fragment cue selection");
+  if(!storyRequest.responseText.includes('const STORY_FRAGMENT_SFX_GAIN=1.6*10**(5/20);'))
+    throw new Error("fragment handoff +5 dB gain");
+  if(!storyRequest.responseText.includes("playStoryFragmentSfx(line);"))
+    throw new Error("fragment handoff playback hook");
   if(STORY_SCENES["SCN-EPI01"]?.storyBgm!==expected["END-04"])
     throw new Error("true-ending epilogue continuation");
   if(STORY_SCENES["SCN-EPI01"]?.storyBgmHoldAfterFinish!==true)
     throw new Error("true-ending epilogue BGM hold for retry menu");
-  document.title="ENDING_AUDIO_OK";document.body.textContent="ENDING_AUDIO_OK 18";
+  document.title="ENDING_AUDIO_OK";document.body.textContent="ENDING_AUDIO_OK 33";
 }catch(error){
   document.title="ENDING_AUDIO_FAIL";document.body.textContent=`ENDING_AUDIO_FAIL ${error.stack||error}`;
 }

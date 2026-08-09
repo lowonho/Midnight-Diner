@@ -476,6 +476,56 @@
 .left-hud > * { flex: none; }
 .left-hud > .inventory-list { flex: 1 1 auto; min-height: 0; }
 
+/* 낮 준비가 끝난 뒤 플레이어의 다음 행동이 영업 시작임을 알려주는 버튼 콜아웃입니다. */
+.phase-prep #phaseButton.prep-ready-callout {
+  position: relative;
+  z-index: 1;
+  border-color: #fff0ad;
+  background: linear-gradient(#fff3b8,#e8a44d);
+  animation: prep-ready-button-pulse 1.45s ease-in-out infinite;
+}
+.phase-prep #phaseButton.prep-ready-callout::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-5 * var(--upx));
+  border: calc(2 * var(--upx)) solid rgba(255,226,137,.82);
+  border-radius: calc(10 * var(--upx));
+  pointer-events: none;
+  animation: prep-ready-button-ring 1.45s ease-out infinite;
+}
+.phase-prep #phaseButton.prep-ready-callout:active {
+  animation: none;
+  transform: translateY(2px);
+}
+.phase-prep #phaseButton.prep-ready-callout:active::before { animation: none; opacity: 0; }
+
+@keyframes prep-ready-button-pulse {
+  0%,100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+    box-shadow: inset 0 0 0 2px #fff5ca,0 calc(3 * var(--upx)) 0 #6e3a1f,0 0 calc(7 * var(--upx)) rgba(255,211,105,.38);
+  }
+  48% {
+    transform: translateY(calc(-2 * var(--upx))) scale(1.025);
+    filter: brightness(1.12);
+    box-shadow: inset 0 0 0 2px #fff9dc,0 calc(4 * var(--upx)) 0 #6e3a1f,0 0 calc(18 * var(--upx)) rgba(255,218,116,.82);
+  }
+}
+@keyframes prep-ready-button-ring {
+  0% { opacity: .8; transform: scale(.97); }
+  72%,100% { opacity: 0; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-prep #phaseButton.prep-ready-callout {
+    animation: none;
+    filter: brightness(1.1);
+    box-shadow: inset 0 0 0 2px #fff9dc,0 calc(3 * var(--upx)) 0 #6e3a1f,0 0 calc(14 * var(--upx)) rgba(255,218,116,.72);
+  }
+  .phase-prep #phaseButton.prep-ready-callout::before { animation: none; opacity: .7; }
+}
+
 .phase-prep .relationship-box,
 .phase-prep .open-only-control {
   display: none;

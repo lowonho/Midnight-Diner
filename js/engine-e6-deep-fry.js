@@ -729,9 +729,8 @@ function dropFryPiece(spot = null) {
   data.selected = null;
   // 이 한 개만 기름으로 떨어지는 연출 + 물결을 답니다 (renderFry 가 쓰고 지웁니다)
   data.diveId = data.pot[data.pot.length - 1].id;
-  // 기름에 넣는 순간의 쇳소리 + 치익. 원래 바스켓을 털 때 쓰던 소리를 그대로 씁니다
-  // (SFX_PRODUCTION_CHECKLIST 의 sfx_fry_basket_shake)
-  audio.play?.("fry_basket_shake", { owner: m });
+  // 기름에 넣을 때는 짧게 내려놓는 소리를 냅니다.
+  audio.play?.("fry_basket_lift", { owner: m });
   dom.miniFeedback.textContent = `${dish.pieceLabel}을(를) 기름에 넣었습니다. 노릇해지면 건져주세요!`;
   renderFry();
   return true;
@@ -751,7 +750,7 @@ function moveFryPieceInPot(id, spot) {
   piece.x = point.x; piece.y = point.y;
   data.selected = null;
   data.diveId = piece.id;
-  audio.play?.("fry_basket_shake", { owner: state.mini });
+  audio.play?.("fry_basket_lift", { owner: state.mini });
   renderFry();
   return true;
 }
@@ -767,7 +766,7 @@ function liftFryPiece(id, spot = null) {
   data.pot.splice(index, 1);
   data.done.push({ id: piece.id, stage: piece.stage, t: piece.t, mistakeCharged: piece.mistakeCharged });
   data.selected = null;
-  audio.play?.("fry_basket_lift", { owner: m });
+  audio.play?.("fry_basket_shake", { owner: m });
   const allDone = data.done.length >= dish.count;
   if (allDone) {
     data.finishing = true;

@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>AUDIO_LOUDNESS_AUDIT_RUNNING</title>
+<pre id="output">체감 음량 분석 중…</pre>
+<script type="module">
+try{
+  const gameSource=await fetch("../js/game.js").then(response=>response.text());
+  const paths=[...new Set(
+    [...gameSource.matchAll(/["'](assets\/(?:bgm|sfx)\/[^"']+\.mp3)["']/gi)].map(match=>match[1])
+  )];
+  const decoder=new AudioContext();
+  const db=value=>value>0?20*Math.log10(value):-Infinity;
+  const energyDb=value=>value>0?-0.691+10*Math.log10(value):-Infinity;
+  const linear=dbValue=>10**(dbValue/20);
+  const round=(value,digits=2)=>Number.isFinite(value)?Number(value.toFixed(digits)):null;
+  const percentile=(values,ratio)=>values.length?values[Math.min(values.length-1,Math.floor((values.length-1)*ratio))]:-Infinity;
+
+  async function kWeighted(buffer){
+    const context=new OfflineAudioContext(buffer.numberOfChannels,buffer.length,buffer.sampleRate);
+    const source=context.createBufferSource();source.buffer=buffer;
+    // ITU-R BS.1770 K-weighting에 대응하는 고역 shelf + RLB high-pass입니다.
+    const shelf=context.createBiquadFilter();shelf.type="highshelf";shelf.frequency.value=1681.974;shelf.gain.value=3.9998;
+    const highpass=context.createBiquadFilter();highpass.type="highpass";highpass.frequency.value=38.1355;highpass.Q.value=.5003;
+    source.connect(shelf);shelf.connect(highpass);highpass.connect(context.destination);source.start();
+    return context.startRendering();
+  }
+
+  function blockEnergies(buffer,windowSeconds,stepSeconds){
+    const windowFrames=Math.max(1,Math.round(buffer.sampleRate*windowSeconds));
+    const stepFrames=Math.max(1,Math.round(buffer.sampleRate*stepSeconds));
+    const channels=Array.from({length:buffer.numberOfChannels},(_,index)=>buffer.getChannelData(index));
+    const rows=[];
+    for(let start=0;start<buffer.length;start+=stepFrames){
+      const end=Math.min(buffer.length,start+windowFrames);if(end-start<Math.min(windowFrames,buffer.sampleRate*.025))break;
+      let squares=0;
+      for(const channel of channels)for(let index=start;index<end;index++)squares+=channel[index]*channel[index];
+      rows.push(squares/Math.max(1,end-start)); // 채널은 BS.1770처럼 합산, 시간축만 평균
+    }
+    return rows;
+  }
+
+  function integratedLoudness(buffer){
+    const absolute=blockEnergies(buffer,.4,.1).filter(energy=>energyDb(energy)>-70);
+    if(!absolute.length)return -Infinity;
+    const first=absolute.reduce((sum,value)=>sum+value,0)/absolute.length;
+    const relativeGate=energyDb(first)-10;
+    const gated=absolute.filter(energy=>energyDb(energy)>relativeGate);
+    return energyDb(gated.reduce((sum,value)=>sum+value,0)/Math.max(1,gated.length));
+  }
+
+  function momentaryLoudness(buffer){
+    const loudness=blockEnergies(buffer,.1,.025).map(energyDb).filter(value=>value>-60).sort((a,b)=>a-b);
+    return percentile(loudness,.9);
+  }
+
+  function peakDb(buffer){
+    let peak=0;
+    for(let channel=0;channel<buffer.numberOfChannels;channel++){
+      const data=buffer.getChannelData(channel);
+      for(let index=0;index<data.length;index++)peak=Math.max(peak,Math.abs(data[index]));
+    }
+    return db(peak);
+  }
+
+  const measurements=[];
+  for(const path of paths){
+    const encoded=await fetch(`../${path}`).then(response=>response.arrayBuffer());
+    const original=await decoder.decodeAudioData(encoded);
+    const weighted=await kWeighted(original);
+    measurements.push({
+      path,name:path.split("/").pop(),duration:original.duration,
+      peak:peakDb(original),integrated:integratedLoudness(weighted),momentary:momentaryLoudness(weighted)
+    });
+  }
+  await decoder.close();
+
+  const day=measurements.find(row=>row.path.endsWith("/bgm_day.mp3"));
+  const knife=measurements.find(row=>row.path.endsWith("/sfx_knife_daikon.MP3"));
+  // 기준 칼질은 게임에서 이미 쓰던 실제 출력 레벨을 유지하고 다른 효과음만 그 주위로 맞춥니다.
+  const knifeAnchorGain=.7736;
+  const callGainDb=row=>{
+    const name=row.name.replace(/_leveled(?=\.mp3$)/i,"");
+    if(/_loop/i.test(name))return db(.7);
+    if(/^sfx_story_d\d_.*_arrival/i.test(name))return db(.65);
+    if(/^sfx_d\d_finish/i.test(name)||name==="sfx_story_daeun_ribbon_handoff.MP3"||name==="sfx_half_piece.MP3")return db(1.6*10**(5/20));
+    if(name==="sfx_rain.MP3")return db(.42);
+    if(name==="sfx_open_door.MP3"||name==="sfx_food_serve.MP3"||name==="sfx_plate_tofu_place.MP3")return db(.9);
+    if(name==="sfx_input_wrong.MP3")return db(.9);
+    if(/^sfx_result_/i.test(name))return db(.8);
+    return 0;
+  };
+  const sfxOffset=row=>{
+    const name=row.name.replace(/_leveled(?=\.mp3$)/i,"");
+    if(name==="sfx_rain.MP3")return -12;
+    if(/_loop/i.test(name))return -9;
+    if(/^sfx_story_d\d_.*_arrival/i.test(name))return -6;
+    if(/^sfx_d\d_finish/i.test(name)||name==="sfx_story_daeun_ribbon_handoff.MP3"||name==="sfx_half_piece.MP3")return 1;
+    if(/(?:input_wrong|result_|timer_warning|ui_click|next_book|food_serve)/i.test(name))return -3;
+    return 0;
+  };
+
+  const rows=measurements.map(row=>{
+    const isBgm=row.path.startsWith("assets/bgm/");
+    const measured=isBgm?row.integrated:(/_loop/i.test(row.name)||row.name==="sfx_rain.MP3"?row.integrated:row.momentary);
+    const runtimeGainDb=isBgm?0:callGainDb(row);
+    const target=isBgm?day.integrated:knife.momentary+db(knifeAnchorGain)+sfxOffset(row);
+    const requestedDb=target-measured-runtimeGainDb;
+    // 샘플 피크 -1 dBFS를 넘지 않게 해 디코더/믹서 클리핑 여유를 둡니다.
+    const gainDb=Math.min(requestedDb,-1-row.peak-runtimeGainDb);
+    return {
+      path:row.path,name:row.name,kind:isBgm?"bgm":"sfx",duration:round(row.duration),
+      integrated:round(row.integrated),momentary:round(row.momentary),peak:round(row.peak),
+      target:round(target),callGainDb:round(runtimeGainDb),gainDb:round(gainDb),gain:round(linear(gainDb),4),
+      adjusted:round(measured+gainDb+runtimeGainDb)
+    };
+  });
+  const compact=rows.map(row=>[row.name,row.gain,row.peak,row.callGainDb]);
+  const partCount=Math.ceil(compact.length/25);
+  let part=Math.min(partCount-1,Math.max(0,Number(new URLSearchParams(location.search).get("part"))||0));
+  const showTitlePart=()=>{document.title=`AUDIO_LOUDNESS_AUDIT_OK_${part+1}_${partCount}:${JSON.stringify(compact.slice(part*25,part*25+25))}`;};
+  showTitlePart();
+  setInterval(()=>{part=(part+1)%partCount;showTitlePart();},1000);
+  document.querySelector("#output").textContent=`AUDIO_LOUDNESS_AUDIT_OK ${rows.length}\n${JSON.stringify(rows,null,2)}`;
+}catch(error){
+  document.title=`AUDIO_LOUDNESS_AUDIT_FAIL:${error.message}`;
+  document.querySelector("#output").textContent=`AUDIO_LOUDNESS_AUDIT_FAIL\n${error.stack||error}`;
+}
+</script>

@@ -72,6 +72,7 @@ const UI_TEXT = Object.freeze({
   leftTitleOther: "현재 주문",
 
   phaseButton: "영업 시작",
+  phaseButtonReadyHint: "준비 완료 · 영업 시작 버튼을 눌러주세요",
 
   /* ── 설정 / 일시정지 ──────────────────────────────── */
   // 소리 3줄 아래에 마우스 포인터 설정이 붙어서 "소리 설정" 만으로는 맞지 않습니다.

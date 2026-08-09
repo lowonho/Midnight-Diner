@@ -11,7 +11,11 @@ const STORY_FULL_FRAGMENT_SFX_BY_DAY=Object.freeze({
   5:"fragment_full_d5",6:"fragment_full_d6",7:"fragment_full_d7"
 });
 const STORY_DAEUN_RIBBON_SFX="daeun_ribbon_handoff";
-const STORY_FULL_FRAGMENT_SFX_GAIN=1.6;
+const STORY_PARTIAL_FRAGMENT_SFX="fragment_partial";
+// 반쪽·온전한 조각·마지막 리본 전달음만 기존 출력에서 정확히 +5 dB 올립니다.
+const STORY_FRAGMENT_SFX_GAIN=1.6*10**(5/20);
+const STORY_FULL_FRAGMENT_SFX_GAIN=STORY_FRAGMENT_SFX_GAIN;
+const STORY_PARTIAL_FRAGMENT_SFX_GAIN=STORY_FRAGMENT_SFX_GAIN;
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
@@ -25,6 +29,7 @@ const STORY_CHECKPOINT_VERSION=1;
 const STORY_SCENE_INTRO_DURATION=1700;
 const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
 const STORY_SUBTITLE_MAX_LINES=2;
+const STORY_ENTRY_SFX_FADE_OUT=1200;
 
 function createStoryGuestState(){
   return {
@@ -1376,14 +1381,24 @@ function stopStoryAmbient(fadeOutDuration=0){
   if(storySession)storySession.ambientAudio=null;
 }
 
-function stopStoryEntrySfx(){
+function storyEntrySfxFadeDuration(scene=storySession?.scene){
+  const configured=Number(scene?.storyEntrySfx?.fadeOut);
+  return Number.isFinite(configured)?Math.max(0,configured):STORY_ENTRY_SFX_FADE_OUT;
+}
+
+function stopStoryEntrySfx(fadeOutDuration=0){
   const entry=storySession?.entryAudio||null;
-  if(entry)audio?.stopFile?.(entry);
+  if(entry){
+    const duration=Math.max(0,Number(fadeOutDuration)||0);
+    if(duration>0&&typeof audio?.fadeOutFile==="function")audio.fadeOutFile(entry,duration);
+    else audio?.stopFile?.(entry);
+  }
   if(storySession)storySession.entryAudio=null;
 }
 
 function applyStorySceneAudio(scene){
-  stopStoryEntrySfx();
+  // 앞 장면의 긴 진입음이 남아 있다면 새 장면과 짧게 겹치며 자연스럽게 사라집니다.
+  stopStoryEntrySfx(STORY_ENTRY_SFX_FADE_OUT);
   const cue=scene?.storyAmbient;
   const currentAmbient=storySession?.ambientAudio||null;
   const currentAmbientActive=!audio?.activeFiles||audio.activeFiles.has(currentAmbient);
@@ -1437,7 +1452,7 @@ function clearStoryAudio({fadeAmbient=false,preserveBgm=false}={}){
     ?(Number.isFinite(configured)?Math.max(0,configured):1200)
     :0;
   stopStoryAmbient(fadeDuration);
-  stopStoryEntrySfx();
+  stopStoryEntrySfx(fadeAmbient?STORY_ENTRY_SFX_FADE_OUT:0);
   if(!preserveBgm)audio?.setStoryBgm?.(null);
 }
 
@@ -1517,34 +1532,37 @@ function resolveStoryAssetUrl(asset){
   catch{return value;}
 }
 
-function storyFullFragmentSfxKey(line,scene=storySession?.scene){
+function storyFragmentSfxKey(line,scene=storySession?.scene){
   const handoff=line?.fragmentHandoff;
-  if(handoff?.state!=="full"||!scene)return "";
+  if(!["partial","full"].includes(handoff?.state)||!scene)return "";
   const day=Math.max(1,Math.min(7,Math.floor(Number(scene.day)||Number(state.day)||1)));
-  return `${scene.id}:${handoff.shardId||day}`;
+  return `${scene.id}:${handoff.state}:${handoff.shardId||day}`;
 }
 
-function storyFullFragmentSfxWasPlayed(line){
-  const key=storyFullFragmentSfxKey(line);
+function storyFragmentSfxWasPlayed(line){
+  const key=storyFragmentSfxKey(line);
   return !!key&&!!storySession?.playedFragmentSfx?.[key];
 }
 
-function playStoryFullFragmentSfx(line){
+function playStoryFragmentSfx(line){
   const handoff=line?.fragmentHandoff;
   const scene=storySession?.scene;
-  if(handoff?.state!=="full"||!scene)return false;
+  if(!["partial","full"].includes(handoff?.state)||!scene)return false;
   const guestId=storyGuestIdForScene(scene);
   if(!STORY_GUEST_IDS.includes(guestId))return false;
   const day=Math.max(1,Math.min(7,Math.floor(Number(scene.day)||Number(state.day)||1)));
-  const cue=guestId==="facelessDaeun"
-    ?STORY_DAEUN_RIBBON_SFX
-    :STORY_FULL_FRAGMENT_SFX_BY_DAY[day];
-  const key=storyFullFragmentSfxKey(line,scene);
+  const cue=handoff.state==="partial"
+    ?STORY_PARTIAL_FRAGMENT_SFX
+    :guestId==="facelessDaeun"
+      ?STORY_DAEUN_RIBBON_SFX
+      :STORY_FULL_FRAGMENT_SFX_BY_DAY[day];
+  const gain=handoff.state==="partial"?STORY_PARTIAL_FRAGMENT_SFX_GAIN:STORY_FULL_FRAGMENT_SFX_GAIN;
+  const key=storyFragmentSfxKey(line,scene);
   if(!cue||storySession.playedFragmentSfx?.[key])return false;
   if(audio?.ctx&&(audio.ctx.state==="suspended"||audio.ctx.state==="interrupted")){
     try{audio.ctx.resume()?.catch?.(()=>{});}catch{}
   }
-  const entry=audio?.play?.(cue,{gain:STORY_FULL_FRAGMENT_SFX_GAIN})||null;
+  const entry=audio?.play?.(cue,{gain})||null;
   if(!entry)return false;
   const session=storySession;
   if(!session.playedFragmentSfx)session.playedFragmentSfx={};
@@ -1556,6 +1574,10 @@ function playStoryFullFragmentSfx(line){
   entry.playbackPromise?.catch?.(allowRetry);
   lockStoryFragmentAdvanceUntilEnded(entry);
   return true;
+}
+
+function playStoryFullFragmentSfx(line){
+  return line?.fragmentHandoff?.state==="full"&&playStoryFragmentSfx(line);
 }
 
 function applyStoryFragmentHandoff(line){
@@ -1581,7 +1603,7 @@ function applyStoryFragmentHandoff(line){
     else layer.style?.removeProperty?.("--fragment-art");
     if(kicker)kicker.textContent=handoff.state==="partial"?"부분 달빛 조각":"온전한 달빛 조각";
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
-    playStoryFullFragmentSfx(line);
+    playStoryFragmentSfx(line);
   }else{
     layer.classList?.remove?.("has-art");
     delete layer.dataset.shardId;
@@ -1844,11 +1866,11 @@ function storyAdvance(){
   if(storySession.waitingForJournal)return true;
   const line=storySession.lines[storySession.lineIndex];
   if(
-    line?.fragmentHandoff?.state==="full"
+    ["partial","full"].includes(line?.fragmentHandoff?.state)
     &&storySession.fragmentRevealedAt===storySession.lineIndex
-    &&!storyFullFragmentSfxWasPlayed(line)
+    &&!storyFragmentSfxWasPlayed(line)
   ){
-    playStoryFullFragmentSfx(line);
+    playStoryFragmentSfx(line);
     return true;
   }
   /* 달빛 조각 한 박자. 대사를 다 읽고 한 번 더 누르면 그때 조각이 떠오르고,
@@ -2480,6 +2502,7 @@ function startStoryCookChallenge(scene,cook,metadata={}){
     thresholds:cook.thresholds&&typeof cook.thresholds==="object"?{...cook.thresholds}:null
   };
   storySession.waitingForCook=true;storySession.suspended=true;
+  stopStoryEntrySfx(storyEntrySfxFadeDuration(scene));
   const startStation=stationById(cook.startStation);
   if(startStation&&state.player){
     state.player.x=startStation.ix;
@@ -2592,8 +2615,8 @@ function suspendStoryForOrderCook(scene,config,metadata={}){
   };
   const ambientFade=Number(scene?.storyAmbientFadeOut);
   stopStoryAmbient(Number.isFinite(ambientFade)?Math.max(0,ambientFade):1200);
-  // 등장 원샷이 아직 남아 있어도 조리 화면까지 따라오지는 않게 합니다.
-  stopStoryEntrySfx();
+  // 등장 원샷이 아직 남아 있으면 조리 화면 초입에서 부드럽게 꼬리를 줄입니다.
+  stopStoryEntrySfx(storyEntrySfxFadeDuration(scene));
   if(typeof syncSelectedOrderToQueue==="function")syncSelectedOrderToQueue();
   else state.selectedOrderId=order.id;
   state.paused=false;

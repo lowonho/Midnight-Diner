@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>STORY_ENTRY_FADE_PENDING</title>
+<body>STORY_ENTRY_FADE_PENDING</body>
+<script>
+"use strict";
+const extractMethod=(source,signature)=>{
+  const start=source.indexOf(signature);
+  if(start<0)throw new Error(`method not found: ${signature}`);
+  const braceStart=source.indexOf("{",start);
+  let depth=0;
+  for(let index=braceStart;index<source.length;index++){
+    if(source[index]==="{")depth++;
+    else if(source[index]==="}"&&--depth===0)return source.slice(start,index+1);
+  }
+  throw new Error(`method did not close: ${signature}`);
+};
+(async()=>{
+  try{
+    const [gameSource,storySource]=await Promise.all([
+      fetch("../js/game.js").then(response=>response.text()),
+      fetch("../js/story.js").then(response=>response.text())
+    ]);
+    const fadeMethod=extractMethod(gameSource,"fadeOutFile(entry,duration=1200)");
+    let now=0,nextFrameId=1;
+    const scheduledFrames=new Map();
+    const requestFrame=callback=>{
+      const id=nextFrameId++;
+      scheduledFrames.set(id,callback);
+      return id;
+    };
+    const cancelFrame=id=>scheduledFrames.delete(id);
+    const advanceFrame=time=>{
+      now=time;
+      const callbacks=[...scheduledFrames.values()];
+      scheduledFrames.clear();
+      callbacks.forEach(callback=>callback(now));
+    };
+    const audio=Function("clamp","requestAnimationFrame","cancelAnimationFrame","performance",`return ({
+      activeFiles:new Set(),
+      stopFile(entry){
+        if(entry.fadeFrame!=null)cancelAnimationFrame(entry.fadeFrame);
+        entry.fadeFrame=null;entry.fadingOut=false;
+        entry.element.pause();entry.element.currentTime=0;
+        this.activeFiles.delete(entry);
+      },
+      ${fadeMethod}
+    });`)(
+      (value,min,max)=>Math.max(min,Math.min(max,value)),
+      requestFrame,cancelFrame,{now:()=>now}
+    );
+    const element={volume:.8,paused:false,currentTime:5,pause(){this.paused=true;}};
+    const entry={element,gainNode:null,fadingOut:false,fadeFrame:null};
+    audio.activeFiles.add(entry);
+    if(!audio.fadeOutFile(entry,120))throw new Error("fade did not start");
+    const started=entry.fadingOut&&element.volume===.8;
+    advanceFrame(60);
+    const middle=element.volume;
+    advanceFrame(120);
+    const finished=!audio.activeFiles.has(entry)&&element.paused&&element.volume<=.001;
+    if(!started||!(middle>0&&middle<.8)||!finished)
+      throw new Error(`runtime curve: ${JSON.stringify({started,middle,finished})}`);
+    if(!storySource.includes("stopStoryEntrySfx(storyEntrySfxFadeDuration(scene));"))
+      throw new Error("cook transition does not request entry fade");
+    if(!storySource.includes('audio.fadeOutFile(entry,duration)'))
+      throw new Error("story entry stop does not use audio fade");
+    document.title="STORY_ENTRY_FADE_OK";
+    document.body.firstChild.textContent="STORY_ENTRY_FADE_OK";
+  }catch(error){
+    document.title="STORY_ENTRY_FADE_FAIL";
+    document.body.firstChild.textContent=`STORY_ENTRY_FADE_FAIL ${error.stack||error}`;
+  }
+})();
+</script>

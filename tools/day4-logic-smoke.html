@@ -341,6 +341,7 @@ try{
   const heatMini={engine:"heat",context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
   assertNightScoreCard("E4 oden");
+  assert(HEAT_INGREDIENTS.oden.find(item=>item.id==="radish")?.asset==="radish7"&&dom.miniContent.querySelector(".heat-ing-card.ing-radish .heat-ing-asset")?.getAttribute("src")==="assets/minigame/E1/radish-7.png","E4 oden uses the fully-cut radish asset from the final E1 prep frame");
   assert(dom.miniContent.querySelector(".heat-count.mini-score-panel .heat-hold #heatHoldFill")&&parseFloat(dom.miniContent.querySelector("#heatHoldFill").style.width)===0,"E4 score card includes the original green hold-progress bar at zero");
   assert(MINI_ENGINES.heat.key(heatMini,"w",{repeat:false,code:"KeyW"})===false&&MINI_ENGINES.heat.key(heatMini,"arrowup",{repeat:false,code:"ArrowUp"})===false&&!heatMini.data.holding,"E4 ignores non-Space lift keys");
   const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
@@ -569,8 +570,10 @@ try{
   assertNightScoreCard("E6 shrimp");
   // 하단 공용 띠(.mg-strip)를 쓰지 않는 화면입니다 — 띠가 다시 생기면 3열 세로가 613.2 에서 잘립니다
   assert(MINI_ENGINES.fry.timerRuns()===false&&fryMini.data.raw===5&&fryMini.data.errors===0&&MINI_ENGINES.fry.score(fryMini)===100&&dom.miniContent.querySelectorAll(".fry-raw-item").length===5&&!dom.miniContent.querySelector(".mg-strip")&&dom.miniContent.querySelector(".fry-pot[data-fry-drop='pot']")&&dom.miniContent.querySelector(".fry-rack[data-fry-drop='rack']"),"E6 drag screen starts at 100 with five raw items, an oil pot, a rack, and no bottom strip");
+  const fryDropSfxStart=playedSfx.length;
   for(let i=0;i<5;i++)dropFryPiece();
   assert(FRY_COOK.potLimit===5&&FRY_POT_SEATS.length===FRY_COOK.potLimit&&fryMini.data.pot.length===5&&fryMini.data.raw===0&&dropFryPiece()===false&&dom.miniContent.querySelectorAll(".fry-pot-food .fry-piece").length===5,"E6 oil pot holds the whole batch of five at a time");
+  assert(playedSfx.slice(fryDropSfxStart,fryDropSfxStart+5).every(name=>name==="fry_basket_lift"),"E6 plays the short placement sound when food enters the fryer");
   // 기본 자리는 전부 기름 안(FRY_POT_RADIUS)에 있어야 합니다 — 넘으면 쇠테에 걸칩니다
   assert(FRY_POT_SEATS.every(seat=>Math.hypot(seat.x-50,seat.y-50)<=FRY_POT_RADIUS),"E6 every default pot seat sits inside the oil");
   for(let frame=0;frame<120;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
@@ -578,7 +581,7 @@ try{
   for(let frame=0;frame<180;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="cooked"),"E6 pieces turn cooked while they sit in the oil");
   liftFryPiece(fryMini.data.pot[0].id);
-  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&MINI_ENGINES.fry.score(fryMini)===100&&fryMini.data.pot.length===4&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1,"E6 keeps 100 after one well-cooked piece reaches the rack");
+  assert(fryMini.data.done.length===1&&fryMini.data.done[0].stage==="cooked"&&MINI_ENGINES.fry.score(fryMini)===100&&fryMini.data.pot.length===4&&dom.miniContent.querySelectorAll(".fry-rack-food .fry-piece").length===1&&playedSfx.at(-1)==="fry_basket_shake","E6 keeps 100 and plays the basket-down sound after one well-cooked piece reaches the rack");
   // 남겨 두면 탑니다. 탄 것도 망에 올라가야 진행이 막히지 않습니다.
   for(let frame=0;frame<360;frame++)MINI_ENGINES.fry.update(fryMini,1/60);
   assert(fryMini.data.pot.every(piece=>piece.stage==="burnt")&&fryMini.data.errors===4&&MINI_ENGINES.fry.score(fryMini)===60,"E6 every piece deducts ten as soon as it enters the burnt stage");

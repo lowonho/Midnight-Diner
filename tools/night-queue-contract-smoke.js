@@ -75,6 +75,25 @@ assert(randomFreeCustomerSlot(new Set())===4
   "손님은 다섯 좌석 전체의 빈자리 중 무작위 좌석을 골라야 합니다.");
 Math.random=originalRandom;
 
+// 날짜별 일반 손님 간격은 범위 안에서 흔들리고, 마지막 한 명은 더 빨리 옵니다.
+resetNight(1);
+Math.random=()=>0;
+state.generalSpawnedCustomers=0;
+assert(Math.abs(generalOrderArrivalDelay()-2.15)<1e-9,
+  "1일차 일반 손님의 최소 재등장 간격은 2.15초여야 합니다.");
+state.generalSpawnedCustomers=nightGeneralOrderTarget()-1;
+assert(Math.abs(generalOrderArrivalDelay()-1.15)<1e-9,
+  "마지막 일반 손님은 1일차에도 1.15초부터 입장해야 합니다.");
+resetNight(7);
+Math.random=()=>1;
+state.generalSpawnedCustomers=0;
+assert(Math.abs(generalOrderArrivalDelay()-2.3)<1e-9,
+  "7일차 일반 손님의 최대 재등장 간격은 2.3초여야 합니다.");
+state.generalSpawnedCustomers=nightGeneralOrderTarget()-1;
+assert(Math.abs(generalOrderArrivalDelay()-1.35)<1e-9,
+  "7일차 마지막 일반 손님은 최대 1.35초 안에 입장해야 합니다.");
+Math.random=originalRandom;
+
 // Day 1: 특별 손님은 일반 손님 여섯 명을 모두 마친 뒤에만 입장합니다.
 resetNight(1);
 ensureNightOrders();
@@ -82,6 +101,12 @@ assert(state.orders.length===2,"첫날 시작 대기 손님은 두 명이어야 
 assert(state.orders.every(order=>order.customerType==="general")
   &&state.generalSpawnedCustomers===2,
   "영업 시작에는 일반 손님만 두 명 대기해야 합니다.");
+assert(state.orders.every(order=>order.entrySpeed>=1.9&&order.entrySpeed<=2.3)
+  &&state.orders[0].entryDelay===0
+  &&state.orders[1].entryDelay>=.08&&state.orders[1].entryDelay<=.26,
+  "첫 손님은 바로, 다음 손님은 짧은 랜덤 간격과 서로 다른 입장 속도로 들어와야 합니다.");
+assert(source.includes("scheduleOrderRespawn(order.slot,hasRemainingGeneral&&!storyGuestIsDue?null:3.1);"),
+  "일반 손님만 랜덤 간격을 쓰고 특별 손님의 기존 3.1초 호흡은 유지해야 합니다.");
 assert(state.story.pendingNightGuests[0].arrival==="last"
   &&state.story.pendingNightGuests[0].triggerAfterGeneral===6,
   "첫날 특별 손님은 일반 손님 여섯 명 뒤 마지막 순번으로 예약되어야 합니다.");

@@ -42,6 +42,7 @@ const UI_CLASS = Object.freeze({
   /* 상호작용 프롬프트 · 모바일 액션 버튼 */
   promptShow: "show",          // css/interaction.css:37
   actionAvailable: "available",
+  prepReadyCallout: "prep-ready-callout",
 
   /* 메뉴 카드 (ui-hud.js 가 그립니다) */
   menuCard: "menu-card",

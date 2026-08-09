@@ -416,7 +416,7 @@ function createSpecialGuestArc(config) {
       thresholds: STORY_SCORE_THRESHOLDS,
       ...common,
       ...(arrivalAudio?{
-        storyEntrySfx:{name:arrivalAudio.name,gain:arrivalAudio.gain}
+        storyEntrySfx:{name:arrivalAudio.name,gain:arrivalAudio.gain,fadeOut:1200}
       }:{}),
       lines: config.arrivalLines
     },

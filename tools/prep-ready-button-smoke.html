@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PREP_READY_BUTTON_PENDING</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/hud.css">
+  <style>
+    body{background:#17100c}
+    .preview{position:relative;width:min(100vw,177.78vh);height:min(100vh,56.25vw);margin:auto;background:#2a1c14}
+    .preview .left-hud{opacity:1}
+    .preview .inventory-list{justify-content:flex-end;color:#f1ce8b;font-size:calc(12 * var(--upx));line-height:1.55}
+    .preview .inventory-list span::before{content:"✓ ";color:#d9bf63}
+  </style>
+</head>
+<body>
+  <main class="preview phase-prep">
+    <aside class="left-hud wood-panel">
+      <div class="panel-heading"><strong>준비 목록</strong><span class="badge">완료</span></div>
+      <div class="inventory-list">
+        <span>오늘의 메뉴 준비 완료</span>
+        <span>모든 재료 손질 완료</span>
+      </div>
+      <button id="phaseButton" class="gold-button prep-ready-callout" type="button">영업 시작</button>
+    </aside>
+  </main>
+  <script>
+    "use strict";
+    (async()=>{
+      try{
+        const [game,classes,hud]=await Promise.all([
+          fetch("../js/game.js").then(response=>response.text()),
+          fetch("../js/ui-class-names.js").then(response=>response.text()),
+          fetch("../css/hud.css").then(response=>response.text())
+        ]);
+        const button=document.getElementById("phaseButton");
+        const style=getComputedStyle(button);
+        if(!style.animationName.includes("prep-ready-button-pulse"))throw new Error("button pulse is not active");
+        if(!game.includes("classList.toggle(UI_CLASS.prepReadyCallout,prepReadyToOpen)"))throw new Error("ready state is not wired");
+        if(!game.includes("const prepReadyToOpen=isPrep&&prepComplete()&&!state.mini;"))throw new Error("ready condition mismatch");
+        if(!classes.includes('prepReadyCallout: "prep-ready-callout"'))throw new Error("UI class missing");
+        if(!hud.includes("@keyframes prep-ready-button-ring"))throw new Error("attention ring missing");
+        document.title="PREP_READY_BUTTON_OK";
+      }catch(error){
+        document.title="PREP_READY_BUTTON_FAIL";
+        document.body.dataset.error=error.stack||String(error);
+      }
+    })();
+  </script>
+</body>
+</html>

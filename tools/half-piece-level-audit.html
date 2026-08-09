@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HALF_PIECE_LEVEL_RUNNING</title>
+<pre id="output">측정 중</pre>
+<script type="module">
+try{
+  const db=value=>value>0?20*Math.log10(value):-Infinity;
+  const energyDb=value=>value>0?-0.691+10*Math.log10(value):-Infinity;
+  const linear=value=>10**(value/20);
+  const round=(value,digits=4)=>Number(value.toFixed(digits));
+  const percentile=(values,ratio)=>values[Math.min(values.length-1,Math.floor((values.length-1)*ratio))];
+  const decode=async(context,path)=>context.decodeAudioData(await fetch(path).then(response=>response.arrayBuffer()));
+  const weight=async buffer=>{
+    const context=new OfflineAudioContext(buffer.numberOfChannels,buffer.length,buffer.sampleRate);
+    const source=context.createBufferSource();source.buffer=buffer;
+    const shelf=context.createBiquadFilter();shelf.type="highshelf";shelf.frequency.value=1681.974;shelf.gain.value=3.9998;
+    const highpass=context.createBiquadFilter();highpass.type="highpass";highpass.frequency.value=38.1355;highpass.Q.value=.5003;
+    source.connect(shelf);shelf.connect(highpass);highpass.connect(context.destination);source.start();
+    return context.startRendering();
+  };
+  const momentary=buffer=>{
+    const frameSize=Math.max(1,Math.round(buffer.sampleRate*.1));
+    const step=Math.max(1,Math.round(buffer.sampleRate*.025));
+    const rows=[];
+    for(let start=0;start<buffer.length;start+=step){
+      const end=Math.min(buffer.length,start+frameSize);if(end-start<buffer.sampleRate*.025)break;
+      let squares=0;
+      for(let channel=0;channel<buffer.numberOfChannels;channel++){
+        const data=buffer.getChannelData(channel);
+        for(let index=start;index<end;index++)squares+=data[index]*data[index];
+      }
+      const loudness=energyDb(squares/Math.max(1,end-start));
+      if(loudness>-60)rows.push(loudness);
+    }
+    rows.sort((a,b)=>a-b);
+    return percentile(rows,.9);
+  };
+  const peak=buffer=>{
+    let value=0;
+    for(let channel=0;channel<buffer.numberOfChannels;channel++){
+      const data=buffer.getChannelData(channel);
+      for(let index=0;index<data.length;index++)value=Math.max(value,Math.abs(data[index]));
+    }
+    return db(value);
+  };
+
+  const context=new AudioContext();
+  const [knife,half]=await Promise.all([
+    decode(context,"../assets/sfx/sfx_knife_daikon.MP3"),
+    decode(context,"../assets/sfx/story/fragments/sfx_half_piece.MP3")
+  ]);
+  const [weightedKnife,weightedHalf]=await Promise.all([weight(knife),weight(half)]);
+  await context.close();
+  const knifeAnchorGain=.7736,callGain=1.6*10**(5/20);
+  const target=momentary(weightedKnife)+db(knifeAnchorGain)+1;
+  const measured=momentary(weightedHalf);
+  const requestedDb=target-measured-db(callGain);
+  const safeDb=Math.min(requestedDb,-1-peak(half)-db(callGain));
+  const result={
+    duration:round(half.duration,3),peak:round(peak(half),2),momentary:round(measured,2),
+    target:round(target,2),normalization:round(linear(safeDb)),output:round(measured+safeDb+db(callGain),2)
+  };
+  document.getElementById("output").textContent=`HALF_PIECE_LEVEL_OK ${JSON.stringify(result)}`;
+  document.title=`HALF_PIECE_LEVEL_OK n=${result.normalization} out=${result.output} dur=${result.duration}`;
+}catch(error){
+  document.getElementById("output").textContent=`HALF_PIECE_LEVEL_FAIL ${error.stack||error}`;
+  document.title="HALF_PIECE_LEVEL_FAIL";
+}
+</script>

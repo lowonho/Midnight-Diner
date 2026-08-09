@@ -6,6 +6,31 @@ const NIGHT_DURATION=0;
 let spawningInitialNightOrders=false;
 let storyNightEndNoticeShown=false;
 
+/* 일반 손님 재방문 간격(초). 날짜가 뒤로 갈수록 흐름만 조금 빨라지고,
+   같은 날짜 안에서도 매번 다른 박자로 들어옵니다. 마지막 한 명은 별도 범위를
+   써서 주문판이 한참 빈 뒤에야 나타나는 느낌을 없앱니다. */
+const NIGHT_GENERAL_ARRIVAL_WINDOWS=Object.freeze({
+  1:Object.freeze({min:2.15,max:2.90,lastMin:1.15,lastMax:1.65}),
+  2:Object.freeze({min:2.05,max:2.80,lastMin:1.10,lastMax:1.60}),
+  3:Object.freeze({min:1.95,max:2.70,lastMin:1.05,lastMax:1.55}),
+  4:Object.freeze({min:1.90,max:2.60,lastMin:1.00,lastMax:1.50}),
+  5:Object.freeze({min:1.80,max:2.50,lastMin:.95,lastMax:1.45}),
+  6:Object.freeze({min:1.70,max:2.40,lastMin:.90,lastMax:1.40}),
+  7:Object.freeze({min:1.60,max:2.30,lastMin:.85,lastMax:1.35})
+});
+
+function generalOrderArrivalDelay(day=state.day){
+  const window=NIGHT_GENERAL_ARRIVAL_WINDOWS[Number(day)]||NIGHT_GENERAL_ARRIVAL_WINDOWS[1];
+  const unspawned=Math.max(0,nightGeneralOrderTarget(day)-(Number(state.generalSpawnedCustomers)||0));
+  const lastGeneral=unspawned===1;
+  const min=lastGeneral?window.lastMin:window.min;
+  const max=lastGeneral?window.lastMax:window.max;
+  return min+(max-min)*Math.random();
+}
+
+function generalOrderEntranceSpeed(){return 1.9+Math.random()*.4;}
+function generalOrderEntranceDelay(){return .08+Math.random()*.18;}
+
 function nightGeneralOrderTarget(day=state.day){
   const configured=Number(DAY_DATA[Number(day)]?.generalOrderTarget);
   return Number.isFinite(configured)?Math.max(0,Math.floor(configured)):0;
@@ -84,7 +109,7 @@ function updateNightOrderEntrances(dt,storyOnly=false){
       order.entryDelay=Math.max(0,Number(order.entryDelay)-dt);
       return;
     }
-    order.entered=clamp((Number(order.entered)||0)+dt*2.1,0,1);
+    order.entered=clamp((Number(order.entered)||0)+dt*(Number(order.entrySpeed)||2.1),0,1);
   });
 }
 
@@ -138,9 +163,12 @@ function dishForStoryPlan(plan){
   return available.length?available[Math.floor(Math.random()*available.length)]:null;
 }
 
-function scheduleOrderRespawn(slot,time=3.1,forceStory=false){
+function scheduleOrderRespawn(slot,time=null,forceStory=false){
   if(!Number.isInteger(slot)||slot<0)return false;
-  const delay=Math.max(.05,Number(time)||.05);
+  const configured=Number(time);
+  const delay=time==null||!Number.isFinite(configured)
+    ?generalOrderArrivalDelay()
+    :Math.max(.05,configured);
   const existing=state.respawns.find(item=>item.slot===slot);
   if(existing){
     existing.time=Math.min(Number.isFinite(existing.time)?existing.time:delay,delay);
@@ -375,13 +403,17 @@ function spawnOrder(slot,options={}) {
     return false;
   }
 
+  const generalEntranceIndex=Math.max(0,Math.floor(Number(state.generalSpawnedCustomers)||0));
   const order=decorateStoryOrder({
     // variant = 일반 손님 그림 번호. 종류 수는 customers.js 가 정합니다.
     id:nextOrderId++,slot,dishId:dish.id,variant:Math.floor(Math.random()*CUSTOMER_VARIANT_COUNT),
     entered:0,
     // 일반 손님과 같은 프레임에 예약된 특별 손님도 화면에서는 그 다음에
     // 들어오도록 짧게 늦춥니다. 영업 전 첫 손님과 마지막 손님은 바로 나타납니다.
-    entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0,
+    entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last"
+      ?.65
+      :(plan||generalEntranceIndex===0)?0:generalOrderEntranceDelay(),
+    entrySpeed:plan?2.1:generalOrderEntranceSpeed(),
     cookStep:0,cookScores:[],discardedOnce:false
   },plan);
   state.orders.push(order);
@@ -526,7 +558,15 @@ function serveOrder(order) {
   }
   state.orders=state.orders.filter(o=>o.id!==order.id);state.carrying=null;
   syncSelectedOrderToQueue();
-  if(state.generalSpawnedCustomers<nightGeneralOrderTarget()||(state.story?.pendingNightGuests?.length||0))scheduleOrderRespawn(order.slot,3.1);
+  const hasRemainingGeneral=state.generalSpawnedCustomers<nightGeneralOrderTarget();
+  const hasPendingStory=!!(state.story?.pendingNightGuests?.length||0);
+  const storyGuestIsDue=hasPendingStory&&(state.story.pendingNightGuests||[]).some(plan=>
+    typeof storyNightPlanReady==="function"&&storyNightPlanReady(plan)
+  );
+  if(hasRemainingGeneral||hasPendingStory){
+    // 일반 손님만 새 랜덤 간격을 쓰고, 특별 손님의 기존 3.1초 연출 호흡은 유지합니다.
+    scheduleOrderRespawn(order.slot,hasRemainingGeneral&&!storyGuestIsDue?null:3.1);
+  }
   showToast(mismatchedStoryDish
     ?`${storyResult.name}에게 내어 준 음식이 찾던 음식과 달랐습니다. 들은 단서를 영업일지에 남깁니다.`
     :storyResult

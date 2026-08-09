@@ -177,7 +177,7 @@ const audio = {
   ctx:null, master:null, bgm:null, sfx:null,
   bgmFiles:Object.freeze({
     day:"assets/bgm/bgm_day.mp3",
-    night:"assets/bgm/bgm_night.mp3",
+    night:"assets/bgm/bgm_night_leveled.mp3",
     storyCompany:"assets/bgm/story/bgm_company_story.mp3",
     storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3",
     storyFacelessDaeun:"assets/bgm/story/bgm_story_faceless_daeun.MP3",
@@ -187,75 +187,75 @@ const audio = {
     endingOpenForever:"assets/bgm/story/ending/bgm_ending_open_forever.MP3",
     endingMorningTogether:"assets/bgm/story/ending/bgm_ending_morning_together.MP3"
   }),
-  // 400ms 단위의 스테레오 RMS를 측정해 낮 BGM(-24.65dBFS)에 맞춘 값입니다.
-  // 원본 파일을 다시 인코딩하지 않고 트랙 GainNode에서만 보정합니다.
+  // ITU-R BS.1770 K-weighting 통합 음량을 영업준비 BGM(-22.16 LUFS)에 맞춘 값입니다.
+  // file://에서도 증폭이 잘리지 않도록 밤 곡은 MP3 global_gain 보정본 + 미세 gain을 씁니다.
   bgmTrackGains:Object.freeze({
     day:1,
-    night:3.685,
-    storyCompany:.95,
-    storySikdang:.571,
-    storyFacelessDaeun:.3433,
-    endingLoopReturn:.7233,
-    endingAloneMorning:.3972,
-    endingGuestsDawn:.394,
-    endingOpenForever:.6087,
-    endingMorningTogether:.4126
+    night:1.0469,
+    storyCompany:.9718,
+    storySikdang:.566,
+    storyFacelessDaeun:.3327,
+    endingLoopReturn:.691,
+    endingAloneMorning:.3754,
+    endingGuestsDawn:.386,
+    endingOpenForever:.6129,
+    endingMorningTogether:.4062
   }),
   // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
   // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
   files:Object.freeze({
-    pan_sizzle:["assets/sfx/sfx_pan_sizzle_loop.MP3"],
+    pan_sizzle:["assets/sfx/sfx_pan_sizzle_loop_leveled.MP3"],
     deep_fry:["assets/sfx/sfx_deep_fry_loop.MP3"],
     griddle_sizzle:["assets/sfx/sfx_griddle_sizzle_loop.MP3"],
     gas_flame:["assets/sfx/sfx_gas_flame_loop.MP3"],
     clear_simmer:["assets/sfx/sfx_clear_simmer_loop.MP3"],
     thick_boil:["assets/sfx/sfx_thick_boil_loop.MP3"],
     knife_daikon:["assets/sfx/sfx_knife_daikon.MP3"],
-    cut_crisp:["assets/sfx/sfx_cut_crisp.MP3"],
-    cut_soft:["assets/sfx/sfx_cut_soft.MP3"],
+    cut_crisp:["assets/sfx/sfx_cut_crisp_leveled.MP3"],
+    cut_soft:["assets/sfx/sfx_cut_soft_leveled.MP3"],
     cut_wet:["assets/sfx/sfx_cut_wet.MP3"],
     cut_meat1:["assets/sfx/sfx_cut_meat1.MP3"],
-    cut_meat2:["assets/sfx/sfx_cut_meat2.MP3"],
-    metal_scrape:["assets/sfx/sfx_metal_scrape1.MP3","assets/sfx/sfx_metal_scrape2.MP3"],
-    wood_stir:["assets/sfx/sfx_wood_stir1.MP3","assets/sfx/sfx_wood_stir2.MP3"],
+    cut_meat2:["assets/sfx/sfx_cut_meat2_leveled.MP3"],
+    metal_scrape:["assets/sfx/sfx_metal_scrape1_leveled.MP3","assets/sfx/sfx_metal_scrape2_leveled.MP3"],
+    wood_stir:["assets/sfx/sfx_wood_stir1_leveled.MP3","assets/sfx/sfx_wood_stir2_leveled.MP3"],
     mandoline_slide:["assets/sfx/sfx_mandoline_slide1.MP3","assets/sfx/sfx_mandoline_slide2.MP3"],
     fry_basket_lift:["assets/sfx/sfx_fry_basket_lift.MP3"],
     fry_basket_shake:["assets/sfx/sfx_fry_basket_shake.MP3"],
     pancake_flip:["assets/sfx/sfx_pancake_flip.MP3"],
-    plate_set:["assets/sfx/sfx_plate_tofu_place.MP3"],
-    charcoal_grill:["assets/sfx/sfx_charcoal_grill_loop.MP3"],
+    plate_set:["assets/sfx/sfx_plate_tofu_place_leveled.MP3"],
+    charcoal_grill:["assets/sfx/sfx_charcoal_grill_loop_leveled.MP3"],
     whisk_mix:["assets/sfx/sfx_whisk_mix_loop1.MP3","assets/sfx/sfx_whisk_mix_loop2.MP3"],
-    input_wrong:["assets/sfx/sfx_input_wrong.MP3"],
+    input_wrong:["assets/sfx/sfx_input_wrong_leveled.MP3"],
     result_perfect:["assets/sfx/sfx_result_perfect.MP3"],
     result_good:["assets/sfx/sfx_result_good.MP3"],
-    timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
-    ui_click:["assets/sfx/sfx_ui_click.MP3"],
-    journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"],
+    timer_warning:["assets/sfx/sfx_timer_warning_leveled.MP3"],
+    ui_click:["assets/sfx/sfx_ui_click_leveled.MP3"],
+    journal_page_turn:["assets/sfx/ui/sfx_next_book_leveled.MP3"],
     food_serve:["assets/sfx/sfx_food_serve.MP3"],
-    pour_thin:["assets/sfx/sfx_pour_thin.MP3"],
-    pour_thick:["assets/sfx/sfx_pour_thick.MP3"],
-    pour_syrup:["assets/sfx/sfx_pour_syrup.MP3"],
+    pour_thin:["assets/sfx/sfx_pour_thin_leveled.MP3"],
+    pour_thick:["assets/sfx/sfx_pour_thick_leveled.MP3"],
+    pour_syrup:["assets/sfx/sfx_pour_syrup_leveled.MP3"],
     pour_water:["assets/sfx/sfx_pour_water.MP3"],
-    pour_pancake_flour:["assets/sfx/sfx_pour_pancake_flour.MP3"],
-    drop_pancake_kimchi:["assets/sfx/sfx_drop_pancake_kimchi.MP3"],
+    pour_pancake_flour:["assets/sfx/sfx_pour_pancake_flour_leveled.MP3"],
+    drop_pancake_kimchi:["assets/sfx/sfx_drop_pancake_kimchi_leveled.MP3"],
     fries_starch_bag_shake:["assets/sfx/sfx_fries_starch_bag_shake1.MP3","assets/sfx/sfx_fries_starch_bag_shake2.MP3"],
-    soak_ingredient_drop:["assets/sfx/sfx_soak_ingredient_drop.MP3"],
-    shrimp_flour_coat:["assets/sfx/sfx_shrimp_flour_coat.MP3"],
-    shrimp_egg_coat:["assets/sfx/sfx_shrimp_egg_coat.MP3"],
-    shrimp_crumb_coat:["assets/sfx/sfx_shrimp_crumb_coat.MP3"],
-    skewer_turn:["assets/sfx/sfx_skewer_turn.MP3"],
+    soak_ingredient_drop:["assets/sfx/sfx_soak_ingredient_drop_leveled.MP3"],
+    shrimp_flour_coat:["assets/sfx/sfx_shrimp_flour_coat_leveled.MP3"],
+    shrimp_egg_coat:["assets/sfx/sfx_shrimp_egg_coat_leveled.MP3"],
+    shrimp_crumb_coat:["assets/sfx/sfx_shrimp_crumb_coat_leveled.MP3"],
+    skewer_turn:["assets/sfx/sfx_skewer_turn_leveled.MP3"],
     skewer_pierce:["assets/sfx/sfx_skewer_pierce.MP3"],
-    anchovy_tension:["assets/sfx/sfx_anchovy_tension1.MP3","assets/sfx/sfx_anchovy_tension2.MP3"],
+    anchovy_tension:["assets/sfx/sfx_anchovy_tension1_leveled.MP3","assets/sfx/sfx_anchovy_tension2_leveled.MP3"],
     anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"],
     story_rain:["assets/sfx/story/sfx_rain.MP3"],
-    story_open_door:["assets/sfx/story/sfx_open_door.MP3"],
-    story_guest_d1_arrival:["assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3"],
-    story_guest_d2_arrival:["assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3"],
+    story_open_door:["assets/sfx/story/sfx_open_door_leveled.MP3"],
+    story_guest_d1_arrival:["assets/sfx/story/guests/sfx_story_d1_raindrop_arrival_leveled.MP3"],
+    story_guest_d2_arrival:["assets/sfx/story/guests/sfx_story_d2_lantern_arrival_leveled.MP3"],
     story_guest_d3_arrival:["assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3"],
-    story_guest_d4_arrival:["assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3"],
-    story_guest_d5_arrival:["assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3"],
-    story_guest_d6_arrival:["assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3"],
-    story_guest_d7_arrival:["assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3"],
+    story_guest_d4_arrival:["assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival_leveled.MP3"],
+    story_guest_d5_arrival:["assets/sfx/story/guests/sfx_story_d5_star_beast_arrival_leveled.MP3"],
+    story_guest_d6_arrival:["assets/sfx/story/guests/sfx_story_d6_seawater_arrival_leveled.MP3"],
+    story_guest_d7_arrival:["assets/sfx/story/guests/sfx_story_d7_clock_444_arrival_leveled.MP3"],
     fragment_full_d1:["assets/sfx/story/fragments/sfx_d1_finish.MP3"],
     fragment_full_d2:["assets/sfx/story/fragments/sfx_d2_finish.MP3"],
     fragment_full_d3:["assets/sfx/story/fragments/sfx_d3_finish.MP3"],
@@ -263,79 +263,82 @@ const audio = {
     fragment_full_d5:["assets/sfx/story/fragments/sfx_d5_finish.MP3"],
     fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
     fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"],
+    fragment_partial:["assets/sfx/story/fragments/sfx_half_piece.MP3"],
     daeun_ribbon_handoff:["assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3"]
   }),
-  /* 브라우저에서 스테레오 활성 RMS/피크를 전수 측정한 파일별 보정값입니다.
-     썰기 6종 중앙값 -25.8dBFS를 기준으로 단발 조리음은 -25.8,
-     UI·결과·스토리 큐는 -27.5, 조리 루프는 -31.8,
-     대사 아래의 스토리 앰비언스는 -33.8dBFS에 맞췄습니다. */
+  /* K-weighting 체감 음량을 무 썰기 소리의 현재 출력(-18.38 LUFS)에 맞춘 미세 gain입니다.
+     단발 조리음은 기준과 동일, UI·결과음 -3 dB, 조리 루프 -9 dB,
+     스토리 큐 -4~-6 dB, 대사 아래 빗소리 -12 dB로 역할별 여유를 둡니다.
+     _leveled 파일에는 MP3 global_gain의 거친 증폭분만 무손실로 넣었고,
+     아래 값은 그 나머지이므로 file:// 직접 재생에서도 volume=1에 걸리지 않습니다. */
   sfxFileGains:Object.freeze({
-    "assets/sfx/sfx_anchovy_finish.MP3":.5623,
-    "assets/sfx/sfx_anchovy_tension1.MP3":2.3388,
-    "assets/sfx/sfx_anchovy_tension2.MP3":2.1727,
-    "assets/sfx/sfx_charcoal_grill_loop.MP3":5.8412,
-    "assets/sfx/sfx_clear_simmer_loop.MP3":.3784,
-    "assets/sfx/sfx_cut_crisp.MP3":1.1682,
-    "assets/sfx/sfx_cut_meat1.MP3":.639,
-    "assets/sfx/sfx_cut_meat2.MP3":.9311,
-    "assets/sfx/sfx_cut_soft.MP3":1.2023,
-    "assets/sfx/sfx_cut_wet.MP3":1.0678,
-    "assets/sfx/sfx_deep_fry_loop.MP3":.366,
-    "assets/sfx/sfx_drop_pancake_kimchi.MP3":.7337,
-    "assets/sfx/sfx_food_serve.MP3":1.0678,
-    "assets/sfx/sfx_fries_starch_bag_shake1.MP3":1.3599,
-    "assets/sfx/sfx_fries_starch_bag_shake2.MP3":1.3677,
-    "assets/sfx/sfx_fry_basket_lift.MP3":.9194,
-    "assets/sfx/sfx_fry_basket_shake.MP3":.7998,
-    "assets/sfx/sfx_gas_flame_loop.MP3":.6769,
-    "assets/sfx/sfx_griddle_sizzle_loop.MP3":.537,
-    "assets/sfx/sfx_input_wrong.MP3":.8861,
+    "assets/sfx/sfx_anchovy_finish.MP3":.8627,
+    "assets/sfx/sfx_anchovy_tension1_leveled.MP3":1.0569,
+    "assets/sfx/sfx_anchovy_tension2_leveled.MP3":1.1717,
+    "assets/sfx/sfx_charcoal_grill_loop_leveled.MP3":1.1665,
+    "assets/sfx/sfx_clear_simmer_loop.MP3":.6505,
+    "assets/sfx/sfx_cut_crisp_leveled.MP3":1.041,
+    "assets/sfx/sfx_cut_meat1.MP3":.8978,
+    "assets/sfx/sfx_cut_meat2_leveled.MP3":1.035,
+    "assets/sfx/sfx_cut_soft_leveled.MP3":1.0425,
+    "assets/sfx/sfx_cut_wet.MP3":.9804,
+    "assets/sfx/sfx_deep_fry_loop.MP3":.4645,
+    "assets/sfx/sfx_drop_pancake_kimchi_leveled.MP3":1.17,
+    "assets/sfx/sfx_food_serve.MP3":.9037,
+    "assets/sfx/sfx_fries_starch_bag_shake1.MP3":1.1465,
+    "assets/sfx/sfx_fries_starch_bag_shake2.MP3":1.1606,
+    "assets/sfx/sfx_fry_basket_lift.MP3":.9232,
+    "assets/sfx/sfx_fry_basket_shake.MP3":.8206,
+    "assets/sfx/sfx_gas_flame_loop.MP3":1.1806,
+    "assets/sfx/sfx_griddle_sizzle_loop.MP3":.6338,
+    "assets/sfx/sfx_input_wrong_leveled.MP3":1.0821,
     "assets/sfx/sfx_knife_daikon.MP3":.7736,
-    "assets/sfx/sfx_mandoline_slide1.MP3":.881,
-    "assets/sfx/sfx_mandoline_slide2.MP3":1.0116,
-    "assets/sfx/sfx_metal_scrape1.MP3":1.3351,
-    "assets/sfx/sfx_metal_scrape2.MP3":1.3459,
-    "assets/sfx/sfx_pan_sizzle_loop.MP3":1.4538,
-    "assets/sfx/sfx_pancake_flip.MP3":.6012,
-    "assets/sfx/sfx_plate_tofu_place.MP3":10.9018,
-    "assets/sfx/sfx_pour_pancake_flour.MP3":4.1305,
-    "assets/sfx/sfx_pour_syrup.MP3":4.9831,
-    "assets/sfx/sfx_pour_thick.MP3":4.9831,
-    "assets/sfx/sfx_pour_thin.MP3":4.1687,
-    "assets/sfx/sfx_pour_water.MP3":.8222,
-    "assets/sfx/sfx_result_good.MP3":.4406,
-    "assets/sfx/sfx_result_perfect.MP3":.6531,
-    "assets/sfx/sfx_shrimp_crumb_coat.MP3":4.1831,
-    "assets/sfx/sfx_shrimp_egg_coat.MP3":5.2845,
-    "assets/sfx/sfx_shrimp_flour_coat.MP3":2.2568,
-    "assets/sfx/sfx_skewer_pierce.MP3":.2858,
-    "assets/sfx/sfx_skewer_turn.MP3":1.6501,
-    "assets/sfx/sfx_soak_ingredient_drop.MP3":.7925,
-    "assets/sfx/sfx_thick_boil_loop.MP3":.3544,
-    "assets/sfx/sfx_timer_warning.MP3":4.672,
-    "assets/sfx/sfx_ui_click.MP3":1.4158,
-    "assets/sfx/sfx_whisk_mix_loop1.MP3":.4083,
-    "assets/sfx/sfx_whisk_mix_loop2.MP3":.4232,
-    "assets/sfx/sfx_wood_stir1.MP3":1.9747,
-    "assets/sfx/sfx_wood_stir2.MP3":1.8072,
-    "assets/sfx/story/fragments/sfx_d1_finish.MP3":.3789,
-    "assets/sfx/story/fragments/sfx_d2_finish.MP3":.4534,
-    "assets/sfx/story/fragments/sfx_d3_finish.MP3":.2944,
-    "assets/sfx/story/fragments/sfx_d4_finish.MP3":.4188,
-    "assets/sfx/story/fragments/sfx_d5_finish.MP3":.4926,
-    "assets/sfx/story/fragments/sfx_d6_finish.MP3":.5248,
-    "assets/sfx/story/fragments/sfx_d7_finish.MP3":.399,
-    "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3":.3475,
-    "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3":1.9033,
-    "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3":1.0605,
-    "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3":.2891,
-    "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3":.7971,
-    "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3":.756,
-    "assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3":1.2779,
-    "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3":.663,
-    "assets/sfx/story/sfx_open_door.MP3":1.0292,
-    "assets/sfx/story/sfx_rain.MP3":.6281,
-    "assets/sfx/ui/sfx_next_book.MP3":1.194
+    "assets/sfx/sfx_mandoline_slide1.MP3":1.0335,
+    "assets/sfx/sfx_mandoline_slide2.MP3":1.0143,
+    "assets/sfx/sfx_metal_scrape1_leveled.MP3":1.0081,
+    "assets/sfx/sfx_metal_scrape2_leveled.MP3":1.1045,
+    "assets/sfx/sfx_pan_sizzle_loop_leveled.MP3":1.0184,
+    "assets/sfx/sfx_pancake_flip.MP3":.9305,
+    "assets/sfx/sfx_plate_tofu_place_leveled.MP3":1.2551,
+    "assets/sfx/sfx_pour_pancake_flour_leveled.MP3":1.0531,
+    "assets/sfx/sfx_pour_syrup_leveled.MP3":1.1816,
+    "assets/sfx/sfx_pour_thick_leveled.MP3":1.1816,
+    "assets/sfx/sfx_pour_thin_leveled.MP3":1.0659,
+    "assets/sfx/sfx_pour_water.MP3":1.0831,
+    "assets/sfx/sfx_result_good.MP3":.6358,
+    "assets/sfx/sfx_result_perfect.MP3":.7007,
+    "assets/sfx/sfx_shrimp_crumb_coat_leveled.MP3":1.187,
+    "assets/sfx/sfx_shrimp_egg_coat_leveled.MP3":1.1287,
+    "assets/sfx/sfx_shrimp_flour_coat_leveled.MP3":1.0726,
+    "assets/sfx/sfx_skewer_pierce.MP3":.7103,
+    "assets/sfx/sfx_skewer_turn_leveled.MP3":1.0935,
+    "assets/sfx/sfx_soak_ingredient_drop_leveled.MP3":1.1159,
+    "assets/sfx/sfx_thick_boil_loop.MP3":.6086,
+    "assets/sfx/sfx_timer_warning_leveled.MP3":1.0522,
+    "assets/sfx/sfx_ui_click_leveled.MP3":1.085,
+    "assets/sfx/sfx_whisk_mix_loop1.MP3":1.0956,
+    "assets/sfx/sfx_whisk_mix_loop2.MP3":1.1446,
+    "assets/sfx/sfx_wood_stir1_leveled.MP3":1.1454,
+    "assets/sfx/sfx_wood_stir2_leveled.MP3":1.1483,
+    "assets/sfx/story/fragments/sfx_d1_finish.MP3":.2808,
+    "assets/sfx/story/fragments/sfx_d2_finish.MP3":.2699,
+    "assets/sfx/story/fragments/sfx_d3_finish.MP3":.1701,
+    "assets/sfx/story/fragments/sfx_d4_finish.MP3":.3175,
+    "assets/sfx/story/fragments/sfx_d5_finish.MP3":.2808,
+    "assets/sfx/story/fragments/sfx_d6_finish.MP3":.3175,
+    "assets/sfx/story/fragments/sfx_d7_finish.MP3":.3175,
+    "assets/sfx/story/fragments/sfx_half_piece.MP3":.2808,
+    "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3":.1847,
+    "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival_leveled.MP3":1.6453,
+    "assets/sfx/story/guests/sfx_story_d2_lantern_arrival_leveled.MP3":1.1058,
+    "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3":.6812,
+    "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival_leveled.MP3":1.0622,
+    "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival_leveled.MP3":1.0015,
+    "assets/sfx/story/guests/sfx_story_d6_seawater_arrival_leveled.MP3":1.0475,
+    "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival_leveled.MP3":1.0595,
+    "assets/sfx/story/sfx_open_door_leveled.MP3":1.1737,
+    "assets/sfx/story/sfx_rain.MP3":1.1379,
+    "assets/sfx/ui/sfx_next_book_leveled.MP3":1.0254
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
   bgmElements:new Map(),bgmSources:new Map(),bgmGainNodes:new Map(),bgmWebAudio:false,bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
@@ -465,8 +468,11 @@ const audio = {
     const step=now=>{
       if(!this.activeFiles.has(entry))return;
       const progress=clamp((now-startedAt)/fadeDuration,0,1);
-      if(useNode)entry.gainNode.gain.value=startVolume*(1-progress);
-      else entry.element.volume=startVolume*(1-progress);
+      // 시작과 끝의 기울기가 모두 부드러운 smoothstep 곡선으로 긴 효과음의 꼬리를 정리합니다.
+      const eased=progress*progress*(3-2*progress);
+      const level=startVolume*(1-eased);
+      if(useNode)entry.gainNode.gain.value=level;
+      else entry.element.volume=level;
       if(progress>=1){entry.fadeFrame=null;this.stopFile(entry);return;}
       entry.fadeFrame=requestAnimationFrame(step);
     };
@@ -1054,8 +1060,10 @@ function update(dt) {
     // 미니게임을 닫았을 때 반응을 볼 수 없습니다. 특별 손님의 페이드만
     // 기존 안전 차례 규칙을 유지하고, 일반 손님 연출과 재등장은 그대로 둡니다.
     updateNightOrderEntrances(dt,pauseNightCustomerPresentation);
+    // 조리 화면이 손님 연출을 가리고 있어도 도착 대기시간 자체는 흐릅니다.
+    // 준비가 끝난 손님은 미니게임을 닫은 직후 등장시켜 마지막 주문이 밀리지 않습니다.
+    state.respawns.forEach(r=>r.time-=dt);
     if(!pauseNightCustomerPresentation){
-      state.respawns.forEach(r=>r.time-=dt);
       const ready=state.respawns.filter(r=>r.time<=0);
       state.respawns=state.respawns.filter(r=>r.time>0);
       ready.forEach(processOrderRespawn);
@@ -1146,7 +1154,13 @@ function updateUI(force=false) {
     ?hudSpecialGuestLabel(state.day)
     :state.served?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
-  dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
+  const prepReadyToOpen=isPrep&&prepComplete()&&!state.mini;
+  dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);
+  dom.phaseButton.classList.toggle(UI_CLASS.prepReadyCallout,prepReadyToOpen);
+  dom.phaseButton.textContent=UI_TEXT.phaseButton;
+  dom.phaseButton.disabled=isPrep&&!prepReadyToOpen;
+  dom.phaseButton.title=prepReadyToOpen?UI_TEXT.phaseButtonReadyHint:"";
+  dom.phaseButton.setAttribute("aria-label",prepReadyToOpen?UI_TEXT.phaseButtonReadyHint:UI_TEXT.phaseButton);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");
   const renderedMenuSignature=[...dom.menuCards.children].map(card=>card.dataset.id).join("|");
   if(force||menuSignature!==renderedMenuSignature)buildMenuCards();
