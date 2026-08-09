@@ -50,6 +50,18 @@ const STORY_FRAGMENT_ASSETS = Object.freeze({
   daeuns_tomorrow: "assets/customer/Special/MoonPiece/08_faceless_daeun_ribbon.webp"
 });
 
+// 1~7일차 특별 손님과 대화하는 동안 기본 밤 BGM 위로 겹쳐 재생하는 테마 효과음입니다.
+// 등장·주문 결과 대화 모두에 유지되고, 대화가 끝날 때 story.js가 자연스럽게 줄입니다.
+const SPECIAL_GUEST_ARRIVAL_AUDIO = Object.freeze({
+  1:Object.freeze({name:"story_guest_d1_arrival",gain:.50,fadeOut:1400}),
+  2:Object.freeze({name:"story_guest_d2_arrival",gain:.50,fadeOut:1400}),
+  3:Object.freeze({name:"story_guest_d3_arrival",gain:.48,fadeOut:1400}),
+  4:Object.freeze({name:"story_guest_d4_arrival",gain:.50,fadeOut:1400}),
+  5:Object.freeze({name:"story_guest_d5_arrival",gain:.48,fadeOut:1400}),
+  6:Object.freeze({name:"story_guest_d6_arrival",gain:.46,fadeOut:1400}),
+  7:Object.freeze({name:"story_guest_d7_arrival",gain:.52,fadeOut:1400})
+});
+
 const REGULAR_GUEST_BUBBLES = {};
 
 // 특별 손님이 이번 진행에서 처음 등장할 때 사용하는 짧은 말풍선입니다.
@@ -302,6 +314,7 @@ function createSpecialGuestArc(config) {
   });
   const arrivalId = `${prefix}-A`;
   const missingId = `${prefix}-B`;
+  const arrivalAudio = SPECIAL_GUEST_ARRIVAL_AUDIO[config.number]||null;
   const common = {
     day: config.day,
     timeOfDay: "night",
@@ -309,7 +322,13 @@ function createSpecialGuestArc(config) {
     dishId: config.dishId,
     shardId: config.shardId,
     shardName: config.shardName,
-    repeatEachLoop: true
+    repeatEachLoop: true,
+    // 특별 손님 대화 중에도 기존 밤 영업 BGM을 명시적으로 계속 재생합니다.
+    storyBgm:"night",
+    ...(arrivalAudio?{
+      storyAmbient:{name:arrivalAudio.name,gain:arrivalAudio.gain},
+      storyAmbientFadeOut:arrivalAudio.fadeOut
+    }:{})
   };
   const resultScene = (tier, label, lines) => {
     const fragmentState = tier === "great"

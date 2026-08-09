@@ -1136,7 +1136,8 @@ function restoreStoryCheckpoint(checkpoint){
 
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
-  applyStorySceneAudio(scene);
+  // 조리 중 체크포인트를 불러올 때는 이미 끝난 등장 대화 테마를 다시 시작하지 않습니다.
+  if(!restored.suspended)applyStorySceneAudio(scene);
   restored.actorIds.forEach(ensureStoryActor);
 
   if(restored.suspended){
@@ -1305,9 +1306,13 @@ function clearStoryTyping(){
   if(storyTypingTimer){clearTimeout(storyTypingTimer);storyTypingTimer=null;}
 }
 
-function stopStoryAmbient(){
+function stopStoryAmbient(fadeOutDuration=0){
   const entry=storySession?.ambientAudio||null;
-  if(entry)audio?.stopFile?.(entry);
+  if(entry){
+    const duration=Math.max(0,Number(fadeOutDuration)||0);
+    if(duration>0&&typeof audio?.fadeOutFile==="function")audio.fadeOutFile(entry,duration);
+    else audio?.stopFile?.(entry);
+  }
   if(storySession)storySession.ambientAudio=null;
 }
 
@@ -1318,10 +1323,13 @@ function stopStoryEntrySfx(){
 }
 
 function applyStorySceneAudio(scene){
-  stopStoryAmbient();
   stopStoryEntrySfx();
   const cue=scene?.storyAmbient;
-  if(cue?.name&&storySession){
+  const currentAmbient=storySession?.ambientAudio||null;
+  if(!cue?.name){
+    stopStoryAmbient();
+  }else if(currentAmbient?.name!==cue.name&&storySession){
+    stopStoryAmbient();
     storySession.ambientAudio=audio?.play?.(cue.name,{loop:true,owner:storySession,gain:cue.gain??1})||null;
   }
   const entryCue=scene?.storyEntrySfx;
@@ -1349,8 +1357,12 @@ function applyStorySceneAudio(scene){
   });
 }
 
-function clearStoryAudio(){
-  stopStoryAmbient();
+function clearStoryAudio({fadeAmbient=false}={}){
+  const configured=Number(storySession?.scene?.storyAmbientFadeOut);
+  const fadeDuration=fadeAmbient
+    ?(Number.isFinite(configured)?Math.max(0,configured):1200)
+    :0;
+  stopStoryAmbient(fadeDuration);
   stopStoryEntrySfx();
   audio?.setStoryBgm?.(null);
 }
@@ -2202,6 +2214,8 @@ function suspendStoryForOrderCook(scene,config,metadata={}){
     choiceIndex:Number.isInteger(metadata.choiceIndex)?metadata.choiceIndex:null,
     lineIndex:Number.isInteger(metadata.lineIndex)?metadata.lineIndex:storySession.lineIndex
   };
+  const ambientFade=Number(scene?.storyAmbientFadeOut);
+  stopStoryAmbient(Number.isFinite(ambientFade)?Math.max(0,ambientFade):1200);
   if(typeof syncSelectedOrderToQueue==="function")syncSelectedOrderToQueue();
   else state.selectedOrderId=order.id;
   state.paused=false;
@@ -2460,7 +2474,7 @@ function runStoryConclusion(action){
 
 function finishStorySession(){
   if(!storySession)return;
-  clearStoryAudio();
+  clearStoryAudio({fadeAmbient:true});
   clearStoryTyping();
   clearStorySceneIntro();
   setStoryGameUiVisible(false);

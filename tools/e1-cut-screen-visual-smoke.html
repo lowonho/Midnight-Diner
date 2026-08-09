@@ -37,10 +37,10 @@
 
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E1 이 실제로 만지는
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E1 이 실제로 만지는
        것만 흉내 냅니다 — 전역 state / dom / audio / clamp / finish* 입니다. */
     const state = { day:4, mini:null };
     const audio = new Proxy({}, { get:() => () => {} });
@@ -57,11 +57,11 @@
     function finishDayPrepTask(taskId,message){ document.body.dataset.finished = `${taskId}:${message}`; }
     function showToast(){}
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e1-timing-cut.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e1-timing-cut.js"></script>
   <script>
     "use strict";
     /* 썰기 한 화면을 그대로 그려 놓고 잽니다. 화면을 베껴 그리지 않고
@@ -76,7 +76,7 @@
                        칼은 첫 절단선에서 기다리고 하단 조준선만 오른쪽에서 출발합니다 */
     const params = new URLSearchParams(location.search);
     /* ⚠️ 떡볶이 3종(양배추 · 대파 · 어묵)은 그림 키가 assetPrefix 로 따로 등록돼
-       있습니다(day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE). 안 넘기면 키를
+       있습니다(js/day4-prep-data.js 의 TTEOKBOKKI_CUT_SEQUENCE). 안 넘기면 키를
        못 찾아 임시 CSS 도형이 나오고, 에셋 검증이 통째로 헛돕니다. */
     const CASES = {
       radish:{ total:7, label:"무" },

@@ -6,13 +6,13 @@
 3. 배포 환경과 동일한 테스트가 필요할 때는 Live Server 사용을 권장합니다.
 
 ## JavaScript 구성
-- `phaser.min.js`: Phaser 3.90 게임 엔진
-- `game.js`: 공통 상태, 입력, 미니게임, UI 및 Phaser 렌더링 연결
-- `day.js`: 낮 준비 초기화, 재료 준비 및 목표 UI
-- `day4-prep-data.js`: Day 4 빠른 칼질 및 감자 작업 데이터
-- `night.js`: 밤 영업, 주문, 조리, 서빙 및 정산
-- `save.js`: 자동 저장, 저장 데이터 검증 및 복원
-- `title.js`: 타이틀 화면, 새 게임·이어하기 및 화면 전환
+- `js/phaser.min.js`: Phaser 3.90 게임 엔진
+- `js/game.js`: 공통 상태, 입력, 미니게임, UI 및 Phaser 렌더링 연결
+- `js/day.js`: 낮 준비 초기화, 재료 준비 및 목표 UI
+- `js/day4-prep-data.js`: Day 4 빠른 칼질 및 감자 작업 데이터
+- `js/night.js`: 밤 영업, 주문, 조리, 서빙 및 정산
+- `js/save.js`: 자동 저장, 저장 데이터 검증 및 복원
+- `js/title.js`: 타이틀 화면, 새 게임·이어하기 및 화면 전환
 
 ## 하루의 흐름
 - 낮 준비에는 제한 시간이 없습니다. 음식을 준비한 뒤 `영업준비 완료`를 누르면 밤으로 넘어갑니다.

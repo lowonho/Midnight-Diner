@@ -31,7 +31,7 @@
     "use strict";
     const params=new URLSearchParams(location.search);
     const requestedIngredient=params.get("ingredient");
-    /* ⚠️ positions 는 engine-e1-timing-cut.js 의 CUT_POSITION_PERCENTAGES 를 베낀 값입니다.
+    /* ⚠️ positions 는 js/engine-e1-timing-cut.js 의 CUT_POSITION_PERCENTAGES 를 베낀 값입니다.
        엔진 쪽을 고치면 여기도 같이 고치세요 (한 화면 통째로 보려면
        tools/e1-cut-screen-visual-smoke.html — 그쪽은 엔진 값을 그대로 씁니다). */
     const configs={

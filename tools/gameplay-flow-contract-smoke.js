@@ -7,21 +7,21 @@ const root=path.resolve(__dirname,"..");
 const read=file=>fs.readFileSync(path.join(root,file),"utf8");
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 
-const game=read("game.js");
-const day=read("day.js");
-const dayPrep=read("day-prep-minigames.js");
-const ingredient=read("ingredient-select.js");
-const kitchen=read("kitchen.js");
-const player=read("player.js");
-const night=read("night.js");
-const customers=read("customers.js");
-const story=read("story.js");
-const title=read("title.js");
-const gameData=read("game-data.js");
-const miniFrame=read("ui-mini-frame.js");
+const game=read("js/game.js");
+const day=read("js/day.js");
+const dayPrep=read("js/day-prep-minigames.js");
+const ingredient=read("js/ingredient-select.js");
+const kitchen=read("js/kitchen.js");
+const player=read("js/player.js");
+const night=read("js/night.js");
+const customers=read("js/customers.js");
+const story=read("js/story.js");
+const title=read("js/title.js");
+const gameData=read("js/game-data.js");
+const miniFrame=read("js/ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
 const interactionCss=read("css/interaction.css");
-const orderPlace=read("engine-e8-order-place.js");
+const orderPlace=read("js/engine-e8-order-place.js");
 const index=read("index.html");
 
 assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}"),
@@ -76,7 +76,7 @@ const gameKeyPrevent=game.indexOf('e.preventDefault();',settingsInputGuard);
 assert(settingsInputGuard>=0&&gameKeyPrevent>settingsInputGuard,
   "설정창 안에서는 게임 키 입력만 차단하고 슬라이더 방향키와 버튼 Space 기본 조작은 허용해야 합니다.");
 
-const hud=read("ui-hud.js");
+const hud=read("js/ui-hud.js");
 assert(index.includes('<span>손님 반응</span><strong id="satisfactionText">-</strong>')
   &&index.includes('<span>손님들의 반응</span><strong id="satisfactionResult">-</strong>')
   &&index.includes('<span>오늘의 접시</span><strong id="fiveStarResult">-</strong>')

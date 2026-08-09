@@ -5,11 +5,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const gameDataSource = fs.readFileSync(path.join(root, "game-data.js"), "utf8");
-const storyDataSource = fs.readFileSync(path.join(root, "story-data.js"), "utf8");
-const qaModeSource = fs.readFileSync(path.join(root, "qa-mode.js"), "utf8");
-const storySource = fs.readFileSync(path.join(root, "story.js"), "utf8");
-const saveSource = fs.readFileSync(path.join(root, "save.js"), "utf8");
+const gameDataSource = fs.readFileSync(path.join(root, "js/game-data.js"), "utf8");
+const storyDataSource = fs.readFileSync(path.join(root, "js/story-data.js"), "utf8");
+const qaModeSource = fs.readFileSync(path.join(root, "js/qa-mode.js"), "utf8");
+const storySource = fs.readFileSync(path.join(root, "js/story.js"), "utf8");
+const saveSource = fs.readFileSync(path.join(root, "js/save.js"), "utf8");
 const qaCssSource = fs.readFileSync(path.join(root, "css", "qa-mode.css"), "utf8");
 let staticChecks = 0;
 

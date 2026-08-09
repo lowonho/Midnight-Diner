@@ -31,10 +31,10 @@
   </div>
 
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
-    /* game.js 전체 대신 E5 가 실제로 만지는 전역만 흉내 냅니다 */
+    /* js/game.js 전체 대신 E5 가 실제로 만지는 전역만 흉내 냅니다 */
     const state = { day:4, mini:null };
     const audio = new Proxy({}, { get:() => () => {} });
     function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
@@ -49,11 +49,11 @@
       miniFeedback:document.getElementById("miniFeedback")
     };
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e5-two-side-cook.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e5-two-side-cook.js"></script>
   <script>
     "use strict";
     /* 보려는 것 : 굽는 김치전 그림 5장이 팬 **안쪽**에 제 크기로 들어가는가,
@@ -177,7 +177,7 @@
         cookStep:cookArtStep(state.mini.data.units[0], PANCAKE_COOK_STEPS),
         // 켜져 있는 그림 = 지금 단계까지. 맨 뒤가 보이는 장입니다.
         on:shown.map(i => i.getAttribute("src").split("/").pop()),
-        /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(day-prep-minigames.js 의
+        /* 연기 기둥. 자리는 모금마다 새로 뽑으므로(js/day-prep-minigames.js 의
            placeMinigameSmoke) 여기 값은 "이번에 뽑힌 한 자리" 입니다 — 매번 달라지는
            것이 정상입니다. 봐야 할 것은 자리가 아니라 **뿌리가 김치전 위에 있는지**와
            **칸 안에 남는지**입니다. 뽑기 자체가 범위를 지키는지는 김치 볶기 스모크가

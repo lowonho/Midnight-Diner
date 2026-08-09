@@ -8,9 +8,9 @@ const root=path.resolve(__dirname,"..");
 const read=file=>fs.readFileSync(path.join(root,file),"utf8");
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 
-const gameDataSource=read("game-data.js");
+const gameDataSource=read("js/game-data.js");
 const sandbox={};
-vm.runInNewContext(`${gameDataSource}\n;globalThis.__prepContract={PREP_TASKS,MENU_DATA,DAY_DATA};`,sandbox,{filename:"game-data.js"});
+vm.runInNewContext(`${gameDataSource}\n;globalThis.__prepContract={PREP_TASKS,MENU_DATA,DAY_DATA};`,sandbox,{filename:"js/game-data.js"});
 const {PREP_TASKS,MENU_DATA,DAY_DATA}=sandbox.__prepContract;
 
 const removedPrepTaskIds=["soakUdon","soakTteok","mixYakisobaSauce","mixTteokbokkiSauce"];
@@ -31,8 +31,10 @@ Object.values(DAY_DATA).forEach(day=>{
 });
 
 const prepFiles=[
-  "day-prep-minigames.js",
-  ...fs.readdirSync(root).filter(file=>/^engine-e\d+-.*\.js$/.test(file))
+  "js/day-prep-minigames.js",
+  ...fs.readdirSync(path.join(root,"js"))
+    .filter(file=>/^engine-e\d+-.*\.js$/.test(file))
+    .map(file=>"js/"+file)
 ];
 const prepSource=prepFiles.map(file=>`// ${file}\n${read(file)}`).join("\n");
 

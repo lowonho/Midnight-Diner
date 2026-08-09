@@ -42,7 +42,7 @@ const sandbox={
 };
 sandbox.globalThis=sandbox;
 const context=vm.createContext(sandbox);
-vm.runInContext(read("mini-engine.js"),context,{filename:"mini-engine.js"});
+vm.runInContext(read("js/mini-engine.js"),context,{filename:"js/mini-engine.js"});
 
 vm.runInContext(`
   globalThis.pauseEvents=[];
@@ -85,12 +85,12 @@ advance(500);
 assert(vm.runInContext("ticks",context)===1,"해제한 반복 작업은 다시 실행되면 안 됩니다.");
 
 const asyncFiles=[
-  "day-prep-minigames.js","ingredient-select.js","engine-e1-timing-cut.js",
-  "engine-e2-alternate-input.js","engine-e3-direction-seq.js","engine-e4-gauge-hold.js",
-  "engine-e5-two-side-cook.js","engine-e6-deep-fry.js",
-  "engine-e8-order-place.js","engine-e9-whisk.js","engine-e10-target-click.js",
-  "engine-e12-grab-shake.js","engine-e13-fridge-find.js",
-  "engine-legacy-night.js"
+  "js/day-prep-minigames.js","js/ingredient-select.js","js/engine-e1-timing-cut.js",
+  "js/engine-e2-alternate-input.js","js/engine-e3-direction-seq.js","js/engine-e4-gauge-hold.js",
+  "js/engine-e5-two-side-cook.js","js/engine-e6-deep-fry.js",
+  "js/engine-e8-order-place.js","js/engine-e9-whisk.js","js/engine-e10-target-click.js",
+  "js/engine-e12-grab-shake.js","js/engine-e13-fridge-find.js",
+  "js/engine-legacy-night.js"
 ];
 asyncFiles.forEach(file=>{
   const source=read(file);
@@ -100,7 +100,7 @@ asyncFiles.forEach(file=>{
   assert(!/(^|[^\w])clearInterval\s*\(/m.test(source),`${file}에 기본 clearInterval이 남아 있습니다.`);
 });
 
-const game=read("game.js"),css=read("css/minigame-frame.css");
+const game=read("js/game.js"),css=read("css/minigame-frame.css");
 assert(game.includes("pauseMiniAsyncTasks();")&&game.includes("resumeMiniAsyncTasks();"),
   "설정 열기·닫기에 공용 미니게임 타이머 pause/resume이 연결되어야 합니다.");
 assert(css.includes("body:has(#settingsOverlay.open) .mini-overlay *")

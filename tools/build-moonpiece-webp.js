@@ -43,7 +43,7 @@ const sharp = require("sharp");
 const ART_DIR = path.join(__dirname, "..", "assets", "customer", "Special", "MoonPiece");
 
 // 파일 이름 앞 번호가 곧 손님 등장 일차입니다. 영업일지 쪽 짝짓기는
-// title.js 의 JOURNAL_MOON_PIECE_ART 가 shardId 로 따로 적어 둡니다.
+// js/title.js 의 JOURNAL_MOON_PIECE_ART 가 shardId 로 따로 적어 둡니다.
 const FILES = [
   { file:"01_raindrop_glass_keepsake.png", why:"1일차 비에 젖은 아이 · 첫 빗방울" },
   { file:"02_miniature_lantern.png",       why:"2일차 등불을 머리에 인 손님 · 남은 온기" },

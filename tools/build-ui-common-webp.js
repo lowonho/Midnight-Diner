@@ -47,9 +47,9 @@
    ------------------------------------------------------------
    [2] 영업 상태 간판 — 화면에 그려지는 크기 그대로입니다
    ------------------------------------------------------------
-   이 간판은 DOM 이 아니라 **프레임 캔버스**에 그립니다 (signage.js).
+   이 간판은 DOM 이 아니라 **프레임 캔버스**에 그립니다 (js/signage.js).
    그 캔버스는 화면 크기와 무관하게 항상 1920x1080 짜리 CanvasTexture 이고
-   (stage.js createStageFrameTexture), 만들 때 `imageSmoothingEnabled=false`
+   (js/stage.js createStageFrameTexture), 만들 때 `imageSmoothingEnabled=false`
    가 걸려 있습니다.
 
    여기서 다른 에셋들처럼 2배율로 뽑으면 안 됩니다. 캔버스 해상도가 고정이라
@@ -57,11 +57,11 @@
    최근접 이웃으로 일어나 오히려 계단이 집니다.
 
    그래서 목표 크기는 딱 하나, **캔버스에 그려지는 픽셀 수 그대로**입니다.
-     signage.js OPEN_SIGN 의 논리 크기(1280x720 기준) x VIEW_SCALE(1.5)
+     js/signage.js OPEN_SIGN 의 논리 크기(1280x720 기준) x VIEW_SCALE(1.5)
      = 152 x 110 x 1.5 = 228 x 165
    1:1 로 그려지므로 축소도 확대도 일어나지 않습니다.
 
-   ⚠️ signage.js 의 OPEN_SIGN.w / h 를 고치면 아래 표도 같이 고쳐야 합니다.
+   ⚠️ js/signage.js 의 OPEN_SIGN.w / h 를 고치면 아래 표도 같이 고쳐야 합니다.
       안 고치면 캔버스가 1:1 이 아니게 되어 그 순간 계단이 집니다.
 
    [4x 마스터를 쓰는 이유 — 해상도가 아니라 그림이 바뀐 것입니다]
@@ -99,9 +99,9 @@ const FILES = [
   { file:"ui_cursor_cat_drag_256.png",    out:"ui_cursor_cat_drag_48.webp",    size:[48,48], lossless:true, why:"CSS 커서 (상한은 128, 실제로는 48)" },
   { file:"ui_cursor_cat_text_256.png",    out:"ui_cursor_cat_text_48.webp",    size:[48,48], lossless:true, why:"CSS 커서 (상한은 128, 실제로는 48)" },
   /* 간판 마스터는 `_4x` 입니다. 출력 이름에는 `_4x` 를 빼서 내보냅니다 —
-     signage.js 가 `ui_shop_status_<상태>.webp` 로 찾기 때문입니다. (아래 [4x 마스터] 참고) */
-  { file:"ui_shop_status_before_4x.png", out:"ui_shop_status_before.webp", size:[228,165], lossless:true, why:"signage.js OPEN_SIGN 152x110 x1.5 (낮 · 영업 전)" },
-  { file:"ui_shop_status_open_4x.png",   out:"ui_shop_status_open.webp",   size:[228,165], lossless:true, why:"signage.js OPEN_SIGN 152x110 x1.5 (밤 · 영업 중)" }
+     js/signage.js 가 `ui_shop_status_<상태>.webp` 로 찾기 때문입니다. (아래 [4x 마스터] 참고) */
+  { file:"ui_shop_status_before_4x.png", out:"ui_shop_status_before.webp", size:[228,165], lossless:true, why:"js/signage.js OPEN_SIGN 152x110 x1.5 (낮 · 영업 전)" },
+  { file:"ui_shop_status_open_4x.png",   out:"ui_shop_status_open.webp",   size:[228,165], lossless:true, why:"js/signage.js OPEN_SIGN 152x110 x1.5 (밤 · 영업 중)" }
 ];
 
 /* [간판도 무손실인 이유] 1078 → 228 로 크게 줄이는 그림이라 축소만으로도

@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const source=["game-data.js","story-data.js","story.js","night.js"]
+const source=["js/game-data.js","js/story-data.js","js/story.js","js/night.js"]
   .map(file=>fs.readFileSync(path.join(root,file),"utf8"))
   .join("\n");
 

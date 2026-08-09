@@ -37,15 +37,15 @@
 
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <!-- ⚠️ 진짜 게임은 미니게임을 열 때 오버레이에 `.open` 을 붙입니다
-       (day-prep-minigames.js). 주걱 커서가 기본 포인터를 숨기는 규칙이
+       (js/day-prep-minigames.js). 주걱 커서가 기본 포인터를 숨기는 규칙이
        `.mini-overlay.open …` 으로 시작해서, 이게 없으면 팬 칸 커서가
        `grab` 그대로라 커서 검증이 헛돕니다. -->
   <script>document.querySelector(".mini-overlay")?.classList.add("open");</script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E3 이 실제로 만지는
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E3 이 실제로 만지는
        것만 흉내 냅니다 — 전역 state / dom / audio 셋입니다. */
     const state = { day:4, mini:null };
     const audio = new Proxy({}, { get:() => () => {} });
@@ -58,11 +58,11 @@
       miniFeedback:document.getElementById("miniFeedback")
     };
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e3-direction-seq.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e3-direction-seq.js"></script>
   <script>
     "use strict";
     /* ?stir=left|right|up|down   그 방향으로 뒤집은 한 순간에서 멈춥니다

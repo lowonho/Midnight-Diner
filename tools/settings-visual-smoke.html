@@ -65,7 +65,7 @@ function setup(overlay){
   overlay.classList.toggle("is-lobby",mode==="lobby");
   overlay.setAttribute("aria-hidden","false");
 
-  // game.js openSettings 가 화면에 따라 바꾸는 것들을 그대로 흉내 냅니다
+  // js/game.js openSettings 가 화면에 따라 바꾸는 것들을 그대로 흉내 냅니다
   const byId=id=>document.getElementById(id);
   const fromTitle=mode==="lobby";
   byId("pauseMessage").textContent=fromTitle

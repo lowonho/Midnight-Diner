@@ -29,7 +29,7 @@
   ?full=1      네 칸 모두 기록 있음 (카드 네 줄이 꽉 찬 최대 높이 확인용)
 
   마크업을 여기 베껴 적지 않고 index.html 에서 #saveSlotOverlay 를 통째로
-  꺼내 쓰고, 카드도 save-ui.js 의 createSaveSlotItem 이 직접 그립니다.
+  꺼내 쓰고, 카드도 js/save-ui.js 의 createSaveSlotItem 이 직접 그립니다.
   베껴 적으면 실제 화면과 어긋나도 스모크는 통과해 버립니다.
   (file:// 에서 fetch 는 막히므로 XHR 을 씁니다 — --allow-file-access-from-files 필요)
 -->
@@ -46,9 +46,9 @@ function fail(message){
 }
 window.addEventListener("error",event=>fail("에러: "+event.message));
 
-/* ── save-ui.js 가 기대하는 게임 전역들 ──────────────────────
+/* ── js/save-ui.js 가 기대하는 게임 전역들 ──────────────────────
    실제 저장소 대신 고정 데이터를 물려 주는 것뿐입니다. 카드 하나하나는
-   아래에서 불러오는 save-ui.js 가 그립니다. */
+   아래에서 불러오는 js/save-ui.js 가 그립니다. */
 const STORY_SCENES={
   "G-02":{title:"입담이 좋아도 자식과의 대화는 어려운 사람"},
   "C1-04B":{title:"돌아갈 자리와 남을 자리"},
@@ -94,9 +94,9 @@ if(!document.body.dataset.error){
     document.body.append(document.importNode(overlay,true));
     // 마크업이 붙은 뒤에 읽어야 initializeSaveSlotUI 가 요소를 잡습니다
     const script=document.createElement("script");
-    script.src="save-ui.js";
+    script.src="js/save-ui.js";
     script.onload=setup;
-    script.onerror=()=>fail("save-ui.js 를 못 읽었습니다.");
+    script.onerror=()=>fail("js/save-ui.js 를 못 읽었습니다.");
     document.body.append(script);
   }
 }

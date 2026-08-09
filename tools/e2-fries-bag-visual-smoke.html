@@ -38,10 +38,10 @@
   <!-- 게임 파일을 그대로 불러다 씁니다. 화면을 베껴 적으면 진짜 화면과 어긋납니다. -->
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E2 가 실제로 만지는
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E2 가 실제로 만지는
        것만 흉내 냅니다 — 전역 state / dom 두 개입니다. */
     const state = { day:4, mini:null, prepProgress:{} };
     const audio = new Proxy({}, { get:() => () => {} });
@@ -53,14 +53,14 @@
       miniDescription:document.getElementById("miniDescription"),
       miniFeedback:document.getElementById("miniFeedback")
     };
-    // 봉투 드래그가 쓰는 game.js 의 공용 도우미입니다
+    // 봉투 드래그가 쓰는 js/game.js 의 공용 도우미입니다
     const clamp = (value,min,max) => Math.max(min,Math.min(max,value));
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e2-alternate-input.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e2-alternate-input.js"></script>
   <script>
     "use strict";
     /* ?presses=0..14  몇 번 흔들었는지 (그림 9장 중 어느 장인지가 여기서 정해집니다)
@@ -86,7 +86,7 @@
 
     loadDayPrepAssets().then(() => {
       state.mini = {
-        // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (day-prep-minigames.js)
+        // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (js/day-prep-minigames.js)
         context:{ mode:"dayPrep" }, engine:"potatoStarch", complete:false,
         data:createAlternateFeelState({ mode:"potatoStarch", taskId:DAY4_PREP_CONFIG.potatoStarch.taskId,
                keys:["f","j"], expectedIndex:presses % 2, presses, total,

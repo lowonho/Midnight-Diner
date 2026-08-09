@@ -28,7 +28,7 @@
    ------------------------------------------------------------ */
 
 if(document.readyState==="loading"){
-  ["chef-anim-table.js","chef-anims.js","chef-carry-temp.js"]
+  ["js/chef-anim-table.js","js/chef-anims.js","js/chef-carry-temp.js"]
     .forEach(src=>document.write(`<script src="${src}"><\/script>`));
 }else{
   console.error("player.js 가 파싱 단계 밖에서 실행됐습니다. 요리사 스프라이트 파일을 주입하지 못했습니다.");

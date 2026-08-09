@@ -9,9 +9,9 @@ const read=file=>fs.readFileSync(path.join(root,file),"utf8");
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
 const context=vm.createContext({console});
 
-vm.runInContext(read("game-data.js"),context,{filename:"game-data.js"});
-vm.runInContext(`${read("day.js")}
-globalThis.__sharedPrep={PREP_TASKS,MENU_DATA,prepTaskCompleted,prepTaskScore,completeDayPrepTask};`,context,{filename:"day.js"});
+vm.runInContext(read("js/game-data.js"),context,{filename:"js/game-data.js"});
+vm.runInContext(`${read("js/day.js")}
+globalThis.__sharedPrep={PREP_TASKS,MENU_DATA,prepTaskCompleted,prepTaskScore,completeDayPrepTask};`,context,{filename:"js/day.js"});
 
 const {PREP_TASKS,MENU_DATA,prepTaskCompleted,prepTaskScore,completeDayPrepTask}=context.__sharedPrep;
 const sameKey=(...ids)=>ids.every(id=>PREP_TASKS[id].sharedPrepKey===PREP_TASKS[ids[0]].sharedPrepKey);

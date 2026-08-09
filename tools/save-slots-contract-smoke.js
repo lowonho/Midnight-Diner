@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const sources=["game-data.js","story-data.js","story-cinematic.js","story.js","save.js"]
+const sources=["js/game-data.js","js/story-data.js","js/story-cinematic.js","js/story.js","js/save.js"]
   .map(file=>fs.readFileSync(path.join(root,file),"utf8"));
 
 const bootstrap=`
@@ -293,7 +293,7 @@ assert(window.MoonlightTableSave.readJournal===readJournalData
   &&window.MoonlightTableSave.recordGuest===recordJournalGuest
   &&window.MoonlightTableSave.recordFragment===recordJournalFragment
   &&window.MoonlightTableSave.recordEnding===recordJournalEnding,
-  "story.js가 사용할 영업일지 helper API를 공개해야 합니다.");
+  "js/story.js가 사용할 영업일지 helper API를 공개해야 합니다.");
 
 // 타이틀 영업일지는 진행 세이브와 별개인 영구 컬렉션입니다. raw 저장은
 // 해금 항목만 가져도 되지만 collectionPages()는 잠긴 페이지까지 합쳐

@@ -30,7 +30,7 @@
    나머지 집기는 2.5~3배가 남습니다. 창을 4K 로 키워도(Scale.FIT) 원본을
    확대할 일이 없는 여유값입니다.
 
-   [주의] 집기를 지금보다 크게 그리도록 kitchen.js STATION_ART 의 w 를
+   [주의] 집기를 지금보다 크게 그리도록 js/kitchen.js STATION_ART 의 w 를
    많이 올렸다면 이 값도 같이 올려야 합니다. 화면 크기보다 작아지면
    그때부터 흐려집니다. verify 가 각 파일의 최종 크기를 찍어 줍니다. */
 const MAX_EDGE = 640;
@@ -95,7 +95,7 @@ async function convert(){
    [비교 기준] 축소는 의도한 변환이므로 오차로 세지 않습니다. 원본 PNG 를
    WebP 와 같은 크기로 같은 커널로 줄인 뒤 비교해서, 순수하게 WebP 인코딩이
    더한 오차만 봅니다.
-   [불투명 영역] 원본 PNG 좌표로 찍습니다. kitchen.js STATION_ART 의 body 가
+   [불투명 영역] 원본 PNG 좌표로 찍습니다. js/kitchen.js STATION_ART 의 body 가
    원본 좌표라서 그대로 옮겨 적을 수 있어야 합니다. */
 async function verify(){
   console.log("\n품질 검증 (같은 크기로 줄인 PNG 대비)");

@@ -43,8 +43,8 @@ const STORY_BG_DIR = path.join(__dirname, "..", "assets", "story", "bg");
 
 /* [file]  STORY_BG_DIR 기준 파일 이름 (PNG 마스터)
    [size]  뽑아낼 WebP 크기 [가로, 세로]
-   [why]   어느 엔딩의 컷인지. story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 와,
-           title.js 의 JOURNAL_ENDING_ART 와 짝입니다. */
+   [why]   어느 엔딩의 컷인지. js/story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 와,
+           js/title.js 의 JOURNAL_ENDING_ART 와 짝입니다. */
 const FILES = [
   { file:"01_loop_daeun_reenters_restaurant_entrance_v3.png", size:[720,405],
     why:"엔딩 1 loop_return · 다시 첫째 날" },

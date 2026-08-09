@@ -44,26 +44,26 @@ function fail(message){
 }
 window.addEventListener("error",event=>fail("에러: "+event.message));
 
-// title.js 가 참조하는 게임 전역들의 최소 대역입니다.
+// js/title.js 가 참조하는 게임 전역들의 최소 대역입니다.
 var audio=null;
 var state={day:3,paused:false,phase:"night"};
 var GAME_PHASES={MENU_SELECT:"menuSelect",PREP:"day",OPEN:"night",RESULT:"result"};
 var dom={};
 
-// 레시피 장의 음식 프롭 그림은 food-props.js 의 foodPropUrl 로 찾습니다.
-// (id 는 game-data.js 의 MENU_DATA 와 같은 것을 써야 그림이 붙습니다)
+// 레시피 장의 음식 프롭 그림은 js/food-props.js 의 foodPropUrl 로 찾습니다.
+// (id 는 js/game-data.js 의 MENU_DATA 와 같은 것을 써야 그림이 붙습니다)
 const DISH_IDS=["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteokbokki","fries"];
 const DISHES=["어묵탕","두부김치","김치전","닭꼬치","볶음우동","새우튀김","떡볶이","감자튀김"];
 const GUESTS=["비에 젖은 아이","등불을 머리에 인 손님","둘이 붙은 그림자","까마귀 우편배달부",
   "별을 먹는 작은 짐승","바닷물로 된 손님","멈춰버린 교복 인형","얼굴 없는 김다은"];
-// story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
+// js/story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
 const SHARDS=[
   ["first_raindrop","첫 빗방울"],["remaining_warmth","남은 온기"],
   ["two_half_names","반쪽 이름 두 개"],["undelivered_letter","배달되지 못한 편지"],
   ["golden_salt","금빛 소금"],["eastern_scale","동쪽의 비늘"],
   ["stopped_minute_hand","멈춘 분침"],["daeuns_tomorrow","김다은의 내일"]
 ];
-// 엔딩도 story-data.js 의 순서·id 그대로입니다 (컷씬 그림 짝짓기 확인용).
+// 엔딩도 js/story-data.js 의 순서·id 그대로입니다 (컷씬 그림 짝짓기 확인용).
 const ENDINGS=[
   ["loop_return","다시 첫째 날"],["alone_morning","혼자 맞은 아침"],
   ["guests_dawn","손님들의 새벽"],["open_forever","영원히 영업 중"],
@@ -122,7 +122,7 @@ window.MoonlightTableSave={
       epilogueUnlocked:index<2,epilogue:"그 뒤로도 가끔 문을 두드린다.",
       unlockedAt:Date.now()
     }));
-    // id 는 story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 그대로여야 합니다.
+    // id 는 js/story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 그대로여야 합니다.
     // 엔딩 컷씬 그림을 그 id 로 찾기 때문에, 가짜 id 를 쓰면 그림이 빠집니다.
     const endings=ENDINGS.map(([id,title],index)=>({
       id,kind:"ending",number:index+1,label:title,
@@ -145,15 +145,15 @@ if(!document.body.dataset.error){
   if(!overlay) fail("index.html 에서 #journalOverlay 를 못 찾았습니다.");
   else{
     document.body.append(document.importNode(overlay,true));
-    // 레시피 장의 음식 그림 경로는 food-props.js 가 알려 줍니다.
-    // title.js 보다 먼저 받아야 foodPropUrl 이 준비됩니다.
+    // 레시피 장의 음식 그림 경로는 js/food-props.js 가 알려 줍니다.
+    // js/title.js 보다 먼저 받아야 foodPropUrl 이 준비됩니다.
     const load=(src,next)=>{
       const script=document.createElement("script");
       script.src=src;
       script.onload=next;
       document.body.append(script);
     };
-    load("food-props.js",()=>load("title.js",setup));
+    load("js/food-props.js",()=>load("js/title.js",setup));
   }
 }
 

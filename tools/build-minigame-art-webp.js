@@ -95,7 +95,7 @@ const FILES = [
      [볼 11장] 빈 볼 1장 + (떡 5 · 우동 5). 물이 0/25/50/75/100 만큼 찬 모습이고
      **볼·재료·물이 한 장에 다 그려져 있습니다.** 그래서 예전처럼 볼 그림 위에
      재료 조각과 물 높이를 CSS 로 얹지 않고, 이 장들을 겹쳐 두고 갈아 끼웁니다
-     (engine-e8-order-place.js 의 SOAK_WATER_STEPS · css 의 .soak-bowl-asset).
+     (js/engine-e8-order-place.js 의 SOAK_WATER_STEPS · css 의 .soak-bowl-asset).
 
      자리는 .soaking-bowl 530x395 에 object-fit:contain 입니다. 그림 비율 1.340 이
      상자(1.342)와 같아 상자를 꽉 채웁니다 → 2배율 1060x790.
@@ -145,7 +145,7 @@ const FILES = [
         비율 차가 0.15% 라 checkAspect(2%) 에 걸리지 않습니다.
      ⚠️ 09 번은 **납품에 없습니다.** 번호가 아니라 이 배열 순서가 재생 순서이므로,
         나중에 09 가 오면 08 과 10 사이에 끼워 넣기만 하면 됩니다.
-        (day-prep-minigames.js 의 E9_BATTER_MIX_FRAMES 도 같이 고쳐야 합니다) */
+        (js/day-prep-minigames.js 의 E9_BATTER_MIX_FRAMES 도 같이 고쳐야 합니다) */
   ...["01_food_kimchi_batter_mix_stage1_unmixed","02_food_kimchi_batter_mix_stage2_b",
       "03_food_kimchi_batter_mix_stage2_c","04_food_kimchi_batter_mix_stage3_a",
       "05_food_kimchi_batter_mix_stage3_b","06_food_kimchi_batter_mix_stage3_c",
@@ -307,7 +307,7 @@ const FILES = [
     .map(([pose,h])=>({ file:`E3/Kimchi/food_stirfried_kimchi_${pose}.png`, size:[1059,h],
       css:".frying-kimchi 529.3 폭 고정 (팬 안쪽 802x338.2 의 inset 14/27/16/7)" })),
   /* ---- E3 김치 볶기 : 나무 주걱 3장 --------------------------------
-     젓는 손놀림에 따라 갈아 끼우는 한 벌입니다 (engine-e3-direction-seq.js 의 kimchiSpatulaState).
+     젓는 손놀림에 따라 갈아 끼우는 한 벌입니다 (js/engine-e3-direction-seq.js 의 kimchiSpatulaState).
        prop_spatula_rabbit                    한 번도 안 저은 깨끗한 주걱
        ..._kimchi_light                       젓는 중 (김치가 많이 묻음)
        ..._kimchi_very_light                  저은 뒤 손을 뗀 상태 (김치가 살짝 남음)
@@ -342,7 +342,7 @@ const FILES = [
     file:`E3/food_stirfried_udon_${pose}.png`, size:[1125,411], quality:88,
     css:".yk-food 562.4x205.4 (철판 760x321 의 13/17/13/19 inset)" })),
   /* ---- E3 볶음우동 : 철판 뒤집개 3장 -------------------------------
-     볶는 손놀림에 따라 갈아 끼우는 한 벌입니다 (engine-e3-direction-seq.js 의 stirSpatulaState).
+     볶는 손놀림에 따라 갈아 끼우는 한 벌입니다 (js/engine-e3-direction-seq.js 의 stirSpatulaState).
        prop_spatula_tanuki                    한 번도 안 볶은 깨끗한 뒤집개
        ..._udon_heavy                         볶는 중 (면이 많이 묻음)
        ..._udon_light                         볶은 뒤 손을 뗀 상태 (면이 살짝 남음)
@@ -366,7 +366,7 @@ const FILES = [
      그림칸이 210 x 225 인데 원본이 정사각이라 **가로 210 이 먼저 막습니다** → 2배율 420. */
   { file:"E5/food_kimchi_batter_bowl_mixed_oblique.png",    size:[420,420],  css:".ts-ing-asset 210x210" },
   /* 굽는 김치전 5장. 익힘 단계마다 한 장이고 전부 팬 안 같은 자리에 겹칩니다
-     (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS · css 의 .pancake-food-asset).
+     (js/engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS · css 의 .pancake-food-asset).
 
      [크기] 팬 안쪽 자리 .pancake-cook .cook-food 는 456.7 x 203.3 입니다
      (팬 710 x 308.4 에서 테두리 9 를 뺀 692 x 290.4 의 `inset: 14% 27% 16% 7%`
@@ -419,7 +419,7 @@ const FILES = [
   /* ---- E5 닭꼬치 굽기 : 조각 익힘 4단계 x 2종 -----------------------
      낮에 꽂은 조각(E8 food_skewer_*_piece)이 그대로 raw 이고, 여기 넷이 그 뒤입니다.
      한 조각 자리에 다섯 장을 겹쳐 두고 익힘에 따라 갈아 끼웁니다
-     (engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS · css 의 .gs-piece.has-cook-art).
+     (js/engine-e5-two-side-cook.js 의 SKEWER_COOK_STEPS · css 의 .gs-piece.has-cook-art).
 
      ⚠️ **캔버스를 raw 장에 맞춰 되돌려 놓는 것이 핵심입니다(pad).** 납품본은 같은 그림을
         **알파 경계까지 바짝 잘라** 왔습니다 — 닭 416x300 · 대파 416x260 이 곧 raw 장
@@ -437,7 +437,7 @@ const FILES = [
   /* ---- E5 닭꼬치 굽기 : 숯불 화로 5장 -------------------------------
      화로 몸통 · 벌건 숯 · 석쇠 살이 **한 장에 다 그려져 있습니다**. 다섯 장은 숯이
      달아올랐다 사그라드는 연속 그림이라 한 자리에 겹쳐 두고 CSS 가 차례로 켭니다
-     (engine-e5-two-side-cook.js 의 CHARCOAL_GRILL_KEYS · css 의 .cg-frame).
+     (js/engine-e5-two-side-cook.js 의 CHARCOAL_GRILL_KEYS · css 의 .cg-frame).
 
      [크기] 화면 684 x 410.5 의 2배율입니다. 이 값은 굽기 칸(824.2 x 457)에서
      **꼬치 손잡이가 화로 아래로 나오는 36 을 뺀 키**가 상한이라 정해집니다
@@ -461,7 +461,7 @@ const FILES = [
     css:".ts-board .two-side-pan.skewer-cook 684x410.5 (5장 한 크기)" })),
   /* ---- E5 굽기 : 조작 방향 화살표 3장 ------------------------------
      신호가 켜져 있는 동안 조리물 **위에 겹쳐** 뜨는 안내입니다
-     (engine-e5-two-side-cook.js 의 twoSideDragArrowMarkup · css 의 .ts-drag-arrow).
+     (js/engine-e5-two-side-cook.js 의 twoSideDragArrowMarkup · css 의 .ts-drag-arrow).
        skewer_flip_horizontal  ↔  꼬치를 옆으로 굴리기
        skewer_sauce_vertical   ↕  꼬치에 위아래로 붓질
        kimchi_pancake_flip_up  ↑  김치전을 위로 튕기기

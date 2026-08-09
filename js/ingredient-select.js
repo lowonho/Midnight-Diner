@@ -116,7 +116,10 @@ const PANTRY_INGREDIENT_IDS=Object.freeze(new Set([
   "anchovy","flour","water","yakisobaSauce","breadcrumbs","gochujang","potato","oil","starch"
 ]));
 
-const INGREDIENT_ASSET_BASE=document.currentScript?.src||document.baseURI;
+// 실행 스크립트는 js/ 아래에 있으므로 에셋 상대 경로의 기준은 프로젝트 루트입니다.
+const INGREDIENT_ASSET_BASE=document.currentScript?.src
+  ?new URL("../",document.currentScript.src).href
+  :document.baseURI;
 const INGREDIENT_FINISH_DELAY=1500;        // 다 찾고 낮 준비로 넘어가기까지
 let ingredientFinishId=null;
 let ingredientColdAirId=null;

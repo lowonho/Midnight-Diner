@@ -6,12 +6,12 @@ const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
 const indexSource=fs.readFileSync(path.join(root,"index.html"),"utf8");
-const saveUiSource=fs.readFileSync(path.join(root,"save-ui.js"),"utf8");
-const saveSource=fs.readFileSync(path.join(root,"save.js"),"utf8");
-const titleSource=fs.readFileSync(path.join(root,"title.js"),"utf8");
-const storySource=fs.readFileSync(path.join(root,"story.js"),"utf8");
-const storyDataSource=fs.readFileSync(path.join(root,"story-data.js"),"utf8");
-const gameSource=fs.readFileSync(path.join(root,"game.js"),"utf8");
+const saveUiSource=fs.readFileSync(path.join(root,"js/save-ui.js"),"utf8");
+const saveSource=fs.readFileSync(path.join(root,"js/save.js"),"utf8");
+const titleSource=fs.readFileSync(path.join(root,"js/title.js"),"utf8");
+const storySource=fs.readFileSync(path.join(root,"js/story.js"),"utf8");
+const storyDataSource=fs.readFileSync(path.join(root,"js/story-data.js"),"utf8");
+const gameSource=fs.readFileSync(path.join(root,"js/game.js"),"utf8");
 const titleCssSource=fs.readFileSync(path.join(root,"css","title.css"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
 const hudCssSource=fs.readFileSync(path.join(root,"css","hud.css"),"utf8");
@@ -68,13 +68,13 @@ assert(indexSource.includes('class="journal-page-leaf journal-page-left"')
 
 const scriptOrder=[...indexSource.matchAll(/<script\b[^>]*\bsrc=(["'])([^"']+)\1[^>]*>/gi)]
   .map(match=>match[2]);
-const gameScriptIndex=scriptOrder.indexOf("game.js");
-const saveUiScriptIndex=scriptOrder.indexOf("save-ui.js");
-assert(gameScriptIndex>=0,"index.html이 game.js를 불러와야 합니다.");
-assert(saveUiScriptIndex>=0,"index.html이 save-ui.js를 불러와야 합니다.");
+const gameScriptIndex=scriptOrder.indexOf("js/game.js");
+const saveUiScriptIndex=scriptOrder.indexOf("js/save-ui.js");
+assert(gameScriptIndex>=0,"index.html이 js/game.js를 불러와야 합니다.");
+assert(saveUiScriptIndex>=0,"index.html이 js/save-ui.js를 불러와야 합니다.");
 assert(
   saveUiScriptIndex>gameScriptIndex,
-  "save-ui.js는 게임 전역 함수를 사용할 수 있도록 game.js 뒤에 로드되어야 합니다."
+  "js/save-ui.js는 게임 전역 함수를 사용할 수 있도록 js/game.js 뒤에 로드되어야 합니다."
 );
 
 assert(indexSource.includes("<title>달빛식탁 - 낮의 준비, 밤의 한 접시</title>"),
@@ -195,7 +195,7 @@ assert(windowLeft+windowWidth<=37,
   `왼쪽 칸이 ${windowLeft+windowWidth}% 까지 나와 가게 건물(37.2%)에 겹칩니다.`);
 
 assert(/id="storySkipButton"[^>]*\bhidden\b/.test(indexSource),
-  "SKIP 버튼은 story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
+  "SKIP 버튼은 js/story.js가 이미 본 대화임을 확인하기 전까지 숨겨져 있어야 합니다.");
 assert(/\.story-skip\[hidden\]\s*\{\s*display\s*:\s*none/.test(storyCssSource),
   "숨긴 SKIP 버튼을 대화 CSS가 다시 표시하면 안 됩니다.");
 assert(titleSource.includes("function openJournal(")

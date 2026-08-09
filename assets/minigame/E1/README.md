@@ -24,7 +24,7 @@ E1 타이밍 칼질 미니게임의 재료와 칼 이미지는 모두 이 폴더
 같은 칼자국이 다른 %로 옮겨가서, 안 고치면 절단선이 그림에서 밀립니다.
 
 1. `css/day-prep-minigames.css` 의 `--ing-ar` (재료별 가로:세로)
-2. `engine-e1-timing-cut.js` 의 `CUT_POSITION_PERCENTAGES` (절단선 X %)
+2. `js/engine-e1-timing-cut.js` 의 `CUT_POSITION_PERCENTAGES` (절단선 X %)
 
 확인은 `tools/e1-cut-screen-visual-smoke.html` 로 합니다 — 엔진 값을 그대로 써서
 한 화면을 그리고, `data-measure` 의 `assetFillsBox` 가 `1` 이 아니면 비율이 어긋난 것,
@@ -76,7 +76,7 @@ CSS 가 그 점을 회전 중심으로 잡습니다.
 1. 칼 그림을 갈아 끼우면 위 "날 비율"을 다시 재서 CSS 의 `top`/`left`
    보정값(날 길이의 절반)을 고칩니다.
 2. 재료를 키우면 획이 모자랄 수 있습니다 — 획 이동량을 같이 키웁니다.
-3. 획을 키우면 그만큼 오래 걸리므로 `engine-e1-timing-cut.js` 의
+3. 획을 키우면 그만큼 오래 걸리므로 `js/engine-e1-timing-cut.js` 의
    `pathRecoveryMs`(써는 순간 칼이 멈춰 있는 시간)도 같이 봐야 합니다.
    이 값보다 획이 길면 칼이 중간에 순간이동합니다.
 

@@ -21,24 +21,24 @@
 | 파일 | 미니게임 | 엔진 |
 | --- | --- | --- |
 | `_prep-common.css` | 여러 게임이 함께 쓰는 것만 (드래그 그림 · 완료 반짝임 · 공용 keyframes) | — |
-| `e1-cut.css` | 썰기 (타이밍 칼질 · 빠른 칼질) | `engine-e1-timing-cut.js` |
-| `e10-anchovy.css` | 멸치 머리 떼기 | `engine-e10-target-click.js` |
-| `e3-kimchi-fry.css` | 김치 볶기 | `engine-e3-direction-seq.js` |
-| `e8-batter.css` | 김치전 반죽 (넣기 → 젓기) | `engine-e8-order-place.js` + `engine-e9-whisk.js` |
-| `e8-skewer.css` | 닭꼬치 꽂기 | `engine-e8-order-place.js` |
-| `e12-mandoline.css` | 채칼 (양배추 · 당근 · 감자) | `engine-e12-grab-shake.js` |
-| `e2-fry-prep.css` | 튀김 준비 (감자 · 새우) | `engine-e2-alternate-input.js` |
+| `e1-cut.css` | 썰기 (타이밍 칼질 · 빠른 칼질) | `js/engine-e1-timing-cut.js` |
+| `e10-anchovy.css` | 멸치 머리 떼기 | `js/engine-e10-target-click.js` |
+| `e3-kimchi-fry.css` | 김치 볶기 | `js/engine-e3-direction-seq.js` |
+| `e8-batter.css` | 김치전 반죽 (넣기 → 젓기) | `js/engine-e8-order-place.js` + `js/engine-e9-whisk.js` |
+| `e8-skewer.css` | 닭꼬치 꽂기 | `js/engine-e8-order-place.js` |
+| `e12-mandoline.css` | 채칼 (양배추 · 당근 · 감자) | `js/engine-e12-grab-shake.js` |
+| `e2-fry-prep.css` | 튀김 준비 (감자 · 새우) | `js/engine-e2-alternate-input.js` |
 | `_prep-boards.css` | 여러 칸이 함께 쓰는 나무 쟁반 · 도마 그림 | — |
 
 ## 밤 조리 (`css/minigames.css` 가 읽습니다)
 
 | 파일 | 미니게임 | 엔진 |
 | --- | --- | --- |
-| `_night-common.css` | 공용 버튼 · 게이지 + 옛 미니게임 잔재 | `engine-legacy-night.js` |
-| `e6-deep-fry.css` | 튀기기 | `engine-e6-deep-fry.js` |
-| `e4-gauge-hold.css` | 화력 유지 (어묵탕 · 떡볶이) | `engine-e4-gauge-hold.js` |
-| `e3-stir-wok.css` | 볶음우동 조리 · 철판 볶기 | `engine-e3-direction-seq.js` |
-| `e5-two-side-cook.css` | 김치전 · 닭꼬치 굽기 | `engine-e5-two-side-cook.js` |
+| `_night-common.css` | 공용 버튼 · 게이지 + 옛 미니게임 잔재 | `js/engine-legacy-night.js` |
+| `e6-deep-fry.css` | 튀기기 | `js/engine-e6-deep-fry.js` |
+| `e4-gauge-hold.css` | 화력 유지 (어묵탕 · 떡볶이) | `js/engine-e4-gauge-hold.js` |
+| `e3-stir-wok.css` | 볶음우동 조리 · 철판 볶기 | `js/engine-e3-direction-seq.js` |
+| `e5-two-side-cook.css` | 김치전 · 닭꼬치 굽기 | `js/engine-e5-two-side-cook.js` |
 
 ## 여기 없는 것 (예전 그대로입니다)
 

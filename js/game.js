@@ -212,6 +212,13 @@ const audio = {
     anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"],
     story_rain:["assets/sfx/story/sfx_rain.MP3"],
     story_open_door:["assets/sfx/story/sfx_open_door.MP3"],
+    story_guest_d1_arrival:["assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3"],
+    story_guest_d2_arrival:["assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3"],
+    story_guest_d3_arrival:["assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3"],
+    story_guest_d4_arrival:["assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3"],
+    story_guest_d5_arrival:["assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3"],
+    story_guest_d6_arrival:["assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3"],
+    story_guest_d7_arrival:["assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3"],
     fragment_full_d1:["assets/sfx/story/fragments/sfx_d1_finish.MP3"],
     fragment_full_d2:["assets/sfx/story/fragments/sfx_d2_finish.MP3"],
     fragment_full_d3:["assets/sfx/story/fragments/sfx_d3_finish.MP3"],
@@ -248,7 +255,7 @@ const audio = {
       if(current&&!current.element.ended)return current;
     }
     const element=this.preloaded.get(src)?.cloneNode(true)||new Audio(src);
-    const entry={name,element,owner,gain,loop,pausedBySettings:false};
+    const entry={name,element,owner,gain,loop,pausedBySettings:false,fadingOut:false,fadeFrame:null};
     element.loop=loop;element.preload="auto";element.volume=this.fileGain(entry);
     const cleanup=()=>this.releaseFile(entry);
     element.addEventListener("ended",cleanup,{once:true});element.addEventListener("error",cleanup,{once:true});
@@ -267,6 +274,8 @@ const audio = {
   },
   loop(name,owner,gain=1){return this.play(name,{loop:true,owner,gain});},
   releaseFile(entry){
+    if(entry?.fadeFrame!=null){cancelAnimationFrame(entry.fadeFrame);entry.fadeFrame=null;}
+    if(entry)entry.fadingOut=false;
     this.activeFiles.delete(entry);
     if(entry.owner){
       const owned=this.ownerFiles.get(entry.owner);owned?.delete(entry);if(owned&&!owned.size)this.ownerFiles.delete(entry.owner);
@@ -278,8 +287,28 @@ const audio = {
      stopOwner 의 반복을 통째로 끊어서 뒤에 있던 지글지글이 계속 울었습니다. */
   stopFile(entry){
     if(!entry)return;
+    if(entry.fadeFrame!=null){cancelAnimationFrame(entry.fadeFrame);entry.fadeFrame=null;}
+    entry.fadingOut=false;
     try{entry.element.pause();entry.element.currentTime=0;}catch{}
     this.releaseFile(entry);
+  },
+  fadeOutFile(entry,duration=1200){
+    if(!entry||!this.activeFiles.has(entry))return false;
+    const fadeDuration=Math.max(0,Number(duration)||0);
+    if(fadeDuration<=0){this.stopFile(entry);return true;}
+    if(entry.fadeFrame!=null)cancelAnimationFrame(entry.fadeFrame);
+    const startedAt=performance.now();
+    const startVolume=Math.max(0,Number(entry.element.volume)||0);
+    entry.fadingOut=true;
+    const step=now=>{
+      if(!this.activeFiles.has(entry))return;
+      const progress=clamp((now-startedAt)/fadeDuration,0,1);
+      entry.element.volume=startVolume*(1-progress);
+      if(progress>=1){entry.fadeFrame=null;this.stopFile(entry);return;}
+      entry.fadeFrame=requestAnimationFrame(step);
+    };
+    entry.fadeFrame=requestAnimationFrame(step);
+    return true;
   },
   stop(name,owner){const entry=this.loopFiles.get(owner)?.get(name);if(entry)this.stopFile(entry);},
   stopOwner(owner){[...(this.ownerFiles.get(owner)||[])].forEach(entry=>this.stopFile(entry));},
@@ -311,7 +340,7 @@ const audio = {
       this.bgm.gain.value = bgmAudioIsEnabled()?state.audio.bgm * .18:0;
       this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .35:0;
     }
-    this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
+    this.activeFiles.forEach(entry=>{if(!entry.fadingOut)entry.element.volume=this.fileGain(entry);});
     if(!bgmAudioIsEnabled())this.bgmElements.forEach(element=>{element.volume=0;});
     else if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
   },

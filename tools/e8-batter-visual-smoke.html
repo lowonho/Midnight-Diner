@@ -35,7 +35,7 @@
   </div>
 
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
     const state = { day:4, mini:null };
@@ -49,14 +49,14 @@
       miniFeedback:document.getElementById("miniFeedback")
     };
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
   <!-- 재료를 다 넣으면 **같은 화면 틀 그대로** 젓기(E9)로 바뀝니다.
        E8 전용 크기 규칙이 그쪽까지 새지 않았는지 ?whisk=1 로 같이 봅니다. -->
-  <script src="engine-e9-whisk.js"></script>
-  <script src="engine-e8-order-place.js"></script>
+  <script src="js/engine-e9-whisk.js"></script>
+  <script src="js/engine-e8-order-place.js"></script>
   <script>
     "use strict";
     /* ?step=0..3   지금까지 넣은 재료 수 (0 = 첫 화면)

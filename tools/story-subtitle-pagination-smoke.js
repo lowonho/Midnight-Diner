@@ -5,7 +5,7 @@ const path=require("node:path");
 const vm=require("node:vm");
 
 const root=path.resolve(__dirname,"..");
-const storySource=fs.readFileSync(path.join(root,"story.js"),"utf8");
+const storySource=fs.readFileSync(path.join(root,"js/story.js"),"utf8");
 const storyCss=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
 
 if(!/\.story-text\s*\{[\s\S]*?height:\s*2lh\s*;[\s\S]*?overflow:\s*hidden\s*;/m.test(storyCss)){

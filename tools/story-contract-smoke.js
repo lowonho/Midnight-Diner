@@ -5,12 +5,12 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const files = ["game-data.js", "story-data.js", "story.js"];
+const files = ["js/game-data.js", "js/story-data.js", "js/story.js"];
 const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
-const gameSource = fs.readFileSync(path.join(root, "game.js"), "utf8");
-const titleSource = fs.readFileSync(path.join(root, "title.js"), "utf8");
+const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
+const titleSource = fs.readFileSync(path.join(root, "js/title.js"), "utf8");
 
 if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   ||!titleSource.includes('journalLastGameplayPageId=String(pageId||"")')){
@@ -23,7 +23,14 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   "assets/sfx/story/sfx_rain.MP3",
   "assets/sfx/story/sfx_open_door.MP3",
   "assets/sfx/ui/sfx_next_book.MP3",
-  ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`)
+  ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`),
+  "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3"
 ].forEach(asset=>{
   if(!fs.existsSync(path.join(root,...asset.split("/"))))throw new Error(`스토리 음원 누락: ${asset}`);
 });
@@ -98,6 +105,17 @@ if(endingAssetPaths.length!==5
 
 const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
+const playedAudio=[];
+const audio={
+  play(name,options){
+    const entry={name,options,element:{addEventListener(){}}};
+    playedAudio.push(entry);
+    return entry;
+  },
+  stopFile(){},
+  fadeOutFile(){return true;},
+  setStoryBgm(){}
+};
 const window={QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={
   baseURI:"file:///C:/Midnight%20Diner/index.html",
@@ -213,6 +231,14 @@ const fragmentLayer={
 const fragmentName={textContent:""};
 document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer:id==="storyFragmentName"?fragmentName:null;
 const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
+const storyBeforeFragmentSfx=state.story;
+state.story=createStoryState();
+const guestAmbientEntry={name:"story_guest_d1_arrival"};
+storySession={
+  scene:STORY_SCENES["SCN-G1-완벽"],
+  playedFragmentSfx:{},
+  ambientAudio:guestAmbientEntry
+};
 assert(applyStoryFragmentHandoff(fullFragmentLine)
   &&fragmentLayerClasses.has("show")
   &&fragmentLayerClasses.has("has-art")
@@ -225,10 +251,16 @@ assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
   &&String(playStoryFullFragmentSfx).includes('handoff?.state!=="full"')
   &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
   "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
+assert(playedAudio.at(-1)?.name==="fragment_full_d1"
+  &&playedAudio.at(-1)?.options?.gain===.9
+  &&storySession.ambientAudio===guestAmbientEntry,
+  "조각 획득 효과음은 손님별 대화 테마를 끊지 않고 별도로 겹쳐 재생해야 합니다.");
 assert(!applyStoryFragmentHandoff(null)
   &&!("--fragment-art" in fragmentLayerStyles)
   &&!fragmentLayerClasses.has("show"),
   "달빛 조각 전달이 끝나면 절대 URL과 표시 상태를 해제해야 합니다.");
+storySession=null;
+state.story=storyBeforeFragmentSfx;
 document.getElementById=originalGetElementById;
 
 const expectedCharacterIds=[
@@ -393,8 +425,44 @@ assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
   &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
   &&String(clearStoryRuntime).includes("clearStoryAudio()")
-  &&String(finishStorySession).includes("clearStoryAudio()"),
+  &&String(finishStorySession).includes("clearStoryAudio({fadeAmbient:true})"),
   "스토리 음향은 장면 시작·중간 복원·종료 수명주기를 따라야 합니다.");
+const guestArrivalAudioNames=Array.from({length:7},(_,index)=>
+  STORY_SCENES["SCN-G"+(index+1)+"-A"].storyAmbient?.name
+);
+same(guestArrivalAudioNames,[
+  "story_guest_d1_arrival","story_guest_d2_arrival","story_guest_d3_arrival",
+  "story_guest_d4_arrival","story_guest_d5_arrival","story_guest_d6_arrival",
+  "story_guest_d7_arrival"
+],"1~7일차 특별 손님 등장 테마 효과음 연결");
+assert(Array.from({length:7},(_,index)=>STORY_SCENES["SCN-G"+(index+1)+"-A"])
+  .every((arrival,index)=>{
+    const prefix="SCN-G"+(index+1);
+    return [arrival,STORY_SCENES[prefix+"-B"],STORY_SCENES[prefix+"-아쉽다"],
+      STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]]
+      .every(scene=>scene.storyBgm==="night"
+        &&scene.storyAmbient?.name===arrival.storyAmbient.name
+        &&scene.storyAmbientFadeOut===1400);
+  }),
+  "1~7일차 특별 손님의 모든 대화는 밤 BGM과 손님별 테마를 함께 유지해야 합니다.");
+assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
+  &&String(suspendStoryForOrderCook).includes("stopStoryAmbient(")
+  &&String(restoreStoryCheckpoint).includes("if(!restored.suspended)applyStorySceneAudio(scene)")
+  &&String(applyStorySceneAudio).includes("currentAmbient?.name!==cue.name")
+  &&String(stopStoryAmbient).includes("audio.fadeOutFile(entry,duration)"),
+  "특별 손님 대화가 조리로 넘어가거나 종료될 때 테마 효과음을 자연스럽게 줄여야 합니다.");
+const guestArrivalAudioFiles=[
+  "sfx_story_d1_raindrop_arrival.MP3","sfx_story_d2_lantern_arrival.MP3",
+  "sfx_story_d3_twin_shadow_arrival.MP3","sfx_story_d4_crow_letter_arrival.MP3",
+  "sfx_story_d5_star_beast_arrival.MP3","sfx_story_d6_seawater_arrival.MP3",
+  "sfx_story_d7_clock_444_arrival.MP3"
+];
+guestArrivalAudioNames.forEach((name,index)=>{
+  const day=index+1;
+  const assetPath="assets/sfx/story/guests/"+guestArrivalAudioFiles[index];
+  assert(gameSource.includes(name)&&gameSource.includes(assetPath),
+    "Day "+day+" 특별 손님 효과음 파일 연결");
+});
 assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="지친 밤 - 퇴근길"
   &&!storySceneCardText(STORY_SCENES["SCN-J01"]).includes("SCN-")
   &&!storySceneCardText(STORY_SCENES["END-01"]).includes("END-"),

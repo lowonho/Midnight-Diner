@@ -66,7 +66,7 @@
     </section>
   </main>
   <output id="testResult">PENDING</output>
-  <script src="../game-data.js"></script>
+  <script src="../js/game-data.js"></script>
   <script>
     const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks]}));
     const smokeQuery=new URLSearchParams(location.search);
@@ -76,7 +76,7 @@
     const state={screen:"game",phase:GAME_PHASES.MENU_SELECT,paused:false,selectedMenus:smokeMenus.length?smokeMenus:smokeAllMenus?MENU_DATA.map(menu=>menu.id):["oden","tteokbokki"],ingredientSelection:null};
     const ids=["menuSelectOverlay","ingredientSelectOverlay","ingredientSelectTitle","ingredientDishGallery","ingredientChecklist","ingredientGrid","fridgeColdAir","ingredientSelectFeedback","ingredientTotalProgress"];
     const dom=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
-    // 자리만 바꾸는 진짜 섞기(씨앗 고정). game.js 의 shuffle 과 같은 성질입니다.
+    // 자리만 바꾸는 진짜 섞기(씨앗 고정). js/game.js 의 shuffle 과 같은 성질입니다.
     let seed=20260806;
     const random=()=>{seed=(seed*1103515245+12345)%2147483648;return seed/2147483648;};
     const shuffle=items=>{const copy=[...items];for(let i=copy.length-1;i>0;i-=1){const j=Math.floor(random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]];}return copy;};
@@ -87,8 +87,8 @@
     const saveGame=()=>true,updateUI=()=>{},showToast=()=>{};
     const miniSetTimeout=setTimeout,miniClearTimeout=clearTimeout,miniSetInterval=setInterval,miniClearInterval=clearInterval;
   </script>
-  <script src="../engine-e13-fridge-find.js"></script>
-  <script src="../ingredient-select.js"></script>
+  <script src="../js/engine-e13-fridge-find.js"></script>
+  <script src="../js/ingredient-select.js"></script>
   <script>
     const visual=new URLSearchParams(location.search).has("visual");
     try{

@@ -1,6 +1,6 @@
 "use strict";
 
-/* 컷씬 배경(story-cinematic.js)의 계약 검사.
+/* 컷씬 배경(js/story-cinematic.js)의 계약 검사.
    지키려는 것은 셋입니다.
      · 프롤로그 세 컷의 원화 파일이 실제로 있는지
      · 컷이 안 적힌 대사에서 직전 컷이 유지되는지 (구간 개념의 핵심)
@@ -12,9 +12,9 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const cinematicSource = fs.readFileSync(path.join(root, "story-cinematic.js"), "utf8");
-const storySource = fs.readFileSync(path.join(root, "story.js"), "utf8");
-const storyDataSource = fs.readFileSync(path.join(root, "story-data.js"), "utf8");
+const cinematicSource = fs.readFileSync(path.join(root, "js/story-cinematic.js"), "utf8");
+const storySource = fs.readFileSync(path.join(root, "js/story.js"), "utf8");
+const storyDataSource = fs.readFileSync(path.join(root, "js/story-data.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
 
@@ -30,7 +30,7 @@ assert(indexSource.includes('id="storyCutscene"')
 assert(/\.story-overlay\.story-cinematic-active[\s\S]*?\.story-stage\s*\{[\s\S]*?visibility:\s*hidden/.test(storyCssSource),
   "컷씬 중에는 배우 무대를 감춰야 합니다(원화 안에 김다은이 이미 있습니다).");
 /* 컷 안에 김다은이 그려져 있으면 대화용 원화를 겹쳐 세우면 안 됩니다.
-   story.js 가 이 판단을 story-cinematic.js 에 물어보는지 확인합니다. */
+   js/story.js 가 이 판단을 js/story-cinematic.js 에 물어보는지 확인합니다. */
 assert(storySource.includes("storyCinematicDrawsProtagonist"),
   "컷씬 중 원화를 올릴지는 그 컷에 김다은이 그려져 있는지로 정해야 합니다.");
 
@@ -43,13 +43,13 @@ for (const art of artPaths) {
     `컷씬 원화가 없습니다: ${art}\n  npm run build:cutscene 으로 PNG 에서 뽑으세요.`);
 }
 
-/* story-data.js 가 쓰는 컷 이름이 story-cinematic.js 에 실제로 있는지.
+/* js/story-data.js 가 쓰는 컷 이름이 js/story-cinematic.js 에 실제로 있는지.
    오타가 나면 그 대사에서 컷이 그냥 안 바뀝니다(에러 없음). */
 const declaredCuts = new Set([...cinematicSource.matchAll(/^\s{2}(\w+):Object\.freeze/gm)].map(m => m[1]));
 const usedCuts = [...storyDataSource.matchAll(/cinematic:\s*\{\s*cut:\s*"([^"]+)"/g)].map(m => m[1]);
 assert(usedCuts.length >= 3, `프롤로그 컷 지정이 너무 적습니다 (지금 ${usedCuts.length}군데).`);
 for (const cut of usedCuts) {
-  assert(declaredCuts.has(cut), `story-data.js 가 없는 컷을 부릅니다: ${cut}`);
+  assert(declaredCuts.has(cut), `js/story-data.js 가 없는 컷을 부릅니다: ${cut}`);
 }
 
 /* ── 런타임 동작 ────────────────────────────────────────────
@@ -75,7 +75,7 @@ const cutsceneContainer = {
 };
 const context = {
   console,
-  // story.js 의 진행 상태. 장면 중간부터 여는 경우의 되감기가 이걸 읽습니다.
+  // js/story.js 의 진행 상태. 장면 중간부터 여는 경우의 되감기가 이걸 읽습니다.
   storySession: null,
   Image: function Image() { this.src = ""; },
   document: {

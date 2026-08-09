@@ -39,10 +39,10 @@
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <!-- 오류는 **전부 모읍니다.** 하나만 남기면 뒤에 난 오류가 첫 원인을 덮어씁니다 -->
   <script>window.__errors=[];window.addEventListener("error",e=>{window.__errors.push(`${e.message} @ ${e.filename}:${e.lineno}`);document.body.dataset.error=window.__errors.join(" || ");});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, 두 게임이 실제로 만지는
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, 두 게임이 실제로 만지는
        것만 흉내 냅니다 — 전역 state / dom / audio 셋입니다. */
     const state = { day:3, mini:null, prepProgress:{} };
     const audio = new Proxy({}, { get:() => () => {} });
@@ -58,17 +58,17 @@
        ⚠️ 여기에 놓을 수 있는 것은 아래에서 불러오는 파일에 **없는** 이름뿐입니다.
           있는 이름(finishDayPrepTask 등)을 const 로 또 선언하면 그 파일이
           "already been declared" 로 통째로 죽고, 화면이 빈 액자만 남습니다. */
-    const showToast = () => {};                 // game.js
+    const showToast = () => {};                 // js/game.js
   </script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e1-timing-cut.js"></script>
-  <script src="engine-e2-alternate-input.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e1-timing-cut.js"></script>
+  <script src="js/engine-e2-alternate-input.js"></script>
   <!-- 채칼은 E12(잡고 흔들기)가 등록·조작을 맡습니다. renderMandoline 이
        bindMandolineDrag 를 부르므로 이 파일이 없으면 화면이 통째로 죽습니다. -->
-  <script src="engine-e12-grab-shake.js"></script>
+  <script src="js/engine-e12-grab-shake.js"></script>
   <script>
     "use strict";
     /* ?game=e1  E1 썰기   (?task=cutRadish|cutFishCake|cutTofuKimchi|… ?done=0..)
@@ -80,7 +80,7 @@
     const done = Math.max(0, Number(params.get("done")) || 0);
 
     loadDayPrepAssets().then(() => {
-      // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (day-prep-minigames.js)
+      // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (js/day-prep-minigames.js)
       state.mini = { context:{ mode:"dayPrep" }, engine:null, complete:false, data:null };
       if(game === "e1"){
         setupTimingCut(params.get("task") || "cutRadish");

@@ -35,4 +35,4 @@ assets/prep/
 - 팬 이미지는 손잡이를 포함하고, `frying-kimchi.png`는 팬 중앙에 겹쳐질 수 있도록 여백을 최소화합니다.
 - 권장 작업 캔버스: 무·김치 640×200, 멸치 몸통 160×64, 멸치 머리 64×64, 팬 640×300, 볶는 김치 320×140, 칼 160×160.
 
-경로를 변경해야 할 때만 `day-prep-minigames.js`의 `DAY_PREP_ASSET_PATHS`를 수정하면 됩니다.
+경로를 변경해야 할 때만 `js/day-prep-minigames.js`의 `DAY_PREP_ASSET_PATHS`를 수정하면 됩니다.

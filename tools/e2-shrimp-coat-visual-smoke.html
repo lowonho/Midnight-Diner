@@ -38,14 +38,14 @@
   <!-- 게임 파일을 그대로 불러다 씁니다. 화면을 베껴 적으면 진짜 화면과 어긋납니다. -->
   <!-- 헤드리스 캡처에서도 원인이 보이도록 오류를 body 에 적어 둡니다 -->
   <script>window.addEventListener("error",e=>{document.body.dataset.error=`${e.message} @ ${e.filename}:${e.lineno}`;});</script>
-  <script src="ui-mini-frame.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E2 가 실제로 만지는
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, E2 가 실제로 만지는
        것만 흉내 냅니다 — 전역 state / dom 두 개입니다. */
-    /* 프레임은 ui-mini-frame.js 가 로드되면서 #miniFrameMount 자리에 스스로 붙입니다 */
+    /* 프레임은 js/ui-mini-frame.js 가 로드되면서 #miniFrameMount 자리에 스스로 붙입니다 */
     const state = { day:3, mini:null };
-    // 효과음은 game.js 것이라 여기서는 삼킵니다 (부르기만 하고 결과를 안 봅니다)
+    // 효과음은 js/game.js 것이라 여기서는 삼킵니다 (부르기만 하고 결과를 안 봅니다)
     const audio = new Proxy({}, { get:() => () => {} });
     const dom = {
       miniContent:document.getElementById("miniContent"),
@@ -56,13 +56,13 @@
       miniFeedback:document.getElementById("miniFeedback")
     };
   </script>
-  <script src="game-data.js"></script><!-- E8 이 로드 시점에 SKEWER_BATCH_SIZE 를 읽습니다 -->
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
-  <script src="day-prep-minigames.js"></script>
-  <script src="engine-e2-alternate-input.js"></script>
+  <script src="js/game-data.js"></script><!-- E8 이 로드 시점에 SKEWER_BATCH_SIZE 를 읽습니다 -->
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
+  <script src="js/engine-e2-alternate-input.js"></script>
   <!-- 새우 옮기기가 E8 의 공용 포인터 배치기를 씁니다 (bindOrderPlacementPointers) -->
-  <script src="engine-e8-order-place.js"></script>
+  <script src="js/engine-e8-order-place.js"></script>
   <script>
     "use strict";
     /* ?step=0..2 (밀가루·계란물·빵가루) · ?percent=0..100 (묻은 정도)
@@ -77,7 +77,7 @@
 
     loadDayPrepAssets().then(() => {
       state.mini = {
-        // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (day-prep-minigames.js)
+        // isDayPrepMini() 가 보는 것은 context.mode 하나입니다 (js/day-prep-minigames.js)
         context:{ mode:"dayPrep" }, engine:"shrimpCoat", complete:false,
         data:createAlternateFeelState({ mode:"shrimpCoat", taskId:SHRIMP_COAT_TASK_ID, step,
                sequence:SHRIMP_COAT_STEPS, keys:["f","j"], expectedIndex:0,

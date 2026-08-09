@@ -5,7 +5,7 @@
 <script type="module">
 try{
   const output=document.querySelector("#output");
-  const gameSource=await fetch("../game.js").then(response=>response.text());
+  const gameSource=await fetch("../js/game.js").then(response=>response.text());
   const paths=[...new Set([...gameSource.matchAll(/["'](assets\/sfx\/[^"']+\.mp3)["']/gi)].map(match=>match[1]))];
   const context=new AudioContext();
   const db=value=>value>0?20*Math.log10(value):-Infinity;

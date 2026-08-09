@@ -21,7 +21,7 @@
    가로 = 프레임, 세로 = 캐릭터 8명.
      assets/customer/customer_common_idle.webp   / _eat.webp
      assets/customer/customer_special_idle.webp  / _eat.webp
-   customers.js 의 CUSTOMER_ART 가 이 파일들을 읽습니다.
+   js/customers.js 의 CUSTOMER_ART 가 이 파일들을 읽습니다.
 
    PNG 가 원본(마스터)입니다. 절대 지우지 마세요.
    시트는 빌드 산출물이므로 항상 PNG 에서 다시 만듭니다.
@@ -52,7 +52,7 @@
    [셀 폭]
    세트마다 다릅니다. 아래 SETS 의 cellW 주석을 보세요.
    남는 자리는 투명이라
-   그냥 둬도 됩니다. 화면에 그리는 크기는 customers.js 가 셀 비율에서
+   그냥 둬도 됩니다. 화면에 그리는 크기는 js/customers.js 가 셀 비율에서
    계산하므로 여기를 바꿔도 캐릭터가 홀쭉해지거나 하지 않습니다.
 
    [매트 청소]
@@ -75,9 +75,9 @@ const ASSET_DIR = path.join(__dirname, "..", "assets", "customer");
      special 472   셋째 날 '두 그림자'(special_03)가 둘이 붙어 있어 459 필요
 
    셀이 넓어도 남는 자리는 투명이라 화면에는 영향이 없습니다. 그리는 크기는
-   customers.js 가 셀 비율에서 계산하므로 여기만 고치면 됩니다.
+   js/customers.js 가 셀 비율에서 계산하므로 여기만 고치면 됩니다.
 
-   key     customers.js 의 그림 세트 이름
+   key     js/customers.js 의 그림 세트 이름
    motion  모션 이름. 세트 안에서 같은 행 = 같은 캐릭터입니다
    src     assets/customer 아래 원화 폴더
    suffix  파일명 꼬리표. 그 폴더의 다른 PNG 와 구분합니다 */
@@ -305,7 +305,7 @@ function shrink(data, width, height){
    4. 변환
    ------------------------------------------------------------
    행 순서 = 파일명 정렬 순서입니다. 01 이 0행입니다.
-   customers.js 의 행 번호가 곧 그 순서이고, 한 세트의 두 모션이 같은
+   js/customers.js 의 행 번호가 곧 그 순서이고, 한 세트의 두 모션이 같은
    행을 씁니다. 한쪽 폴더에만 파일을 넣거나 빼면 손님이 뒤바뀝니다.
    번호를 건너뛰지 마세요. (아래 검증이 개수 불일치를 잡아 줍니다)
    ------------------------------------------------------------ */
@@ -392,7 +392,7 @@ async function convert(){
 
   console.log("\n" + "=".repeat(80));
   console.log(`합계  원본 ${kb(png)}KB → 시트 ${kb(web)}KB  (${Math.round((1 - web / png) * 100)}% 절감) · 텍스처 ${Math.round(mem / 1048576)}MB`);
-  console.log("customers.js CUSTOMER_ART 에 적을 값: "
+  console.log("js/customers.js CUSTOMER_ART 에 적을 값: "
     + SHEETS.map(s => `${s.set}.${s.motion} cols ${built[s.out].cols}`).join(" · "));
 }
 

@@ -47,8 +47,8 @@ const sandbox={
 sandbox.globalThis=sandbox;
 
 const context=vm.createContext(sandbox);
-vm.runInContext(read("engine-e13-fridge-find.js"),context,{filename:"engine-e13-fridge-find.js"});
-vm.runInContext(read("ingredient-select.js"),context,{filename:"ingredient-select.js"});
+vm.runInContext(read("js/engine-e13-fridge-find.js"),context,{filename:"js/engine-e13-fridge-find.js"});
+vm.runInContext(read("js/ingredient-select.js"),context,{filename:"js/ingredient-select.js"});
 // 이 검사는 냉장고 새 판의 상태와 완료 배너 수명만 확인합니다. 화면 렌더링과 냉기
 // 애니메이션은 별도 시각 QA의 책임이므로 부수 효과를 막습니다.
 vm.runInContext("startFridgeColdAir=()=>{}; renderIngredientSelection=()=>{};",context);

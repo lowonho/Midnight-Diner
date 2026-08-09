@@ -48,7 +48,7 @@ sandbox.globalThis=sandbox;
    전역 스크립트라, 두 파일에 같은 이름의 함수가 있으면 나중에 읽는 쪽이 앞의 것을
    덮어씁니다. 순서를 뒤집어 읽으면 그 덮어쓰기가 여기서는 안 보이고 게임에서만
    터집니다 — 실제로 E5 재료 카드가 E8 함수에 먹힌 적이 있습니다(아래 6번). */
-const files=["game-data.js","engine-e5-two-side-cook.js","engine-e8-order-place.js"];
+const files=["js/game-data.js","js/engine-e5-two-side-cook.js","js/engine-e8-order-place.js"];
 const context=vm.createContext(sandbox);
 files.forEach(file=>vm.runInContext(read(file),context,{filename:file}));
 const api=vm.runInContext(
@@ -123,7 +123,7 @@ assert(same(rawFrames.map(frame=>frame.on),[true,false,false,false,false]),
 /* 익힘 단계를 끝까지 올리면 마지막 장까지 다 켜집니다 (아래 장을 끄지 않는 것이 규칙입니다).
    ⚠️ 예전에는 여기에 `marker:.99`(익힘 게이지 눈금)를 넘겼습니다. 게이지가 없어지고
       **면(앞/뒤)마다 unit.sides 가 자루별로 따로 들고** 있게 바뀌었습니다
-      (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS 주석 참고). */
+      (js/engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS 주석 참고). */
 const burnt=framesOf(firstPiece(api.charcoalSkewerMarkup(cookData(4))));
 assert(burnt.every(frame=>frame.on),"다 태운 화면에서 익힘 단계 5장이 다 켜지지 않았습니다.");
 assert(burnt[4].key==="cookSkewerChickenBurnt",`마지막 장이 탄 그림이 아닙니다: ${burnt[4].key}`);

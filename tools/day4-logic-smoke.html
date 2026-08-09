@@ -2,9 +2,9 @@
 <meta charset="utf-8">
 <title>pending</title>
 <body>pending</body>
-<script src="../game-data.js"></script>
-<script src="../day4-prep-data.js"></script>
-<script src="../mini-engine.js"></script>
+<script src="../js/game-data.js"></script>
+<script src="../js/day4-prep-data.js"></script>
+<script src="../js/mini-engine.js"></script>
 <script>
 const DISHES=MENU_DATA.map(menu=>({...menu,name:menu.displayName,prepTasks:[...menu.requiredPrepTasks],prep:[...(menu.prep||[])],cook:[...(menu.cook||[])]}));
 function dishById(id){return DISHES.find(dish=>dish.id===id)||null;}
@@ -17,19 +17,19 @@ function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
 function setMiniTipHint(){}
 </script>
-<script src="../day.js"></script>
-<script src="../prep.js"></script>
-<script src="../day-prep-minigames.js"></script>
-<script src="../engine-e1-timing-cut.js"></script>
-<script src="../engine-e2-alternate-input.js"></script>
-<script src="../engine-e3-direction-seq.js"></script>
-<script src="../engine-e4-gauge-hold.js"></script>
-<script src="../engine-e5-two-side-cook.js"></script>
-<script src="../engine-e6-deep-fry.js"></script>
-<script src="../engine-e8-order-place.js"></script>
-<script src="../engine-e9-whisk.js"></script>
-<script src="../engine-e10-target-click.js"></script>
-<script src="../engine-e12-grab-shake.js"></script>
+<script src="../js/day.js"></script>
+<script src="../js/prep.js"></script>
+<script src="../js/day-prep-minigames.js"></script>
+<script src="../js/engine-e1-timing-cut.js"></script>
+<script src="../js/engine-e2-alternate-input.js"></script>
+<script src="../js/engine-e3-direction-seq.js"></script>
+<script src="../js/engine-e4-gauge-hold.js"></script>
+<script src="../js/engine-e5-two-side-cook.js"></script>
+<script src="../js/engine-e6-deep-fry.js"></script>
+<script src="../js/engine-e8-order-place.js"></script>
+<script src="../js/engine-e9-whisk.js"></script>
+<script src="../js/engine-e10-target-click.js"></script>
+<script src="../js/engine-e12-grab-shake.js"></script>
 <script>
 try{
   const assert=(condition,message)=>{if(!condition)throw new Error(message);};

@@ -39,13 +39,13 @@
     window.addEventListener("error",e=>{document.body.dataset.error=`${document.body.dataset.error||""} | ${e.message} @ ${e.filename}:${e.lineno}`;});
     window.addEventListener("unhandledrejection",e=>{document.body.dataset.error=`rejected: ${e.reason?.message||e.reason}\n${e.reason?.stack||""}`;});
   </script>
-  <script src="ui-mini-frame.js"></script>
-  <script src="game-data.js"></script>
-  <script src="day4-prep-data.js"></script>
-  <script src="mini-engine.js"></script>
+  <script src="js/ui-mini-frame.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/day4-prep-data.js"></script>
+  <script src="js/mini-engine.js"></script>
   <script>
     "use strict";
-    /* game.js 를 통째로 불러오면 페이저까지 딸려 오므로, 이 화면이 실제로
+    /* js/game.js 를 통째로 불러오면 페이저까지 딸려 오므로, 이 화면이 실제로
        만지는 전역만 흉내 냅니다 — state / dom / audio / clamp / shuffle / finishMini. */
     const state={day:3,phase:GAME_PHASES.PREP,selectedMenus:["shrimpTempura"],prepProgress:{coatShrimp:false},
       mini:{engine:"shrimpCoat",context:{mode:"dayPrep"},complete:false,data:{}},kimchiPrep:{}};
@@ -60,12 +60,12 @@
     function shuffle(items){return [...items];}
     function finishMini(){}
   </script>
-  <script src="day.js"></script>
-  <script src="prep.js"></script>
-  <script src="day-prep-minigames.js"></script>
+  <script src="js/day.js"></script>
+  <script src="js/prep.js"></script>
+  <script src="js/day-prep-minigames.js"></script>
   <!-- 끌어다 놓기(꺼내기 · 되돌려놓기)는 E8 공용 배치기를 씁니다 -->
-  <script src="engine-e8-order-place.js"></script>
-  <script src="engine-e2-alternate-input.js"></script>
+  <script src="js/engine-e8-order-place.js"></script>
+  <script src="js/engine-e2-alternate-input.js"></script>
   <script>
     "use strict";
     /* 이 화면의 본론은 새 플레이 흐름 세 걸음입니다.

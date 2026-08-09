@@ -8,7 +8,7 @@
 
    무엇에 쓰나:
    받은 시트는 방향마다 캐릭터 키가 다릅니다. 그대로 쓰면 방향을 바꾸거나
-   걷다 멈출 때 캐릭터가 커졌다 작아집니다. 그래서 chef-anim-table.js 가
+   걷다 멈출 때 캐릭터가 커졌다 작아집니다. 그래서 js/chef-anim-table.js 가
    방향별 배율을 걸어 크기를 CHEF_TARGET_H 로 맞추는데, 그 표에 넣을
    heights 값을 여기서 뽑습니다. 눈대중으로 적지 마세요.
 
@@ -16,7 +16,7 @@
    픽셀의 바운딩 박스를 구합니다. 걷기처럼 프레임마다 자세가 바뀌는
    모션은 가장 큰 순간이 기준이 돼야 하므로 행 전체를 봅니다.
 
-   출력 맨 아래에 chef-anim-table.js 에 그대로 붙여 넣을 수 있는
+   출력 맨 아래에 js/chef-anim-table.js 에 그대로 붙여 넣을 수 있는
    heights 줄이 나옵니다.
    ============================================================ */
 
@@ -30,7 +30,7 @@ const SRC_DIR = path.join(__dirname, "..", "assets", "character", "sprites");
 const FRAME_W = 192;
 const FRAME_H = 320;
 
-// 행 순서. chef-anim-table.js 의 dirs 와 같아야 합니다.
+// 행 순서. js/chef-anim-table.js 의 dirs 와 같아야 합니다.
 const DIRS = ["down", "up", "side"];
 
 // 이보다 옅은 픽셀은 안티에일리어싱 가장자리로 보고 무시합니다.
@@ -102,7 +102,7 @@ function measureRow(data, sheetW, cols, row, cellW, cellH, ratio){
   }
 
   console.log("\n" + "-".repeat(60));
-  console.log("chef-anim-table.js 의 각 줄에 붙여 넣으세요:\n");
+  console.log("js/chef-anim-table.js 의 각 줄에 붙여 넣으세요:\n");
   for(const row of rows){
     const body = DIRS.map(d => `${d}:${String(row.heights[d] ?? "-")}`).join(", ");
     console.log(`  // ${row.file}`);

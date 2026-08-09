@@ -40,7 +40,7 @@ const CUTSCENE_DIR = path.join(__dirname, "..", "assets", "Cutscene");
 
 /* [file]  CUTSCENE_DIR 기준 경로 (PNG 마스터)
    [size]  뽑아낼 WebP 크기 [가로, 세로]
-   [why]   그 컷이 어디에 쓰이는지. story-cinematic.js 의 STORY_CUTSCENES 와 짝입니다. */
+   [why]   그 컷이 어디에 쓰이는지. js/story-cinematic.js 의 STORY_CUTSCENES 와 짝입니다. */
 const FILES = [
   { file:"prologue/cutscene_02_reprimand_variant.png", size:[1920,1080],
     why:"SCN-P01 앞부분 · 야근 중 상사에게 지적받는 사무실" },

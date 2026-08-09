@@ -84,7 +84,7 @@ const MASTER_ROOT = process.env.MD_ART_MASTERS
 const OUT_ROOT = path.join(REPO, "assets", "Conversation");
 
 /* 파일 이름 뒤 번호가 곧 모션 번호입니다. 열 인물이 모두 같은 번호에 같은
-   감정을 담고 있어서 story.js 는 모션 표 하나(STORY_PROTAGONIST_MOTIONS)만
+   감정을 담고 있어서 js/story.js 는 모션 표 하나(STORY_PROTAGONIST_MOTIONS)만
    씁니다. 05 만 인물마다 다릅니다 — 김다은은 팬을 들고, 손님은 자기 음식을
    받아 든 모습입니다. 새 인물을 추가할 때도 이 순서를 지키세요. */
 const MOTIONS = [
@@ -100,7 +100,7 @@ const MOTIONS = [
 ];
 
 /* 등장인물별 원화 폴더. stem 은 파일 이름 앞부분입니다(뒤에 _motion_NN 이 붙습니다).
-   story.js 의 STORY_PORTRAIT_ART 와 key 로 짝을 맞춰 두세요.
+   js/story.js 의 STORY_PORTRAIT_ART 와 key 로 짝을 맞춰 두세요.
 
    [flip] 특별 손님은 좌우를 뒤집어 뽑습니다. 원화가 모두 같은 쪽을 보고 그려져
    있는데 손님은 무대 오른쪽에 서기 때문에, 그대로 두면 김다은과 등을 지고
@@ -263,7 +263,7 @@ async function measureFigure(entry){
 
 async function computeCss(){
   requireMasters();
-  console.log("등장인물별 값 (story.js 의 STORY_PORTRAIT_ART 에 그대로 넣으세요)\n");
+  console.log("등장인물별 값 (js/story.js 의 STORY_PORTRAIT_ART 에 그대로 넣으세요)\n");
   console.log(`기준: 머리끝을 무대 바닥보다 ${HEAD_ABOVE.toFixed(4)} 위에 맞추고,`);
   console.log(`      키는 무대 높이 x ${FIGURE_HEIGHT.toFixed(4)} x scale 로 정규화합니다.\n`);
 
@@ -296,7 +296,7 @@ async function computeCss(){
     }
   }
 
-  console.log("\n────────── story.js 붙여넣기 ──────────");
+  console.log("\n────────── js/story.js 붙여넣기 ──────────");
   for(const { entry, height, drop } of rows){
     console.log(`  ${entry.key}:{dir:"${entry.dir}",stem:"${entry.stem}",`
       + `height:${(height*100).toFixed(1)},drop:${(drop*100).toFixed(1)}},`
