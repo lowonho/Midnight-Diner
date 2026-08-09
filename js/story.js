@@ -1286,7 +1286,8 @@ function storyLinesForScene(scene){
   let replacements={};
   if(scene.dynamicJournalHint&&scene.journalVariants){
     const {status,arrival}=storyJournalStatusForDay();
-    source=scene.journalVariants[status]||scene.journalVariants.none||source;
+    const variant=scene.journalVariants[status];
+    if(Array.isArray(variant))source=[...source,...variant];
     const missing=arrival?STORY_SCENES[arrival.missingMenuSceneId]:null;
     const dish=arrival?dishById(arrival.dishId):null;
     replacements={
@@ -1511,7 +1512,11 @@ function applyStoryEndingBackground(scene){
   const layer=document.getElementById("storyEndingBackground");
   const overlay=document.getElementById("storyOverlay");
   if(!layer)return false;
-  const asset=resolveStoryAssetUrl(scene?.endingBackground);
+  /* 진엔딩 뒤 후일담은 같은 아침을 이어서 보여 줍니다. 후일담 데이터에는
+     이미 원본 엔딩을 가리키는 endingSceneId가 있으므로, 배경 경로를 한 번 더
+     복사하지 않고 그 장면의 일러스트를 상속합니다. */
+  const endingScene=scene?.endingSceneId?STORY_SCENES[scene.endingSceneId]:null;
+  const asset=resolveStoryAssetUrl(scene?.endingBackground||endingScene?.endingBackground);
   const show=!!asset;
   layer.classList?.toggle("show",show);
   layer.setAttribute?.("aria-hidden",show?"false":"true");
