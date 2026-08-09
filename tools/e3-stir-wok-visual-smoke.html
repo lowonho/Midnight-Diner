@@ -47,6 +47,9 @@
           대신 engine 이름이 "stir" 여야 stirInput 이 돕니다. */
     const state = { day:4, mini:null };
     const audio = new Proxy({}, { get:() => () => {} });
+    /* js/game.js 의 공용 도우미. 우측 점수 카드(mini-engine.js)가 이걸 씁니다 —
+       없으면 화면을 그리다 "clamp is not defined" 로 죽어 통째로 빈 화면이 됩니다. */
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
     const dom = {
       miniContent:document.getElementById("miniContent"),
       miniTimer:document.getElementById("miniTimer"),

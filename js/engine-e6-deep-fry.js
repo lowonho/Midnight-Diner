@@ -322,6 +322,7 @@ function renderFry() {
         <div class="fry-card fry-rack-panel">
           <h3 class="fry-card-title starred">완성</h3>
           ${fryRackMarkup(data, dish)}
+          ${miniPenaltyMarkup("fry")}
         </div>
       </aside>
     </div>`;

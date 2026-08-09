@@ -91,8 +91,13 @@
     const config = CASES[ingredient];
     const stage = Math.max(0, Math.min(config.total, Number(params.get("stage")) || 0));
 
+    /* ?mode=cook  밤 조리 화면으로 그립니다. 우측 칸이 [완성 개수 · 완성 예시] 에서
+       [점수 · 완성 예시 + 감점 안내] 로 바뀌는 것을 여기서 볼 수 있습니다
+       (두부 썰기가 실제로 이 문맥으로 들어옵니다). */
+    const mode = params.get("mode") === "cook" ? "cook" : "dayPrep";
+
     loadDayPrepAssets().then(() => {
-      state.mini = { context:{ mode:"dayPrep" }, engine:null, complete:false, data:null };
+      state.mini = { context:{ mode }, engine:null, complete:false, data:null };
       startCuttingMinigame({
         taskId:`smoke-${ingredient}`,
         ingredient,

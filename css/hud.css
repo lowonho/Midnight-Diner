@@ -521,7 +521,16 @@
 
    ※ 밤은 바로 아래에서 따로 잡습니다. */
 .phase-prep .right-hud {
-  height: 20.1%;
+  /* [21.5%] 예전 20.1%(216.3). 두 가지가 겹쳐 「다음 작업」 3줄일 때 셋째 줄이
+     조작 칩 구분선에 닿았습니다 — 판 윗여백을 5 내린 것과, 원래도 본문 칸이
+     내용보다 작았던 것입니다(칸 80.9 · 내용 89.1 → 8.2 넘침. 넘친 글자는
+     .objective-body 에 overflow 규칙이 없어 잘리지 않고 아래 여백으로 흘렀습니다).
+     칸이 내용을 담고도 남게 다시 쌓아 올린 값입니다 —
+       윗여백 24.2 + 제목줄 24 + 제목 아래 6 + 본문칸 91.9 + 칩 위 여백 12
+       + 조작 안내 54 + 아래여백 19.2 = 231.4 = 21.5%
+     이러면 본문 내용(89.1)보다 칸이 2.8 크고, 마지막 줄에서 구분선까지 14.8 뜹니다.
+     ⚠️ 판 그림이 이 높이에 맞춰 구워져 있습니다(231.3 x2 = 463). */
+  height: 21.5%;
   /* ⚠️ 공용 규칙의 min-height:31% 를 풀어야 height 가 삽니다 — min-height 가
      height 를 이깁니다(.left-hud 에도 같은 주의가 붙어 있습니다). */
   min-height: 0;
@@ -559,9 +568,11 @@
    (실측 359.6). 그러면 판 그림도 그만큼 늘어납니다. 바닥선을 내용 위로 올려
    다시 바닥선에 붙여 세운 값입니다 — 362.6, 지금 내용보다 3.0 큽니다.
      실측 359.6 (본 게임 밤 화면) · 하네스 최대 356.9 (tools/right-hud-measure-smoke.html)
+   [34.0%] 위 .controls-help 의 칩 위 여백을 8 → 12 로 벌리면서 내용이 4 더 자랐습니다
+   (363.6). 바닥선을 다시 그 위로 올린 값입니다 — 365.8, 내용보다 2.2 큽니다.
    ⚠️ 여기는 낮·좌측과 달리 height 가 아니라 **min-height** 라, 목표 글이 더 길어지면
       판이 또 자랍니다(예전부터 그런 자리입니다). 그때는 그림이 조금 늘어납니다. */
-.phase-open .right-hud { min-height: 33.7%; }
+.phase-open .right-hud { min-height: 34.0%; }
 
 /* 밤 좌측 패널은 낮과 따로 잡습니다.
    ------------------------------------------------------------
@@ -840,11 +851,18 @@
 .recipe-step.done { color: #99b56b; text-decoration: line-through; }
 .recipe-step.current { border-color: #e0a74e; color: #ffe4a0; }
 
+/* [margin-top 12] 예전 8. 구분선과 바로 위 목표 본문 마지막 줄 사이 여백입니다.
+   낮 「다음 작업」이 3줄일 때 셋째 줄이 선에 닿아 보인다는 지적을 받은 자리입니다.
+   ⚠️ 여백만으로는 안 됩니다 — 진짜 원인은 판이 짧아 .objective-body 가 눌린 것이었습니다.
+      본문 칸은 flex:1 1 auto · min-height:0 이라 자기 내용(89.1)보다 작아질 수 있고
+      (실측 칸 80.9), 넘친 글자는 잘리지 않고 이 여백 안으로 흘러들어 왔습니다.
+      그래서 선까지 8 이 아니라 3 밖에 안 남았습니다.
+      아래 .phase-prep .right-hud 높이를 같이 올려야 이 12 가 실제로 12 가 됩니다. */
 .controls-help {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: calc(4 * var(--upx));
-  margin-top: calc(8 * var(--upx));
+  margin-top: calc(12 * var(--upx));
   padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #c6aa7e;

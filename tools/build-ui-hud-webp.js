@@ -87,7 +87,7 @@ const UI_DIR = path.join(__dirname, "..", "assets", "UI", "HUD");
 const OUT_DIR = UI_DIR;
 
 // 위 [메뉴 카드 빼고 일부러 어둡게 굽습니다] 참고. 1 이면 손대지 않은 원본입니다.
-const WOOD = 0.70;                  // 나뭇결 밝기 배율
+const WOOD = 0.55;                  // 나뭇결 밝기 배율 (0.70 에서 한 단계 더 내렸습니다)
 const GOLD = 0.92;                  // 금선·아이콘 밝기 배율
 const SOFT = [85, 175];             // 이 밝기 구간에서 두 배율이 이어집니다
 
@@ -104,9 +104,9 @@ const FILES = [
   { file:"ui_hud_left_panel_night_4x.png",                  out:"ui_hud_left_panel_night.webp",
     size:[582,717], css:"291.2 x 358.3",  dark:true,  why:"규격 15 밤 · 현재 주문 (같은 이유로 32.7% → 33.3%)" },
   { file:"ui_hud_right_panel_day_4x.png",                   out:"ui_hud_right_panel_day.webp",
-    size:[690,433], css:"344.9 x 216.3",  dark:true,  why:"규격 22 낮 · 현재 목표" },
+    size:[690,463], css:"344.9 x 231.3",  dark:true,  why:"규격 22 낮 · 현재 목표 (「다음 작업」 3줄이 구분선에 닿아 20.1% → 21.5%)" },
   { file:"ui_hud_right_panel_night_4x.png",                 out:"ui_hud_right_panel_night.webp",
-    size:[690,725], css:"344.9 x 362.6",  dark:true,  why:"규격 22 밤 · 현재 목표 + 영업 기록 (판 윗여백 5 내리며 33% → 33.7%)" },
+    size:[690,732], css:"344.9 x 365.8",  dark:true,  why:"규격 22 밤 · 현재 목표 + 영업 기록 (윗여백·칩 여백 늘리며 33% → 34.0%)" },
   { file:"ui_hud_menu_card_4x.png",                         out:"ui_hud_menu_card.webp",
     size:[456,262], css:"228 x 131.2",    dark:false, why:"규격 6 · 메뉴 카드. 3장이 같은 그림 한 장을 씁니다" },
   { file:"ui_hud_day_stat_square_corners_4x.png",            out:"ui_hud_day_stat.webp",

@@ -183,7 +183,10 @@ function cutDoneSampleMarkup(data,total){
 // 넓어지고, 아래쪽 줄의 높이가 다른 미니게임과 같아집니다.
 // 비어 있으면 .mg-strip:empty 가 접어서 3열이 613.2 를 그대로 씁니다.
 function cutScreenMarkup(data,{board,done,total,footer=""}){
-  const scorePanel=state.mini?.context?.mode==="cook"||state.mini?.context?.mode==="story"
+  // 이 화면은 낮 준비(완성 개수)와 밤 조리(점수)가 같이 씁니다. 감점 안내도
+  // 점수가 있는 밤에만 붙습니다 — 낮은 깎일 점수 자체가 없습니다.
+  const isCook=state.mini?.context?.mode==="cook"||state.mini?.context?.mode==="story";
+  const scorePanel=isCook
     ?miniScorePanelMarkup("cut-card cut-count-card","cut-card-title")
     :`<div class="cut-card cut-count-card">
           <h3 class="cut-card-title">완성 개수</h3>
@@ -209,6 +212,7 @@ function cutScreenMarkup(data,{board,done,total,footer=""}){
         <div class="cut-card cut-ref-card">
           <h3 class="cut-card-title">완성 예시</h3>
           <div class="cut-card-figure">${cutDoneSampleMarkup(data,total)}</div>
+          ${isCook?miniPenaltyMarkup("chop"):""}
         </div>
       </aside>
       <div class="mg-strip">${footer?`<div class="cut-footer">${footer}</div>`:""}</div>

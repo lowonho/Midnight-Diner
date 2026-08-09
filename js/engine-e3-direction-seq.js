@@ -78,7 +78,16 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
     // 철판도 한 획마다 짧은 변의 45%를 크게 밀도록 김치 볶기와 통일합니다.
     slideStep:.45,
     wrongPenalty:10,
-    wrongOncePerStep:true
+    wrongOncePerStep:true,
+    /* 손을 놓고 있으면 면이 눌어붙습니다 — 이만큼 아무 획도 안 그으면 −10 이고,
+       그 뒤로도 가만히 있으면 같은 간격으로 계속 깎입니다.
+       ⚠️ 이 값은 화면 두 군데에 그대로 적혀 있습니다. 고치면 셋을 같이 고치세요.
+            진행도 카드의 '/ 3.0초'  (renderStirScene 의 miniScoreTimeMarkup)
+            감점 안내 한 줄          (js/ui-mini-frame.js 의 MINI_PENALTY.stir)
+       ⚠️ 김치 볶기(kimchi)에는 일부러 넣지 않았습니다. 낮 준비는 점수가 아니라
+          완성 개수라 깎을 점수 자체가 없습니다. */
+    idleLimit:3,
+    idlePenalty:10
   })
 });
 
@@ -494,6 +503,8 @@ function kimchiFryInput(direction,repeat=false){
 const STIR_TOTAL=DIRECTION_SEQUENCE_CONFIG.yakisoba.total;
 const STIR_DIRECTIONS=DIRECTION_SEQUENCE_CONFIG.yakisoba.directions;
 const STIR_WRONG_PENALTY=DIRECTION_SEQUENCE_CONFIG.yakisoba.wrongPenalty;
+const STIR_IDLE_LIMIT=DIRECTION_SEQUENCE_CONFIG.yakisoba.idleLimit;
+const STIR_IDLE_PENALTY=DIRECTION_SEQUENCE_CONFIG.yakisoba.idlePenalty;
 // 왼쪽 재료 카드. 개수·이름만 바꾸면 카드가 그대로 바뀝니다.
 const STIR_INGREDIENTS=Object.freeze([
   Object.freeze({id:"udon",label:"우동",count:1,asset:"stirIngUdon"}),
@@ -555,10 +566,36 @@ function setStirSpatulaState(data,dragging){
   dom.miniContent.querySelectorAll(".yk-spatula").forEach(tool=>{tool.dataset.spatula=pose;});
 }
 
+/* 잘못 그은 획(errors)과 손 놓고 있던 벌(idlePenalties)은 배점이 따로입니다.
+   앞으로 어느 한쪽만 조절하고 싶어질 자리라 처음부터 나눠 셉니다. */
+function stirScore(data){
+  return Math.max(0,100-(data?.errors||0)*STIR_WRONG_PENALTY-(data?.idlePenalties||0)*STIR_IDLE_PENALTY);
+}
+
+/* 마지막 획 이후 흐른 시간. 한 획을 그을 때마다 0 으로 돌아갑니다.
+   ⚠️ 방향이 틀린 획도 "액션"으로 칩니다 — 틀린 것은 이미 −10 을 물었는데
+      무동작으로 한 번 더 물리면 같은 실수를 두 번 깎는 셈입니다. */
+function resetStirIdle(data){
+  if(data)data.idle=0;
+}
+
+function tickStirIdle(m,dt){
+  const data=m?.data;
+  if(!data||m.complete||data.phase==="complete")return;
+  data.idle=(data.idle||0)+dt;
+  if(data.idle>=STIR_IDLE_LIMIT){
+    data.idle=0;
+    data.idlePenalties=(data.idlePenalties||0)+1;
+    audio.bad?.();
+    dom.miniFeedback.textContent=`면이 눌어붙고 있어요! 계속 볶아주세요. (${stirScore(data)}점)`;
+    updateMiniScore(m);
+  }
+  updateMiniScoreTime("stirIdleTime",data.idle,STIR_IDLE_LIMIT);
+}
+
 registerMiniEngine("stir",{
   score(m){
-    const data=m?.data;
-    return Math.max(0,100-(data?.errors||0)*STIR_WRONG_PENALTY);
+    return stirScore(m?.data);
   },
   setup(m,{set}){
     set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
@@ -574,11 +611,20 @@ registerMiniEngine("stir",{
       transitioning:false,
       // 한 번이라도 볶았는지. 뒤집개 그림이 깨끗한 장 → 면이 묻은 장으로 바뀝니다.
       stirred:false,
+      // 마지막 획 이후 흐른 시간과, 그동안 물린 벌 수 (위 tickStirIdle)
+      idle:0,
+      idlePenalties:0,
       drag:null
     };
     audio.loop?.("griddle_sizzle",m,.62);
     dom.miniTimer.textContent=`0 / ${STIR_TOTAL}`;          // 공용 카드는 CSS 로 숨겨져 있습니다
     renderStirScene();
+  },
+
+  /* 제한시간은 없지만(아래 timerRuns) **무동작 시계는 돕니다.**
+     둘은 다른 시계입니다 — 하나는 판 전체의 남은 시간, 하나는 마지막 획 이후입니다. */
+  update(m,dt){
+    tickStirIdle(m,dt);
   },
 
   // 레퍼런스 화면에 시계가 없습니다(위 [제한시간] 참고)
@@ -624,10 +670,12 @@ function renderStirScene(){
       </div>
 
       <aside class="yk-col">
-        ${miniScorePanelMarkup("yk-panel yk-count","yk-col-title")}
+        ${miniScorePanelMarkup("yk-panel yk-count has-time","yk-col-title",state.mini,
+          miniScoreTimeMarkup("stirIdleTime","마지막 볶기 이후",STIR_IDLE_LIMIT))}
         <div class="yk-panel yk-next">
           <h3 class="yk-col-title">다음 순서</h3>
           <div class="yk-next-arrow" id="stirNextArrow">${directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset")}</div>
+          ${miniPenaltyMarkup("stir")}
         </div>
       </aside>
 
@@ -654,6 +702,8 @@ function stirInput(direction,repeat=false){
   const data=m.data;
   // 한 획을 밀었으면 방향이 틀렸어도 뒤집개에는 면이 묻습니다 (김치 볶기와 같습니다)
   data.stirred=true;
+  // 방향이 맞든 틀리든 "손은 움직였다"라서 무동작 시계를 되돌립니다 (resetStirIdle 주석 참고)
+  resetStirIdle(data);
   const current=dom.miniContent.querySelector(`[data-stir-index="${data.index}"]`);
   processDirectionSequenceInput(m,direction,{
     sequenceKey:"arrows",indexKey:"index",
@@ -687,7 +737,7 @@ function stirInput(direction,repeat=false){
       workSelector:"#stirWorkArea",
       feedback:grade=>grade==="perfect"?"철판 위 우동을 완벽하게 볶았습니다!":"우동을 맛있게 볶았습니다!",
       score:MINI_ENGINES.stir.score(m),
-      onDone:()=>finishMini(Math.max(0,100-data.errors*STIR_WRONG_PENALTY))
+      onDone:()=>finishMini(stirScore(data))
     });}
   });
 }

@@ -1566,12 +1566,14 @@ function twoSideSideMarkup(view, data) {
           <h3 class="ts-col-title">완성 담기</h3>
           <div class="ts-serve-figure">${twoSideServeMarkup(data)}</div>
           <p class="ts-now" id="tsNow"></p>
+          ${miniPenaltyMarkup("twoSideCook")}
         </div>`;
   }
   return `${miniScorePanelMarkup("ts-panel ts-count","ts-col-title")}
         <div class="ts-panel ts-control">
           <h3 class="ts-col-title">조작</h3>
           ${twoSideGuideMarkup(view)}
+          ${miniPenaltyMarkup("twoSideCook")}
         </div>`;
 }
 
