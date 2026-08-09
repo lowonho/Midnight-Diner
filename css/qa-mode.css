@@ -73,7 +73,7 @@
 /* ---- 탭 --------------------------------------------------- */
 .qa-tabs { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin-bottom: 8px; }
 .qa-tabs button { padding: 5px 2px; background: #3a241a; color: #d8b47e; font-size: 11px; }
-.qa-tabs button.active { background: #ffd875; color: #3e2416; font-weight: bold; }
+.qa-tabs button.active { background: #ffd875; color: #3e2416; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: bold; }
 
 /* ---- 컬렉션 영업일지 개방·초기화 --------------------------- */
 .qa-journal-summary {
@@ -83,7 +83,7 @@
 .qa-journal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 5px; }
 .qa-journal-actions button { padding: 7px 4px; }
 .qa-mode-panel .qa-journal-reset { background: #8a4a33; color: #ffe6bd; }
-.qa-mode-panel .qa-journal-reset.armed { background: #d8412f; color: white; font-weight: bold; }
+.qa-mode-panel .qa-journal-reset.armed { background: #d8412f; color: white; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: bold; }
 .qa-journal-hint { margin-top: 4px; line-height: 1.4; }
 
 /* ---- 미니게임 목록 ---------------------------------------- */

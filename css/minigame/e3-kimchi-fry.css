@@ -55,7 +55,7 @@
 .kf-ing-art i { position: relative; display: block; width: calc(96 * var(--upx)); height: calc(96 * var(--upx)); }
 .kf-ing-art.has-asset i { display: none; }
 .kf-ing-asset { max-width: 100%; max-height: calc(104 * var(--upx)); object-fit: contain; }
-.kf-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
+.kf-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .kf-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 나무 그릇에 담은 썰은 김치 / 설탕 */
 .kf-ing-card .kf-ing-art i {
@@ -452,7 +452,7 @@
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .kf-count { text-align: center; }
-.kf-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.kf-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
 .kf-next { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .kf-next-arrow {
   flex: 1;
@@ -461,6 +461,8 @@
   min-height: calc(96 * var(--upx));
   color: #f4e0b6;
   font-size: calc(88 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
@@ -511,6 +513,8 @@
   background-repeat: no-repeat;
   color: #f0d49a;                  /* 그림이 못 뜰 때 남는 글자 화살표(←→) 색 */
   font-size: calc(38 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   transition: filter .12s ease, transform .12s ease;

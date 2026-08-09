@@ -425,6 +425,9 @@ function createJournalData(){
     updatedAt:0,
     trueEndingEpilogueUnlocked:false,
     guests:fixedJournalCollection(titleJournalGuestDefs()),
+    // 만난 적이 있는 특별 손님. guests(완벽 평가 8장)와 달리 평가와 무관하게
+    // "만났다"만 남습니다. 낮 HUD의 '오늘의 특별 손님' 이름 공개에 씁니다.
+    metGuests:{},
     fragments:{},
     endings:fixedJournalCollection(titleJournalEndingDefs())
   };
@@ -443,6 +446,7 @@ function normalizeJournalData(raw){
   base.updatedAt=Number.isFinite(Number(raw.updatedAt))?Number(raw.updatedAt):0;
   base.trueEndingEpilogueUnlocked=!!raw.trueEndingEpilogueUnlocked;
   base.guests=fixedJournalCollection(titleJournalGuestDefs(),normalizeJournalCollection(raw.guests));
+  base.metGuests=normalizeJournalCollection(raw.metGuests);
   base.fragments=normalizeJournalCollection(raw.fragments);
   base.endings=fixedJournalCollection(titleJournalEndingDefs(),normalizeJournalCollection(raw.endings));
   return base;
@@ -471,6 +475,9 @@ function writeJournalData(data){
     normalized.updatedAt=Date.now();
     localStorage.setItem(JOURNAL_KEY,JSON.stringify(normalized));
     if(typeof window.refreshJournalUI==="function")window.refreshJournalUI(normalized);
+    // 낮 HUD는 이 기록을 매 프레임 읽지 않고 기억해 둡니다. 기록이 바뀌면
+    // 그 기억을 지워 줘야 손님 이름 공개가 한 판 늦지 않습니다.
+    if(typeof window.clearHudSpecialGuestCache==="function")window.clearHudSpecialGuestCache();
     return normalized;
   }catch(error){
     console.warn("영업일지를 저장하지 못했습니다.",error);
@@ -552,6 +559,36 @@ function recordJournalGuest(id,details={}){
   return saved?{...saved,newlyUnlocked:false}:null;
 }
 
+/* ── 특별 손님을 만난 적이 있는지 (회차를 넘겨 남습니다) ──────────
+   [왜 컬렉션 8장과 따로 두나] 타이틀 컬렉션은 완벽 평가로만 열립니다.
+   낮 HUD의 '오늘의 특별 손님'은 그보다 앞선 질문 — "이 날짜를 플레이해
+   저 손님을 만난 적이 있는가" — 만 보면 되므로 평가와 무관한 만남 기록을
+   같은 영구 저장 안의 다른 칸에 적습니다.
+   같은 키(JOURNAL_KEY)에 두어 QA 초기화 한 번으로 함께 처음 상태가 됩니다. */
+function recordJournalGuestMeeting(guestId,details={}){
+  const id=String(guestId||"").trim();
+  if(!id)return null;
+  const journal=readJournalData();
+  const previous=journal.metGuests[id]||{};
+  const now=Date.now();
+  journal.metGuests[id]={
+    ...previous,
+    ...(details&&typeof details==="object"?details:{}),
+    id,
+    firstMetAt:previous.firstMetAt||now,
+    lastMetAt:now
+  };
+  return writeJournalData(journal)?.metGuests?.[id]||null;
+}
+
+function journalGuestMet(guestId){
+  const id=String(guestId||"").trim();
+  if(!id)return false;
+  const journal=readJournalData();
+  // 이 칸이 없던 예전 기록에서도 완벽 평가로 열린 손님은 만난 적이 있습니다.
+  return !!journal.metGuests?.[id]||!!journal.guests?.[id]?.unlocked;
+}
+
 function recordJournalFragment(id,details={}){
   const fragment=recordJournalEntry("fragments",id,details);
   const guestId=typeof details?.guestId==="string"?details.guestId:null;
@@ -621,6 +658,8 @@ function acknowledgeJournalUnlock(kind,id){
 window.MoonlightTableSave=Object.freeze({
   readJournal:readJournalData,
   recordGuest:recordJournalGuest,
+  recordGuestMeeting:recordJournalGuestMeeting,
+  guestMet:journalGuestMet,
   recordFragment:recordJournalFragment,
   recordEnding:recordJournalEnding,
   collectionPages:readJournalCollectionPages,

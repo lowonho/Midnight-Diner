@@ -699,6 +699,8 @@
   color:#fff0bb;
   font-size:calc(20 * var(--upx));
   font-style:normal;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight:900;
   line-height:1.25;
   text-shadow:0 calc(2 * var(--upx)) calc(3 * var(--upx)) #160703;
@@ -906,7 +908,7 @@
    그림칸 세로 225 보다 작으므로 카드를 밀어낼 일은 없습니다.
    바로 아래 `.ts-ing-art i` 의 150 은 에셋이 없을 때 쓰는 임시 도형이라 그대로 둡니다. */
 .ts-ing-asset { max-width: 100%; max-height: calc(210 * var(--upx)); object-fit: contain; }
-.ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
 /* 재료 그림 (임시 도형) — 김치전 반죽 한 그릇 */
@@ -1062,7 +1064,7 @@
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
 .ts-count { text-align: center; }
-.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
+.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; }
 .ts-count strong b { color: #f2a03c; }
 /* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
 /* ⚠️ 여기 있던 `margin-top: 8` 을 뺐습니다. 카드에 이미 `row-gap: 6` 이 있어
@@ -1086,6 +1088,8 @@
   gap: calc(2 * var(--upx));
   color: #c9b58d;
   font-size: calc(14 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .ts-time-left b { color: #f4d58b; font-size: calc(25 * var(--upx)); line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -1197,8 +1201,8 @@
   text-align: center;
   transform: translate(-50%,-50%);
 }
-.ts-timeout strong { color: #ff8b6a; font-size: calc(42 * var(--upx)); font-weight: 900; letter-spacing: .06em; }
-.ts-timeout span { font-size: calc(18 * var(--upx)); font-weight: 700; }
+.ts-timeout strong { color: #ff8b6a; font-size: calc(42 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; letter-spacing: .06em; }
+.ts-timeout span { font-size: calc(18 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
 
 /* ⚠️ 여기 있던 **키캡 한 벌을 통째로 뺐습니다** — .ts-keys / .ts-key(.expected ·
    .holding) / .ts-key-row / .ts-key-link / .ts-key-text / .ts-control-name 과
@@ -1210,8 +1214,8 @@
 .ts-guide { display: flex; flex-direction: column; gap: calc(11 * var(--upx)); }
 .ts-guide-row { display: grid; grid-template-columns: calc(34 * var(--upx)) minmax(0,1fr); align-items: center; gap: calc(9 * var(--upx)); text-align: left; }
 .ts-guide-text { display: flex; flex-direction: column; gap: calc(2 * var(--upx)); }
-.ts-guide-text b { color: var(--gold-bright); font-size: calc(16 * var(--upx)); font-weight: 800; line-height: 1.2; }
-.ts-guide-text em { color: #d8bb8b; font-size: calc(13 * var(--upx)); font-style: normal; font-weight: 700; line-height: 1.25; }
+.ts-guide-text b { color: var(--gold-bright); font-size: calc(16 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; line-height: 1.2; }
+.ts-guide-text em { color: #d8bb8b; font-size: calc(13 * var(--upx)); font-style: normal; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; line-height: 1.25; }
 /* 아이콘 넷은 전부 CSS 도형입니다 (그림 파일을 늘리지 않으려고).
      click     동그라미 + 위에서 내려찍는 점
      drag-up   위를 가리키는 화살표
@@ -1230,7 +1234,7 @@
 .ts-guide-icon.sauce::after { left: calc(10 * var(--upx)); top: calc(16 * var(--upx)); width: calc(14 * var(--upx)); height: calc(15 * var(--upx)); border-radius: calc(3 * var(--upx)) calc(3 * var(--upx)) calc(6 * var(--upx)) calc(6 * var(--upx)); background: linear-gradient(#3a2a20,#171009); transform: rotate(20deg); }
 /* 맨 아래 "지금 할 일" 한 줄. 신호가 켜진 동안(.on)만 금색으로 밝아집니다 —
    화면 가운데 불빛과 같은 박자로 뜁니다 (engine-e5 의 updateTwoSideHint). */
-.ts-now { margin: 0; min-height: calc(38 * var(--upx)); display: grid; place-items: center; padding: calc(6 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #5b3b23; border-radius: calc(8 * var(--upx)); background: #1b110b; color: #d0ad72; font-size: calc(14 * var(--upx)); font-weight: 800; line-height: 1.3; }
+.ts-now { margin: 0; min-height: calc(38 * var(--upx)); display: grid; place-items: center; padding: calc(6 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #5b3b23; border-radius: calc(8 * var(--upx)); background: #1b110b; color: #d0ad72; font-size: calc(14 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; line-height: 1.3; }
 .ts-now.on { border-color: #ffd98f; background: #2b1a0d; color: #ffe6a8; animation: ts-now-blink .42s ease-in-out infinite alternate; }
 .ts-now.done { border-color: #8fbf55; color: #d8f2a8; }
 @keyframes ts-now-blink { from { box-shadow: none; } to { box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); } }

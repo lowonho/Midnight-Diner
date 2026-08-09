@@ -76,6 +76,7 @@ function journalElements(){
     pagePortrait:document.getElementById("journalPagePortrait"),
     pageTitle:document.getElementById("journalPageTitle"),
     pageNote:document.getElementById("journalPageNote"),
+    pageNoteArt:document.getElementById("journalPageNoteArt"),
     pageMeta:document.getElementById("journalPageMeta"),
     relic:document.getElementById("journalPageRelic"),
     relicArt:document.getElementById("journalPageRelicArt"),
@@ -271,7 +272,7 @@ function journalPageMeta(page){
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
-    if(page.pageType==="rules")return "주의사항 3개 · 음식 레시피 8장";
+    if(page.pageType==="rules")return "주의사항 2개 · 음식 레시피 8장";
     if(page.pageType==="recipe")return `재료 ${(page.ingredients||[]).length}가지 · 준비 ${(page.prepSteps||[]).length}단계 · 조리 ${(page.cookSteps||[]).length}단계`;
     if(page.pageType==="day")return page.recorded?`${page.entries.length}명의 손님이 남긴 기록`:"";
     if(page.confirmedDish&&page.confirmedDish!=="???")items.push(`확인한 음식 · ${page.confirmedDish}`);
@@ -412,6 +413,7 @@ function renderJournalPage({acknowledge=false}={}){
     elements.pageProgress.textContent="0 / 0";
     elements.pageTitle.textContent="표시할 기록이 없습니다.";
     elements.pageNote.textContent="이야기가 시작되면 이곳에 기록이 생깁니다.";
+    if(elements.pageNoteArt)elements.pageNoteArt.hidden=true;
     elements.pageMeta.textContent="";
     elements.pagePortrait.textContent="?";
     elements.previous.disabled=true;elements.next.disabled=true;
@@ -454,6 +456,9 @@ function renderJournalPage({acknowledge=false}={}){
       :page.kind==="ending"?endingArt?"":"☾":"";
   elements.pageTitle.textContent=page.unlocked?page.label:"잠긴 기록";
   elements.pageNote.innerHTML=journalPageNote(page);
+  // 주의사항 장에만 마지막 줄 아래 손글씨가 붙습니다. 레시피·일기 장은
+  // 글이 종이를 거의 다 채워서 그림이 들어갈 자리가 없습니다.
+  if(elements.pageNoteArt)elements.pageNoteArt.hidden=!(isGameplayRecord&&page.pageType==="rules");
   elements.pageMeta.textContent=journalPageMeta(page);
   renderJournalRelic(elements,page);
   elements.previous.disabled=journalPageIndex<=0;

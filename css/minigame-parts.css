@@ -736,11 +736,15 @@
 .mini-score-value b {
   color: #f2a03c;
   font-size: calc(58 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
 }
 .mini-score-value span {
   color: #f4d58b;
   font-size: calc(20 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 
@@ -762,6 +766,8 @@
   color: #e9c88b;
   text-align: center;
   font-size: calc(21 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   letter-spacing: .06em;
 }
@@ -816,6 +822,8 @@
   background: rgba(90,61,34,.14);
   color: #5a3d22;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   white-space: nowrap;
 }

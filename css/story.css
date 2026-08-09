@@ -4,6 +4,11 @@
   /* 선택지 칸 한 개의 최소 높이입니다(글자가 두 줄로 넘어가면 그만큼 늘어납니다). */
   --story-choice-h: calc(50 * var(--upx));
   --story-text-lines: 2;
+  /* 이름 줄(.story-speaker-row)의 크기입니다. 이름 글자 상자 높이와 그 아래
+     여백을 따로 두는 것은, 둘 다 이름이 있든 없든 똑같이 잡아 두기 위해서입니다.
+     42 는 이름 글자(31upx)가 실제로 차지하던 줄 높이입니다(31 × 약 1.37). */
+  --story-name-h: calc(42 * var(--upx));
+  --story-name-gap: calc(8 * var(--upx));
   position: absolute;
   z-index: 45;
   inset: 0;
@@ -38,6 +43,8 @@
   background: rgba(27,15,10,.88);
   color: #f1cc88;
   font-size: calc(12 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   letter-spacing: .12em;
   cursor: pointer;
@@ -226,6 +233,20 @@
   opacity: 1;
   visibility: visible;
 }
+
+/* 컷씬(손님이 조각을 건네는 원화) 위에 겹칠 때는 암전이 아니라 얇은 막입니다.
+   위 .story-fragment-handoff 의 rgba(5,4,10,.91)은 뒤에 아무것도 없을 때
+   배우 무대를 지우려고 짙은 것인데, 컷씬이 깔린 줄에서는 그 짙기가 보여 줄
+   그림까지 덮습니다.
+
+   여기서 얇게 해도 글자가 뜨는 이유는 .story-cutscene::after 의 어둠막이
+   이미 아래쪽을 짙게 깔아 두기 때문입니다. 둘이 겹쳐서 위 45% · 아래 95%
+   정도가 됩니다. 조각 그림 자체는 drop-shadow 광량으로 떠오릅니다. */
+.story-overlay.story-cinematic-active .story-fragment-handoff {
+  background:
+    radial-gradient(circle at 50% 38%,rgba(120,174,255,.18),transparent 36%),
+    rgba(5,4,10,.34);
+}
 .story-fragment-focus {
   position: absolute;
   inset: 6% 0 30%;
@@ -290,24 +311,133 @@
   0%,100% { opacity: .72; transform: scale(.92); }
   50% { opacity: 1; transform: scale(1.06); }
 }
+
+/* ── 소품 띄우기 ──────────────────────────────────────────────
+   "카운터 위에 있던 영업일지가 눈에 들어와" 처럼, 대사가 말하기 직전에 그
+   물건 한 점을 가운데에 띄웁니다. 위 달빛 조각과 자리·리듬은 같지만 두 가지가
+   일부러 다릅니다.
+     · 글자 요소가 없습니다(마크업에도 없습니다). 이름표를 달면 이야기가
+       아니라 아이템 획득 연출로 읽힙니다.
+     · 빛이 흽니다. 푸른빛은 달빛 조각의 색이라, 그대로 쓰면 소품이 조각으로
+       보입니다. 색 성분은 story-prop-reveal.js 가 --prop-glow 로 넣습니다
+       (기본값을 적어 두는 것은 JS 가 아직 안 왔을 때의 대비입니다).
+
+   암전이 조각(.91)보다 옅은 .82 인 것은, 소품이 뜨는 자리가 컷씬이 아니라
+   가게 안이기 때문입니다. 완전히 지워 버리면 "식당을 둘러본다"는 자막과
+   화면이 어긋납니다 — 가게가 어렴풋이 남아 있어야 합니다. */
+.story-prop-reveal {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(var(--prop-glow,255,255,255),.14),transparent 36%),
+    rgba(5,4,10,.82);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .22s ease,visibility .22s ease;
+  pointer-events: none;
+}
+.story-prop-reveal.show {
+  opacity: 1;
+  visibility: visible;
+}
+/* 컷씬 원화 위에 겹칠 때는 암전이 아니라 얇은 막입니다 — 조각 오버레이와
+   같은 이유입니다(위 .story-overlay.story-cinematic-active .story-fragment-handoff). */
+.story-overlay.story-cinematic-active .story-prop-reveal {
+  background:
+    radial-gradient(circle at 50% 42%,rgba(var(--prop-glow,255,255,255),.16),transparent 38%),
+    rgba(5,4,10,.34);
+}
+.story-prop-focus {
+  position: absolute;
+  inset: 6% 0 30%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(calc(18 * var(--upx))) scale(.9);
+}
+.story-prop-reveal.show .story-prop-focus {
+  animation: storyPropReveal .62s cubic-bezier(.18,.82,.24,1) forwards;
+}
+.story-prop-focus::before {
+  content: "";
+  position: absolute;
+  width: calc(330 * var(--upx));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(var(--prop-glow,255,255,255),.26),
+    rgba(var(--prop-glow,255,255,255),.08) 44%,
+    transparent 70%);
+  filter: blur(calc(5 * var(--upx)));
+  animation: storyPropGlow 2.3s ease-in-out infinite;
+}
+/* 세로가 더 긴 소품(영업일지)에 맞춘 상자입니다. contain 이라 다른 비율의
+   소품이 들어와도 찌그러지지 않고 이 안에 담깁니다.
+   ⚠️ 340upx 보다 키우면 tools/build-story-prop-webp.js 의 BOX(=340x2)도 같이
+      키워야 합니다. 안 그러면 확대되면서 뭉갭니다. */
+.story-prop-art {
+  position: relative;
+  z-index: 1;
+  width: min(30vw,calc(300 * var(--upx)));
+  height: min(34vw,calc(340 * var(--upx)));
+  background-image: var(--prop-art,none);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter:
+    drop-shadow(0 0 calc(12 * var(--upx)) rgba(var(--prop-glow,255,255,255),.62))
+    drop-shadow(0 calc(8 * var(--upx)) calc(14 * var(--upx)) rgba(0,0,0,.85));
+  animation: storyPropFloat 2.5s ease-in-out .62s infinite;
+}
+/* ⚠️ .62s 는 story-prop-reveal.js 의 STORY_PROP_REVEAL_MS(620) 와 같은 값이어야
+   합니다. 그 시간 동안 자막을 붙잡아 두기 때문에, 한쪽만 고치면 그림이 다
+   떠오르기 전에 자막이 덮이거나 반대로 빈 정적이 생깁니다. */
+@keyframes storyPropReveal {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes storyPropFloat {
+  0%,100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(calc(-7 * var(--upx))) rotate(1deg); }
+}
+@keyframes storyPropGlow {
+  0%,100% { opacity: .72; transform: scale(.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
 .story-overlay.scene-intro .story-stage,
+/* story-cinematic-hold 은 컷씬 원화를 잠깐 혼자 보여 주는 동안입니다.
+   조각 오버레이는 여기 없습니다 — 감추면 등장 애니가 감춰진 채 다 돌아
+   버려서, story.js 가 아예 나중에 켭니다(story-cinematic.js hold 설명).
+   ⚠️ display 가 아니라 visibility 인 이유가 있습니다. 자막 쪽수는 대사창
+      폭을 재서 나누는데, display:none 이면 폭이 0 이라 계산이 깨집니다. */
 .story-overlay.scene-intro .story-dialogue-box,
 .story-overlay.scene-intro .story-choices,
+.story-overlay.story-cinematic-hold .story-dialogue-box,
+.story-overlay.story-cinematic-hold .story-choices,
 .story-overlay.story-cinematic-active .story-stage,
 .story-overlay.story-ending-active .story-stage {
   opacity: 0;
   visibility: hidden;
 }
-/* 컷씬이 깔려 있어도 김다은이 말하는 줄에서는 무대를 다시 올립니다.
-   안 그러면 프롤로그 퇴근길 내내 원화가 한 번도 안 나옵니다.
-   클래스는 story.js 의 updateStoryCinematicSpeaking() 이 붙입니다 —
-   이동 연출을 시작하는 줄에서는 붙이지 않아 도트 김다은과 겹치지 않습니다.
+/* 컷씬이 깔려 있어도 '말하는 줄'에서는 무대를 다시 올립니다. 컷은 대사 한 줄이
+   아니라 구간에 걸려서, 안 올리면 그 구간의 대사가 전부 배우 없이 지나갑니다
+   (프롤로그 퇴근길 내내, SCN-P03 은 장면 내내 원화가 한 번도 안 나옵니다).
+   클래스는 story.js 의 updateStoryCinematicSpeaking() 이 붙입니다 — 컷마다
+   올릴지 말지는 story-cinematic.js 의 STORY_CUTSCENES[].speakerArt 가 정하고,
+   그림만 보여 주는 첫 박자(hold)는 화자가 없는 줄이라 저절로 빠집니다.
    씬 인트로(제목 카드)는 계속 감춰야 하므로 :not() 으로 빼 둡니다. */
 .story-overlay.story-cinematic-active.story-cinematic-speaking:not(.scene-intro) .story-stage {
   opacity: 1;
   visibility: visible;
 }
 .story-actor {
+  /* 발화자일 때의 조명입니다. 배우마다 원화 자체의 광량이 달라서 같은 값을
+     주면 어떤 인물은 빛이 너무 세게 들어온 것처럼 보입니다. 그래서 값으로
+     박지 않고 변수로 두고, 필요한 배우만 아래에서 따로 낮춥니다. */
+  --actor-lit: 1.06;
+  --actor-lit-sat: 1.05;
   position: absolute;
   bottom: 0;
   left: var(--actor-x,50%);
@@ -326,7 +456,16 @@
 .story-actor.entered.is-active {
   z-index: 5;
   transform: translate(-50%,-3.2%);
-  filter: brightness(1.06) saturate(1.05) drop-shadow(0 calc(16 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.85));
+  filter: brightness(var(--actor-lit)) saturate(var(--actor-lit-sat)) drop-shadow(0 calc(16 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.85));
+}
+/* 김다은은 원화가 손님들보다 밝게(하얗게) 그려져 있어서, 손님 기준 조명을
+   그대로 받으면 말할 때마다 얼굴과 옷이 하얗게 떴습니다. 복장 두 벌(회사원·
+   주방)이 배우 하나를 같이 쓰므로 여기 한 줄로 둘 다 잡힙니다.
+   어두워졌다 밝아지는 강조 자체는 그대로입니다 — 밝기만 1 아래로 내려서
+   '색이 돌아온다' 쪽에 가깝게 두고, 채도는 원화 그대로(1) 둡니다. */
+.story-actor[data-speaker="protagonist"] {
+  --actor-lit: .88;
+  --actor-lit-sat: 1;
 }
 
 .story-portrait {
@@ -445,7 +584,7 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  padding: calc(26 * var(--upx)) calc(44 * var(--upx)) calc(38 * var(--upx) + var(--story-choice-h));
+  padding: calc(32 * var(--upx)) calc(44 * var(--upx)) calc(46 * var(--upx) + var(--story-choice-h));
   border: calc(3 * var(--upx)) solid #8f5b31;
   border-radius: calc(10 * var(--upx));
   background: linear-gradient(rgba(33,19,13,.97),rgba(18,10,7,.98));
@@ -454,20 +593,28 @@
   visibility: visible;
   transition: opacity .2s ease,visibility .2s ease;
 }
+/* [이름 줄 높이는 이름이 없어도 그대로입니다]
+   내레이션 줄은 이름(<strong>)이 hidden 이라 줄 안에 흐르는 내용이 없습니다.
+   예전에는 min-height 로만 받쳐 뒀는데 그 값(36upx)이 이름이 있을 때의 실제
+   높이(45upx)보다 작아서, 이름 있는 줄과 없는 줄 사이에서 대사창 전체가
+   9upx 씩 오르내렸습니다. 그래서 min-height 가 아니라 height 로 못박습니다.
+   이름 글자에도 line-height 를 직접 적어 두는 건, 글꼴을 바꿔도 줄 높이가
+   달라지지 않게 하려는 것입니다(글꼴 기본 줄 높이는 글꼴마다 다릅니다). */
 .story-speaker-row {
   position: relative;
   flex: none;
-  min-height: calc(36 * var(--upx));
+  height: calc(var(--story-name-h) + var(--story-name-gap));
   display: flex;
   align-items: center;
   gap: calc(12 * var(--upx));
-  padding-bottom: calc(8 * var(--upx));
+  padding-bottom: var(--story-name-gap);
   margin-bottom: calc(12 * var(--upx));
   border-bottom: 1px solid rgba(224,163,77,.35);
 }
 .story-speaker-row strong {
   color: #ffe09a;
-  font-size: calc(27 * var(--upx));
+  font-size: calc(31 * var(--upx));
+  line-height: var(--story-name-h);
   letter-spacing: -.03em;
 }
 .story-speaker-row strong.revealed { animation: nameReveal .5s ease; }
@@ -515,7 +662,7 @@
   justify-content: center;
   gap: calc(12 * var(--upx));
   /* 대사창(아래 약 1/3)을 피해 조금 위쪽을 중심으로 잡습니다. */
-  padding: 0 6% calc(230 * var(--upx));
+  padding: 0 6% calc(263 * var(--upx));
   /* 고르는 동안에는 무대 쪽만 한 겹 더 눌러 시선을 선택지로 모읍니다.
      아래쪽은 투명하게 빼서 대사창이 덩달아 어두워지지 않게 합니다. */
   background: linear-gradient(180deg,rgba(6,4,3,.50),rgba(6,4,3,.50) 60%,rgba(6,4,3,0) 80%);
@@ -547,6 +694,8 @@
 .story-choice-hint-speaker {
   margin-right: calc(8 * var(--upx));
   color: #f0bf64;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .story-choice {
@@ -616,12 +765,16 @@
   border-bottom: 1px solid rgba(224,163,77,.38);
   color: #ffe09a;
   font-size: calc(20 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .ending-retry-window h2 {
   margin: 0 0 calc(14 * var(--upx));
   color: #cda96d;
   font-size: calc(17 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .ending-retry-window > p:not(.ending-retry-speaker) {
@@ -652,10 +805,16 @@
   .story-ending-background,
   .story-stage,
   .story-dialogue-box,
-  .story-fragment-handoff { transition: none; }
+  .story-fragment-handoff,
+  .story-prop-reveal { transition: none; }
   .story-fragment-handoff.show .story-fragment-focus,
   .story-fragment-focus::before,
-  .story-fragment-art { animation: none; opacity: 1; transform: none; }
+  .story-fragment-art,
+  /* 애니를 끄면 .story-prop-focus 의 시작 상태(opacity:0)가 그대로 남아
+     소품이 아예 안 보입니다. 아래 opacity:1 로 함께 되돌립니다. */
+  .story-prop-reveal.show .story-prop-focus,
+  .story-prop-focus::before,
+  .story-prop-art { animation: none; opacity: 1; transform: none; }
 }
 
 @media (max-width: 620px) {

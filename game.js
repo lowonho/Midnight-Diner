@@ -21,7 +21,7 @@
 let phaserScene = null;
 
 const dom = Object.fromEntries([
-  "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
+  "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionLabel","satisfactionText","popularityText","moneyText",
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
   "stationPrompt","stationPromptLabel","toast","startButton","continueButton","saveInfo","titleSettingsButton",
@@ -884,8 +884,13 @@ function updateUI(force=false) {
   dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
-  dom.timeText.textContent=isOpen?UI_TEXT.guestsLeft(nightGuestsRemaining()):isDayPreparation?UI_TEXT.timeNoLimit:UI_TEXT.blank;
-  dom.satisfactionText.textContent=state.served?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
+  // 낮에도 밤과 같은 두 칸을 띄웁니다. 낮은 아직 손님이 오기 전이라
+  // 오늘 밤 받을 손님 수와 그날의 특별 손님을 미리 보여 줍니다.
+  dom.timeText.textContent=isOpen?UI_TEXT.guestsLeft(nightGuestsRemaining()):isDayPreparation?UI_TEXT.guestsLeft(nightGeneralOrderTarget(state.day)):UI_TEXT.blank;
+  dom.satisfactionLabel.textContent=isDayPreparation?UI_TEXT.satisfactionLabelPrep:UI_TEXT.satisfactionLabelOther;
+  dom.satisfactionText.textContent=isDayPreparation
+    ?hudSpecialGuestLabel(state.day)
+    :state.served?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);dom.phaseButton.textContent=UI_TEXT.phaseButton;dom.phaseButton.disabled=isPrep&&(!prepComplete()||!!state.mini);
   const menuSignature=selectedDishes().map(dish=>dish.id).join("|");

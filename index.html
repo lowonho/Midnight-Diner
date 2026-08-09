@@ -63,8 +63,8 @@
             <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
             <div class="hud-stats">
               <div class="stat-day"><span>DAY</span><strong id="dayText">1</strong></div>
-              <div class="stat-time"><span id="timeLabel">준비</span><strong id="timeText">제한 없음</strong></div>
-              <div class="stat-satisfaction"><span>손님 반응</span><strong id="satisfactionText">-</strong></div>
+              <div class="stat-time"><span id="timeLabel">방문 예정 손님</span><strong id="timeText">-</strong></div>
+              <div class="stat-satisfaction"><span id="satisfactionLabel">오늘의 특별 손님</span><strong id="satisfactionText">-</strong></div>
               <div class="retired-economy-ui" aria-hidden="true"><span>인기도</span><strong id="popularityText">0</strong></div>
               <div class="stat-money retired-economy-ui" aria-hidden="true"><i class="coin-icon" aria-hidden="true"></i><strong id="moneyText">0원</strong></div>
               <button id="codexButton" class="square-button" type="button" aria-label="영업일지 열기">📖</button>
@@ -212,6 +212,14 @@
                 <span class="story-fragment-kicker">온전한 달빛 조각</span>
                 <div class="story-fragment-art" aria-hidden="true"></div>
                 <strong id="storyFragmentName" class="story-fragment-name"></strong>
+              </div>
+            </div>
+            <!-- 소품 띄우기(프롤로그 영업일지 등). 그림과 빛 색은 story-prop-reveal.js 가 넣습니다.
+                 위 달빛 조각과 달리 글자 요소가 없습니다 — 이름표를 달면 이야기가 아니라
+                 아이템 획득 연출로 읽힙니다(story-prop-reveal.js 맨 위 설명). -->
+            <div id="storyPropReveal" class="story-prop-reveal" aria-hidden="true">
+              <div class="story-prop-focus">
+                <div class="story-prop-art" aria-hidden="true"></div>
               </div>
             </div>
             <div class="story-dialogue-box">
@@ -380,6 +388,7 @@
             </section>
             <section class="journal-page-leaf journal-page-right" role="region" aria-label="영업일지 기록 내용" tabindex="0">
               <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
+              <div id="journalPageNoteArt" class="journal-page-note-art" aria-hidden="true" hidden></div>
             </section>
           </article>
           </div>
@@ -439,6 +448,7 @@
     (game.js 의 state 초기값이 player.js 의 PLAYER_START 를 읽습니다)
     각 파일은 자기 요소의 좌표·크기·연출만 갖습니다. 게임 규칙은 game.js.
   -->
+  <script src="decoration.js"></script>  <!-- 배경 소품(서비스 벨 · 전등 · 벽 장식 · 좌측벽 화분). stage.js 가 부르므로 먼저 -->
   <script src="stage.js"></script>       <!-- 화면 크기 · 좌표 배율 · 레이어 · 배경 · 낮밤 -->
   <script src="draw-utils.js"></script>  <!-- 프레임 캔버스(ctx) · 공용 드로잉 헬퍼 -->
   <script src="food-props.js"></script>  <!-- 음식 그림 8종 x 조리 등급 3단계 -->
@@ -454,6 +464,7 @@
   <script src="fx.js"></script>          <!-- 파티클 · 팝업 · 안내 화살표 -->
   <script src="story-data.js"></script>
   <script src="story-cinematic.js"></script><!-- 프롤로그 등 스토리 전용 자동 이동 연출 -->
+  <script src="story-prop-reveal.js"></script><!-- 대사 앞에 소품 한 점을 띄우는 연출(프롤로그 영업일지) -->
   <script src="story.js"></script>
   <script src="day.js"></script>
   <script src="ingredient-select.js"></script>
@@ -497,9 +508,11 @@
   -->
   <script src="ui-class-names.js"></script>
   <script src="ui-hud.js"></script>
+  <script src="hud-special-guest.js"></script><!-- 낮 상단 HUD '오늘의 특별 손님' 이름 공개 판정 -->
 
   <script src="game.js"></script>
   <script src="save-ui.js"></script>
   <script src="settings-ui.js"></script><!-- 설정창 음량 슬라이더의 지나온 구간 칠(--fill). 표시 전용입니다 -->
+  <script src="hud-list-drag-scroll.js"></script><!-- 좌측 HUD 목록을 잡고 끌어 굴리기. 표시 전용입니다 -->
 </body>
 </html>
