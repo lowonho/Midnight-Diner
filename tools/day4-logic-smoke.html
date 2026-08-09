@@ -256,10 +256,10 @@ try{
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
   assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.default.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.riseSpeed===.48&&HEAT_CONFIG.oden.fallSpeed===.48&&HEAT_CONFIG.tteokbokki.riseSpeed===.48&&HEAT_CONFIG.tteokbokki.fallSpeed===.48&&HEAT_CONFIG.oden.targetSpeed===.40&&HEAT_CONFIG.tteokbokki.targetSpeed===.40&&!Object.hasOwn(HEAT_CONFIG.oden,"timeLimit")&&!Object.hasOwn(HEAT_CONFIG.tteokbokki,"timeLimit"),"Heat uses a five-second hold, no time limit, a 0.48 player cursor, and a 0.40 target");
   /* 적정 구간은 무작위 목적지나 급가속 없이 위아래 끝을 같은 속도로 왕복합니다. */
-  const bouncingHeat={target:.5,targetDirection:1,targetPhase:heatTargetPhase(.5,1,HEAT_CONFIG.oden),sizeScale:1,pinchIn:99,pinchTime:0,pinchDur:0,pinchDepth:0};
+  const bouncingHeat={target:.5,targetDirection:1,targetPhase:heatTargetPhase(.5,1,HEAT_CONFIG.oden),sizeScale:1,pinchIn:99,pinchTime:0,pinchDur:0,pinchDepth:0,total:2};
   const heatTargetStart=bouncingHeat.target;
   updateHeatTarget(bouncingHeat,HEAT_CONFIG.oden,.25,()=>.5);
-  assert(Math.abs((bouncingHeat.target-heatTargetStart)-HEAT_CONFIG.oden.targetSpeed*.25)<1e-9,"E4 target moves at one constant cursor-matched speed without a sudden jump");
+  assert(Math.abs((bouncingHeat.target-heatTargetStart)-HEAT_CONFIG.oden.targetSpeed*.25)<1e-9,"E4 target moves at one constant cursor-matched speed after the launch easing");
   let heatDirectionFlips=0,previousHeatDirection=bouncingHeat.targetDirection;
   for(let frame=0;frame<600;frame++){
     updateHeatTarget(bouncingHeat,HEAT_CONFIG.oden,1/60,()=>.5);
@@ -344,12 +344,20 @@ try{
   assert(dom.miniContent.querySelector(".heat-count.mini-score-panel .heat-hold #heatHoldFill")&&parseFloat(dom.miniContent.querySelector("#heatHoldFill").style.width)===0,"E4 score card includes the original green hold-progress bar at zero");
   assert(MINI_ENGINES.heat.key(heatMini,"w",{repeat:false,code:"KeyW"})===false&&MINI_ENGINES.heat.key(heatMini,"arrowup",{repeat:false,code:"ArrowUp"})===false&&!heatMini.data.holding,"E4 ignores non-Space lift keys");
   const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;
+  MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});
+  MINI_ENGINES.heat.update(heatMini,.51);
+  assert(initialHeatValue===0&&Math.abs(heatTargetBounds(heatMini.data,HEAT_CONFIG.oden).start)<1e-9&&heatMini.data.value===0&&heatMini.data.target===initialTarget&&heatMini.data.targetDirection===1&&!heatMini.data.holding&&heatMini.data.phase==="countdown"&&dom.miniContent.querySelector("#heatStartCountdown strong").textContent==="2!"&&playedSfx.length===0,"E4 starts both the needle and ideal zone at the gauge floor and freezes them during 3-2-1");
+  MINI_ENGINES.heat.update(heatMini,.5);
+  assert(dom.miniContent.querySelector("#heatStartCountdown strong").textContent==="1!","E4 countdown advances from 2 to 1 with the cutting-game timing");
+  MINI_ENGINES.heat.update(heatMini,.5);
+  assert(heatMini.data.phase==="ready"&&heatMini.data.value===0&&heatMini.data.total===0&&dom.miniContent.querySelector("#heatStartCountdown.go strong").textContent==="시작!"&&playedSfx.join(",")==="clear_simmer","E4 opens input, animation, and simmer audio together on the start signal");
   MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
   const raisedHeatValue=heatMini.data.value,raisedHeatTarget=heatMini.data.target;
-  assert(Math.abs((raisedHeatValue-initialHeatValue)-HEAT_CONFIG.oden.riseSpeed*.4)<1e-9&&Math.abs((raisedHeatTarget-initialTarget)-HEAT_CONFIG.oden.targetSpeed*.4)<1e-9,"E4 held-Space cursor moves at 0.48 while the upward target moves at 0.40");
+  assert(Math.abs((raisedHeatValue-initialHeatValue)-HEAT_CONFIG.oden.riseSpeed*.4)<1e-9&&Math.abs((raisedHeatTarget-initialTarget)-HEAT_FEEL_CONFIG.targetLaunchSpeed*.4)<1e-9,"E4 held-Space cursor moves at 0.48 while the ideal zone begins at the eased 0.20 launch speed");
+  assert(heatTargetSpeed({total:.7},HEAT_CONFIG.oden)===.2&&Math.abs(heatTargetSpeed({total:.9},HEAT_CONFIG.oden)-.3)<1e-9&&heatTargetSpeed({total:1.1},HEAT_CONFIG.oden)===HEAT_CONFIG.oden.targetSpeed,"E4 ideal-zone launch holds 0.20 for 0.7s and eases to the normal 0.40 over the next 0.4s");
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
-  assert(!Number.isFinite(heatMini.time)&&typeof MINI_ENGINES.heat.timeout==="undefined"&&!dom.miniContent.querySelector(".heat-count-value")&&!dom.miniContent.querySelector("#heatTime")&&MINI_ENGINES.heat.score(heatMini)>=0,"E4 has no countdown or timeout path while the whole upper-right card shows only score");
+  assert(!Number.isFinite(heatMini.time)&&typeof MINI_ENGINES.heat.timeout==="undefined"&&!dom.miniContent.querySelector(".heat-count-value")&&!dom.miniContent.querySelector("#heatTime")&&MINI_ENGINES.heat.score(heatMini)>=0,"E4 has no time limit or timeout path while the whole upper-right card shows only score");
   heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   updateMiniScore(heatMini);
@@ -363,7 +371,9 @@ try{
   playedSfx.length=0;
   const tteokHeatMini={engine:"heat",context:{mode:"cook",dishId:"tteokbokki"},complete:false,data:{}};state.mini=tteokHeatMini;
   MINI_ENGINES.heat.setup(tteokHeatMini,{set:()=>{}});
-  assert(dom.miniContent.querySelector(".heat-pot-art.tteokbokki,.heat-pot.tteokbokki")&&tteokHeatMini.data.configId==="tteokbokki"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki tracking variant and boil audio");
+  assert(dom.miniContent.querySelector(".heat-pot-art.tteokbokki,.heat-pot.tteokbokki")&&tteokHeatMini.data.configId==="tteokbokki"&&tteokHeatMini.data.value===0&&Math.abs(heatTargetBounds(tteokHeatMini.data,HEAT_CONFIG.tteokbokki).start)<1e-9&&tteokHeatMini.data.targetDirection===1&&playedSfx.length===0,"E4 tteokbokki needle and ideal zone also wait at the gauge floor before moving upward");
+  MINI_ENGINES.heat.update(tteokHeatMini,HEAT_FEEL_CONFIG.startCountdownSeconds*HEAT_FEEL_CONFIG.startCountdownStepSeconds);
+  assert(tteokHeatMini.data.phase==="ready"&&playedSfx.join(",")==="thick_boil","E4 tteokbokki boil audio starts with gameplay after the countdown");
   finishedScore=null;
   for(let frame=0;frame<1200&&!tteokHeatMini.complete;frame++){
     const targetLead=tteokHeatMini.data.targetDirection>0?.025:-.025;
