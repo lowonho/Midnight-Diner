@@ -385,8 +385,9 @@ function journalFigure(page){
     return {kind:"relic",src:journalMoonPieceArt(page)};
   }
   if(journalMode==="gameplay"&&page?.pageType==="recipe"&&typeof foodPropUrl==="function"){
-    // 완성된 모습이 제일 잘 보이는 등급으로 보여 줍니다.
-    const src=foodPropUrl(page.dishId,"perfect");
+    // 레시피 장은 아직 조리 전이라, 메뉴판 카드와 같은 기본 등급(normal)입니다.
+    // 잘 만든 모습(perfect)을 미리 보여 주면 목표를 앞질러 알려 주는 셈입니다.
+    const src=foodPropUrl(page.dishId);
     if(src)return {kind:"dish",src};
   }
   return null;
