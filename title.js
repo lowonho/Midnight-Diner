@@ -7,6 +7,14 @@ let journalMode="collection";
 let journalPageIndex=0;
 let journalPages=[];
 let journalWasPaused=false;
+const JOURNAL_FOCUSABLE_SELECTOR=[
+  "button:not(:disabled)",
+  "[href]",
+  "input:not(:disabled)",
+  "select:not(:disabled)",
+  "textarea:not(:disabled)",
+  '[tabindex]:not([tabindex="-1"])'
+].join(",");
 // 인게임 일지는 다시 열었을 때 마지막으로 보던 장을 그대로 펼칩니다.
 // (로비 컬렉션은 언제나 첫 장부터입니다.)
 let journalLastGameplayPageId="";
@@ -491,7 +499,42 @@ function refreshJournalUI({restoreLastPage=false}={}){
   renderJournalPage();
 }
 
+function journalOverlayIsOpen(){
+  return !!journalElements().overlay?.classList.contains("open");
+}
+
+function journalFocusableElements(){
+  const overlay=journalElements().overlay;
+  if(!overlay)return [];
+  return [...overlay.querySelectorAll(JOURNAL_FOCUSABLE_SELECTOR)]
+    .filter(element=>!element.hidden&&element.getClientRects().length>0);
+}
+
+function focusFirstJournalControl(){
+  const elements=journalElements();
+  const preferred=!elements.closeButton?.disabled&&!elements.closeButton?.hidden
+    ?elements.closeButton
+    :journalFocusableElements()[0];
+  preferred?.focus?.({preventScroll:true});
+}
+
+function setJournalBackgroundInert(inert){
+  if(typeof setModalBackgroundInert==="function"){
+    setModalBackgroundInert("journal",inert);
+    return;
+  }
+  // game.js가 아직 초기화되지 않은 매우 이른 호출에서도 최소한 배경을 잠급니다.
+  [document.getElementById("titleScreen"),document.getElementById("gameScreen")]
+    .forEach(screen=>inert?screen?.setAttribute("inert",""):screen?.removeAttribute("inert"));
+}
+
+function resetGameplayJournalView(){
+  journalLastGameplayPageId="";
+  journalPageIndex=0;
+}
+
 function openJournal(mode="collection"){
+  if(journalOverlayIsOpen())return false;
   journalMode=mode==="gameplay"?"gameplay":"collection";
   journalPageIndex=0;
   const elements=journalElements();
@@ -504,10 +547,13 @@ function openJournal(mode="collection"){
     state.paused=true;
     audio?.pauseLoops?.();
   }
+  if(typeof resetPlayerKeyboardInput==="function")resetPlayerKeyboardInput();
+  else window.clearPhysicalMoveKeys?.();
   refreshJournalUI({restoreLastPage:journalMode==="gameplay"});
+  setJournalBackgroundInert(true);
   elements.overlay.classList.add("open");
   elements.overlay.setAttribute("aria-hidden","false");
-  elements.closeButton?.focus();
+  focusFirstJournalControl();
   renderJournalPage({acknowledge:true});
   return true;
 }
@@ -526,12 +572,18 @@ function closeJournal(){
     &&typeof resumeStoryAfterJournal==="function";
   elements.overlay.classList.remove("open");
   elements.overlay.setAttribute("aria-hidden","true");
+  setJournalBackgroundInert(false);
   if(journalMode==="gameplay"&&typeof state!=="undefined"){
     state.paused=journalWasPaused||state.phase===GAME_PHASES.RESULT
       ||(typeof storyDialogueIsActive==="function"&&storyDialogueIsActive());
     if(!state.paused)audio?.resumeLoops?.();
   }
-  journalReturnFocus?.focus?.();
+  if(journalReturnFocus?.isConnected&&!journalReturnFocus.hidden
+    &&!journalReturnFocus.closest?.("[inert]")){
+    journalReturnFocus.focus?.({preventScroll:true});
+  }else if(elements.overlay.contains(document.activeElement)){
+    document.activeElement?.blur?.();
+  }
   journalReturnFocus=null;
   if(resumeStory)setTimeout(resumeStoryAfterJournal,0);
   return true;
@@ -550,10 +602,40 @@ function initializeJournalUI(){
     if(event.target===elements.overlay)closeJournal();
   });
   document.addEventListener("keydown",event=>{
-    if(event.key!=="Escape"||!elements.overlay.classList.contains("open"))return;
+    if(!journalOverlayIsOpen())return;
+    if(event.key==="Escape"){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeJournal();
+      return;
+    }
+    if(event.key==="Tab"){
+      const focusable=journalFocusableElements();
+      if(!focusable.length){event.preventDefault();return;}
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(!elements.overlay.contains(document.activeElement)){
+        event.preventDefault();
+        (event.shiftKey?last:first).focus();
+      }else if(event.shiftKey&&document.activeElement===first){
+        event.preventDefault();last.focus();
+      }else if(!event.shiftKey&&document.activeElement===last){
+        event.preventDefault();first.focus();
+      }
+      return;
+    }
+    if(!elements.overlay.contains(event.target)){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      focusFirstJournalControl();
+    }
+  },true);
+  ["pointerdown","click"].forEach(type=>document.addEventListener(type,event=>{
+    if(!journalOverlayIsOpen()||elements.overlay.contains(event.target))return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    closeJournal();
+  },true));
+  document.addEventListener("focusin",event=>{
+    if(journalOverlayIsOpen()&&!elements.overlay.contains(event.target))focusFirstJournalControl();
   },true);
   refreshJournalUI();
 }
@@ -668,7 +750,7 @@ function startNewGame(){
   if(readSaveData(AUTO_SAVE_SLOT)&&!window.confirm("자동 저장을 새 게임으로 교체할까요?\n수동 저장 3칸은 그대로 유지됩니다."))return;
   window.MoonlightTableSave?.clearEndingRetryCheckpoint?.();
   if(typeof closeEndingRetryMenu==="function")closeEndingRetryMenu();
-  clearSaveData(AUTO_SAVE_SLOT);clearStoryRuntime();startGame();saveGame(true);updateContinueButton();
+  clearSaveData(AUTO_SAVE_SLOT);clearStoryRuntime();resetGameplayJournalView();startGame();saveGame(true);updateContinueButton();
 }
 
 function startGame(){

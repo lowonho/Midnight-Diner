@@ -288,6 +288,10 @@ function updateMenuSelectionObjective(){
 function openMenuSelectionAtFridge(){
   if(state.phase!==GAME_PHASES.MENU_SELECT)return false;
   renderMenuSelection();
+  state.player.moving=false;
+  if(typeof resetPlayerKeyboardInput==="function")resetPlayerKeyboardInput();
+  if(typeof cancelJoystickInput==="function")cancelJoystickInput();
+  else{state.joyX=0;state.joyY=0;}
   dom.menuSelectOverlay.classList.add("open");
   return true;
 }

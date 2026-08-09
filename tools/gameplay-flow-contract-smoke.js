@@ -75,6 +75,29 @@ const settingsInputGuard=game.indexOf('if(settingsOverlayIsOpen())return;',game.
 const gameKeyPrevent=game.indexOf('e.preventDefault();',settingsInputGuard);
 assert(settingsInputGuard>=0&&gameKeyPrevent>settingsInputGuard,
   "설정창 안에서는 게임 키 입력만 차단하고 슬라이더 방향키와 버튼 Space 기본 조작은 허용해야 합니다.");
+assert(game.includes('KeyW:"w",KeyA:"a",KeyS:"s",KeyD:"d",KeyE:"e"')
+  &&game.includes("const k=gameInputKey(e);")
+  &&game.includes('const physicalMoveKeys={w:false,a:false,s:false,d:false};')
+  &&game.includes("setPhysicalMoveKey(e,true);")
+  &&game.indexOf("setPhysicalMoveKey(e,false);")<game.indexOf("if(settingsOverlayIsOpen()||storyDialogueIsActive()")
+  &&game.includes('window.addEventListener("blur",clearPhysicalMoveKeys);')
+  &&game.includes("engine?.keyup?.(state.mini,gameInputKey(e),e);")
+  &&player.includes("const physical=window.physicalMoveKeys||{};")
+  &&player.includes("playerKeys?.w.isDown||physical.w")
+  &&player.includes("function resetPlayerKeyboardInput()"),
+  "한글 입력 상태에서도 event.code 기준 물리 WASD와 E가 게임 입력으로 전달되어야 합니다.");
+assert(player.includes("dom.menuSelectOverlay?.classList.contains(UI_CLASS.overlayOpen)")
+  &&player.includes("p.moving=false;state.joyX=0;state.joyY=0;return;")
+  &&day.includes("state.player.moving=false;")
+  &&day.includes("state.joyX=0;state.joyY=0;")
+  &&game.includes('dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen)')
+  &&game.includes('if(state.paused||dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen))return;'),
+  "메뉴 선택창이 열린 동안 키보드·상호작용·모바일 조이스틱이 뒤쪽 캐릭터를 움직이면 안 됩니다.");
+assert(game.includes("const hasWaitingBubble=Array.isArray(GENERAL_GUEST_BUBBLES.waiting)")
+  &&game.includes("if(hasWaitingBubble){")
+  &&game.includes("!order.waitingBubbleDisabled")
+  &&game.includes("}else order.waitingBubbleDisabled=true;"),
+  "일반 손님 대기 문구 목록이 비었을 때 빈 말풍선을 생성하면 안 됩니다.");
 
 const hud=read("ui-hud.js");
 assert(index.includes('<span>손님 반응</span><strong id="satisfactionText">-</strong>')

@@ -183,15 +183,26 @@ function createPlayer(scene){
 function updatePlayer(dt){
   const p=state.player;
   // 메뉴 선택도 주방 안에서 냉장고까지 직접 걸어가는 단계입니다.
-  if(state.mini||!["menuSelect","day","night"].includes(state.phase)){p.moving=false;return;}
+  // 단, 냉장고의 메뉴판을 펼친 뒤에는 키보드와 모바일 조이스틱이 뒤쪽
+  // 요리사를 움직이지 않게 현재 입력값까지 비웁니다.
+  if(state.mini||dom.menuSelectOverlay?.classList.contains(UI_CLASS.overlayOpen)
+    ||!["menuSelect","day","night"].includes(state.phase)){
+    p.moving=false;state.joyX=0;state.joyY=0;return;
+  }
   let vx=0,vy=0;
-  if(playerKeys?.up.isDown||playerKeys?.w.isDown)vy-=1;
-  if(playerKeys?.down.isDown||playerKeys?.s.isDown)vy+=1;
-  if(playerKeys?.left.isDown||playerKeys?.a.isDown)vx-=1;
-  if(playerKeys?.right.isDown||playerKeys?.d.isDown)vx+=1;
+  const physical=window.physicalMoveKeys||{};
+  if(playerKeys?.up.isDown||playerKeys?.w.isDown||physical.w)vy-=1;
+  if(playerKeys?.down.isDown||playerKeys?.s.isDown||physical.s)vy+=1;
+  if(playerKeys?.left.isDown||playerKeys?.a.isDown||physical.a)vx-=1;
+  if(playerKeys?.right.isDown||playerKeys?.d.isDown||physical.d)vx+=1;
   if(Math.abs(state.joyX||0)>.05||Math.abs(state.joyY||0)>.05){vx=state.joyX;vy=state.joyY;}
   if(vx||vy){const len=Math.hypot(vx,vy)||1;vx/=len;vy/=len;movePlayer(vx*p.speed*dt,vy*p.speed*dt);}
   else p.moving=false;
+}
+
+function resetPlayerKeyboardInput(){
+  Object.values(playerKeys||{}).forEach(key=>key?.reset?.());
+  window.clearPhysicalMoveKeys?.();
 }
 
 function movePlayer(dx,dy){

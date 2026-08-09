@@ -1465,6 +1465,11 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   const scene=storySession.scene;
   const line=storySession.lines[storySession.lineIndex];
   if(!line){completeStoryScene();return;}
+  // 이미 본 방문 대사를 SKIP하거나 구 체크포인트가 선택 화면을 곧바로
+  // 복원해도 도착 단서가 빠지지 않게 하는 보정입니다.
+  if(!storySession.qaPreview&&line.choices&&scene?.requiresDishChoice){
+    recordStoryArrivalClue(scene,{save:true});
+  }
   const textEl=document.getElementById("storyText");
   const speakerEl=document.getElementById("storySpeaker");
   const badge=document.getElementById("storyRelationBadge");
@@ -1526,6 +1531,13 @@ function finishStoryTyping(){
   if(!typing.isFinalPage){
     if(storySession.qaPreview&&typeof qaSyncStoryPreviewNextButton==="function")qaSyncStoryPreviewNextButton();
     return;
+  }
+  const scene=storySession.scene;
+  const lastArrivalDialogueIndex=Array.isArray(scene?.lines)?scene.lines.length-1:-1;
+  if(!storySession.qaPreview&&storySession.lineIndex===lastArrivalDialogueIndex){
+    // 마지막 음식 묘사가 모두 출력된 즉시 기록합니다. 이후 선택·조리 결과를
+    // 기다리지 않으므로 플레이어가 오답을 내기 전에도 영업일지에 남습니다.
+    recordStoryArrivalClue(scene,{save:true});
   }
   if(typing.line.setsFlag)state.story.flags[typing.line.setsFlag]=true;
   if(typing.line.reveal&&!typing.revealApplied){
@@ -1942,6 +1954,19 @@ function storyGuestIdForScene(scene){
   return STORY_GUEST_IDS.includes(id)?id:null;
 }
 
+function recordStoryArrivalClue(scene,{save=false}={}){
+  if(scene?.sceneType!=="specialGuestArrival"||!scene.specialGuest)return false;
+  const guestId=storyGuestIdForScene(scene);
+  if(!guestId)return false;
+  const guest=getStoryGuestState(guestId);
+  if(guest.clueFound)return false;
+  // 손님이 직접 들려준 음식 묘사를 모두 들은 시점부터 진행 영업일지에
+  // 단서를 남깁니다. 음식 확정·평가·조각은 조리 결과 장면에서만 갱신합니다.
+  guest.clueFound=true;
+  if(save)saveGame(true);
+  return true;
+}
+
 function recordStorySceneOutcome(scene){
   const guestId=storyGuestIdForScene(scene);
   if(guestId&&scene?.id){
@@ -1951,6 +1976,9 @@ function recordStorySceneOutcome(scene){
   if(scene.specialGuest&&guestId){
     const guest=getStoryGuestState(guestId);
     const result=getStoryGuestResult(guestId);
+    // 선택 화면 진입 전에 저장되지 못한 구 체크포인트도 장면 완료 시에는
+    // 반드시 같은 단서를 갖도록 하는 중복 안전한 보정입니다.
+    recordStoryArrivalClue(scene);
     guest.visits++;
     guest.lastVisitDay=state.day;
     result.visited=true;
