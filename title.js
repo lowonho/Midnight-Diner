@@ -77,6 +77,8 @@ function journalElements(){
     pageTitle:document.getElementById("journalPageTitle"),
     pageNote:document.getElementById("journalPageNote"),
     pageNoteArt:document.getElementById("journalPageNoteArt"),
+    pageArtLeft:document.getElementById("journalPageArtLeft"),
+    pageArtRight:document.getElementById("journalPageArtRight"),
     pageMeta:document.getElementById("journalPageMeta"),
     relic:document.getElementById("journalPageRelic"),
     relicArt:document.getElementById("journalPageRelicArt"),
@@ -104,6 +106,14 @@ function collectionJournalPages(){
 function gameplayJournalPages(){
   const pages=typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[];
   return (Array.isArray(pages)?pages:[]).map((page,index)=>normalizedJournalPage(page,index,"gameplay"));
+}
+
+// 글 없이 원화 두 장만 양면에 채우는 장입니다(주의사항 다음 안내 장).
+// 이 장은 머리글·제목·본문이 모두 빠지므로 다른 렌더러도 이 판정을 씁니다.
+function journalArtSpread(page){
+  if(journalMode!=="gameplay"||page?.pageType!=="guide")return null;
+  if(!page.artLeft&&!page.artRight)return null;
+  return {left:page.artLeft||"",right:page.artRight||""};
 }
 
 function journalPageKindLabel(page){
@@ -174,6 +184,7 @@ function gameplayJournalEntryNote(entry){
 }
 
 function journalPageNote(page){
+  if(journalArtSpread(page))return "";
   if(journalMode==="gameplay"&&page.pageType==="rules"){
     return journalSection("주의사항",journalLines((page.rules||[]).map((rule,index)=>`${index+1}. ${rule}`)));
   }
@@ -269,6 +280,7 @@ function journalPageNote(page){
 }
 
 function journalPageMeta(page){
+  if(journalArtSpread(page))return "";
   if(!page.unlocked)return "잠긴 페이지";
   const items=[];
   if(journalMode==="gameplay"){
@@ -299,7 +311,9 @@ function journalPageMeta(page){
 // 로비 컬렉션은 특별 손님·엔딩 두 장입니다.
 function journalSectionDefs(){
   if(journalMode==="gameplay")return [
-    {id:"rules",label:"주의사항",matches:page=>page.pageType==="rules"},
+    // 안내 장(guide)은 주의사항 바로 다음 장이라 견출지를 따로 만들지 않고
+    // 주의사항 구역에 함께 묶습니다. 넘겨도 견출지가 그대로 켜져 있습니다.
+    {id:"rules",label:"주의사항",matches:page=>page.pageType==="rules"||page.pageType==="guide"},
     {id:"recipe",label:"레시피",matches:page=>page.pageType==="recipe"},
     {id:"day",label:"일기",matches:page=>page.pageType==="day"}
   ];
@@ -405,6 +419,22 @@ function renderJournalRelic(elements,page){
     :unlocked?`「${page.shardName}」`:"「???」";
 }
 
+// 양면 그림 장에서만 두 면의 그림을 켭니다. 그림 주소는 페이지 자료가
+// 들고 있고(story.js), 켜는 순간 .is-art-spread 가 글자 자리를 통째로 비웁니다.
+// 인라인 style 의 url() 은 스타일시트가 아니라 문서(index.html) 기준이라
+// assets/ 로 시작하는 주소를 그대로 씁니다.
+function renderJournalArtSpread(elements,page){
+  const spread=journalArtSpread(page);
+  elements.page?.classList.toggle("is-art-spread",!!spread);
+  const apply=(node,src)=>{
+    if(!node)return;
+    node.hidden=!src;
+    node.style.backgroundImage=src?`url("${src}")`:"";
+  };
+  apply(elements.pageArtLeft,spread?.left);
+  apply(elements.pageArtRight,spread?.right);
+}
+
 function renderJournalPage({acknowledge=false}={}){
   const elements=journalElements();
   const page=journalPages[journalPageIndex]||null;
@@ -414,6 +444,7 @@ function renderJournalPage({acknowledge=false}={}){
     elements.pageTitle.textContent="표시할 기록이 없습니다.";
     elements.pageNote.textContent="이야기가 시작되면 이곳에 기록이 생깁니다.";
     if(elements.pageNoteArt)elements.pageNoteArt.hidden=true;
+    renderJournalArtSpread(elements,null);
     elements.pageMeta.textContent="";
     elements.pagePortrait.textContent="?";
     elements.previous.disabled=true;elements.next.disabled=true;
@@ -465,6 +496,7 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pageMeta.classList.toggle("is-multiline",metaText.includes("\n"));
   elements.pageMeta.textContent=metaText;
   renderJournalRelic(elements,page);
+  renderJournalArtSpread(elements,page);
   elements.previous.disabled=journalPageIndex<=0;
   elements.next.disabled=journalPageIndex>=journalPages.length-1;
   if(isGameplayRecord)journalLastGameplayPageId=page.id;

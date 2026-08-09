@@ -71,7 +71,7 @@ const ENDINGS=[
 ];
 
 function getGameplayJournalPages(){
-  const total=1+DISHES.length+7;
+  const total=2+DISHES.length+7;
   const rules={
     id:"gameplay-rules",pageType:"rules",number:1,total,unlocked:true,
     label:"주의사항",tabLabel:"주의사항",dayLabel:"주의사항",
@@ -80,8 +80,15 @@ function getGameplayJournalPages(){
       "손님에게 항상 친절하게 대한다."
     ]
   };
+  // 주의사항 다음 장은 글 없이 양면을 원화 두 장으로 채웁니다.
+  const guide={
+    id:"gameplay-guide",pageType:"guide",number:2,total,unlocked:true,
+    label:"영업일지 안내",tabLabel:"주의사항",dayLabel:"주의사항",
+    artLeft:"assets/UI/Journal/ui_log_story_guest_cooking_v01.webp",
+    artRight:"assets/UI/Journal/ui_log_story_choice_answer_v03.webp"
+  };
   const recipes=DISHES.map((dishName,index)=>({
-    id:`gameplay-recipe-${index}`,pageType:"recipe",number:index+2,total,recipeNumber:index+1,
+    id:`gameplay-recipe-${index}`,pageType:"recipe",number:index+3,total,recipeNumber:index+1,
     dishId:DISH_IDS[index],
     dishName,label:`${dishName} 레시피`,tabLabel:dishName,unlocked:true,
     ingredients:["재료 하나","재료 둘","재료 셋"],
@@ -101,13 +108,13 @@ function getGameplayJournalPages(){
     const day=index+1;
     const recorded=day<=3||day===7;
     return {
-      id:`gameplay-day-${day}`,pageType:"day",number:DISHES.length+day+1,total,day,
+      id:`gameplay-day-${day}`,pageType:"day",number:DISHES.length+day+2,total,day,
       dayLabel:`${day}일차`,label:`${day}일차 기록`,tabLabel:`${day}일차`,unlocked:true,
       recorded,
       entries:day===7?[entryFor(6),entryFor(7)]:recorded?[entryFor(index)]:[]
     };
   });
-  return [rules,...recipes,...days];
+  return [rules,guide,...recipes,...days];
 }
 
 window.MoonlightTableSave={
@@ -210,6 +217,17 @@ function setup(){
     document.body.dataset.leftSlack=last
       ?String(Math.round(leaf.getBoundingClientRect().bottom-last.getBoundingClientRect().bottom))
       :"(빈 면)";
+    // 양면 그림 장(주의사항 다음 안내 장)은 두 면의 글자 자리가 똑같이
+    // 334x420 upx 여야 합니다. 아래 두 값의 가로·세로가 서로 같아야 맞습니다.
+    const faceBox=node=>{
+      const rect=node.getBoundingClientRect();
+      const style=getComputedStyle(node);
+      const width=rect.width-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+      const height=rect.height-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
+      return `${Math.round(width*10)/10}x${Math.round(height*10)/10}`;
+    };
+    document.body.dataset.faces=`왼 ${faceBox(leaf)} / 오 ${faceBox(document.querySelector(".journal-page-right"))}`
+      +` / 양면그림 ${document.getElementById("journalPage").classList.contains("is-art-spread")}`;
     const art=document.getElementById("journalPageRelicArt");
     document.body.dataset.relic=art&&!document.getElementById("journalPageRelic").hidden
       ?`${getComputedStyle(art).backgroundImage.replace(/^url\("?|"?\)$/g,"").split("/").pop()}`

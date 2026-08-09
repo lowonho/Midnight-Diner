@@ -289,14 +289,19 @@ assert(expectedGameplayJournalGuestIds.every(id=>{
 const initialGameplayJournal=getGameplayJournalPages();
 const initialRecipePages=initialGameplayJournal.filter(page=>page.pageType==="recipe");
 const initialDayPages=initialGameplayJournal.filter(page=>page.pageType==="day");
-assert(initialGameplayJournal.length===16
+assert(initialGameplayJournal.length===17
   &&initialGameplayJournal[0].pageType==="rules"
+  &&initialGameplayJournal[1].pageType==="guide"
   &&initialRecipePages.length===8
   &&initialDayPages.every((page,index)=>
     page.pageType==="day"&&page.day===index+1&&!page.recorded&&page.entries.length===0),
-  "새 게임의 진행용 영업일지는 주의사항 1장, 음식별 레시피 8장, 빈 1~7일차 기록으로 구성되어야 합니다.");
-same(initialGameplayJournal.map(page=>page.number),Array.from({length:16},(_,index)=>index+1),
-  "진행용 영업일지 16장의 페이지 번호");
+  "새 게임의 진행용 영업일지는 주의사항 1장, 양면 그림 안내 1장, 음식별 레시피 8장, 빈 1~7일차 기록으로 구성되어야 합니다.");
+same(initialGameplayJournal.map(page=>page.number),Array.from({length:17},(_,index)=>index+1),
+  "진행용 영업일지 17장의 페이지 번호");
+// 안내 장은 글이 아니라 양면 원화 두 장이라, 그림 주소가 빠지면 빈 종이가 됩니다.
+assert(initialGameplayJournal[1].artLeft==="assets/UI/Journal/ui_log_story_guest_cooking_v01.webp"
+  &&initialGameplayJournal[1].artRight==="assets/UI/Journal/ui_log_story_choice_answer_v03.webp",
+  "안내 장의 왼쪽 면은 손님 조리 그림, 오른쪽 면은 선택지·대답 그림이어야 합니다.");
 same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
 same(initialGameplayJournal[0].rules,[

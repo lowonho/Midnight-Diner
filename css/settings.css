@@ -778,6 +778,34 @@
   background: center/contain no-repeat url("../assets/UI/Journal/journal_warning.webp");
 }
 .journal-page-note-art[hidden] { display: none; }
+/* ── 양면 그림 장 (주의사항 다음 안내 장) ─────────────────────
+   글은 한 줄도 없고 원화 두 장이 왼쪽·오른쪽 면을 각각 채웁니다.
+   평소 본문 자리는 오른쪽 면만 334x420 입니다 — 책 안쪽 폭 802 를 반으로
+   나눈 401 에서 접힘선 쪽 여백 67 을 뺀 값이고, 높이는 책 544 에서 위 50 ·
+   아래 74 를 뺀 값입니다. 왼쪽 면은 접힘선 쪽 여백이 81 이라 320 이 되는데,
+   이 장에서만 오른쪽 면과 같은 67 로 맞춰 두 면 다 334x420 이 됩니다. */
+.journal-page.is-art-spread .journal-page-left {
+  justify-content: stretch;
+  padding-right: calc(67 * var(--upx));
+}
+.journal-page.is-art-spread .journal-page-right { overflow: hidden; }
+/* 이 장에서는 머리글·액자·제목·요약·본문이 전부 빠지고 그림만 남습니다. */
+.journal-page.is-art-spread .journal-page-topline,
+.journal-page.is-art-spread .journal-page-portrait,
+.journal-page.is-art-spread h3,
+.journal-page.is-art-spread small,
+.journal-page.is-art-spread .journal-page-right > p { display: none; }
+/* 원화 비율(요리 0.846 · 선택지 1.031)이 상자(334x420)와 달라서 contain 으로
+   놓습니다. 폭을 꽉 채우고 남는 세로는 위아래로 나뉩니다(찌그러지지 않습니다).
+   크기를 바꾸면 tools/build-ui-journal-webp.js 의 size 도 같이 고쳐야 합니다. */
+.journal-page-art {
+  flex: 1;
+  align-self: stretch;
+  width: 100%;
+  min-height: 0;
+  background: center/contain no-repeat;
+}
+.journal-page-art[hidden] { display: none; }
 /* [주의사항] 같은 구역 머리와 '이름 ·' 같은 항목 이름만 굵게 씁니다. */
 .journal-page p .journal-note-label {
   color: #4b2b1a;
