@@ -49,50 +49,38 @@
    ------------------------------------------------------------
    [speakerArt] 이 컷 위에서 말하는 줄에 대화 원화를 세울지  ★
    ------------------------------------------------------------
-   컷은 대사 한 줄이 아니라 '구간'에 걸립니다(위 설명). 그래서 원화를 안 세우면
-   그 구간의 대사 전부가 배우 없이 지나갑니다. SCN-P03 은 장면 전체가 한 컷이라
-   김다은이 네 마디를 하는 동안 컷 속 자세 하나로만 서 있었습니다 — 누가
-   말하는지도, 표정이 어떻게 바뀌는지도 화면에 안 나왔습니다.
-
-   그래서 프롤로그 컷은 모두 true 입니다. 컷 안에도 김다은이 그려져 있어 말하는
-   동안에는 화면에 둘이 보이지만, "지금 말하는 사람"이 서는 쪽이 낫다고 봤습니다.
-   컷을 혼자 보여 주는 첫 박자(hold)에는 어차피 아무도 안 섭니다 — 화자가 없는
-   내레이션이 그 자리를 맡고 있어서, 그림만 보는 한 박자는 그대로 남습니다.
-
-   조각 전달 컷(shard_*)만 false 입니다. 그쪽은 대사가 아니라 그림이 절정이고,
-   김다은과 손님이 마주 보고 그려져 있어 누가 서든 그 사람이 둘이 됩니다.
-   (지금은 컷이 화자 없는 마지막 내레이션 한 줄에만 걸려서 세울 일 자체가
-    없지만, 뒤에 대사를 붙이는 날을 위해 값으로 못박아 둡니다)
+   컷 안에 등장인물이 이미 그려져 있으면 false 입니다. 그 위에 대화용 원화를
+   다시 세우면 같은 인물이 둘이 됩니다. 현재 프롤로그 원화 다섯 장에는 모두
+   김다은이 있고, 조각 전달 원화에는 김다은과 손님이 함께 있으므로 모두 false
+   입니다. 컷이 없는 일반 대화 장면은 이 설정의 영향을 받지 않습니다.
 
    판단은 story.js 의 updateStoryCinematicSpeaking() 이 아래
    storyCinematicShowsSpeakerArt() 에 물어봅니다. */
 const STORY_CUTSCENES=Object.freeze({
   prologueOffice:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_02_reprimand_variant.webp",
-    speakerArt:true,
+    speakerArt:false,
     why:"SCN-P01 앞부분 · 야근 중 상사에게 지적받는 사무실"
   }),
   prologueCommute:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_01_commute_variant.webp",
-    speakerArt:true,
+    speakerArt:false,
     why:"SCN-P01 뒷부분 · 회사를 나와 혼자 걷는 밤 퇴근길"
   }),
   prologueRainAlley:Object.freeze({
     art:"assets/Cutscene/prologue/rainy_alley_woman_high_angle_4k.webp",
-    speakerArt:true,
+    speakerArt:false,
     why:"SCN-P02 앞부분 · 비 쏟아지는 골목에 선 김다은(부감)"
   }),
   prologueRainEntry:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_03_rain_entry.webp",
-    speakerArt:true,
+    speakerArt:false,
     why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면"
   }),
-  /* SCN-P03 은 장면 전체가 한 컷입니다. 나갔다 다시 들어오는 대사까지 같은
-     가게 안이라, 컷을 바꿀 자리가 없습니다. 대사 네 줄이 이 한 컷 위에서
-     오가므로 speakerArt 가 특히 중요한 컷입니다. */
+  /* SCN-P03 은 장면 전체가 한 컷이고, 김다은도 원화 안에 서 있습니다. */
   prologueEmptyRestaurant:Object.freeze({
     art:"assets/Cutscene/prologue/cutscene_empty_restaurant_journal_variant_03_4k.webp",
-    speakerArt:true,
+    speakerArt:false,
     why:"SCN-P03 전체 · 주인 없는 식당, 카운터 위에 놓인 영업일지"
   }),
 
@@ -156,6 +144,14 @@ const STORY_CUTSCENES=Object.freeze({
 
 let storyCinematicRuntime=null;
 
+/* CSS 선택자만으로는 대화 오버레이가 계속 열려 있는 상태에서
+   '배경 컷만 바뀌는 순간'을 알 수 없습니다. story.js 는 이 판정을
+   새 컷의 첫 대사창 등장 효과에 사용합니다. */
+function storyCinematicStartsNewCut(line){
+  const cut=storyCinematicConfig(line)?.cut;
+  return !!cut&&storyCinematicRuntime?.cut!==cut;
+}
+
 function storyCinematicConfig(line){
   const config=line?.cinematic;
   if(!config||typeof config!=="object")return null;
@@ -195,6 +191,20 @@ function storyCinematicShowsSpeakerArt(){
       장마다 메모리에 남습니다. 요청만 띄워 두면 브라우저 캐시가 받아 줍니다. */
 let preloadedLines=null;
 const preloadedCutsceneArts=new Set();
+const preloadedCutsceneImages=new Map();
+
+/* 미리 받은 Image 객체를 붙잡아 둡니다. 컷을 바꾸는 순간 새 그림이 아직
+   디코딩되지 않았으면 이전 컷을 먼저 내리지 않고 load 완료까지 유지합니다. */
+function storyCutsceneImage(art){
+  if(!art||typeof Image!=="function")return null;
+  let image=preloadedCutsceneImages.get(art);
+  if(!image){
+    image=new Image();
+    image.src=art;
+    preloadedCutsceneImages.set(art,image);
+  }
+  return image;
+}
 
 function preloadStoryCutscenesForScene(){
   if(typeof Image!=="function")return;
@@ -206,7 +216,7 @@ function preloadStoryCutscenesForScene(){
     const art=storyCutsceneArt(storyCinematicConfig(line)?.cut);
     if(!art||preloadedCutsceneArts.has(art))continue;
     preloadedCutsceneArts.add(art);
-    new Image().src=art;
+    storyCutsceneImage(art);
   }
 }
 
@@ -302,11 +312,34 @@ function showStoryCutscene(cut){
   // 이미 그 컷이면 다시 페이드하지 않습니다. 같은 그림이 한 번 흐려졌다
   // 돌아오면 깜빡인 것처럼 보입니다.
   if(storyCinematicRuntime?.cut===cut)return true;
-  const next=(storyCinematicRuntime?.layer??1)===0?1:0;
-  layers[next].style.backgroundImage=`url("${art}")`;
-  layers[next].classList.add("is-active");
-  layers[next===0?1:0].classList.remove("is-active");
-  storyCinematicRuntime={cut,layer:next};
+  const previousLayer=Number.isInteger(storyCinematicRuntime?.layer)
+    ?storyCinematicRuntime.layer:null;
+  const request={};
+  storyCinematicRuntime={cut,layer:previousLayer,request};
+
+  const reveal=()=>{
+    if(storyCinematicRuntime?.request!==request)return;
+    const current=Number.isInteger(storyCinematicRuntime.layer)
+      ?storyCinematicRuntime.layer:null;
+    const next=current===0?1:0;
+    layers[next].style.backgroundImage=`url("${art}")`;
+    layers[next].classList.add("is-active");
+    if(current!==null&&current!==next)layers[current].classList.remove("is-active");
+    storyCinematicRuntime={cut,layer:next};
+  };
+
+  const image=storyCutsceneImage(art);
+  const ready=!!image?.complete&&(!("naturalWidth" in image)||image.naturalWidth>0);
+  if(ready||!image||typeof image.addEventListener!=="function")reveal();
+  else{
+    image.addEventListener("load",reveal,{once:true});
+    /* 파일 계약 검사가 경로 오류를 잡습니다. 그래도 런타임 오류가 나면 이전
+       컷을 유지해 식당 화면이 중간 프레임으로 끼어들지 않게 합니다. */
+    image.addEventListener("error",()=>{
+      if(storyCinematicRuntime?.request!==request)return;
+      storyCinematicRuntime={cut,layer:previousLayer};
+    },{once:true});
+  }
   return true;
 }
 

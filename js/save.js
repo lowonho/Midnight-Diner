@@ -728,7 +728,13 @@ function restoreGameState(data){
   state.inventory=Object.fromEntries(DISHES.map(dish=>[
     dish.id,{count:0,quality:0,...(saved.inventory?.[dish.id]||{})}
   ]));
-  state.orders=Array.isArray(saved.orders)?saved.orders.map(normalizeStoryOrder):[];
+  state.orders=Array.isArray(saved.orders)?saved.orders.map(order=>{
+    const normalized=normalizeStoryOrder(order);
+    // v4 초기 저장에는 주문별 폐기 횟수 필드가 없습니다. 명시적으로 false로
+    // 보완해야 구 세이브를 불러온 첫 접시도 정상적으로 한 번 폐기할 수 있습니다.
+    if(normalized)normalized.discardedOnce=normalized.discardedOnce===true;
+    return normalized;
+  }):[];
   state.respawns=Array.isArray(saved.respawns)?saved.respawns:[];
   state.departures=[];
   // speed 는 세이브 값을 쓰지 않고 항상 PLAYER_START 를 따릅니다.

@@ -30,6 +30,8 @@
                           엔진이 finishMini 에 무엇을 넘기든 game.js 가 덮어씁니다.
                        생략하면 곧바로 finishMini(MINI_TIMEOUT_SCORE).
      action(m)         Space / ACTION 버튼 / 화면 안 조작 버튼을 눌렀을 때.
+     teardown(m)       미니게임 화면이 실제로 닫히기 직전 한 번. document.body에
+                       붙인 커서나 전역 이벤트 리스너를 즉시 정리할 때 사용합니다.
      noKeyboard        true 면 **마우스 전용 게임**입니다. game.js 가 키를 통째로
                        무시합니다 — 아래 key/keyup 도, Space 기본 동작(action)도
                        부르지 않습니다. 화면에 키 안내가 없는 게임에 붙이세요.

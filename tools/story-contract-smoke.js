@@ -83,17 +83,25 @@ if(!indexSource.includes('id="storyEndingBackground"')
   throw new Error("엔딩 일러스트 배경 레이어와 배우 무대 숨김 스타일이 필요합니다.");
 }
 if(!indexSource.includes('id="storyFragmentHandoff"')
+  ||!indexSource.includes('id="storyFragmentKicker"')
   ||!indexSource.includes('id="storyFragmentName"')
   ||!indexSource.includes('class="story-fragment-art"')
   ||!storyCssSource.includes(".story-fragment-handoff")
   ||!storyCssSource.includes(".story-fragment-handoff.show .story-fragment-focus")){
-  throw new Error("완전한 달빛 조각의 암전·중앙 에셋 전달 레이어가 필요합니다.");
+  throw new Error("부분·완전 달빛 조각의 암전·중앙 에셋 전달 레이어가 필요합니다.");
 }
 const fragmentAssetPaths=[...sources[1].matchAll(/\b\w+:\s*"(assets\/customer\/Special\/MoonPiece\/[^"]+\.webp)"/g)]
   .map(match=>match[1]);
 if(fragmentAssetPaths.length!==8
   ||fragmentAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
   throw new Error("특별 손님 8명의 완전한 달빛 조각 에셋이 모두 존재해야 합니다.");
+}
+const partialFragmentAssetPaths=[...sources[1].matchAll(/\b\w+:\s*"(assets\/customer\/Special\/MoonPiece\/g[1-7]_[^"]+\.png)"/g)]
+  .map(match=>match[1]);
+if(partialFragmentAssetPaths.length!==7
+  ||new Set(partialFragmentAssetPaths).size!==7
+  ||partialFragmentAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("기본 특별 손님 7명의 부분 달빛 조각 에셋이 모두 존재해야 합니다.");
 }
 const endingAssetPaths=[...sources[1].matchAll(/endingBackground:\s*"(assets\/story\/bg\/[^"]+\.png)"/g)]
   .map(match=>match[1]);
@@ -158,16 +166,20 @@ assert(String(showStoryLine).includes("applyStoryFragmentHandoff(")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
-assert(String(storyAdvance).includes("fragmentRevealedAt"),
-  "달빛 조각은 대사를 다 읽고 한 번 더 눌렀을 때 떠야 합니다(storyAdvance 의 조각 박자).");
+assert(String(storyAdvance).includes("fragmentRevealedAt")
+  &&String(storyAdvance).includes('fragmentHandoff?.state==="partial"')
+  &&String(storyAdvance).includes('fragmentHandoff?.state==="full"'),
+  "부분·완전 달빛 조각은 대사를 다 읽고 한 번 더 눌렀을 때 떠야 합니다(storyAdvance 의 조각 박자).");
 assert(String(showStoryLine).includes("applyStoryEndingBackground(scene)")
   &&String(resetStoryStage).includes("applyStoryEndingBackground(null)")
   &&String(clearStoryRuntime).includes("applyStoryEndingBackground(null)"),
   "엔딩 배경은 장면 재생 경로에서 적용되고 장면·런타임 종료에서 해제되어야 합니다.");
-assert(String(applyStoryFragmentHandoff).includes('handoff?.state==="full"')
+assert(String(applyStoryFragmentHandoff).includes('handoff?.state==="partial"')
+  &&String(applyStoryFragmentHandoff).includes('handoff?.state==="full"')
+  &&String(applyStoryFragmentHandoff).includes('document.getElementById("storyFragmentKicker")')
   &&String(applyStoryFragmentHandoff).includes('document.getElementById("storyFragmentName")')
-  &&String(applyStoryFragmentHandoff).includes('layer.classList?.toggle("show",showFull)'),
-  "중앙 조각 연출은 완전한 조각에서만 열리고 조각 이름을 함께 표시해야 합니다.");
+  &&String(applyStoryFragmentHandoff).includes('layer.classList?.toggle("show",showFragment)'),
+  "중앙 조각 연출은 부분·완전 조각을 구분해 열고 조각 이름을 함께 표시해야 합니다.");
 const same=(actual,expected,message)=>{
   assert(JSON.stringify(actual)===JSON.stringify(expected),
     message+"\\nactual: "+JSON.stringify(actual)+"\\nexpected: "+JSON.stringify(expected));
@@ -235,11 +247,31 @@ const fragmentLayer={
   setAttribute(){}
 };
 const fragmentName={textContent:""};
-document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer:id==="storyFragmentName"?fragmentName:null;
+const fragmentKicker={textContent:""};
+document.getElementById=id=>id==="storyFragmentHandoff"
+  ?fragmentLayer
+  :id==="storyFragmentKicker"
+    ?fragmentKicker
+    :id==="storyFragmentName"?fragmentName:null;
+const partialFragmentLine=STORY_SCENES["SCN-G1-맛있다"].lines.find(line=>line.fragmentHandoff);
 const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
 const storyBeforeFragmentSfx=state.story;
 state.story=createStoryState();
 const guestAmbientEntry={name:"story_guest_d1_arrival"};
+storySession={
+  scene:STORY_SCENES["SCN-G1-맛있다"],
+  playedFragmentSfx:{},
+  ambientAudio:guestAmbientEntry
+};
+const audioCountBeforePartial=playedAudio.length;
+assert(applyStoryFragmentHandoff(partialFragmentLine)
+  &&fragmentLayerClasses.has("show")
+  &&fragmentLayerClasses.has("has-art")
+  &&fragmentLayer.dataset.fragmentState==="partial"
+  &&fragmentKicker.textContent==="부분 달빛 조각"
+  &&fragmentLayerStyles["--fragment-art"].includes("/MoonPiece/g1_rain_drop_fragment.png")
+  &&playedAudio.length===audioCountBeforePartial,
+  "맛있다 결과는 G1 부분 조각 에셋을 전달 연출로 띄우되 완전 조각 효과음은 재생하지 않아야 합니다.");
 storySession={
   scene:STORY_SCENES["SCN-G1-완벽"],
   playedFragmentSfx:{},
@@ -248,6 +280,8 @@ storySession={
 assert(applyStoryFragmentHandoff(fullFragmentLine)
   &&fragmentLayerClasses.has("show")
   &&fragmentLayerClasses.has("has-art")
+  &&fragmentLayer.dataset.fragmentState==="full"
+  &&fragmentKicker.textContent==="온전한 달빛 조각"
   &&fragmentLayerStyles["--fragment-art"].includes("file:///C:/Midnight%20Diner/assets/customer/Special/MoonPiece/")
   &&!fragmentLayerStyles["--fragment-art"].includes("/css/assets/"),
   "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
@@ -524,7 +558,7 @@ assert(STORY_SCENES["SCN-P03"].lines.at(-1)?.text==="나 여기 갇힌건가??"
   &&p04DiscoveryText.includes("그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다.")
   &&p04.lines[0]?.openJournalOnAdvance===true,
   "문으로 나가지 못한 뒤 다른 출구를 찾다가 영업일지를 발견하고 펼치는 흐름이어야 합니다.");
-assert(p04.lines[1]?.text==="첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?"
+assert(p04.lines[1]?.text==="앞에 두 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?"
   &&p04.lines[2]?.text.includes("내일로 가는 문")
   &&JSON.stringify(STORY_SCENES).includes("내일로 가는 문")
   &&!JSON.stringify(STORY_SCENES).includes("새벽문"),
@@ -636,7 +670,8 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
     prefix+" 행동 묘사 뒤에는 내레이션이 손님의 말을 선점하지 않아야 합니다.");
   const warmHandoff=warm.lines.at(-1)?.fragmentHandoff;
   const greatHandoff=great.lines.at(-1)?.fragmentHandoff;
-  assert(number===8?!warmHandoff:warmHandoff?.state==="partial"&&warmHandoff.asset===null,
+  assert(number===8?!warmHandoff:warmHandoff?.state==="partial"
+    &&warmHandoff.asset===STORY_PARTIAL_FRAGMENT_ASSETS[shardId],
     prefix+" 맛있다 부분 조각 전달 연출");
   assert(greatHandoff?.state==="full"&&greatHandoff.shardId===shardId
     &&greatHandoff.asset===STORY_FRAGMENT_ASSETS[shardId],

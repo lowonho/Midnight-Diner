@@ -22,6 +22,8 @@ const miniFrame=read("js/ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
 const interactionCss=read("css/interaction.css");
 const orderPlace=read("js/engine-e8-order-place.js");
+const twoSideCook=read("js/engine-e5-two-side-cook.js");
+const miniEngineSource=read("js/mini-engine.js");
 const index=read("index.html");
 
 assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}"),
@@ -42,6 +44,13 @@ assert(miniFrame.includes('id="miniPause"')
   &&miniFrameCss.includes("#miniPause { display: grid; }")
   &&miniFrameCss.includes("#miniClose:not([hidden]) + #miniPause"),
   "닫을 수 있는 낮 준비 미니게임을 포함해 공용 미니게임에는 항상 설정 버튼이 보여야 합니다.");
+const completeMiniContextSource=game.slice(game.indexOf("function completeMiniContext"),game.indexOf("function update(dt)"));
+assert(miniEngineSource.includes("teardown(m)")
+  &&completeMiniContextSource.includes("miniEngine(m)?.teardown?.(m);")
+  &&completeMiniContextSource.indexOf("miniEngine(m)?.teardown?.(m);")<completeMiniContextSource.indexOf("state.mini=null;dom.miniOverlay.classList.remove")
+  &&twoSideCook.includes("teardown(){ removeTwoSideSpatula(); }")
+  &&twoSideCook.includes("function removeTwoSideSpatula()"),
+  "김치전 미니게임이 닫히는 프레임에 body의 뒤집개와 전역 포인터 리스너를 즉시 정리해야 합니다.");
 assert(index.includes('id="ingredientPause"')
   &&game.includes('"ingredientPause"')
   &&game.includes('dom.ingredientPause.addEventListener("click",()=>openSettings("game"));'),
@@ -138,23 +147,32 @@ assert(game.includes('nearestStation(state.phase==="night"&&state.carrying?"tras
   &&game.includes('if(station?.id==="trash"){')
   &&game.includes("discardCarriedDish();")
   &&game.includes('const trash=nearestStation("trash");')
-  &&game.includes("text=UI_TEXT.prompt.discard(dish.name);")
-  &&game.includes("visibleText=UI_TEXT.prompt.discardVisible;")
+  &&game.includes('const discardBlocked=order?.discardedOnce===true;')
+  &&game.includes('action=discardBlocked?"trash-blocked":"trash";')
+  &&game.includes("x=trash.x+trash.w/2;y=trashActionPromptY(trash);")
+  &&game.includes("prompt.dataset.action=action;")
   &&game.includes("dom.stationPromptLabel.textContent=visibleText;")
   &&night.includes("function discardCarriedDish(){")
+  &&night.includes("if(order.discardedOnce===true){")
+  &&night.includes("order.discardedOnce=true;")
   &&night.includes("order.cookStep=0;")
   &&night.includes("order.cookScores=[];")
   &&night.includes("saveGame(storyCookingIsActive());")
+  &&save.includes("normalized.discardedOnce=normalized.discardedOnce===true;")
   &&kitchen.includes('if(state.carrying)return s.id==="trash";')
   &&kitchen.includes('const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();')
+  &&kitchen.includes("function trashActionPromptY(s)")
   &&kitchen.includes("function playTrashDiscardAnimation")
   &&hud.includes('discard: name => `E · ${name} 폐기`')
   &&hud.includes('discardVisible: "폐기"')
+  &&hud.includes('discardLimitVisible: "폐기 불가"')
   &&index.includes('id="stationPromptLabel" class="prompt-label"')
   &&interactionCss.includes(".station-prompt .prompt-label")
+  &&interactionCss.includes('.station-prompt[data-action^="trash"]')
+  &&interactionCss.includes('.station-prompt[data-action^="trash"] .prompt-label { order: -1; }')
   &&!game.includes("autoDelivery();")
   &&!night.includes("function autoDelivery()"),
-  "완성 음식은 쓰레기통 가까이에서 E를 눌러 폐기하고 같은 주문을 처음부터 다시 조리해야 합니다.");
+  "폐기 안내는 쓰레기통 이름표 아래에 표시되고, 한 손님 주문당 한 번만 처음부터 다시 조리할 수 있어야 합니다.");
 assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
   &&miniFrameCss.includes("-webkit-user-select: none;")
   &&miniFrameCss.includes("user-select: none;")

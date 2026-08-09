@@ -218,9 +218,17 @@ function currentPrepTask(){
   return selectedPrepTaskRuns().find(task=>!prepTaskCompleted(task))||null;
 }
 
+// 체크리스트와 영업 시작 판정은 반드시 같은 완료 규칙을 사용합니다.
+// 공용 손질(예: 두부김치/김치전의 김치 썰기)은 실제 미니게임은 한 번만
+// 실행하지만 두 메뉴의 요구 작업을 모두 충족하므로, 원시 저장 플래그가
+// 아니라 prepTaskCompleted()로 각 체크리스트 항목을 계산해야 합니다.
+function prepTaskProgress(tasks=selectedPrepTasks()){
+  const doneCount=tasks.filter(prepTaskCompleted).length;
+  return {doneCount,totalCount:tasks.length,complete:doneCount===tasks.length};
+}
+
 function prepComplete(){
-  const tasks=selectedPrepTaskRuns();
-  return tasks.every(prepTaskCompleted);
+  return prepTaskProgress().complete;
 }
 
 function startPrepTask(taskId){
@@ -273,9 +281,9 @@ function completeDayPrepTask(taskId,completionScore){
    (자리 규칙은 css/hud.css 의 .left-hud / .prep-checklist 참고) */
 function renderPrepChecklist(){
   const items=prepChecklistDishes();
-  const taskDone=task=>!!state.prepProgress?.[task.id];
+  const taskDone=task=>prepTaskCompleted(task);
   const allTasks=items.flatMap(item=>item.tasks);
-  const doneCount=allTasks.filter(taskDone).length;
+  const {doneCount,totalCount}=prepTaskProgress(allTasks);
   // ⚠️ 서명에 **작업 하나하나**의 완료 여부가 들어가야 합니다. 예전처럼 메뉴 줄의
   //    done 만 보면, 같은 메뉴 안에서 작업 하나를 끝내도 목록이 다시 안 그려집니다.
   const signature=`prep|${state.selectedMenus.join(",")}|${allTasks.map(task=>Number(taskDone(task))).join("")}`;
@@ -294,7 +302,17 @@ function renderPrepChecklist(){
   }).join("");
   dom.inventoryList.innerHTML=
     `<div class="prep-checklist drag-scroll">${rows}</div>`
-    +`<div class="prep-total">준비 완료 ${doneCount} / ${allTasks.length}</div>`;
+    +`<div class="prep-total">준비 완료 ${doneCount} / ${totalCount}</div>`;
+}
+
+/* 지금 손댈 수 있는 준비 작업 하나.
+   순서(selectedPrepTasksForChecklist)대로 훑되, 선행 작업이 남은 것은
+   지금 E 를 눌러도 startPrepTask() 가 막으므로 건너뜁니다. 전부 막혀
+   있으면(있을 수 없는 배치지만) 그냥 첫 미완료 작업을 돌려줍니다. */
+function nextPrepTask(){
+  const remaining=selectedPrepTasks().filter(task=>!prepTaskCompleted(task));
+  return remaining.find(task=>!(task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!prepTaskCompleted(id)))
+    ||remaining[0]||null;
 }
 
 /* 낮 우측 HUD = 아직 안 끝난 준비를 **메뉴 단위로** 한 줄씩.
