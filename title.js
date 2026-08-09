@@ -514,6 +514,10 @@ function openJournal(mode="collection"){
 
 function openTitleJournal(){return openJournal("collection");}
 function openGameplayJournal(){return openJournal("gameplay");}
+function openGameplayJournalPage(pageId){
+  journalLastGameplayPageId=String(pageId||"");
+  return openJournal("gameplay");
+}
 
 function closeJournal(){
   const elements=journalElements();
@@ -558,6 +562,7 @@ window.refreshJournalUI=refreshJournalUI;
 window.openJournal=openJournal;
 window.openTitleJournal=openTitleJournal;
 window.openGameplayJournal=openGameplayJournal;
+window.openGameplayJournalPage=openGameplayJournalPage;
 
 function savePhaseLabel(phase){
   return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 마감";

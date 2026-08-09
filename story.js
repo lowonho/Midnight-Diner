@@ -18,6 +18,7 @@ let storySubtitleMeasureEl=null;
 let storySubtitleResizeTimer=null;
 let storyUiInitialized=false;
 let pendingEndingRetryAction=null;
+let pendingGameplayJournalContinuation=null;
 const STORY_CHECKPOINT_VERSION=1;
 const STORY_SCENE_INTRO_DURATION=1700;
 const STORY_GAME_UI_VISIBLE_CLASS="show-game-ui";
@@ -84,6 +85,7 @@ function createStoryState(){
     endingSeen:false,
     endingsSeen:{},
     judgmentComplete:false,
+    dailyJournalShownDays:{},
     legacyImported:false
   };
 }
@@ -124,6 +126,11 @@ function normalizeStoryState(raw){
   base.endingSeen=!!raw.endingSeen;
   base.endingsSeen={...(raw.endingsSeen||{})};
   base.judgmentComplete=!!raw.judgmentComplete;
+  base.dailyJournalShownDays=Object.fromEntries(
+    Object.entries(raw.dailyJournalShownDays||{})
+      .filter(([day,shown])=>shown===true&&Number(day)>=1&&Number(day)<=DayManager.maxDay)
+      .map(([day])=>[String(Math.floor(Number(day))),true])
+  );
   base.legacyImported=!!raw.legacyImported;
   const hasSeparatedGuestResults=!!(
     raw.guestResults&&typeof raw.guestResults==="object"&&!Array.isArray(raw.guestResults)
@@ -543,11 +550,17 @@ function storyDisplayName(id){
 
 function storySpeakerLabel(line){
   if(line?.speaker)return storyDisplayName(line.speaker);
-  return typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+  const label=typeof line?.speakerLabel==="string"?line.speakerLabel.trim():"";
+  // 예전 저장의 진행 중 대사에는 과거 이름표가 그대로 들어 있을 수 있습니다.
+  // 체크포인트를 이어 해도 플레이어 화면에는 현재 표기인 김다은만 보여 줍니다.
+  return label==="김다은(속말)"?"김다은":label;
 }
 
 function storySceneShowsIntroCard(scene){
-  return !["specialGuestArrival","specialGuestMissing","specialGuestResult"].includes(scene?.sceneType);
+  return ![
+    "specialGuestArrival","specialGuestMissing","specialGuestResult",
+    "dynamicJournalHint","endingJudgement"
+  ].includes(scene?.sceneType);
 }
 
 function storySceneCardText(scene){
@@ -817,7 +830,8 @@ function reflowCurrentStorySubtitle(){
 
 function storySceneHasRequiredInteraction(scene){
   return !!scene?.requiresDishChoice||!!scene?.lines?.some(line=>
-    line?.cook||line?.orderCook||line?.choices?.some(choice=>choice?.orderCook||choice?.nextSceneId)
+    line?.openJournalOnAdvance||line?.cook||line?.orderCook
+      ||line?.choices?.some(choice=>choice?.orderCook||choice?.nextSceneId)
   );
 }
 
@@ -889,7 +903,33 @@ function storySceneIdsForMoment(moment,day=state.day){
   return [...(STORY_EVENT_SCHEDULE[moment]?.[day]||[])];
 }
 
+function storyDailyJournalWasShown(day=state.day){
+  const normalizedDay=Math.max(1,Math.min(DayManager.maxDay,Math.floor(Number(day)||1)));
+  return state.story?.dailyJournalShownDays?.[String(normalizedDay)]===true;
+}
+
+function openStoryNightEndJournal(day=state.day,onComplete=null){
+  if(pendingGameplayJournalContinuation)return true;
+  const normalizedDay=Math.max(1,Math.min(DayManager.maxDay,Math.floor(Number(day)||1)));
+  pendingGameplayJournalContinuation={type:"nightEnd",day:normalizedDay,onComplete};
+  const pageId=`gameplay-day-${normalizedDay}`;
+  const opened=typeof openGameplayJournalPage==="function"
+    ?openGameplayJournalPage(pageId)
+    :typeof openGameplayJournal==="function"&&openGameplayJournal();
+  if(opened)return true;
+  // UI가 없는 계약 테스트나 복구 환경에서도 영업 마감 자체는 막지 않습니다.
+  resumeStoryAfterJournal();
+  return false;
+}
+
 function queueStoryMoments(moments,onComplete=null){
+  if(
+    moments.includes("nightEnd")
+    &&state.phase===GAME_PHASES.RESULT
+    &&!storyDailyJournalWasShown(state.day)
+  ){
+    return openStoryNightEndJournal(state.day,()=>queueStoryMoments(moments,onComplete));
+  }
   const ids=[];
   moments.forEach(moment=>ids.push(
     ...storySceneIdsForMoment(moment).filter(id=>!STORY_SCENES[id]?.deferUntilArrival)
@@ -1056,6 +1096,7 @@ function clearStoryRuntime(){
   const skipButton=document.getElementById("storySkipButton");
   if(skipButton)skipButton.hidden=true;
   if(state.story)state.story.activeStoryCook=null;
+  pendingGameplayJournalContinuation=null;
   storySession=null;
   return hadRuntime;
 }
@@ -1598,7 +1639,9 @@ function storyAdvance(){
     storySession.typing=null;
     storySession.waitingForJournal=true;
     audio?.uiClick?.();
-    const opened=typeof openGameplayJournal==="function"&&openGameplayJournal();
+    const opened=line.journalPageId&&typeof openGameplayJournalPage==="function"
+      ?openGameplayJournalPage(line.journalPageId)
+      :typeof openGameplayJournal==="function"&&openGameplayJournal();
     if(!opened){storySession.waitingForJournal=false;showStoryLine();}
     else saveGame(true);
     return true;
@@ -1622,10 +1665,24 @@ function storyAdvance(){
 }
 
 function resumeStoryAfterJournal(){
-  if(!storySession?.waitingForJournal)return false;
-  storySession.waitingForJournal=false;
-  showStoryLine();
-  saveGame(true);
+  if(storySession?.waitingForJournal){
+    storySession.waitingForJournal=false;
+    showStoryLine();
+    saveGame(true);
+    return true;
+  }
+  if(!pendingGameplayJournalContinuation)return false;
+  const pending=pendingGameplayJournalContinuation;
+  pendingGameplayJournalContinuation=null;
+  if(pending.type==="nightEnd"){
+    if(!state.story)state.story=createStoryState();
+    if(!state.story.dailyJournalShownDays||typeof state.story.dailyJournalShownDays!=="object"){
+      state.story.dailyJournalShownDays={};
+    }
+    state.story.dailyJournalShownDays[String(pending.day)]=true;
+    saveGame(true);
+  }
+  pending.onComplete?.();
   return true;
 }
 
@@ -1810,7 +1867,7 @@ function applyStoryPortraitArt(portrait,speakerId){
 }
 
 /* 몸이 없는 화자는 무대에 세우지 않습니다.
-   상사(회상)·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
+   상사·영업일지·달빛식탁의 목소리·편지·메뉴판 뒷면은 원화도 도트 초상화도
    없는 배역입니다. 예전에는 이들 자리에 ✦ 하나만 있는 빈 갈색 패널(.story-portrait
    .role)이 대신 섰는데, 컷씬이 무대를 가려 준 덕에 눈에 안 띄었을 뿐입니다.
    이름표와 대사만으로 충분한 화자들이라 아예 안 세웁니다.
@@ -1949,7 +2006,7 @@ function recordStorySceneOutcome(scene){
 function queueStoryConclusion(scene){
   if(!storySession||!scene)return;
   if(scene.autoLoop)storySession.conclusionAction={type:"nextLoop",toTitle:false};
-  else if(scene.continuePolicy==="nextLoop")storySession.conclusionAction={type:"nextLoop",toTitle:true};
+  else if(scene.continuePolicy==="nextLoop")storySession.conclusionAction={type:"nextLoop",toTitle:false};
   else if(scene.continuePolicy==="endingRetryMenu")storySession.conclusionAction={
     type:"endingRetryMenu",
     judgementSceneId:scene.retryJudgementSceneId,
@@ -2272,6 +2329,7 @@ function beginNextStoryLoop({toTitle=false}={}){
   state.story.pendingResultSceneId=null;
   state.story.judgmentComplete=false;
   state.story.endingSeen=false;
+  state.story.dailyJournalShownDays={};
   state.day=DayManager.setDay(1);
   state.paused=false;
   resetDay(false);

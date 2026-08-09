@@ -24,7 +24,7 @@ const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionText","popularityText","moneyText",
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
-  "stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
+  "stationPrompt","stationPromptLabel","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage",
   "masterVolumeRow","masterVolume","masterVolumeValue","masterAudioToggle",
   "bgmVolumeRow","bgmVolume","bgmVolumeValue","bgmAudioToggle",
@@ -87,7 +87,8 @@ const state = {
   menuSelectionDraft:[],
   ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
-  // 낮 준비 작업별 결과. 메뉴에 속한 작업 점수의 평균이 밤 재료 품질이 됩니다.
+  // 낮 준비 작업별 결과. 메뉴별 준비 완성도로 남기되 손님의 최종 평가는
+  // night.js에서 밤 조리 점수만 사용합니다.
   prepTaskScores:{},
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   skewerPrep:createSkewerPrepProgress(),   // 낮에 꽂은 꼬치 배치 → 밤 굽기가 그대로 씁니다 (day.js)
@@ -694,8 +695,13 @@ function interact() {
     return;
   }
   const required=currentRequirement();
-  const station=nearestStation(required);
+  const station=nearestStation(state.phase==="night"&&state.carrying?"trash":required);
   if(state.phase==="night" && state.carrying) {
+    if(station?.id==="trash"){
+      state.player.facing=station.facing;
+      discardCarriedDish();
+      return;
+    }
     tryDeliver();
     return;
   }
@@ -821,8 +827,14 @@ function update(dt) {
     }
   }
   state.orders.forEach(order=>{
-    if(order.customerType==="story"&&order.guestOrder===false){
-      order.waitingTime=0;order.bubbleTime=0;
+    if(order.customerType==="story"){
+      // 특별 손님의 기다림은 대화 장면에서만 표현합니다. 조리 중 시간이
+      // 오래 걸려도 일반 손님용 대기 문구를 가져다 쓰지 않습니다. 단,
+      // 특별 손님 전용 등장 말풍선이 있다면 원래 표시 시간만큼 유지합니다.
+      const hadGeneralWaitingBubble=order.waitingBubbleShown===true;
+      order.waitingTime=0;order.waitingBubbleShown=false;
+      if(hadGeneralWaitingBubble){order.bubble="";order.bubbleTime=0;}
+      else if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);
       return;
     }
     if(pauseNightCustomerPresentation&&order.customerType!=="story")return;
@@ -835,7 +847,7 @@ function update(dt) {
     item.life-=dt;
   });
   state.departures=state.departures.filter(item=>item.life>0);
-  updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
+  updateMini(dt);updatePlayer(dt);updateParticles(dt);updateUI(false);
   updateAutosave(dt);
 }
 
@@ -901,10 +913,14 @@ function promptYFor(station){
 }
 function updatePrompt(){
   const prompt=dom.stationPrompt;
-  const hide=(mobileAction=false)=>{prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);};
+  const hide=(mobileAction=false)=>{
+    prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;
+    dom.stationPromptLabel.textContent="";
+    dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);
+  };
   if(state.paused||![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
-  let text="",x=0,y=0;
+  let text="",visibleText="",x=0,y=0;
   const storyStep=activeStoryCookStep();
   if(storyStep){
     const required=storyStep.station;
@@ -915,7 +931,13 @@ function updatePrompt(){
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
-    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
+    const trash=nearestStation("trash");
+    const dish=dishById(state.carrying.dishId);
+    if(trash?.id==="trash"&&dish){
+      text=UI_TEXT.prompt.discard(dish.name);
+      visibleText=UI_TEXT.prompt.discardVisible;
+      x=trash.ix;y=promptYFor(trash);
+    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }
@@ -941,9 +963,10 @@ function updatePrompt(){
     }
   }
   if(!text){hide();return;}
-  // 화면에는 키캡 'E' 만 보입니다. 설명 문구는 스크린리더용으로만 남깁니다.
-  // (textContent 로 넣으면 index.html 의 키캡 span 이 지워집니다)
+  // 기본 상호작용은 키캡만 표시하고, 실수로 누르면 음식을 잃는 폐기
+  // 상호작용만 행동명을 함께 표시합니다.
   prompt.setAttribute("aria-label",text);prompt.disabled=false;
+  dom.stationPromptLabel.textContent=visibleText;
   // 좌표만 넘기고, 그 값으로 어디에 앉힐지는 CSS 가 정합니다. (css/interaction.css)
   prompt.style.setProperty(UI_VAR.promptX,`${x/W*100}%`);
   prompt.style.setProperty(UI_VAR.promptY,`${y/H*100}%`);

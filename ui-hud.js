@@ -87,14 +87,17 @@ const UI_TEXT = Object.freeze({
     prepNext: label => `다음 단계: ${label}`,
     cookDone: name => `${name} 완성! 주문한 손님에게 가져다주세요.`,
     cookNext: label => `다음 조리: ${label}`,
+    discardDone: name => `완성한 음식을 폐기했습니다. ${name} 조리를 처음부터 다시 시작하세요.`,
     codexSoon: "도감은 준비 중입니다."
   }),
 
   /* ── 상호작용 프롬프트 ────────────────────────────
-     화면에는 키캡 'E' 만 보입니다. 아래 문구는 aria-label 로만 들어가서
-     스크린리더가 읽습니다. (css/interaction.css 가 글자를 그리지 않습니다) */
+     기본 동작은 키캡 'E'만 보이고 아래 문구는 스크린리더가 읽습니다.
+     완성 음식을 잃는 폐기 동작만 실수를 막기 위해 행동명도 표시합니다. */
   prompt: Object.freeze({
     serve: seat => `E · ${seat}번 손님에게 서빙`,
+    discard: name => `E · ${name} 폐기`,
+    discardVisible: "폐기",
     // 낮 준비물은 이름을 붙이지 않습니다 — 바로 위에 이름표(prep.js)가 이미 떠 있어서
     // 같은 글자가 두 줄로 겹쳐 보였습니다. 여기는 "누를 수 있다"만 알려 줍니다.
     prepObject: () => "E",
