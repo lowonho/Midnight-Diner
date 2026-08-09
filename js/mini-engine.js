@@ -175,6 +175,39 @@ function miniScorePanelMarkup(panelClass, titleClass, m = state.mini, extra = ""
     </div>`;
 }
 
+/* ---- 점수 카드 '초 있는 버전' 아래 줄 ------------------------
+   시간이 흐르는 것만으로 점수가 깎이는 두 게임(E4 온도 이탈 · E3 무동작)에서,
+   "지금 몇 초째인지 / 몇 초를 넘기면 깎이는지"를 눈에 보이게 하는 줄입니다.
+   이 줄이 붙는 카드는 140.6 이 아니라 198.1 짜리라, 패널에 `has-time` 을
+   함께 붙여야 카드 높이와 그림(C 500x396)이 같이 바뀝니다.
+     miniScorePanelMarkup("heat-panel heat-count has-time", ..., 띠 + miniScoreTimeMarkup(...))
+
+   ⚠️ 카드가 커진 만큼 **우측 아래 패널이 그만큼 줄어듭니다.** 그 패널의
+      배경 그림(--mg-panel-art)도 새 높이에 맞는 것으로 같이 바꿔야
+      금테가 눌려 보이지 않습니다 (css/minigame-parts.css 의 A2 목록).
+        613.2 칸 : 진행도 198.1 + 12 + 아래 403.1  → --mg-art-a2-403
+        503.2 칸 : 진행도 198.1 + 12 + 아래 293.1  → --mg-art-a2-293
+
+   id 는 각 엔진이 매 프레임 값을 채워 넣는 자리이고, limit 를 넘기기 직전에는
+   updateMiniScoreTime 이 `warning` 을 붙여 숫자를 붉게 만듭니다. */
+function miniScoreTimeMarkup(id, label, limitSeconds) {
+  return `<p class="mini-score-time" id="${id}" aria-live="off">
+      <span>${label}</span>
+      <b>0.0</b><em>/ ${limitSeconds.toFixed(1)}초</em>
+    </p>`;
+}
+
+// seconds 는 0 에서 시작해 limit 까지 올라가는 "쌓인 시간" 입니다(남은 시간이 아닙니다).
+function updateMiniScoreTime(id, seconds, limitSeconds) {
+  const row = dom.miniContent?.querySelector(`#${id}`);
+  if (!row) return;
+  const value = clamp(seconds, 0, limitSeconds);
+  const number = row.querySelector("b");
+  if (number) number.textContent = value.toFixed(1);
+  // 절반을 넘기면 미리 붉어집니다 — 다 찬 뒤에 켜면 이미 깎인 다음이라 늦습니다.
+  row.classList.toggle("warning", value >= limitSeconds * .5);
+}
+
 function updateMiniScore(m = state.mini, scoreOverride = null) {
   if (!m || !dom.miniContent) return;
   const score = Number.isFinite(scoreOverride)

@@ -266,7 +266,11 @@
   gap: var(--mg-col-gap);
 }
 /* 늘어난 카드 안에서 견본 그림은 세로 가운데로 모입니다 */
-.cut-ref-card { align-content: center; }
+/* 밤 조리에서는 카드 맨 아래에 감점 안내 한 줄(.mg-penalty)이 더 붙습니다.
+   그때는 견본 그림이 남는 자리를 다 쓰고 안내가 바닥에 붙어야 하므로
+   행을 [제목 · 1fr · 안내] 로 두고 늘립니다. 낮 준비에는 안내가 없어서
+   두 줄뿐이고, 그 경우에도 그림 줄이 1fr 이라 지금과 같이 가운데에 놓입니다. */
+.cut-ref-card { grid-template-rows: auto minmax(0,1fr) auto; align-content: stretch; }
 /* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
 .cut-count-value {
   color: var(--gold-bright);

@@ -133,6 +133,43 @@ function setMiniSubtitle(key){
   if(station)station.textContent=MINI_SUBTITLE[key]||"";
 }
 
+/* ============================================================
+   감점 안내 한 줄 — 밤 조리 6화면 공용
+
+   "무엇을 하면 점수가 깎이는지"를 우측 칸 맨 아래에 한 줄로 못박습니다.
+   원래 이 정보가 어디에도 없어서, 점수가 줄어도 플레이어는 방금 무엇을
+   잘못했는지 알 수 없었습니다(TIP 줄의 피드백은 이미 깎인 뒤에 뜹니다).
+
+   [글이 세 군데인 이유]  위 MINI_SUBTITLE 주석과 이어집니다.
+     부제(#miniStation)      이 게임이 무엇인지        — 고정
+     TIP 줄(#miniDescription) 지금 뭘 눌러야 하는지    — 진행에 따라 바뀜
+     여기(.mg-penalty)        무엇을 하면 깎이는지     — 고정
+   셋 다 역할이 다르므로 한 줄로 합치지 마세요.
+
+   [키] 엔진 이름(registerMiniEngine 의 첫 인자)입니다.
+        낮 준비 미니게임은 점수가 아니라 완성 개수라 여기에 넣지 않습니다.
+
+   ⚠️ 문구의 초 단위는 **실제 판정값과 반드시 같아야 합니다.**
+        heat  HEAT_FEEL_CONFIG.warningDelay          (engine-e4)
+        stir  DIRECTION_SEQUENCE_CONFIG.yakisoba.idleLimit (engine-e3)
+      둘 중 하나를 고치면 여기 문구도 같이 고치세요.
+   ============================================================ */
+const MINI_PENALTY = Object.freeze({
+  heat:        "적정 온도 영역에서 온도 조절 바가 1초 이상 벗어나면 점수가 깎입니다",
+  chop:        "완벽한 타이밍에 재료를 썰지 않으면 점수가 깎입니다",
+  twoSideCook: "등장하는 액션 타이밍을 놓치면 점수가 깎입니다",
+  stir:        "잘못된 액션을 하거나 3초 이상 액션이 없으면 점수가 깎입니다",
+  fry:         "튀김을 태우거나 설익히면 점수가 깎입니다"
+});
+
+/* 우측 칸 맨 아래에 붙는 감점 안내 조각. 표에 없는 키면 빈 문자열이라
+   패널 마크업에 그대로 끼워 넣어도 아무 자리도 차지하지 않습니다. */
+function miniPenaltyMarkup(engineKey){
+  const text=MINI_PENALTY[engineKey];
+  if(!text)return "";
+  return `<p class="mg-penalty"><i aria-hidden="true">!</i><span>${text}</span></p>`;
+}
+
 /* 하단 공용 띠(.mg-strip)를 만들어 돌려줍니다.
    3열을 관통하는 가로 1363.2 짜리 칸이고, 비어 있으면 CSS 가 접습니다.
    각 엔진이 화면 마크업을 만들 때 3열 다음에 이 조각을 넣으면 됩니다.

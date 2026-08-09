@@ -251,7 +251,14 @@ function syncPhaserObjects(){
   const carrying=(typeof chefCarryActive==="function")?chefCarryActive():!!state.carrying;
   // 정지→idle / 이동→walk. 정지해도 facing 은 그대로라 마지막 방향이 유지됩니다.
   // 정지 중에는 chefIdleAction() 이 평소 모션과 눈 깜빡임 모션을 번갈아 골라 줍니다.
-  const idling=!state.mini&&!p.moving;
+  //
+  // state.paused 를 함께 보는 이유: 대사·설정창처럼 게임이 멈춘 동안에는
+  // game.js 의 update() 가 앞에서 돌아나가서 updatePlayer() 자체가 실행되지
+  // 않습니다. 그래서 멈추기 직전의 p.moving=true 가 그대로 남는데, 화면을
+  // 맞추는 이 함수는 매 프레임 계속 불려서 요리사가 대사 내내 제자리걸음을
+  // 합니다. 멈춰 있는 동안에는 입력과 상관없이 정지 모션으로 둡니다.
+  // (p.moving 은 건드리지 않으므로 창을 닫는 순간 눌려 있던 키는 그대로 이어집니다)
+  const idling=!state.mini&&(!p.moving||!!state.paused);
   const action=idling?chefIdleAction():(state.mini?PLAYER_ANIM.mini:"walk");
   if(!idling) chefIdleLeave();
 

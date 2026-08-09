@@ -734,8 +734,14 @@
   animation:ts-brush-sweep-long .9s ease-in-out;
 }
 /* 붓이 떠 있는 동안만 자르기를 풉니다 (김치전 뒤집기와 같은 처리).
-   ⚠️ 화로 쪽 상자들도 함께 열어야 합니다 — 하나라도 hidden 이면 거기서 잘립니다. */
-.ts-board:has(.ts-sauce-brush),
+   ⚠️ 화로 쪽 상자들도 함께 열어야 합니다 — 하나라도 hidden 이면 거기서 잘립니다.
+   ⚠️ 바깥 칸(.ts-board)만은 **위아래로만** 엽니다. 붓은 자루를 따라 위아래로 훑으므로
+      좌우로 나갈 일이 없는데, 네 방향을 다 열면 숯불 화로(.skewer-cook)가 튀어나옵니다 —
+      화로는 940 이라 칸(824.2)보다 좌우로 58 씩 넓고, 평소에는 이 칸이 그만큼 잘라
+      주고 있습니다(아래 `.ts-board .two-side-pan.skewer-cook` 주석 참고). 양념을 바를
+      때마다 화로 좌우 끝이 재료 카드·완성 담기 카드 위로 불쑥 넓어져 보였습니다.
+      김치전 뒤집기와 같은 처리이고, 뜻은 그쪽 규칙에 자세히 적어 두었습니다. */
+.ts-board:has(.ts-sauce-brush) { overflow: visible; clip-path: inset(-999px 0); }
 .ts-board:has(.ts-sauce-brush) .two-side-pan,
 .ts-board:has(.ts-sauce-brush) .cook-food,
 .ts-board:has(.ts-sauce-brush) .gs-slot { overflow: visible; }
@@ -784,20 +790,17 @@
 .two-side-pan.cook-over .cook-steam { border-left-color:rgba(116,105,99,.82); filter:opacity(1); }
 .cook-steam.steam-one { left:calc(105 * var(--upx)); }
 .cook-steam.steam-two { left:calc(177 * var(--upx)); animation-delay:.45s; }
-/* 김치전이 팬에서 **확 떠올랐다** 내려앉습니다.
-   ⚠️ 250 → 160. 예전에는 250 까지 띄우고 그동안 칸의 자르기를 통째로 풀었는데
-      (`.ts-board:has(.two-side-pan.flipping) { overflow:visible }`), 그러면 평소
-      칸이 잘라 주던 것들이 0.6초 동안 한꺼번에 튀어나왔습니다 — 좌우로 123.6 씩
-      나가 있는 **가스버너 상판**이 재료 카드·조작 카드를 덮고, 팬 손잡이가 점수
-      카드 위로 뻗었습니다. 지금은 자르기를 그대로 두고 **칸 안에서** 띄웁니다.
-   [상한] 팬 윗변이 칸 위끝에서 30 밖에 안 떨어져 있고, 김치전 윗변은 103 입니다.
-      팬이 들리는 몫(아래 pan-toss 26)까지 더해도 김치전이 칸 위끝에 닿지 않는
-      값이 160 입니다. 더 키우려면 팬 자리(--ts-pan-drop · --ts-pan-w)부터 낮춰야
-      합니다 — 이 값만 올리면 김치전 윗쪽이 칸에서 뭉텅 잘립니다. */
+/* 김치전이 팬에서 **확 떠올랐다** 내려앉습니다. 팬 밖으로도, 조리 칸 밖으로도
+   나가는 것이 맞습니다 — 손목으로 튕겨 올린 전은 원래 그렇게 뜹니다.
+   ⚠️ 250 은 **칸 위끝을 훌쩍 넘는 값입니다**(칸 위끝까지 103 뿐). 위로 나갈 수 있게
+      뒤집는 동안만 칸의 자르기를 푸는데, 그때 **좌우까지 함께 열면 안 됩니다** —
+      가스버너 상판이 좌우 카드를 덮습니다. 자르기를 어떻게 여는지는 아래
+      `.ts-board:has(.two-side-pan.flipping)` 규칙에 적어 두었습니다. 이 값만 보고
+      "칸 안에 들어오게" 줄이지 마세요 — 그러면 전이 팬 안에서만 깔짝거립니다. */
 @keyframes two-side-food-flip {
   0%   { transform:translateY(0) rotateX(0); }
-  46%  { transform:translateY(calc(-160 * var(--upx))) rotateX(90deg) scale(.72); }
-  72%  { transform:translateY(calc(-77 * var(--upx))) rotateX(150deg) scale(.84); }
+  46%  { transform:translateY(calc(-250 * var(--upx))) rotateX(90deg) scale(.78); }
+  72%  { transform:translateY(calc(-120 * var(--upx))) rotateX(150deg) scale(.88); }
   100% { transform:translateY(0) rotateX(180deg); }
 }
 /* ⚠️ 꼬치가 세로로 서 있으므로 막대를 축으로 구르는 것은 rotateX 가 아니라
@@ -818,17 +821,14 @@
    ⚠️ transform 을 씁니다. 팬의 가운데 정렬은 margin-left 로 하고 있어서 안 부딪힙니다
       (위 `.ts-cooktop .two-side-pan` 주석 참고). */
 /* 팬도 같이 들립니다 — 김치전만 떠오르면 팬이 가만히 있어 손목으로 튕긴 느낌이 안 납니다.
-   ⚠️ 86 → 26. 팬 윗변과 칸 위끝 사이가 **30 밖에 없습니다** (칸 615.6 - 팬 자리
-      184.6 - 팬 세로 400.9). 86 을 쓰면 팬 위가 56 잘리는데, 예전에는 그동안
-      칸의 자르기를 통째로 풀어서(아래 .ts-board 주석) 잘리는 대신 가스버너 상판이
-      좌우 카드 위로 튀어나왔습니다. 기울기(rotate)는 그대로입니다 — 팬 테두리
-      꼭대기는 가로 한가운데라 돌려도 위로 올라가지 않습니다(손잡이 쪽만 들립니다).
-      값을 올리려면 팬 자리(--ts-pan-drop)부터 낮추세요. */
+   ⚠️ 팬도 칸 위끝(팬 윗변에서 30)을 넘어갑니다. 위로 나가는 것은 맞지만 **옆으로는
+      나가면 안 됩니다** — 팬 손잡이가 오른쪽으로 115 나가 있어서 점수 카드를 찌릅니다.
+      좌우를 막는 것은 아래 `.ts-board:has(.two-side-pan.flipping)` 규칙입니다. */
 @keyframes pan-toss {
   0%,100% { transform:translateY(0) rotate(0); }
-  20% { transform:translateY(calc(-26 * var(--upx))) rotate(-7deg); }
-  50% { transform:translateY(calc(-13 * var(--upx))) rotate(4deg); }
-  76% { transform:translateY(calc(-4 * var(--upx))) rotate(-1.5deg); }
+  20% { transform:translateY(calc(-86 * var(--upx))) rotate(-7deg); }
+  50% { transform:translateY(calc(-44 * var(--upx))) rotate(4deg); }
+  76% { transform:translateY(calc(-12 * var(--upx))) rotate(-1.5deg); }
 }
 /* ⚠️ 여기 있던 신호 불빛 애니메이션 두 벌(ts-cue-pulse · ts-cue-halo)을 **뺐습니다.**
    빛이 0.5초마다 세졌다 옅어져서, 누르기 신호에도 양념 신호에도 자루가 껌뻑였습니다.
@@ -1189,41 +1189,49 @@
 .ts-serve-plate.order-drop-ready .ts-serve-art { animation: none; filter: drop-shadow(0 0 calc(26 * var(--upx)) #ffe08d) brightness(1.16); }
 .ts-serve-plate.order-drop-ready .ts-serve-dish { filter: brightness(1.2); box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 0 calc(18 * var(--upx)) #ffe08d; }
 
-/* 담긴 자루 세 개. 접시 **아래 테두리 기준**으로 세워서 손잡이가 그 밖으로 나갑니다. */
+/* 담긴 자루 세 개. 접시 **아래 테두리 기준**으로 세워서 손잡이가 그 밖으로 나갑니다.
+   ⚠️ 나오는 길이(20)는 손잡이 39 의 절반쯤입니다. 이보다 키우면 조각이 접시 아래
+      테두리에 얹히고, 줄이면 손잡이가 접시 안에서 끝나 "담아 둔" 느낌이 사라집니다. */
 .ts-serve-stack {
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: calc(-30 * var(--upx));   /* 손잡이가 접시 밖으로 나오는 길이 */
+  bottom: calc(-20 * var(--upx));   /* 손잡이가 접시 밖으로 나오는 길이 */
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: calc(2 * var(--upx));
   transform: translateX(-50%);
 }
-/* 조각 크기는 **접시 안쪽 폭에 세 자루가 나란히 들어가는 값**입니다
-   (안쪽 폭 약 174 ÷ 3 = 58 → 조각 56 + 사이 2).
+/* ── 접시에 담긴 자루 한 개 ───────────────────────────────────
+   **화로 위 꼬치(.ts-board .grill-skewer)를 그대로 줄인 것**입니다. 다섯 값이
+   전부 그쪽 비율에서 나옵니다 — 조각 폭 하나만 정하면 나머지가 따라옵니다.
+     조각 세로   = 폭 x 210/240   (조각 그림 캔버스 비율)
+     겹침        = 폭 x -25/144   (화로 -25 : 조각 144)
+     자루 길이   = 폭 x 489/144   (화로 489 : 조각 144)
+     꼬챙이 끝   = 폭 x 8.5/144   → padding-bottom = 길이 − 더미 − 끝 x 2
+   조각 폭 60 은 **접시 안쪽(크림색 자리 174.4)에 세 자루가 나란히 들어가는 최대값**
+   입니다. 조각 그림은 캔버스의 81.7% 만 차지하므로 실제로 보이는 폭은
+   2 x (60 + 2) + 49 = 173 입니다.
 
-   세로 316 은 [접시 위 꼬챙이 끝 ~ 접시 밖으로 나온 손잡이 끝] 전체 길이입니다.
-   자루는 접시 아래 테두리에서 30 아래에 세워지므로, 접시(310.7) 안에서는 이렇게 보입니다.
-     꼬챙이 끝  ~52  · 조각 더미 148 (5 x 49 − 10 x 9.7) · 남은 꼬챙이 ~81 · 접시 밖 30
-   ⚠️ 조각 더미의 자리는 **padding-bottom 하나로** 정합니다(가운데 정렬이라 값을
-      키우면 더미가 위로 올라갑니다). 94 는 더미 한가운데가 접시 한가운데 즈음에
-      오도록 맞춘 값입니다 — 122 였을 때는 더미가 위로 몰려 접시 아래쪽이 휑했습니다. */
+   ⚠️ **자루를 길이로 늘여 접시를 채우려 하지 마세요.** 한때 204 대신 316 까지
+      늘였습니다(조각만 위에 붙이고 꼬챙이를 길게 뺐습니다). 접시는 채워졌지만
+      손잡이가 의미 없이 길어져 꼬치가 아니라 막대로 보였습니다.
+      접시가 세로로 긴 쟁반(1 : 1.48)이라 **세 자루로는 원래 다 안 찹니다** —
+      위쪽에 남는 자리는 빈 접시로 두는 것이 맞습니다.
+   ⚠️ 꼬챙이 굵기는 상자 세로에서 저절로 따라옵니다(.gs-rod-asset 의 height:100% +
+      그림 비율 128:960). 비율만 지키면 굵기를 따로 잡을 일이 없습니다 —
+      늘였을 때 굵기를 되돌리려고 넣었던 가로 지정도 그래서 뺐습니다. */
 .ts-served .grill-skewer {
-  --gs-piece-w: calc(56 * var(--upx));
-  --gs-piece-h: calc(49 * var(--upx));
-  --gs-piece-overlap: calc(-9.7 * var(--upx));
+  --gs-piece-w: calc(60 * var(--upx));
+  --gs-piece-h: calc(52.5 * var(--upx));
+  --gs-piece-overlap: calc(-10.4 * var(--upx));
   --gs-tilt: 0deg;
   min-height: 0;
-  height: calc(316 * var(--upx));
-  width: calc(56 * var(--upx));
-  padding-bottom: calc(94 * var(--upx));
+  height: calc(204 * var(--upx));
+  width: calc(60 * var(--upx));
+  padding-bottom: calc(38.5 * var(--upx));
 }
-/* ⚠️ 꼬챙이 굵기는 **상자 세로**에서 나옵니다(.gs-rod-asset 의 height:100% + 그림 비율).
-   접시에 맞추려고 상자를 길게 늘였더니 화로 위 꼬치보다 굵어져서, 여기서만 가로를
-   직접 잡습니다 — 화로 쪽 비율(꼬챙이 : 조각 = 0.45)을 그대로 옮긴 값입니다. */
-.ts-served .gs-rod-asset { width: calc(25 * var(--upx)); height: 100%; }
 /* 담기는 순간. **자리는 그대로**이고 진하기만 살아납니다 (움직임 없음) */
 .ts-served.landing { animation: ts-served-in .32s ease both; }
 @keyframes ts-served-in { from { opacity:0; filter:drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,214,132,.9)); } to { opacity:1; } }
@@ -1308,17 +1316,21 @@
   /* 팬 손잡이가 칸 오른쪽으로 15 나갑니다 — E3 김치 볶기(.kf-board)와 같이 잘라 냅니다. */
   overflow: hidden;
 }
-/* ⚠️ 여기 있던 `.ts-board:has(.two-side-pan.flipping) { overflow: visible }` 을 **뺐습니다.**
-   김치전이 팬 위로 250 이나 떠오르니 잘리지 말라고 뒤집는 0.6초만 자르기를 풀었는데,
-   이 칸이 잘라 주고 있던 것이 김치전만이 아니었습니다. 풀리는 순간 함께 튀어나왔습니다.
+/* ⚠️ **뒤집는 동안만, 그것도 위아래로만** 자르기를 풉니다.
+   김치전은 팬 위로 250 이나 떠올라 칸 밖까지 나가야 합니다(그게 뒤집는 맛입니다).
+   그런데 `overflow: visible` 한 줄로 풀면 **네 방향이 한꺼번에 열려서**, 이 칸이
+   잘라 주고 있던 것들이 0.6초 동안 옆으로 쏟아져 나옵니다.
      · 가스버너 상판(.ts-cooktop) — 칸보다 좌우로 123.6 씩 넓습니다. 왼쪽 재료 카드와
        오른쪽 조작 카드를 덮어 글씨가 가려졌습니다. (실측 1920 폭 : 칸 574~1324 인데
        화구가 462~1436 까지 벌어집니다)
-     · 팬 손잡이 — 오른쪽으로 15 나가 있어 점수 카드 위로 뻗었습니다.
-     · 팬·김치전 자체 — 칸 위끝을 넘어 미니게임 액자 테두리 밖까지 올라갔습니다.
-   지금은 자르기를 늘 그대로 두고, 대신 뜨는 높이를 칸 안에 들어오는 값으로 잡았습니다
-   (위 two-side-food-flip 160 · pan-toss 26). 높이를 다시 키우고 싶으면 자르기를 풀지
-   말고 팬 자리(--ts-pan-drop · --ts-pan-w)를 낮춰 칸 위쪽 여백부터 만드세요. */
+     · 팬 손잡이 — 오른쪽으로 115 나가 있어 점수 카드를 찔렀습니다.
+   그래서 overflow 대신 **clip-path 로 세로만 엽니다.** inset 의 위·아래를 음수로 주면
+   그쪽으로는 칸 밖까지 그려지고, 좌우 0 이 칸 테두리에서 그대로 자릅니다 — 평소
+   overflow:hidden 이 하던 일이 좌우에는 그대로 남습니다.
+   ⚠️ overflow 도 함께 visible 로 둬야 합니다. clip-path 는 "어디까지 그릴까"만 정하고,
+      hidden 이 남아 있으면 그 전에 상자에서 잘라 버립니다.
+   ⚠️ 999 는 그냥 "충분히 크게" 입니다. 세로로 재는 값이 아니므로 --upx 를 안 씁니다. */
+.ts-board:has(.two-side-pan.flipping) { overflow: visible; clip-path: inset(-999px 0); }
 /* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 —
    낮 준비까지 13화면이 같은 판을 씁니다. 여기는 색과 크기만 정합니다. */
 .e5-result {
@@ -1598,14 +1610,13 @@
   /* 완성 접시. 칸이 250 → 170 으로 줄어 접시 가로도 210 → 130 이 됩니다(0.607배).
      담긴 꼬치와 손잡이가 나오는 길이도 **같은 배율로** 줄여야 세 자루가 접시 안에
      나란히 남습니다 (안 줄이면 조각 3개가 접시 폭을 넘어갑니다). */
-  .ts-serve-stack { bottom: calc(-18 * var(--upx)); }
+  .ts-serve-stack { bottom: calc(-12 * var(--upx)); }
   .ts-served .grill-skewer {
-    --gs-piece-w: calc(34 * var(--upx));
-    --gs-piece-h: calc(30 * var(--upx));
-    --gs-piece-overlap: calc(-5.9 * var(--upx));
-    height: calc(192 * var(--upx));
-    width: calc(34 * var(--upx));
-    padding-bottom: calc(57 * var(--upx));
+    --gs-piece-w: calc(37 * var(--upx));
+    --gs-piece-h: calc(32.4 * var(--upx));
+    --gs-piece-overlap: calc(-6.4 * var(--upx));
+    height: calc(126 * var(--upx));
+    width: calc(37 * var(--upx));
+    padding-bottom: calc(23.6 * var(--upx));
   }
-  .ts-served .gs-rod-asset { width: calc(15 * var(--upx)); }
 }

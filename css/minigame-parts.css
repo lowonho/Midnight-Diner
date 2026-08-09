@@ -110,6 +110,19 @@
   --mg-ing-panel-gap: calc(10 * var(--upx));
   --mg-ing-list-gap:  calc(10 * var(--upx));
 
+  /* 재료 이름·개수(.○-ing-name · .cut-card-caption)를 카드 아래에서 띄우는 값.
+     카드 안쪽은 [그림칸(1fr) · 이름] 두 줄이라 이름 줄이 늘 맨 아래에 붙습니다.
+     아래 여백이 8(+테두리 2)뿐이라 글자가 카드 아래 액자에 얹힌 것처럼 보였습니다.
+     E1 어묵 카드에서 잰 값입니다 (280 카드 · tools/e1-cut-screen-visual-smoke.html).
+       카드 위 ─ 그림 위   59.4      ← 그림칸이 1fr 이라 남는 자리가 위아래로 갈립니다
+       그림 아래 ─ 이름 위 54.7
+       이름 아래 ─ 카드 아래 10.7   ← 여기만 유독 좁습니다
+     그림칸(1fr)에서 이만큼 빼는 방식이라 그림이 이름 쪽으로 내려올 수 없습니다.
+     (이름만 transform 으로 올리면 세로로 꽉 찬 재료 그림과 겹칠 수 있습니다)
+     ⚠️ 낮은 카드는 그림칸이 원래 좁아서 같은 값을 주면 그림이 눈에 띄게 줄어듭니다.
+        아래 카드 높이별 블록에서 175 · 139 카드만 값을 줄여 둡니다. */
+  --mg-ing-name-lift: calc(10 * var(--upx));
+
   /* 카드 '지금 차례' 표시 테두리. E2 만 #e3a94c 로 혼자 달랐습니다.
      (E8반죽·E8꼬치는 sk-next-pulse 로 #fff2c4 까지 깜빡입니다 — 같은 색의 연출입니다) */
   --mg-card-active: #ffe08d;
@@ -249,6 +262,12 @@
        원래 게임 파일마다 42(또는 38) 로 한 줄씩 적혀 있던 것을 여기로 모았습니다. */
     --mg-prog-num: calc(42 * var(--upx));
   }
+  /* 칸이 250 → 170 으로 줄면 감점 안내가 세 줄로 접혀 아래 내용과 부딪힙니다.
+     글자와 배지를 같은 비율로 줄여 두 줄을 유지합니다. */
+  .mg-penalty { font-size: calc(11 * var(--upx)); }
+  .mg-penalty i { width: calc(13 * var(--upx)); height: calc(13 * var(--upx)); font-size: calc(10 * var(--upx)); }
+  .mini-score-time { font-size: calc(12 * var(--upx)); }
+  .mini-score-time b { font-size: calc(21 * var(--upx)); }
 }
 
 /* ============================================================
@@ -277,11 +296,15 @@
   --mg-art-a1-523: url("../assets/UI/Minigame/A1/mg-panel-500x1046.webp");
   --mg-art-a1-503: url("../assets/UI/Minigame/A1/mg-panel-500x1006.webp");
 
-  /* A2 우 아래 패널 — 진행도 카드를 뺀 남는 자리 4종 */
+  /* A2 우 아래 패널 — 진행도 카드를 뺀 남는 자리 5종
+     293 만 납품본이 아니라 **500x701 을 세로로 잘라 만든 파생본**입니다
+     (503.2 칸에서 진행도 카드가 초 있는 버전 198.1 이 되면 나오는 크기).
+     만드는 규칙은 tools/build-minigame-ui-webp.js 의 DERIVED 표에 있습니다. */
   --mg-art-a2-460: url("../assets/UI/Minigame/A2/mg-panel-500x921.webp");
   --mg-art-a2-403: url("../assets/UI/Minigame/A2/mg-panel-500x806.webp");
   --mg-art-a2-370: url("../assets/UI/Minigame/A2/mg-panel-500x741.webp");
   --mg-art-a2-350: url("../assets/UI/Minigame/A2/mg-panel-500x701.webp");
+  --mg-art-a2-293: url("../assets/UI/Minigame/A2/mg-panel-500x586.webp");
 
   /* B 재료 카드 — 5종 (E3밤의 139.1 / 139 는 2배에서 278 한 장으로 합쳐집니다) */
   --mg-art-b-280: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x560.webp");
@@ -290,7 +313,7 @@
   --mg-art-b-175: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x351.webp");
   --mg-art-b-139: url("../assets/UI/Minigame/B/ui_minigame_panel_b_452x278.webp");
 
-  /* C 진행도 카드 — 2종 (E10 만 큽니다) */
+  /* C 진행도 카드 — 2종 (초 있는 버전만 큽니다) */
   --mg-art-c-140: url("../assets/UI/Minigame/C/ui_minigame_panel_c_500x281.webp");
   --mg-art-c-198: url("../assets/UI/Minigame/C/ui_minigame_panel_c_500x396.webp");
 }
@@ -543,15 +566,17 @@
 .sc-control,
 .bt-guide,
 .sk-guide,
-.heat-control,
 .soak-guide,
 .fry-rack-panel    { --mg-panel-art: var(--mg-art-a2-460); }
+/* .heat-control 은 위 칸(진행도 카드)이 초 있는 버전 198.1 이라 460 이 아닙니다 */
 .anchovy-ref-card,
-.fridge-goal-card  { --mg-panel-art: var(--mg-art-a2-403); }
+.fridge-goal-card,
+.heat-control      { --mg-panel-art: var(--mg-art-a2-403); }
 .cut-ref-card,
 .ts-control        { --mg-panel-art: var(--mg-art-a2-370); }
-.kf-next,
-.yk-next           { --mg-panel-art: var(--mg-art-a2-350); }
+.kf-next           { --mg-panel-art: var(--mg-art-a2-350); }
+/* .yk-next 도 같은 사연입니다 — 503.2 칸에서 198.1 을 뺀 나머지 */
+.yk-next           { --mg-panel-art: var(--mg-art-a2-293); }
 
 /* 🟨 C 진행도 카드 — E10 만 큽니다 */
 .cut-count-card,
@@ -695,6 +720,29 @@
    카드 높이와 목록 정렬은 css/minigames.css 의 .heat-ing-list 가 정합니다. */
 .yk-ing-card { --mg-card-art: var(--mg-art-b-139); }
 
+/* ---- 재료 이름·개수를 카드 아래에서 띄웁니다 -----------------
+   이름 줄이 있는 카드 9장(E1 · E2 · E3 둘 · E4 · E5 · E8 둘 · E10)만입니다.
+   E6 튀기기·E7 은 이름 줄이 없어 여기 없습니다.
+   값의 근거는 위 --mg-ing-name-lift 주석에 적어 두었습니다.
+   ⚠️ 이 블록은 위 카드 겉모습(`padding: 8 6` 을 쓰는 .sc-goal … 블록)보다
+      뒤에 있어야 합니다. 앞에 두면 그 padding 한 줄이 아래 여백을 도로 8 로
+      되돌립니다. */
+.cut-ing-card,
+.anchovy-ing-card,
+.ts-ing-card,
+.fp-ing-card,
+.sk-ing-card,
+.kf-ing-card,
+.bt-ing-card,
+.heat-ing-card,
+.yk-ing-card {
+  padding-bottom: calc(8 * var(--upx) + var(--mg-ing-name-lift));
+}
+/* 낮은 카드는 그림칸이 원래 좁습니다 — 같은 10 을 빼면 그림이 눈에 띄게 작아집니다 */
+.bt-ing-card,
+.heat-ing-card { --mg-ing-name-lift: calc(6 * var(--upx)); }   /* 175 카드 */
+.yk-ing-card   { --mg-ing-name-lift: calc(4 * var(--upx)); }   /* 139 카드 */
+
 /* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
    원래 200(E1) · 190(E10) 으로 달랐던 에셋 자리가 하나가 됩니다. */
 .cut-ing-card .cut-card-figure,
@@ -774,11 +822,106 @@
   line-height: var(--mg-prog-lh);
   font-variant-numeric: tabular-nums;
 }
-/* E4와 E5 닭꼬치도 이제 남은 시간 줄 대신 공용 점수만 보여 주므로 다른 영업
-   미니게임과 같은 140.6 높이를 씁니다. 클래스 이름은 기존 배치 호환용입니다. */
-.heat-count,
+/* E5 닭꼬치는 남은 시간 줄 대신 공용 점수만 보여 주므로 다른 영업 미니게임과
+   같은 140.6 높이를 씁니다. 클래스 이름은 기존 배치 호환용입니다. */
 .ts-count-big {
   height: var(--mg-prog-h);
+}
+
+/* ---- 초 있는 진행도 카드 (198.1) ----------------------------
+   시간이 흐르는 것만으로 점수가 깎이는 게임에서, 점수 아래에 "지금 몇 초째"
+   줄이 한 칸 더 붙는 버전입니다. 지금은 E4 온도 이탈 · E3 무동작 둘입니다.
+   마크업은 js/mini-engine.js 의 miniScoreTimeMarkup 입니다.
+
+   ⚠️ 위 공용 규칙들보다 **선택자가 한 칸 더 깁니다(.mini-score-panel.has-time)**.
+      그래야 게임별 이름 하나짜리 규칙(.heat-count · .yk-count)이 정해 둔
+      높이 140.6 과 그림 C 500x281 을 둘 다 이깁니다. 클래스 하나로 줄이지 마세요.
+   ⚠️ 카드가 57.5 커진 만큼 **우측 아래 패널이 줄어듭니다.** 위 A2 목록에서
+      그 패널의 그림도 새 높이에 맞는 것으로 같이 바꿔야 합니다. */
+.mini-score-panel.has-time {
+  height: var(--mg-prog-time-h);
+  --mg-panel-art: var(--mg-art-c-198);
+  /* 아래 줄이 잉크를 아래로 늘려 주므로 위에서 내리는 보정이 필요 없습니다
+     (.fp-count · .heat-count 의 띠와 같은 사연입니다). */
+  --mg-prog-nudge: 0px;
+}
+/* '적정 온도 이탈  0.4 / 1.0초' — 라벨 한 줄, 그 아래 숫자 한 줄입니다.
+   칸 폭이 250 뿐이라 옆으로 나누면 라벨이 두 줄로 접힙니다. */
+.mini-score-time {
+  margin: 0;
+  padding-top: calc(9 * var(--upx));
+  border-top: 1px solid rgba(232,190,111,.28);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 calc(5 * var(--upx));
+  color: #c9b58d;
+  font-size: calc(14 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
+  font-weight: 700;
+  /* 도트 글꼴은 줄 상자가 곧 글자 상자라, 두 줄짜리 글에는 줄 간격을 꼭 적어야
+     라벨과 숫자가 붙어 버리지 않습니다 (css/minigame-parts.css 상단 --mg-prog-lh 주석). */
+  line-height: 1.3;
+}
+.mini-score-time span { flex: 0 0 100%; text-align: center; }
+.mini-score-time b {
+  color: #f4d58b;
+  font-size: calc(25 * var(--upx));
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.mini-score-time em { font-style: normal; }
+/* 시간이 반쯤 찼을 때부터 붉게 깜빡입니다 (updateMiniScoreTime 이 붙입니다) */
+.mini-score-time.warning b { color: #ff725f; animation: mg-score-time-warning .7s ease-in-out infinite alternate; }
+@keyframes mg-score-time-warning { to { opacity: .45; } }
+@media (prefers-reduced-motion:reduce) {
+  .mini-score-time.warning b { animation: none; }
+}
+
+/* ---- 감점 안내 한 줄 (밤 조리 6화면 공용) --------------------
+   우측 칸 **맨 아래**에 붙는 "무엇을 하면 깎이는지" 한 줄입니다.
+   마크업과 문구 표는 js/ui-mini-frame.js 의 MINI_PENALTY 에 있습니다.
+
+   ⚠️ `margin-top:auto` 가 자리를 정합니다. 우측 아래 패널이 대부분
+      flex 세로 칸이라, 이 한 줄만 남는 자리를 전부 위로 밀어내고 바닥에 붙습니다.
+      격자(grid)로 쌓는 패널(.fry-rack-panel · .cut-ref-card)에서는 이 값이
+      아무 일도 하지 않으므로, 그 두 곳은 행 정의에 auto 를 한 줄 더 둡니다.
+   ⚠️ 글자 크기를 키우지 마세요. 칸 폭이 226(패널 250 − 좌우 여백)뿐이라
+      13 을 넘기면 문구가 세 줄로 접혀 아래 패널 내용과 부딪힙니다. */
+.mg-penalty {
+  margin: auto 0 0;
+  /* 위 칸이 `align-items:center` 인 패널(.heat-control)에서도 구분선이
+     칸 폭을 그대로 쓰도록 자기 정렬을 되돌립니다. */
+  align-self: stretch;
+  padding-top: calc(8 * var(--upx));
+  border-top: 1px solid rgba(232,190,111,.22);
+  display: flex;
+  align-items: flex-start;
+  gap: calc(6 * var(--upx));
+  color: #e2a184;
+  text-align: left;
+  font-size: calc(13 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
+  font-weight: 700;
+  line-height: 1.35;
+}
+/* 앞에 붙는 작은 느낌표 배지. 글자 한 자라 원으로 두어도 안 찌그러집니다. */
+.mg-penalty i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(15 * var(--upx));
+  height: calc(15 * var(--upx));
+  margin-top: calc(1 * var(--upx));
+  border-radius: 50%;
+  background: #a4472e;
+  color: #ffe6d6;
+  font-size: calc(11 * var(--upx));
+  font-style: normal;
+  line-height: 1;
 }
 
 /* ---- 영업 미니게임 공용 점수 카드 ---------------------------

@@ -84,6 +84,54 @@ const LOSSLESS = new Set([
 const QUALITY = 90;
 const EFFORT = 6;   // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 작아집니다.
 
+/* ============================================================
+   파생 패널 — 납품본을 세로로 잘라 만드는 크기
+   ------------------------------------------------------------
+   A2 우 아래 패널은 "크기별 통짜 그림"이라 자리마다 파일이 따로 있어야 합니다.
+   그런데 진행도 카드가 초 있는 버전(198.1)이 되면서 503.2 칸(E3 볶음우동)의
+   아래 패널이 293.1 이 되었고, 그 크기의 납품본이 없습니다.
+
+   이 패널은 **나무판 + 사방 금테 + 네 모서리 장식**뿐이라, 세로 가운데의
+   나무결만 덜어내면 모서리와 금테가 그대로 남습니다. 그래서 위 절반과 아래
+   절반을 잘라 붙여 새 높이를 만듭니다. 늘리거나 줄이지 않으므로 금테 굵기와
+   모서리 장식이 원본 그대로입니다.
+
+   ⚠️ PNG 는 만들지 않고 **WebP 만** 뽑습니다. PNG 폴더는 납품 마스터 자리라
+      파생본을 섞어 두면 다음 사람이 어느 것이 원본인지 알 수 없습니다.
+   ⚠️ 아래 --verify 는 이 파생본을 건너뜁니다(비교할 PNG 가 없습니다).
+   ⚠️ 정말 이 크기의 납품본을 받게 되면, 여기 한 줄을 지우고 PNG 를 A2/ 에
+      넣기만 하면 됩니다 — CSS(--mg-art-a2-293)는 그대로 둡니다. */
+const DERIVED = [
+  { group:"A2", from:"mg-panel-500x701.png", out:"mg-panel-500x586.webp", height:586 }
+];
+
+// 세로 가운데를 덜어내고 위·아래를 붙입니다.
+async function buildDerived(){
+  for(const d of DERIVED){
+    const src = path.join(UI_DIR, d.group, d.from);
+    if(!fs.existsSync(src)){ console.warn(`  ! ${d.group}/${d.from} 이 없어 ${d.out} 을 못 만듭니다`); continue; }
+    const out = path.join(UI_DIR, d.group, d.out);
+    const meta = await sharp(src).metadata();
+    if(meta.height <= d.height){
+      console.warn(`  ! ${d.from}(${meta.height}) 이 목표 ${d.height} 보다 낮습니다 — 잘라 만들 수 없습니다`);
+      continue;
+    }
+    // 위 top / 아래 bottom 으로 나눕니다. 홀수면 위쪽이 1 더 갖습니다.
+    const top = Math.ceil(d.height/2), bottom = d.height - top;
+    const [topBuf, bottomBuf] = await Promise.all([
+      sharp(src).extract({ left:0, top:0, width:meta.width, height:top }).png().toBuffer(),
+      sharp(src).extract({ left:0, top:meta.height-bottom, width:meta.width, height:bottom }).png().toBuffer()
+    ]);
+    await sharp({ create:{ width:meta.width, height:d.height, channels:4, background:{r:0,g:0,b:0,alpha:0} } })
+      .composite([{ input:topBuf, top:0, left:0 }, { input:bottomBuf, top:top, left:0 }])
+      .webp({ quality:QUALITY, effort:EFFORT, alphaQuality:100 })
+      .toFile(out);
+    console.log(`${d.group}/${d.out}`.padEnd(40), `${meta.width}x${meta.height}`.padStart(11),
+      `${meta.width}x${d.height}`.padStart(11), "".padStart(8), `${kb(fs.statSync(out).size)}KB`.padStart(8),
+      "".padStart(7), `  ${d.from} 세로 잘라 붙임`);
+  }
+}
+
 // 폴더를 돌며 [원본 경로, 배율, 폴더이름] 목록을 만듭니다.
 const files = GROUPS.flatMap(g => {
   const dir = path.join(UI_DIR, g.dir);
@@ -175,6 +223,9 @@ async function verify(){
 }
 
 (async()=>{
-  if(!process.argv.includes("--verify")) await convert();
+  if(!process.argv.includes("--verify")){
+    await convert();
+    await buildDerived();
+  }
   await verify();
 })().catch(error=>{ console.error(error); process.exit(1); });

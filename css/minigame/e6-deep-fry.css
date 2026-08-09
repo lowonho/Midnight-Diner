@@ -546,9 +546,11 @@
 /* ⚠️ 이 카드는 공용 점수 카드(miniScorePanelMarkup)를 씁니다 — 안쪽이 h3 + p.mini-score-value
    뿐이라 크기 규칙은 css/minigame-parts.css 의 공용 큰 숫자 규칙이 정합니다. */
 
-/* 제목 한 줄 + 남는 자리를 다 쓰는 망. `align-content:stretch` 만으로는
-   제목 줄까지 같이 늘어나 망이 절반만 차지합니다. */
-.fry-rack-panel { grid-template-rows: auto minmax(0,1fr); align-content: stretch; }
+/* 제목 한 줄 + 남는 자리를 다 쓰는 망 + 맨 아래 감점 안내 한 줄.
+   `align-content:stretch` 만으로는 제목 줄까지 같이 늘어나 망이 절반만 차지합니다.
+   ⚠️ 마지막 `auto` 가 감점 안내(.mg-penalty) 자리입니다. 이 줄을 빼면 안내가
+      망과 같은 칸에 들어가 트레이 위에 겹칩니다. */
+.fry-rack-panel { grid-template-rows: auto minmax(0,1fr) auto; align-content: stretch; }
 /* ⚠️ 그림이 있을 때는 칸을 **트레이 비율로 좁힙니다.** 조각 자리(FRY_RACK_SEATS)가
    이 칸 기준 0~100 이라, 칸이 트레이보다 높으면(칸 393.4 · 트레이 356.3) 위아래
    남는 자리에 튀김이 놓여 트레이 밖에 뜹니다. */
@@ -559,10 +561,16 @@
   padding: 0;
   background: none;
 }
+/* ⚠️ **세로가 기준이고 가로가 따라옵니다** (원래는 반대였습니다).
+   감점 안내 한 줄이 붙으면서 망 자리가 401.6 → 347.6 으로 줄었는데, 가로
+   기준(226 → 세로 357)으로 두면 칸보다 10 남짓 높아져 트레이 아래가 잘립니다.
+   세로 기준으로 두면 트레이가 220 x 347.6 이 되어 칸 안에 그대로 들어갑니다.
+   (조각 자리 FRY_RACK_SEATS 는 이 칸 기준 %라 크기가 달라져도 그대로 맞습니다) */
 .fry-rack.has-fry-asset {
   align-self: center;
-  width: 100%;
-  height: auto;
+  justify-self: center;
+  width: auto;
+  height: 100%;
   aspect-ratio: 766 / 1210;
 }
 .fry-rack-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }

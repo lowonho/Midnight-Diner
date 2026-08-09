@@ -1,5 +1,26 @@
+/* ============================================================
+   HUD 판 그림 (assets/UI/HUD)
+   ------------------------------------------------------------
+   로고 판 · 좌우 패널 · 메뉴 카드 · 우상단 다섯 칸이 전부 원화입니다.
+   그리던 것(.wood-panel · .square-button 의 테두리·배경·그림자)은 각 규칙에서
+   걷어내고 background 한 줄로 바꿉니다 — 테두리와 금선이 전부 그림 안에 있습니다.
+   (css/results.css · css/save-slots.css 와 같은 방식입니다)
+
+   ⚠️ 그림은 **자기 자리에 딱 맞는 크기 한 장**입니다(9-slice 가 아닙니다).
+      원화가 바탕화면 「달빛식탁_HUD_규격」 실측값의 정확히 4배로 와서,
+      background-size: 100% 100% 로 깔면 화면과 1:1 입니다. 대신 아래 어느
+      칸이든 **크기를 고치면 그림이 눌립니다** — tools/build-ui-hud-webp.js 의
+      SIZE 표를 같이 고치고 다시 구우세요(npm run build:ui-hud).
+
+   ⚠️ 걷어낸 테두리 두께는 padding 으로 되돌려 놓았습니다. 안 그러면 판 안쪽
+      글자가 테두리 두께만큼 바깥으로 밀립니다. 각 규칙에 계산을 적어 두었습니다.
+
+   ⚠️ 낮 판과 밤 판은 **색이 같고 높이만 다릅니다**. 낮/밤 두 장을 쓰는 이유는
+      톤이 아니라 판 높이가 달라서입니다(.left-hud · .phase-open .left-hud).
+   ============================================================ */
+
 /* 상단 HUD 자체는 배경이 없습니다. 레퍼런스처럼 메뉴판 뒤가 비어 보여야 해서
-   패널 배경(.wood-panel)은 좌측 타이틀 판(.small-logo)과 우측 스탯 칸이 각자 갖습니다. */
+   패널 배경은 좌측 타이틀 판(.small-logo)과 우측 스탯 칸이 각자 갖습니다. */
 .top-hud {
   position: absolute;
   z-index: 5;
@@ -63,9 +84,17 @@
      그러면 판 안에서 내용이 drop 의 절반만큼 위로 쏠려 보입니다(16 일 때 8px).
      그래서 drop 을 위아래로 반씩 나눠 얹습니다 — 여백 합(28 + drop)은 그대로라
      판 높이와 윗변은 변하지 않고, 로고·글씨만 절반만큼 내려와 가운데에 섭니다.
-     ⚠️ 다시 아래로만 얹지 마세요. 판을 키울수록 내용이 위로 뜹니다. */
-  padding: calc((14 + var(--logo-panel-drop) / 2) * var(--upx)) calc(8 * var(--upx));
+     ⚠️ 다시 아래로만 얹지 마세요. 판을 키울수록 내용이 위로 뜹니다.
+     [+2] 걷어낸 .wood-panel 2px 테두리를 여백으로 되돌린 것입니다(14 → 16 · 8 → 10).
+     box-sizing 이 border-box 라 판 크기는 그대로이고, 안쪽 글자 자리만 예전과 같아집니다. */
+  padding: calc((16 + var(--logo-panel-drop) / 2) * var(--upx)) calc(10 * var(--upx));
   line-height: 1.05;
+
+  /* .wood-panel 이 그리던 것 걷어내기 (규격 2번 · 원화 291.2 x 181.5) */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: url("../assets/UI/HUD/ui_hud_logo_panel.webp") center / 100% 100% no-repeat;
 }
 /* 타이틀 글씨는 타이틀 화면과 같은 로고 그림입니다(assets/UI/Main).
    ⚠️ PNG 가 마스터입니다. --hud-logo-w 를 고치면 tools/build-ui-main-webp.js
@@ -122,13 +151,20 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: calc(5 * var(--upx)) calc(4 * var(--upx));
-  border: 2px solid #946037;
-  border-radius: calc(6 * var(--upx));
-  background: linear-gradient(#efcf98,#c58d4d);
+  /* [7/6] 예전 여백 5/4 에 걷어낸 2px 테두리를 되돌린 값입니다. 이름줄·음식 그림이
+     예전 자리에 그대로 섭니다(규격 7번 x 564.1 = 카드 558.1 + 6). */
+  padding: calc(7 * var(--upx)) calc(6 * var(--upx));
   color: #2c1b11;
-  box-shadow: inset 0 0 0 2px #f7dfad, inset 0 calc(-8 * var(--upx)) rgba(91,47,24,.12);
   cursor: pointer;
+
+  /* 카드 그림 (규격 6번 · 원화 228 x 131.2). 세 장이 같은 그림 한 장을 씁니다.
+     ⚠️ 이 한 장만 **원본 밝기 그대로** 굽습니다 — 나머지 판과 달리 크림색 바탕에
+        어두운 글자(#2c1b11)가 올라가는, 성격이 반대인 칸이라 어둡게 하면
+        글자가 안 읽힙니다. tools/build-ui-hud-webp.js 의 dark:false 와 짝입니다. */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: url("../assets/UI/HUD/ui_hud_menu_card.webp") center / 100% 100% no-repeat;
   transition: transform .12s, filter .12s;
 }
 .menu-card:hover { transform: translateY(-2px); filter: brightness(1.05); }
@@ -137,10 +173,17 @@
 .menu-card:disabled:hover { filter: none; transform: none; }
 .menu-card:disabled.selected { transform: translateY(2px); }
 .menu-card.locked { filter: grayscale(.72) brightness(.62); opacity: .72; }
+/* [margin-top 6.9] 카드 그림의 안쪽 테두리 선이 위 가장자리에서 **7.0** 자리에 있는데,
+   카드 여백도 7 이라 이름줄 윗변이 그 선에 딱 걸쳐 겹쳐 보였습니다. 아래 .food-icon 을
+   164 → 152 로 줄여 나온 6.9 를 그대로 이름 위에 얹어 선 아래로 내린 값입니다.
+   ⚠️ 이 6.9 와 .food-icon 의 152 는 한 쌍입니다. 카드 안쪽 높이(131.2 - 여백 14 = 117.2)를
+      이름 18.8 + 이 여백 + 그림 87.5 + 그림 위아래 여백 4 로 딱 채우고 있어서,
+      한쪽만 고치면 카드가 넘치거나 그림이 가운데에서 떠 버립니다. */
 .menu-card strong {
   flex: none;
   display: block;
   overflow: hidden;
+  margin-top: calc(6.9 * var(--upx));
   font-size: calc(15 * var(--upx));
   line-height: 1.25;
   text-align: center;
@@ -157,10 +200,13 @@
    이름줄·수량표와의 여백이 그만큼 생깁니다.
    ⚠️ 카드 높이는 .menu-cards 가 잡으므로 여기를 줄여도 카드는 안 줄어듭니다
       (남는 높이는 위아래로 갈라집니다 — .menu-card 의 justify-content:center). */
+/* [152] 예전 164. 카드 그림의 안쪽 테두리 선에 이름줄이 겹쳐 보여서, 이름을 내릴
+   자리를 여기서 만들었습니다(줄어든 높이 6.9 가 위 .menu-card strong 의 margin-top).
+   카드 폭 대비 비율은 0.718 → 0.667 이 됩니다. */
 .food-icon {
   position: relative;
   flex: none;
-  width: calc(164 * var(--upx));
+  width: calc(152 * var(--upx));
   aspect-ratio: 264 / 152;
   display: block;
   margin: calc(2 * var(--upx)) auto;
@@ -243,10 +289,27 @@
   align-items: center;
   justify-content: center;
   gap: calc(6 * var(--upx));
-  border: 1px solid #744522;
-  border-radius: calc(4 * var(--upx));
-  background: #160c08;
+  /* 테두리·배경은 이제 칸마다 원화가 갖습니다(바로 아래). 여기서는 걷어내기만 합니다.
+     되돌릴 여백이 없는 이유: 이 칸들은 안쪽이 세로·가로 모두 가운데 정렬이라
+     1px 테두리가 빠져도 글자가 그 자리에 그대로 섭니다. */
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
+/* 칸마다 그림이 다릅니다(규격 10~14번). 폭이 제각각이라 한 장으로는 못 씁니다 —
+   DAY 67.6 · 손님 수 101.4 · 특별 손님 111.5 · 일지 64.2 · 설정 64.2, 높이는 다 79.8.
+   ⚠️ 위 .hud-stats 의 칸 비율(grid-template-columns)을 고치면 폭이 어긋나
+      그림이 가로로 눌립니다. 고칠 때는 빌드 스크립트의 SIZE 표도 같이 보세요.
+   경제 시스템에서 빠진 두 칸(.retired-economy-ui)은 display:none 이라 그림이 없습니다. */
+.hud-stats .stat-day,
+.hud-stats .stat-time,
+.hud-stats .stat-satisfaction,
+.hud-stats .square-button { background: center / 100% 100% no-repeat; }
+.hud-stats .stat-day          { background-image: url("../assets/UI/HUD/ui_hud_day_stat.webp"); }
+.hud-stats .stat-time         { background-image: url("../assets/UI/HUD/ui_hud_guest_count_stat.webp"); }
+.hud-stats .stat-satisfaction { background-image: url("../assets/UI/HUD/ui_hud_special_guest_stat.webp"); }
+.hud-stats #codexButton       { background-image: url("../assets/UI/HUD/ui_hud_journal_button.webp"); }
+.hud-stats #settingsButton    { background-image: url("../assets/UI/HUD/ui_hud_settings_button.webp"); }
 /* 칸을 넓힌 만큼 글자도 같이 키웠습니다(이름 8→10 · 값 12→15 · 버튼 14→20).
    ⚠️ 이름(span)은 nowrap 이 아니라 칸보다 길면 두 줄로 접힙니다. 가장 빠듯한 것이
       낮 「방문 예정 손님」(7글자)입니다. 칸을 93.6 → 101.6 으로 넓혀 여유가 8 늘었지만
@@ -257,7 +320,13 @@
   font-size: calc(15 * var(--upx));
   white-space: nowrap;
 }
-.hud-stats .square-button { font-size: calc(20 * var(--upx)); line-height: 1; }
+/* [font-size: 0] 일지·설정 버튼은 원래 글자로 그린 이모지(📖 · ⚙)였는데,
+   이제 **책·톱니 그림이 원화 안에 들어 있습니다**(index.html 의 #codexButton /
+   #settingsButton). 글자를 그대로 두면 그림 위에 이모지가 한 번 더 겹칩니다.
+   지우지 않고 크기만 0 으로 두는 이유는 마크업의 aria-label 이 이름을 대신
+   읽어 주기 때문입니다 — 글자를 없애도 스크린리더에서 버튼이 사라지지 않습니다.
+   ⚠️ 원화를 아이콘 없는 빈 칸으로 새로 받으면 여기를 20 으로 되돌리세요. */
+.hud-stats .square-button { font-size: 0; line-height: 1; border: 0; border-radius: 0; }
 
 /* 보유금: '보유금' 글자 대신 동전 아이콘을 금액 왼쪽에 둡니다. */
 .stat-money {
@@ -298,9 +367,55 @@
   position: absolute;
   z-index: 5;
   min-height: 31%;
-  padding: .9%;
+  /* [19.2] 예전 여백 .9% 에 걷어낸 .wood-panel 2px 테두리를 되돌린 값입니다.
+     .9% 는 프레임 안쪽 폭(1916) 기준이라 17.24 였고, 여기에 2 를 더해 19.24 —
+     규격표의 「안쪽 여백 17.2 + 테두리 2」와 같은 자리입니다(제목줄 x 45.1 = 판 25.9 + 19.2).
+     % 대신 --upx 로 적은 것은 테두리 2px 을 % 에 섞을 수 없어서입니다.
+     둘 다 프레임 폭에 비례하므로 창 크기가 달라져도 관계는 그대로입니다
+     (1920 기준 19.244 → 19.2, 0.04px 차이).
+     [윗여백만 24.2] 판 그림의 금선이 **가장자리에서 8** 자리에 있습니다. 예전
+     .wood-panel 의 금테는 4(inset 0 0 0 4px)였으므로, 같은 19.2 여백이라도 금선과
+     글자 사이가 15 → 11 로 좁아져 제목이 선에 붙어 보였습니다. 그 4~5 를 되돌린 값입니다.
+     ⚠️ 판 높이가 못박혀 있어(.left-hud height) 늘린 5 만큼 목록 칸이 줄어듭니다.
+        아래 판 높이도 5 씩 같이 올려 뒀습니다 — 한쪽만 고치면 가장 긴 조합에서
+        스크롤 막대가 생깁니다(tools/left-hud-measure-smoke.html 로 확인).
+     아래 여백은 그대로 19.2 입니다. 목록은 위에서부터 차므로 눈에 걸리는 것은 윗변뿐이고,
+     아래까지 늘리면 판 높이를 10 올려야 합니다. */
+  padding: calc(24.2 * var(--upx)) calc(19.2 * var(--upx)) calc(19.2 * var(--upx));
   transition: opacity .25s ease;
+
+  /* .wood-panel 이 그리던 것 걷어내기. 그림은 낮·밤을 아래에서 갈아 끼웁니다. */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: center / 100% 100% no-repeat;
 }
+/* 판 그림은 **높이마다 다른 장**입니다(규격 15·22번). 그림에 늘어날 여유가 없으므로
+   (9-slice 가 아닙니다) 판이 그 높이일 때 그 그림이 깔리도록 정확히 짝지어야 합니다.
+   js/game.js updateUI 가 #gameApp 에 붙이는 단계 클래스는 두 개뿐입니다 —
+     .phase-prep   메뉴 선택 · 냉장고 재료 고르기 · 낮 준비
+     .phase-open   밤 영업
+     (아무것도 안 붙는 때) 마감. 이때도 HUD 는 **안 숨습니다** — 결과창(.overlay)이
+                   rgba(8,5,4,.72) 라 판이 뒤로 비칩니다(js/game.js showGameHud 는
+                   타이틀·이야기 전환에서만 불립니다). 그래서 이 경우도 맞춰야 합니다.
+
+   판 높이는 아래에서 이렇게 잡힙니다 — 기본값은 "그 판이 대부분의 시간 동안
+   갖는 높이"로 두고, 어긋나는 한 단계만 덮어씁니다.
+
+     좌측  .left-hud height 36.5%(392.7)  ← 낮·마감 모두 이 값     → 낮 그림
+           .phase-open .left-hud 32.7%(351.8)                     → 밤 그림
+     우측  .phase-prep .right-hud 20.1%(216.3)                     → 낮 그림
+           .phase-open .right-hud min 33%(355.1) · 마감 min 31%    → 밤 그림
+                                                                    (마감은 333.6 이라
+                                                                     밤 그림이 훨씬 가깝습니다)
+   ⚠️ 그래서 우측만 기본값이 **밤**입니다. 좌우를 대칭으로 고치지 마세요 —
+      우측 낮(20.1%)은 phase-prep 한 단계에서만 나오는 예외 쪽입니다.
+   ⚠️ 위 네 높이를 고치면 그림이 세로로 눌립니다. 빌드 스크립트
+      tools/build-ui-hud-webp.js 의 SIZE 표도 같이 고치고 다시 구우세요. */
+.left-hud              { background-image: url("../assets/UI/HUD/ui_hud_left_panel_day.webp"); }
+.right-hud             { background-image: url("../assets/UI/HUD/ui_hud_right_panel_night.webp"); }
+.phase-open .left-hud  { background-image: url("../assets/UI/HUD/ui_hud_left_panel_night.webp"); }
+.phase-prep .right-hud { background-image: url("../assets/UI/HUD/ui_hud_right_panel_day.webp"); }
 /* [폭] 좌우가 다릅니다.
      좌측 15.2%  ⚠️ 여기는 못 넓힙니다. 상단 로고 판(.small-logo)이 왼쪽 모서리를
                  맞춰 따라와야 하는데, 그 판은 이미 격자 칸(15%)을 넘겨 놓은
@@ -343,7 +458,14 @@
    목록이 넘칠 때는 목록만 굴러갑니다 — 버튼이 스크롤에 밀려나지 않습니다.
    제목줄·합계 줄·버튼은 flex:none 이라 눌리지도 않습니다. */
 .left-hud {
-  height: 36.5%;
+  /* [37.0%] 예전 36.5%(392.7). 위 판 윗여백을 19.2 → 24.2 로 5 내리면서 목록 칸이
+     그만큼 줄어, 가장 긴 조합이 판을 2.3 넘겼습니다. 같은 하네스로 다시 재서
+     올린 값입니다 — tools/left-hud-measure-smoke.html · 1920x1080
+       가장 긴 조합  어묵탕 · 닭꼬치 · 떡볶이   395.0 = 36.71%   ← 여기에 여유 3.1
+       가장 짧은 조합 볶음우동 · 새우튀김 · 감자튀김 323.9 = 30.10%
+     ⚠️ 판 그림이 이 높이에 맞춰 구워져 있습니다(398.1 x2 = 796).
+        여기를 고치면 tools/build-ui-hud-webp.js 의 SIZE 표도 같이 고치고 다시 구우세요. */
+  height: 37.0%;
   /* ⚠️ 위 공용 규칙의 min-height:31% 를 반드시 풀어야 합니다. min-height 는 height 를
      이깁니다 — 이걸 안 풀면 밤 규격(29.3% = 315)을 적어도 31%(334)로 늘어납니다.
      낮·밤 다 height 로 못박으므로 최소 높이는 이제 할 일이 없습니다. */
@@ -399,7 +521,16 @@
 
    ※ 밤은 바로 아래에서 따로 잡습니다. */
 .phase-prep .right-hud {
-  height: 20.1%;
+  /* [21.5%] 예전 20.1%(216.3). 두 가지가 겹쳐 「다음 작업」 3줄일 때 셋째 줄이
+     조작 칩 구분선에 닿았습니다 — 판 윗여백을 5 내린 것과, 원래도 본문 칸이
+     내용보다 작았던 것입니다(칸 80.9 · 내용 89.1 → 8.2 넘침. 넘친 글자는
+     .objective-body 에 overflow 규칙이 없어 잘리지 않고 아래 여백으로 흘렀습니다).
+     칸이 내용을 담고도 남게 다시 쌓아 올린 값입니다 —
+       윗여백 24.2 + 제목줄 24 + 제목 아래 6 + 본문칸 91.9 + 칩 위 여백 12
+       + 조작 안내 54 + 아래여백 19.2 = 231.4 = 21.5%
+     이러면 본문 내용(89.1)보다 칸이 2.8 크고, 마지막 줄에서 구분선까지 14.8 뜹니다.
+     ⚠️ 판 그림이 이 높이에 맞춰 구워져 있습니다(231.3 x2 = 463). */
+  height: 21.5%;
   /* ⚠️ 공용 규칙의 min-height:31% 를 풀어야 height 가 삽니다 — min-height 가
      height 를 이깁니다(.left-hud 에도 같은 주의가 붙어 있습니다). */
   min-height: 0;
@@ -432,7 +563,16 @@
    ⚠️ 판이 42 길어진 만큼 아래끝이 538 → 555 로 내려왔습니다. 5번 자리 손님의
       2줄 대사 말풍선 윗변(531.6~537)을 그만큼 더 덮습니다 — 자세한 값은
       바탕화면 「달빛식탁_손님말풍선_규격」 §5. */
-.phase-open .right-hud { min-height: 33%; }
+/* [33.7%] 예전 33%(355.1). 판 윗여백을 5 내리면서 내용이 355.1 을 넘겨 버려,
+   판이 바닥선에 붙어 서지 않고 **목표 글 길이를 따라 움직이게** 됐습니다
+   (실측 359.6). 그러면 판 그림도 그만큼 늘어납니다. 바닥선을 내용 위로 올려
+   다시 바닥선에 붙여 세운 값입니다 — 362.6, 지금 내용보다 3.0 큽니다.
+     실측 359.6 (본 게임 밤 화면) · 하네스 최대 356.9 (tools/right-hud-measure-smoke.html)
+   [34.0%] 위 .controls-help 의 칩 위 여백을 8 → 12 로 벌리면서 내용이 4 더 자랐습니다
+   (363.6). 바닥선을 다시 그 위로 올린 값입니다 — 365.8, 내용보다 2.2 큽니다.
+   ⚠️ 여기는 낮·좌측과 달리 height 가 아니라 **min-height** 라, 목표 글이 더 길어지면
+      판이 또 자랍니다(예전부터 그런 자리입니다). 그때는 그림이 조금 늘어납니다. */
+.phase-open .right-hud { min-height: 34.0%; }
 
 /* 밤 좌측 패널은 낮과 따로 잡습니다.
    ------------------------------------------------------------
@@ -446,8 +586,16 @@
      지금  자리 5개 · 글자 키운 뒤  351.5 = 32.66%  (여유 얹어 32.7%)
    ⚠️ js/customers.js 의 CUSTOMER_SEATS 개수나 .order-row 높이·글자 크기를 바꾸면
       다시 재세요. 혹시 넘치더라도 목록이 굴러가므로(.order-list 는 .drag-scroll)
-      잘리지는 않습니다. */
-.phase-open .left-hud { height: 32.7%; }
+      잘리지는 않습니다.
+
+   [33.3%] 예전 32.7%(351.8). 낮 판과 같은 이유입니다 — 윗여백을 5 내린 만큼
+   자리 5개가 판을 넘겼습니다. 밤은 낮과 달리 조합이 하나뿐이라 손으로 셉니다
+   (이 화면만 재는 하네스는 없습니다. 낮 하네스는 phase-prep 전용입니다) —
+     윗여백 24.2 + 제목줄 27 + 제목 아래 여백 6 + 주문 5줄(52 x5 + 간격 5 x4 = 280)
+     + 아래여백 19.2 = 356.4        ← 여기에 여유 1.9 를 얹어 358.3 = 33.3%
+   같은 셈을 예전 값으로 하면 351.4 라, 실측으로 잡아 둔 351.5 와 맞습니다.
+   ⚠️ 판 그림이 이 높이에 맞춰 구워져 있습니다(358.3 x2 = 717). */
+.phase-open .left-hud { height: 33.3%; }
 
 .panel-heading {
   display: flex;
@@ -703,11 +851,18 @@
 .recipe-step.done { color: #99b56b; text-decoration: line-through; }
 .recipe-step.current { border-color: #e0a74e; color: #ffe4a0; }
 
+/* [margin-top 12] 예전 8. 구분선과 바로 위 목표 본문 마지막 줄 사이 여백입니다.
+   낮 「다음 작업」이 3줄일 때 셋째 줄이 선에 닿아 보인다는 지적을 받은 자리입니다.
+   ⚠️ 여백만으로는 안 됩니다 — 진짜 원인은 판이 짧아 .objective-body 가 눌린 것이었습니다.
+      본문 칸은 flex:1 1 auto · min-height:0 이라 자기 내용(89.1)보다 작아질 수 있고
+      (실측 칸 80.9), 넘친 글자는 잘리지 않고 이 여백 안으로 흘러들어 왔습니다.
+      그래서 선까지 8 이 아니라 3 밖에 안 남았습니다.
+      아래 .phase-prep .right-hud 높이를 같이 올려야 이 12 가 실제로 12 가 됩니다. */
 .controls-help {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: calc(4 * var(--upx));
-  margin-top: calc(8 * var(--upx));
+  margin-top: calc(12 * var(--upx));
   padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #c6aa7e;

@@ -385,7 +385,13 @@
 .fp-roll-stage-track span.current i { background:#d79535; color:#2a180d; }
 .fp-roll-stage-track span.done { border-color:#799854; color:#cde3a2; }
 .fp-roll-stage-track span.done i { background:#6f9447; color:#fff5d1; }
-.fp-roll-title { display:flex; align-items:baseline; justify-content:center; gap:calc(11 * var(--upx)); color:#e7c58c; }
+/* 제목 줄은 아래로 조금 내려 답니다. 그릇(.fp-roll-vessel)이 높이가 정해진 채
+   1fr 칸 한가운데 놓여서 위아래로 빈자리가 남는데, 그 위쪽 빈자리를 제목이
+   메우면서 그릇에 붙어 보이게 하려는 것입니다.
+   ⚠️ margin 이 아니라 transform 인 이유 : margin 을 주면 제목 칸이 그만큼
+      두꺼워져 그릇까지 같이 밀려 내려갑니다. transform 은 자리 차지는 그대로라
+      글씨만 내려갑니다. */
+.fp-roll-title { display:flex; align-items:baseline; justify-content:center; gap:calc(11 * var(--upx)); color:#e7c58c; transform:translateY(calc(42 * var(--upx))); }
 .fp-roll-title small { font-size:calc(14 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; }
 .fp-roll-title strong { color:#ffe0a0; font-size:calc(23 * var(--upx)); }
 /* 그릇 = 옆으로 긴 트레이 한 장. **도마 가로를 꽉 채웁니다** —

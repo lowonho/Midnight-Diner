@@ -88,7 +88,11 @@ const HEAT_FEEL_CONFIG=Object.freeze({
   targetLaunchSpeed:.20,
   targetLaunchSlowSeconds:.7,
   targetLaunchEaseSeconds:.4,
-  warningDelay:0.65,
+  /* 적정 온도를 벗어난 채로 이만큼 지나면 −10 입니다.
+     ⚠️ 이 값은 화면 두 군데에 그대로 적혀 있습니다. 고치면 셋을 같이 고치세요.
+          진행도 카드의 '/ 1.0초'  (아래 heatScreenMarkup 의 miniScoreTimeMarkup)
+          감점 안내 한 줄          (js/ui-mini-frame.js 의 MINI_PENALTY.heat) */
+  warningDelay:1,
   /* ── 구간이 잠깐 좁아지는 연출 ──
      좁아지는 동안에는 같은 자리에 있어도 밖으로 밀려납니다. 그게 노림수입니다. */
   pinchFirstDelay:2.4,      // 시작하자마자 좁히지는 않습니다(자리를 잡을 시간)
@@ -333,11 +337,13 @@ function heatScreenMarkup(config){
       </aside>
       <div class="heat-play">${heatSceneMarkup(config)}</div>
       <aside class="heat-col">
-        ${miniScorePanelMarkup("heat-panel heat-count","heat-col-title",state.mini,
-          `<div class="heat-hold" title="적정 온도 유지 진행도"><i id="heatHoldFill"></i></div>`)}
+        ${miniScorePanelMarkup("heat-panel heat-count has-time","heat-col-title",state.mini,
+          `<div class="heat-hold" title="적정 온도 유지 진행도"><i id="heatHoldFill"></i></div>
+           ${miniScoreTimeMarkup("heatOutTime","적정 온도 이탈",HEAT_FEEL_CONFIG.warningDelay)}`)}
         <div class="heat-panel heat-control">
           <h3 class="heat-col-title">조작</h3>
           ${heatControlMarkup()}
+          ${miniPenaltyMarkup("heat")}
         </div>
       </aside>
     </div>`;
@@ -409,6 +415,9 @@ function updateHeatVisual(data,config){
      잠시 뒤 줄어듭니다. 제한시간은 없으므로 플레이어가 5.0을 채울 때까지 계속합니다. */
   const holdValue=dom.miniContent.querySelector("#heatHoldValue");if(holdValue)holdValue.textContent=data.inZone.toFixed(1);
   const holdFill=dom.miniContent.querySelector("#heatHoldFill");if(holdFill)holdFill.style.width=`${data.inZone/config.targetHold*100}%`;
+  /* 점수 카드 맨 아래 '적정 온도 이탈 N.N / 1.0초'. 구간 안에서는 0.0 이고,
+     벗어나 있는 동안 차오르다 다 차면 그때 −10 입니다(아래 update 참고). */
+  updateMiniScoreTime("heatOutTime",data.outsideTime,HEAT_FEEL_CONFIG.warningDelay);
 }
 
 /* 끝날 때 손을 떼고 조작 표시를 원래대로 돌립니다. */
