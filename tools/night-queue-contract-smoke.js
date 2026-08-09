@@ -13,7 +13,7 @@ const bootstrap=`
 var state={};
 const window={MoonlightTableSave:null,QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={getElementById(){return null;}};
-const CUSTOMER_SEATS=[240,520,800,1080];
+const CUSTOMER_SEATS=[240,520,800,1080,1360];
 const CUSTOMER_VARIANT_COUNT=6;
 let nextOrderId=1;
 const dom={};
@@ -64,6 +64,13 @@ const resetNight=day=>{
 
 let played=[];
 playStoryScenes=ids=>{played.push([...ids]);return true;};
+
+const originalRandom=Math.random;
+Math.random=()=>.99;
+assert(randomFreeCustomerSlot(new Set())===4
+  &&randomFreeCustomerSlot(new Set([4]))===3,
+  "손님은 다섯 좌석 전체의 빈자리 중 무작위 좌석을 골라야 합니다.");
+Math.random=originalRandom;
 
 // Day 1: 특별 손님은 일반 손님 여섯 명을 모두 마친 뒤에만 입장합니다.
 resetNight(1);

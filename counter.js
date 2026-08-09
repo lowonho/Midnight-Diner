@@ -171,7 +171,7 @@ const COUNTER_LAYOUT = {
     { id:"chair_2", x:924,  flipX:true  },
     { id:"chair_3", x:1122, flipX:false },
     { id:"chair_4", x:1320, flipX:true  },
-    { id:"chair_5", x:1518, flipX:false }   // 빈자리
+    { id:"chair_5", x:1518, flipX:false }
   ],
 
   /* 수저통 3개 — 같은 에셋 재사용. 영업 중에만 나옵니다.

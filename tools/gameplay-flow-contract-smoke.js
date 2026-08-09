@@ -147,7 +147,10 @@ assert(night.includes("function ordersInArrivalOrder()")
   &&!index.includes("손님 선택"),
   "손님은 클릭·숫자 선택 없이 실제 도착 순서대로만 처리되어야 합니다.");
 assert(customers.includes("const CUSTOMER_SERVICE_Y = toLogic(CHEF_WALK_AREA.bottomY);")
+  &&customers.includes("const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.map(")
   &&customers.includes("const CUSTOMER_SERVE_REACH = 12;")
+  &&night.includes("function randomFreeCustomerSlot(")
+  &&night.includes("const freeSlot=randomFreeCustomerSlot(occupied);")
   &&game.includes("<=CUSTOMER_SERVE_REACH")
   &&!game.includes("autoDelivery();")
   &&!night.includes("function autoDelivery()"),

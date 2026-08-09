@@ -36,6 +36,15 @@ function orderableDishes(){
 }
 function hasOrderableStock(){return orderableDishes().length>0;}
 
+function randomFreeCustomerSlot(occupied=new Set()){
+  const freeSlots=CUSTOMER_SEATS
+    .map((_,slot)=>slot)
+    .filter(slot=>!occupied.has(slot));
+  return freeSlots.length
+    ?freeSlots[Math.floor(Math.random()*freeSlots.length)]
+    :-1;
+}
+
 /* 일반 손님 주문은 선택 메뉴를 무작위로 계속 뽑지 않고 한 바퀴씩 순회합니다.
    한 바퀴 안에서는 모든 메뉴가 정확히 한 번씩 나오며, 바퀴가 바뀔 때마다
    날짜와 순번으로 다시 섞습니다. 누적 일반 손님 번호로 계산하므로 저장 후
@@ -197,7 +206,7 @@ function ensureNightOrders(){
     const occupied=new Set(state.orders.map(order=>order.slot));
     state.departures.forEach(item=>occupied.add(item.slot));
     state.respawns.forEach(item=>occupied.add(item.slot));
-    const freeSlot=CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
+    const freeSlot=randomFreeCustomerSlot(occupied);
     if(freeSlot<0)break;
     if(!spawnOrder(freeSlot,{generalOnly:true}))break;
     waiting=state.orders.length+state.respawns.length;
@@ -262,7 +271,7 @@ function tryEndNight(reason="complete"){
 
   if(pendingPlans.length){
     const occupied=new Set(state.orders.map(order=>order.slot));
-    const freeSlot=CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
+    const freeSlot=randomFreeCustomerSlot(occupied);
     if(freeSlot>=0){
       state.respawns=state.respawns.filter(respawn=>respawn.slot!==freeSlot);
       processOrderRespawn({slot:freeSlot,forceStory:true});
@@ -359,7 +368,7 @@ function spawnOrder(slot,options={}) {
       ...state.respawns.map(item=>item.slot)
     ]);
     if(transitioning.has(slot)){
-      slot=CUSTOMER_SEATS.findIndex((_,candidate)=>!transitioning.has(candidate));
+      slot=randomFreeCustomerSlot(transitioning);
       if(slot<0)return false;
     }
   }else if(state.departures.some(item=>item.slot===slot)){

@@ -10,7 +10,7 @@
               → night.js / story.js
 
    [좌표계] 논리 좌표 1280x720. 프레임 캔버스(draw-utils.js)에 그립니다.
-   [의자와의 관계] 좌석 x 는 counter.js 의 의자 5개 중 앞 4개의 중심입니다.
+   [의자와의 관계] 좌석 x 는 counter.js 의 의자 5개 중심입니다.
    의자를 옮기면 여기 CUSTOMER_SEATS 도 같이 옮겨야 합니다.
    ============================================================ */
 
@@ -18,15 +18,13 @@
 /* ------------------------------------------------------------
    1. 좌석
    ------------------------------------------------------------
-   counter.js COUNTER_LAYOUT.chairs 의 VIEW x(726/924/1122/1320) 에
+   counter.js COUNTER_LAYOUT.chairs 의 VIEW x(726/924/1122/1320/1518) 에
    의자 폭 88 의 절반을 더한 중심을 논리 좌표로 옮긴 값입니다.
-   5번 의자(논리 1041)는 빈자리로 남겨 둡니다.
    ------------------------------------------------------------ */
 
 // counter.js 가 계산해 준 의자 중심(VIEW)을 논리 좌표로 옮깁니다.
 // 의자를 옮기거나 COUNTER_FIT.scale 을 바꾸면 손님도 자동으로 따라옵니다.
-// 앞 4자리만 쓰고 5번 의자는 빈자리로 남겨 둡니다.
-const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.slice(0,4).map(x=>Math.round(toLogic(x)));
+const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.map(x=>Math.round(toLogic(x)));
 
 // 요리사가 카운터를 사이에 두고 손님 쪽으로 최대한 붙어야 서빙할 수 있습니다.
 // FRONT_STATIONS.counter.y 는 조리도구 쪽 뒷선이라 서빙 기준으로 쓰면 방향이
