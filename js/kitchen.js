@@ -64,8 +64,20 @@ const STATION_SPEC = {
   //   소품 높이를 바꾸면 이 값도 같이 봐야 합니다.
   fridge:     {label:"냉장고",    standY:640, facing:"up", labelDy:-52},
   sink:       {label:"싱크대",    standY:640, facing:"up", hideLabel:true},
-  board:      {label:"도마",      standY:640, facing:"up"},
-  pot:        {label:"냄비",      standY:640, facing:"up"},
+  /* labelDx = 이름표를 오른쪽으로 옮길 거리(VIEW — labelDy 와 같은 단위).
+     기본 자리는 몸통 한가운데인데, 조각 안에서 그림이 오른쪽으로 치우친
+     둘만 눈에 보이는 중심에 맞춥니다. E 키캡과 안내 발광도 같은 값을
+     따라갑니다. (stationLabelCenterX · game.js promptXFor)
+
+     원화에서 잰 값입니다. 조각 폭 대비 비율로 환산해 두었으므로
+     STATION_ROW.width 를 바꿔도 다시 잴 필요는 없습니다.
+       도마  칼끝이 조각 x 141.5 / 245 → 논리 +9.2 → VIEW 14
+             (칼이 오른쪽 위를 향해 누워 있어서, 판이 몸통 한가운데면
+              이름표가 칼이 아니라 빈 도마 왼쪽을 가리킵니다)
+       냄비  금속 냄비 실루엣이 조각 x 43~169, 한가운데 106 / 197
+             → 논리 +3.6 → VIEW 5 */
+  board:      {label:"도마",      standY:640, facing:"up", labelDx:14},
+  pot:        {label:"냄비",      standY:640, facing:"up", labelDx:5},
   pan:        {label:"후라이팬",  standY:640, facing:"up"},
   grill:      {label:"직화구이",  standY:640, facing:"up"},
   fryer:      {label:"튀김기",    standY:640, facing:"up"},
@@ -247,6 +259,7 @@ const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])
     ix:spec.stand?toLogic(spec.stand[0]):body.x+body.w/2,   // 줄 안이면 몸통 가로 중심
     iy:toLogic(spec.stand?spec.stand[1]:spec.standY),
     labelDy:toLogic(spec.labelDy||0),
+    labelDx:toLogic(spec.labelDx||0),
     hideLabel:!!spec.hideLabel
   }];
 }));
@@ -550,6 +563,15 @@ function stationLabelTop(s){
   return s.y - STATION_LABEL_RISE + (s.labelDy||0);
 }
 
+/* 이름표 판의 가로 중심. 기본은 몸통 한가운데이고 labelDx 로 비켜 놓습니다.
+   E 키캡(game.js)과 안내 발광(fx.js)도 이 함수를 써야 셋이 한 줄로 섭니다.
+
+   ⚠️ 요리사가 서는 자리(ix)와는 다릅니다. ix 를 옮기면 판정 범위와 걸음이
+      같이 밀려서, 집기 앞에 섰는데 옆 집기가 잡히는 일이 생깁니다. */
+function stationLabelCenterX(s){
+  return s.x + s.w/2 + (s.labelDx||0);
+}
+
 /* 뒤쪽 집기의 E 키캡을 앉힐 y (논리 좌표).
 
    [왜 이름표 위인가] 원래는 집기 아랫변보다 60 아래(= y+h+60)였습니다.
@@ -594,7 +616,7 @@ function labelStation(s,near){
      집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰
      집기에서 명판만 길쭉해지기 때문입니다. */
   ctx.font=STATION_LABEL_FONT;
-  const h=STATION_LABEL_H,cx=s.x+s.w/2;
+  const h=STATION_LABEL_H,cx=stationLabelCenterX(s);
   const w=stationLabelPlateWidth(s.label);
   // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
   // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.

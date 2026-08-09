@@ -22,7 +22,32 @@
 <body>
 <div class="game-app phase-prep" id="gameApp">
   <section class="game-frame">
-    <!-- index.html 의 #rightHud 를 그대로 옮긴 것입니다. 구조가 달라지면 여기도 맞추세요. -->
+    <!-- 아래 세 판은 index.html 에서 그대로 옮긴 것입니다. 구조가 달라지면 여기도 맞추세요.
+         상단·좌측 판은 세로 배치(윗변 사이가 얼마나 뜨는지)를 보려고 같이 세웁니다. -->
+    <header id="topHud" class="top-hud">
+      <div class="small-logo wood-panel">
+        <i class="hud-logo" role="img" aria-label="달빛식탁"></i>
+        <small id="phaseName">1일차 낮 재료 준비</small>
+      </div>
+      <div id="menuCards" class="menu-cards" aria-label="메뉴 선택"></div>
+      <div class="hud-stats">
+        <div class="stat-day"><span>DAY</span><strong>1</strong></div>
+        <div class="stat-time"><span>방문 예정 손님</span><strong>6명</strong></div>
+        <div class="stat-satisfaction"><span>오늘의 특별 손님</span><strong>???</strong></div>
+        <button class="square-button" type="button" aria-label="영업일지 열기">📖</button>
+        <button class="square-button" type="button" aria-label="설정 열기">⚙</button>
+      </div>
+    </header>
+
+    <aside id="leftHud" class="left-hud wood-panel">
+      <div class="panel-heading">
+        <strong id="leftTitle">준비 목록</strong>
+        <span class="badge">준비</span>
+      </div>
+      <div id="inventoryList" class="inventory-list"></div>
+      <button class="gold-button" type="button">영업 시작</button>
+    </aside>
+
     <aside id="rightHud" class="right-hud wood-panel">
       <div class="panel-heading">
         <strong id="objectiveTitle">현재 목표</strong>
@@ -77,6 +102,33 @@ const CASES = {
     </div>`
 };
 
+/* 밤(js/night.js updateNightObjective). 낮과 달리 「영업 기록」 칸이 같이 뜨므로
+   phase 를 바꿔서 재야 합니다 — .phase-prep 이 그 칸을 숨기고 있습니다. */
+const NIGHT_CASES = {
+  "(옛) 밤 주문": `
+    <div><strong>일반 주문 2 / 6건 · 시간제한 없음</strong></div>
+    <div><strong>3번 손님 · 김치전</strong></div>
+    <div><strong>프라이팬</strong>에서 조리하세요.</div>
+    <div class="recipe-steps"><div class="recipe-step current"><span>1</span><span>프라이팬</span></div></div>`,
+  "밤 · 조리": `
+    <div class="prep-summary">
+      <strong>요리</strong>
+      <div>김치전<small class="special-order"> · 특별 조리</small></div>
+      <strong>조리대</strong>
+      <div>프라이팬</div>
+    </div>`,
+  "밤 · 운반": `
+    <div class="prep-summary">
+      <strong>김치전 완성</strong>
+      <div>주문한 손님 앞으로 가져가세요.</div>
+    </div>`,
+  "밤 · 대기": `
+    <div class="prep-summary">
+      <strong>대기</strong>
+      <div>다음 손님을 기다리고 있습니다.</div>
+    </div>`
+};
+
 function measure(){
   const panel=document.getElementById("rightHud"),body=document.getElementById("objectiveBody");
   /* ⚠️ 글꼴이 CDN 이라 인터넷이 없으면 예비 글꼴(맑은 고딕)로 잽니다.
@@ -85,18 +137,67 @@ function measure(){
      패널이 늘 내용 크기로 서게 두세요. */
   const fontsReady=["12px NeoDunggeunmoPro","12px NeoDunggeunGothicPro"]
     .map(f=>`${f.split(" ")[1]}=${document.fonts.check(f)?"O":"X(예비 글꼴)"}`).join(" · ");
-  const lines=[`글꼴 ${fontsReady}`,`min-height 규칙: ${getComputedStyle(panel).minHeight} (프레임 1080 기준)`];
-  Object.entries(CASES).forEach(([name,html])=>{
-    body.innerHTML=html;
-    const h=panel.getBoundingClientRect().height;
-    // 실제 글이 차지한 높이(min-height 를 잠시 풀고 잽니다)
-    const saved=body.style.minHeight;body.style.minHeight="0";
-    const textH=body.getBoundingClientRect().height;
-    body.style.minHeight=saved;
-    lines.push(`${name.padEnd(14)} 패널 ${h.toFixed(1)}px = ${(h/1080*100).toFixed(2)}%  · 글 높이 ${textH.toFixed(1)}px`);
+  const app=document.getElementById("gameApp");
+  /* ⚠️ % 의 기준은 1080 이 아니라 프레임 **안쪽** 높이입니다.
+     .game-frame 에 테두리가 있어서 1080 - 2*2 = 1076 입니다. 1080 으로 나누면
+     CSS 에 적을 값이 미묘하게 어긋납니다. */
+  const inner=document.querySelector(".game-frame").clientHeight;
+  const lines=[`글꼴 ${fontsReady}`,`프레임 안쪽 높이 ${inner}px (테두리 뺀 값 — % 의 기준)`];
+
+  function run(phaseClass,cases,label=phaseClass){
+    app.className=`game-app ${phaseClass}`;
+    lines.push("",`[${label}] min-height 규칙 ${getComputedStyle(panel).minHeight}`);
+    Object.entries(cases).forEach(([name,html])=>{
+      body.innerHTML=html;
+      const h=panel.getBoundingClientRect().height;
+      // 규칙을 잠시 풀고 재면 "내용만의 키"입니다. 이 둘이 벌어진 만큼이
+      // 판 아래에 남는 빈 자리입니다.
+      const savedPanel=panel.style.minHeight;panel.style.minHeight="0";
+      const natural=panel.getBoundingClientRect().height;
+      panel.style.minHeight=savedPanel;
+      const saved=body.style.minHeight;body.style.minHeight="0";
+      const textH=body.getBoundingClientRect().height;
+      body.style.minHeight=saved;
+      lines.push(`  ${name.padEnd(14)} 판 ${h.toFixed(1)} = ${(h/inner*100).toFixed(2)}%`
+        +`  · 내용만 ${natural.toFixed(1)} = ${(natural/inner*100).toFixed(2)}%`
+        +`  · 빈 자리 ${(h-natural).toFixed(1)}  · 글 ${textH.toFixed(1)}`);
+    });
+  }
+  /* 세로 배치 — 상단 판 아랫변과 좌우 판 윗변이 얼마나 떨어져 있는지.
+     좌우 판은 같은 규칙(.left-hud, .right-hud top)을 쓰므로 어깨가 늘 나란합니다. */
+  const frameTop=document.querySelector(".game-frame").getBoundingClientRect().top;
+  const pct=v=>`${(v/inner*100).toFixed(2)}%`;
+  function edges(id){
+    const r=document.getElementById(id).getBoundingClientRect();
+    return {top:r.top-frameTop,bottom:r.bottom-frameTop};
+  }
+  [["phase-prep",CASES["낮 · 다음 작업"]],["phase-open",NIGHT_CASES["밤 · 조리"]]].forEach(([phaseClass,html])=>{
+    app.className=`game-app ${phaseClass}`;
+    body.innerHTML=html;   // 판 아랫변은 담긴 글에 따라 달라지므로 대표 경우로 채웁니다
+    const top=edges("topHud"),left=edges("leftHud"),right=edges("rightHud");
+    lines.push("",`[${phaseClass}] 세로 배치`,
+      `  상단 판      ${pct(top.top)} ~ ${pct(top.bottom)}`,
+      `  사이 여백    ${pct(left.top-top.bottom)}  (${(left.top-top.bottom).toFixed(1)}px)`,
+      `  좌측 판      ${pct(left.top)} ~ ${pct(left.bottom)}`,
+      `  우측 판      ${pct(right.top)} ~ ${pct(right.bottom)}`,
+      `  어깨 어긋남  ${(left.top-right.top).toFixed(1)}px  (0 이어야 합니다)`);
   });
-  // 화면에는 대표 경우(낮 · 다음 작업)를 남겨 둡니다 — 눈으로 볼 때와 캡처용.
-  body.innerHTML=CASES["낮 · 다음 작업"];
+
+  run("phase-prep",CASES);
+  run("phase-open",NIGHT_CASES);
+
+  /* 「영업 기록」칸은 높이를 못박아 두었으므로(.relationship-list height) 기록이
+     몇이든 판 높이가 같아야 합니다. 아래 두 묶음의 값이 같은지로 그걸 확인합니다. */
+  document.getElementById("relationshipList").innerHTML=
+    ["비 오는 아이","등불 손님","쌍둥이 그림자","까마귀 배달부","별 짐승","바닷물 손님","학교 인형","얼굴 없는 다은"]
+      .map(name=>`<div class="relationship-row"><strong>${name}</strong><span>달빛 조각 회수</span></div>`).join("");
+  run("phase-open",NIGHT_CASES,"phase-open · 영업 기록 8명(최대)");
+
+  /* 화면에는 눈으로 확인할 일이 가장 많은 경우를 남겨 둡니다 —
+     밤 · 조리 + 기록 없음(첫날 밤). 판 아래가 비는지 여기서 바로 보입니다. */
+  document.getElementById("relationshipList").innerHTML=
+    '<span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span>';
+  body.innerHTML=NIGHT_CASES["밤 · 조리"];
   document.getElementById("out").textContent=lines.join("\n");
 }
 addEventListener("load",measure);

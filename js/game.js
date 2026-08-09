@@ -987,6 +987,13 @@ function updateUI(force=false) {
 function promptYFor(station){
   return station.id==="griddle" ? station.iy-58 : stationPromptY(station);
 }
+/* E 키캡을 앉힐 x. 기본은 요리사가 서는 자리(ix)이고, 이름표를 옆으로
+   비켜 놓은 집기(kitchen.js labelDx)에서는 키캡도 같이 비킵니다 —
+   둘이 위아래 한 줄로 읽혀야 하는데 한쪽만 옮기면 어긋나 보입니다.
+   ix 자체는 건드리지 않습니다. 그건 판정과 걸음이 쓰는 값입니다. */
+function promptXFor(station){
+  return station.ix + (station.labelDx||0);
+}
 function updatePrompt(){
   const prompt=dom.stationPrompt;
   const hide=(mobileAction=false)=>{
@@ -1003,7 +1010,7 @@ function updatePrompt(){
     const station=nearestStoryCookStation(required);
     if(station?.id===required){
       text=UI_TEXT.prompt.station(station.label);
-      x=station.ix;y=promptYFor(station);
+      x=promptXFor(station);y=promptYFor(station);
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
@@ -1012,7 +1019,7 @@ function updatePrompt(){
     if(trash?.id==="trash"&&dish){
       text=UI_TEXT.prompt.discard(dish.name);
       visibleText=UI_TEXT.prompt.discardVisible;
-      x=trash.ix;y=promptYFor(trash);
+      x=promptXFor(trash);y=promptYFor(trash);
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
@@ -1022,7 +1029,7 @@ function updatePrompt(){
       const station=nearestStation("fridge");
       if(station?.id==="fridge"){
         text=UI_TEXT.prompt.station(station.label);
-        x=station.ix;y=promptYFor(station);
+        x=promptXFor(station);y=promptYFor(station);
       }
     }else if(state.phase==="day"){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
@@ -1034,7 +1041,7 @@ function updatePrompt(){
       const station=nearestStation(required);
       if(station){
       if(station.id===required)text=UI_TEXT.prompt.station(station.label);
-      if(text){x=station.ix;y=promptYFor(station);}
+      if(text){x=promptXFor(station);y=promptYFor(station);}
       }
     }
   }

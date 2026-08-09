@@ -541,9 +541,13 @@
   transform: translateY(-50%);
   cursor: pointer;
 }
-.journal-close:hover,
+.journal-close:hover:not(:disabled),
 .journal-close:focus-visible { filter: brightness(1.12); }
 .journal-close:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
+/* 프롤로그처럼 끝까지 읽어야 덮을 수 있는 일지에서는 닫기 버튼을 딤드로
+   잠급니다. 흐림 정도는 좌우 넘김 화살표(.journal-page-arrow:disabled)와
+   같은 값이라 "지금은 못 누른다"가 한눈에 같은 규칙으로 읽힙니다. */
+.journal-close:disabled { opacity: .28; filter: grayscale(.6); cursor: default; }
 /* 제목과 같은 판 안에 들어가는 안내문입니다. */
 .journal-description {
   margin: 0;

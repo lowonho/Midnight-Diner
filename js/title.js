@@ -18,6 +18,11 @@ const JOURNAL_FOCUSABLE_SELECTOR=[
 // 인게임 일지는 다시 열었을 때 마지막으로 보던 장을 그대로 펼칩니다.
 // (로비 컬렉션은 언제나 첫 장부터입니다.)
 let journalLastGameplayPageId="";
+/* 프롤로그처럼 "필독"으로 여는 일지입니다. 정해진 장을 한 번씩 다 펼치기
+   전에는 닫기 버튼이 딤드로 잠기고, ESC·바깥 클릭도 듣지 않습니다.
+   책을 닫는 순간 잠금은 풀리고 다음부터 여는 일지는 평소대로 닫힙니다. */
+let journalReadAllGate=false;
+const journalReadPageIds=new Set();
 
 function initializeTitleScreen(){
   dom.startButton.disabled=true;
@@ -459,8 +464,11 @@ function renderJournalPage({acknowledge=false}={}){
     elements.previous.disabled=true;elements.next.disabled=true;
     renderJournalRelic(elements,null);
     renderJournalTabs(elements);
+    updateJournalCloseLock();
     return;
   }
+  // 지금 펼친 장은 읽은 것으로 칩니다(필독으로 열었을 때만 셉니다).
+  if(journalReadAllGate)journalReadPageIds.add(page.id);
   const isGameplayRecord=journalMode==="gameplay";
   elements.page.classList.toggle("is-locked",!page.unlocked);
   elements.page.classList.toggle("is-ending",page.kind==="ending");
@@ -510,6 +518,7 @@ function renderJournalPage({acknowledge=false}={}){
   elements.next.disabled=journalPageIndex>=journalPages.length-1;
   if(isGameplayRecord)journalLastGameplayPageId=page.id;
   renderJournalTabs(elements);
+  updateJournalCloseLock();
   if(acknowledge&&journalMode==="collection"&&page.unlocked&&page.notificationPending){
     page.notificationPending=false;
     window.MoonlightTableSave?.acknowledgeUnlock?.(page.kind,page.id);
@@ -526,6 +535,49 @@ function selectJournalPage(index,acknowledge=false){
   return true;
 }
 
+/* ── 필독 잠금 ────────────────────────────────────────────────
+   프롤로그에서 처음 펼치는 영업일지는 규칙을 다 읽기 전에 덮을 수 없습니다.
+   필독으로 잡는 범위입니다. 지금은 펼친 일지의 모든 장입니다.
+   주의사항 구역(주의사항 장 + 다음 안내 장)만 필독으로 좁히려면 이 한 줄을
+   page=>page.pageType==="rules"||page.pageType==="guide" 로 바꾸면 됩니다. */
+function journalPageNeedsReading(page){return !!page;}
+
+function journalUnreadPageCount(){
+  if(!journalReadAllGate)return 0;
+  return journalPages.filter(page=>journalPageNeedsReading(page)&&!journalReadPageIds.has(page.id)).length;
+}
+
+function journalCloseLocked(){return journalReadAllGate&&journalUnreadPageCount()>0;}
+
+// 잠긴 동안에는 왜 못 닫는지 제목 옆 안내문이 대신 알려 줍니다.
+function journalDescriptionText(){
+  if(journalReadAllGate){
+    const remaining=journalUnreadPageCount();
+    return remaining>0
+      ?`아직 펼쳐 보지 않은 장이 ${remaining}장 남았습니다. 끝까지 읽어야 일지를 덮을 수 있습니다.`
+      :"모든 장을 읽었습니다. 이제 영업일지를 덮을 수 있습니다.";
+  }
+  return journalMode==="gameplay"
+    ?"첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
+    :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
+}
+
+// 닫기 버튼은 남은 장이 있는 동안 딤드로 잠깁니다. 눌리지 않으므로 클릭으로
+// 닫힐 일이 없고, ESC·바깥 클릭은 closeJournal 쪽에서 함께 막습니다.
+function updateJournalCloseLock(){
+  const elements=journalElements();
+  const remaining=journalUnreadPageCount();
+  const locked=journalReadAllGate&&remaining>0;
+  if(elements.closeButton){
+    // 딤드 모양은 CSS 의 .journal-close:disabled 하나가 맡습니다.
+    elements.closeButton.disabled=locked;
+    elements.closeButton.title=locked
+      ?`아직 펼쳐 보지 않은 장이 ${remaining}장 남았습니다.`
+      :"영업일지 닫기";
+  }
+  if(elements.description)elements.description.textContent=journalDescriptionText();
+}
+
 function refreshJournalUI({restoreLastPage=false}={}){
   const elements=journalElements();
   journalPages=journalMode==="gameplay"?gameplayJournalPages():collectionJournalPages();
@@ -535,9 +587,7 @@ function refreshJournalUI({restoreLastPage=false}={}){
   }
   journalPageIndex=Math.max(0,Math.min(journalPageIndex,Math.max(0,journalPages.length-1)));
   elements.modeLabel.textContent=journalMode==="gameplay"?"CURRENT SAVE":"PERMANENT COLLECTION";
-  elements.description.textContent=journalMode==="gameplay"
-    ?"첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."
-    :"특별 손님 8장과 엔딩 5장은 새로운 플레이에서도 남습니다.";
+  elements.description.textContent=journalDescriptionText();
   renderJournalPage();
 }
 
@@ -575,12 +625,15 @@ function resetGameplayJournalView(){
   journalPageIndex=0;
 }
 
-function openJournal(mode="collection"){
+function openJournal(mode="collection",{requireReadAll=false}={}){
   if(journalOverlayIsOpen())return false;
   journalMode=mode==="gameplay"?"gameplay":"collection";
   journalPageIndex=0;
+  // 필독으로 여는 일지는 펼칠 때마다 읽은 장 표시를 처음부터 다시 셉니다.
+  journalReadAllGate=!!requireReadAll&&journalMode==="gameplay";
+  journalReadPageIds.clear();
   const elements=journalElements();
-  if(!elements.overlay)return false;
+  if(!elements.overlay){journalReadAllGate=false;return false;}
   journalReturnFocus=typeof document.activeElement?.focus==="function"
     ?document.activeElement
     :elements.openButton;
@@ -591,6 +644,8 @@ function openJournal(mode="collection"){
   }
   if(typeof resetPlayerKeyboardInput==="function")resetPlayerKeyboardInput();
   else window.clearPhysicalMoveKeys?.();
+  // 필독으로 열 때는 마지막으로 보던 장이 아니라 언제나 첫 장부터 펼칩니다.
+  if(journalReadAllGate)resetGameplayJournalView();
   refreshJournalUI({restoreLastPage:journalMode==="gameplay"});
   setJournalBackgroundInert(true);
   elements.overlay.classList.add("open");
@@ -606,10 +661,26 @@ function openGameplayJournalPage(pageId){
   journalLastGameplayPageId=String(pageId||"");
   return openJournal("gameplay");
 }
+// 프롤로그에서 처음 펼치는 영업일지입니다. 첫 장부터 마지막 장까지 한 번씩
+// 펼쳐 보기 전에는 닫기 버튼이 딤드로 잠깁니다(story-data.js SCN-P04).
+// 다만 2회차부터는 이미 다 읽은 규칙이라 잠그지 않고 언제든 덮게 둡니다.
+function journalReadAllRequiredNow(){
+  const loop=Math.floor(Number(typeof state!=="undefined"?state?.story?.loop:1)||1);
+  return loop<=1;
+}
+function openGameplayJournalReadAll(){
+  return openJournal("gameplay",{requireReadAll:journalReadAllRequiredNow()});
+}
 
 function closeJournal(){
   const elements=journalElements();
   if(!elements.overlay?.classList.contains("open"))return false;
+  /* 필독으로 연 일지는 남은 장이 있으면 여기서 막힙니다. 닫기 버튼은 이미
+     딤드로 잠겨 눌리지 않고, ESC·바깥 클릭이 이 길로 들어옵니다. */
+  if(journalCloseLocked()){updateJournalCloseLock();return false;}
+  journalReadAllGate=false;
+  journalReadPageIds.clear();
+  updateJournalCloseLock();
   const resumeStory=journalMode==="gameplay"
     &&typeof resumeStoryAfterJournal==="function";
   elements.overlay.classList.remove("open");
@@ -687,6 +758,7 @@ window.openJournal=openJournal;
 window.openTitleJournal=openTitleJournal;
 window.openGameplayJournal=openGameplayJournal;
 window.openGameplayJournalPage=openGameplayJournalPage;
+window.openGameplayJournalReadAll=openGameplayJournalReadAll;
 
 function savePhaseLabel(phase){
   return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 마감";

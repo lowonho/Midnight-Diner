@@ -118,7 +118,6 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
                 말풍선 묶음을 통째로 올리고 내리는 값이 이것 하나입니다.
                 CUSTOMER_HUD 의 오프셋들은 tailY 와의 차이로만 화면에 나타나서
                 (bubbleY 등을 같이 옮기면 서로 상쇄됩니다) 높이는 여기서 잡습니다.
-                단, 강조 원은 머리에 남아야 하므로 CUSTOMER_HUD.ringY 로 되돌립니다
 
    headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
    젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
@@ -391,6 +390,23 @@ function customerEnterOffset(progress,setting){
 
 const CUSTOMER_DEPART = { fade:1.2 };
 
+/* 지금 고른 주문의 손님 표시 — 주문 말풍선이 부풀었다 줄었다 합니다.
+   ------------------------------------------------------------
+   예전에는 머리 둘레에 노란 원을 그렸습니다. 손으로 그린 손님 위에
+   재질 없는 벡터 원 하나가 얹혀서 게임 화면이 아니라 표시선처럼
+   보였고, 머리보다 원이 커서 무엇을 감싼 건지도 애매했습니다.
+   지금은 화면에 이미 있는 말풍선을 크게 했다 작게 합니다. 새로 얹는
+   도형이 없고, 커지는 것이 곧 "이 주문" 입니다.
+
+   [축이 꼬리 끝인 이유] 말풍선 한가운데를 축으로 삼으면 머리를 가리키는
+   꼬리 끝이 같이 오르내려서, 어느 손님 것인지가 흔들립니다. 꼬리 끝을
+   붙박아 두면 가리키는 곳은 그대로고 풍선만 부풉니다.
+
+   [max 를 더 못 올립니다] 특별 손님 이름표가 말풍선 바로 위(labelY -152)에
+   붙습니다. 꼬리 끝(-80)에서 풍선 윗변(-145)까지가 65 라, 1.06 이면
+   윗변이 -148.9 로 이름표 밑선까지 3px 만 남습니다. */
+const CUSTOMER_SELECT_PULSE = { min:.96, max:1.06, period:1.1 };
+
 // 손님 머리 위에 뜨는 것들의 y 오프셋(손님 기준 y 로부터).
 const CUSTOMER_HUD = {
   bubbleY:-145, bubbleW:76, bubbleH:55,   // 주문 아이콘 패널
@@ -398,20 +414,19 @@ const CUSTOMER_HUD = {
   // iconY 는 패널 세로 중앙(bubbleY + bubbleH/2).
   iconY:-117, iconW:66, iconH:44,
   tailY:-90,                              // 패널 꼬리
-  // 강조 원만 머리를 감싸야 해서 hudGap 을 되돌려 놓은 값입니다.
-  // 여기 오프셋은 전부 hy(= 머리끝 - hudGap) 기준이라 hudGap 을 키우면
-  // 말풍선과 함께 이 원도 같이 떠오릅니다. hudGap 을 바꿀 때는 같은 값만큼
-  // 반대로 옮겨 주세요. (지금은 hudGap 17 - 기본 7 = 10 만큼 되돌림)
-  ringY:-42, ringR:46,                    // 선택된 손님 강조 원
-  labelY:-152,                            // 번호 / 이름 — 주문 패널 위
+  /* 특별 손님 이름 — 대사 말풍선 아랫변(-175)과 주문 패널 윗변(-145) 사이입니다.
+     말풍선이 떠 있든 없든 자리가 바뀌지 않습니다. 말풍선이 뜰 때마다 이름이
+     위로 뛰어오르면 같은 손님인데 이름이 옮겨 다니는 것처럼 보입니다. */
+  labelY:-152,
   /* 주문 패널이 없는 손님(메뉴를 고민 중이거나 구경만 하는 특별 손님)은
      패널 자리가 통째로 비므로 이름을 머리 바로 위까지 내립니다.
      머리끝은 tailY+hudGap = -73 이라, 여기서 9px 위가 글자 밑선입니다. */
   labelHeadY:-82,
-  // 대사 말풍선이 떠 있는 동안에는 이름이 말풍선 윗변 위로 올라갑니다.
-  labelSpeechGap:6,
-  speechY:-175,                           // 대사 말풍선
-  departSpeechY:-135
+  speechY:-175,                           // 대사 말풍선 아랫변 — 주문 패널 위
+  /* 주문 패널이 없으면 말풍선도 그만큼 내려옵니다. 패널이 빠진 자리를 그대로
+     비워 두면 말풍선만 머리에서 한참 떠 있어서, 누가 하는 말인지 흐려집니다.
+     떠나는 손님(§1-4)도 패널이 없으므로 같은 높이를 씁니다. */
+  noPanelSpeechY:-135
 };
 
 const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17, pad:22 };
@@ -474,11 +489,16 @@ function drawCustomers(){
     const visitorOnly=storyEntrance&&order.guestOrder===false;
     const selected=!visitorOnly&&state.selectedOrderId===order.id;
     const H=CUSTOMER_HUD;
-    /* 이름을 말풍선 위에 얹어야 해서 말풍선 자리를 먼저 잽니다.
-       말풍선이 없으면 null 입니다. */
-    const speech=order.bubble&&order.bubbleTime>0&&progress>.85
-      ?customerSpeechBox(order.bubble,x,hy+H.speechY):null;
     if(!visitorOnly){
+      ctx.save();
+      /* 고른 주문이면 꼬리 끝을 축으로 풍선 전체를 부풀립니다.
+         꼬리까지 이 안에서 그려야 풍선과 한 몸으로 움직입니다. */
+      if(selected){
+        const P=CUSTOMER_SELECT_PULSE;
+        const scale=P.min+(P.max-P.min)*(.5+.5*Math.sin(t*Math.PI*2/P.period));
+        const pivotY=hy+H.tailY+10;
+        ctx.translate(x,pivotY);ctx.scale(scale,scale);ctx.translate(-x,-pivotY);
+      }
       ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
       roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
       ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
@@ -488,31 +508,25 @@ function drawCustomers(){
       drawFoodProp(order.dishId,x,hy+H.iconY,H.iconW,H.iconH);
       ctx.fillStyle="#3b2518";ctx.beginPath();
       ctx.moveTo(x-5,hy+H.tailY);ctx.lineTo(x+6,hy+H.tailY+10);ctx.lineTo(x+10,hy+H.tailY);ctx.fill();
-    }
-
-    if(selected){
-      ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
-      ctx.arc(x,hy+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
     }
     /* 머리 위 이름표는 특별 손님만 답니다. 일반 손님에게 붙던 자리 번호는
        뺐습니다 — 좌측 「현재 주문」 목록과 우측 패널이 이미 몇 번 손님인지
        적어 주고, 머리 위 숫자는 주문 패널과 겹쳐 어수선하기만 했습니다.
 
-       앉는 높이는 세 가지입니다.
-         말풍선이 떠 있으면  말풍선 바로 위 — 말풍선에 가리지 않게
-         주문 패널이 있으면  패널 바로 위 — 패널·꼬리와 겹치지 않게
-         둘 다 없으면        머리 바로 위 */
+       쌓는 순서는 주문 패널이 있든 없든 「말풍선 - 이름 - 패널(또는 머리)」로
+       같고, 패널이 없으면 묶음이 통째로 한 단 내려올 뿐입니다.
+         패널 있음   말풍선 -175 / 이름 -152 / 패널 윗변 -145
+         패널 없음   말풍선 -135 / 이름  -82 / 머리끝    -73 */
     if(order.guestId){
-      const labelY=speech?speech.top-H.labelSpeechGap
-        :visitorOnly?hy+H.labelHeadY
-        :hy+H.labelY;
       ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-      ctx.fillText(storyOrderLabel(order),x,labelY);
+      ctx.fillText(storyOrderLabel(order),x,hy+(visitorOnly?H.labelHeadY:H.labelY));
       ctx.textAlign="left";
     }
 
     ctx.restore();
-    if(speech)drawCustomerSpeech(speech,entryAlpha);
+    if(order.bubble&&order.bubbleTime>0&&progress>.85)
+      drawCustomerSpeech(order.bubble,x,hy+(visitorOnly?H.noPanelSpeechY:H.speechY),entryAlpha);
   });
 
   /* 떠나는 손님 — 자리에 앉은 채로 마저 먹다가 사라집니다. (§1-4)
@@ -522,9 +536,9 @@ function drawCustomers(){
     const alpha=clamp(Math.max(0,item.life)/CUSTOMER_DEPART.fade,0,1);
     const motion=customerMotionOf(customerArtSet(item),"eat");
     drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
-    const speech=customerSpeechBox(item.bubble,x,
-      y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY);
-    if(speech)drawCustomerSpeech(speech,alpha);
+    // 떠나는 손님은 주문 패널이 없으므로 앉아 있는 손님의 「패널 없음」 높이와 같습니다.
+    drawCustomerSpeech(item.bubble,x,
+      y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.noPanelSpeechY,alpha);
   });
 }
 
@@ -567,32 +581,26 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
   ctx.restore();
 }
 
-/* 대사 말풍선이 차지할 자리. 이름표를 말풍선 위에 얹어야 해서
-   "재기"와 "그리기"를 나눠 두었습니다. 할 말이 없으면 null 입니다.
+/* 대사 말풍선. bottomY 는 아랫변이고 상자는 위로 자랍니다 — 줄 수가 늘어도
+   가리키는 손님 쪽 끝이 움직이지 않습니다.
 
    [화면 안으로 밀지 않습니다] 예전에는 좌우 margin 안으로 clamp 했습니다.
    그래서 5번(오른쪽 끝) 자리 손님만 말풍선이 왼쪽으로 비켜서, 누가 하는
    말인지 알아보기 어려웠습니다. 우측 패널에 조금 잘리더라도 말하는 손님
    머리 한가운데에 뜨는 쪽이 낫습니다. */
-function customerSpeechBox(text,x,bottomY){
-  if(!text)return null;
-  const S=CUSTOMER_SPEECH;
-  ctx.save();ctx.font=CUSTOMER_SPEECH_FONT;
-  const lines=wrapCanvasText(text,S.maxWidth,S.maxLines);
-  const width=Math.min(S.maxW,Math.max(S.minW,...lines.map(line=>ctx.measureText(line).width+S.pad)));
-  ctx.restore();
-  const height=lines.length*S.lineH+15;
-  return { lines, width, height, left:x-width/2, top:bottomY-height };
-}
-
-function drawCustomerSpeech(box,alpha=1){
+function drawCustomerSpeech(text,x,bottomY,alpha=1){
+  if(!text)return;
   const S=CUSTOMER_SPEECH;
   ctx.save();ctx.globalAlpha=alpha;
   ctx.font=CUSTOMER_SPEECH_FONT;
+  const lines=wrapCanvasText(text,S.maxWidth,S.maxLines);
+  const width=Math.min(S.maxW,Math.max(S.minW,...lines.map(line=>ctx.measureText(line).width+S.pad)));
+  const height=lines.length*S.lineH+15;
+  const left=x-width/2,top=bottomY-height;
   ctx.fillStyle="rgba(35,20,13,.95)";ctx.strokeStyle="#d0a05b";ctx.lineWidth=2;
-  roundRect(ctx,box.left,box.top,box.width,box.height,8,true,true);
+  roundRect(ctx,left,top,width,height,8,true,true);
   ctx.fillStyle="#f8dfae";ctx.textAlign="center";
-  box.lines.forEach((line,i)=>ctx.fillText(line,box.left+box.width/2,box.top+20+i*S.lineH));
+  lines.forEach((line,i)=>ctx.fillText(line,left+width/2,top+20+i*S.lineH));
   ctx.textAlign="left";
   ctx.restore();
 }

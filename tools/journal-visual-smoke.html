@@ -165,7 +165,16 @@ if(!document.body.dataset.error){
 
 function setup(){
   initializeJournalUI();
-  openJournal(mode);
+  /* ?readAll=1  프롤로그처럼 "모든 장을 읽어야 닫히는" 일지로 엽니다.
+     ?loop=2     2회차 이후로 두고 엽니다(같은 줄이라도 잠기지 않아야 합니다).
+     ?flip=1     끝까지 넘겨 본 상태로 둡니다(잠금이 풀려야 합니다). */
+  if(params.get("readAll")==="1"){
+    state.story={loop:Math.max(1,Number(params.get("loop"))||1)};
+    openGameplayJournalReadAll();
+    if(params.get("flip")==="1"){
+      for(let index=0;index<journalPages.length;index++)selectJournalPage(index,true);
+    }
+  }else openJournal(mode);
 
   const tab=Number(params.get("tab"));
   if(Number.isFinite(tab)&&params.get("tab")!==null){
@@ -251,6 +260,15 @@ function setup(){
     document.body.dataset.progress=document.getElementById("journalPageProgress").textContent;
     document.body.dataset.title=document.getElementById("journalPageTitle").textContent;
     document.body.dataset.desc=document.getElementById("journalDescription").textContent;
+    // 닫기 버튼 잠금 상태입니다. 필독으로 연 뒤 남은 장이 있으면 "딤드"여야 하고,
+    // ESC 를 눌러도(=closeJournal) 책이 그대로 펼쳐져 있어야 합니다.
+    // ⚠️ 실제로 닫아 보는 검사라서 ?readAll=1 일 때만 돌립니다.
+    const close=document.getElementById("journalClose");
+    document.body.dataset.close=`${close.disabled?"딤드":"누를 수 있음"}`
+      +` · 투명도 ${getComputedStyle(close).opacity}`
+      +(params.get("readAll")==="1"
+        ?` · 닫기 시도 ${closeJournal()===false&&journalOverlayIsOpen()?"막힘":"닫힘"}`
+        :"");
   }
 }
 </script>
