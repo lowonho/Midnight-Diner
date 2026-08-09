@@ -475,6 +475,10 @@ registerMiniEngine("twoSideCook", {
         올리는 방식이 되면서 시간이 모자라는 판이 실제로 생겨 필요해졌습니다. */
   timeout(m){ timeoutTwoSideCook(m); },
 
+  // 고양이 발 뒤집개는 miniContent가 아니라 document.body에 붙습니다. 화면이
+  // 닫힌 뒤 다음 포인터 이동을 기다리지 않고 종료 프레임에 바로 치웁니다.
+  teardown(){ removeTwoSideSpatula(); },
+
   // ACTION 버튼(휴대용 화면의 큰 버튼)으로도 클릭 신호에 답할 수 있게 열어 둡니다.
   // 키보드는 위 noKeyboard 가 막으므로 이 길로는 마우스·터치만 들어옵니다.
   action(m) {
@@ -1670,8 +1674,8 @@ function timeoutTwoSideCook(m){
    E6 튀기기의 집게 커서(mountFryCursor)와 같은 방식이고, 기본 포인터를 숨기는
    것은 css 의 `.ts-scene.has-spatula .ts-cooktop { cursor:none }` 입니다.
 
-   [치우기] 미니게임 엔진에는 teardown 이 없습니다. 그래서 포인터가 움직일 때마다
-   화면이 아직 있는지 보고, 없으면 그때 스스로 지웁니다.
+   [치우기] 정상 종료 때는 엔진 teardown이 즉시 지웁니다. 화면이 다른 경로로
+   사라진 경우에도 포인터가 움직이면 아래 방어 코드가 남은 커서를 정리합니다.
    ============================================================ */
 
 const TWO_SIDE_SPATULA_ZONE=".ts-cooktop";   // 화구 + 팬이 있는 칸

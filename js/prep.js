@@ -91,7 +91,11 @@ function prepDishGroups(){
     const dishTasks=prepTasksForDish(dish.id);
     if(!dishTasks.length)return null;
     const task=nextPrepTaskForDish(dish.id)||dishTasks[dishTasks.length-1];
-    if(!prepTaskCompleted(task)&&task.sharedPrepKey){
+    /* 같은 재료를 함께 손질하더라도 준비물은 메뉴마다 따로 보여 줍니다.
+       예를 들어 두부김치와 김치전의 김치 썰기는 완료·점수를 공유하지만,
+       바 테이블에는 「두부김치 준비」와 「김치전 준비」가 처음부터 각각
+       있어야 플레이어가 오늘 준비할 두 메뉴를 모두 알아볼 수 있습니다. */
+    if(!prepTaskCompleted(task)&&task.sharedPrepKey&&!task.showSharedPrepPerMenu){
       if(sharedTasks.has(task.sharedPrepKey))return null;
       sharedTasks.add(task.sharedPrepKey);
     }

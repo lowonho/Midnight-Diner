@@ -12,6 +12,8 @@ const context=vm.createContext({console});
 vm.runInContext(read("js/game-data.js"),context,{filename:"js/game-data.js"});
 vm.runInContext(`${read("js/day.js")}
 globalThis.__sharedPrep={PREP_TASKS,MENU_DATA,prepTaskCompleted,prepTaskScore,prepTaskProgress,prepComplete,nextPrepTask,renderPrepChecklist,completeDayPrepTask};`,context,{filename:"js/day.js"});
+vm.runInContext(`${read("js/prep.js")}
+globalThis.__prepDishGroups=prepDishGroups;`,context,{filename:"js/prep.js"});
 
 const {
   PREP_TASKS,MENU_DATA,prepTaskCompleted,prepTaskScore,prepTaskProgress,
@@ -20,6 +22,9 @@ const {
 const sameKey=(...ids)=>ids.every(id=>PREP_TASKS[id].sharedPrepKey===PREP_TASKS[ids[0]].sharedPrepKey);
 
 assert(sameKey("cutTofuKimchi","cutPancakeKimchi"),"두부김치와 김치전의 김치 썰기는 공용이어야 합니다.");
+assert(PREP_TASKS.cutTofuKimchi.showSharedPrepPerMenu===true
+  &&PREP_TASKS.cutPancakeKimchi.showSharedPrepPerMenu===true,
+  "공용 김치 썰기의 완료는 공유하되 두 메뉴 준비물은 처음부터 따로 표시해야 합니다.");
 assert(sameKey("cutFishCake","cutTteokbokkiFishCake"),"어묵탕과 떡볶이의 어묵 썰기는 공용이어야 합니다.");
 assert(sameKey("cutSkewerGreenOnion","cutTteokbokkiGreenOnion"),"닭꼬치와 떡볶이의 대파 썰기는 공용이어야 합니다.");
 assert(!PREP_TASKS.sliceYakisobaCabbage.sharedPrepKey&&!PREP_TASKS.cutTteokbokkiCabbage.sharedPrepKey,
@@ -55,8 +60,16 @@ context.state={
   inventory:{tofu:{count:0,quality:0,prepared:false},kimchi:{count:0,quality:0,prepared:false}},
   mini:null
 };
+let visiblePrepGroups=context.__prepDishGroups();
+assert(visiblePrepGroups.map(group=>group.dish.id).join(",")==="tofu,kimchi"
+  &&visiblePrepGroups.map(group=>group.task.id).join(",")==="cutTofuKimchi,cutPancakeKimchi",
+  "공용 김치 썰기를 시작하기 전에도 두부김치와 김치전 준비물이 각각 보여야 합니다.");
 completeDayPrepTask("cutTofuKimchi",87);
 assert(prepTaskCompleted("cutPancakeKimchi"),"실제 김치 완료 처리도 두 메뉴에 공유되어야 합니다.");
+visiblePrepGroups=context.__prepDishGroups();
+assert(visiblePrepGroups.map(group=>group.dish.id).join(",")==="tofu,kimchi"
+  &&visiblePrepGroups.map(group=>group.task.id).join(",")==="fryTofuKimchi,mixKimchiBatter",
+  "공용 김치 썰기 뒤에도 두 메뉴 준비물이 함께 남아 각자의 다음 작업을 보여야 합니다.");
 completeDayPrepTask("fryTofuKimchi",91);
 completeDayPrepTask("mixKimchiBatter",93);
 assert(context.state.inventory.tofu.prepared&&context.state.inventory.tofu.quality===89,

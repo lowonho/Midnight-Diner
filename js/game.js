@@ -823,6 +823,9 @@ function finishMini(score) {
   miniSetTimeout(()=>{if(state.mini===m)completeMiniContext(m,score);},650);
 }
 function completeMiniContext(m,score) {
+  // 엔진이 body에 붙인 커서·전역 리스너는 미니게임 내용(innerHTML)과 함께
+  // 사라지지 않습니다. 오버레이를 닫기 직전에 엔진이 직접 정리하게 합니다.
+  miniEngine(m)?.teardown?.(m);
   state.mini=null;dom.miniOverlay.classList.remove(UI_CLASS.overlayOpen);
   // 화면이 실제로 사라지는 곳. 굽는 소리가 여기까지 살아 있으면 낮/밤 화면으로 새어 나갑니다.
   audio.stopOwner(m);audio.stopLoops();

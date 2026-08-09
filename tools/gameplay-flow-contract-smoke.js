@@ -22,6 +22,8 @@ const miniFrame=read("js/ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
 const interactionCss=read("css/interaction.css");
 const orderPlace=read("js/engine-e8-order-place.js");
+const twoSideCook=read("js/engine-e5-two-side-cook.js");
+const miniEngineSource=read("js/mini-engine.js");
 const index=read("index.html");
 
 assert(game.includes("if(state.mini&&!settingsOpen&&!storyDialogueOpen){updateMini(dt);updateUI(false);}"),
@@ -42,6 +44,13 @@ assert(miniFrame.includes('id="miniPause"')
   &&miniFrameCss.includes("#miniPause { display: grid; }")
   &&miniFrameCss.includes("#miniClose:not([hidden]) + #miniPause"),
   "닫을 수 있는 낮 준비 미니게임을 포함해 공용 미니게임에는 항상 설정 버튼이 보여야 합니다.");
+const completeMiniContextSource=game.slice(game.indexOf("function completeMiniContext"),game.indexOf("function update(dt)"));
+assert(miniEngineSource.includes("teardown(m)")
+  &&completeMiniContextSource.includes("miniEngine(m)?.teardown?.(m);")
+  &&completeMiniContextSource.indexOf("miniEngine(m)?.teardown?.(m);")<completeMiniContextSource.indexOf("state.mini=null;dom.miniOverlay.classList.remove")
+  &&twoSideCook.includes("teardown(){ removeTwoSideSpatula(); }")
+  &&twoSideCook.includes("function removeTwoSideSpatula()"),
+  "김치전 미니게임이 닫히는 프레임에 body의 뒤집개와 전역 포인터 리스너를 즉시 정리해야 합니다.");
 assert(index.includes('id="ingredientPause"')
   &&game.includes('"ingredientPause"')
   &&game.includes('dom.ingredientPause.addEventListener("click",()=>openSettings("game"));'),
