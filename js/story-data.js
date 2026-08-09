@@ -592,7 +592,7 @@ const STORY_SCENES = {
       storyNarration("시간은 첫째 날 낮으로 돌아왔지만 다은은 반복이 일어났다는 사실을 기억한다.\n지난 일곱 밤의 구체적인 장면은 흐릿해졌지만, 확인한 기록은 영업일지에 남아 있다."),
       storyLine("protagonist", "달빛 조각은 사라졌지만 기록은 남아 있어.", { motion: "sad" }),
       storyLine("protagonist", "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.", { motion: "resolve" }),
-      storyLine("protagonist", "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다.", { motion: "think" }),
+      storyLine("protagonist", "손님들은 나를 기억하지 못하겠지? 나만 돌아왔으니까.", { motion: "think" }),
       storyLine("protagonist", "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼.", { motion: "calm", openJournalOnAdvance: true, journalPageId: "gameplay-day-1" })
     ]
   },
@@ -609,12 +609,11 @@ const STORY_SCENES = {
     repeatEachLoop: true,
     dynamicJournalHint: true,
     journalVariants: {
-      none: [storyLine("protagonist", "아직 이 날의 기록이 없어. 오늘은 내가 판단해서 골라야 해.", { motion: "think" })],
-      clue: [storyLine("protagonist", "이 날의 기록에는 ‘[영업일지 단서]’라고 적혀 있어. 그 말에 맞는 음식을 준비해 보자.", { motion: "think" })],
-      confirmed: [storyLine("protagonist", "지난 기록에서 확인한 음식은 [음식명]이야. 이번에는 기억을 되찾게 해 줘야 해.", { motion: "resolve" })],
-      shard: [storyLine("protagonist", "지난 회차에 이 손님의 달빛 조각을 얻었다는 기록이 있어. 하지만 조각은 사라졌으니 이번 회차에 다시 얻어야 해.", { motion: "resolve" })]
+      clue: [storyLine("protagonist", "이 날에는 손님이 원했던 음식에 대한 단서가 있어. 그 말에 맞는 음식을 준비해 보자.", { motion: "think" })],
+      confirmed: [storyLine("protagonist", "지난번엔 음식은 맞았지만 달빛 조각을 얻지 못했어 이번엔 완벽하게 조리해서 조각을 얻어야겠다.", { motion: "resolve" })],
+      shard: [storyLine("protagonist", "지난번에 조각을 얻었으니 똑같이 해서 다시 조각을 얻자!", { motion: "resolve" })]
     },
-    lines: [storyNarration("다은은 영업일지에 실제로 적힌 범위만 확인한다.")]
+    lines: [storyNarration("다은은 기록이 남아있는지 영업일지를 확인한다.")]
   },
 
   "SCN-D01": {
@@ -654,7 +653,7 @@ const STORY_SCENES = {
       storyNarration("아이는 다은이 내어 준 음식을 한입 먹고 조용히 고개를 젓는다."),
       storyLine("rainyChild", "이 음식이 아니에요, 그래도 생각해 주셔서 감사합니다.", { motion: "sad" }),
       storyLine("rainyChild", "제가 먹고싶은 음식은 팬 위에서 둥글게 퍼지고, 빗소리처럼 지글거리는 음식이에요", { motion: "think" }),
-      storyLine("protagonist", "알겠어. 다음에는 그 소리를 기억하면서 골라 볼게.", { motion: "think" }),
+      storyLine("protagonist", "알겠어. 다음에는 그 소리가 기억나게 하는 음식을 준비해 볼게", { motion: "think" }),
       { kind: "journal", text: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다." }
     ],
     softLines: [
@@ -699,7 +698,7 @@ const STORY_SCENES = {
       storyNarration("손님은 다은이 내어 준 음식을 천천히 맛보지만 종이등의 불빛은 가늘어진다."),
       storyLine("lanternGuest", "정성은 따뜻하지만, 제가 기억하는 그릇은 아니군요.", { motion: "sad" }),
       storyLine("lanternGuest", "나무꼬치에 꿰인 긴 것들이 따뜻한 국물에 잠겨 있었습니다.", { motion: "think" }),
-      storyLine("protagonist", "다음에는 그 모습을 떠올리면서 골라 볼게요.", { motion: "think" }),
+      storyLine("protagonist", "알겠어요. 다음에는 나무꼬치에 꿰인 긴 재료를 따뜻한 국물에 담은 음식을 준비해 볼게요.", { motion: "think" }),
       { kind: "journal", text: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다." }
     ],
     softLines: [
@@ -745,7 +744,7 @@ const STORY_SCENES = {
       storyLine("leftShadow", "흰 것이 빠졌어.", { motion: "sad" }),
       storyLine("rightShadow", "붉은 것도 함께 있어야 했어.", { motion: "sad" }),
       storyLine("twinShadows", "흰 것과 붉은 것이 떨어지지 않고 한 접시에 있었어.", { motion: "think" }),
-      storyLine("protagonist", "둘이 함께 있던 음식이라는 건 기억해 둘게.", { motion: "think" }),
+      storyLine("protagonist", "알겠어. 다음에는 흰 것과 붉은 것이 한 접시에 함께 있는 음식을 준비해 볼게.", { motion: "think" }),
       { kind: "journal", text: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다." }
     ],
     softLines: [
@@ -792,7 +791,7 @@ const STORY_SCENES = {
       storyNarration("배달부는 다은이 내어 준 음식을 살펴본 뒤 가방을 다시 고쳐 멘다."),
       storyLine("crowCourier", "이 음식으로는 멈춘 발걸음이 떠오르지 않는군요.", { motion: "sad" }),
       storyLine("crowCourier", "불에 그을린 꼬치만 보면 기억날 것 같습니다.", { motion: "think" }),
-      storyLine("protagonist", "불 냄새와 꼬치… 다음에는 그 단서로 골라 볼게요.", { motion: "think" }),
+      storyLine("protagonist", "알겠어요. 다음에는 불에 구운 작은 조각을 꼬치에 꿴 음식을 준비해 볼게요.", { motion: "think" }),
       { kind: "journal", text: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다." }
     ],
     softLines: [
@@ -837,7 +836,7 @@ const STORY_SCENES = {
       storyNarration("작은 짐승은 다은이 내어 준 음식을 냄새 맡고 한입 베어 물지만 귀를 축 늘어뜨린다.\n몸 안의 별빛도 여전히 웅크려 있다."),
       storyLine("starBeast", "이것도 맛은 있는데, 내가 찾던 건 아니야.", { motion: "sad" }),
       storyLine("starBeast", "길고 노란 조각이 잔뜩 쌓여 있었는데.", { motion: "think" }),
-      storyLine("protagonist", "손끝에 소금이 남는 길고 노란 음식… 기억해 둘게.", { motion: "think" }),
+      storyLine("protagonist", "알겠어. 다음에는 손끝에 소금이 남는 길고 노란 음식을 준비해 볼게.", { motion: "think" }),
       { kind: "journal", text: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다." }
     ],
     softLines: [
@@ -882,7 +881,7 @@ const STORY_SCENES = {
       storyNarration("손님은 다은이 내어 준 음식을 맛보지만 몸 안의 물결은 방향을 찾지 못한다."),
       storyLine("seawaterGuest", "정성은 느껴집니다만, 이 음식에서는 제 바다가 보이지 않는군요.", { motion: "sad" }),
       storyLine("seawaterGuest", "바삭한 겉과 그 안에 남은 바다 냄새만 기억합니다.", { motion: "think" }),
-      storyLine("protagonist", "뜨거운 기름을 지나 바삭해진 바다의 음식… 기억해 둘게요.", { motion: "think" }),
+      storyLine("protagonist", "알겠어요. 다음에는 겉은 바삭하고 속에는 바다 냄새가 남은 음식을 준비해 볼게요.", { motion: "think" }),
       { kind: "journal", text: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다." }
     ],
     softLines: [
@@ -927,7 +926,7 @@ const STORY_SCENES = {
       storyNarration("인형은 다은이 내어 준 음식을 조심스럽게 맛보지만 벽시계는 움직이지 않는다."),
       storyLine("schoolDoll", "오늘도 4시 44분에 끝나겠네요.", { motion: "sad" }),
       storyLine("schoolDoll", "종이컵 안에서 빨간 소스와 말랑한 조각이 함께 흔들렸어요. 학교가 끝난 뒤에만 먹을 수 있었죠.", { motion: "think" }),
-      storyLine("protagonist", "빨갛고 맵고 말랑한 음식… 다음에는 그 기억으로 골라 볼게.", { motion: "think" }),
+      storyLine("protagonist", "알겠어. 다음에는 빨간 소스와 말랑한 조각이 함께 든 음식을 준비해 볼게.", { motion: "think" }),
       { kind: "journal", text: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다." }
     ],
     softLines: [
@@ -979,7 +978,7 @@ const STORY_SCENES = {
       storyNarration("얼굴 없는 손님은 다은이 내어 준 음식을 한입 먹고 접시를 조용히 밀어 놓는다."),
       storyLine("facelessDaeun", "이건 그날 우리가 나눠 먹던 음식이 아니야.", { motion: "sad" }),
       storyLine("facelessDaeun", "굵은 면을 팬 하나에 넣고 급히 볶았어. 이름도 없이 다 같이 나눠 먹던 음식이었지.", { motion: "think" }),
-      storyLine("protagonist", "굵은 면을 팬에 볶은 음식… 내가 만들었던 기억을 찾아야 해.", { motion: "think" }),
+      storyLine("protagonist", "알겠어. 다음에는 굵은 면을 팬에 볶아 함께 나눠 먹던 음식을 준비해 볼게.", { motion: "think" }),
       { kind: "journal", text: "일곱째 날 폐점 뒤, 다은과 같은 옷을 입은 손님이 야근 중 팬에 볶아 나누어 먹던 굵은 면 요리를 찾았다." }
     ],
     softLines: [
@@ -1104,7 +1103,7 @@ const STORY_SCENES = {
     endingBackground: "assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
     continuePolicy: "nextLoop",
     lines: [
-      storyNarration("다은은 가진 달빛 조각을 원래 주인들에게 돌려준다.\n기억을 되찾은 손님들은 각자의 아침으로 떠나지만, 다은은 자신의 길을 밝힐 달빛을 쓰지 않고 식당에 남는다."),
+      storyNarration("다은은 달빛 조각을 이용해 손님들이 나아갈 수 있는 길을 밝혀준다.\n손님들은 그 길을 따라 기억을 되찾아 각자의 아침으로 떠나지만 다은은 떠나지 못하고 식당에 남게된다."),
       storyLine("protagonist", "오늘의 식사는 여기까지입니다. 이제 돌아가세요.", { motion: "soft" }),
       storyLine("protagonist", "남은 손님들이 자기 길을 찾을 때까지, 나는 여기 있을게.", { motion: "resolve" })
     ]
@@ -1124,7 +1123,7 @@ const STORY_SCENES = {
     endingBackground: "assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
     continuePolicy: "nextLoop",
     lines: [
-      storyNarration("다은은 달빛을 어느 길에도 비추지 않고 식당을 유지한다.\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다."),
+      storyNarration("다은은 달빛을 식당에 붙잡아둔다.\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다."),
       storyLine("protagonist", "어서 오세요.", { motion: "calm" }),
       storyLine("protagonist", "오늘도 새벽은 오지 않습니다.", { motion: "sad" })
     ]

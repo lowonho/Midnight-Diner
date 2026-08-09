@@ -438,7 +438,7 @@ function qaStoryJournalState(scene){
   if(!scene?.dynamicJournalHint)return null;
   const keys=Object.keys(scene.journalVariants||{});
   const saved=qaStoryJournalStates[scene.id];
-  return keys.includes(saved)?saved:(keys[0]||null);
+  return keys.includes(saved)?saved:null;
 }
 
 function qaStoryLinesForScene(scene){
