@@ -784,6 +784,9 @@ function qaShowStoryLineAt(lineIndex){
     const line=storySession.lines[index];
     if(line?.speaker)ensureStoryActor(line.speaker);
   }
+  // QA에서 같은 조각 전달 대사를 다시 선택하면 효과음도 다시 확인할 수
+  // 있어야 합니다. 실제 진행의 중복 방지 기록은 건드리지 않습니다.
+  storySession.playedFragmentSfx={};
   storySession.lineIndex=target;
   qaStorySelectedDay=qaStoryDayForScene(scene,storySession.qaContextDay);
   qaStorySelectedSceneId=scene.id;

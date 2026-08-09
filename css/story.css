@@ -56,6 +56,11 @@
   outline: none;
 }
 .story-skip[hidden] { display: none; }
+.story-skip:disabled {
+  opacity: .42;
+  cursor: wait;
+  filter: grayscale(.45);
+}
 
 /* 스토리 대화 중에는 Phaser 장면과 자막 UI만 남깁니다.
    조리 안내 줄(.show-game-ui)은 튜토리얼 HUD를 볼 수 있도록 예외입니다.
@@ -746,6 +751,12 @@
   margin-left: calc(4 * var(--upx));
   animation: storyNext 1s steps(2) infinite;
 }
+.story-next:disabled {
+  color: #88765e;
+  cursor: wait;
+  opacity: .55;
+}
+.story-next:disabled span { animation: none; }
 @keyframes storyNext {
   50% { transform: translateY(calc(3 * var(--upx))); opacity: .45; }
 }

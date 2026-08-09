@@ -50,16 +50,16 @@ const STORY_FRAGMENT_ASSETS = Object.freeze({
   daeuns_tomorrow: "assets/customer/Special/MoonPiece/08_faceless_daeun_ribbon.webp"
 });
 
-// 1~7일차 특별 손님과 대화하는 동안 기본 밤 BGM 위로 겹쳐 재생하는 테마 효과음입니다.
-// 등장·주문 결과 대화 모두에 유지되고, 대화가 끝날 때 story.js가 자연스럽게 줄입니다.
+// 1~7일차 특별 손님이 처음 모습을 드러낼 때만 재생하는 등장 효과음입니다.
+// 주문 결과 장면에서는 반복하지 않고, 조리로 넘어갈 때 story.js가 자연스럽게 줄입니다.
 const SPECIAL_GUEST_ARRIVAL_AUDIO = Object.freeze({
-  1:Object.freeze({name:"story_guest_d1_arrival",gain:.65,fadeOut:1400}),
-  2:Object.freeze({name:"story_guest_d2_arrival",gain:.65,fadeOut:1400}),
-  3:Object.freeze({name:"story_guest_d3_arrival",gain:.65,fadeOut:1400}),
-  4:Object.freeze({name:"story_guest_d4_arrival",gain:.65,fadeOut:1400}),
-  5:Object.freeze({name:"story_guest_d5_arrival",gain:.65,fadeOut:1400}),
-  6:Object.freeze({name:"story_guest_d6_arrival",gain:.65,fadeOut:1400}),
-  7:Object.freeze({name:"story_guest_d7_arrival",gain:.65,fadeOut:1400})
+  1:Object.freeze({name:"story_guest_d1_arrival",gain:.65}),
+  2:Object.freeze({name:"story_guest_d2_arrival",gain:.65}),
+  3:Object.freeze({name:"story_guest_d3_arrival",gain:.65}),
+  4:Object.freeze({name:"story_guest_d4_arrival",gain:.65}),
+  5:Object.freeze({name:"story_guest_d5_arrival",gain:.65}),
+  6:Object.freeze({name:"story_guest_d6_arrival",gain:.65}),
+  7:Object.freeze({name:"story_guest_d7_arrival",gain:.65})
 });
 
 const REGULAR_GUEST_BUBBLES = {};
@@ -323,12 +323,10 @@ function createSpecialGuestArc(config) {
     shardId: config.shardId,
     shardName: config.shardName,
     repeatEachLoop: true,
-    // 특별 손님 대화 중에도 기존 밤 영업 BGM을 명시적으로 계속 재생합니다.
-    storyBgm:"night",
-    ...(arrivalAudio?{
-      storyAmbient:{name:arrivalAudio.name,gain:arrivalAudio.gain},
-      storyAmbientFadeOut:arrivalAudio.fadeOut
-    }:{})
+    // 특별 손님은 밤 영업 BGM을 기본으로 사용하고 필요한 손님만 전용곡으로 바꿉니다.
+    storyBgm:config.storyBgm||"night",
+    ...(config.storyBgmCrossfade?{storyBgmCrossfade:config.storyBgmCrossfade}:{}),
+    ...(config.storyBgmHoldAfterFinish?{storyBgmHoldAfterFinish:true}:{})
   };
   const resultScene = (tier, label, lines) => {
     const fragmentState = tier === "great"
@@ -402,6 +400,9 @@ function createSpecialGuestArc(config) {
       resultSceneIds: resultIds,
       thresholds: STORY_SCORE_THRESHOLDS,
       ...common,
+      ...(arrivalAudio?{
+        storyEntrySfx:{name:arrivalAudio.name,gain:arrivalAudio.gain}
+      }:{}),
       lines: config.arrivalLines
     },
     [missingId]: {
@@ -933,6 +934,9 @@ const STORY_SCENES = {
     number: 8,
     day: 7,
     title: "최종 예약 손님 - 얼굴 없는 김다은",
+    storyBgm: "storyFacelessDaeun",
+    storyBgmCrossfade: 1000,
+    storyBgmHoldAfterFinish: true,
     character: "facelessDaeun",
     greatCharacter: "anotherDaeun",
     dishId: "yakisoba",
@@ -996,6 +1000,7 @@ const STORY_SCENES = {
     shardRange: [0, 3],
     storyBgm: "endingLoopReturn",
     storyBgmCrossfade: 1500,
+    storyBgmHoldAfterFinish: true,
     endingBackground: "assets/story/bg/01_loop_daeun_reenters_restaurant_entrance_v3.png",
     autoLoop: true,
     nextSceneId: "SCN-L01",
@@ -1015,6 +1020,8 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     shardRange: [4, 7],
+    storyBgm: "storyFacelessDaeun",
+    storyBgmCrossfade: 1000,
     lines: [
       storyNarration("모인 달빛은 서로 다른 두 길 중 하나만 밝힐 수 있다.\n한쪽은 다은 한 사람을 현실로 돌려보내는 문이고, 다른 쪽은 특별 손님들을 각자의 새벽으로 돌려보내는 길이다."),
       storyNarration("영업일지 위에 글씨가 드러난다.\n「두 길을 함께 밝힐 수는 없습니다. 어느 쪽에 달빛을 건네시겠습니까?」"),
@@ -1038,6 +1045,8 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     shardRange: [8, 8],
+    storyBgm: "storyFacelessDaeun",
+    storyBgmCrossfade: 1000,
     lines: [
       storyNarration("여덟 조각이 식탁 위에서 하나의 달빛 길로 이어진다.\n기억을 되찾은 손님들이 각자의 자리에 나타나 마지막 선택을 기다린다."),
       storyNarration("영업일지 위에 글씨가 드러난다.\n「여덟 개의 달빛이 모두 모였습니다. 이 빛을 식탁에 붙잡아 두시겠습니까, 아니면 모두의 길을 하나로 잇겠습니까?」"),
@@ -1065,6 +1074,7 @@ const STORY_SCENES = {
     endingTitle: "혼자 맞은 아침",
     storyBgm: "endingAloneMorning",
     storyBgmCrossfade: 1500,
+    storyBgmHoldAfterFinish: true,
     endingBackground: "assets/story/bg/02_morning_alone_loop_restaurant_unified_v7.png",
     continuePolicy: "nextLoop",
     lines: [
@@ -1086,6 +1096,7 @@ const STORY_SCENES = {
     endingTitle: "손님들의 새벽",
     storyBgm: "endingGuestsDawn",
     storyBgmCrossfade: 1500,
+    storyBgmHoldAfterFinish: true,
     endingBackground: "assets/story/bg/03_guests_dawn_loop_restaurant_unified_v2.png",
     continuePolicy: "nextLoop",
     lines: [
@@ -1108,6 +1119,7 @@ const STORY_SCENES = {
     endingTitle: "영원히 영업 중",
     storyBgm: "endingOpenForever",
     storyBgmCrossfade: 1500,
+    storyBgmHoldAfterFinish: true,
     endingBackground: "assets/story/bg/04_eternally_open_trapped_balanced_texture_v9.png",
     continuePolicy: "nextLoop",
     lines: [
@@ -1131,6 +1143,7 @@ const STORY_SCENES = {
     endingTitle: "함께 오는 아침",
     storyBgm: "endingMorningTogether",
     storyBgmCrossfade: 1500,
+    storyBgmHoldAfterFinish: true,
     endingBackground: "assets/story/bg/05_morning_together_restaurant_unified_v2.png",
     continuePolicy: "clearRunKeepMeta",
     retryJudgementSceneId: "SCN-J03",
@@ -1155,6 +1168,7 @@ const STORY_SCENES = {
     trueEndingEpilogue: true,
     endingSceneId: "END-04",
     storyBgm: "endingMorningTogether",
+    storyBgmHoldAfterFinish: true,
     endingStill: "morningAlley",
     disableContinue: true,
     clearProgressSaves: true,

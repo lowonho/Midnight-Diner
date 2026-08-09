@@ -11,6 +11,7 @@ const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
 const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 const titleSource = fs.readFileSync(path.join(root, "js/title.js"), "utf8");
+const qaSource = fs.readFileSync(path.join(root, "js/qa-mode.js"), "utf8");
 
 if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   ||!titleSource.includes('journalLastGameplayPageId=String(pageId||"")')){
@@ -24,6 +25,7 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   "assets/sfx/story/sfx_open_door.MP3",
   "assets/sfx/ui/sfx_next_book.MP3",
   ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`),
+  "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3",
   "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3",
   "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3",
   "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3",
@@ -36,9 +38,11 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
 });
 if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
   ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
+  ||!gameSource.includes('storyFacelessDaeun:"assets/bgm/story/bgm_story_faceless_daeun.MP3"')
   ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
   ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
   ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')
+  ||!gameSource.includes('daeun_ribbon_handoff:["assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3"]')
   ||!Array.from({length:7},(_,index)=>index+1).every(day=>
     gameSource.includes(`fragment_full_d${day}:["assets/sfx/story/fragments/sfx_d${day}_finish.MP3"]`)
   )){
@@ -102,6 +106,9 @@ if(endingAssetPaths.length!==5
   ||endingAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
   throw new Error("다섯 엔딩 장면은 서로 다른 실제 배경 파일을 사용해야 합니다.");
 }
+if(!qaSource.includes("storySession.playedFragmentSfx={};")){
+  throw new Error("QA에서 조각 전달 대사를 다시 열 때 획득음도 다시 재생할 수 있어야 합니다.");
+}
 const endingBgmPaths=[...gameSource.matchAll(/\bending\w+:\s*"(assets\/bgm\/story\/ending\/[^"]+\.MP3)"/g)]
   .map(match=>match[1]);
 if(endingBgmPaths.length!==5
@@ -115,7 +122,13 @@ var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"do
 const playedAudio=[];
 const audio={
   play(name,options){
-    const entry={name,options,element:{addEventListener(){}}};
+    const listeners={};
+    const element={
+      ended:false,
+      addEventListener(type,callback){(listeners[type]||(listeners[type]=[])).push(callback);},
+      dispatch(type){(listeners[type]||[]).splice(0).forEach(callback=>callback());}
+    };
+    const entry={name,options,element,playbackPromise:null};
     playedAudio.push(entry);
     return entry;
   },
@@ -242,7 +255,12 @@ const fragmentLayer={
   setAttribute(){}
 };
 const fragmentName={textContent:""};
-document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer:id==="storyFragmentName"?fragmentName:null;
+const fragmentNextButton={disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}};
+const fragmentSkipButton={disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}};
+document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer
+  :id==="storyFragmentName"?fragmentName
+  :id==="storyNextButton"?fragmentNextButton
+  :id==="storySkipButton"?fragmentSkipButton:null;
 const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
 const storyBeforeFragmentSfx=state.story;
 state.story=createStoryState();
@@ -260,14 +278,46 @@ assert(applyStoryFragmentHandoff(fullFragmentLine)
   "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
 assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
   &&Object.entries(STORY_FULL_FRAGMENT_SFX_BY_DAY).every(([day,cue])=>cue==="fragment_full_d"+day)
-  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.slice(0,7)")
+  &&STORY_DAEUN_RIBBON_SFX==="daeun_ribbon_handoff"
+  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.includes(guestId)")
+  &&!String(playStoryFullFragmentSfx).includes('fragmentState==="full"')
   &&String(playStoryFullFragmentSfx).includes('handoff?.state!=="full"')
+  &&String(playStoryFullFragmentSfx).includes("allowRetry")
+  &&String(storyAdvance).includes("storyFullFragmentSfxWasPlayed(line)")
   &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
   "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
 assert(playedAudio.at(-1)?.name==="fragment_full_d1"
-  &&playedAudio.at(-1)?.options?.gain===1.4
+  &&playedAudio.at(-1)?.options?.gain===1.6
   &&storySession.ambientAudio===guestAmbientEntry,
   "조각 획득 효과음은 손님별 대화 테마를 끊지 않고 별도로 겹쳐 재생해야 합니다.");
+const firstFragmentEntry=playedAudio.at(-1);
+const lockedFragmentLineIndex=storySession.lineIndex;
+assert(storyFragmentSfxLockIsActive()
+  &&fragmentNextButton.disabled
+  &&fragmentSkipButton.disabled
+  &&storyAdvance()
+  &&storySession.lineIndex===lockedFragmentLineIndex,
+  "조각 획득 효과음이 재생되는 동안 버튼·대사창·키보드 진행을 모두 막아야 합니다.");
+firstFragmentEntry.element.dispatch("ended");
+assert(!storyFragmentSfxLockIsActive()
+  &&!fragmentNextButton.disabled
+  &&!fragmentSkipButton.disabled,
+  "조각 획득 효과음의 실제 ended 이벤트 뒤에만 진행 버튼을 다시 활성화해야 합니다.");
+const daeunRibbonLine=STORY_SCENES["SCN-G8-완벽"].lines.find(line=>line.fragmentHandoff);
+storySession={scene:STORY_SCENES["SCN-G8-완벽"],playedFragmentSfx:{}};
+assert(applyStoryFragmentHandoff(daeunRibbonLine)
+  &&playedAudio.at(-1)?.name==="daeun_ribbon_handoff"
+  &&playedAudio.at(-1)?.options?.gain===1.6,
+  "얼굴 없는 김다은이 완전한 리본 조각을 건네는 순간 전용 전달음을 재생해야 합니다.");
+const failedDaeunEntry=playedAudio.at(-1);
+failedDaeunEntry.element.dispatch("error");
+const playedBeforeRetry=playedAudio.length;
+assert(!storyFragmentSfxLockIsActive()
+  &&playStoryFullFragmentSfx(daeunRibbonLine)
+  &&playedAudio.length===playedBeforeRetry+1
+  &&storyFragmentSfxLockIsActive(),
+  "조각 효과음 재생이 거절되거나 실패하면 다음 입력에서 같은 소리를 다시 시도해야 합니다.");
+playedAudio.at(-1).element.dispatch("ended");
 assert(!applyStoryFragmentHandoff(null)
   &&!("--fragment-art" in fragmentLayerStyles)
   &&!fragmentLayerClasses.has("show"),
@@ -443,10 +493,11 @@ assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
   &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
   &&String(clearStoryRuntime).includes("clearStoryAudio()")
-  &&String(finishStorySession).includes("clearStoryAudio({fadeAmbient:true})"),
+  &&String(clearStoryAudio).includes("if(!preserveBgm)audio?.setStoryBgm?.(null)")
+  &&String(finishStorySession).includes("preserveBgm:!!storySession.scene?.storyBgmHoldAfterFinish"),
   "스토리 음향은 장면 시작·중간 복원·종료 수명주기를 따라야 합니다.");
 const guestArrivalAudioNames=Array.from({length:7},(_,index)=>
-  STORY_SCENES["SCN-G"+(index+1)+"-A"].storyAmbient?.name
+  STORY_SCENES["SCN-G"+(index+1)+"-A"].storyEntrySfx?.name
 );
 same(guestArrivalAudioNames,[
   "story_guest_d1_arrival","story_guest_d2_arrival","story_guest_d3_arrival",
@@ -456,20 +507,23 @@ same(guestArrivalAudioNames,[
 assert(Array.from({length:7},(_,index)=>STORY_SCENES["SCN-G"+(index+1)+"-A"])
   .every((arrival,index)=>{
     const prefix="SCN-G"+(index+1);
-    return [arrival,STORY_SCENES[prefix+"-B"],STORY_SCENES[prefix+"-아쉽다"],
-      STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]]
-      .every(scene=>scene.storyBgm==="night"
-        &&scene.storyAmbient?.name===arrival.storyAmbient.name
-        &&scene.storyAmbient?.gain===.65
-        &&scene.storyAmbientFadeOut===1400);
+    const laterScenes=[STORY_SCENES[prefix+"-B"],STORY_SCENES[prefix+"-아쉽다"],
+      STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]];
+    return arrival.storyBgm==="night"
+      &&arrival.storyEntrySfx?.gain===.65
+      &&!arrival.storyEntrySfx?.delayBgmUntilComplete
+      &&laterScenes.every(scene=>scene.storyBgm==="night"
+        &&!scene.storyEntrySfx&&!scene.storyAmbient);
   }),
-  "1~7일차 특별 손님의 모든 대화는 밤 BGM과 손님별 테마를 함께 유지해야 합니다.");
+  "1~7일차 특별 손님 테마는 등장 장면에서만 한 번 재생해야 합니다.");
 assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
   &&String(suspendStoryForOrderCook).includes("stopStoryAmbient(")
+  &&String(suspendStoryForOrderCook).includes("stopStoryEntrySfx()")
   &&String(restoreStoryCheckpoint).includes("if(!restored.suspended)applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes("currentAmbient?.name!==cue.name")
+  &&String(applyStorySceneAudio).includes("if(entryCue?.name&&storySession)")
   &&String(stopStoryAmbient).includes("audio.fadeOutFile(entry,duration)"),
-  "특별 손님 대화가 조리로 넘어가거나 종료될 때 테마 효과음을 자연스럽게 줄여야 합니다.");
+  "스토리 앰비언스와 한 번만 재생하는 등장 효과음은 서로 다른 수명주기를 따라야 합니다.");
 const guestArrivalAudioFiles=[
   "sfx_story_d1_raindrop_arrival.MP3","sfx_story_d2_lantern_arrival.MP3",
   "sfx_story_d3_twin_shadow_arrival.MP3","sfx_story_d4_crow_letter_arrival.MP3",
@@ -677,6 +731,17 @@ same(STORY_SPECIAL_GUEST_BY_DAY,{
 const g8=STORY_SCENES["SCN-G8-A"];
 assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===6,
   "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 6건 뒤 등장해야 합니다.");
+const g8AudioSceneIds=["SCN-G8-A","SCN-G8-B","SCN-G8-아쉽다","SCN-G8-맛있다","SCN-G8-완벽"];
+assert(g8AudioSceneIds.every(sceneId=>
+  STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
+  &&STORY_SCENES[sceneId].storyBgmCrossfade===1000
+  &&STORY_SCENES[sceneId].storyBgmHoldAfterFinish===true)
+  &&["SCN-J02","SCN-J03"].every(sceneId=>
+    STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
+    &&STORY_SCENES[sceneId].storyBgmCrossfade===1000),
+  "얼굴 없는 김다은의 모든 대화와 결과 장면은 전용 BGM을 유지해야 합니다.");
+assert(gameSource.includes('(state.phase!=="result"||!!this.storyBgmTrack)'),
+  "결과 단계에서도 엔딩 장면 전용 BGM은 재생할 수 있어야 합니다.");
 same(
   STORY_SCENES["SCN-G1-B"].lines.filter(line=>line.speaker==="rainyChild").map(line=>line.text),
   [

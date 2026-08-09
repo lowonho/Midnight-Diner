@@ -180,6 +180,7 @@ const audio = {
     night:"assets/bgm/bgm_night.mp3",
     storyCompany:"assets/bgm/story/bgm_company_story.mp3",
     storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3",
+    storyFacelessDaeun:"assets/bgm/story/bgm_story_faceless_daeun.MP3",
     endingLoopReturn:"assets/bgm/story/ending/bgm_ending_loop_return.MP3",
     endingAloneMorning:"assets/bgm/story/ending/bgm_ending_alone_morning.MP3",
     endingGuestsDawn:"assets/bgm/story/ending/bgm_ending_guests_dawn.MP3",
@@ -193,6 +194,7 @@ const audio = {
     night:3.685,
     storyCompany:.95,
     storySikdang:.571,
+    storyFacelessDaeun:.3433,
     endingLoopReturn:.7233,
     endingAloneMorning:.3972,
     endingGuestsDawn:.394,
@@ -260,7 +262,8 @@ const audio = {
     fragment_full_d4:["assets/sfx/story/fragments/sfx_d4_finish.MP3"],
     fragment_full_d5:["assets/sfx/story/fragments/sfx_d5_finish.MP3"],
     fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
-    fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"]
+    fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"],
+    daeun_ribbon_handoff:["assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3"]
   }),
   /* 브라우저에서 스테레오 활성 RMS/피크를 전수 측정한 파일별 보정값입니다.
      썰기 6종 중앙값 -25.8dBFS를 기준으로 단발 조리음은 -25.8,
@@ -322,6 +325,7 @@ const audio = {
     "assets/sfx/story/fragments/sfx_d5_finish.MP3":.4926,
     "assets/sfx/story/fragments/sfx_d6_finish.MP3":.5248,
     "assets/sfx/story/fragments/sfx_d7_finish.MP3":.399,
+    "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3":.3475,
     "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3":1.9033,
     "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3":1.0605,
     "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3":.2891,
@@ -419,6 +423,9 @@ const audio = {
       this.loopFiles.get(owner).set(name,entry);
     }
     const started=element.play();
+    // Callers that must synchronize UI with a one-shot sound can observe a
+    // rejected play() without replacing the audio manager's cleanup path.
+    entry.playbackPromise=started||null;
     if(started?.catch)started.catch(()=>cleanup());
     return entry;
   },
@@ -526,7 +533,7 @@ const audio = {
     if(!this.ctx)return;
     this.bgmStarted=true;this.syncBgm(true);
   },
-  setStoryBgm(track=null,{crossfadeDuration=0}={}){
+  setStoryBgm(track=null,{crossfadeDuration=this.bgmFadeDuration}={}){
     const defaultTrack=state.phase==="night"?"night":"day";
     const previousEffective=this.storyBgmTrack||defaultTrack;
     const next=track&&Object.prototype.hasOwnProperty.call(this.bgmFiles,track)?track:null;
@@ -563,7 +570,11 @@ const audio = {
   crossfadeBgm(track,duration=this.bgmFadeDuration){
     const incoming=this.bgmElements.get(track)||null;
     const outgoing=this.bgmElement;
-    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
+    // 결과 화면 자체의 기본 BGM은 멈추되, 엔딩처럼 장면 전용곡이 지정된
+    // 스토리는 RESULT 단계에서도 계속 재생합니다.
+    const shouldPlay=state.screen==="game"
+      &&(state.phase!=="result"||!!this.storyBgmTrack)
+      &&(!state.paused||!!this.storyBgmTrack);
     if(!incoming||!outgoing||incoming===outgoing||!shouldPlay){this.syncBgm(true);return false;}
     this.cancelBgmFade();
     const outgoingVolume=outgoing.paused?0:outgoing.volume;
@@ -603,13 +614,27 @@ const audio = {
   syncBgm(force=false){
     if(!this.bgmStarted)return;
     const track=this.storyBgmTrack||(state.phase==="night"?"night":"day");
+    const shouldPlay=state.screen==="game"
+      &&(state.phase!=="result"||!!this.storyBgmTrack)
+      &&(!state.paused||!!this.storyBgmTrack);
+    // 낮/밤처럼 스토리 밖에서 BGM 대상이 달라지는 경우에도 현재 곡을
+    // 먼저 끊지 않고 동일한 크로스페이드 규칙으로 넘깁니다.
+    if(
+      !force
+      &&track!==this.bgmTrack
+      &&this.bgmElement
+      &&!this.bgmElement.paused
+      &&shouldPlay
+    ){
+      this.crossfadeBgm(track,this.bgmFadeDuration);
+      return;
+    }
     if(force||track!==this.bgmTrack){
       this.cancelBgmFade();
       if(this.bgmElement){this.bgmElement.pause();this.bgmElement.currentTime=0;}
       this.bgmTrack=track;this.bgmElement=this.bgmElements.get(track)||null;
       this.bgmPlayPending=false;this.bgmFadeStart=0;
     }
-    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
     if(!shouldPlay){
       if(this.bgmElement&&!this.bgmElement.paused)this.bgmElement.pause();
       this.bgmPlayPending=false;this.cancelBgmFade();return;

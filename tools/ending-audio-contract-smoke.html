@@ -17,10 +17,36 @@ try{
   for(const [sceneId,track] of Object.entries(expected)){
     if(STORY_SCENES[sceneId]?.storyBgm!==track)throw new Error(`${sceneId} BGM mapping`);
     if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==1500)throw new Error(`${sceneId} crossfade`);
+    if(STORY_SCENES[sceneId]?.storyBgmHoldAfterFinish!==true)
+      throw new Error(`${sceneId} BGM hold after conclusion`);
+  }
+  const facelessDaeunScenes=["SCN-G8-A","SCN-G8-B","SCN-G8-아쉽다","SCN-G8-맛있다","SCN-G8-완벽"];
+  for(const sceneId of facelessDaeunScenes){
+    if(STORY_SCENES[sceneId]?.storyBgm!=="storyFacelessDaeun")
+      throw new Error(`${sceneId} faceless Daeun BGM mapping`);
+    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==1000)
+      throw new Error(`${sceneId} faceless Daeun crossfade`);
+    if(STORY_SCENES[sceneId]?.storyBgmHoldAfterFinish!==true)
+      throw new Error(`${sceneId} faceless Daeun BGM hold`);
+  }
+  for(const sceneId of ["SCN-J02","SCN-J03"]){
+    if(STORY_SCENES[sceneId]?.storyBgm!=="storyFacelessDaeun")
+      throw new Error(`${sceneId} keeps faceless Daeun BGM before ending choice`);
+  }
+  for(let number=1;number<=7;number++){
+    const prefix=`SCN-G${number}`;
+    if(!STORY_SCENES[`${prefix}-A`]?.storyEntrySfx?.name)
+      throw new Error(`${prefix} arrival one-shot`);
+    for(const suffix of ["B","아쉽다","맛있다","완벽"]){
+      if(STORY_SCENES[`${prefix}-${suffix}`]?.storyEntrySfx)
+        throw new Error(`${prefix}-${suffix} repeats arrival sound`);
+    }
   }
   if(STORY_SCENES["SCN-EPI01"]?.storyBgm!==expected["END-04"])
     throw new Error("true-ending epilogue continuation");
-  document.title="ENDING_AUDIO_OK";document.body.textContent="ENDING_AUDIO_OK 5";
+  if(STORY_SCENES["SCN-EPI01"]?.storyBgmHoldAfterFinish!==true)
+    throw new Error("true-ending epilogue BGM hold for retry menu");
+  document.title="ENDING_AUDIO_OK";document.body.textContent="ENDING_AUDIO_OK 18";
 }catch(error){
   document.title="ENDING_AUDIO_FAIL";document.body.textContent=`ENDING_AUDIO_FAIL ${error.stack||error}`;
 }

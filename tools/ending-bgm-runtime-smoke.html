@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ENDING_BGM_RUNTIME_PENDING</title>
+<style>body{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<body>ENDING_BGM_RUNTIME_PENDING</body>
+<iframe id="game" title="runtime" style="position:fixed;width:1px;height:1px;opacity:.001;pointer-events:none" src="../index.html?qa-story=SCN-EPI01"></iframe>
+<script>
+"use strict";
+const wait=duration=>new Promise(resolve=>setTimeout(resolve,duration));
+const frame=document.getElementById("game");
+frame.addEventListener("load",async()=>{
+  try{
+    await wait(1200);
+    const result=await frame.contentWindow.eval(`(async()=>{
+      const wait=duration=>new Promise(resolve=>setTimeout(resolve,duration));
+      if(storySession?.scene?.id!=="SCN-EPI01")throw new Error("QA epilogue did not open");
+      audio.init();
+      audio.apply();
+      audio.startBgm();
+      audio.setStoryBgm("endingMorningTogether",{crossfadeDuration:0});
+      await wait(500);
+      storySession.conclusionAction={
+        type:"endingRetryMenu",
+        judgementSceneId:"SCN-J03",
+        endingSceneId:"END-04",
+        endingTitle:STORY_SCENES["END-04"].endingTitle,
+        acceptPolicy:"trueEnding"
+      };
+      finishStorySession();
+      await wait(250);
+      const menuOpen=endingRetryMenuIsOpen();
+      const heldTrack=audio.storyBgmTrack;
+      const heldPlaying=!!audio.bgmElement&&!audio.bgmElement.paused;
+      audio.setStoryBgm("storyFacelessDaeun",{crossfadeDuration:1000});
+      await wait(350);
+      const crossfading=audio.bgmTrack==="storyFacelessDaeun"
+        &&!!audio.bgmOutgoingElement
+        &&!audio.bgmOutgoingElement.paused
+        &&!!audio.bgmElement
+        &&!audio.bgmElement.paused;
+      return {menuOpen,heldTrack,heldPlaying,crossfading};
+    })()`);
+    if(!result.menuOpen)throw new Error("ending retry menu did not open");
+    if(result.heldTrack!=="endingMorningTogether"||!result.heldPlaying)
+      throw new Error(`ending BGM was not held: ${JSON.stringify(result)}`);
+    if(!result.crossfading)
+      throw new Error(`BGM crossfade failed: ${JSON.stringify(result)}`);
+    document.title="ENDING_BGM_RUNTIME_OK";
+    document.body.firstChild.textContent="ENDING_BGM_RUNTIME_OK";
+  }catch(error){
+    document.title="ENDING_BGM_RUNTIME_FAIL";
+    document.body.firstChild.textContent=`ENDING_BGM_RUNTIME_FAIL ${error.stack||error}`;
+  }
+},{once:true});
+</script>
