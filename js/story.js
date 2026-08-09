@@ -1964,6 +1964,38 @@ function storyJournalGuestPortraitArt(guestId){
 }
 window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
 
+/* 일지의 초상화는 전신이 아니라 얼굴만 원형틀에 확대해 넣습니다.
+   아래는 그 얼굴이 원화(1250x1800) 어디에 있는지 적어 둔 표입니다.
+     cx·cy — 얼굴 한가운데 (원화 가로·세로의 %)
+     fh    — 잘라낼 세로 크기 (원화 세로의 %). 가로는 틀 비율에 맞춰 계산합니다.
+   인물마다 머리 크기와 높이가 제각각이라(등불 손님은 머리가 등, 작은 짐승은
+   몸이 작아 얼굴이 한참 아래) 한 가지 규칙으로는 안 맞아 눈으로 맞춘 값입니다.
+   원화를 새로 받으면 표를 고치고 아래 도구로 여덟 장을 한 줄로 뽑아 확인하세요:
+
+     node tools/journal-face-preview.js
+
+   ⚠️ 값을 고치면 css/settings.css 의 .journal-page-portrait 상자 비율(44/60)도
+      같이 봐야 합니다. 가로는 그 비율에서 나옵니다. */
+const JOURNAL_GUEST_FACE=Object.freeze({
+  rainyChild:{cx:48,cy:22,fh:32},
+  lanternGuest:{cx:61,cy:31,fh:34},
+  twinShadows:{cx:60,cy:19,fh:28},
+  crowCourier:{cx:54,cy:15,fh:26},
+  starBeast:{cx:54,cy:37,fh:32},
+  seawaterGuest:{cx:47,cy:19,fh:27},
+  schoolDoll:{cx:48,cy:19,fh:26},
+  facelessDaeun:{cx:49,cy:18,fh:25}
+});
+// 원화 크기입니다(tools/build-conversation-webp.js 의 공통 크롭 박스 비율).
+const JOURNAL_GUEST_ART_SIZE=Object.freeze({width:1250,height:1800});
+
+function storyJournalGuestFaceBox(guestId){
+  const key=storyPortraitKey(String(guestId||""));
+  const face=JOURNAL_GUEST_FACE[key];
+  return face?{...face,...JOURNAL_GUEST_ART_SIZE}:null;
+}
+window.storyJournalGuestFaceBox=storyJournalGuestFaceBox;
+
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
    커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
    풀립니다. 그래서 "assets/..." 는 "css/assets/..." 가 되어 404 가 납니다.

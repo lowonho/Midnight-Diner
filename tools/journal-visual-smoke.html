@@ -56,20 +56,36 @@ const DISH_IDS=["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteo
 const DISHES=["어묵탕","두부김치","김치전","닭꼬치","볶음우동","새우튀김","떡볶이","감자튀김"];
 const GUESTS=["비에 젖은 아이","등불을 머리에 인 손님","둘이 붙은 그림자","까마귀 우편배달부",
   "별을 먹는 작은 짐승","바닷물로 된 손님","멈춰버린 교복 인형","얼굴 없는 김다은"];
-// 초상화는 js/story.js 의 STORY_PORTRAIT_ART 를 따라갑니다. 여기서 story.js 를
-// 통째로 부를 수는 없어서(게임 전역이 잔뜩 필요합니다) 같은 규칙만 흉내 냅니다.
-// guestId 도 story-data.js 의 것을 그대로 써야 그림이 붙습니다.
+// guestId 는 js/story-data.js 의 것을 그대로 써야 초상화가 붙습니다.
 const GUEST_IDS=["rainyChild","lanternGuest","twinShadows","crowCourier",
   "starBeast","seawaterGuest","schoolDoll","facelessDaeun"];
-const PORTRAIT_DIRS={
-  rainyChild:"char_cust_rain_child",lanternGuest:"char_cust_lantern_head",
-  twinShadows:"char_cust_joined_shadows",crowCourier:"char_cust_crow_postman",
-  starBeast:"char_cust_star_eating_beast",seawaterGuest:"char_cust_seawater_guest",
-  schoolDoll:"char_cust_stopped_school_doll",facelessDaeun:"char_cust_faceless_kim_daeun"
-};
+/* 초상화 주소와 얼굴 자리는 js/story.js 가 정합니다. 여기서 story.js 를 통째로
+   부를 수는 없어서(게임 전역이 잔뜩 필요합니다) 그 파일에서 표 두 개만 읽어
+   씁니다 — 값을 베껴 두면 게임과 조용히 어긋납니다. */
+function readStoryTable(source,name,pattern){
+  const block=source.match(new RegExp(`const ${name}\\s*=\\s*Object\\.freeze\\(\\{([\\s\\S]*?)\\}\\);`));
+  if(!block){fail(`js/story.js 에서 ${name} 을 못 읽었습니다.`);return [];}
+  return [...block[1].matchAll(pattern)];
+}
+const storySource=(()=>{
+  const request=new XMLHttpRequest();
+  request.open("GET","js/story.js",false);
+  try{ request.send(null); return request.responseText; }
+  catch(error){ fail("js/story.js 를 못 읽었습니다. "+error); return ""; }
+})();
+const PORTRAIT_DIRS=Object.fromEntries(
+  readStoryTable(storySource,"STORY_PORTRAIT_ART",/(\w+):\{dir:"([^"]+)",stem:"([^"]+)"/g)
+    .map(([,id,dir,stem])=>[id,{dir,stem}]));
+const FACES=Object.fromEntries(
+  readStoryTable(storySource,"JOURNAL_GUEST_FACE",/(\w+):\{cx:([\d.]+),cy:([\d.]+),fh:([\d.]+)\}/g)
+    .map(([,id,cx,cy,fh])=>[id,{cx:+cx,cy:+cy,fh:+fh}]));
 function storyJournalGuestPortraitArt(guestId){
-  const dir=PORTRAIT_DIRS[guestId];
-  return dir?`assets/Conversation/${dir}/${dir}_motion_02.webp`:"";
+  const art=PORTRAIT_DIRS[guestId];
+  return art?`assets/Conversation/${art.dir}/${art.stem}_motion_02.webp`:"";
+}
+function storyJournalGuestFaceBox(guestId){
+  const face=FACES[guestId];
+  return face?{...face,width:1250,height:1800}:null;
 }
 // js/story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
 const SHARDS=[

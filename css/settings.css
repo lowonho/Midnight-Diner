@@ -671,18 +671,13 @@
 .journal-page-portrait[hidden] { display: none; }
 /* 특별 손님 초상화입니다. 로비 컬렉션 장과 인게임 일기 장이 같은 그림 한 장을
    씁니다 — 대화씬 원화의 motion_02 이고, 주소는 js/story.js 가 정합니다.
-   인물 그림이라 원형으로 자르지 않고 원화 비율 그대로 종이 위에 세웁니다. */
+   원화는 전신이라 원형틀에는 얼굴만 확대해 넣습니다. 얼마나 키워서 어디를
+   보여 줄지는(background-size·position) js/title.js 가 인물별로 넣어 줍니다.
+   여기서는 원형틀과 깔리는 방식만 정합니다. */
 .journal-page-portrait.has-art-portrait {
-  aspect-ratio: 1250 / 1800;
-  border: none;
-  border-radius: 0;
-  background-color: transparent;
-  background-image: none;
+  overflow: hidden;
+  background-color: #f0e6d2;
   background-repeat: no-repeat;
-  background-position: center bottom;
-  background-size: contain;
-  /* 종이 위에 붙여 둔 사진처럼 그림자만 얹습니다. */
-  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.4));
 }
 .journal-page-portrait.portrait-placeholder {
   background:
@@ -824,9 +819,6 @@
    위쪽 여백과 이름 글자를 조금씩 줄여 한 면에 담습니다. */
 .journal-page.has-relic .journal-page-topline { margin-bottom: calc(14 * var(--upx)); }
 .journal-page.has-relic .journal-page-portrait { width: calc(90 * var(--upx)); }
-/* 대화씬 원화는 얼굴만 담긴 그림이 아니라 전신이라, 같은 폭이면 인물이 작게
-   보입니다. 조각까지 들어가는 특별 손님 장에서만 조금 키웁니다. */
-.journal-page.has-relic .journal-page-portrait.has-art-portrait { width: calc(100 * var(--upx)); }
 .journal-page.has-relic h3 {
   margin: calc(10 * var(--upx)) 0 calc(4 * var(--upx));
   font-size: calc(26 * var(--upx));
@@ -908,12 +900,16 @@
   --journal-guest-portrait: calc(88 * var(--upx));
   --journal-guest-shard: calc(58 * var(--upx));
 }
-/* 원화 비율 그대로라 인물이 찌그러지지 않습니다(tools/build-conversation-webp.js). */
+/* 로비 컬렉션의 초상화(.journal-page-portrait)와 같은 원형틀입니다.
+   얼굴을 얼마나 키워 어디를 보여 줄지는 js/title.js 가 넣어 줍니다. */
 .journal-guest-portrait {
   width: var(--journal-guest-portrait);
-  aspect-ratio: 1250 / 1800;
-  background: center bottom/contain no-repeat;
-  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.4));
+  aspect-ratio: 44 / 60;
+  overflow: hidden;
+  border: calc(2 * var(--upx)) solid #92633b;
+  border-radius: 50%;
+  background-color: #f0e6d2;
+  background-repeat: no-repeat;
 }
 .journal-guest-name {
   max-width: 100%;

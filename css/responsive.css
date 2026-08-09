@@ -32,7 +32,11 @@
     --story-name-h: 26px;
     --story-name-gap: 6px;
     gap: 6px;
-    padding: 9.3% 3% 1.7%;
+    /* 넓은 창과 똑같이 --story-lift 만큼 흐름 전체를 올립니다. 위에서 뺀 만큼
+       아래에 더해야 무대 높이와 원화 크기가 안 변합니다(css/story.css 설명 참고).
+       여기서 padding 을 통째로 다시 쓰면서 그 계산을 빠뜨리면, 좁은 창에서만
+       대사창이 아래변에 붙습니다. */
+    padding: calc(9.3% - var(--story-lift)) 3% calc(1.7% + var(--story-lift));
   }
   .story-dialogue-box { padding: 20px 22px calc(28px + var(--story-choice-h)); }
   .story-speaker-row { margin-bottom: 8px; }

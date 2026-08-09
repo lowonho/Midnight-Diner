@@ -417,6 +417,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      (css 의 .grill-skewer.sauced .gs-piece-glaze). 익힘 단계 그림을 갈아 끼우는 것과
      달리 겹치기만 하므로, 어느 단계에서 발라도 그 위에 윤기만 얹힙니다.
      ⚠️ 캔버스가 익힘 장과 같아야 조각에 1:1 로 겹칩니다 — 빌드에서 pad 로 맞춥니다. */
+  /* 오른쪽 '완성 담기' 칸의 접시. **위에서 내려다본 타원 쟁반 한 장**이고, 다 구운
+     꼬치는 그 위에 얹습니다 (engine-e5-two-side-cook.js 의 twoSideServeMarkup ·
+     css 의 .ts-serve-art). 파일이 없으면 예전 임시 CSS 타원(.ts-serve-dish)이 나옵니다. */
+  cookServePlate:"assets/minigame/E5/yakitori/food_chicken_skewer_plate_topview_1250x1853.webp",
   cookGlazeChicken:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_chicken_piece_overlay.webp",
   cookGlazeGreenOnion:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_green_onion_piece_overlay.webp",
   /* 조작 방향 화살표 3장. 신호가 켜져 있는 동안 조리물 위에 겹쳐 뜹니다

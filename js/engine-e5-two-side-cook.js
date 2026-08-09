@@ -859,7 +859,8 @@ function serveTwoSideUnit(m,index){
     stack.insertAdjacentHTML("beforeend",twoSideServedSkewerMarkup(data,unit));
     stack.querySelector(".ts-served:last-child")?.classList.add("landing");
   }
-  dom.miniContent?.querySelector(".ts-serve-plate")?.classList.add("filled");
+  /* ⚠️ 여기 있던 `.ts-serve-plate` 의 `filled` 는 뺐습니다 — 접시가 비었을 때만 띄우던
+     점선(.ts-serve-mark)을 끄려고 붙이던 표시인데, 점선을 없애면서 쓰는 곳이 사라졌습니다. */
   audio.play?.("plate_set",{owner:m,gain:.9})||audio.play?.("ui_click",{owner:m,gain:.7});
   dom.miniFeedback.textContent=`${index+1}번 꼬치를 담았습니다!`;
   updateTwoSideProgress(data);
@@ -1174,10 +1175,11 @@ const TWO_SIDE_NOW_TEXT=Object.freeze({
   })
 });
 
-/* 완성 칸의 "여기로 끌어다 담으세요" 점선. 다 구운 자루가 하나라도 있으면 켭니다.
+/* 완성 칸의 "여기로 끌어다 담으세요" 표시. 다 구운 자루가 하나라도 있으면 켭니다.
    ⚠️ 접시가 이미 차 있어도 켭니다 — 자루가 셋이라 한 번 담고 나서도 또 담아야 합니다.
-      비었을 때만 보이던 점선(.ts-serve-mark)이 첫 자루를 담는 순간 사라져서,
-      두 번째부터는 어디로 끌어야 하는지 알려 주는 것이 아무것도 없었습니다. */
+   표시는 접시 그림을 밝히는 것으로 냅니다 (css 의 .ts-serve-plate.wants-drop).
+   예전에는 접시 위에 점선 칸(.ts-serve-mark)을 띄웠는데, 그릇 안에 네모가 겹쳐
+   보여서 없앴습니다. */
 function updateTwoSideServeHint(data){
   const plate=dom.miniContent?.querySelector(".ts-serve-plate");
   plate?.classList.toggle("wants-drop",twoSideServableUnits(data).length>0);
@@ -1453,15 +1455,20 @@ function twoSideIngredientMarkup(item, data) {
    튀김(engine-e6)처럼 **다 구운 꼬치를 여기로 끌어다 담아야** 한 개로 셉니다.
    원래 이 자리는 '참고 모양'(잘 구워진 꼬치 견본)이었는데, 담는 자리가 필요해져
    통째로 바꿨습니다.
-   ⚠️ 접시는 아직 원화가 없어 **임시 CSS 도형**입니다 (css 의 .ts-serve-plate).
-      그림이 들어오면 거기에 .has-asset 갈래를 하나 만들면 됩니다 —
-      담긴 꼬치(.ts-served)는 접시 그림과 무관하게 그대로 쓸 수 있습니다. */
+   접시는 **위에서 내려다본 쟁반 원화 한 장**입니다(cookServePlate). 담긴 꼬치는
+   그 위에 얹히고, 나무 손잡이는 접시 아래 테두리 밖으로 나옵니다 — 자리는 전부
+   css 의 .ts-serve-plate / .ts-serve-stack 가 잡습니다.
+   ⚠️ 그림이 없으면 예전 임시 CSS 타원(.ts-serve-dish)으로 떨어집니다.
+      담긴 꼬치(.ts-served)는 두 갈래 모두에서 그대로 쓰입니다.
+   ⚠️ 예전에 접시 위에 띄우던 "여기 담으세요" 점선(.ts-serve-mark)은 **없앴습니다** —
+      그릇 안에 네모가 겹쳐 보였습니다. 그 안내는 이제 접시 그림 자체를 밝혀서 합니다
+      (css 의 .ts-serve-plate.wants-drop · updateTwoSideServeHint 는 그대로입니다). */
 function twoSideServeMarkup(data) {
   const served = twoSideUnits(data).filter(unit => unit.served);
-  return `<div class="ts-serve-plate ${served.length ? "filled" : ""}" data-order-target="serve" aria-label="다 구운 꼬치를 담는 접시">
-      <i class="ts-serve-dish" aria-hidden="true"></i>
+  const plate = dayPrepAssetMarkup("cookServePlate", "ts-serve-art");
+  return `<div class="ts-serve-plate ${plate ? "has-asset" : ""}" data-order-target="serve" aria-label="다 구운 꼬치를 담는 접시">
+      ${plate || `<i class="ts-serve-dish" aria-hidden="true"></i>`}
       <span class="ts-serve-stack">${served.map(unit => twoSideServedSkewerMarkup(data, unit)).join("")}</span>
-      <i class="ts-serve-mark" aria-hidden="true"></i>
     </div>`;
 }
 

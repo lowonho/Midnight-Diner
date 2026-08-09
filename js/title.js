@@ -64,6 +64,39 @@ function journalGuestArt(source){
   return storyJournalGuestPortraitArt(guestId);
 }
 
+/* 원화는 전신이라, 원형틀에는 얼굴만 확대해서 넣습니다.
+   얼굴 자리는 js/story.js 의 표(JOURNAL_GUEST_FACE)가 알려 줍니다.
+   ⚠️ 이 비율은 css/settings.css 의 .journal-page-portrait 상자와 같아야 합니다.
+      틀보다 좁게 자르면 좌우가 비고, 넓게 자르면 얼굴이 잘립니다. */
+const JOURNAL_PORTRAIT_BOX_RATIO=44/60;
+
+/* 자를 자리를 background-size·position 으로 옮겨 적습니다.
+   size 는 '틀의 몇 배로 키울지', position 의 % 는 '남는 그림을 어느 쪽으로
+   밀지'라서 한가운데를 맞추려면 아래처럼 다시 계산해야 합니다
+   (그냥 cx% 를 넣으면 한가운데가 아니라 그 지점이 틀의 같은 %로 갑니다). */
+function journalGuestFaceStyle(guestId){
+  const face=typeof storyJournalGuestFaceBox==="function"
+    ?storyJournalGuestFaceBox(guestId):null;
+  if(!face)return null;
+  const height=Math.min(1,Math.max(.05,face.fh/100));
+  // 세로로 자른 만큼에서 틀 비율로 가로 폭이 정해집니다(원화 가로의 비율).
+  const width=Math.min(1,height*face.height*JOURNAL_PORTRAIT_BOX_RATIO/face.width);
+  const offset=(center,size)=>size>=1?"50%":`${(100*(center/100-size/2)/(1-size)).toFixed(2)}%`;
+  return {
+    size:`${(100/width).toFixed(1)}% ${(100/height).toFixed(1)}%`,
+    position:`${offset(face.cx,width)} ${offset(face.cy,height)}`
+  };
+}
+
+// 초상화 한 자리를 채웁니다. 얼굴 자리를 모르는 인물은 전신을 담습니다.
+function applyJournalGuestFace(node,guestId,art){
+  if(!node)return;
+  node.style.backgroundImage=art?`url("${art}")`:"";
+  const face=art?journalGuestFaceStyle(guestId):null;
+  node.style.backgroundSize=face?face.size:"";
+  node.style.backgroundPosition=face?face.position:"";
+}
+
 // 달빛 조각 그림은 '이번 회차에 받았을 때'만 붙입니다. 아직이면 자리도 없습니다.
 function journalEntryShardArt(entry){
   if(entry?.fragmentState!=="full"&&entry?.fragmentState!=="partial")return "";
@@ -487,7 +520,8 @@ function createJournalGuestCard(entry){
     return node;
   };
   const portraitArt=journalGuestArt(entry);
-  if(portraitArt)append("journal-guest-portrait",portraitArt);
+  // 로비 컬렉션과 같은 원형틀에 얼굴만 확대해서 넣습니다.
+  if(portraitArt)applyJournalGuestFace(append("journal-guest-portrait",""),entry.guestId,portraitArt);
   append("journal-guest-name","",entry.guestName||"");
   const shardArt=journalEntryShardArt(entry);
   if(shardArt){
@@ -559,8 +593,13 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt);
   // 인라인 style 은 CSS 배경을 확실히 덮습니다. 잠긴 장에서는 비워 두어야
   // .is-locked 의 실루엣이 그대로 보입니다(위 guestArt 참고).
-  const portraitArt=endingArt||guestArt;
-  elements.pagePortrait.style.backgroundImage=portraitArt?`url("${portraitArt}")`:"";
+  // 손님은 얼굴만 확대해 넣고, 엔딩 컷씬은 그림 전체를 그대로 깝니다.
+  if(guestArt)applyJournalGuestFace(elements.pagePortrait,page.guestId||page.id,guestArt);
+  else{
+    elements.pagePortrait.style.backgroundImage=endingArt?`url("${endingArt}")`:"";
+    elements.pagePortrait.style.backgroundSize="";
+    elements.pagePortrait.style.backgroundPosition="";
+  }
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
     :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
