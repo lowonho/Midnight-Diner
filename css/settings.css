@@ -142,6 +142,8 @@
   border-bottom: 1px solid rgba(202, 139, 66, .34);
   color: #e0b06a;
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   letter-spacing: .1em;
   text-align: left;
@@ -314,6 +316,8 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   line-height: 1.1;
   cursor: pointer;
@@ -722,6 +726,8 @@
 /* [주의사항] 같은 구역 머리와 '이름 ·' 같은 항목 이름만 굵게 씁니다. */
 .journal-page p .journal-note-label {
   color: #4b2b1a;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 /* 특별 손님 페이지 아래쪽에 붙는 달빛 조각 그림입니다.
@@ -854,6 +860,8 @@
 /* 펼친 견출지는 그만큼 더 위로 올라옵니다(아래쪽은 그대로 책 속). */
 .journal-section-tab.is-active {
   top: calc(-1 * var(--journal-tab-art-top));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .journal-section-tab.is-past { filter: brightness(.86) saturate(.85); }

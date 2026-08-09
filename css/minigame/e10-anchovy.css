@@ -47,6 +47,8 @@
   color: var(--cream);
   text-align: center;
   font-size: calc(18 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .anchovy-card-caption b { color: var(--gold-bright); }
@@ -86,6 +88,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }

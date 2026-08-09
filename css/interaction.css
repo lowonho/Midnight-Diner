@@ -155,6 +155,8 @@
   transform: translateX(-50%) translateY(calc(-12 * var(--upx)));
   transition: .2s;
   pointer-events: none;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -202,6 +204,8 @@
   transform: scale(.82);
   transition: opacity .16s,transform .16s;
   pointer-events: none;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
 }
 .action-button.available {

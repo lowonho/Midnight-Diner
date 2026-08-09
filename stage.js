@@ -270,6 +270,10 @@ function applyTimeOfDay(mode,instant=false){
   const dayViews=DAY_FADE_LAYERS.map(key=>stageLayers[key]).filter(Boolean);
   if(!dayViews.length||!scene)return;
 
+  // 밤에만 켜지는 배경 소품(팬 위 김치전 · 조리 연기). 배치·연출은 decoration.js.
+  // 배경과 같은 시간으로 같이 페이드해야 배경만 밤이 되는 순간이 없습니다.
+  setDecorationTimeOfDay(mode,instant?0:TIME_OF_DAY_FADE_MS);
+
   const dayAlpha=mode==="day"?1:0;
   const ambientAlpha=mode==="day"?0:AMBIENT_NIGHT_ALPHA;
 

@@ -15,6 +15,8 @@
   border: 1px solid #9a6332;
   border-radius: calc(7 * var(--upx));
   color: #f4d59d;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   background:
     linear-gradient(rgba(87, 49, 27, .92), rgba(37, 21, 14, .96)),
@@ -314,6 +316,8 @@
   border-radius: 0;
   color: #ffe3cf;
   font-size: calc(23 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   background: var(--sv-delete) center / 100% 100% no-repeat;
   text-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(48, 8, 4, .75);
@@ -356,6 +360,8 @@
   overflow: hidden;
   color: #f2d5a4;
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;

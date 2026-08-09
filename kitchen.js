@@ -56,7 +56,13 @@
    집기를 옮겼을 때 한쪽만 고쳐서 "집기 앞에 섰는데 다른 집기가 잡히는" 일이
    생깁니다. 쓰레기통만 줄 밖에 있어서 stand 를 직접 적습니다. */
 const STATION_SPEC = {
-  fridge:     {label:"냉장고",    standY:640, facing:"up"},
+  // labelDy -52 = 냉장고 위 소품(decoration.js §3-5 prop_fridge_top_decor)만큼
+  //   이름표를 위로 비켜 놓은 값입니다. 소품이 상판 위 y 256~332 를 쓰는데
+  //   이름표 기본 자리가 y 259~294 라 주전자 몸통을 가로질렀습니다.
+  //   -52 면 이름표가 y 207~242 로 올라가 소품 위 타일 벽에 놓이고,
+  //   둥실 진폭(±7)을 빼도 14 정도 여유가 남습니다.
+  //   소품 높이를 바꾸면 이 값도 같이 봐야 합니다.
+  fridge:     {label:"냉장고",    standY:640, facing:"up", labelDy:-52},
   sink:       {label:"싱크대",    standY:640, facing:"up", hideLabel:true},
   board:      {label:"도마",      standY:640, facing:"up"},
   pot:        {label:"냄비",      standY:640, facing:"up"},
@@ -454,7 +460,8 @@ function drawStationLabels(){
   if(trashInFront()) drawStation(STATIONS.trash);
   const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();
   const near=nearestStation(preferred);
-  Object.values(STATIONS).forEach(s=>labelStation(s,near));
+  const plateW=stationLabelPlateWidth();
+  Object.values(STATIONS).forEach(s=>labelStation(s,near,plateW));
 }
 
 // 요리사 발끝이 쓰레기통 접지선보다 위 = 요리사가 더 뒤 = 쓰레기통이 앞.
@@ -466,6 +473,47 @@ function trashInFront(){
 // 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
 // (12 → 3글자 이름표가 약 63px. 예전 88폭 집기의 명판 72px 과 비슷합니다)
 const LABEL_PAD_X = 12;
+
+const STATION_LABEL_FONT = "bold 13px Malgun Gothic";
+
+/* 명판 폭
+   ------------------------------------------------------------
+   예전에는 이름마다 "글자 폭 + 여백"으로 따로 계산했습니다. 그래서
+   조리대 줄 위에 길이가 제각각인 판이 늘어서 있었습니다.
+
+   지금은 **세 글자 이상은 전부 가장 긴 이름표 폭**으로 맞춥니다.
+   지금 표에서 가장 긴 것은 4글자('후라이팬'·'직화구이'·'쓰레기통')라
+   3글자('냉장고'·'튀김기')도 그 폭이 됩니다. 이름이 바뀌면 폭도 저절로
+   따라가므로 여기에 숫자를 박아 두지 않습니다.
+
+   [두 글자만 예외] '도마'·'냄비'까지 4글자 폭으로 늘리면 글자 양옆
+   빈칸이 글자보다 넓어져서, 판만 있고 이름이 없는 것처럼 보입니다.
+   그래서 두 글자는 예전처럼 글자에 맞춘 폭을 씁니다.
+
+   [숨긴 이름표는 안 셉니다] '식기세척기'(5글자)·'싱크대'는 hideLabel
+   이라 화면에 없습니다. 이걸 세면 보이지도 않는 이름 때문에 나머지가
+   다 같이 길어집니다.
+
+   [한 번만 재는 이유] 이름과 글꼴이 고정이라 값이 변하지 않습니다.
+   맑은 고딕은 윈도우 기본 글꼴이라 첫 프레임에도 이미 준비돼 있어서
+   웹폰트처럼 나중에 폭이 바뀔 일이 없습니다. */
+const LABEL_FIT_MAX_CHARS = 2;   // 이 글자 수까지는 글자에 맞춘 폭
+
+function labelPlateWidthFor(text){
+  return Math.round(ctx.measureText(text).width)+LABEL_PAD_X*2;
+}
+
+let stationLabelPlateWidthCache = 0;
+function stationLabelPlateWidth(){
+  if(stationLabelPlateWidthCache) return stationLabelPlateWidthCache;
+  const previousFont=ctx.font;
+  ctx.font=STATION_LABEL_FONT;
+  stationLabelPlateWidthCache=Object.values(STATIONS)
+    .filter(s=>!s.hideLabel)
+    .reduce((max,s)=>Math.max(max,labelPlateWidthFor(s.label)),0);
+  ctx.font=previousFont;
+  return stationLabelPlateWidthCache;
+}
 
 /* 이름표 판의 크기와 높이(논리 좌표).
    game.js 의 E 키캡도 같은 값을 봐야 둘이 어긋나지 않으므로 상수로 뺐습니다.
@@ -510,7 +558,7 @@ function stationPromptY(s){
    E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
    앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
    둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
-function labelStation(s,near){
+function labelStation(s,near,plateW){
   /* 이름표를 끈 집기(§1 hideLabel)는 여기서 바로 빠집니다.
      labelFloatStep 을 부르기 전에 빠져야 합니다 — 그 함수는 집기마다 둥실
      상태를 기억해 두는데, 안 그릴 것까지 부르면 쓰지도 않을 상태가 계속 쌓입니다. */
@@ -518,12 +566,14 @@ function labelStation(s,near){
   const active=stationUsable(s,near);
   const f=labelFloatStep(`station_${s.id}`,active);
 
-  /* 이름표 폭은 "글자 폭 + 좌우 여백"입니다. 집기 폭을 따라가면
-     냉장고(154)·세면대(146) 같은 큰 집기에서 명판만 길쭉해집니다.
-     집기가 커져도 명판은 글자 길이만큼만 커집니다. */
-  ctx.font="bold 13px Malgun Gothic";
+  /* 이름표 폭. 두 글자만 글자에 맞추고 나머지는 통일 폭입니다.
+     집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰
+     집기에서 명판만 길쭉해지기 때문입니다. (stationLabelPlateWidth) */
+  ctx.font=STATION_LABEL_FONT;
   const h=STATION_LABEL_H,cx=s.x+s.w/2;
-  const w=Math.round(ctx.measureText(s.label).width)+LABEL_PAD_X*2;
+  const w=s.label.length<=LABEL_FIT_MAX_CHARS
+    ? labelPlateWidthFor(s.label)
+    : (plateW??stationLabelPlateWidth());
   // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
   // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.
   const x=cx-w/2,y=stationLabelTop(s)+f.dy;

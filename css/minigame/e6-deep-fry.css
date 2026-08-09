@@ -547,6 +547,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(52 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.05;
 }

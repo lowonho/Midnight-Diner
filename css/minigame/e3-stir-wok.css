@@ -78,7 +78,7 @@
   height: 100%;
   object-fit: contain;
 }
-.yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .yk-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 우동 사리 / 소스병 / 손질 야채 */
 .yk-ing-card .yk-ing-art i {
@@ -472,7 +472,7 @@
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .yk-count { text-align: center; }
-.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
 .yk-next { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .yk-next-arrow {
   flex: 1;
@@ -481,6 +481,8 @@
   min-height: calc(96 * var(--upx));
   color: #f6c96a;
   font-size: calc(88 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
@@ -532,6 +534,8 @@
   background-repeat: no-repeat;
   color: #e0a44a;                  /* 그림이 못 뜰 때 남는 글자 화살표(←↑→↓) 색 */
   font-size: calc(40 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(12 * var(--upx)) rgba(224,164,74,.45);

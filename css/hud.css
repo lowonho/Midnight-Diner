@@ -166,6 +166,8 @@
   background: #2d1a11;
   color: #ffe7a8;
   font-size: calc(11 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .menu-tag { left: calc(4 * var(--upx)); }
@@ -436,6 +438,8 @@
   padding-top: calc(5 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #ffe09a;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .prep-checklist small { color: #c8ab7e; line-height: 1.35; }
@@ -445,7 +449,7 @@
 .day3-prep-progress > strong { grid-column:1 / -1; color:#ffe09a; font-size:11px; }
 .day3-prep-progress > span { display:contents; color:#d8c19e; }
 .day3-prep-progress b { color:#f0ce8d; text-align:right; }
-.day3-prep-progress .overall { display:contents; color:#ffe09a; font-weight:800; }
+.day3-prep-progress .overall { display:contents; color:#ffe09a; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; }
 .prep-summary div { color: #d8c19e; }
 
 /* 밤 주문 목록도 낮 준비 목록과 같은 자리를 씁니다 — 손님이 늘어 패널 최대 높이에
@@ -474,7 +478,7 @@
   text-align: left;
 }
 .order-row.selected { border-color: #e0a74e; background: #29170e; }
-.order-row > span { color: #ffe09a; font-weight: 900; }
+.order-row > span { color: #ffe09a; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; }
 .order-row strong { overflow: hidden; color: #f1ce8b; text-overflow: ellipsis; white-space: nowrap; }
 .order-row em { grid-column: 2 / 4; color: #a98b67; font-size: .88em; font-style: normal; }
 .special-order { color: #e7a76a; }

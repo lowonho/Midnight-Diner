@@ -24,6 +24,11 @@
    (전등 704→150 = 0.21배, 화분/게시판 1536→528 = 0.34배).
    축소가 압축 아티팩트를 같이 뭉개 주므로 무손실이 필요 없습니다.
    반대로 확대해 쓰는 소품이 새로 들어오면 LOSSLESS 에 넣으세요.
+
+   [더 낮은 품질을 쓰는 파일] 축소 배율이 유난히 큰 소품 몇 개는
+   QUALITY_OVERRIDE 에서 따로 낮춥니다. 0.1배 아래로 줄여 그리는 그림은
+   q90 으로 아무리 곱게 구워도 화면에 그 정보가 남지 않습니다 —
+   파일만 커집니다. 판단 기준은 "게임에서 그리는 크기 ÷ 원본 크기" 입니다.
    ============================================================ */
 
 const fs = require("fs");
@@ -37,6 +42,23 @@ const LOSSLESS = new Set([]);
 
 const QUALITY = 90;
 const EFFORT = 6;   // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 작아집니다.
+const ALPHA_QUALITY = 100;
+
+/* 파일별 품질 예외. 옆의 배율은 "게임에서 그리는 크기 ÷ 원본 크기" 입니다.
+   (배치값은 decoration.js §3-5 ~ §3-7 에 있습니다)
+
+   [연기만 alpha 를 같이 낮추는 이유] 연기는 RGB 가 거의 단색 회색이고
+   모양을 전부 알파가 들고 있습니다. 그래서 quality 만 낮추면 파일이
+   307KB → 267KB 밖에 안 줄고, alphaQuality 를 70 으로 내리면 95KB 가
+   됩니다. 0.17배로 줄여 그리는 반투명 연기라 알파 계단은 화면에서
+   보이지 않습니다. */
+const QUALITY_OVERRIDE = {
+  "fx_cooking_steam_6f.png":       { quality:75, alphaQuality:70 },  // 한 칸 327 → 56  (0.17배)
+  "food_kimchi_pancake_pan.png":   { quality:75 },                   // 1255 → 88  (0.07배)
+  "prop_fridge_top_decor.png":     { quality:75 },                   // 1488 → 167 (0.11배)
+  "prop_sink_plant.png":           { quality:75 },                   //  585 → 40  (0.07배)
+  "prop_dishwasher_cat_ears.png":  { quality:75 }                    // 1657 → 137 (0.08배)
+};
 
 const files = fs.readdirSync(SRC_DIR).filter(name => name.endsWith(".png"));
 
@@ -49,13 +71,17 @@ async function convert(){
     const src=path.join(SRC_DIR,name);
     const out=src.replace(/\.png$/,".webp");
     const lossless=LOSSLESS.has(name);
+    const override=QUALITY_OVERRIDE[name]||{};
+    const quality=override.quality??QUALITY;
+    const alphaQuality=override.alphaQuality??ALPHA_QUALITY;
     await sharp(src)
-      .webp(lossless?{lossless:true,effort:EFFORT}:{quality:QUALITY,effort:EFFORT,alphaQuality:100})
+      .webp(lossless?{lossless:true,effort:EFFORT}:{quality,effort:EFFORT,alphaQuality})
       .toFile(out);
     const a=fs.statSync(src).size, b=fs.statSync(out).size;
     pngTotal+=a; webpTotal+=b;
+    const mode=lossless?"무손실":`q${quality}`+(alphaQuality===ALPHA_QUALITY?"":`/a${alphaQuality}`);
     console.log(name.padEnd(38), `${kb(a)}KB`.padStart(8), `${kb(b)}KB`.padStart(8),
-      `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(lossless?"무손실":`q${QUALITY}`));
+      `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+mode);
   }
   console.log("-".repeat(72));
   console.log("합계".padEnd(38), `${kb(pngTotal)}KB`.padStart(8), `${kb(webpTotal)}KB`.padStart(8),

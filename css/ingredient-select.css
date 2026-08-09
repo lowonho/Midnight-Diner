@@ -30,6 +30,8 @@
   margin: 0;
   color: var(--cream);
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .ingredient-select-overlay #ingredientSelectTitle {
@@ -38,6 +40,8 @@
   overflow: hidden;
   color: var(--gold-bright);
   font-size: calc(3.6 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
   text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
@@ -247,6 +251,8 @@
   background: rgba(20,12,7,.82);
   color: #f4dfb7;
   font-size: calc(11 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   opacity: 0;
@@ -286,6 +292,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }

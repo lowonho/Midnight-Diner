@@ -150,8 +150,8 @@
 .prep-work-object.tough-first-hit .knife-effect { opacity:.88; transform:translateY(calc(7 * var(--upx))) rotate(15deg); }
 
 .tough-cut-hint { display:flex; align-items:center; justify-content:center; gap:calc(8 * var(--upx)); }
-.tough-cut-hint span { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:2px solid #7b5132; border-radius:calc(7 * var(--upx)); background:#21140e; color:#d5b783; font-size:calc(13 * var(--upx)); font-weight:900; transition:transform .1s,background .1s,color .1s; }
-.tough-cut-hint::after { content:"빠르게!"; color:#e8bd72; font-size:calc(12 * var(--upx)); font-weight:900; }
+.tough-cut-hint span { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:2px solid #7b5132; border-radius:calc(7 * var(--upx)); background:#21140e; color:#d5b783; font-size:calc(13 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:900; transition:transform .1s,background .1s,color .1s; }
+.tough-cut-hint::after { content:"빠르게!"; color:#e8bd72; font-size:calc(12 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:900; }
 .tough-cut-hint.first-done span:first-child { background:#769950; color:#fff7cf; transform:translateY(2px); }
 .tough-cut-hint.first-done span:last-child { border-color:#ffe08d; background:#c77c37; color:#29170c; animation:tough-second-tap .22s ease-in-out infinite alternate; }
 
@@ -225,6 +225,8 @@
   color: var(--cream);
   text-align: center;
   font-size: calc(18 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .cut-card-caption b { color: var(--gold-bright); }
@@ -270,6 +272,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }
@@ -1007,12 +1011,14 @@
   background: rgba(30,17,8,.58);
   color: #f2d3a0;
   font-size: calc(16 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
 }
 .cut-action { min-width: calc(150 * var(--upx)); padding: calc(8 * var(--upx)) calc(16 * var(--upx)); font-size: calc(15 * var(--upx)); }
-.cut-step-note { color: #e0bd85; font-size: calc(15 * var(--upx)); font-weight: 800; }
+.cut-step-note { color: #e0bd85; font-size: calc(15 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .cut-footer .rapid-hold-meter { width: calc(220 * var(--upx)); }
 
 @keyframes cut-knife-chop {

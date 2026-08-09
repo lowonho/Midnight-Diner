@@ -136,6 +136,8 @@
   background: linear-gradient(rgba(48,29,19,.92),rgba(22,13,9,.92));
   box-shadow: inset 0 0 0 1px rgba(255,214,143,.08),0 calc(3 * var(--upx)) 0 #090504;
   color: #e8c47f;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   cursor: pointer;
 }

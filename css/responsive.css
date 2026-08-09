@@ -29,16 +29,16 @@
     --story-choice-h: 36px;
     /* 좁은 창에서는 이름 글자가 16px 이라 줄 높이도 같이 줄입니다.
        두 값의 뜻은 css/story.css 의 .story-overlay 설명을 보세요. */
-    --story-name-h: 22px;
+    --story-name-h: 26px;
     --story-name-gap: 6px;
     gap: 6px;
     padding: 9.3% 3% 1.7%;
   }
-  .story-dialogue-box { padding: 16px 22px calc(24px + var(--story-choice-h)); }
+  .story-dialogue-box { padding: 20px 22px calc(28px + var(--story-choice-h)); }
   .story-speaker-row { margin-bottom: 8px; }
-  .story-speaker-row strong { font-size: 16px; }
+  .story-speaker-row strong { font-size: 19px; }
   .story-text { font-size: 12px; line-height: 1.55; }
-  .story-choices { gap: 8px; padding: 0 6% 110px; }
+  .story-choices { gap: 8px; padding: 0 6% 130px; }
   .story-choice { width: 74%; padding: 6px 10px; font-size: 11px; }
   .story-choice-hint { width: 80%; margin-bottom: 4px; padding: 8px 12px; }
   .story-choice-hint-line { font-size: 10px; line-height: 1.5; }

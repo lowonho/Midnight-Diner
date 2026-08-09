@@ -221,6 +221,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   margin: 0;
   color: var(--cream);
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -230,6 +232,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   overflow: hidden;
   color: var(--gold-bright);
   font-size: calc(3.6 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
   text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
@@ -279,6 +283,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(2.1 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   white-space: nowrap;
   pointer-events: none;
@@ -307,6 +313,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   background: linear-gradient(#6f9145, #4d6b32);
   color: #f6f2d8;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   letter-spacing: .1em;
 }
@@ -328,9 +336,9 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.mini-description { color: #3a2513; font-weight: 700; }
+.mini-description { color: #3a2513; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
 .mini-description::before { content: "• "; color: #8b6034; }
-.mini-feedback { color: #8a3b22; font-weight: 800; }
+.mini-feedback { color: #8a3b22; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .mini-feedback:empty { display: none; }
 .mini-esc-hint {
   flex: none;
@@ -339,6 +347,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   gap: calc(.6 * var(--mw));
   color: #5a3d22;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .mini-esc-hint kbd {
