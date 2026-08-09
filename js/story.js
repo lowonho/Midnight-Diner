@@ -10,6 +10,7 @@ const STORY_FULL_FRAGMENT_SFX_BY_DAY=Object.freeze({
   1:"fragment_full_d1",2:"fragment_full_d2",3:"fragment_full_d3",4:"fragment_full_d4",
   5:"fragment_full_d5",6:"fragment_full_d6",7:"fragment_full_d7"
 });
+const STORY_FULL_FRAGMENT_SFX_GAIN=1.4;
 let storySession=null;
 let storyTypingTimer=null;
 let storyRevealTimer=null;
@@ -1368,9 +1369,10 @@ function applyStorySceneAudio(scene){
   stopStoryEntrySfx();
   const cue=scene?.storyAmbient;
   const currentAmbient=storySession?.ambientAudio||null;
+  const currentAmbientActive=!audio?.activeFiles||audio.activeFiles.has(currentAmbient);
   if(!cue?.name){
     stopStoryAmbient();
-  }else if(currentAmbient?.name!==cue.name&&storySession){
+  }else if((currentAmbient?.name!==cue.name||!currentAmbientActive)&&storySession){
     stopStoryAmbient();
     storySession.ambientAudio=audio?.play?.(cue.name,{loop:true,owner:storySession,gain:cue.gain??1})||null;
   }
@@ -1458,7 +1460,7 @@ function playStoryFullFragmentSfx(line){
   if(!cue||storySession.playedFragmentSfx?.[key])return false;
   if(!storySession.playedFragmentSfx)storySession.playedFragmentSfx={};
   storySession.playedFragmentSfx[key]=true;
-  return !!audio?.play?.(cue,{gain:.9});
+  return !!audio?.play?.(cue,{gain:STORY_FULL_FRAGMENT_SFX_GAIN});
 }
 
 function applyStoryFragmentHandoff(line){
@@ -2990,6 +2992,7 @@ function runStoryQaFromQuery(){
     if(line?.speaker)ensureStoryActor(line.speaker);
   }
   if(storySession&&lineIndex<storySession.lines.length){storySession.lineIndex=lineIndex;showStoryLine();}
+  if(typeof qaActivateStoryAudio==="function")qaActivateStoryAudio(qaScene,{waitForGesture:true});
   const choiceIndex=params.has("qa-choice")?Number(params.get("qa-choice")):NaN;
   const choiceLine=storySession?.lines[storySession?.lineIndex];
   if(Number.isInteger(choiceIndex)&&choiceIndex>=0&&choiceLine?.choices?.[choiceIndex]){

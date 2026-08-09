@@ -35,6 +35,11 @@ assert(qaModeSource.includes("qaStoryReturnContext")
   && qaModeSource.includes("story:state.story")
   && qaModeSource.includes("state.story=context.story"),
 "QA 미리보기 전후에 실제 이야기 상태를 보존·복원해야 합니다.");
+assert(qaModeSource.includes("function qaActivateStoryAudio(scene")
+  &&qaModeSource.includes("qaActivateStoryAudio(scene);")
+  &&qaModeSource.includes('window.addEventListener("pointerdown",qaStoryAudioUnlockHandler,true)')
+  &&storySource.includes('qaActivateStoryAudio(qaScene,{waitForGesture:true})'),
+"QA 스토리는 패널 선택과 qa-story 직접 주소 모두 사용자 제스처 뒤에 실제 장면 음향을 시작해야 합니다.");
 assert(qaModeSource.includes('data-qa-story-prev')
   && qaModeSource.includes('data-qa-story-next')
   && qaModeSource.includes('data-qa-story-lines'),

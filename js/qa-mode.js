@@ -58,6 +58,7 @@ let qaStorySelectedSceneId=null;
 let qaStorySelectedLine=0;
 let qaStoryReturnContext=null;
 const qaStoryJournalStates={};
+let qaStoryAudioUnlockHandler=null;
 /* ⚠️ 예전에는 QA 에서만 메뉴를 1~8개까지 자유롭게 고를 수 있었습니다
    (qaIngredientMenuSelectionRules + qaIngredientAllMenus). 실제 플레이 규칙(그날 5개 고정)과
    달라서 테스트 의미가 없어 2026-08-06 에 걷어냈습니다. QA 도 그날 규칙을 그대로 씁니다. */
@@ -164,6 +165,7 @@ function qaMenuNames(ids){
 }
 
 function qaCancelTransientState({preserveStoryReturn=false}={}){
+  qaDisarmStoryAudioUnlock();
   if(typeof clearStoryRuntime==="function")clearStoryRuntime();
   else{
     if(typeof storyTypingTimer!=="undefined"&&storyTypingTimer)clearTimeout(storyTypingTimer);
@@ -188,6 +190,45 @@ function qaEnsureSession(){
   if(!titleGameReady){qaRefreshPanel("게임 로딩이 끝난 뒤 다시 눌러주세요.");return false;}
   startGame();
   return true;
+}
+
+function qaDisarmStoryAudioUnlock(){
+  if(!qaStoryAudioUnlockHandler)return;
+  window.removeEventListener("pointerdown",qaStoryAudioUnlockHandler,true);
+  window.removeEventListener("keydown",qaStoryAudioUnlockHandler,true);
+  qaStoryAudioUnlockHandler=null;
+}
+
+function qaPlayStoryAudio(scene){
+  if(!scene||storySession?.scene?.id!==scene.id)return false;
+  audio.init();
+  const start=()=>{
+    if(storySession?.scene?.id!==scene.id)return;
+    audio.apply();
+    applyStorySceneAudio(scene);
+    audio.startBgm();
+  };
+  const resumed=audio.ctx?.state==="suspended"?audio.ctx.resume():null;
+  if(resumed?.then)resumed.then(start).catch(start);
+  else start();
+  return true;
+}
+
+// 패널 클릭은 그 자체가 사용자 제스처라 즉시 시작할 수 있습니다. qa-story 직접
+// 주소는 자동재생이 막히므로 첫 클릭/키 입력에서 같은 경로를 다시 시작합니다.
+function qaActivateStoryAudio(scene,{waitForGesture=false}={}){
+  qaDisarmStoryAudioUnlock();
+  audio.init();
+  if(waitForGesture&&audio.ctx?.state!=="running"){
+    qaStoryAudioUnlockHandler=()=>{
+      qaDisarmStoryAudioUnlock();
+      qaPlayStoryAudio(scene);
+    };
+    window.addEventListener("pointerdown",qaStoryAudioUnlockHandler,true);
+    window.addEventListener("keydown",qaStoryAudioUnlockHandler,true);
+    return true;
+  }
+  return qaPlayStoryAudio(scene);
 }
 
 // 날짜를 바로 건너뛰어도 그날의 후반 스토리를 실제 영업 흐름으로 확인할 수 있게
@@ -809,6 +850,7 @@ function qaOpenStoryScene(sceneId,lineIndex=0,options={}){
     suspended:false,
     pendingCook:null
   };
+  qaActivateStoryAudio(scene);
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=scene.moment==="newGame"

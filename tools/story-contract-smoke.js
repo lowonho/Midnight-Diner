@@ -258,7 +258,7 @@ assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
   &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
   "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
 assert(playedAudio.at(-1)?.name==="fragment_full_d1"
-  &&playedAudio.at(-1)?.options?.gain===.9
+  &&playedAudio.at(-1)?.options?.gain===1.4
   &&storySession.ambientAudio===guestAmbientEntry,
   "조각 획득 효과음은 손님별 대화 테마를 끊지 않고 별도로 겹쳐 재생해야 합니다.");
 assert(!applyStoryFragmentHandoff(null)
@@ -432,6 +432,7 @@ assert(!prologueDoorLine?.sfxOnComplete
   "달빛식탁에 갇히다 장면 진입 시 문소리를 먼저 재생한 뒤 식당 BGM을 시작해야 합니다.");
 assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
   &&String(restoreStoryCheckpoint).includes("applyStorySceneAudio(scene)")
+  &&String(applyStorySceneAudio).includes("currentAmbientActive")
   &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
   &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
   &&String(clearStoryRuntime).includes("clearStoryAudio()")
@@ -452,6 +453,7 @@ assert(Array.from({length:7},(_,index)=>STORY_SCENES["SCN-G"+(index+1)+"-A"])
       STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]]
       .every(scene=>scene.storyBgm==="night"
         &&scene.storyAmbient?.name===arrival.storyAmbient.name
+        &&scene.storyAmbient?.gain===.65
         &&scene.storyAmbientFadeOut===1400);
   }),
   "1~7일차 특별 손님의 모든 대화는 밤 BGM과 손님별 테마를 함께 유지해야 합니다.");
