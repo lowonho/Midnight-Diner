@@ -117,7 +117,7 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
    headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
    젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
    기준으로 삼으면 세트가 바뀔 때 판정선이 같이 움직입니다. */
-const CUSTOMER_ART_BASE = { h:170, footY:670, headWidth:.16, headBand:.35, hudGap:7 };
+const CUSTOMER_ART_BASE = { h:170, footY:670, headWidth:.16, headBand:.35, hudGap:17 };
 
 /* 그림 세트. rows 는 시트의 행 수(= 캐릭터 수),
    cols 는 시트의 열 수, fps 는 재생 속도입니다.
