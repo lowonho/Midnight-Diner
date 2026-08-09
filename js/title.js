@@ -58,25 +58,33 @@ function journalMoonPieceArt(page){
 /* 특별 손님 초상화입니다. 로비 컬렉션 장과 인게임 일기 장이 같은 그림 한 장을
    씁니다 — 대화씬 원화의 motion_02 이고, 주소는 js/story.js 한 곳이 정합니다.
    (page 는 컬렉션 장, entry 는 일기 장의 손님 한 명입니다. 둘 다 guestId 를 듭니다) */
+/* 표정은 음식 평가를 따라갑니다.
+     인게임 일기   — 그 회차에 받은 평가 (evaluationTier)
+     로비 컬렉션   — 회차를 통틀어 가장 잘 받은 평가 (bestTier)
+   한 장에 둘이 같이 담기는 일은 없어서 있는 쪽을 그대로 씁니다. */
+function journalGuestTier(source){
+  return source?.evaluationTier||source?.bestTier||null;
+}
+
 function journalGuestArt(source){
   const guestId=String(source?.guestId||source?.id||"");
   if(!guestId||typeof storyJournalGuestPortraitArt!=="function")return "";
-  return storyJournalGuestPortraitArt(guestId);
+  return storyJournalGuestPortraitArt(guestId,journalGuestTier(source));
 }
 
-/* 원화는 전신이라, 원형틀에는 얼굴만 확대해서 넣습니다.
-   얼굴 자리는 js/story.js 의 표(JOURNAL_GUEST_FACE)가 알려 줍니다.
-   ⚠️ 이 비율은 css/settings.css 의 .journal-page-portrait 상자와 같아야 합니다.
+/* 원화는 전신이라, 원형틀에는 얼굴부터 어깨까지만 확대해서 넣습니다.
+   자를 자리는 js/story.js 의 표(JOURNAL_GUEST_FACE)가 알려 줍니다.
+   ⚠️ 이 비율은 css/settings.css 의 초상화 상자(1/1)와 같아야 합니다.
       틀보다 좁게 자르면 좌우가 비고, 넓게 자르면 얼굴이 잘립니다. */
-const JOURNAL_PORTRAIT_BOX_RATIO=44/60;
+const JOURNAL_PORTRAIT_BOX_RATIO=1;
 
 /* 자를 자리를 background-size·position 으로 옮겨 적습니다.
    size 는 '틀의 몇 배로 키울지', position 의 % 는 '남는 그림을 어느 쪽으로
    밀지'라서 한가운데를 맞추려면 아래처럼 다시 계산해야 합니다
    (그냥 cx% 를 넣으면 한가운데가 아니라 그 지점이 틀의 같은 %로 갑니다). */
-function journalGuestFaceStyle(guestId){
+function journalGuestFaceStyle(guestId,tier){
   const face=typeof storyJournalGuestFaceBox==="function"
-    ?storyJournalGuestFaceBox(guestId):null;
+    ?storyJournalGuestFaceBox(guestId,tier):null;
   if(!face)return null;
   const height=Math.min(1,Math.max(.05,face.fh/100));
   // 세로로 자른 만큼에서 틀 비율로 가로 폭이 정해집니다(원화 가로의 비율).
@@ -88,11 +96,14 @@ function journalGuestFaceStyle(guestId){
   };
 }
 
-// 초상화 한 자리를 채웁니다. 얼굴 자리를 모르는 인물은 전신을 담습니다.
-function applyJournalGuestFace(node,guestId,art){
+/* 초상화 한 자리를 채웁니다. 얼굴 자리를 모르는 인물은 전신을 담습니다.
+   표정에 따라 자세가 달라지는 인물이 있어 자를 자리도 평가를 같이 봅니다. */
+function applyJournalGuestFace(node,source,art){
   if(!node)return;
   node.style.backgroundImage=art?`url("${art}")`:"";
-  const face=art?journalGuestFaceStyle(guestId):null;
+  const face=art
+    ?journalGuestFaceStyle(String(source?.guestId||source?.id||""),journalGuestTier(source))
+    :null;
   node.style.backgroundSize=face?face.size:"";
   node.style.backgroundPosition=face?face.position:"";
 }
@@ -521,7 +532,7 @@ function createJournalGuestCard(entry){
   };
   const portraitArt=journalGuestArt(entry);
   // 로비 컬렉션과 같은 원형틀에 얼굴만 확대해서 넣습니다.
-  if(portraitArt)applyJournalGuestFace(append("journal-guest-portrait",""),entry.guestId,portraitArt);
+  if(portraitArt)applyJournalGuestFace(append("journal-guest-portrait",""),entry,portraitArt);
   append("journal-guest-name","",entry.guestName||"");
   const shardArt=journalEntryShardArt(entry);
   if(shardArt){
@@ -594,7 +605,7 @@ function renderJournalPage({acknowledge=false}={}){
   // 인라인 style 은 CSS 배경을 확실히 덮습니다. 잠긴 장에서는 비워 두어야
   // .is-locked 의 실루엣이 그대로 보입니다(위 guestArt 참고).
   // 손님은 얼굴만 확대해 넣고, 엔딩 컷씬은 그림 전체를 그대로 깝니다.
-  if(guestArt)applyJournalGuestFace(elements.pagePortrait,page.guestId||page.id,guestArt);
+  if(guestArt)applyJournalGuestFace(elements.pagePortrait,page,guestArt);
   else{
     elements.pagePortrait.style.backgroundImage=endingArt?`url("${endingArt}")`:"";
     elements.pagePortrait.style.backgroundSize="";

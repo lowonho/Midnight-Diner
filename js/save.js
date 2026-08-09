@@ -581,6 +581,33 @@ function recordJournalGuestMeeting(guestId,details={}){
   return writeJournalData(journal)?.metGuests?.[id]||null;
 }
 
+/* ── 회차를 통틀어 가장 잘 받은 평가 ──────────────────────────
+   로비 컬렉션의 초상화 표정이 이 값을 따라갑니다. 진행 세이브의 평가는
+   회차가 돌면 지워지므로, 만남 기록과 같은 영구 칸에 따로 적어 둡니다.
+   낮은 평가로 덮이면 안 되니 늘 더 높은 쪽만 남깁니다. */
+const JOURNAL_TIER_RANK=Object.freeze({soft:1,warm:2,great:3});
+
+function journalBetterTier(current,next){
+  return (JOURNAL_TIER_RANK[next]||0)>(JOURNAL_TIER_RANK[current]||0)?next:current||null;
+}
+
+function recordJournalGuestEvaluation(guestId,tier){
+  const id=String(guestId||"").trim();
+  if(!id||!JOURNAL_TIER_RANK[tier])return null;
+  const journal=readJournalData();
+  const previous=journal.metGuests[id]||{};
+  const bestTier=journalBetterTier(previous.bestTier,tier);
+  if(bestTier===previous.bestTier)return previous;
+  journal.metGuests[id]={...previous,id,bestTier,bestTierAt:Date.now()};
+  return writeJournalData(journal)?.metGuests?.[id]||null;
+}
+
+/* 예전 기록에는 bestTier 칸이 없습니다. 컬렉션 장은 완벽 평가로만 열리므로
+   이미 열려 있는 손님은 완벽을 받은 적이 있다는 뜻이라 그것으로 채웁니다. */
+function journalGuestBestTier(id,entry,metGuests){
+  return journalBetterTier(metGuests?.[id]?.bestTier,entry?.unlocked?"great":null);
+}
+
 function journalGuestMet(guestId){
   const id=String(guestId||"").trim();
   if(!id)return false;
@@ -631,6 +658,8 @@ function readJournalCollectionPages(){
       epilogueUnlocked:kind==="guest"
         &&!!entry.unlocked
         &&!!(entry.epilogueUnlocked||journal.trueEndingEpilogueUnlocked),
+      // 초상화 표정이 이 값을 따라갑니다(js/title.js). 엔딩 장에는 없습니다.
+      bestTier:kind==="guest"?journalGuestBestTier(id,entry,journal.metGuests):null,
       notificationPending:!!entry.notificationPending
     };
   });
@@ -659,6 +688,7 @@ window.MoonlightTableSave=Object.freeze({
   readJournal:readJournalData,
   recordGuest:recordJournalGuest,
   recordGuestMeeting:recordJournalGuestMeeting,
+  recordGuestEvaluation:recordJournalGuestEvaluation,
   guestMet:journalGuestMet,
   recordFragment:recordJournalFragment,
   recordEnding:recordJournalEnding,

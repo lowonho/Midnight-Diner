@@ -375,11 +375,14 @@ function gameplayJournalGuestRecord(definition){
   else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
-    // 아래 세 줄은 일기 장에 붙는 그림 두 장(초상화·달빛 조각)의 재료입니다.
+    // 아래 네 줄은 일기 장에 붙는 그림 두 장(초상화·달빛 조각)의 재료입니다.
     // 조각 그림은 이번 회차에 실제로 받았을 때만 나옵니다(js/title.js).
+    // 초상화 표정은 이번 회차에 받은 평가를 따라갑니다 — 로비 컬렉션과 달리
+    // 지난 회차에 더 잘 받았더라도 이 장에는 이번 회차 얼굴이 남습니다.
     shardId:definition.shardId,
     shardName:definition.shardName,
     fragmentState:currentFragmentState,
+    evaluationTier:result.evaluationTier||null,
     guestName:definition.guestId==="facelessDaeun"
       &&!(guest.memoryUnlocked||Number(guest.revealedStoryLevel)>=3)
       ?(STORY_CHARACTERS.facelessDaeun?.name||"얼굴 없는 손님")
@@ -1952,47 +1955,74 @@ function storyPortraitMotionArt(portraitKey,motion){
 }
 
 /* 영업일지에 붙는 특별 손님 초상화입니다. 로비 컬렉션과 인게임 일기 장이
-   같은 그림 한 장을 씁니다 — 대화씬 원화의 motion_02(soft, 잔잔한 미소)입니다.
-   어느 장면에서 만났는지와 무관하게 늘 같은 얼굴이어야 기록처럼 읽힙니다.
-   그림이 없는 배역(주인공·목소리뿐인 화자)은 빈 문자열입니다. */
-const JOURNAL_GUEST_PORTRAIT_MOTION="soft";
-function storyJournalGuestPortraitArt(guestId){
+   대화씬 원화를 같이 씁니다. 그림이 없는 배역(주인공·목소리뿐인 화자)은
+   빈 문자열입니다.
+
+   [표정은 음식 평가를 따라갑니다]
+   같은 손님이라도 무엇을 대접했는지에 따라 다른 얼굴로 남습니다.
+     인게임 일기 — 그 회차에 받은 평가 (state.story.guestResults 의 evaluationTier)
+     로비 컬렉션 — 회차를 통틀어 가장 잘 받은 평가 (js/save.js 의 bestTier)
+   아직 평가를 받지 못했으면 잔잔한 기본 표정입니다. */
+const JOURNAL_GUEST_TIER_MOTION=Object.freeze({
+  great:"happy",   // 완벽 — 두 손 들고 반짝 웃음
+  warm:"soft",     // 맛있다 — 다정한 미소
+  soft:"sad"       // 아쉽다 — 고개 숙이고 눈 내리깔기
+});
+const JOURNAL_GUEST_PORTRAIT_MOTION="calm";   // 평가 없음
+function storyJournalGuestPortraitMotion(tier){
+  return JOURNAL_GUEST_TIER_MOTION[String(tier||"")]||JOURNAL_GUEST_PORTRAIT_MOTION;
+}
+function storyJournalGuestPortraitArt(guestId,tier){
   const id=String(guestId||"");
   if(!id||id==="protagonist")return "";
   const key=storyPortraitKey(id);
-  return key?storyPortraitMotionArt(key,JOURNAL_GUEST_PORTRAIT_MOTION):"";
+  return key?storyPortraitMotionArt(key,storyJournalGuestPortraitMotion(tier)):"";
 }
 window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
 
-/* 일지의 초상화는 전신이 아니라 얼굴만 원형틀에 확대해 넣습니다.
-   아래는 그 얼굴이 원화(1250x1800) 어디에 있는지 적어 둔 표입니다.
-     cx·cy — 얼굴 한가운데 (원화 가로·세로의 %)
+/* 일지의 초상화는 전신이 아니라 얼굴부터 어깨까지만 원형틀에 확대해 넣습니다.
+   아래는 그 자리가 원화(1250x1800) 어디인지 적어 둔 표입니다.
+     cx·cy — 잘라낼 자리 한가운데 (원화 가로·세로의 %)
      fh    — 잘라낼 세로 크기 (원화 세로의 %). 가로는 틀 비율에 맞춰 계산합니다.
    인물마다 머리 크기와 높이가 제각각이라(등불 손님은 머리가 등, 작은 짐승은
    몸이 작아 얼굴이 한참 아래) 한 가지 규칙으로는 안 맞아 눈으로 맞춘 값입니다.
-   원화를 새로 받으면 표를 고치고 아래 도구로 여덟 장을 한 줄로 뽑아 확인하세요:
+   ⚠️ 원은 네 귀퉁이를 잘라 먹습니다. 머리가 넓은 인물(비에 젖은 아이의 우비
+      모자처럼)은 상자를 빠듯하게 잡으면 정수리가 잘립니다 — 넉넉히 잡으세요.
+   대부분은 표정이 바뀌어도 머리 자리가 거의 같아 표 한 벌로 충분합니다.
+   원화를 새로 받으면 표를 고치고 아래 도구로 네 표정을 다 확인하세요:
 
-     node tools/journal-face-preview.js
+     npm run preview:journal-face
 
-   ⚠️ 값을 고치면 css/settings.css 의 .journal-page-portrait 상자 비율(44/60)도
-      같이 봐야 합니다. 가로는 그 비율에서 나옵니다. */
+   ⚠️ 값을 고치면 css/settings.css 의 초상화 상자 비율(1/1)도 같이 봐야 합니다.
+      가로는 그 비율에서 나옵니다. */
 const JOURNAL_GUEST_FACE=Object.freeze({
-  rainyChild:{cx:48,cy:22,fh:32},
-  lanternGuest:{cx:61,cy:31,fh:34},
-  twinShadows:{cx:60,cy:19,fh:28},
-  crowCourier:{cx:54,cy:15,fh:26},
-  starBeast:{cx:54,cy:37,fh:32},
-  seawaterGuest:{cx:47,cy:19,fh:27},
-  schoolDoll:{cx:48,cy:19,fh:26},
-  facelessDaeun:{cx:49,cy:18,fh:25}
+  rainyChild:{cx:48,cy:28,fh:50},
+  lanternGuest:{cx:56,cy:33,fh:57},
+  twinShadows:{cx:57,cy:24,fh:46},
+  // 까마귀는 머리가 원화 맨 위에 붙어 있어 cy 를 딱 fh 의 절반으로 둡니다.
+  // 더 위로 잡으면 자를 자리가 원화 밖으로 나가 위쪽이 빈 종이가 됩니다.
+  crowCourier:{cx:53,cy:24.5,fh:49},
+  /* 작은 짐승만 표정마다 자세가 통째로 달라서(앉고·눕고·웅크리고·뛰고)
+     한 자리로는 못 맞춥니다. 이 손님만 표정별로 따로 적습니다.
+     안 적은 표정은 위의 기본값을 씁니다. */
+  starBeast:{cx:50,cy:38,fh:48,byMotion:{
+    calm:{cx:60,cy:45,fh:50},
+    sad:{cx:64,cy:46,fh:46},
+    happy:{cx:63,cy:37,fh:48}
+  }},
+  seawaterGuest:{cx:47,cy:20,fh:36},
+  schoolDoll:{cx:48,cy:25,fh:42},
+  facelessDaeun:{cx:49,cy:22.5,fh:37}
 });
 // 원화 크기입니다(tools/build-conversation-webp.js 의 공통 크롭 박스 비율).
 const JOURNAL_GUEST_ART_SIZE=Object.freeze({width:1250,height:1800});
 
-function storyJournalGuestFaceBox(guestId){
+function storyJournalGuestFaceBox(guestId,tier){
   const key=storyPortraitKey(String(guestId||""));
   const face=JOURNAL_GUEST_FACE[key];
-  return face?{...face,...JOURNAL_GUEST_ART_SIZE}:null;
+  if(!face)return null;
+  const motion=face.byMotion?.[storyJournalGuestPortraitMotion(tier)];
+  return {...face,...(motion||{}),...JOURNAL_GUEST_ART_SIZE};
 }
 window.storyJournalGuestFaceBox=storyJournalGuestFaceBox;
 
@@ -2246,6 +2276,9 @@ function recordStorySceneOutcome(scene){
     result.visited=true;
     result.evaluationTier=scene.resultTier;
     result.reactionSceneId=scene.id;
+    // 회차를 넘겨 남는 '가장 잘 받은 평가'입니다. 로비 컬렉션의 초상화
+    // 표정이 이것을 따라갑니다(진행 세이브의 평가는 회차가 돌면 지워집니다).
+    window.MoonlightTableSave?.recordGuestEvaluation?.(guestId,scene.resultTier);
     result.fragmentState=strongerStoryFragmentState(previousFragmentState,earnedFragmentState);
     if(result.fragmentState!=="none")result.fragmentName=scene.shardName||scene.shardId||null;
     guest.revealedStoryLevel=Math.max(
