@@ -66,7 +66,9 @@ const UI_TEXT = Object.freeze({
     [GAME_PHASES.OPEN]:"영업 중",
     [GAME_PHASES.RESULT]:"마감"
   }),
-  leftTitlePrep: "오늘의 준비",
+  // 상단 타이틀 판이 "1일차 낮 재료 준비", 우측이 "현재 목표"를 맡으므로
+  // 좌측 제목은 이 판이 무엇인지(=목록)만 말합니다.
+  leftTitlePrep: "준비 목록",
   leftTitleOther: "현재 주문",
 
   phaseButton: "영업 시작",

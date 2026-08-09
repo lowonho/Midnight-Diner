@@ -273,19 +273,47 @@ function renderPrepChecklist(){
     +`<div class="prep-total">준비 완료 ${doneCount} / ${allTasks.length}</div>`;
 }
 
+/* 지금 손댈 수 있는 준비 작업 하나.
+   순서(selectedPrepTasksForChecklist)대로 훑되, 선행 작업이 남은 것은
+   지금 E 를 눌러도 startPrepTask() 가 막으므로 건너뜁니다. 전부 막혀
+   있으면(있을 수 없는 배치지만) 그냥 첫 미완료 작업을 돌려줍니다. */
+function nextPrepTask(){
+  const remaining=selectedPrepTasks().filter(task=>!state.prepProgress?.[task.id]);
+  return remaining.find(task=>!(task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]))
+    ||remaining[0]||null;
+}
+
+/* 낮 우측 HUD = "지금 할 일" 하나.
+   ------------------------------------------------------------
+   예전에는 여기에 오늘의 메뉴 목록 · 완료 수 · 조작 안내를 담았는데
+   셋 다 화면 어딘가에 이미 있었습니다 —
+     메뉴 목록  상단 메뉴 카드(game.js buildMenuCards)와 좌측 준비 목록
+     완료 수    좌측 목록 아래 「준비 완료 n / m」(renderPrepChecklist)
+     조작       바로 아래 키캡 칩(index.html .controls-help)
+   그래서 어디에도 없는 것만 남깁니다: 다음에 할 작업과 그 작업이 놓인
+   자리. 밤 패널(night.js)이 "다음 조리대"를 짚어 주는 것과 같은 역할입니다.
+
+   ⚠️ 「준비물」 줄의 이름은 바 테이블 위 이름표와 **같은 문구**여야 합니다
+      (prep.js drawPrepObjects 의 `${dish.name} 준비`). 한쪽만 고치면
+      패널이 가리키는 이름이 화면에 없습니다. */
 function updateDayObjective(){
-  const dishes=selectedDishes(),tasks=selectedPrepTasks(),pending=selectedPrepTasksForChecklist().filter(task=>!task.isImplemented);
-  const completed=tasks.filter(task=>state.prepProgress[task.id]).length;
-  dom.objectiveTitle.textContent="영업 준비";
+  const next=nextPrepTask();
+  dom.objectiveTitle.textContent="현재 목표";
+  if(!next){
+    dom.objectiveBody.innerHTML=`
+      <div class="prep-summary">
+        <strong>준비 완료</strong>
+        <div>왼쪽 「${UI_TEXT.phaseButton}」 버튼으로 밤 영업을 시작하세요.</div>
+      </div>`;
+    return;
+  }
+  const dish=dishById(next.menuId);
   dom.objectiveBody.innerHTML=`
     <div class="prep-summary">
-      <strong>오늘의 메뉴</strong>
-      <div>${dishes.map(dish=>dish.name).join(" · ")||"선택된 메뉴 없음"}</div>
-      <strong>준비할 작업</strong>
-      <div>완료 ${completed} · 남음 ${Math.max(0,tasks.length-completed)}</div>
-      ${pending.length?`<div>${pending.length}개 작업은 다음 구현 단계에서 연결됩니다.</div>`:""}
-      <strong>조작</strong>
-      <div>WASD 이동 · E 상호작용 · ESC 메뉴</div>
+      <strong>다음 작업</strong>
+      <div>${next.label}</div>
+      <strong>준비물</strong>
+      <div>바 테이블의 「${dish?`${dish.name} 준비`:next.objectLabel}」</div>
     </div>`;
 }
 
@@ -293,17 +321,15 @@ function updateMenuSelectionObjective(){
   const signature=`menu-select-standby|${state.day}`;
   if(dom.inventoryList.dataset.signature!==signature){
     dom.inventoryList.dataset.signature=signature;
-    dom.inventoryList.innerHTML='<div class="order-empty">냉장고 앞에서 오늘의 메뉴를 정하세요.</div>';
+    // 좌측은 "고른 메뉴 목록" 칸입니다. 무엇을 해야 하는지는 우측이 맡으므로
+    // 여기서는 목록이 비었다는 사실만 알립니다(같은 안내를 두 판에 쓰지 않습니다).
+    dom.inventoryList.innerHTML='<div class="order-empty">아직 정한 메뉴가 없습니다.</div>';
   }
-  dom.objectiveTitle.textContent="오늘의 메뉴";
+  dom.objectiveTitle.textContent="현재 목표";
   dom.objectiveBody.innerHTML=`
     <div class="prep-summary">
       <strong>메뉴 정하기</strong>
       <div>주방의 냉장고 앞으로 이동해 오늘 준비할 메뉴를 정하세요.</div>
-      <strong>영업일지</strong>
-      <div>확인한 음식 기록이 있다면 냉장고를 열기 전에 참고할 수 있습니다.</div>
-      <strong>조작</strong>
-      <div>WASD 이동 · 냉장고 앞에서 E 상호작용 · ESC 메뉴</div>
     </div>`;
 }
 

@@ -471,7 +471,7 @@ function trashInFront(){
 
 /* 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
 
-   [17 인 이유] 판이 나무판 그림(§ STATION_PLATE_ART)으로 바뀌면서
+   [17 인 이유] 판이 나무판 그림(draw-utils.js NAMEPLATE_ART)으로 바뀌면서
    좌우 끝을 금장 장식이 차지합니다. 예전 도형 명판 기준이던 12 로는
    글자가 그 장식에 바짝 붙었습니다. 앞쪽 철판 명패와 같은 비율로
    맞춘 값입니다 — 저쪽은 14px 글자에 여백 18.6 이라, 13px 글자면 17 입니다.
@@ -521,67 +521,16 @@ function stationLabelPlateWidth(label){
 
 /* 이름표 판 그림 — 앞쪽 철판 명패와 같은 에셋
    ------------------------------------------------------------
-   assets/counter/ui_nameplate (188x92, 나무판 + 금장 테두리).
-   counter.js 가 철판·계산대 명패로 이미 받아 둔 그림을 그대로 씁니다.
-   (같은 파일을 여기서 또 받으면 다운로드가 두 번 일어납니다)
+   판을 만드는 코드는 draw-utils.js 의 nameplateCanvas() 에 있습니다.
+   낮 준비물 이름표(prep.js)도 같은 판을 쓰게 되면서 공용 파일로 옮겼습니다.
+   에셋·3분할 규칙은 그쪽 § NAMEPLATE_ART 주석을 보세요.
 
    ⚠️ counter.js 가 아직 안 받았거나 받기에 실패하면 그림이 없습니다.
       그때는 예전 도형 명판으로 되돌아갑니다. (labelStation 아래쪽)
 
-   [3분할로 늘립니다] 네 귀퉁이에 금장 장식이 박혀 있어서 통째로 늘이면
-   장식만 옆으로 눌립니다. 좌우 끝(CAP)은 세로와 같은 배율로 그대로 두고
-   가운데만 늘입니다. 가운데는 가로결 나뭇결이라 가로로 늘어나도
-   눈에 띄지 않습니다.
-
-   [미리 그려 두는 이유] 폭 종류가 글자 수만큼(3가지)뿐입니다. 폭마다
-   한 번만 그려 캔버스에 담아 두고 이후에는 1:1 복사만 합니다.
-   VIEW 픽셀로 만들어 두어야 프레임 캔버스(x1.5)에서 흐려지지 않습니다.
-   ------------------------------------------------------------ */
-const STATION_PLATE_ART = {
-  key:"counter_nameplate",
-  srcY:4, srcH:84,   // 원본 위 4px 은 투명 여백이라 뺍니다
-  cap:30             // 좌우 끝 금장 장식 폭 (원본 px)
-};
-
-/* 판 위 글자도 철판 명패와 같은 색·외곽선입니다. (counter.js COUNTER_LABEL_STYLE)
-   나뭇결 위에 밝은 글자만 얹으면 획이 결에 묻혀서, 저쪽도 어두운 외곽선을
-   두르고 있습니다. 굵기는 글자 크기에 맞춰 줄인 값입니다
-   (철판 21px 에 4 → 여기 13px 에 2.5). */
-const STATION_LABEL_TEXT = {
-  fill:"#f4dcab", activeFill:"#fff2d2",
-  stroke:"#1d1108", strokeWidth:2.5
-};
-
-const stationPlateCanvases = {};
-
-function stationPlateCanvas(w,h){
-  const cacheKey=`${w}x${h}`;
-  if(cacheKey in stationPlateCanvases) return stationPlateCanvases[cacheKey];
-
-  const image=typeof counterImages!=="undefined"?counterImages[STATION_PLATE_ART.key]:null;
-  if(!image) return null;   // 아직 로딩 전. 캐시에 넣지 않아야 다음 프레임에 다시 봅니다.
-
-  const A=STATION_PLATE_ART;
-  const canvas=document.createElement("canvas");
-  canvas.width =Math.round(toView(w));
-  canvas.height=Math.round(toView(h));
-  const g=canvas.getContext("2d");
-  g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
-
-  const capW=Math.round(A.cap*(canvas.height/A.srcH));   // 세로와 같은 배율
-  const midW=canvas.width-capW*2;
-  if(midW>0){
-    g.drawImage(image, 0,A.srcY, A.cap,A.srcH,                     0,0, capW,canvas.height);
-    g.drawImage(image, A.cap,A.srcY, image.width-A.cap*2,A.srcH,   capW,0, midW,canvas.height);
-    g.drawImage(image, image.width-A.cap,A.srcY, A.cap,A.srcH,     canvas.width-capW,0, capW,canvas.height);
-  }else{
-    // 장식 두 개도 못 들어갈 만큼 좁으면 그냥 통째로 줄입니다.
-    g.drawImage(image, 0,A.srcY, image.width,A.srcH, 0,0, canvas.width,canvas.height);
-  }
-
-  stationPlateCanvases[cacheKey]=canvas;
-  return canvas;
-}
+   글자 색도 철판 명패와 같습니다(draw-utils.js NAMEPLATE_TEXT). 외곽선
+   굵기만 글자 크기에 맞춰 줄인 값입니다 (철판 21px 에 4 → 여기 13px 에 2.5). */
+const STATION_LABEL_TEXT = { ...NAMEPLATE_TEXT, strokeWidth:2.5 };
 
 /* 이름표 판의 크기와 높이(논리 좌표).
    game.js 의 E 키캡도 같은 값을 봐야 둘이 어긋나지 않으므로 상수로 뺐습니다.
@@ -659,7 +608,7 @@ function labelStation(s,near){
      바꿨는데, 그림 판에는 바꿀 테두리가 없습니다. 대신 글자 색과
      크기(applyLabelScale)로만 강조합니다 — 앞쪽 철판 명패가 쓰는
      방식과 같습니다. (counter.js COUNTER_FLOAT) */
-  const plate=stationPlateCanvas(w,h);
+  const plate=nameplateCanvas(w,h);
   if(plate){
     ctx.drawImage(plate,x,y,w,h);
   }else{
