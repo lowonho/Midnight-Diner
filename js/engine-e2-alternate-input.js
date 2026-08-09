@@ -741,7 +741,7 @@ registerDayPrepEngine("shrimpCoat",{
 const SHRIMP_ROLL_CONFIG=Object.freeze({requiredTravelRatio:2.2,visualLimitRatio:.32});
 // 코팅 재료 id → 재료별 굴리는 소리 (day4-prep-data.js 의 SHRIMP_COAT_STEPS.id 와 같은 이름)
 const SHRIMP_COAT_SFX=Object.freeze({flour:"shrimp_flour_coat",egg:"shrimp_egg_coat",breadcrumbs:"shrimp_crumb_coat"});
-const SHRIMP_COAT_GAIN=Object.freeze({flour:.8,egg:1.85,breadcrumbs:1.45});
+const SHRIMP_COAT_GAIN=Object.freeze({flour:1,egg:1,breadcrumbs:1});
 
 function playShrimpCoatSfx(m){
   const data=m?.data,id=data?.sequence?.[data.step]?.id,name=SHRIMP_COAT_SFX[id];

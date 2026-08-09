@@ -359,7 +359,7 @@ function setupKimchiFry(taskId="fryTofuKimchi"){
     ingredients:config.ingredients,
     sequence:randomFryDirections(config.directions,config.total)
   });
-  audio.loop?.("pan_sizzle",m,.6);
+  audio.loop?.("pan_sizzle",m,.7);
   dom.miniTitle.textContent="김치 볶기";
   dom.miniDescription.textContent="화살표 방향대로 팬 위를 슬라이드해 김치와 설탕을 함께 볶아주세요!";
   renderKimchiFry();
@@ -574,7 +574,7 @@ registerMiniEngine("stir",{
       stirred:false,
       drag:null
     };
-    audio.loop?.("griddle_sizzle",m,.62);
+    audio.loop?.("griddle_sizzle",m,.7);
     dom.miniTimer.textContent=`0 / ${STIR_TOTAL}`;          // 공용 카드는 CSS 로 숨겨져 있습니다
     renderStirScene();
   },

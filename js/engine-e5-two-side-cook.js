@@ -455,7 +455,7 @@ registerMiniEngine("twoSideCook", {
     /* 굽는 소리는 **올린 것이 있을 때만** 깝니다. 김치전은 처음부터 팬 위에 있지만,
        닭꼬치는 화로가 비어 있는 채로 시작하므로 첫 자루를 올릴 때 켭니다
        (placeTwoSideUnit). 빈 화로에서 고기 굽는 소리가 나던 것을 고친 것입니다. */
-    if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
+    if(!isSkewer)audio.loop?.("pan_sizzle",m,.7);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
     setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 위아래 드래그 : 양념 · 옆으로 드래그 : 뒤집기":"꾹 누른 뒤 초록에서 떼기 : 굽기 · 위로 드래그 : 뒤집기");
@@ -874,7 +874,7 @@ function serveTwoSideUnit(m,index){
 function playTwoSideSizzle(m){
   const data=m.data;
   if(data.sizzleSfx)audio.stopFile?.(data.sizzleSfx);
-  data.sizzleSfx=audio.play?.(data.dishStyle==="skewer"?"charcoal_grill":"pan_sizzle",{owner:m,gain:1.9})||null;
+  data.sizzleSfx=audio.play?.(data.dishStyle==="skewer"?"charcoal_grill":"pan_sizzle",{owner:m,gain:.7})||null;
   miniSetTimeout(()=>{
     if(data.sizzleSfx){audio.stopFile?.(data.sizzleSfx);data.sizzleSfx=null;}
   },700);
@@ -934,7 +934,7 @@ function applyTwoSideSauce(m,unitIndex){
   const side=twoSideCookingSide(unit);
   unit.saucedSides=unit.saucedSides||[false,false];unit.saucedSides[side]=true;
   const skewer=dom.miniContent.querySelector(`.grill-skewer.skewer-${unitIndex+1}`);
-  audio.play?.("pour_thick",{owner:m,gain:.9});
+  audio.play?.("pour_thick",{owner:m});
   dom.miniFeedback.textContent=`${unitIndex+1}번 꼬치 ${side?"뒷":"앞"}면에 양념을 발랐습니다!`;
   if(!skewer)return;
   skewer.insertAdjacentHTML("beforeend",sauceBrushMarkup());
@@ -1124,8 +1124,8 @@ function placeTwoSideUnit(m,index,slotIndex=null){
   if(amount)amount.textContent=`×${left}`;
   dom.miniContent?.querySelector(".ts-ing-card.skewerRaw")?.classList.toggle("empty",!left);
   // 첫 자루가 올라간 순간부터 숯불 소리를 깝니다 (빈 화로에서는 안 납니다)
-  if(twoSideUnits(data).filter(one=>one.placed).length===1)audio.loop?.("charcoal_grill",m,1.8);
-  audio.play?.("skewer_pierce",{owner:m,gain:.8});
+  if(twoSideUnits(data).filter(one=>one.placed).length===1)audio.loop?.("charcoal_grill",m,.7);
+  audio.play?.("skewer_pierce",{owner:m});
   dom.miniFeedback.textContent=`${index+1}번 꼬치를 화로에 올렸습니다!`;
   updateTwoSideCookVisual(data,unit);
   updateTwoSideHint(data);

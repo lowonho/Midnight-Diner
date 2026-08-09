@@ -163,9 +163,9 @@ const BATTER_INGREDIENTS=Object.freeze([
 ]);
 
 const BATTER_INGREDIENT_SFX=Object.freeze({
-  flour:Object.freeze({name:"pour_pancake_flour",gain:2.5}),
-  water:Object.freeze({name:"pour_water",gain:.55}),
-  kimchi:Object.freeze({name:"drop_pancake_kimchi",gain:.52})
+  flour:Object.freeze({name:"pour_pancake_flour",gain:1}),
+  water:Object.freeze({name:"pour_water",gain:1}),
+  kimchi:Object.freeze({name:"drop_pancake_kimchi",gain:1})
 });
 
 /* 볼 안을 그리는 그림은 **넣은 재료 조합마다 한 장**입니다.

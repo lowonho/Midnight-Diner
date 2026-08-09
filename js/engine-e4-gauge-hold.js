@@ -391,8 +391,8 @@ registerMiniEngine("heat",{
       holding:false,phase:"ready"
     };
     // 냄비의 끓는 루프만 비교 청음할 수 있도록 가스불 효과음은 잠시 제외합니다.
-    if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
-    else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.55);
+    if(configId==="oden")audio.loop?.("clear_simmer",m,.7);
+    else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.7);
     // 3열 화면입니다. 칸 크기는 css/minigame-parts.css 의 공용 규격이 정하고,
     // 여기서는 어느 칸에 무엇을 넣을지만 정합니다.
     dom.miniContent.innerHTML=heatScreenMarkup(config);

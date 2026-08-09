@@ -181,6 +181,14 @@ const audio = {
     storyCompany:"assets/bgm/story/bgm_company_story.mp3",
     storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"
   }),
+  // 400ms 단위의 스테레오 RMS를 측정해 낮 BGM(-24.65dBFS)에 맞춘 값입니다.
+  // 원본 파일을 다시 인코딩하지 않고 트랙 GainNode에서만 보정합니다.
+  bgmTrackGains:Object.freeze({
+    day:1,
+    night:3.685,
+    storyCompany:.95,
+    storySikdang:.571
+  }),
   // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
   // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
   files:Object.freeze({
@@ -202,6 +210,7 @@ const audio = {
     fry_basket_lift:["assets/sfx/sfx_fry_basket_lift.MP3"],
     fry_basket_shake:["assets/sfx/sfx_fry_basket_shake.MP3"],
     pancake_flip:["assets/sfx/sfx_pancake_flip.MP3"],
+    plate_set:["assets/sfx/sfx_plate_tofu_place.MP3"],
     charcoal_grill:["assets/sfx/sfx_charcoal_grill_loop.MP3"],
     whisk_mix:["assets/sfx/sfx_whisk_mix_loop1.MP3","assets/sfx/sfx_whisk_mix_loop2.MP3"],
     input_wrong:["assets/sfx/sfx_input_wrong.MP3"],
@@ -243,8 +252,79 @@ const audio = {
     fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
     fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"]
   }),
+  /* 브라우저에서 스테레오 활성 RMS/피크를 전수 측정한 파일별 보정값입니다.
+     썰기 6종 중앙값 -25.8dBFS를 기준으로 단발 조리음은 -25.8,
+     UI·결과·스토리 큐는 -27.5, 조리 루프는 -31.8,
+     대사 아래의 스토리 앰비언스는 -33.8dBFS에 맞췄습니다. */
+  sfxFileGains:Object.freeze({
+    "assets/sfx/sfx_anchovy_finish.MP3":.5623,
+    "assets/sfx/sfx_anchovy_tension1.MP3":2.3388,
+    "assets/sfx/sfx_anchovy_tension2.MP3":2.1727,
+    "assets/sfx/sfx_charcoal_grill_loop.MP3":5.8412,
+    "assets/sfx/sfx_clear_simmer_loop.MP3":.3784,
+    "assets/sfx/sfx_cut_crisp.MP3":1.1682,
+    "assets/sfx/sfx_cut_meat1.MP3":.639,
+    "assets/sfx/sfx_cut_meat2.MP3":.9311,
+    "assets/sfx/sfx_cut_soft.MP3":1.2023,
+    "assets/sfx/sfx_cut_wet.MP3":1.0678,
+    "assets/sfx/sfx_deep_fry_loop.MP3":.366,
+    "assets/sfx/sfx_drop_pancake_kimchi.MP3":.7337,
+    "assets/sfx/sfx_food_serve.MP3":1.0678,
+    "assets/sfx/sfx_fries_starch_bag_shake1.MP3":1.3599,
+    "assets/sfx/sfx_fries_starch_bag_shake2.MP3":1.3677,
+    "assets/sfx/sfx_fry_basket_lift.MP3":.9194,
+    "assets/sfx/sfx_fry_basket_shake.MP3":.7998,
+    "assets/sfx/sfx_gas_flame_loop.MP3":.6769,
+    "assets/sfx/sfx_griddle_sizzle_loop.MP3":.537,
+    "assets/sfx/sfx_input_wrong.MP3":.8861,
+    "assets/sfx/sfx_knife_daikon.MP3":.7736,
+    "assets/sfx/sfx_mandoline_slide1.MP3":.881,
+    "assets/sfx/sfx_mandoline_slide2.MP3":1.0116,
+    "assets/sfx/sfx_metal_scrape1.MP3":1.3351,
+    "assets/sfx/sfx_metal_scrape2.MP3":1.3459,
+    "assets/sfx/sfx_pan_sizzle_loop.MP3":1.4538,
+    "assets/sfx/sfx_pancake_flip.MP3":.6012,
+    "assets/sfx/sfx_plate_tofu_place.MP3":10.9018,
+    "assets/sfx/sfx_pour_pancake_flour.MP3":4.1305,
+    "assets/sfx/sfx_pour_syrup.MP3":4.9831,
+    "assets/sfx/sfx_pour_thick.MP3":4.9831,
+    "assets/sfx/sfx_pour_thin.MP3":4.1687,
+    "assets/sfx/sfx_pour_water.MP3":.8222,
+    "assets/sfx/sfx_result_good.MP3":.4406,
+    "assets/sfx/sfx_result_perfect.MP3":.6531,
+    "assets/sfx/sfx_shrimp_crumb_coat.MP3":4.1831,
+    "assets/sfx/sfx_shrimp_egg_coat.MP3":5.2845,
+    "assets/sfx/sfx_shrimp_flour_coat.MP3":2.2568,
+    "assets/sfx/sfx_skewer_pierce.MP3":.2858,
+    "assets/sfx/sfx_skewer_turn.MP3":1.6501,
+    "assets/sfx/sfx_soak_ingredient_drop.MP3":.7925,
+    "assets/sfx/sfx_thick_boil_loop.MP3":.3544,
+    "assets/sfx/sfx_timer_warning.MP3":4.672,
+    "assets/sfx/sfx_ui_click.MP3":1.4158,
+    "assets/sfx/sfx_whisk_mix_loop1.MP3":.4083,
+    "assets/sfx/sfx_whisk_mix_loop2.MP3":.4232,
+    "assets/sfx/sfx_wood_stir1.MP3":1.9747,
+    "assets/sfx/sfx_wood_stir2.MP3":1.8072,
+    "assets/sfx/story/fragments/sfx_d1_finish.MP3":.3789,
+    "assets/sfx/story/fragments/sfx_d2_finish.MP3":.4534,
+    "assets/sfx/story/fragments/sfx_d3_finish.MP3":.2944,
+    "assets/sfx/story/fragments/sfx_d4_finish.MP3":.4188,
+    "assets/sfx/story/fragments/sfx_d5_finish.MP3":.4926,
+    "assets/sfx/story/fragments/sfx_d6_finish.MP3":.5248,
+    "assets/sfx/story/fragments/sfx_d7_finish.MP3":.399,
+    "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3":1.9033,
+    "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3":1.0605,
+    "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3":.2891,
+    "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3":.7971,
+    "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3":.756,
+    "assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3":1.2779,
+    "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3":.663,
+    "assets/sfx/story/sfx_open_door.MP3":1.0292,
+    "assets/sfx/story/sfx_rain.MP3":.6281,
+    "assets/sfx/ui/sfx_next_book.MP3":1.194
+  }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
-  bgmElements:new Map(),bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
+  bgmElements:new Map(),bgmSources:new Map(),bgmGainNodes:new Map(),bgmWebAudio:false,bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
   preload(){
     Object.values(this.files).flat().forEach(src=>{
       if(this.preloaded.has(src))return;
@@ -256,8 +336,46 @@ const audio = {
       this.bgmElements.set(track,element);element.load();
     });
   },
-  fileGain(entry){return sfxAudioIsEnabled()?clamp(audioMasterGain()*state.audio.sfx*.72*(entry.gain??1),0,1):0;},
-  bgmFileGain(){return bgmAudioIsEnabled()?clamp(audioMasterGain()*state.audio.bgm*.32,0,1):0;},
+  fileGain(entry){return sfxAudioIsEnabled()
+    ?entry.webAudio?1:clamp(audioMasterGain()*state.audio.sfx*.72*(entry.normalization??1)*(entry.gain??1),0,1)
+    :0;},
+  usesDirectMediaPlayback(){
+    // 이 프로젝트는 빌드 없이 index.html(file://)로도 실행합니다. Chrome은 이때
+    // MediaElementSource의 로컬 MP3 출력을 무음 처리하므로 HTML 오디오로 재생합니다.
+    return typeof location!=="undefined"&&location.protocol==="file:";
+  },
+  bgmFileGain(){return bgmAudioIsEnabled()
+    ?this.bgmWebAudio?1:clamp(audioMasterGain()*state.audio.bgm*.65*(this.bgmTrackGains[this.bgmTrack]??1),0,1)
+    :0;},
+  connectBgmElements(){
+    this.bgmWebAudio=false;
+    if(!this.ctx||!this.bgm||this.usesDirectMediaPlayback())return false;
+    this.bgmElements.forEach((element,track)=>{
+      if(this.bgmSources.has(track))return;
+      const source=this.ctx.createMediaElementSource(element);
+      const gain=this.ctx.createGain();
+      gain.gain.value=this.bgmTrackGains[track]??1;
+      source.connect(gain);gain.connect(this.bgm);
+      this.bgmSources.set(track,source);this.bgmGainNodes.set(track,gain);
+    });
+    this.bgmWebAudio=true;
+    return true;
+  },
+  connectSfxEntry(entry){
+    if(!this.ctx||!this.sfx||!entry?.element||this.usesDirectMediaPlayback())return false;
+    try{
+      entry.sourceNode=this.ctx.createMediaElementSource(entry.element);
+      entry.gainNode=this.ctx.createGain();
+      entry.gainNode.gain.value=entry.normalization*(entry.gain??1);
+      entry.sourceNode.connect(entry.gainNode);entry.gainNode.connect(this.sfx);
+      entry.webAudio=true;
+      return true;
+    }catch(error){
+      console.warn("효과음 Web Audio 연결에 실패해 직접 재생합니다.",entry.src,error);
+      entry.sourceNode=null;entry.gainNode=null;entry.webAudio=false;
+      return false;
+    }
+  },
   pickFile(name,random=false){
     const variants=this.files[name];if(!variants?.length)return null;
     if(random)return variants[Math.floor(Math.random()*variants.length)];
@@ -271,7 +389,13 @@ const audio = {
       if(current&&!current.element.ended)return current;
     }
     const element=this.preloaded.get(src)?.cloneNode(true)||new Audio(src);
-    const entry={name,element,owner,gain,loop,pausedBySettings:false,fadingOut:false,fadeFrame:null};
+    const entry={
+      name,src,element,owner,gain,loop,
+      normalization:this.sfxFileGains[src]??1,
+      sourceNode:null,gainNode:null,webAudio:false,
+      pausedBySettings:false,fadingOut:false,fadeFrame:null
+    };
+    this.connectSfxEntry(entry);
     element.loop=loop;element.preload="auto";element.volume=this.fileGain(entry);
     const cleanup=()=>this.releaseFile(entry);
     element.addEventListener("ended",cleanup,{once:true});element.addEventListener("error",cleanup,{once:true});
@@ -291,7 +415,11 @@ const audio = {
   loop(name,owner,gain=1){return this.play(name,{loop:true,owner,gain});},
   releaseFile(entry){
     if(entry?.fadeFrame!=null){cancelAnimationFrame(entry.fadeFrame);entry.fadeFrame=null;}
-    if(entry)entry.fadingOut=false;
+    if(entry){
+      entry.fadingOut=false;
+      try{entry.sourceNode?.disconnect();entry.gainNode?.disconnect();}catch{}
+      entry.sourceNode=null;entry.gainNode=null;entry.webAudio=false;
+    }
     this.activeFiles.delete(entry);
     if(entry.owner){
       const owned=this.ownerFiles.get(entry.owner);owned?.delete(entry);if(owned&&!owned.size)this.ownerFiles.delete(entry.owner);
@@ -314,12 +442,14 @@ const audio = {
     if(fadeDuration<=0){this.stopFile(entry);return true;}
     if(entry.fadeFrame!=null)cancelAnimationFrame(entry.fadeFrame);
     const startedAt=performance.now();
-    const startVolume=Math.max(0,Number(entry.element.volume)||0);
+    const useNode=!!entry.gainNode;
+    const startVolume=Math.max(0,Number(useNode?entry.gainNode.gain.value:entry.element.volume)||0);
     entry.fadingOut=true;
     const step=now=>{
       if(!this.activeFiles.has(entry))return;
       const progress=clamp((now-startedAt)/fadeDuration,0,1);
-      entry.element.volume=startVolume*(1-progress);
+      if(useNode)entry.gainNode.gain.value=startVolume*(1-progress);
+      else entry.element.volume=startVolume*(1-progress);
       if(progress>=1){entry.fadeFrame=null;this.stopFile(entry);return;}
       entry.fadeFrame=requestAnimationFrame(step);
     };
@@ -348,13 +478,15 @@ const audio = {
     this.bgm = this.ctx.createGain();
     this.sfx = this.ctx.createGain();
     this.bgm.connect(this.master); this.sfx.connect(this.master); this.master.connect(this.ctx.destination);
+    this.connectBgmElements();
     this.apply();
   },
   apply() {
     if(this.ctx){
       this.master.gain.value = audioMasterGain();
-      this.bgm.gain.value = bgmAudioIsEnabled()?state.audio.bgm * .18:0;
-      this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .35:0;
+      // 기존에 가장 크게 들리던 스토리 곡 기준 약 1.3dB 올린 전체 레벨입니다.
+      this.bgm.gain.value = bgmAudioIsEnabled()?state.audio.bgm * .65:0;
+      this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .72:0;
     }
     this.activeFiles.forEach(entry=>{if(!entry.fadingOut)entry.element.volume=this.fileGain(entry);});
     if(!bgmAudioIsEnabled())this.bgmElements.forEach(element=>{element.volume=0;});
@@ -363,19 +495,21 @@ const audio = {
   tone(freq=440,duration=.09,type="square",gain=.12,when=0,target="sfx") {
     if (!this.ctx) return;
     const o=this.ctx.createOscillator(), g=this.ctx.createGain();
-    o.type=type; o.frequency.value=freq; g.gain.value=gain;
+    // 파일 SFX를 .72 버스로 옮겨도 기존 합성음 체감(.35 버스)은 유지합니다.
+    const routedGain=target==="sfx"?gain*(.35/.72):gain;
+    o.type=type; o.frequency.value=freq; g.gain.value=routedGain;
     o.connect(g); g.connect(this[target]);
-    const t=this.ctx.currentTime+when; o.start(t); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.001,t+duration); o.stop(t+duration+.02);
+    const t=this.ctx.currentTime+when; o.start(t); g.gain.setValueAtTime(routedGain,t); g.gain.exponentialRampToValueAtTime(.001,t+duration); o.stop(t+duration+.02);
   },
   click(){ this.tone(520,.05,"square",.08); },
-  uiClick(){ this.play("ui_click",{gain:1.35}); },
+  uiClick(){ this.play("ui_click"); },
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
   bad(){ this.play("input_wrong",{gain:.9}); },
   result(scoreOrGrade){
     const numeric=Number(scoreOrGrade);
     const perfect=scoreOrGrade==="perfect"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="perfect");
     const good=scoreOrGrade==="good"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="tasty");
-    if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
+    if(perfect)this.play("result_perfect",{gain:.8});else if(good)this.play("result_good",{gain:.8});else this.bad();
   },
   serve(){ this.play("food_serve",{gain:.9}); },
   startBgm(){
