@@ -225,7 +225,7 @@ function renderMandoline(){
   const data=m.data,percent=Math.round(data.successInputs/data.totalInputs*100);
   // 왼쪽 재료 카드 = 이 화면에서 이어서 썰 재료들. 지금 재료가 밝게 표시됩니다.
   const chain=MANDOLINE_CHAIN[data.chain].map(mandolineTask).filter(Boolean);
-  const done=chain.filter(item=>state.prepProgress?.[item.taskId]).length;
+  const done=chain.filter(item=>prepTaskCompleted(item.taskId)).length;
   // 공용 타이머 카드는 이 화면에서 숨기지만 내용은 계속 채워 둡니다.
   // (css/day-prep-minigames.css 의 숨김 한 줄만 지우면 그대로 다시 보입니다)
   dom.miniTimer.textContent=`${data.successInputs} / ${data.totalInputs}`;

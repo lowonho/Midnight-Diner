@@ -718,7 +718,7 @@ function finishDayPrepTask(taskId,message){
 function advanceDayPrepDish(m,taskId){
   if(state.mini!==m)return false;
   const task=PREP_TASKS[taskId],nextTask=task&&nextPrepTaskForDish(task.menuId);
-  const blocked=nextTask&&(nextTask.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
+  const blocked=nextTask&&(nextTask.dependsOn||[]).some(id=>PREP_TASKS[id]&&!prepTaskCompleted(id));
   if(nextTask&&!blocked){
     dom.miniContent.classList.remove("prep-complete-flash");
     startDayPrepMini(nextTask);

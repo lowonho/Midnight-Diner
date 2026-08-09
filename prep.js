@@ -71,10 +71,15 @@ function prepObjectRange(){
 // 준비 작업 수만큼 상자를 늘어놓지 않고 메뉴 하나당 한 자리만 씁니다.
 // 각 자리의 그림과 상호작용 대상은 그 메뉴에서 다음으로 해야 할 작업으로 바뀝니다.
 function prepDishGroups(){
+  const sharedTasks=new Set();
   return selectedDishes().map(dish=>{
     const dishTasks=prepTasksForDish(dish.id);
     if(!dishTasks.length)return null;
     const task=nextPrepTaskForDish(dish.id)||dishTasks[dishTasks.length-1];
+    if(!prepTaskCompleted(task)&&task.sharedPrepKey){
+      if(sharedTasks.has(task.sharedPrepKey))return null;
+      sharedTasks.add(task.sharedPrepKey);
+    }
     return {dish,tasks:dishTasks,task};
   }).filter(Boolean);
 }
@@ -154,8 +159,8 @@ function nearestPrepObject(){
 function prepObjectUsable(item,near=nearestPrepObject()){
   if(state.mini)return state.mini.context?.taskId===item.task.id;
   if(state.story?.activeStoryCook||state.paused||near?.task.id!==item.task.id)return false;
-  if(state.prepProgress?.[item.task.id])return false;
-  return !(item.task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]);
+  if(prepTaskCompleted(item.task))return false;
+  return !(item.task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!prepTaskCompleted(id));
 }
 
 
@@ -169,7 +174,7 @@ function drawPrepObjects(){
   // 가장 가까운 준비물은 전부가 공유하므로 여기서 한 번만 구합니다.
   const near=nearestPrepObject();
   prepObjectLayout().forEach(item=>{
-    const completed=item.tasks.filter(task=>state.prepProgress?.[task.id]).length;
+    const completed=item.tasks.filter(prepTaskCompleted).length;
     const done=completed===item.tasks.length;
     ctx.save();ctx.globalAlpha=done?0.48:1;
 

@@ -52,13 +52,13 @@ const CUT_HORIZONTAL_HIT_TOLERANCE=Object.freeze({fishCake:3.4});
 
 const PREP_TASKS=Object.freeze({
   cutRadish:{id:"cutRadish",menuId:"oden",label:"무 썰기",objectLabel:"무 바구니",objectKind:"radish",miniGame:"cut",prepOrder:1,isImplemented:true},
-  cutFishCake:{id:"cutFishCake",menuId:"oden",label:"어묵 썰기",objectLabel:"어묵 바구니",objectKind:"fishCake",miniGame:"cut",prepOrder:2,isImplemented:true},
+  cutFishCake:{id:"cutFishCake",menuId:"oden",label:"어묵 썰기",objectLabel:"어묵 바구니",objectKind:"fishCake",miniGame:"cut",sharedPrepKey:"cutFishCake",prepOrder:2,isImplemented:true},
   cleanAnchovy:{id:"cleanAnchovy",menuId:"oden",label:"멸치 손질",objectLabel:"멸치 바구니",objectKind:"anchovy",miniGame:"anchovy",prepOrder:3,isImplemented:true},
   cutTofuBlock:{id:"cutTofuBlock",menuId:"tofu",label:"두부 썰기",objectLabel:"두부",objectKind:"tofu",miniGame:"cut",prepOrder:9,isImplemented:true},
-  cutTofuKimchi:{id:"cutTofuKimchi",menuId:"tofu",label:"두부김치용 김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",prepOrder:10,isImplemented:true},
-  cutPancakeKimchi:{id:"cutPancakeKimchi",menuId:"kimchi",label:"김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",prepOrder:20,isImplemented:true},
+  cutTofuKimchi:{id:"cutTofuKimchi",menuId:"tofu",label:"두부김치용 김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",sharedPrepKey:"cutKimchi",prepOrder:10,isImplemented:true},
+  cutPancakeKimchi:{id:"cutPancakeKimchi",menuId:"kimchi",label:"김치 썰기",objectLabel:"김치",objectKind:"kimchi",miniGame:"cut",sharedPrepKey:"cutKimchi",prepOrder:20,isImplemented:true},
   cutSkewerChicken:{id:"cutSkewerChicken",menuId:"skewer",label:"닭 썰기",objectLabel:"닭고기",objectKind:"chicken",miniGame:"cut",prepOrder:30,isImplemented:true},
-  cutSkewerGreenOnion:{id:"cutSkewerGreenOnion",menuId:"skewer",label:"대파 썰기",objectLabel:"대파",objectKind:"greenOnion",miniGame:"cut",dependsOn:["cutSkewerChicken"],prepOrder:40,isImplemented:true},
+  cutSkewerGreenOnion:{id:"cutSkewerGreenOnion",menuId:"skewer",label:"대파 썰기",objectLabel:"대파",objectKind:"greenOnion",miniGame:"cut",sharedPrepKey:"cutGreenOnion",dependsOn:["cutSkewerChicken"],prepOrder:40,isImplemented:true},
   fryTofuKimchi:{id:"fryTofuKimchi",menuId:"tofu",label:"두부김치용 김치 볶기",objectLabel:"김치 볶기 팬",objectKind:"pan",miniGame:"kimchiFry",dependsOn:["cutTofuKimchi"],prepOrder:50,isImplemented:true},
   mixKimchiBatter:{id:"mixKimchiBatter",menuId:"kimchi",label:"김치전 반죽 만들기",objectLabel:"김치전 믹스볼",objectKind:"batter",miniGame:"batter",dependsOn:["cutPancakeKimchi"],prepOrder:60,isImplemented:true},
   assembleChickenSkewer:{id:"assembleChickenSkewer",menuId:"skewer",label:"닭꼬치 꽂기",objectLabel:"꼬치 조립대",objectKind:"skewer",miniGame:"skewer",dependsOn:["cutSkewerChicken","cutSkewerGreenOnion"],prepOrder:70,isImplemented:true},
@@ -66,8 +66,8 @@ const PREP_TASKS=Object.freeze({
   sliceYakisobaCarrot:{id:"sliceYakisobaCarrot",menuId:"yakisoba",label:"당근 채썰기",objectLabel:"당근과 채칼",objectKind:"carrot",miniGame:"mandoline",dependsOn:["sliceYakisobaCabbage"],prepOrder:90,isImplemented:true},
   coatShrimp:{id:"coatShrimp",menuId:"shrimpTempura",label:"새우 튀김옷 입히기",objectLabel:"새우 코팅 작업대",objectKind:"shrimpCoat",miniGame:"shrimpCoat",prepOrder:110,isImplemented:true},
   cutTteokbokkiCabbage:{id:"cutTteokbokkiCabbage",menuId:"tteokbokki",label:"양배추 썰기",objectLabel:"떡볶이용 양배추",objectKind:"cabbage",miniGame:"tteokbokkiCut",prepOrder:122,day4Order:1,isImplemented:true},
-  cutTteokbokkiGreenOnion:{id:"cutTteokbokkiGreenOnion",menuId:"tteokbokki",label:"대파 썰기",objectLabel:"떡볶이용 대파",objectKind:"greenOnion",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiCabbage"],prepOrder:123,day4Order:2,isImplemented:true},
-  cutTteokbokkiFishCake:{id:"cutTteokbokkiFishCake",menuId:"tteokbokki",label:"어묵 썰기",objectLabel:"떡볶이용 어묵",objectKind:"fishCake",miniGame:"tteokbokkiCut",dependsOn:["cutTteokbokkiGreenOnion"],prepOrder:124,day4Order:3,isImplemented:true},
+  cutTteokbokkiGreenOnion:{id:"cutTteokbokkiGreenOnion",menuId:"tteokbokki",label:"대파 썰기",objectLabel:"떡볶이용 대파",objectKind:"greenOnion",miniGame:"tteokbokkiCut",sharedPrepKey:"cutGreenOnion",dependsOn:["cutTteokbokkiCabbage"],prepOrder:123,day4Order:2,isImplemented:true},
+  cutTteokbokkiFishCake:{id:"cutTteokbokkiFishCake",menuId:"tteokbokki",label:"어묵 썰기",objectLabel:"떡볶이용 어묵",objectKind:"fishCake",miniGame:"tteokbokkiCut",sharedPrepKey:"cutFishCake",dependsOn:["cutTteokbokkiGreenOnion"],prepOrder:124,day4Order:3,isImplemented:true},
   sliceFriesPotato:{id:"sliceFriesPotato",menuId:"fries",label:"채칼로 감자 썰기",objectLabel:"감자와 채칼",objectKind:"potato",miniGame:"potatoMandoline",prepOrder:126,day4Order:4,isImplemented:true},
   shakeFriesStarch:{id:"shakeFriesStarch",menuId:"fries",label:"감자 전분 털기",objectLabel:"감자 바구니",objectKind:"potatoBasket",miniGame:"potatoStarch",dependsOn:["sliceFriesPotato"],prepOrder:127,day4Order:5,isImplemented:true}
 });

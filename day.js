@@ -12,6 +12,26 @@ function normalizePrepTaskScore(value,fallback=100){
   return Number.isFinite(number)?Math.round(Math.max(0,Math.min(100,number))):fallback;
 }
 
+function prepTaskGroup(taskOrId){
+  const task=typeof taskOrId==="string"?PREP_TASKS[taskOrId]:taskOrId;
+  if(!task)return [];
+  const key=task.sharedPrepKey||task.id;
+  return Object.values(PREP_TASKS).filter(candidate=>(candidate.sharedPrepKey||candidate.id)===key);
+}
+
+// 같은 재료를 같은 방식으로 손질하는 작업은 메뉴가 달라도 한 번의 완료를 공유합니다.
+function prepTaskCompleted(taskOrId){
+  return prepTaskGroup(taskOrId).some(task=>!!state.prepProgress?.[task.id]);
+}
+
+function prepTaskScore(taskOrId,fallback=100){
+  const scores=prepTaskGroup(taskOrId)
+    .filter(task=>!!state.prepProgress?.[task.id])
+    .map(task=>Number(state.prepTaskScores?.[task.id]))
+    .filter(Number.isFinite);
+  return scores.length?normalizePrepTaskScore(Math.max(...scores),fallback):fallback;
+}
+
 function createKimchiPrepProgress(){
   return {cuttingComplete:false,fryingComplete:false};
 }
@@ -48,12 +68,16 @@ function selectedPrepTasks(){
   return selectedPrepTasksForChecklist().filter(task=>task.isImplemented);
 }
 
+function selectedPrepTaskRuns(){
+  return [...new Map(selectedPrepTasks().map(task=>[task.sharedPrepKey||task.id,task])).values()];
+}
+
 function prepTasksForDish(menuId){
   return selectedPrepTasks().filter(task=>task.menuId===menuId);
 }
 
 function nextPrepTaskForDish(menuId){
-  return prepTasksForDish(menuId).find(task=>!state.prepProgress?.[task.id])||null;
+  return prepTasksForDish(menuId).find(task=>!prepTaskCompleted(task))||null;
 }
 
 function prepTaskAvailableToday(task){
@@ -65,7 +89,7 @@ function dishPreparedForService(dishId){
   const dish=dishById(dishId);
   if(!dish||!dish.isImplemented||!state.selectedMenus?.includes(dish.id))return false;
   const tasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(task=>task?.isImplemented);
-  return tasks.length>0&&tasks.every(task=>state.prepProgress?.[task.id]);
+  return tasks.length>0&&tasks.every(prepTaskCompleted);
 }
 
 function selectedPrepTasksForChecklist(){
@@ -96,7 +120,7 @@ function prepChecklistDishes(){
     const dish=dishById(menuId);
     if(!dish)return null;
     const tasks=ordered.filter(task=>task.menuId===menuId&&task.isImplemented);
-    return {dish,tasks,done:tasks.length>0&&tasks.every(task=>!!state.prepProgress?.[task.id])};
+    return {dish,tasks,done:tasks.length>0&&tasks.every(prepTaskCompleted)};
   }).filter(Boolean);
 }
 
@@ -191,19 +215,19 @@ function advanceToNextDay(){
 }
 
 function currentPrepTask(){
-  return selectedPrepTasks().find(task=>!state.prepProgress?.[task.id])||null;
+  return selectedPrepTaskRuns().find(task=>!prepTaskCompleted(task))||null;
 }
 
 function prepComplete(){
-  const tasks=selectedPrepTasks();
-  return tasks.every(task=>state.prepProgress?.[task.id]);
+  const tasks=selectedPrepTaskRuns();
+  return tasks.every(prepTaskCompleted);
 }
 
 function startPrepTask(taskId){
   const task=selectedPrepTasks().find(item=>item.id===taskId);
   if(!task)return;
-  if(state.prepProgress[task.id]){showToast("이미 준비한 재료입니다.");return;}
-  const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!state.prepProgress[item.id]);
+  if(prepTaskCompleted(task)){showToast("이미 준비한 재료입니다.");return;}
+  const dependency=(task.dependsOn||[]).map(id=>PREP_TASKS[id]).find(item=>item&&!prepTaskCompleted(item));
   if(dependency){showToast(`먼저 ${dependency.label} 작업을 완료하세요.`,true);return;}
   startDayPrepMini(task);
 }
@@ -216,7 +240,7 @@ function startPrepMini(){
 
 function completeDayPrepTask(taskId,completionScore){
   const task=PREP_TASKS[taskId];
-  if(!task||state.prepProgress[taskId])return;
+  if(!task||prepTaskCompleted(task))return;
   state.prepProgress[taskId]=true;
   // 실제 미니게임은 day-prep-minigames.js가 점수를 넘깁니다. QA/구형 호출처럼
   // 점수가 생략되면 현재 낮 미니게임의 결과를 읽고, 그것도 없으면 종전 품질 100을 씁니다.
@@ -227,8 +251,8 @@ function completeDayPrepTask(taskId,completionScore){
   state.prepTaskScores[taskId]=normalizePrepTaskScore(completionScore,runtimeScore);
   selectedDishes().filter(dish=>dish.isImplemented).forEach(dish=>{
     const menuTasks=(dish.prepTasks||[]).map(id=>PREP_TASKS[id]).filter(item=>item?.isImplemented&&prepTaskAvailableToday(item));
-    if(menuTasks.length&&menuTasks.every(item=>state.prepProgress[item.id])){
-      const taskScores=menuTasks.map(item=>normalizePrepTaskScore(state.prepTaskScores[item.id]));
+    if(menuTasks.length&&menuTasks.every(prepTaskCompleted)){
+      const taskScores=menuTasks.map(item=>prepTaskScore(item));
       const quality=Math.round(taskScores.reduce((sum,score)=>sum+score,0)/taskScores.length);
       // count는 구버전 세이브 호환용 준비 표시일 뿐 밤 영업에서 소모하지 않습니다.
       state.inventory[dish.id]={...(state.inventory[dish.id]||{}),count:1,quality,prepared:true};
@@ -252,8 +276,8 @@ function renderPrepChecklist(){
 }
 
 function updateDayObjective(){
-  const dishes=selectedDishes(),tasks=selectedPrepTasks(),pending=selectedPrepTasksForChecklist().filter(task=>!task.isImplemented);
-  const completed=tasks.filter(task=>state.prepProgress[task.id]).length;
+  const dishes=selectedDishes(),tasks=selectedPrepTaskRuns(),pending=selectedPrepTasksForChecklist().filter(task=>!task.isImplemented);
+  const completed=tasks.filter(prepTaskCompleted).length;
   dom.objectiveTitle.textContent="영업 준비";
   dom.objectiveBody.innerHTML=`
     <div class="prep-summary">
