@@ -216,8 +216,8 @@
   clip-path: inset(-100% -100% calc(-8 * var(--upx)) -100%);
 }
 
-/* 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은 위에
-   그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
+/* 부분 또는 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은
+   위에 그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
 .story-fragment-handoff {
   position: absolute;
   z-index: 3;

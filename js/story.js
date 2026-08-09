@@ -1470,11 +1470,12 @@ function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
   const handoff=line?.fragmentHandoff;
-  const showFull=handoff?.state==="full";
+  const showFragment=(handoff?.state==="partial"||handoff?.state==="full")&&!!handoff?.asset;
+  const kicker=document.getElementById("storyFragmentKicker");
   const name=document.getElementById("storyFragmentName");
-  layer.classList?.toggle("show",showFull);
-  layer.setAttribute?.("aria-hidden",showFull?"false":"true");
-  if(showFull){
+  layer.classList?.toggle("show",showFragment);
+  layer.setAttribute?.("aria-hidden",showFragment?"false":"true");
+  if(showFragment){
     layer.dataset.shardId=String(handoff.shardId||"");
     layer.dataset.shardName=String(handoff.shardName||"");
     layer.dataset.fragmentState=String(handoff.state||"");
@@ -1486,6 +1487,7 @@ function applyStoryFragmentHandoff(line){
        가운데 조각 그림이 안 보입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
     if(asset)layer.style?.setProperty?.("--fragment-art",storyPortraitArtValue(asset));
     else layer.style?.removeProperty?.("--fragment-art");
+    if(kicker)kicker.textContent=handoff.state==="partial"?"부분 달빛 조각":"온전한 달빛 조각";
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
     playStoryFullFragmentSfx(line);
   }else{
@@ -1494,9 +1496,10 @@ function applyStoryFragmentHandoff(line){
     delete layer.dataset.shardName;
     delete layer.dataset.fragmentState;
     layer.style?.removeProperty?.("--fragment-art");
+    if(kicker)kicker.textContent="온전한 달빛 조각";
     if(name)name.textContent="";
   }
-  return showFull;
+  return showFragment;
 }
 
 function applyStoryEndingBackground(scene){
@@ -1753,7 +1756,9 @@ function storyAdvance(){
   /* 달빛 조각 한 박자. 대사를 다 읽고 한 번 더 누르면 그때 조각이 떠오르고,
      그다음 누름에 장면이 넘어갑니다. 대사와 같이 띄우면 글을 읽기도 전에
      오버레이가 화면을 덮어 버립니다(showStoryLine 쪽 주석 참고). */
-  if(line?.fragmentHandoff?.state==="full"&&storySession.fragmentRevealedAt!==storySession.lineIndex){
+  if((line?.fragmentHandoff?.state==="partial"||line?.fragmentHandoff?.state==="full")
+    &&line.fragmentHandoff.asset
+    &&storySession.fragmentRevealedAt!==storySession.lineIndex){
     storySession.fragmentRevealedAt=storySession.lineIndex;
     applyStoryFragmentHandoff(line);
     audio?.uiClick?.();

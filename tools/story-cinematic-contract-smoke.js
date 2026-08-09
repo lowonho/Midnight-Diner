@@ -81,9 +81,9 @@ for (const cut of usedCuts) {
 /* ── 달빛 조각 전달 컷씬 ────────────────────────────────────
    손님 여덟은 createSpecialGuestArc() 하나로 찍혀서 컷 이름을 조각 id 로
    만듭니다(shard_<shardId>). 문자열이 아니라 템플릿 리터럴이라 위 usedCuts
-   정규식에 안 걸리므로 여기서 따로 봅니다 — 조각 에셋이 여덟이면 컷도 여덟
+   정규식에 안 걸리므로 여기서 따로 봅니다 — 완전 조각 에셋이 여덟이면 컷도 여덟
    이어야 합니다. 하나 빠지면 그 손님만 컷 없이 지나갑니다(에러 없음). */
-const shardIds = [...storyDataSource.matchAll(/^\s{2}(\w+):\s*"assets\/customer\/Special\/MoonPiece\//gm)]
+const shardIds = [...storyDataSource.matchAll(/^\s{2}(\w+):\s*"assets\/customer\/Special\/MoonPiece\/[^"\r\n]+\.webp"/gm)]
   .map(m => m[1]);
 assert(shardIds.length === 8, `달빛 조각이 여덟이어야 합니다 (지금 ${shardIds.length}개).`);
 for (const shardId of shardIds) {
