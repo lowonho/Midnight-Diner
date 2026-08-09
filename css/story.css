@@ -700,13 +700,6 @@
   word-break: keep-all;
 }
 .story-choice-hint-line + .story-choice-hint-line { margin-top: calc(5 * var(--upx)); }
-.story-choice-hint-speaker {
-  margin-right: calc(8 * var(--upx));
-  color: #f0bf64;
-  font-family: var(--font-bold);
-  -webkit-text-stroke: var(--bold-stroke) currentColor;
-  font-weight: 700;
-}
 .story-choice {
   width: min(calc(560 * var(--upx)),64%);
   min-height: var(--story-choice-h);

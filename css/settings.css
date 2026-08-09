@@ -659,10 +659,9 @@
 }
 .journal-page-portrait {
   width: calc(112 * var(--upx));
-  /* 세로로 긴 타원이 아니라 동그란 틀입니다. 이 비율을 고치면 js/title.js 의
-     JOURNAL_PORTRAIT_BOX_RATIO 와 tools/journal-face-preview.js 도 같이 고치세요 —
-     초상화에서 잘라 올 자리의 가로 폭이 이 비율에서 나옵니다. */
-  aspect-ratio: 1 / 1;
+  /* 잠긴 손님의 실루엣 자리입니다. 그림이 붙는 장은 아래에서 각자
+     원화 비율로 다시 잡습니다(.has-art-portrait · .is-ending 등). */
+  aspect-ratio: 44 / 60;
   display: grid;
   place-items: center;
   border: calc(2 * var(--upx)) solid #92633b;
@@ -672,15 +671,20 @@
   font: 700 calc(44 * var(--upx))/1 Georgia,serif;
 }
 .journal-page-portrait[hidden] { display: none; }
-/* 특별 손님 초상화입니다. 로비 컬렉션 장과 인게임 일기 장이 대화씬 원화를
-   같이 씁니다. 표정은 음식 평가에 따라 달라지고, 어느 그림을 얼마나 키워
-   어디를 보여 줄지는 js/story.js·js/title.js 가 정해서 인라인으로 넣습니다.
-   원화는 전신이라 원형틀에는 얼굴부터 어깨까지만 들어갑니다.
-   여기서는 원형틀과 깔리는 방식만 정합니다. */
+/* 특별 손님 그림입니다. 로비 컬렉션 장과 인게임 일기 장이 대화씬 원화를 같이
+   씁니다 — 얼굴만 잘라 쓰지 않고 전신을 그대로 세웁니다. 어느 그림을 쓸지는
+   음식 평가에 따라 달라지고, 주소는 js/story.js·js/title.js 가 인라인으로
+   넣습니다. 인물 그림이라 원형틀로 자르지 않고 원화 비율을 지킵니다. */
 .journal-page-portrait.has-art-portrait {
-  overflow: hidden;
-  background-color: #f0e6d2;
+  aspect-ratio: 1250 / 1800;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
   background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: contain;
+  /* 종이 위에 붙여 둔 사진처럼 그림자만 얹습니다. */
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.4));
 }
 .journal-page-portrait.portrait-placeholder {
   background:
@@ -821,14 +825,25 @@
 /* 조각 그림이 붙는 장은 표제 면에 초상화까지 둘이 들어갑니다.
    위쪽 여백과 이름 글자를 조금씩 줄여 한 면에 담습니다. */
 .journal-page.has-relic .journal-page-topline { margin-bottom: calc(14 * var(--upx)); }
-/* 동그란 틀은 세로가 짧아진 만큼 폭을 키워도 조각까지 한 면에 들어갑니다. */
-.journal-page.has-relic .journal-page-portrait { width: calc(124 * var(--upx)); }
+/* 손님이 주인공인 장이라 인물을 크게 세우고, 달빛 조각은 그 아래 놓이는
+   물건이라 작게 둡니다. 전신은 세로로 길어서(원화 1250x1800) 폭을 조금만
+   키워도 높이가 1.44배로 늘어납니다 — 조각 크기와 같이 봐야 합니다.
+
+   grow 는 '아래를 밀지 않고 더 키우는 몫'입니다. 늘어난 높이(폭 x 1.44)만큼
+   위로 당겨서, 제목·요약·조각은 있던 자리에 그대로 남고 인물만 위로 자랍니다.
+   원화 위쪽은 비어 있어서(인물은 캔버스 3~19% 아래부터 그려집니다) 위로 자라도
+   머리글과 부딪히지 않습니다. 더 키우려면 grow 만 올리세요. */
+.journal-page.has-relic .journal-page-portrait {
+  --journal-portrait-grow: calc(10 * var(--upx));
+  width: calc(124 * var(--upx) + var(--journal-portrait-grow));
+  margin-top: calc(var(--journal-portrait-grow) * -1.44);
+}
 .journal-page.has-relic h3 {
   margin: calc(10 * var(--upx)) 0 calc(4 * var(--upx));
   font-size: calc(26 * var(--upx));
 }
 .journal-page-relic {
-  --journal-relic-size: calc(118 * var(--upx));
+  --journal-relic-size: calc(84 * var(--upx));
   margin: calc(10 * var(--upx)) 0 0;
   display: flex;
   flex-direction: column;
@@ -891,8 +906,11 @@
 }
 .journal-page-guests[hidden] { display: none; }
 .journal-guest-card {
-  --journal-guest-portrait: calc(128 * var(--upx));
-  --journal-guest-shard: calc(76 * var(--upx));
+  --journal-guest-portrait: calc(134 * var(--upx));
+  /* 로비 장과 같은 방식입니다 — 늘어난 높이만큼 위로 당겨,
+     손님 이름·달빛 조각은 있던 자리에 그대로 둡니다. */
+  --journal-guest-grow: calc(10 * var(--upx));
+  --journal-guest-shard: calc(56 * var(--upx));
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -901,19 +919,18 @@
   text-align: center;
 }
 .journal-page-guests.is-pair .journal-guest-card {
-  --journal-guest-portrait: calc(100 * var(--upx));
-  --journal-guest-shard: calc(58 * var(--upx));
+  --journal-guest-portrait: calc(104 * var(--upx));
+  --journal-guest-grow: calc(8 * var(--upx));
+  --journal-guest-shard: calc(44 * var(--upx));
 }
-/* 로비 컬렉션의 초상화(.journal-page-portrait)와 같은 원형틀입니다.
-   얼굴을 얼마나 키워 어디를 보여 줄지는 js/title.js 가 넣어 줍니다. */
+/* 로비 컬렉션 장의 그림(.journal-page-portrait.has-art-portrait)과 같은
+   전신입니다. 원화 비율 그대로라 인물이 찌그러지지 않습니다. */
 .journal-guest-portrait {
-  width: var(--journal-guest-portrait);
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  border: calc(2 * var(--upx)) solid #92633b;
-  border-radius: 50%;
-  background-color: #f0e6d2;
-  background-repeat: no-repeat;
+  width: calc(var(--journal-guest-portrait) + var(--journal-guest-grow,0px));
+  margin-top: calc(var(--journal-guest-grow,0px) * -1.44);
+  aspect-ratio: 1250 / 1800;
+  background: center bottom/contain no-repeat;
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(7 * var(--upx)) rgba(74,42,20,.4));
 }
 .journal-guest-name {
   max-width: 100%;
@@ -1056,15 +1073,19 @@
   .journal-page-left { padding-right: calc(56 * var(--upx)); }
   .journal-page-topline { margin-bottom: calc(18 * var(--upx)); font-size: calc(12 * var(--upx)); }
   .journal-page-portrait { width: calc(82 * var(--upx)); }
-  .journal-page.has-relic .journal-page-portrait { width: calc(104 * var(--upx)); }
+  /* 좁은 창은 책도 종이도 작아져서(544 → 430) 인물을 그만큼 줄여야
+     조각까지 한 면에 들어갑니다. 위로 당기는 몫은 그대로 씁니다. */
+  .journal-page.has-relic .journal-page-portrait {
+    width: calc(96 * var(--upx) + var(--journal-portrait-grow));
+  }
   .journal-page h3 { font-size: calc(23 * var(--upx)); }
   .journal-page p { font-size: calc(15 * var(--upx)); line-height: 1.55; }
   .journal-page.is-gameplay-page .journal-page-right p { font-size: calc(13 * var(--upx)); }
   .journal-page small { font-size: calc(12 * var(--upx)); }
-  .journal-page-relic { --journal-relic-size: calc(100 * var(--upx)); margin-top: calc(10 * var(--upx)); }
+  .journal-page-relic { --journal-relic-size: calc(74 * var(--upx)); margin-top: calc(10 * var(--upx)); }
   .journal-page-relic-name { font-size: calc(13 * var(--upx)); }
-  .journal-guest-card { --journal-guest-portrait: calc(104 * var(--upx)); --journal-guest-shard: calc(64 * var(--upx)); }
-  .journal-page-guests.is-pair .journal-guest-card { --journal-guest-portrait: calc(84 * var(--upx)); --journal-guest-shard: calc(48 * var(--upx)); }
+  .journal-guest-card { --journal-guest-portrait: calc(92 * var(--upx)); --journal-guest-shard: calc(64 * var(--upx)); }
+  .journal-page-guests.is-pair .journal-guest-card { --journal-guest-portrait: calc(72 * var(--upx)); --journal-guest-shard: calc(48 * var(--upx)); }
   .journal-guest-name { font-size: calc(12 * var(--upx)); }
   .journal-guest-shard-name { font-size: calc(11 * var(--upx)); }
 }

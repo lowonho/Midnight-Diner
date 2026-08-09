@@ -56,12 +56,12 @@ const DISH_IDS=["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteo
 const DISHES=["어묵탕","두부김치","김치전","닭꼬치","볶음우동","새우튀김","떡볶이","감자튀김"];
 const GUESTS=["비에 젖은 아이","등불을 머리에 인 손님","둘이 붙은 그림자","까마귀 우편배달부",
   "별을 먹는 작은 짐승","바닷물로 된 손님","멈춰버린 교복 인형","얼굴 없는 김다은"];
-// guestId 는 js/story-data.js 의 것을 그대로 써야 초상화가 붙습니다.
+// guestId 는 js/story-data.js 의 것을 그대로 써야 그림이 붙습니다.
 const GUEST_IDS=["rainyChild","lanternGuest","twinShadows","crowCourier",
   "starBeast","seawaterGuest","schoolDoll","facelessDaeun"];
-/* 초상화 주소와 얼굴 자리는 js/story.js 가 정합니다. 여기서 story.js 를 통째로
-   부를 수는 없어서(게임 전역이 잔뜩 필요합니다) 그 파일에서 표 두 개만 읽어
-   씁니다 — 값을 베껴 두면 게임과 조용히 어긋납니다. */
+/* 손님 그림의 주소는 js/story.js 가 정합니다. 여기서 story.js 를 통째로 부를
+   수는 없어서(게임 전역이 잔뜩 필요합니다) 원화 표만 그 파일에서 읽어 씁니다 —
+   값을 베껴 두면 게임과 조용히 어긋납니다. */
 function readStoryTable(source,name){
   const block=source.match(
     new RegExp(`const ${name}\\s*=\\s*Object\\.freeze\\((\\{[\\s\\S]*?\\n\\})\\);`));
@@ -75,20 +75,12 @@ const storySource=(()=>{
   catch(error){ fail("js/story.js 를 못 읽었습니다. "+error); return ""; }
 })();
 const PORTRAIT_DIRS=readStoryTable(storySource,"STORY_PORTRAIT_ART");
-const FACES=readStoryTable(storySource,"JOURNAL_GUEST_FACE");
 // 표정은 음식 평가를 따라갑니다(js/story.js 의 JOURNAL_GUEST_TIER_MOTION).
-const TIER_MOTION={great:["happy","07"],warm:["soft","02"],soft:["sad","04"]};
+const TIER_MOTION={great:"07",warm:"02",soft:"04"};
 function storyJournalGuestPortraitArt(guestId,tier){
   const art=PORTRAIT_DIRS[guestId];
-  const motion=(TIER_MOTION[tier]||["calm","01"])[1];
+  const motion=TIER_MOTION[tier]||"01";
   return art?`assets/Conversation/${art.dir}/${art.stem}_motion_${motion}.webp`:"";
-}
-function storyJournalGuestFaceBox(guestId,tier){
-  const face=FACES[guestId];
-  if(!face)return null;
-  // 작은 짐승처럼 표정마다 자세가 달라지는 손님은 그 표정의 자리를 씁니다.
-  const motion=face.byMotion?.[(TIER_MOTION[tier]||["calm"])[0]];
-  return {...face,...(motion||{}),width:1250,height:1800};
 }
 // js/story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
 const SHARDS=[

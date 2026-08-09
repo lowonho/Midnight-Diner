@@ -1258,8 +1258,8 @@ function storyPreparedMenuDishes(){
 
 /* 선택지 화면에는 손님이 방금 한 말(=무엇을 찾는지에 대한 힌트)을 같이 붙여 둡니다.
    대사창은 이 시점에 이미 "어떤 음식을 내줄까?" 로 넘어가 있어서, 힌트를 다시 볼 곳이
-   여기밖에 없습니다. 화자 이름은 그리는 시점에 풀어야(storyDisplayName) 대화 도중
-   이름을 알게 된 손님도 제대로 나옵니다 — 그래서 여기서는 화자 id 만 들고 갑니다. */
+   여기밖에 없습니다. 이름은 붙이지 않고 말만 남기지만, 손님 말과 주인공 속말을
+   가려내야 해서 화자 id 는 그대로 들고 갑니다. */
 const STORY_DISH_CHOICE_HINT_LIMIT=3;
 function storyDishChoiceHintLines(source){
   return (source||[])
@@ -1651,18 +1651,11 @@ function renderStoryChoiceHint(line,wrap){
   if(!hints.length)return;
   const box=document.createElement("div");
   box.className="story-choice-hint";
-  hints.forEach((hint,index)=>{
+  hints.forEach(hint=>{
     const row=document.createElement("p");
     row.className="story-choice-hint-line";
-    // 같은 손님이 연달아 말한 줄에는 이름을 다시 붙이지 않습니다(둘이 붙은 그림자처럼
-    // 화자가 바뀌는 경우에만 이름이 다시 나옵니다).
-    const name=hint.speaker&&hint.speaker!==hints[index-1]?.speaker?storyDisplayName(hint.speaker):"";
-    if(name){
-      const who=document.createElement("span");
-      who.className="story-choice-hint-speaker";
-      who.textContent=name;
-      row.appendChild(who);
-    }
+    // 손님 이름은 붙이지 않고 방금 한 말만 남깁니다(이름이 없어도 누구 말인지는
+    // 초상화와 대사창으로 이미 드러나 있습니다).
     row.appendChild(document.createTextNode(hint.text));
     box.appendChild(row);
   });
@@ -1954,9 +1947,9 @@ function storyPortraitMotionArt(portraitKey,motion){
   return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
 }
 
-/* 영업일지에 붙는 특별 손님 초상화입니다. 로비 컬렉션과 인게임 일기 장이
-   대화씬 원화를 같이 씁니다. 그림이 없는 배역(주인공·목소리뿐인 화자)은
-   빈 문자열입니다.
+/* 영업일지에 붙는 특별 손님 그림입니다. 로비 컬렉션과 인게임 일기 장이
+   대화씬 원화를 같이 씁니다 — 얼굴만 잘라 쓰지 않고 전신을 그대로 세웁니다.
+   그림이 없는 배역(주인공·목소리뿐인 화자)은 빈 문자열입니다.
 
    [표정은 음식 평가를 따라갑니다]
    같은 손님이라도 무엇을 대접했는지에 따라 다른 얼굴로 남습니다.
@@ -1979,52 +1972,6 @@ function storyJournalGuestPortraitArt(guestId,tier){
   return key?storyPortraitMotionArt(key,storyJournalGuestPortraitMotion(tier)):"";
 }
 window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
-
-/* 일지의 초상화는 전신이 아니라 얼굴부터 어깨까지만 원형틀에 확대해 넣습니다.
-   아래는 그 자리가 원화(1250x1800) 어디인지 적어 둔 표입니다.
-     cx·cy — 잘라낼 자리 한가운데 (원화 가로·세로의 %)
-     fh    — 잘라낼 세로 크기 (원화 세로의 %). 가로는 틀 비율에 맞춰 계산합니다.
-   인물마다 머리 크기와 높이가 제각각이라(등불 손님은 머리가 등, 작은 짐승은
-   몸이 작아 얼굴이 한참 아래) 한 가지 규칙으로는 안 맞아 눈으로 맞춘 값입니다.
-   ⚠️ 원은 네 귀퉁이를 잘라 먹습니다. 머리가 넓은 인물(비에 젖은 아이의 우비
-      모자처럼)은 상자를 빠듯하게 잡으면 정수리가 잘립니다 — 넉넉히 잡으세요.
-   대부분은 표정이 바뀌어도 머리 자리가 거의 같아 표 한 벌로 충분합니다.
-   원화를 새로 받으면 표를 고치고 아래 도구로 네 표정을 다 확인하세요:
-
-     npm run preview:journal-face
-
-   ⚠️ 값을 고치면 css/settings.css 의 초상화 상자 비율(1/1)도 같이 봐야 합니다.
-      가로는 그 비율에서 나옵니다. */
-const JOURNAL_GUEST_FACE=Object.freeze({
-  rainyChild:{cx:48,cy:28,fh:50},
-  lanternGuest:{cx:56,cy:33,fh:57},
-  twinShadows:{cx:57,cy:24,fh:46},
-  // 까마귀는 머리가 원화 맨 위에 붙어 있어 cy 를 딱 fh 의 절반으로 둡니다.
-  // 더 위로 잡으면 자를 자리가 원화 밖으로 나가 위쪽이 빈 종이가 됩니다.
-  crowCourier:{cx:53,cy:24.5,fh:49},
-  /* 작은 짐승만 표정마다 자세가 통째로 달라서(앉고·눕고·웅크리고·뛰고)
-     한 자리로는 못 맞춥니다. 이 손님만 표정별로 따로 적습니다.
-     안 적은 표정은 위의 기본값을 씁니다. */
-  starBeast:{cx:50,cy:38,fh:48,byMotion:{
-    calm:{cx:60,cy:45,fh:50},
-    sad:{cx:64,cy:46,fh:46},
-    happy:{cx:63,cy:37,fh:48}
-  }},
-  seawaterGuest:{cx:47,cy:20,fh:36},
-  schoolDoll:{cx:48,cy:25,fh:42},
-  facelessDaeun:{cx:49,cy:22.5,fh:37}
-});
-// 원화 크기입니다(tools/build-conversation-webp.js 의 공통 크롭 박스 비율).
-const JOURNAL_GUEST_ART_SIZE=Object.freeze({width:1250,height:1800});
-
-function storyJournalGuestFaceBox(guestId,tier){
-  const key=storyPortraitKey(String(guestId||""));
-  const face=JOURNAL_GUEST_FACE[key];
-  if(!face)return null;
-  const motion=face.byMotion?.[storyJournalGuestPortraitMotion(tier)];
-  return {...face,...(motion||{}),...JOURNAL_GUEST_ART_SIZE};
-}
-window.storyJournalGuestFaceBox=storyJournalGuestFaceBox;
 
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
    커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
