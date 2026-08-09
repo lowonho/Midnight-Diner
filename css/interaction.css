@@ -1,8 +1,9 @@
-/* 상호작용 안내 = 키캡 'E' 한 개
+/* 상호작용 안내 = 기본 키캡 'E' + 폐기 행동명
    ------------------------------------------------------------
    예전에는 "E · 무 바구니" 처럼 글자를 띄웠습니다. 대상 위에 이미
    이름표가 떠 있어서 같은 말이 두 번 나왔고, 대상을 가리기도 했습니다.
-   지금은 역할을 나눴습니다.
+   지금은 역할을 나눴습니다. 다만 완성 음식을 잃는 폐기만 예외로
+   키캡 아래에 행동명을 함께 적어 실수로 누르지 않게 합니다.
      무엇을  → 대상 위 이름표 (가능할 때 크게 둥실댐)
      어떻게  → 이 키캡 (E 를 누르는 모습)
    설명 문구는 game.js 가 aria-label 로 넣어 스크린리더에는 남습니다.
@@ -90,6 +91,26 @@
   line-height: 1;
   animation: keycap-press 1.5s ease-in-out infinite;
 }
+
+/* 완성 음식을 버리는 동작은 되돌릴 수 없으므로 쓰레기통 앞에서만
+   키캡 아래에 행동명을 함께 표시합니다. 다른 상호작용에서는 비어 있어
+   레이아웃을 차지하지 않습니다. */
+.station-prompt .prompt-label {
+  min-width: calc(52 * var(--upx));
+  padding: calc(4 * var(--upx)) calc(10 * var(--upx));
+  border: 2px solid rgba(196,136,69,.94);
+  border-radius: calc(7 * var(--upx));
+  background: rgba(34,18,11,.94);
+  box-shadow: 0 calc(3 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.45);
+  color: #ffe3a4;
+  font-family: "Malgun Gothic",sans-serif;
+  font-size: calc(15 * var(--upx));
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+.station-prompt .prompt-label:empty { display: none; }
 
 /* 절반 넘게 가만히 있다가 한 번 눌렀다 놓습니다.
    쉼 없이 오르내리면 이름표 둥실과 겹쳐 화면이 산만해집니다. */

@@ -102,7 +102,7 @@ const FRY_COOK = Object.freeze({
 });
 
 // 익힘 상태별 점수. 망에 올린 5개의 평균이 이 미니게임의 점수입니다.
-const FRY_STAGE_SCORE = Object.freeze({ under: 62, cooked: 100, burnt: 40 });
+const FRY_MISTAKE_PENALTY = 10;
 const FRY_STAGE_LABEL = Object.freeze({ under: "설익은", cooked: "잘 익은", burnt: "탄" });
 
 /* potWidth 는 냄비 칸(.fry-pot 461), rackWidth 는 트레이 안쪽 상자
@@ -182,9 +182,16 @@ function fryCookRatio(t) {
 }
 
 function fryScore(data) {
-  if (!data.done.length) return 0;
-  const total = data.done.reduce((sum, piece) => sum + (FRY_STAGE_SCORE[piece.stage] || 0), 0);
-  return Math.round(clamp(total / data.done.length, 25, 100));
+  return clamp(100 - (data?.errors || 0) * FRY_MISTAKE_PENALTY, 0, 100);
+}
+
+function chargeFryMistake(m, piece) {
+  const data = fryData(m);
+  if (!data || !piece || piece.mistakeCharged) return false;
+  piece.mistakeCharged = true;
+  data.errors = (data.errors || 0) + 1;
+  updateMiniScore(m);
+  return true;
 }
 
 function fryCompletionGrade(data) {
@@ -200,6 +207,10 @@ function fryDish(data) { return FRY_DISHES[data.fryerStyle]; }
 /* ---- 엔진 등록 ---------------------------------------------- */
 
 registerMiniEngine("fry", {
+  score(m) {
+    const data = fryData(m);
+    return data ? fryScore(data) : 100;
+  },
   // 제한시간이 없습니다 — 타는 것 자체가 시간 압박입니다.
   timerRuns() { return false; },
 
@@ -213,6 +224,7 @@ registerMiniEngine("fry", {
       raw: config.count,   // 왼쪽에 남은, 아직 안 튀긴 재료 수
       pot: [],             // 기름 냄비 안 {id,t,stage,x,y,rot}
       done: [],            // 망 위 {id,stage,rot}
+      errors: 0,
       nextId: 1,
       selected: null,      // {type:"raw"} | {type:"piece",id}
       diveId: null,        // 방금 기름에 떨어뜨린 조각 (한 번만 떨어지는 연출용)
@@ -230,6 +242,7 @@ registerMiniEngine("fry", {
     /* 집게로 들어 올려 둔 조각은 **안 익습니다.** 기름 밖으로 나와 있는데 시간이
        계속 가면, 어디에 놓을지 고르는 동안 손에서 타 버립니다. */
     const lifted = fryPointer?.dragging && fryPointer.source === "piece" ? fryPointer.id : null;
+    let burntMistake = false;
     data.pot.forEach(piece => {
       if (piece.id === lifted) return;
       piece.t += dt;
@@ -243,8 +256,12 @@ registerMiniEngine("fry", {
       }
       if (!changed) return;
       if (stage === "cooked") dom.miniFeedback.textContent = "노릇하게 익었어요! 집게로 건져 완성 그릇에 옮겨주세요.";
-      if (stage === "burnt") { dom.miniFeedback.textContent = "타고 있어요! 얼른 건져주세요."; audio.bad?.(); }
+      if (stage === "burnt") {
+        burntMistake = chargeFryMistake(m, piece) || burntMistake;
+        dom.miniFeedback.textContent = `타고 있어요! 얼른 건져주세요. (${fryScore(data)}점)`;
+      }
     });
+    if (burntMistake) audio.bad?.();
   },
 
   // 이 화면에는 키 안내가 없습니다 — 키도 받지 않습니다 (mini-engine.js 참고).
@@ -297,14 +314,11 @@ function renderFry() {
       <div class="fry-work-area">
         ${fryAssetMarkup("burner", "fry-burner-asset", "가스 버너")}
         ${fryPotMarkup(data, dish)}
-        ${data.finishing ? `<strong class="e6-result ${data.completionGrade || "good"} show" id="e6Result">${data.completionGrade === "perfect" ? "PERFECT" : "GOOD"}</strong>` : ""}
+        ${data.finishing ? `<strong class="e6-result ${data.completionGrade || "good"} show" id="e6Result">${cookingScoreMessage(fryScore(data))}</strong>` : ""}
       </div>
 
       <aside class="fry-side">
-        <div class="fry-card fry-progress-card">
-          <h3 class="fry-card-title">진행도</h3>
-          <p class="fry-progress-value"><b>${done}</b> / ${dish.count}</p>
-        </div>
+        ${miniScorePanelMarkup("fry-card fry-progress-card","fry-card-title")}
         <div class="fry-card fry-rack-panel">
           <h3 class="fry-card-title starred">완성</h3>
           ${fryRackMarkup(data, dish)}
@@ -748,8 +762,9 @@ function liftFryPiece(id, spot = null) {
   const index = data.pot.findIndex(piece => piece.id === id);
   if (index < 0) return false;
   const dish = fryDish(data), piece = data.pot[index];
+  const newMistake = piece.stage !== "cooked" && chargeFryMistake(m, piece);
   data.pot.splice(index, 1);
-  data.done.push({ id: piece.id, stage: piece.stage, t: piece.t });
+  data.done.push({ id: piece.id, stage: piece.stage, t: piece.t, mistakeCharged: piece.mistakeCharged });
   data.selected = null;
   audio.play?.("fry_basket_lift", { owner: m });
   const allDone = data.done.length >= dish.count;
@@ -760,7 +775,7 @@ function liftFryPiece(id, spot = null) {
   dom.miniFeedback.textContent = allDone
     ? `${dish.label} ${dish.count}개 완성!`
     : `${FRY_STAGE_LABEL[piece.stage]} ${dish.pieceLabel} 완성 그릇으로!  (${data.done.length} / ${dish.count})`;
-  if (piece.stage !== "cooked") audio.bad?.();
+  if (newMistake) audio.bad?.();
   renderFry();
   if (!allDone) return true;
   audio.stop?.("deep_fry", m);

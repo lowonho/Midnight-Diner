@@ -217,6 +217,14 @@ assert(titleJournalGuestRecord(TITLE_JOURNAL_GUEST_DEFS[0],{
   reactionNote:"평가 기록: 완벽"
 }).reactionNote===migratedPermanentGuest.reactionNote,
 "구 v2에 판정명만 저장된 반응도 삭제 없이 실제 완벽 반응 대사로 교체해야 합니다.");
+assert(titleJournalStoredReaction([
+  "'잘못 저장된 작은따옴표 반응'",
+  "‘잘못 저장된 곡선 작은따옴표 반응’"
+].join("\\r\\n"))===[
+  "“잘못 저장된 작은따옴표 반응”",
+  "“잘못 저장된 곡선 작은따옴표 반응”"
+].join("\\n"),
+"기존 저장에 남은 작은따옴표 손님 반응은 줄마다 큰따옴표로 되돌려야 합니다.");
 localStorage.setItem(saveKeyForSlot("auto"),"new-version-data");
 assert(migrateSaveStorage()===false&&rawSlot("auto")==="new-version-data",
   "완료된 저장 마이그레이션을 다시 실행해 새 저장을 지우면 안 됩니다.");
@@ -643,6 +651,22 @@ assert(state.orders[0].dishId===orderScene.dishId&&!state.orders[0].awaitingDish
 assert(restoreCheckpointCalls>=4,
   "restoreGameState는 저장된 스토리 체크포인트 복원 함수를 호출해야 합니다.");
 
+// 특별 손님의 완성 음식을 폐기한 직후 상태: 주문과 대화는 남고 조리만 처음으로 돌아갑니다.
+state.orders[0].cookStep=0;
+state.orders[0].cookScores=[];
+state.carrying=null;
+assert(saveGame(true),"특별 손님 재조리 상태는 suspended 체크포인트와 함께 자동저장할 수 있어야 합니다.");
+const discardedStorySave=readSaveData("auto");
+clearStoryRuntime();
+restoreGameState(discardedStorySave);
+assert(storyCookingIsActive()
+  &&activeStoryCookOrderId()===777
+  &&state.carrying===null
+  &&state.orders[0].cookStep===0
+  &&state.orders[0].cookScores.length===0
+  &&state.orders[0].specialRecipe,
+  "폐기 후 불러오기는 같은 특별 손님 주문과 대화를 유지하며 조리만 처음부터 재개해야 합니다.");
+
 const legacyAudioSave=JSON.parse(JSON.stringify(suspendedSave));
 legacyAudioSave.state.audio={master:.31,bgm:.52,sfx:.73};
 localStorage.removeItem(AUDIO_SETTINGS_KEY);
@@ -674,7 +698,7 @@ assert(window.MoonlightTableSave.collectionPages()
   .every(page=>page.epilogueUnlocked===true),
   "새 게임이나 진행 세이브 전체 삭제 뒤에도 진엔딩 후일담 해금을 유지해야 합니다.");
 
-console.log("SAVE_SLOTS_CONTRACT_OK 83");
+console.log("SAVE_SLOTS_CONTRACT_OK 85");
 `;
 
 const context={

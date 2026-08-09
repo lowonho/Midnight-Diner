@@ -96,10 +96,10 @@ function same(actual,expected,message){
 check(window.QA_MODE.enabled===true,"qa=1에서 QA 저장 방지 모드가 활성화되어야 합니다.");
 const progressBefore=JSON.stringify(state.story);
 const entries=qaStorySceneList();
-check(entries.length===67,
-  "55개 장면에 day:null 반복 장면 L02·D01의 Day 2~7 복제 12개를 더해 67개 항목이어야 합니다.");
+check(entries.length===68,
+  "56개 장면에 day:null 반복 장면 L02·D01의 Day 2~7 복제 12개를 더해 68개 항목이어야 합니다.");
 same([...new Set(entries.map(entry=>entry.id))].sort(),Object.keys(STORY_SCENES).sort(),
-  "QA 일차별 목록은 새 55개 장면을 모두 포함해야 합니다.");
+  "QA 일차별 목록은 새 56개 장면을 모두 포함해야 합니다.");
 same([...new Set(entries.map(entry=>entry.day))],[0,1,2,3,4,5,6,7],
   "프롤로그 0일차와 영업 1~7일차가 모두 표시되어야 합니다.");
 same(entries.filter(entry=>entry.day===0).map(entry=>entry.id),
@@ -179,8 +179,10 @@ check(qaStoryClampLineIndex(p01,9999)===p01.lines.length-1,
   "범위를 넘은 대사 위치는 마지막 줄로 보정해야 합니다.");
 check(qaStoryLineSpeaker({speaker:"rainyChild"})==="비에 젖은 아이",
   "서술형 특별 손님 이름을 목록에 그대로 표시해야 합니다.");
-check(qaStoryLineSpeaker({speakerLabel:"김다은(속말)"})==="김다은(속말)",
-  "표시 전용 화자명을 보존해야 합니다.");
+check(qaStoryLineSpeaker({speaker:"protagonist"})==="김다은",
+  "김다은의 일반 대사는 주인공 이름으로 표시해야 합니다.");
+check(qaStoryLineSpeaker({speakerLabel:"김다은(속말)"})==="김다은",
+  "예전 체크포인트의 속말 이름표도 현재 김다은 표기로 보정해야 합니다.");
 check(qaStoryLineSpeaker({kind:"direction"})==="",
   "상황 설명 자막에는 별도 명칭을 표시하지 않아야 합니다.");
 

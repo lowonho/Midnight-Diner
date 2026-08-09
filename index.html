@@ -98,12 +98,12 @@
             </div>
           </aside>
 
-          <!-- 상호작용 안내. 글자 대신 키캡 'E' 하나만 띄웁니다.
-               무엇을 만지는지는 대상 위 이름표(둥실 강조)가 이미 알려 줍니다.
-               설명 문구는 game.js 가 aria-label 로만 넣어 스크린리더에 남깁니다. -->
+          <!-- 상호작용 안내. 기본 동작은 키캡 'E'만 띄우고, 음식을 잃는
+               폐기 동작에서는 실수를 막기 위해 행동명도 함께 보여 줍니다. -->
           <button id="stationPrompt" class="station-prompt" type="button" disabled>
             <span class="prompt-arrow" aria-hidden="true"></span>
             <span class="keycap" aria-hidden="true">E</span>
+            <span id="stationPromptLabel" class="prompt-label" aria-hidden="true"></span>
           </button>
           <div id="toast" class="toast" aria-live="polite"></div>
 
@@ -408,7 +408,7 @@
       inert
     >
       <div class="ending-retry-window wood-panel">
-        <p id="endingRetrySpeaker" class="ending-retry-speaker">김다은(속말)</p>
+        <p id="endingRetrySpeaker" class="ending-retry-speaker">김다은</p>
         <h2 id="endingRetryTitle">「엔딩」</h2>
         <p id="endingRetryDescription">그때, 나는 다른 선택을 할 수도 있지 않았을까?</p>
         <div class="ending-retry-actions" role="group" aria-label="엔딩 이후 선택">

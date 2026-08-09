@@ -9,6 +9,19 @@ const GAME_PHASES=Object.freeze({
   RESULT:"result"
 });
 
+/* 영업 음식 평가 공용 기준. 100점만 완벽, 71~99점은 맛있음,
+   0~70점은 아쉬움입니다. 미니게임·일반 손님·이야기 손님이 모두 같이 씁니다. */
+const COOKING_SCORE_RULE=Object.freeze({perfect:100,tastyMin:71});
+function cookingScoreTier(score){
+  const value=Math.round(Number(score)||0);
+  return value>=COOKING_SCORE_RULE.perfect?"perfect"
+    :value>=COOKING_SCORE_RULE.tastyMin?"tasty":"disappointing";
+}
+function cookingScoreMessage(score){
+  const tier=cookingScoreTier(score);
+  return tier==="perfect"?"완벽해요!":tier==="tasty"?"맛있어요!":"아쉬워요!";
+}
+
 const SKEWER_BATCH_SIZE=3;
 
 /* 닭꼬치 조각 2종. **낮 '꽂기'(engine-e8)와 밤 '굽기'(engine-e5)가 함께 씁니다** —

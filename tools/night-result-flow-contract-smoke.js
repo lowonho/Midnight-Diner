@@ -85,6 +85,14 @@ assert(state.orders.length===0&&state.departures.length===0,
 // 마지막 일반 손님은 반응과 퇴장이 끝나기 전에는 마감하지 않습니다.
 applyStoryCookingResult=()=>null;
 resetNight();
+state.inventory.oden.quality=1;
+state.orders=[order("general")];
+state.carrying={orderId:1,dishId:"oden",cookScore:83};
+serveOrder(state.orders[0]);
+assert(state.departures[0]?.satisfaction===83&&state.satisfactionTotal===83,
+  "낮 준비 품질과 무관하게 밤 조리 점수가 그대로 최종 평가가 되어야 합니다.");
+
+resetNight();
 state.generalServed=nightGeneralOrderTarget()-1;
 state.generalSpawnedCustomers=nightGeneralOrderTarget();
 state.orders=[order("general")];
@@ -98,6 +106,9 @@ assert(!tryEndNight("complete")&&ended===0&&state.phase===GAME_PHASES.OPEN,
   "마지막 일반 손님의 퇴장 연출 중에는 영업을 종료하면 안 됩니다.");
 assert(!toastMessages.some(message=>message.includes("특별 손님")),
   "일반 손님 반응을 기다리는 동안 특별 손님 안내를 잘못 표시하면 안 됩니다.");
+updateNightObjective();
+assert(!dom.objectiveBody.innerHTML.includes("다음 손님을 기다리고 있습니다."),
+  "마지막 일반 손님의 식사·퇴장 반응 중에는 다음 손님 대기 문구를 띄우면 안 됩니다.");
 state.departures=[];
 assert(tryEndNight("complete")&&ended===1&&state.phase===GAME_PHASES.RESULT,
   "마지막 일반 손님이 떠난 뒤에는 정상적으로 영업을 종료해야 합니다.");
@@ -115,7 +126,7 @@ renderNightResult();
 assert(!/\\d/.test(dom.satisfactionResult.textContent)&&!/\\d/.test(dom.fiveStarResult.textContent),
   "영업 기록의 만족도와 좋은 접시는 숫자 대신 정성적인 반응으로 표시해야 합니다.");
 
-console.log("NIGHT_RESULT_FLOW_CONTRACT_OK special exit · final reaction · qualitative feedback");
+console.log("NIGHT_RESULT_FLOW_CONTRACT_OK cook-only score · special exit · final reaction · qualitative feedback");
 `;
 
 vm.runInNewContext(`${bootstrap}\n${source}\n${test}`,{

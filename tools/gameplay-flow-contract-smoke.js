@@ -14,11 +14,13 @@ const ingredient=read("ingredient-select.js");
 const kitchen=read("kitchen.js");
 const player=read("player.js");
 const night=read("night.js");
+const customers=read("customers.js");
 const story=read("story.js");
 const title=read("title.js");
 const gameData=read("game-data.js");
 const miniFrame=read("ui-mini-frame.js");
 const miniFrameCss=read("css/minigame-frame.css");
+const interactionCss=read("css/interaction.css");
 const orderPlace=read("engine-e8-order-place.js");
 const index=read("index.html");
 
@@ -30,6 +32,12 @@ assert(game.includes('const pauseNightCustomerPresentation=state.phase==="night"
   &&game.includes('if(pauseNightCustomerPresentation&&order.customerType!=="story")return;')
   &&game.includes("if(pauseNightCustomerPresentation&&!item.guestId)return;"),
   "밤 미니게임 중에는 일반 손님의 등장·재등장·대기 말풍선·퇴장 수명이 멈춰야 합니다.");
+assert(game.includes('if(order.customerType==="story"){')
+  &&game.includes('const hadGeneralWaitingBubble=order.waitingBubbleShown===true;')
+  &&game.includes('order.waitingTime=0;order.waitingBubbleShown=false;')
+  &&game.includes('if(hadGeneralWaitingBubble){order.bubble="";order.bubbleTime=0;}')
+  &&game.includes('else if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);'),
+  "특별 손님은 전용 등장 말풍선은 유지하되 일반 손님용 대기 타이머와 말풍선을 사용하면 안 됩니다.");
 assert(miniFrame.includes('id="miniPause"')
   &&miniFrameCss.includes("#miniPause { display: grid; }")
   &&miniFrameCss.includes("#miniClose:not([hidden]) + #miniPause"),
@@ -102,6 +110,28 @@ assert(hud.includes('specialGuestUnknown: "???"')
   &&save.includes("guestMet:journalGuestMet,")
   &&story.includes("window.MoonlightTableSave?.recordGuestMeeting?.(guestId,{"),
   "특별 손님 이름은 그 날짜에서 만난 영구 기록이 있을 때만 열리고, 처음 가는 날짜는 ??? 여야 합니다.");
+
+assert(game.includes('nearestStation(state.phase==="night"&&state.carrying?"trash":required)')
+  &&game.includes('if(station?.id==="trash"){')
+  &&game.includes("discardCarriedDish();")
+  &&game.includes('const trash=nearestStation("trash");')
+  &&game.includes("text=UI_TEXT.prompt.discard(dish.name);")
+  &&game.includes("visibleText=UI_TEXT.prompt.discardVisible;")
+  &&game.includes("dom.stationPromptLabel.textContent=visibleText;")
+  &&night.includes("function discardCarriedDish(){")
+  &&night.includes("order.cookStep=0;")
+  &&night.includes("order.cookScores=[];")
+  &&night.includes("saveGame(storyCookingIsActive());")
+  &&kitchen.includes('if(state.carrying)return s.id==="trash";')
+  &&kitchen.includes('const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();')
+  &&kitchen.includes("function playTrashDiscardAnimation")
+  &&hud.includes('discard: name => `E · ${name} 폐기`')
+  &&hud.includes('discardVisible: "폐기"')
+  &&index.includes('id="stationPromptLabel" class="prompt-label"')
+  &&interactionCss.includes(".station-prompt .prompt-label")
+  &&!game.includes("autoDelivery();")
+  &&!night.includes("function autoDelivery()"),
+  "완성 음식은 쓰레기통 가까이에서 E를 눌러 폐기하고 같은 주문을 처음부터 다시 조리해야 합니다.");
 assert(miniFrameCss.includes(".mini-overlay.open .mini-stage * {")
   &&miniFrameCss.includes("-webkit-user-select: none;")
   &&miniFrameCss.includes("user-select: none;")
@@ -115,9 +145,11 @@ assert(game.includes("prepTaskScores:{}")
   &&day.includes("state.prepTaskScores[taskId]")
   &&day.includes("const quality=Math.round(taskScores.reduce"),
   "낮 준비 작업 점수를 메뉴 품질 평균으로 저장해야 합니다.");
-assert(night.includes("const satisfaction=satisfactionScore(inv,cookScore);")
-  &&night.includes("const serviceScore=satisfaction;"),
-  "낮 준비 품질은 일반·이야기 손님의 저녁 평가에 모두 반영되어야 합니다.");
+assert(night.includes("function satisfactionScore(cookScore)")
+  &&night.includes("const satisfaction=satisfactionScore(cookScore);")
+  &&night.includes("const serviceScore=satisfaction;")
+  &&!night.includes("inv.quality"),
+  "일반·이야기 손님의 최종 평가는 낮 준비 품질 없이 밤 조리 점수만 사용해야 합니다.");
 assert(!night.includes("const expected=satisfactionScore(inv,state.carrying.cookScore);")
   &&!night.includes("${expectedLabel} ${expected}점"),
   "손님 반응 전에 운반 UI가 예상 평가 점수를 공개하면 안 됩니다.");
@@ -139,6 +171,12 @@ assert(night.includes("function ordersInArrivalOrder()")
   &&!game.includes('["1","2","3","4"].includes(k)')
   &&!index.includes("손님 선택"),
   "손님은 클릭·숫자 선택 없이 실제 도착 순서대로만 처리되어야 합니다.");
+assert(customers.includes("const CUSTOMER_SERVICE_Y = toLogic(CHEF_WALK_AREA.bottomY);")
+  &&customers.includes("const CUSTOMER_SERVE_REACH = 12;")
+  &&game.includes("<=CUSTOMER_SERVE_REACH")
+  &&!game.includes("autoDelivery();")
+  &&!night.includes("function autoDelivery()"),
+  "서빙은 손님 정면에 밀착해 E를 눌렀을 때만 완료되어야 합니다.");
 assert(story.includes("function storyGeneralArrivals()")
   &&story.includes("if(!storyOrderDialogueReady(order))return false;")
   &&story.includes('if(state.mini||state.carrying)return false;')
@@ -165,4 +203,4 @@ const dayRules=[...gameData.matchAll(/\b\d:\{day:\d,requiredMenus:\[\],optionalM
 assert(dayRules.length===7&&dayRules.every(match=>match[1]==="5"&&match[2]==="5"),
   "요청에 따라 현재 일차별 조리 메뉴 수는 다섯 개로 유지해야 합니다.");
 
-console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · prep quality · fridge menu · FIFO story arrival");
+console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · cook-only evaluation · fridge menu · FIFO story arrival");

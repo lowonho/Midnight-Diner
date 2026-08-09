@@ -11,3 +11,7 @@ assets/Conversation/**/*.png
 # ../Midnight-Diner-art-masters/Cutscene/Moonpiece/ 로 옮겨 두세요.
 # (tools/build-cutscene-webp.js 가 그쪽을 먼저 찾습니다)
 assets/Cutscene/Moonpiece/*.png
+
+# 헤드리스 크롬 캡처(visual smoke)가 남기는 임시 프로필과 스크린샷.
+# --user-data-dir 로 넘긴 폴더에 캐시·쿠키·DB 가 수백 개 쌓입니다.
+.tmp-*

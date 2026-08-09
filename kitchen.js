@@ -348,11 +348,13 @@ function blockPlayerAtStations(player){
 }
 
 
+let trashOpenUntil=0;
+function playTrashDiscardAnimation(durationMs=700){
+  trashOpenUntil=Math.max(trashOpenUntil,Date.now()+Math.max(0,durationMs));
+}
 function trashIsOpen(){
-  // 폐기 시스템은 사용하지 않습니다. 향후 쓰레기통 전용 미니게임을
-  // 다시 연결할 경우에만 해당 미니게임 동안 뚜껑 연출을 표시합니다.
   if(state.mini?.stationId==="trash")return true;
-  return false;
+  return Date.now()<trashOpenUntil;
 }
 
 
@@ -394,7 +396,7 @@ function nearestStation(preferredId=null){
      메뉴 선택    냉장고에서 오늘의 메뉴를 정합니다
      낮          주방 집기는 쓰지 않습니다 (앞 테이블 준비물만 만집니다)
      프롤로그 조리 사장이 지정한 현재 조리 단계 집기만
-     밤 · 들고 감  주방 집기와 추가 상호작용 없음
+     밤 · 들고 감  쓰레기통에서 완성 음식을 폐기
      밤          현재 조리 단계 집기만
      미니게임 중   그 집기만 (프롬프트는 숨지만 사용 중이므로 계속 강조)
 
@@ -407,7 +409,7 @@ function stationUsable(s,near){
   if(state.story?.activeStoryCook)return s.id===currentRequirement();
   if(state.phase==="menuSelect")return s.id==="fridge";
   if(state.phase!=="night")return false;
-  if(state.carrying)return false;
+  if(state.carrying)return s.id==="trash";
   return s.id===currentRequirement();
 }
 
@@ -450,7 +452,8 @@ function drawStations(){
 // (nearestStation 을 9번 돌 필요가 없습니다)
 function drawStationLabels(){
   if(trashInFront()) drawStation(STATIONS.trash);
-  const near=nearestStation(currentRequirement());
+  const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();
+  const near=nearestStation(preferred);
   Object.values(STATIONS).forEach(s=>labelStation(s,near));
 }
 

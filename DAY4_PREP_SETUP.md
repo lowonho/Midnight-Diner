@@ -4,7 +4,7 @@
 
 Day 4 필수 작업은 다음 순서로 잠깁니다.
 
-1. 양배추(8) → 대파(7) → 어묵(6) 빠른 칼질
+1. 양배추(6) → 대파(7) → 어묵(4) 빠른 칼질
 2. 감자 채칼 10회
 3. 감자 전분 털기 — 봉투를 잡고 좌우·대각선으로 크게 흔들거나(드래그), 새우튀김 빵가루 작업과 같은 랜덤 2키 교차 입력으로 흔듭니다 (횟수는 `day4-prep-data.js` 의 `potatoStarch.requiredPresses`)
 
@@ -16,7 +16,7 @@ Day 4 필수 작업은 다음 순서로 잠깁니다.
 
 ## 선택 이미지 경로
 
-- `assets/minigame/E1/cabbage-0.png` ~ `cabbage-12.png`
+- `assets/minigame/E1/cabbage-0.png` ~ `cabbage-6.png`
 - `assets/minigame/E1/green-onion-0.png` ~ `green-onion-7.png`
 - `assets/minigame/E1/fish-cake-0.png` ~ `fish-cake-4.png`
 - 감자 채칼: `assets/minigame/E2/food_potato_whole_01.png` ~ `_08.png`

@@ -259,7 +259,7 @@ function renderNightResult(){
   const target=nightGeneralOrderTarget();
   const unserved=Math.max(0,target-state.generalServed);
   dom.servedResult.textContent=`${state.generalServed} / ${target}건`;
-  dom.satisfactionResult.textContent=avg>=90?"아주 좋았어요":avg>=75?"좋았어요":"조금 아쉬웠어요";
+  dom.satisfactionResult.textContent=cookingScoreMessage(avg);
   dom.fiveStarResult.textContent=state.fiveStar<=0
     ?"다음에는 더 잘할 수 있어요"
     :state.fiveStar>=state.served
@@ -271,7 +271,8 @@ function renderNightResult(){
     :"다음 날 준비";
   dom.nextDayButton.disabled=finalDay;
 
-  const tasteComment=avg>=90?"손님들이 음식의 맛을 오래 기억할 것 같습니다.":avg>=75?"정성스러운 맛이 손님들에게 잘 전해졌습니다.":"재료 품질과 조리 완성도를 더 높여야 합니다.";
+  const tasteTier=cookingScoreTier(avg);
+  const tasteComment=tasteTier==="perfect"?"손님들이 완벽한 음식의 맛을 오래 기억할 것 같습니다.":tasteTier==="tasty"?"맛있는 한 끼의 정성이 손님들에게 잘 전해졌습니다.":"조금 아쉬운 맛이었습니다. 재료 품질과 조리 완성도를 더 높여야 합니다.";
   const demandComment=unserved?` 일반 주문 목표까지 ${unserved}건 남았습니다.`:" 오늘의 일반 주문 목표를 모두 마쳤습니다.";
   dom.resultComment.textContent=`${tasteComment}${demandComment}`;
 }
@@ -422,25 +423,42 @@ function tryDeliver() {
   if(!state.carrying)return;
   const order=state.orders.find(o=>o.id===state.carrying.orderId);if(!order)return;
   const x=CUSTOMER_SEATS[order.slot],y=CUSTOMER_SERVICE_Y;
-  if(distance(state.player.x,state.player.y,x,y)>82){showToast("주문한 손님 앞까지 음식을 가져가세요.",true);return;}
+  if(distance(state.player.x,state.player.y,x,y)>CUSTOMER_SERVE_REACH){showToast("주문한 손님 바로 앞까지 음식을 가져가세요.",true);return;}
   serveOrder(order);
 }
 
-/* 만족도 = 준비 품질 + 조리 점수. 청결도 항목(0.05)이 있었지만 청결도
-   시스템을 걷어내면서 남은 두 항목에 나눠 얹어 만점 100 을 유지합니다.
-   여기와 updateNightObjective 의 예상 만족도가 늘 같은 식이어야 합니다. */
-function satisfactionScore(inv,cookScore){
-  return Math.round(clamp(inv.quality*.58+cookScore*.42,0,100));
+function discardCarriedDish(){
+  if(state.phase!==GAME_PHASES.OPEN||state.paused||state.mini||!state.carrying)return false;
+  const trash=nearestStation("trash");
+  if(!trash||trash.id!=="trash")return false;
+  const order=state.orders.find(item=>item.id===state.carrying.orderId);
+  const dish=dishById(state.carrying.dishId);
+  if(!order||!dish)return false;
+
+  order.cookStep=0;
+  order.cookScores=[];
+  state.carrying=null;
+  syncSelectedOrderToQueue();
+  if(typeof playTrashDiscardAnimation==="function")playTrashDiscardAnimation();
+  showToast(UI_TEXT.toast.discardDone(dish.name));
+  updateUI(true);
+  saveGame(storyCookingIsActive());
+  return true;
+}
+
+/* 최종 평가는 밤에 실제로 완성한 조리 점수만 사용합니다.
+   낮 준비 점수는 준비 과정의 피드백으로만 남고 손님의 반응이나
+   특별 손님 결과를 올리거나 내리지 않습니다. */
+function satisfactionScore(cookScore){
+  return Math.round(clamp(Number(cookScore)||0,0,100));
 }
 
 function serveOrder(order) {
-  const dish=dishById(order.dishId),inv=state.inventory[dish.id];
+  const dish=dishById(order.dishId);
   const cookScore=state.carrying.cookScore;
-  const satisfaction=satisfactionScore(inv,cookScore);
+  const satisfaction=satisfactionScore(cookScore);
   const isStoryOrder=order.customerType==="story";
-  // 일반·이야기 손님 모두 낮에 준비한 재료 품질과 밤 조리 점수를 합쳐
-  // 한 접시의 최종 평가를 냅니다. 그래야 낮 준비 실력이 특별 손님의
-  // 기억과 달빛 조각 결과에도 실제로 이어집니다.
+  // 일반·이야기 손님 모두 밤 조리 점수만으로 한 접시를 평가합니다.
   const serviceScore=satisfaction;
   const stars=clamp(Math.ceil(serviceScore/20),1,5);
   state.served++;
@@ -472,8 +490,6 @@ function serveOrder(order) {
   if(!resumedStory)saveGame();
 }
 
-function autoDelivery(){if(state.phase!=="night"||!state.carrying||state.mini)return;const order=state.orders.find(o=>o.id===state.carrying.orderId);if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<64)serveOrder(order);}
-
 function updateNightObjective(){
   normalizeNightOrderCounters();
   const progress=`일반 주문 ${state.generalServed} / ${nightGeneralOrderTarget()}건 · 시간제한 없음`;
@@ -484,6 +500,15 @@ function updateNightObjective(){
     return;
   }
   if(!order){
+    // 마지막 일반 손님이 식사하고 반응을 남기는 동안에는 새 손님을
+    // 기다린다는 안내를 띄우지 않습니다. 반응이 끝나면 곧바로 마감 또는
+    // 마지막 특별 손님 등장 흐름으로 넘어갑니다.
+    const lastGeneralGuestLeaving=state.generalServed>=nightGeneralOrderTarget()
+      &&state.departures.some(item=>!item.guestId);
+    if(lastGeneralGuestLeaving){
+      dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div>`;
+      return;
+    }
     const storyVisitor=state.orders.some(item=>item.customerType==="story"&&!isCookableOrder(item));
     dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>${storyVisitor?"특별 손님이 자신의 차례를 기다리고 있습니다.":"다음 손님을 기다리고 있습니다."}</div>`;
     return;

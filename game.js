@@ -24,7 +24,7 @@ const dom = Object.fromEntries([
   "appRoot","titleScreen","gameScreen","gameApp","topHud","leftHud","rightHud","mobileControls","phaseName","dayText","timeLabel","timeText","satisfactionLabel","satisfactionText","popularityText","moneyText",
   "settingsButton","codexButton","menuCards","leftTitle","phaseBadge","inventoryList","phaseButton","objectiveTitle","objectiveBody",
   "relationshipList",
-  "stationPrompt","toast","startButton","continueButton","saveInfo","titleSettingsButton",
+  "stationPrompt","stationPromptLabel","toast","startButton","continueButton","saveInfo","titleSettingsButton",
   "settingsOverlay","pauseMessage",
   "masterVolumeRow","masterVolume","masterVolumeValue","masterAudioToggle",
   "bgmVolumeRow","bgmVolume","bgmVolumeValue","bgmAudioToggle",
@@ -87,7 +87,8 @@ const state = {
   menuSelectionDraft:[],
   ingredientSelection:null,
   prepProgress:createDayPrepProgress(),
-  // 낮 준비 작업별 결과. 메뉴에 속한 작업 점수의 평균이 밤 재료 품질이 됩니다.
+  // 낮 준비 작업별 결과. 메뉴별 준비 완성도로 남기되 손님의 최종 평가는
+  // night.js에서 밤 조리 점수만 사용합니다.
   prepTaskScores:{},
   kimchiPrep:{cuttingComplete:false,fryingComplete:false},
   skewerPrep:createSkewerPrepProgress(),   // 낮에 꽂은 꼬치 배치 → 밤 굽기가 그대로 씁니다 (day.js)
@@ -158,7 +159,12 @@ function syncAudioControls(){
 
 const audio = {
   ctx:null, master:null, bgm:null, sfx:null,
-  bgmFiles:Object.freeze({day:"assets/bgm/bgm_day.mp3",night:"assets/bgm/bgm_night.mp3"}),
+  bgmFiles:Object.freeze({
+    day:"assets/bgm/bgm_day.mp3",
+    night:"assets/bgm/bgm_night.mp3",
+    storyCompany:"assets/bgm/story/bgm_company_story.mp3",
+    storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"
+  }),
   // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
   // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
   files:Object.freeze({
@@ -187,6 +193,7 @@ const audio = {
     result_good:["assets/sfx/sfx_result_good.MP3"],
     timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
     ui_click:["assets/sfx/sfx_ui_click.MP3"],
+    journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"],
     food_serve:["assets/sfx/sfx_food_serve.MP3"],
     pour_thin:["assets/sfx/sfx_pour_thin.MP3"],
     pour_thick:["assets/sfx/sfx_pour_thick.MP3"],
@@ -202,10 +209,19 @@ const audio = {
     skewer_turn:["assets/sfx/sfx_skewer_turn.MP3"],
     skewer_pierce:["assets/sfx/sfx_skewer_pierce.MP3"],
     anchovy_tension:["assets/sfx/sfx_anchovy_tension1.MP3","assets/sfx/sfx_anchovy_tension2.MP3"],
-    anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"]
+    anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"],
+    story_rain:["assets/sfx/story/sfx_rain.MP3"],
+    story_open_door:["assets/sfx/story/sfx_open_door.MP3"],
+    fragment_full_d1:["assets/sfx/story/fragments/sfx_d1_finish.MP3"],
+    fragment_full_d2:["assets/sfx/story/fragments/sfx_d2_finish.MP3"],
+    fragment_full_d3:["assets/sfx/story/fragments/sfx_d3_finish.MP3"],
+    fragment_full_d4:["assets/sfx/story/fragments/sfx_d4_finish.MP3"],
+    fragment_full_d5:["assets/sfx/story/fragments/sfx_d5_finish.MP3"],
+    fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
+    fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"]
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
-  bgmElements:new Map(),bgmElement:null,bgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,
+  bgmElements:new Map(),bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
   preload(){
     Object.values(this.files).flat().forEach(src=>{
       if(this.preloaded.has(src))return;
@@ -296,7 +312,8 @@ const audio = {
       this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .35:0;
     }
     this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
-    if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
+    if(!bgmAudioIsEnabled())this.bgmElements.forEach(element=>{element.volume=0;});
+    else if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
   },
   tone(freq=440,duration=.09,type="square",gain=.12,when=0,target="sfx") {
     if (!this.ctx) return;
@@ -310,8 +327,9 @@ const audio = {
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
   bad(){ this.play("input_wrong",{gain:.9}); },
   result(scoreOrGrade){
-    const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
-    const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
+    const numeric=Number(scoreOrGrade);
+    const perfect=scoreOrGrade==="perfect"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="perfect");
+    const good=scoreOrGrade==="good"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="tasty");
     if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
   },
   serve(){ this.play("food_serve",{gain:.9}); },
@@ -319,37 +337,116 @@ const audio = {
     if(!this.ctx)return;
     this.bgmStarted=true;this.syncBgm(true);
   },
+  setStoryBgm(track=null,{crossfadeDuration=0}={}){
+    const defaultTrack=state.phase==="night"?"night":"day";
+    const previousEffective=this.storyBgmTrack||defaultTrack;
+    const next=track&&Object.prototype.hasOwnProperty.call(this.bgmFiles,track)?track:null;
+    if(next===this.storyBgmTrack)return false;
+    this.storyBgmTrack=next;
+    const nextEffective=this.storyBgmTrack||defaultTrack;
+    if(this.bgmStarted&&nextEffective!==previousEffective){
+      if(Number(crossfadeDuration)>0)this.crossfadeBgm(nextEffective,Number(crossfadeDuration));
+      else this.syncBgm(true);
+    }else if(this.bgmStarted)this.syncBgm(false);
+    return true;
+  },
+  cancelBgmFade(){
+    if(this.bgmFadeFrame!=null)cancelAnimationFrame(this.bgmFadeFrame);
+    const outgoing=this.bgmOutgoingElement;
+    if(outgoing&&outgoing!==this.bgmElement){
+      try{outgoing.pause();outgoing.currentTime=0;outgoing.volume=0;}catch{}
+    }
+    this.bgmOutgoingElement=null;
+    this.bgmFadeFrame=null;this.bgmFadeStart=0;
+  },
+  startBgmFade(element){
+    this.cancelBgmFade();
+    this.bgmFadeStart=performance.now();
+    const step=now=>{
+      if(element!==this.bgmElement||element.paused){this.cancelBgmFade();return;}
+      const progress=clamp((now-this.bgmFadeStart)/this.bgmFadeDuration,0,1);
+      element.volume=this.bgmFileGain()*progress;
+      if(progress>=1){this.bgmFadeFrame=null;this.bgmFadeStart=0;return;}
+      this.bgmFadeFrame=requestAnimationFrame(step);
+    };
+    this.bgmFadeFrame=requestAnimationFrame(step);
+  },
+  crossfadeBgm(track,duration=this.bgmFadeDuration){
+    const incoming=this.bgmElements.get(track)||null;
+    const outgoing=this.bgmElement;
+    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
+    if(!incoming||!outgoing||incoming===outgoing||!shouldPlay){this.syncBgm(true);return false;}
+    this.cancelBgmFade();
+    const outgoingVolume=outgoing.paused?0:outgoing.volume;
+    this.bgmOutgoingElement=outgoing;
+    this.bgmTrack=track;this.bgmElement=incoming;this.bgmPlayPending=true;
+    try{incoming.pause();incoming.currentTime=0;}catch{}
+    incoming.volume=0;
+    const begin=()=>{
+      if(incoming!==this.bgmElement)return;
+      this.bgmPlayPending=false;
+      this.bgmFadeStart=performance.now();
+      const step=now=>{
+        if(incoming!==this.bgmElement||incoming.paused){this.cancelBgmFade();return;}
+        const progress=clamp((now-this.bgmFadeStart)/Math.max(1,duration),0,1);
+        const curve=progress*Math.PI*.5;
+        incoming.volume=this.bgmFileGain()*Math.sin(curve);
+        if(this.bgmOutgoingElement&&!this.bgmOutgoingElement.paused){
+          this.bgmOutgoingElement.volume=bgmAudioIsEnabled()?outgoingVolume*Math.cos(curve):0;
+        }
+        if(progress>=1){
+          const finishedOutgoing=this.bgmOutgoingElement;
+          if(finishedOutgoing&&finishedOutgoing!==incoming){
+            try{finishedOutgoing.pause();finishedOutgoing.currentTime=0;finishedOutgoing.volume=0;}catch{}
+          }
+          this.bgmOutgoingElement=null;this.bgmFadeFrame=null;this.bgmFadeStart=0;
+          return;
+        }
+        this.bgmFadeFrame=requestAnimationFrame(step);
+      };
+      this.bgmFadeFrame=requestAnimationFrame(step);
+    };
+    const started=incoming.play();
+    if(started?.then)started.then(begin).catch(()=>{this.bgmPlayPending=false;this.cancelBgmFade();});
+    else begin();
+    return true;
+  },
   syncBgm(force=false){
     if(!this.bgmStarted)return;
-    const track=state.phase==="night"?"night":"day";
+    const track=this.storyBgmTrack||(state.phase==="night"?"night":"day");
     if(force||track!==this.bgmTrack){
+      this.cancelBgmFade();
       if(this.bgmElement){this.bgmElement.pause();this.bgmElement.currentTime=0;}
       this.bgmTrack=track;this.bgmElement=this.bgmElements.get(track)||null;
       this.bgmPlayPending=false;this.bgmFadeStart=0;
     }
-    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&!state.paused;
+    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
     if(!shouldPlay){
       if(this.bgmElement&&!this.bgmElement.paused)this.bgmElement.pause();
-      this.bgmPlayPending=false;this.bgmFadeStart=0;return;
+      this.bgmPlayPending=false;this.cancelBgmFade();return;
     }
     const element=this.bgmElement;if(!element)return;
     const now=performance.now();
     if(element.paused&&!this.bgmPlayPending){
       element.volume=0;this.bgmFadeStart=now;this.bgmPlayPending=true;
       const started=element.play();
-      if(started?.then)started.then(()=>{this.bgmPlayPending=false;}).catch(()=>{this.bgmPlayPending=false;});
-      else this.bgmPlayPending=false;
+      if(started?.then)started.then(()=>{
+        this.bgmPlayPending=false;
+        if(element===this.bgmElement)this.startBgmFade(element);
+      }).catch(()=>{this.bgmPlayPending=false;this.cancelBgmFade();});
+      else{this.bgmPlayPending=false;this.startBgmFade(element);}
     }
-    if(!element.paused&&this.bgmFadeStart){
+    if(!element.paused&&this.bgmFadeStart&&this.bgmFadeFrame==null){
       const progress=clamp((now-this.bgmFadeStart)/this.bgmFadeDuration,0,1);
       element.volume=this.bgmFileGain()*progress;
       if(progress>=1)this.bgmFadeStart=0;
     }else if(!element.paused&&!this.bgmFadeStart)element.volume=this.bgmFileGain();
   },
   stopBgm(){
-    this.bgmStarted=false;this.bgmPlayPending=false;this.bgmFadeStart=0;this.bgmTrack=null;
+    this.cancelBgmFade();
+    this.bgmStarted=false;this.bgmPlayPending=false;this.bgmTrack=null;this.storyBgmTrack=null;
     this.bgmElements.forEach(element=>{element.pause();element.currentTime=0;element.volume=0;});
-    this.bgmElement=null;
+    this.bgmElement=null;this.bgmOutgoingElement=null;
   }
 };
 audio.preload();
@@ -598,8 +695,13 @@ function interact() {
     return;
   }
   const required=currentRequirement();
-  const station=nearestStation(required);
+  const station=nearestStation(state.phase==="night"&&state.carrying?"trash":required);
   if(state.phase==="night" && state.carrying) {
+    if(station?.id==="trash"){
+      state.player.facing=station.facing;
+      discardCarriedDish();
+      return;
+    }
     tryDeliver();
     return;
   }
@@ -639,6 +741,7 @@ function setupMini() {
   };
   engine.setup?.(m,{dish,set,difficulty});
   if((m.context.special||m.context.tutorial)&&Number.isFinite(m.data.speed))m.data.speed*=difficulty;
+  updateMiniScore(m);
 }
 
 // Space · ACTION 버튼 · 미니게임 안 조작 버튼이 모두 여기로 들어옵니다.
@@ -652,6 +755,7 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  updateMiniScore(m,score);
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   audio.result(score);
@@ -723,8 +827,14 @@ function update(dt) {
     }
   }
   state.orders.forEach(order=>{
-    if(order.customerType==="story"&&order.guestOrder===false){
-      order.waitingTime=0;order.bubbleTime=0;
+    if(order.customerType==="story"){
+      // 특별 손님의 기다림은 대화 장면에서만 표현합니다. 조리 중 시간이
+      // 오래 걸려도 일반 손님용 대기 문구를 가져다 쓰지 않습니다. 단,
+      // 특별 손님 전용 등장 말풍선이 있다면 원래 표시 시간만큼 유지합니다.
+      const hadGeneralWaitingBubble=order.waitingBubbleShown===true;
+      order.waitingTime=0;order.waitingBubbleShown=false;
+      if(hadGeneralWaitingBubble){order.bubble="";order.bubbleTime=0;}
+      else if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);
       return;
     }
     if(pauseNightCustomerPresentation&&order.customerType!=="story")return;
@@ -737,7 +847,7 @@ function update(dt) {
     item.life-=dt;
   });
   state.departures=state.departures.filter(item=>item.life>0);
-  updateMini(dt);updatePlayer(dt);updateParticles(dt);autoDelivery();updateUI(false);
+  updateMini(dt);updatePlayer(dt);updateParticles(dt);updateUI(false);
   updateAutosave(dt);
 }
 
@@ -752,6 +862,7 @@ function updateMini(dt) {
     if(previousTime>3&&m.time<=3&&!m.timerWarningPlayed){m.timerWarningPlayed=true;audio.play("timer_warning",{owner:m,gain:.85});}
   }
   engine.update?.(m,dt);
+  updateMiniScore(m);
   if(Number.isFinite(m.time)&&m.time<=0){
     if(engine.timeout)engine.timeout(m);
     else finishMini(m.score||35);
@@ -807,10 +918,14 @@ function promptYFor(station){
 }
 function updatePrompt(){
   const prompt=dom.stationPrompt;
-  const hide=(mobileAction=false)=>{prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);};
+  const hide=(mobileAction=false)=>{
+    prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;
+    dom.stationPromptLabel.textContent="";
+    dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);
+  };
   if(state.paused||![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
-  let text="",x=0,y=0;
+  let text="",visibleText="",x=0,y=0;
   const storyStep=activeStoryCookStep();
   if(storyStep){
     const required=storyStep.station;
@@ -821,7 +936,13 @@ function updatePrompt(){
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
-    if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+    const trash=nearestStation("trash");
+    const dish=dishById(state.carrying.dishId);
+    if(trash?.id==="trash"&&dish){
+      text=UI_TEXT.prompt.discard(dish.name);
+      visibleText=UI_TEXT.prompt.discardVisible;
+      x=trash.ix;y=promptYFor(trash);
+    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }
@@ -847,9 +968,10 @@ function updatePrompt(){
     }
   }
   if(!text){hide();return;}
-  // 화면에는 키캡 'E' 만 보입니다. 설명 문구는 스크린리더용으로만 남깁니다.
-  // (textContent 로 넣으면 index.html 의 키캡 span 이 지워집니다)
+  // 기본 상호작용은 키캡만 표시하고, 실수로 누르면 음식을 잃는 폐기
+  // 상호작용만 행동명을 함께 표시합니다.
   prompt.setAttribute("aria-label",text);prompt.disabled=false;
+  dom.stationPromptLabel.textContent=visibleText;
   // 좌표만 넘기고, 그 값으로 어디에 앉힐지는 CSS 가 정합니다. (css/interaction.css)
   prompt.style.setProperty(UI_VAR.promptX,`${x/W*100}%`);
   prompt.style.setProperty(UI_VAR.promptY,`${y/H*100}%`);

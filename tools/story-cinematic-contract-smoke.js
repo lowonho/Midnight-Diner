@@ -199,8 +199,8 @@ assertRuntime(layers[firstLayer].classList.has("is-active")
   &&layers[firstLayer].style.backgroundImage.includes("cutscene_02_reprimand_variant.webp"),
   "지정한 컷의 원화가 보이는 레이어에 깔려야 합니다.");
 
-assertRuntime(applyStoryCinematic({kind:"caption",speakerLabel:"김다은(속말)"})===true,
-  "컷이 안 적힌 속말에서도 컷씬을 유지해야 합니다.");
+assertRuntime(applyStoryCinematic({speaker:"protagonist"})===true,
+  "컷이 안 적힌 김다은 대사에서도 컷씬을 유지해야 합니다.");
 assertRuntime(storyCinematicRuntime.cut==="prologueOffice"&&storyCinematicRuntime.layer===firstLayer,
   "컷이 안 적힌 대사가 컷을 바꾸면 안 됩니다.");
 

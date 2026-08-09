@@ -473,8 +473,11 @@ function renderJournalPage({acknowledge=false}={}){
 
 function selectJournalPage(index,acknowledge=false){
   if(!journalPages.length)return false;
-  journalPageIndex=Math.max(0,Math.min(journalPages.length-1,Number(index)||0));
+  const nextIndex=Math.max(0,Math.min(journalPages.length-1,Number(index)||0));
+  const changed=nextIndex!==journalPageIndex;
+  journalPageIndex=nextIndex;
   renderJournalPage({acknowledge});
+  if(changed)audio?.play?.("journal_page_turn",{gain:.9});
   return true;
 }
 
@@ -516,6 +519,10 @@ function openJournal(mode="collection"){
 
 function openTitleJournal(){return openJournal("collection");}
 function openGameplayJournal(){return openJournal("gameplay");}
+function openGameplayJournalPage(pageId){
+  journalLastGameplayPageId=String(pageId||"");
+  return openJournal("gameplay");
+}
 
 function closeJournal(){
   const elements=journalElements();
@@ -560,6 +567,7 @@ window.refreshJournalUI=refreshJournalUI;
 window.openJournal=openJournal;
 window.openTitleJournal=openTitleJournal;
 window.openGameplayJournal=openGameplayJournal;
+window.openGameplayJournalPage=openGameplayJournalPage;
 
 function savePhaseLabel(phase){
   return phase===GAME_PHASES.MENU_SELECT?"메뉴 선택":phase===GAME_PHASES.INGREDIENT_SELECT?"재료 고르기":phase===GAME_PHASES.PREP?"낮 준비":phase===GAME_PHASES.OPEN?"밤 영업":"영업 마감";
@@ -672,8 +680,8 @@ function startGame(){
   audio.init();if(audio.ctx?.state==="suspended")audio.ctx.resume();
   state.screen="game";state.phase=GAME_PHASES.PREP;state.paused=false;state.settingsFrom="game";
   state.day=DayManager.setDay(1);state.money=0;state.popularity=0;state.story=createStoryState();state.departures=[];nextOrderId=1;resetDay(true);
-  openGameScreen();audio.startBgm();
-  queueStoryMoments(["newGame","dayStart"]);
+  openGameScreen();queueStoryMoments(["newGame","dayStart"]);
+  audio.startBgm();
 }
 
 function returnTitle(){

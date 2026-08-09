@@ -464,7 +464,10 @@ function qaStoryLineTextValue(line){
 
 function qaStoryLineSpeaker(line){
   if(line?.speaker)return STORY_CHARACTERS[line.speaker]?.name||line.speaker;
-  if(typeof line?.speakerLabel==="string"&&line.speakerLabel.trim())return line.speakerLabel.trim();
+  if(typeof line?.speakerLabel==="string"&&line.speakerLabel.trim()){
+    const label=line.speakerLabel.trim();
+    return label==="김다은(속말)"?"김다은":label;
+  }
   return QA_STORY_KIND_LABELS[line?.kind]||"";
 }
 

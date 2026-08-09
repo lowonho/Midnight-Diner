@@ -93,8 +93,8 @@
 .fp-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
 .fp-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
-/* ── 새우튀김 준비의 재료칸 : 굴릴 새우 다섯 마리 ────────────
-   여기만 재료 카드(.fp-ing-list)가 아니라 새우 다섯 칸이 들어갑니다.
+/* ── 새우튀김 준비의 재료칸 : 굴릴 새우 세 마리 ──────────────
+   여기만 재료 카드(.fp-ing-list)가 아니라 새우 세 칸이 들어갑니다.
    밀가루·계란물·빵가루는 가운데 그릇이 곧 그 재료라 카드로 또 보여 주지
    않습니다 (E6 튀기기 왼쪽 칸과 같은 결 — 거기도 튀길 것만 늘어놓습니다).
 
@@ -104,7 +104,7 @@
      done     다 묻혀 되돌려 놓은 새우
    pending 은 아무 표시도 없는 기본 모습입니다.
 
-   ⚠️ 칸에 테두리·배경을 두지 않습니다. 새우 다섯 마리가 재료 카드가 아니라
+   ⚠️ 칸에 테두리·배경을 두지 않습니다. 새우 세 마리가 재료 카드가 아니라
       **재료칸에 그냥 늘어놓은 새우**로 읽혀야 합니다 (E6 튀기기 왼쪽 칸과 같습니다).
       상태 구분은 테두리 색이 아니라 새우 그림 자체(생새우 / 옷 입은 새우)와
       또렷함으로 합니다. */
@@ -128,11 +128,11 @@
 .fp-tray-slot.ready:active { cursor: grabbing; }
 .fp-tray-slot.fresh { animation: fp-batch-pop .35s ease-out; }
 /* 나가 있는 칸의 빈 자리 표시 — 새우가 앉았던 만큼의 옅은 자국입니다 */
-.fp-tray-empty { width: calc(74 * var(--upx)); height: calc(46 * var(--upx)); border-radius: 50%; background: rgba(255,214,130,.07); }
-/* 새우 그림은 슬롯 다섯 칸(한 칸 약 100)에 맞춰 줄입니다.
-   .fp-shrimp.has-asset 의 186x175 를 그대로 두면 칸 밖으로 넘칩니다. */
+.fp-tray-empty { width: calc(96 * var(--upx)); height: calc(60 * var(--upx)); border-radius: 50%; background: rgba(255,214,130,.07); }
+/* 세 칸으로 줄어든 재료칸에 맞춰 새우를 이전 102x88보다 약 30% 키웁니다.
+   .fp-shrimp.has-asset 의 186x175 를 그대로 두면 여전히 칸 밖으로 넘칩니다. */
 .fp-tray-slot .fp-shrimp,
-.fp-tray-slot .fp-shrimp.has-asset { width: calc(102 * var(--upx)); height: calc(88 * var(--upx)); pointer-events: none; }
+.fp-tray-slot .fp-shrimp.has-asset { width: calc(124 * var(--upx)); height: calc(116 * var(--upx)); pointer-events: none; }
 /* 지금 꺼낼 새우만 또렷하고, 뒤에 줄 선 새우는 한 톤 죽입니다 */
 .fp-tray-slot.pending .fp-shrimp { opacity: .72; filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(48,25,10,.55)) saturate(.85); }
 .fp-tray-slot.ready .fp-shrimp { animation: fp-tray-ready-bob 1.4s ease-in-out infinite; }
@@ -369,7 +369,7 @@
 /* ── 새우튀김 준비 : 단계별 한 그릇 · 마우스 굴리기 ──────────
    세 재료를 한꺼번에 펼치지 않고 현재 재료 하나만 크게 보여 줍니다.
    다섯 줄 : 단계 표시 · 제목 · 그릇 · 굴린 정도 · 안내.
-   (몇 마리째인지 세던 여섯째 줄 .fp-roll-batch 는 왼쪽 재료칸의 새우 다섯
+   (몇 마리째인지 세던 여섯째 줄 .fp-roll-batch 는 왼쪽 재료칸의 새우 세
     칸이 그대로 말해 주게 되면서 뺐습니다) */
 .fp-shrimp-roll-scene { width:100%; height:100%; min-height:0; display:grid; grid-template-rows:auto auto minmax(0,1fr) auto auto; align-items:center; justify-items:center; gap:calc(8 * var(--upx)); padding:calc(5 * var(--upx)) calc(12 * var(--upx)); }
 .fp-roll-stage-track { width:min(100%,calc(560 * var(--upx))); display:grid; grid-template-columns:repeat(3,1fr); align-items:center; gap:calc(7 * var(--upx)); }

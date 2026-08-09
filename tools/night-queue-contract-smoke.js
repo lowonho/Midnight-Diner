@@ -18,12 +18,20 @@ const CUSTOMER_VARIANT_COUNT=6;
 let nextOrderId=1;
 const dom={};
 const audio={serve(){}};
+const UI_TEXT={toast:{discardDone:name=>name+" 폐기"}};
+let nearStationId=null,trashAnimationCount=0,lastSaveAllowDuringStory=null;
+const toastMessages=[];
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
-function saveGame(){return true;}
+function saveGame(allowDuringStory=false){lastSaveAllowDuringStory=allowDuringStory;return true;}
 function updateUI(){}
-function showToast(){}
+function showToast(message){toastMessages.push(message);}
 function startMini(){}
 function stationById(){return null;}
+function nearestStation(preferredId=null){
+  return nearStationId&&(!preferredId||preferredId===nearStationId)
+    ?{id:nearStationId,facing:"right"}:null;
+}
+function playTrashDiscardAnimation(){trashAnimationCount++;}
 `;
 
 const test=`
@@ -45,6 +53,7 @@ const resetNight=day=>{
   nextOrderId=1;
   state={
     day,phase:GAME_PHASES.OPEN,screen:"game",paused:false,mini:null,carrying:null,
+    player:{x:0,y:0,facing:"down"},
     story:createStoryState(),orders:[],respawns:[],departures:[],selectedOrderId:null,
     selectedMenus:DISHES.map(dish=>dish.id),inventory:makeInventory(),
     generalServed:0,generalSpawnedCustomers:0,spawnedCustomers:0,served:0,
@@ -128,7 +137,55 @@ assert(state.orders.map(order=>order.customerType).join(",")==="general,general,
   &&state.orders[2].guestId==="twinShadows",
   "셋째 날 특별 손님은 두 일반 손님 다음의 세 번째 순번이어야 합니다.");
 
-console.log("NIGHT_QUEUE_CONTRACT_OK FIFO · deferred special arrival/dialogue");
+// 완성 음식은 쓰레기통 가까이에서만 폐기되고, 같은 주문을 처음부터 다시 조리합니다.
+resetNight(1);played=[];nearStationId=null;trashAnimationCount=0;lastSaveAllowDuringStory=null;
+const discardDish=DISHES.find(dish=>dish.id==="kimchi");
+const discardOrder={
+  id:50,slot:0,dishId:discardDish.id,customerType:"general",guestOrder:true,entered:1,
+  cookStep:discardDish.cook.length,cookScores:[42,63]
+};
+state.orders=[discardOrder];state.selectedOrderId=discardOrder.id;
+state.carrying={orderId:discardOrder.id,dishId:discardDish.id,cookScore:53};
+const serviceSnapshot=[state.served,state.generalServed,state.satisfactionTotal,state.fiveStar];
+assert(!discardCarriedDish()&&state.carrying?.orderId===discardOrder.id,
+  "쓰레기통에서 멀리 떨어져 있으면 완성 음식을 폐기하면 안 됩니다.");
+nearStationId="trash";
+assert(discardCarriedDish()
+  &&state.carrying===null
+  &&discardOrder.cookStep===0
+  &&discardOrder.cookScores.length===0
+  &&currentOrder()?.id===discardOrder.id,
+  "쓰레기통 가까이에서는 접시만 버리고 같은 선두 주문을 처음부터 다시 조리해야 합니다.");
+assert(serviceSnapshot.join(",")===[state.served,state.generalServed,state.satisfactionTotal,state.fiveStar].join(",")
+  &&state.departures.length===0
+  &&state.respawns.length===0,
+  "폐기는 서빙·평가·퇴장·재입장 결과를 만들면 안 됩니다.");
+assert(trashAnimationCount===1
+  &&toastMessages.at(-1).includes("폐기")
+  &&lastSaveAllowDuringStory===false,
+  "일반 주문 폐기에는 쓰레기통 연출과 안내 뒤 일반 자동저장을 남겨야 합니다.");
+
+// 특별 손님 주문을 버려도 대화 체크포인트와 선택한 음식은 유지합니다.
+const specialOrder={
+  id:51,slot:1,dishId:"kimchi",storyDishId:"kimchi",customerType:"story",
+  guestId:"rainyChild",guestOrder:true,specialRecipe:true,entered:1,
+  cookStep:discardDish.cook.length,cookScores:[88,84]
+};
+state.orders=[specialOrder];state.selectedOrderId=specialOrder.id;
+state.carrying={orderId:specialOrder.id,dishId:"kimchi",cookScore:86};
+storySession={suspended:true,pendingCook:{orderId:specialOrder.id,sceneId:"SCN-G1-A"}};
+lastSaveAllowDuringStory=null;
+assert(discardCarriedDish()
+  &&storySession.suspended
+  &&storySession.pendingCook.orderId===specialOrder.id
+  &&specialOrder.dishId==="kimchi"
+  &&specialOrder.storyDishId==="kimchi"
+  &&specialOrder.specialRecipe
+  &&specialOrder.cookStep===0
+  &&lastSaveAllowDuringStory===true,
+  "특별 손님 음식 폐기는 주문·대화 체크포인트를 유지한 채 재조리 상태로 저장해야 합니다.");
+
+console.log("NIGHT_QUEUE_CONTRACT_OK FIFO · deferred special arrival/dialogue · trash retry");
 `;
 
 vm.runInNewContext(`${bootstrap}\n${source}\n${test}`,{
