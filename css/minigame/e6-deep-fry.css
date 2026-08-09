@@ -128,7 +128,8 @@
   object-fit: cover;
   pointer-events: none;
 }
-.e6-result { position:absolute; z-index:12; left:50%; top:45%; padding:calc(8 * var(--upx)) calc(24 * var(--upx)); border:2px solid currentColor; border-radius:calc(9 * var(--upx)); background:rgba(27,17,11,.88); color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 */
+.e6-result { position:absolute; z-index:12; left:50%; top:45%; color:#f2c878; font-size:calc(34 * var(--upx)); font-weight:1000; letter-spacing:.08em; opacity:0; transform:translate(-50%,-42%) scale(.72); pointer-events:none; }
 .e6-result.perfect { color:#ffe29a; }
 .e6-result.show { animation:e6-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
 

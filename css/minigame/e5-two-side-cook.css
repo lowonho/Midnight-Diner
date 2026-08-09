@@ -1111,24 +1111,55 @@
 /* ── 완성 담기 칸 (engine-e5 의 twoSideServeMarkup) ───────────
    튀김처럼 **다 구운 꼬치를 여기로 끌어다 담습니다.** 원래 이 자리는 '참고 모양'
    (잘 구워진 꼬치 견본)이었는데 담는 자리로 통째로 바꿨습니다.
-   ⚠️ 접시는 **임시 CSS 도형**입니다(.ts-serve-dish). 원화가 들어오면 그 자리에
-      .has-asset 갈래를 만들고 이 도형만 끄면 됩니다 — 담긴 꼬치(.ts-served)는
-      접시와 별개라 그대로 씁니다. */
+
+   접시는 **위에서 내려다본 쟁반 원화 한 장**입니다(.ts-serve-art ·
+   assets/minigame/E5/yakitori/food_chicken_skewer_plate_topview_*).
+   담긴 꼬치는 그 위에 얹히고, 나무 손잡이는 접시 아래 테두리 밖으로 나옵니다 —
+   실제로 접시에 담아 둔 것처럼 보이게 하는 것이 이 칸의 전부입니다.
+
+   [세로 셈]  칸 안쪽 370 (= .ts-serve 473.4 − 테두리 4 − 여백 24 − 제목 20.9
+   − 아래 한 줄 38 − 사이 간격 16) 안에서
+     접시  311.3 (가로 210 에 그림 비율 1250:1853 을 곱한 값)
+     아래  58.7  ← 손잡이가 나오는 자리. 여기서 30 을 씁니다.
+   ⚠️ 아래 한 줄(#tsNow)이 두 줄로 늘면 칸이 356 까지 줄어듭니다. 그래도 접시 아래에
+      45 가 남아 손잡이(30)는 잘리지 않습니다 — 이 여유를 30 보다 크게 잡지 마세요.
+   ⚠️ 접시 가로(210 = 안쪽 226 − 좌우 8)를 바꾸면 tools/build-minigame-art-webp.js 의
+      크기 표도 같이 고쳐야 합니다. */
 .ts-serve { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
-.ts-serve-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
+/* ⚠️ 접시를 **위에 붙입니다**(원래 place-items:center). 남는 자리를 접시 아래로 몰아야
+   손잡이가 나올 자리가 생깁니다 — 가운데로 두면 그 자리가 반으로 줄어 손잡이가
+   아래 한 줄(#tsNow)까지 내려옵니다. */
+.ts-serve-figure { flex: 1; display: grid; place-items: start center; min-height: 0; }
 .ts-serve-plate {
   --cook-progress: .5;          /* 카드 안에는 화로가 없어 익힘 필터가 무효가 됩니다 (재료 카드와 같은 까닭) */
   position: relative;
+  width: calc(100% - 16 * var(--upx));
+  /* 세로는 그림 비율이 정합니다 — 높이를 따로 박으면 접시가 눌립니다 */
+  aspect-ratio: 1250 / 1853;
+}
+/* 놓는 자리는 **눈에 보이는 접시보다 조금 넓게** 잡습니다. 접시가 그림이 되면서
+   칸(226 x 370)보다 작아졌는데(210 x 311.3), 딱 접시 위에서만 놓아야 하면 잘 안 담깁니다.
+   투명한 겹 하나를 덮어 두면 elementFromPoint 가 이것을 먼저 만나고,
+   closest('[data-order-target]') 이 접시를 찾아 줍니다 (engine-e8 의 targetAt). */
+.ts-serve-plate::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: calc(-14 * var(--upx)) calc(-8 * var(--upx));
+}
+/* ⚠️ 선택자에 부모를 꼭 붙입니다 — 이 <img> 에는 공용 `.prep-asset`(display:block ·
+   max-width:100%)이 함께 붙어서, 클래스 하나로는 특정도가 같아 파일 순서에 걸립니다
+   (위 .ts-drag-arrow 주석과 같은 사연입니다). */
+.ts-serve-plate .ts-serve-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
-  min-height: calc(180 * var(--upx));
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: calc(2 * var(--upx));
-  padding-bottom: calc(26 * var(--upx));
+  object-fit: contain;
+  filter: drop-shadow(0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.5));
 }
-/* 임시 접시 — 위에서 비스듬히 본 타원 한 장 */
+/* 임시 접시 — 그림을 못 찾았을 때만 나오는 타원 한 장 (.has-asset 이 아닐 때) */
 .ts-serve-dish {
   position: absolute;
   z-index: 0;
@@ -1142,51 +1173,57 @@
   box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45);
   transform: translateX(-50%);
 }
-/* 비어 있을 때의 "여기에 담으세요" 점선 (화로의 빈 자리 표시와 같은 결) */
-.ts-serve-mark {
-  position: absolute;
-  z-index: 1;
-  left: 50%;
-  bottom: calc(14 * var(--upx));
-  width: calc(150 * var(--upx));
-  height: calc(140 * var(--upx));
-  border: calc(3 * var(--upx)) dashed rgba(255,220,152,.5);
-  border-radius: calc(12 * var(--upx));
-  transform: translateX(-50%);
-  animation: gs-slot-blink 1.7s ease-in-out infinite;
-  pointer-events: none;
-}
-.ts-serve-plate.filled .ts-serve-mark { display: none; }
-/* 다 구운 자루가 화로에 있을 때 — "이리로 끌어다 담으세요" 를 진하게 켭니다
+/* 다 구운 자루가 화로에 있을 때 — "이리로 끌어다 담으세요"
    (engine-e5 의 updateTwoSideServeHint 가 wants-drop 을 붙입니다).
-   ⚠️ **접시가 이미 차 있어도 켭니다.** 자루가 셋이라 한 자루를 담은 뒤에도 또 담아야
-      하는데, 비었을 때만 보이던 점선이 첫 자루를 담는 순간 사라져서 두 번째부터는
-      어디로 끌어야 하는지 알려 주는 것이 하나도 없었습니다. 그래서 .filled 보다
-      선택자를 길게 잡습니다. */
-.ts-serve-plate.wants-drop .ts-serve-mark,
-.ts-serve-plate.filled.wants-drop .ts-serve-mark {
-  display: block;
-  border-color: #ffe6b4;
-  background: rgba(255,206,120,.12);
-  box-shadow: 0 0 calc(16 * var(--upx)) rgba(255,206,120,.35);
+   ⚠️ **접시가 이미 차 있어도 켭니다.** 자루가 셋이라 한 자루를 담은 뒤에도 또 담아야 합니다.
+   ⚠️ 예전에는 접시 위에 점선 칸(.ts-serve-mark)을 띄웠습니다. 접시가 그림이 되면서
+      그릇 안에 네모가 겹쳐 보여 없앴고, 대신 **접시 자체를 밝힙니다.** */
+.ts-serve-plate.wants-drop .ts-serve-art { animation: ts-serve-call 1.5s ease-in-out infinite alternate; }
+@keyframes ts-serve-call {
+  from { filter: drop-shadow(0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.5)) drop-shadow(0 0 calc(12 * var(--upx)) rgba(255,206,120,.55)); }
+  to   { filter: drop-shadow(0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.5)) drop-shadow(0 0 calc(24 * var(--upx)) rgba(255,222,150,.95)) brightness(1.09); }
 }
-/* 접시도 같이 밝혀 둡니다 — 점선만으로는 오른쪽 카드가 눈에 안 들어옵니다 */
 .ts-serve-plate.wants-drop .ts-serve-dish { filter: brightness(1.1); }
 /* 끌어온 꼬치가 접시 위에 왔을 때 (E8 공통 .order-drop-ready) */
 .ts-serve-plate.order-drop-ready { outline: 0; }
+.ts-serve-plate.order-drop-ready .ts-serve-art { animation: none; filter: drop-shadow(0 0 calc(26 * var(--upx)) #ffe08d) brightness(1.16); }
 .ts-serve-plate.order-drop-ready .ts-serve-dish { filter: brightness(1.2); box-shadow: inset 0 calc(4 * var(--upx)) calc(9 * var(--upx)) rgba(120,92,58,.35), 0 0 calc(18 * var(--upx)) #ffe08d; }
 
-.ts-serve-stack { position: relative; z-index: 2; display: flex; align-items: flex-end; justify-content: center; gap: calc(1 * var(--upx)); }
+/* 담긴 자루 세 개. 접시 **아래 테두리 기준**으로 세워서 손잡이가 그 밖으로 나갑니다. */
+.ts-serve-stack {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: calc(-30 * var(--upx));   /* 손잡이가 접시 밖으로 나오는 길이 */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: calc(2 * var(--upx));
+  transform: translateX(-50%);
+}
+/* 조각 크기는 **접시 안쪽 폭에 세 자루가 나란히 들어가는 값**입니다
+   (안쪽 폭 약 174 ÷ 3 = 58 → 조각 56 + 사이 2).
+
+   세로 316 은 [접시 위 꼬챙이 끝 ~ 접시 밖으로 나온 손잡이 끝] 전체 길이입니다.
+   자루는 접시 아래 테두리에서 30 아래에 세워지므로, 접시(310.7) 안에서는 이렇게 보입니다.
+     꼬챙이 끝  ~52  · 조각 더미 148 (5 x 49 − 10 x 9.7) · 남은 꼬챙이 ~81 · 접시 밖 30
+   ⚠️ 조각 더미의 자리는 **padding-bottom 하나로** 정합니다(가운데 정렬이라 값을
+      키우면 더미가 위로 올라갑니다). 94 는 더미 한가운데가 접시 한가운데 즈음에
+      오도록 맞춘 값입니다 — 122 였을 때는 더미가 위로 몰려 접시 아래쪽이 휑했습니다. */
 .ts-served .grill-skewer {
-  --gs-piece-w: calc(44 * var(--upx));
-  --gs-piece-h: calc(38 * var(--upx));
-  --gs-piece-overlap: calc(-8 * var(--upx));
+  --gs-piece-w: calc(56 * var(--upx));
+  --gs-piece-h: calc(49 * var(--upx));
+  --gs-piece-overlap: calc(-9.7 * var(--upx));
   --gs-tilt: 0deg;
   min-height: 0;
-  height: calc(172 * var(--upx));
-  width: calc(46 * var(--upx));
-  padding-bottom: calc(20 * var(--upx));
+  height: calc(316 * var(--upx));
+  width: calc(56 * var(--upx));
+  padding-bottom: calc(94 * var(--upx));
 }
+/* ⚠️ 꼬챙이 굵기는 **상자 세로**에서 나옵니다(.gs-rod-asset 의 height:100% + 그림 비율).
+   접시에 맞추려고 상자를 길게 늘였더니 화로 위 꼬치보다 굵어져서, 여기서만 가로를
+   직접 잡습니다 — 화로 쪽 비율(꼬챙이 : 조각 = 0.45)을 그대로 옮긴 값입니다. */
+.ts-served .gs-rod-asset { width: calc(25 * var(--upx)); height: 100%; }
 /* 담기는 순간. **자리는 그대로**이고 진하기만 살아납니다 (움직임 없음) */
 .ts-served.landing { animation: ts-served-in .32s ease both; }
 @keyframes ts-served-in { from { opacity:0; filter:drop-shadow(0 0 calc(14 * var(--upx)) rgba(255,214,132,.9)); } to { opacity:1; } }
@@ -1282,15 +1319,13 @@
    지금은 자르기를 늘 그대로 두고, 대신 뜨는 높이를 칸 안에 들어오는 값으로 잡았습니다
    (위 two-side-food-flip 160 · pan-toss 26). 높이를 다시 키우고 싶으면 자르기를 풀지
    말고 팬 자리(--ts-pan-drop · --ts-pan-w)를 낮춰 칸 위쪽 여백부터 만드세요. */
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 —
+   낮 준비까지 13화면이 같은 판을 씁니다. 여기는 색과 크기만 정합니다. */
 .e5-result {
   position:absolute;
   z-index:12;
   left:50%;
   top:50%;
-  padding:calc(8 * var(--upx)) calc(24 * var(--upx));
-  border:2px solid currentColor;
-  border-radius:calc(9 * var(--upx));
-  background:rgba(27,17,11,.88);
   color:#ffe29a;
   font-size:calc(34 * var(--upx));
   font-weight:1000;
@@ -1300,6 +1335,9 @@
   pointer-events:none;
 }
 .e5-result.good { color:#f2c878; }
+/* 시간 초과(최저점)일 때의 판정 색. 낮 준비의 .prep-verdict.disappointing 과 같은 붉은빛입니다
+   — css/minigame/_prep-common.css 와 같은 값을 씁니다. */
+.e5-result.disappointing { color:#f0a08b; }
 .e5-result.show { animation:e5-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
 .ts-board.e5-complete .two-side-pan { filter:drop-shadow(0 0 calc(18 * var(--upx)) rgba(255,200,105,.5)); }
 /* ⚠️ 여기 있던 `.ts-flip-arrow`(조리 도구 위를 가로지르던 회색 곡선 + 삼각형)는
@@ -1518,6 +1556,8 @@
   .ts-tap-hint::after { animation:none; opacity:.7; scale:.75; }
   .ts-tap-hint .ts-tap-img { animation:none; }
   .ts-now.on { animation:none; box-shadow:0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); }
+  /* 완성 접시의 "담으세요" 는 밝기만 남기고 숨쉬기를 멈춥니다 (안내는 남아야 합니다) */
+  .ts-serve-plate.wants-drop .ts-serve-art { animation:none; filter:drop-shadow(0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.5)) drop-shadow(0 0 calc(18 * var(--upx)) rgba(255,214,132,.8)); }
   .ts-sauce-brush { animation:none; opacity:1; }
   /* 숯불도 멈추되 꺼지지는 않게 — 첫 장 한 장만 세워 둡니다 */
   .cg-frame { animation:none; }
@@ -1555,4 +1595,17 @@
   /* 팬 크기는 --ts-pan-w 하나로 정합니다 (세로는 그림 비율에서 자동).
      넓은 화면과 같은 1.3 배입니다 — 화구를 내보내는 폭(.ts-cooktop)도 그대로 따라옵니다. */
   .ts-board { --ts-pan-drop: calc(195 * var(--upx)); --ts-pan-w: calc(494 * var(--upx)); }
+  /* 완성 접시. 칸이 250 → 170 으로 줄어 접시 가로도 210 → 130 이 됩니다(0.607배).
+     담긴 꼬치와 손잡이가 나오는 길이도 **같은 배율로** 줄여야 세 자루가 접시 안에
+     나란히 남습니다 (안 줄이면 조각 3개가 접시 폭을 넘어갑니다). */
+  .ts-serve-stack { bottom: calc(-18 * var(--upx)); }
+  .ts-served .grill-skewer {
+    --gs-piece-w: calc(34 * var(--upx));
+    --gs-piece-h: calc(30 * var(--upx));
+    --gs-piece-overlap: calc(-5.9 * var(--upx));
+    height: calc(192 * var(--upx));
+    width: calc(34 * var(--upx));
+    padding-bottom: calc(57 * var(--upx));
+  }
+  .ts-served .gs-rod-asset { width: calc(15 * var(--upx)); }
 }

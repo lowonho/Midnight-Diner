@@ -489,6 +489,16 @@ const FILES = [
     css:".ts-board .gs-piece 108x94.5 (익힘 장과 한 크기·한 캔버스)" },
   { file:"E5/yakitori/fx_teriyaki_glaze_green_onion_piece_overlay.png", size:[240,210], pad:[512,448,48,94],
     css:".ts-board .gs-piece 108x94.5 (익힘 장과 한 크기·한 캔버스)" },
+  /* [완성 담기 접시] 오른쪽 '완성 담기' 칸에 깔리는 **위에서 내려다본 타원 쟁반**입니다
+     (css 의 .ts-serve-art). 다 구운 꼬치를 여기로 끌어다 담고, 나무 손잡이는 접시
+     아래 테두리 밖으로 나옵니다 — 그림에는 접시만 있고 꼬치는 얹는 것입니다.
+
+     [크기] 화면 210 x 311.3 의 2배율입니다. 칸 안쪽 폭 226 에서 좌우 8 씩 띄운 값이고,
+     세로는 그림 비율(1250:1853)이 그대로 정합니다.
+     ⚠️ 칸(.ts-serve)이나 접시 좌우 여백을 바꾸면 여기 크기도 같이 고쳐야 합니다 —
+        css/minigame/e5-two-side-cook.css 의 .ts-serve-plate 가 짝입니다. */
+  { file:"E5/yakitori/food_chicken_skewer_plate_topview_1250x1853.png", size:[420,623],
+    css:".ts-serve-art 210x311.3 (완성 담기 접시)" },
   /* [양념 붓] 60도로 누인 데리야끼 붓입니다. 양념 신호에 답하면 자루 위를 한 번
      쓸고 사라집니다 (engine-e5 의 applyTwoSideSauce · css 의 .ts-sauce-brush).
      [크기] 화면 200 x 365 의 2배율입니다.

@@ -19,8 +19,27 @@
    1. 배치
    ------------------------------------------------------------ */
 
+/* 준비물이 놓이는 높이(y)에 대하여 — 바 상판을 실측한 값입니다.
+   ------------------------------------------------------------
+   바 테이블 그림에서 **물건을 올릴 수 있는 나무 상판**은 논리 y 525~583
+   입니다. 위는 주황 테두리(521~525)가 끝나는 자리, 아래는 금색 테두리
+   (583~588)가 시작되는 자리입니다. 그 아래는 손님 의자입니다.
+   (2026-08-09 실측. 1920x1080 헤드리스 캡처에서 픽셀로 잰 값을 1.5 로 나눔)
+
+   재료 바구니 원화는 세로 약 48 이고 중심이 y+artDy 라 상판을 거의 다
+   씁니다. 그래서 y 는 마음대로 못 옮깁니다.
+     y 540 (예전값)  바구니 위쪽 518 — 주황 테두리를 넘어 바닥까지 올라감
+     y 546           524 — 테두리에 딱 붙음
+     y 550 (지금값)  528 — 테두리에서 3 띄고 상판에 온전히 얹힘
+     y 554           진행 숫자가 금색 테두리와 의자 등받이를 파고듦
+
+   ⚠️ 더 내릴 자리는 없습니다. 진행 숫자 baseline 이 y+37 이라
+      (drawPrepObjects 의 textY) 550 에서 이미 587 — 금색 테두리 코앞입니다.
+      상판 58 에 바구니 48 + 숫자 9 라 여유가 1 밖에 안 남습니다.
+      여기서 더 내리려면 숫자를 어디로 옮길지부터 정해야 합니다.
+   ------------------------------------------------------------ */
 const PREP_LAYOUT = {
-  y: 540,          // 준비물이 놓이는 높이. 바 상판(논리 y 500~522) 위입니다.
+  y: 550,          // 준비물이 놓이는 높이. 바 상판(논리 y 525~583) 안입니다.
   iy: 482,         // 요리사가 서는 높이 (카운터 위쪽 = 주방측)
   marginLeft: 50,  // 바 테이블 왼쪽 끝에서 띄우는 거리 (의자 기준을 못 쓸 때의 대비값)
   // 바 테이블 이미지의 왼쪽 끝(논리 411)은 철판(논리 194~421)에 가려져 있어서,
@@ -31,8 +50,8 @@ const PREP_LAYOUT = {
   // (의자 중심 = counter.js COUNTER_CHAIR_CENTERS. VIEW 좌표라 toLogic 으로 옮깁니다)
   chairLeadIn: 30,
   // 오른쪽 끝은 간판(signage.js OPEN_SIGN, 논리 x 1104~) 앞까지 씁니다.
-  // 간판은 논리 y 588 부터라 준비물 상자(530~572)와 세로로 겹치지 않아서
-  // 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
+  // 간판은 논리 y 588 부터라 준비물(그림 528~576, 진행 숫자 baseline 587)과
+  // 세로로 겹치지 않아서 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
   signOverlap: 10,
   rightLimitFallback: 1090,  // 간판이 없을 때의 오른쪽 한계
   // 개수가 적을 때 화면 끝까지 억지로 벌리지 않도록 간격 상한을 둡니다.
@@ -91,7 +110,11 @@ function prepDishGroups(){
     const dishTasks=prepTasksForDish(dish.id);
     if(!dishTasks.length)return null;
     const task=nextPrepTaskForDish(dish.id)||dishTasks[dishTasks.length-1];
-    if(!prepTaskCompleted(task)&&task.sharedPrepKey){
+    /* 같은 재료를 함께 손질하더라도 준비물은 메뉴마다 따로 보여 줍니다.
+       예를 들어 두부김치와 김치전의 김치 썰기는 완료·점수를 공유하지만,
+       바 테이블에는 「두부김치 준비」와 「김치전 준비」가 처음부터 각각
+       있어야 플레이어가 오늘 준비할 두 메뉴를 모두 알아볼 수 있습니다. */
+    if(!prepTaskCompleted(task)&&task.sharedPrepKey&&!task.showSharedPrepPerMenu){
       if(sharedTasks.has(task.sharedPrepKey))return null;
       sharedTasks.add(task.sharedPrepKey);
     }
@@ -269,6 +292,51 @@ function drawPrepFallbackObject(item,done){
   }
 }
 
+/* 준비 완료 도장 (초록 동그라미 + 체크).
+   ------------------------------------------------------------
+   원래는 여기서 직접 원을 그리고 그 위에 "✓" 글자를 얹었습니다.
+   지금은 원화 한 장으로 바꿨습니다 — 글꼴에 든 체크 글자는 컴퓨터마다
+   굵기와 위치가 달라서, 원 한가운데에 놓이지 않는 화면이 있었습니다.
+
+   [크기] 논리 30. 예전 원(반지름 15)과 같은 지름이라 도장이 놓이는
+   자리도 그대로입니다. 이 값을 고치면 tools/build-ui-common-webp.js 의
+   목표 크기(30 x1.5 = 45)도 같이 고쳐야 확대가 일어나지 않습니다.
+
+   [실패해도 통과시키는 이유] 도장 한 장 때문에 게임 전체가 로딩 실패로
+   빠지면 안 됩니다. 못 읽으면 아래 예비 도형(예전 원 + ✓)으로 그립니다.
+   ------------------------------------------------------------ */
+const PREP_READY_BADGE = {
+  src:"assets/UI/Common/ui_status_ready.webp",
+  size:30,
+  // 그림을 못 읽었을 때만 쓰는 예비 도형 값입니다.
+  fallback:{ fill:"#91b961", mark:"#17200e", font:"bold 18px sans-serif", markDy:6 }
+};
+
+let prepReadyBadgeImage = null;
+
+function loadPrepReadyBadge(){
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>{prepReadyBadgeImage=image;resolve(image);};
+    image.onerror=()=>{console.warn(`준비 완료 도장을 불러오지 못했습니다: ${PREP_READY_BADGE.src}`);resolve(null);};
+    image.src=PREP_READY_BADGE.src;
+  });
+}
+
+// (x, y) 는 도장 한가운데입니다.
+function drawPrepReadyBadge(x,y){
+  const B=PREP_READY_BADGE,half=B.size/2;
+  if(prepReadyBadgeImage){
+    ctx.drawImage(prepReadyBadgeImage,x-half,y-half,B.size,B.size);
+    return;
+  }
+  const F=B.fallback;
+  ctx.fillStyle=F.fill;ctx.beginPath();ctx.arc(x,y,half,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=F.mark;ctx.font=F.font;ctx.textAlign="center";ctx.fillText("✓",x,y+F.markDy);
+  ctx.textAlign="left";
+}
+
+
 /* 진행 숫자 · "준비 완료" 글자.
    ------------------------------------------------------------
    예전 나무 상자는 어두워서 밝은 글자만으로 읽혔지만, 재료 바구니
@@ -295,11 +363,24 @@ function drawPrepObjects(){
     if(!art)drawPrepFallbackObject(item,done);
 
     ctx.globalAlpha=1;
-    // 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
-    // 준비물은 메뉴당 하나라 이름표도 "메뉴 이름 + 준비" 한 가지로 씁니다.
-    // 지금 어떤 작업 차례인지는 아래 진행 숫자가 알려 줍니다.
+    /* 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
+       준비물은 메뉴당 하나라 이름표도 "메뉴 이름 + 준비" 한 가지로 씁니다.
+       지금 어떤 작업 차례인지는 아래 진행 숫자가 알려 줍니다.
+
+       [빛은 아직 안 끝난 것 전부에 켭니다] 밤 조리는 갈 곳이 한 곳뿐이라
+       그 하나만 빛나지만, 낮 준비는 순서가 없어서 "다음 하나"를 고를 근거가
+       없습니다(fx.js §3). 그래서 남은 것을 다 같이 밝혀 "아직 이만큼 남았다"
+       만 알립니다 — 어느 것부터 할지는 그대로 플레이어가 정합니다.
+       다 끝낸 자리는 꺼져서, 남은 자리만 눈에 들어옵니다.
+
+       [둥실도 빛과 같이 켭니다] 멀리 있어도 남은 준비물은 다 같이 크게·
+       빠르게 흔들립니다(주방 집기 이름표와 같은 active 값). 빛만 켜고
+       가만히 두면 바 테이블이 화면 아래쪽 구석이라 눈이 잘 안 갑니다.
+       움직임까지 붙여야 "저기 아직 남았다"가 한눈에 들어옵니다.
+       다 끝낸 자리만 잔잔한 idle 로 남아서, 남은 자리와 갈립니다. */
+    const glow=!done&&!state.mini&&!state.paused;
     drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,
-      labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)));
+      labelFloatStep(`prep_${item.task.id}`,glow||prepObjectUsable(item,near)),glow);
 
     // 진행 글자는 그림 아래로 내려서 재료를 가리지 않게 합니다.
     const textY=item.y+(art?art.h/2+L.artDy+11:18);
@@ -310,9 +391,7 @@ function drawPrepObjects(){
          세로는 그림 한가운데 높이입니다. 예전처럼 위쪽(y-18)에 두면
          이름표를 -32 로 올린 지금은 명판 오른쪽 아래 모서리를 파고듭니다. */
       const badgeX=item.x+(art?art.w/2-8:34),badgeY=item.y+(art?L.artDy:-18);
-      ctx.fillStyle="#91b961";ctx.beginPath();ctx.arc(badgeX,badgeY,15,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#17200e";ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.fillText("✓",badgeX,badgeY+6);
-      ctx.textAlign="left";
+      drawPrepReadyBadge(badgeX,badgeY);
       drawPrepStatusText("준비 완료",item.x,textY,"#d9e8b5");
     }else{
       // 메뉴 이름은 바로 위 이름표("두부김치 준비")에 이미 있어서 숫자만 씁니다.

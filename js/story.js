@@ -377,6 +377,11 @@ function gameplayJournalGuestRecord(definition){
   else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
+    // 아래 세 줄은 일기 장에 붙는 그림 두 장(초상화·달빛 조각)의 재료입니다.
+    // 조각 그림은 이번 회차에 실제로 받았을 때만 나옵니다(js/title.js).
+    shardId:definition.shardId,
+    shardName:definition.shardName,
+    fragmentState:currentFragmentState,
     guestName:definition.guestId==="facelessDaeun"
       &&!(guest.memoryUnlocked||Number(guest.revealedStoryLevel)>=3)
       ?(STORY_CHARACTERS.facelessDaeun?.name||"얼굴 없는 손님")
@@ -1285,7 +1290,8 @@ function storyLinesForScene(scene){
   let replacements={};
   if(scene.dynamicJournalHint&&scene.journalVariants){
     const {status,arrival}=storyJournalStatusForDay();
-    source=scene.journalVariants[status]||scene.journalVariants.none||source;
+    const variant=scene.journalVariants[status];
+    if(Array.isArray(variant))source=[...source,...variant];
     const missing=arrival?STORY_SCENES[arrival.missingMenuSceneId]:null;
     const dish=arrival?dishById(arrival.dishId):null;
     replacements={
@@ -1336,10 +1342,15 @@ function beginNextStoryScene(){
   storySession.lines=storyLinesForScene(scene);
   storySession.lineIndex=0;
   storySession.subtitle=null;
+  storySession.dialogueEntranceShown=false;
   // 지난 장면에서 조각을 띄웠던 줄 번호가 남아 있으면, 같은 번호의 줄에서
   // 조각이 한 박자 빨리 떠 버립니다.
   storySession.fragmentRevealedAt=null;
-  resetStoryStage();
+  /* 다음 장면도 첫 줄부터 컷씬이면 직전 컷을 지우지 않습니다. 새 컷이 준비될
+     때까지 두 레이어가 직접 교차해야 식당 플레이 화면이 중간에 끼지 않습니다. */
+  const preserveCinematic=typeof storyCinematicConfig==="function"
+    &&!!storyCinematicConfig(storySession.lines[0]);
+  resetStoryStage({preserveCinematic});
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
   document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
@@ -1548,11 +1559,12 @@ function applyStoryFragmentHandoff(line){
   const layer=document.getElementById("storyFragmentHandoff");
   if(!layer)return false;
   const handoff=line?.fragmentHandoff;
-  const showFull=handoff?.state==="full";
+  const showFragment=(handoff?.state==="partial"||handoff?.state==="full")&&!!handoff?.asset;
+  const kicker=document.getElementById("storyFragmentKicker");
   const name=document.getElementById("storyFragmentName");
-  layer.classList?.toggle("show",showFull);
-  layer.setAttribute?.("aria-hidden",showFull?"false":"true");
-  if(showFull){
+  layer.classList?.toggle("show",showFragment);
+  layer.setAttribute?.("aria-hidden",showFragment?"false":"true");
+  if(showFragment){
     layer.dataset.shardId=String(handoff.shardId||"");
     layer.dataset.shardName=String(handoff.shardName||"");
     layer.dataset.fragmentState=String(handoff.state||"");
@@ -1564,6 +1576,7 @@ function applyStoryFragmentHandoff(line){
        가운데 조각 그림이 안 보입니다. 문서 기준 절대 URL 로 바꿔서 넘깁니다. */
     if(asset)layer.style?.setProperty?.("--fragment-art",storyPortraitArtValue(asset));
     else layer.style?.removeProperty?.("--fragment-art");
+    if(kicker)kicker.textContent=handoff.state==="partial"?"부분 달빛 조각":"온전한 달빛 조각";
     if(name)name.textContent=handoff.shardName?`「${handoff.shardName}」`:"달빛 조각";
     playStoryFullFragmentSfx(line);
   }else{
@@ -1572,16 +1585,21 @@ function applyStoryFragmentHandoff(line){
     delete layer.dataset.shardName;
     delete layer.dataset.fragmentState;
     layer.style?.removeProperty?.("--fragment-art");
+    if(kicker)kicker.textContent="온전한 달빛 조각";
     if(name)name.textContent="";
   }
-  return showFull;
+  return showFragment;
 }
 
 function applyStoryEndingBackground(scene){
   const layer=document.getElementById("storyEndingBackground");
   const overlay=document.getElementById("storyOverlay");
   if(!layer)return false;
-  const asset=resolveStoryAssetUrl(scene?.endingBackground);
+  /* 진엔딩 뒤 후일담은 같은 아침을 이어서 보여 줍니다. 후일담 데이터에는
+     이미 원본 엔딩을 가리키는 endingSceneId가 있으므로, 배경 경로를 한 번 더
+     복사하지 않고 그 장면의 일러스트를 상속합니다. */
+  const endingScene=scene?.endingSceneId?STORY_SCENES[scene.endingSceneId]:null;
+  const asset=resolveStoryAssetUrl(scene?.endingBackground||endingScene?.endingBackground);
   const show=!!asset;
   layer.classList?.toggle("show",show);
   layer.setAttribute?.("aria-hidden",show?"false":"true");
@@ -1616,7 +1634,11 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   const speakerLabel=storySpeakerLabel(line);
   setStoryGameUiVisible(line.showGameUI===true);
   applyStoryEndingBackground(scene);
+  const startsNewCinematic=typeof storyCinematicStartsNewCut==="function"
+    &&storyCinematicStartsNewCut(line);
   applyStoryCinematic(line);
+  const dialogueNeedsEntrance=storySession.dialogueEntranceShown!==true||startsNewCinematic;
+  storySession.dialogueEntranceShown=true;
   /* 컷씬을 먼저 혼자 보여 주는 줄(cinematic.hold)에서는 조각 오버레이를
      그동안 비워 둡니다. 감추는 게 아니라 안 켜는 것이라야 1초 뒤에 조각이
      제대로 떠오릅니다 — 자세한 것은 story-cinematic.js 의 hold 설명. */
@@ -1661,6 +1683,7 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
      visibility 로만 감춰서 폭을 재는 데 문제가 없습니다. */
   scheduleStoryCinematicReveal(()=>{
     if(holding)fillStoryDialogueBox();
+    if(dialogueNeedsEntrance)restartStoryDialogueEntrance();
     /* 달빛 조각은 이 줄에서 바로 띄우지 않습니다. 대사와 동시에 큰 오버레이가
        덮여서 "손님이 조각을 건넨다"를 읽기도 전에 그림이 먼저 나와 버립니다.
        한 번 더 눌렀을 때 떠오르도록 storyAdvance() 가 따로 켭니다.
@@ -1835,7 +1858,9 @@ function storyAdvance(){
   /* 달빛 조각 한 박자. 대사를 다 읽고 한 번 더 누르면 그때 조각이 떠오르고,
      그다음 누름에 장면이 넘어갑니다. 대사와 같이 띄우면 글을 읽기도 전에
      오버레이가 화면을 덮어 버립니다(showStoryLine 쪽 주석 참고). */
-  if(line?.fragmentHandoff?.state==="full"&&storySession.fragmentRevealedAt!==storySession.lineIndex){
+  if((line?.fragmentHandoff?.state==="partial"||line?.fragmentHandoff?.state==="full")
+    &&line.fragmentHandoff.asset
+    &&storySession.fragmentRevealedAt!==storySession.lineIndex){
     storySession.fragmentRevealedAt=storySession.lineIndex;
     applyStoryFragmentHandoff(line);
     // 이 클릭의 주인공은 조각 획득음입니다. UI 클릭음을 같은 프레임에
@@ -1854,9 +1879,14 @@ function storyAdvance(){
        놔두면 펼친 책 뒤로 같은 책이 한 권 더 비칩니다. */
     clearStoryPropReveal();
     audio?.uiClick?.();
-    const opened=line.journalPageId&&typeof openGameplayJournalPage==="function"
-      ?openGameplayJournalPage(line.journalPageId)
-      :typeof openGameplayJournal==="function"&&openGameplayJournal();
+    /* journalRequiredReading 인 줄(프롤로그)은 주의사항 구역을 다 펼치기
+       전에는 닫기 버튼이 잠긴 채로 열립니다. 2회차부터의 해제 판정은 title.js
+       쪽에 있습니다. 나머지 줄은 예전 그대로 열립니다. */
+    const opened=line.journalRequiredReading&&typeof openGameplayJournalRequiredReading==="function"
+      ?openGameplayJournalRequiredReading()
+      :line.journalPageId&&typeof openGameplayJournalPage==="function"
+        ?openGameplayJournalPage(line.journalPageId)
+        :typeof openGameplayJournal==="function"&&openGameplayJournal();
     if(!opened){storySession.waitingForJournal=false;showStoryLine();}
     else saveGame(true);
     return true;
@@ -1941,9 +1971,23 @@ function updateStoryCinematicSpeaking(line){
   overlay.classList.toggle("story-cinematic-speaking",speaking);
 }
 
-function resetStoryStage(){
-  clearStoryCinematic();
+/* 대사창이 처음 열리거나 배경 컷이 바뀌는 첫 대사에서만 등장
+   효과를 재시작합니다. 클래스를 떼고 레이아웃을 한 번 확정한 뒤
+   다시 붙여야 같은 스토리 오버레이 안에서도 애니메이션이 재생됩니다. */
+function restartStoryDialogueEntrance(){
+  const overlay=document.getElementById("storyOverlay");
+  if(!overlay)return false;
+  overlay.classList.remove("story-dialogue-entering");
+  void overlay.offsetWidth;
+  overlay.classList.add("story-dialogue-entering");
+  return true;
+}
+
+function resetStoryStage({preserveCinematic=false}={}){
+  if(preserveCinematic)cancelStoryCinematicHold();
+  else clearStoryCinematic();
   document.getElementById("storyOverlay")?.classList.remove("story-cinematic-speaking");
+  document.getElementById("storyOverlay")?.classList.remove("story-dialogue-entering");
   applyStoryFragmentHandoff(null);
   /* 소품도 여기서 정리합니다. 남겨 두면 자막을 붙잡고 있던 타이머가 뒤늦게
      터져서, 사라진 대사를 다음 장면 위에 타이핑합니다. */
@@ -2034,6 +2078,51 @@ function storyPortraitMotionArt(portraitKey,motion){
   return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
 }
 
+/* 영업일지에 붙는 특별 손님 초상화입니다. 로비 컬렉션과 인게임 일기 장이
+   같은 그림 한 장을 씁니다 — 대화씬 원화의 motion_02(soft, 잔잔한 미소)입니다.
+   어느 장면에서 만났는지와 무관하게 늘 같은 얼굴이어야 기록처럼 읽힙니다.
+   그림이 없는 배역(주인공·목소리뿐인 화자)은 빈 문자열입니다. */
+const JOURNAL_GUEST_PORTRAIT_MOTION="soft";
+function storyJournalGuestPortraitArt(guestId){
+  const id=String(guestId||"");
+  if(!id||id==="protagonist")return "";
+  const key=storyPortraitKey(id);
+  return key?storyPortraitMotionArt(key,JOURNAL_GUEST_PORTRAIT_MOTION):"";
+}
+window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
+
+/* 일지의 초상화는 전신이 아니라 얼굴만 원형틀에 확대해 넣습니다.
+   아래는 그 얼굴이 원화(1250x1800) 어디에 있는지 적어 둔 표입니다.
+     cx·cy — 얼굴 한가운데 (원화 가로·세로의 %)
+     fh    — 잘라낼 세로 크기 (원화 세로의 %). 가로는 틀 비율에 맞춰 계산합니다.
+   인물마다 머리 크기와 높이가 제각각이라(등불 손님은 머리가 등, 작은 짐승은
+   몸이 작아 얼굴이 한참 아래) 한 가지 규칙으로는 안 맞아 눈으로 맞춘 값입니다.
+   원화를 새로 받으면 표를 고치고 아래 도구로 여덟 장을 한 줄로 뽑아 확인하세요:
+
+     node tools/journal-face-preview.js
+
+   ⚠️ 값을 고치면 css/settings.css 의 .journal-page-portrait 상자 비율(44/60)도
+      같이 봐야 합니다. 가로는 그 비율에서 나옵니다. */
+const JOURNAL_GUEST_FACE=Object.freeze({
+  rainyChild:{cx:48,cy:22,fh:32},
+  lanternGuest:{cx:61,cy:31,fh:34},
+  twinShadows:{cx:60,cy:19,fh:28},
+  crowCourier:{cx:54,cy:15,fh:26},
+  starBeast:{cx:54,cy:37,fh:32},
+  seawaterGuest:{cx:47,cy:19,fh:27},
+  schoolDoll:{cx:48,cy:19,fh:26},
+  facelessDaeun:{cx:49,cy:18,fh:25}
+});
+// 원화 크기입니다(tools/build-conversation-webp.js 의 공통 크롭 박스 비율).
+const JOURNAL_GUEST_ART_SIZE=Object.freeze({width:1250,height:1800});
+
+function storyJournalGuestFaceBox(guestId){
+  const key=storyPortraitKey(String(guestId||""));
+  const face=JOURNAL_GUEST_FACE[key];
+  return face?{...face,...JOURNAL_GUEST_ART_SIZE}:null;
+}
+window.storyJournalGuestFaceBox=storyJournalGuestFaceBox;
+
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
    커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
    풀립니다. 그래서 "assets/..." 는 "css/assets/..." 가 되어 404 가 납니다.
@@ -2086,15 +2175,20 @@ function setStoryPortraitArt(portrait,source){
   if(!portrait||!source)return;
   if(portrait.dataset.artSource===source)return;   // 같은 동작이면 손댈 것이 없습니다
   portrait.dataset.artSource=source;
+  const hasVisibleArt=!!portrait.style.getPropertyValue?.("--portrait-art");
   const apply=()=>{
     if(portrait.dataset.artSource!==source)return; // 기다리는 사이 다음 줄로 넘어갔습니다
     portrait.style.setProperty("--portrait-art",storyPortraitArtValue(source));
   };
   const image=storyPortraitArtImage(source);
+  /* 새 배우의 첫 그림까지 decode 뒤에 넣으면 대사는 이미 시작됐는데 인물만
+     한 박자 늦게 나타납니다. 첫 그림은 즉시 지정하고, 이미 서 있는 배우의
+     동작 교체만 디코딩 뒤에 적용해 빈 프레임을 막습니다. */
+  if(!hasVisibleArt)apply();
   // decode() 가 실패해도(경로 오타 등) 예전처럼 그냥 넣습니다 — 여기서 삼키면
   // 그림이 없는 것과 원화 자체가 안 나오는 것을 구분할 수 없게 됩니다.
-  if(typeof image.decode==="function")image.decode().then(apply,apply);
-  else apply();
+  if(hasVisibleArt&&typeof image.decode==="function")image.decode().then(apply,apply);
+  else if(hasVisibleArt)apply();
 }
 
 /* 말하는 사람의 동작만 바꿉니다. 나머지 배우는 마지막 동작 그대로 어두워진 채
@@ -2172,7 +2266,11 @@ function ensureStoryActor(speakerId){
   if(actorId==="protagonist")storySession.actors.unshift(actor);
   else storySession.actors.push(actor);
   layoutStoryActors();
-  requestAnimationFrame(()=>element.classList.add("entered"));
+  /* 김다은 대사 타이핑은 이 함수가 돌아온 직후 시작됩니다. 주인공만 다음
+     프레임까지 기다리지 않아 자막보다 늦지 않게 하고, 특별 손님의 기존 입장
+     전환은 그대로 유지합니다. */
+  if(actorId==="protagonist")element.classList.add("entered");
+  else requestAnimationFrame(()=>element.classList.add("entered"));
   return actor;
 }
 

@@ -103,7 +103,9 @@ const BACKGROUND_ASSET_DIR = "assets/bg/";
    4. 야간 연출 설정
    ------------------------------------------------------------ */
 
-// 별 반짝임 fx 를 뿌릴 범위. 창틀 유리 안쪽에서 건물 지붕선보다 위인 하늘 영역.
+// 별 "밭". 창틀 유리 안쪽에서 건물 지붕선보다 위인 하늘에 작은 점을 깔고
+// 은은하게 밝기만 흔듭니다. 원화로 그린 큰 반짝임(fx_window_star_twinkle)은
+// 별개의 층이고 window-fx.js 가 맡습니다 — 이쪽은 늘 켜져 있는 바탕입니다.
 const STAR_FIELD = { x:500, y:160, w:900, h:72 };
 const STAR_COUNT = 18;
 const STAR_DEPTH = 16;                 // 창밖 풍경(15)과 창틀(20) 사이라야 창틀에 가려짐
@@ -136,6 +138,7 @@ function loadStageAssets(){
   return Promise.all([
     ...BACKGROUND_LAYERS.map(layer=>loadStageImage(layer.key)),
     loadDecorationAssets(),
+    loadWindowFxAssets(),
     loadChefSheets(),
     loadCommonCustomerSheet()
   ]);
@@ -149,6 +152,7 @@ function loadStageAssets(){
 const stageLayers = {};
 let stageContainer = null;
 let stageStarLayer = null;
+let stageWindowFx = null;
 let stageAmbient = null;
 let timeOfDay = null;
 
@@ -159,6 +163,9 @@ function createStage(scene){
   });
 
   stageStarLayer=createStarLayer(scene);
+
+  // 창밖 연출(낮 새 · 밤 별 반짝임). 배치·주기는 window-fx.js 한 곳에 모여 있습니다.
+  stageWindowFx=createWindowFxLayer(scene);
 
   // 야간 앰비언트. fillAlpha 는 1 로 두고 오브젝트 alpha 로만 세기를 조절합니다.
   // (둘은 곱해지므로 fillAlpha 를 0 으로 만들면 alpha 를 아무리 올려도 보이지 않습니다.)
@@ -175,6 +182,7 @@ function createStage(scene){
     stageLayers.bg_window_view_night,
     stageLayers.bg_window_view_day,
     stageStarLayer,
+    stageWindowFx,          // 창밖 풍경 위 · 창틀 아래 = 유리 안에서만 보입니다
     stageLayers.bg_window,
     stageLayers.bg_floor_night,
     stageLayers.bg_floor_day
@@ -273,6 +281,10 @@ function applyTimeOfDay(mode,instant=false){
   // 밤에만 켜지는 배경 소품(팬 위 김치전 · 조리 연기). 배치·연출은 decoration.js.
   // 배경과 같은 시간으로 같이 페이드해야 배경만 밤이 되는 순간이 없습니다.
   setDecorationTimeOfDay(mode,instant?0:TIME_OF_DAY_FADE_MS);
+
+  // 창밖 새/별. 새는 창틀 뒤에서 드나들고 별은 스스로 밝아졌다 꺼져서
+  // 페이드가 필요 없습니다 — 시간대만 알려 주고 예약은 그쪽에서 잡습니다.
+  setWindowFxTimeOfDay(mode);
 
   const dayAlpha=mode==="day"?1:0;
   const ambientAlpha=mode==="day"?0:AMBIENT_NIGHT_ALPHA;

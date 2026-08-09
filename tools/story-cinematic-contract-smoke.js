@@ -22,8 +22,10 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(/function resetStoryStage\(\)\s*\{\s*clearStoryCinematic\(\)/.test(storySource),
-  "실제 스토리 장면 전환에서 컷씬을 정리해야 합니다.");
+assert(/function resetStoryStage\(\{preserveCinematic=false\}=\{\}\)\s*\{\s*if\(preserveCinematic\)cancelStoryCinematicHold\(\);\s*else clearStoryCinematic\(\)/.test(storySource),
+  "일반 장면 전환에서는 컷씬을 정리하고, 연속 컷 전환에서는 이전 컷을 유지해야 합니다.");
+assert(/const preserveCinematic=typeof storyCinematicConfig==="function"[\s\S]*?resetStoryStage\(\{preserveCinematic\}\)/.test(storySource),
+  "다음 장면 첫 줄도 컷씬이면 직전 컷을 지우지 않고 교차해야 합니다.");
 assert(indexSource.includes('id="storyCutscene"')
   && (indexSource.match(/story-cutscene-layer/g) || []).length >= 2,
   "대사 오버레이 안에 컷씬 판과 교차 페이드용 레이어 두 장이 있어야 합니다.");
@@ -56,6 +58,16 @@ for (const [, name, body] of cutBlocks) {
   assert(/speakerArt:\s*(true|false)\b/.test(body),
     `컷 "${name}" 에 speakerArt 가 없습니다. 이 컷 위에서 말하는 줄에 대화 원화를 세울지 적어 주세요.`);
 }
+for (const name of ["prologueOffice","prologueCommute","prologueRainAlley","prologueRainEntry","prologueEmptyRestaurant"]) {
+  const body=cutBlocks.find(([,cutName])=>cutName===name)?.[2]||"";
+  assert(/speakerArt:\s*false\b/.test(body),
+    `김다은이 이미 그려진 프롤로그 컷 "${name}" 위에 대화 배우를 다시 세우면 안 됩니다.`);
+}
+assert(/\.story-cutscene\s*\{[^}]*background:\s*#080504/.test(storyCssSource),
+  "첫 컷을 준비하는 동안 식당 화면 대신 컷씬용 암색 바탕이 보여야 합니다.");
+assert(cinematicSource.includes('image.addEventListener("load",reveal')
+  &&cinematicSource.includes("previousLayer"),
+  "새 컷이 준비될 때까지 이전 컷 레이어를 유지해야 합니다.");
 
 /* js/story-data.js 가 쓰는 컷 이름이 js/story-cinematic.js 에 실제로 있는지.
    오타가 나면 그 대사에서 컷이 그냥 안 바뀝니다(에러 없음). */
@@ -69,9 +81,9 @@ for (const cut of usedCuts) {
 /* ── 달빛 조각 전달 컷씬 ────────────────────────────────────
    손님 여덟은 createSpecialGuestArc() 하나로 찍혀서 컷 이름을 조각 id 로
    만듭니다(shard_<shardId>). 문자열이 아니라 템플릿 리터럴이라 위 usedCuts
-   정규식에 안 걸리므로 여기서 따로 봅니다 — 조각 에셋이 여덟이면 컷도 여덟
+   정규식에 안 걸리므로 여기서 따로 봅니다 — 완전 조각 에셋이 여덟이면 컷도 여덟
    이어야 합니다. 하나 빠지면 그 손님만 컷 없이 지나갑니다(에러 없음). */
-const shardIds = [...storyDataSource.matchAll(/^\s{2}(\w+):\s*"assets\/customer\/Special\/MoonPiece\//gm)]
+const shardIds = [...storyDataSource.matchAll(/^\s{2}(\w+):\s*"assets\/customer\/Special\/MoonPiece\/[^"\r\n]+\.webp"/gm)]
   .map(m => m[1]);
 assert(shardIds.length === 8, `달빛 조각이 여덟이어야 합니다 (지금 ${shardIds.length}개).`);
 for (const shardId of shardIds) {
@@ -126,9 +138,19 @@ assert(/function clearStoryCinematic\(\)\s*\{\s*cancelStoryCinematicHold\(\)/.te
   "장면 전환에서 남은 대기를 취소해야 합니다.");
 /* 조각 오버레이(z-index 3)는 컷씬(z-index 1) 위에 그대로 남아야 하고,
    기본 암전(rgba(5,4,10,.91))은 컷씬을 덮으므로 얇아져야 합니다. */
-assert(/\.story-overlay\.story-cinematic-active\s+\.story-fragment-handoff\s*\{[^}]*rgba\(5,4,10,\.34\)/
+assert(/\.story-overlay\.story-cinematic-active\s+\.story-fragment-handoff\s*\{[^}]*rgba\(5,4,10,\.68\)/
   .test(storyCssSource),
-  "컷씬 위에서는 조각 오버레이 암전을 얇게 해서 원화가 보여야 합니다.");
+  "컷씬 위에서도 조각이 읽히도록 배경을 충분히 어둡혀야 합니다.");
+assert(/\.story-overlay\.story-dialogue-entering \.story-dialogue-box\s*\{[^}]*animation:\s*storyDialogueEnter/.test(storyCssSource)
+  &&/@keyframes storyDialogueEnter\s*\{[\s\S]*?opacity:\s*0;[\s\S]*?translateY/.test(storyCssSource),
+  "처음 또는 재등장하는 대사창은 아래에서 올라오며 진해져야 합니다.");
+assert(storySource.includes('const startsNewCinematic=typeof storyCinematicStartsNewCut==="function"')
+  &&storySource.includes("const dialogueNeedsEntrance=storySession.dialogueEntranceShown!==true||startsNewCinematic;")
+  &&storySource.includes("if(dialogueNeedsEntrance)restartStoryDialogueEntrance();")
+  &&storySource.includes('overlay.classList.add("story-dialogue-entering");'),
+  "스토리 오버레이가 계속 열려 있어도 새 컷의 첫 대사에서 등장 효과를 재시작해야 합니다.");
+assert(/if\(actorId==="protagonist"\)element\.classList\.add\("entered"\);\s*else requestAnimationFrame/.test(storySource),
+  "김다은만 대사와 같은 프레임에 준비하고 특별 손님의 기존 입장 전환은 유지해야 합니다.");
 
 /* ── 미리 받기는 '지금 장면'까지만 ──────────────────────────
    등록된 컷 전부를 받으면 프롤로그를 보려고 조각 컷 여덟 장까지 끌어옵니다. */
@@ -292,14 +314,19 @@ assertRuntime(!overlayClassNames().includes("story-cinematic-hold"),
   "장면이 바뀌면 감추는 클래스도 떼야 합니다.");
 
 /* [컷 위에 대화 원화를 세울지]
-   프롤로그 컷은 한 컷이 대사 여러 줄을 덮으므로 말하는 줄에서는 세웁니다.
-   조각 전달 컷은 두 사람이 이미 그려져 있어 세우면 안 됩니다. */
+   프롤로그와 조각 전달 컷 모두 김다은이 이미 그려져 있으므로 별도 배우를
+   세우지 않습니다. 컷이 없는 일반 장면만 기존처럼 배우를 세웁니다. */
 clearStoryCinematic();
 assertRuntime(storyCinematicShowsSpeakerArt()===true,
   "컷씬이 없으면 원화를 막을 이유가 없습니다(평소 대화가 이 값에 걸리면 안 됩니다).");
+assertRuntime(storyCinematicStartsNewCut({cinematic:{cut:"prologueEmptyRestaurant"}})===true,
+  "아직 보여 주지 않은 컷의 첫 대사는 새 컷 시작으로 판정해야 합니다.");
 applyStoryCinematic({cinematic:{cut:"prologueEmptyRestaurant"}});
-assertRuntime(storyCinematicShowsSpeakerArt()===true,
-  "프롤로그 컷 위에서는 말하는 사람의 대화 원화가 서야 합니다.");
+assertRuntime(storyCinematicShowsSpeakerArt()===false,
+  "김다은이 이미 그려진 프롤로그 컷 위에는 대화 원화를 다시 세우면 안 됩니다.");
+assertRuntime(storyCinematicStartsNewCut({cinematic:{cut:"prologueEmptyRestaurant"}})===false
+  &&storyCinematicStartsNewCut({cinematic:{cut:"prologueCommute"}})===true,
+  "같은 컷의 일반 대사에서는 효과를 반복하지 말고 다음 배경 컷에서만 재시작해야 합니다.");
 applyStoryCinematic({cinematic:{cut:"shard_first_raindrop"}});
 assertRuntime(storyCinematicShowsSpeakerArt()===false,
   "조각 전달 컷 위에는 대화 원화를 세우면 안 됩니다(같은 사람이 둘이 됩니다).");

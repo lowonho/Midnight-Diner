@@ -218,9 +218,17 @@ function currentPrepTask(){
   return selectedPrepTaskRuns().find(task=>!prepTaskCompleted(task))||null;
 }
 
+// 체크리스트와 영업 시작 판정은 반드시 같은 완료 규칙을 사용합니다.
+// 공용 손질(예: 두부김치/김치전의 김치 썰기)은 실제 미니게임은 한 번만
+// 실행하지만 두 메뉴의 요구 작업을 모두 충족하므로, 원시 저장 플래그가
+// 아니라 prepTaskCompleted()로 각 체크리스트 항목을 계산해야 합니다.
+function prepTaskProgress(tasks=selectedPrepTasks()){
+  const doneCount=tasks.filter(prepTaskCompleted).length;
+  return {doneCount,totalCount:tasks.length,complete:doneCount===tasks.length};
+}
+
 function prepComplete(){
-  const tasks=selectedPrepTaskRuns();
-  return tasks.every(prepTaskCompleted);
+  return prepTaskProgress().complete;
 }
 
 function startPrepTask(taskId){
@@ -273,9 +281,9 @@ function completeDayPrepTask(taskId,completionScore){
    (자리 규칙은 css/hud.css 의 .left-hud / .prep-checklist 참고) */
 function renderPrepChecklist(){
   const items=prepChecklistDishes();
-  const taskDone=task=>!!state.prepProgress?.[task.id];
+  const taskDone=task=>prepTaskCompleted(task);
   const allTasks=items.flatMap(item=>item.tasks);
-  const doneCount=allTasks.filter(taskDone).length;
+  const {doneCount,totalCount}=prepTaskProgress(allTasks);
   // ⚠️ 서명에 **작업 하나하나**의 완료 여부가 들어가야 합니다. 예전처럼 메뉴 줄의
   //    done 만 보면, 같은 메뉴 안에서 작업 하나를 끝내도 목록이 다시 안 그려집니다.
   const signature=`prep|${state.selectedMenus.join(",")}|${allTasks.map(task=>Number(taskDone(task))).join("")}`;
@@ -294,7 +302,7 @@ function renderPrepChecklist(){
   }).join("");
   dom.inventoryList.innerHTML=
     `<div class="prep-checklist drag-scroll">${rows}</div>`
-    +`<div class="prep-total">준비 완료 ${doneCount} / ${allTasks.length}</div>`;
+    +`<div class="prep-total">준비 완료 ${doneCount} / ${totalCount}</div>`;
 }
 
 /* 지금 손댈 수 있는 준비 작업 하나.
@@ -302,28 +310,38 @@ function renderPrepChecklist(){
    지금 E 를 눌러도 startPrepTask() 가 막으므로 건너뜁니다. 전부 막혀
    있으면(있을 수 없는 배치지만) 그냥 첫 미완료 작업을 돌려줍니다. */
 function nextPrepTask(){
-  const remaining=selectedPrepTasks().filter(task=>!state.prepProgress?.[task.id]);
-  return remaining.find(task=>!(task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!state.prepProgress?.[id]))
+  const remaining=selectedPrepTasks().filter(task=>!prepTaskCompleted(task));
+  return remaining.find(task=>!(task.dependsOn||[]).some(id=>PREP_TASKS[id]&&!prepTaskCompleted(id)))
     ||remaining[0]||null;
 }
 
-/* 낮 우측 HUD = "지금 할 일" 하나.
+/* 낮 우측 HUD = 아직 안 끝난 준비를 **메뉴 단위로** 한 줄씩.
    ------------------------------------------------------------
    예전에는 여기에 오늘의 메뉴 목록 · 완료 수 · 조작 안내를 담았는데
    셋 다 화면 어딘가에 이미 있었습니다 —
      메뉴 목록  상단 메뉴 카드(game.js buildMenuCards)와 좌측 준비 목록
      완료 수    좌측 목록 아래 「준비 완료 n / m」(renderPrepChecklist)
      조작       바로 아래 키캡 칩(index.html .controls-help)
-   그래서 어디에도 없는 것만 남깁니다: 다음에 할 작업과 그 작업이 놓인
-   자리. 밤 패널(night.js)이 "다음 조리대"를 짚어 주는 것과 같은 역할입니다.
 
-   ⚠️ 「준비물」 줄의 이름은 바 테이블 위 이름표와 **같은 문구**여야 합니다
+   [왜 작업이 아니라 메뉴로 묶는가] 남은 **작업**을 그대로 늘어놓으면 줄이
+   9개까지 갑니다 — 판이 세로로 두 배가 되고 좌측 「준비 목록」과 같은 내용이
+   두 판에 겹칩니다. 메뉴로 묶으면 줄 수가 그날 고른 메뉴 수를 넘지 않습니다.
+   하루 메뉴는 3개 고정이라(js/game-data.js DAY_DATA maxSelectedMenus) 최대 3줄이고,
+   그 3줄에 맞춰 판 높이를 못박아 두었습니다(css/hud.css .phase-prep .right-hud).
+   ⚠️ maxSelectedMenus 를 올리면 저 높이부터 다시 재세요.
+
+   메뉴 하나의 준비 작업이 **전부** 끝나면 그 줄이 사라집니다. 작업 하나하나의
+   진행은 좌측 목록이 'ㄴ' 로 보여 주므로 여기서는 다루지 않습니다.
+
+   ⚠️ 줄 문구는 바 테이블 위 이름표와 **같아야 합니다**
       (prep.js drawPrepObjects 의 `${dish.name} 준비`). 한쪽만 고치면
       패널이 가리키는 이름이 화면에 없습니다. */
 function updateDayObjective(){
-  const next=nextPrepTask();
+  // prepChecklistDishes 가 좌측 목록과 같은 순서(작업 순서)로 메뉴를 돌려줍니다.
+  // 준비 작업이 없는 메뉴는 끝낼 것도 없으므로 줄에서 뺍니다.
+  const remaining=prepChecklistDishes().filter(item=>item.tasks.length&&!item.done);
   dom.objectiveTitle.textContent="현재 목표";
-  if(!next){
+  if(!remaining.length){
     dom.objectiveBody.innerHTML=`
       <div class="prep-summary">
         <strong>준비 완료</strong>
@@ -331,13 +349,10 @@ function updateDayObjective(){
       </div>`;
     return;
   }
-  const dish=dishById(next.menuId);
   dom.objectiveBody.innerHTML=`
     <div class="prep-summary">
       <strong>다음 작업</strong>
-      <div>${next.label}</div>
-      <strong>준비물</strong>
-      <div>바 테이블의 「${dish?`${dish.name} 준비`:next.objectLabel}」</div>
+      ${remaining.map(item=>`<div>${item.dish.name} 준비</div>`).join("")}
     </div>`;
 }
 

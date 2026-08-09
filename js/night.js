@@ -382,7 +382,7 @@ function spawnOrder(slot,options={}) {
     // 일반 손님과 같은 프레임에 예약된 특별 손님도 화면에서는 그 다음에
     // 들어오도록 짧게 늦춥니다. 영업 전 첫 손님과 마지막 손님은 바로 나타납니다.
     entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0,
-    cookStep:0,cookScores:[]
+    cookStep:0,cookScores:[],discardedOnce:false
   },plan);
   state.orders.push(order);
   state.spawnedCustomers++;
@@ -475,6 +475,15 @@ function discardCarriedDish(){
   const dish=dishById(state.carrying.dishId);
   if(!order||!dish)return false;
 
+  // 폐기는 음식 종류가 아니라 현재 손님의 주문 한 접시를 기준으로 한 번만
+  // 허용합니다. 같은 메뉴를 주문한 다음 손님은 자기 주문에서 다시 한 번
+  // 폐기할 수 있고, 구 저장처럼 필드가 없으면 아직 폐기하지 않은 상태입니다.
+  if(order.discardedOnce===true){
+    showToast(UI_TEXT.toast.discardLimit(dish.name),true);
+    return false;
+  }
+
+  order.discardedOnce=true;
   order.cookStep=0;
   order.cookScores=[];
   state.carrying=null;
@@ -530,13 +539,32 @@ function serveOrder(order) {
   if(!resumedStory)saveGame();
 }
 
+/* 밤 우측 HUD = "지금 뭘, 어디서" 두 줄.
+   ------------------------------------------------------------
+   낮 패널(day.js updateDayObjective)과 같은 규칙으로 정리했습니다 —
+   화면 어딘가에 이미 있는 것은 여기에 두 번 쓰지 않습니다.
+     시간제한 없음      애초에 규칙이 아닙니다. 없는 제약을 굳이 알릴 이유가
+                       없어서 아예 뺐습니다.
+     일반 주문 n / m건   상단 HUD 「남은 손님」 칸과 같은 수입니다(game.js).
+     n번 손님           좌측 「현재 주문」 목록이 줄마다 번호를 답니다
+                       (renderNightOrderList). 서빙할 때 자리 번호는 E 프롬프트가
+                       알려 줍니다(ui-hud.js serve). 머리 위 자리 번호는 이미
+                       같은 이유로 빠졌습니다(customers.js).
+   그래서 요리 이름과 조리대만 남깁니다. 특별 손님 이름은 번호와 달리 그 자체가
+   정보라서 (누구에게 내는 접시인지) 운반 안내에만 남겨 둡니다. */
 function updateNightObjective(){
   normalizeNightOrderCounters();
-  const progress=`일반 주문 ${state.generalServed} / ${nightGeneralOrderTarget()}건 · 시간제한 없음`;
-  const order=currentOrder();dom.objectiveTitle.textContent="손님 주문";
+  const order=currentOrder();dom.objectiveTitle.textContent="현재 목표";
   if(state.carrying){
     const o=state.orders.find(x=>x.id===state.carrying.orderId),d=dishById(state.carrying.dishId);
-    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${d.name}</strong> 완성</div><div>${o?storyOrderLabel(o):"손님"} 앞으로 가져가세요.</div>`;
+    // 일반 손님은 "3번 손님" 이 아니라 그냥 손님입니다. 어느 자리인지는
+    // 가까이 가면 E 프롬프트가 자리 번호로 짚어 줍니다.
+    const target=o?.guestId?`${storyOrderLabel(o)} 앞으로`:"주문한 손님 앞으로";
+    dom.objectiveBody.innerHTML=`
+      <div class="prep-summary">
+        <strong>${d.name} 완성</strong>
+        <div>${target} 가져가세요.</div>
+      </div>`;
     return;
   }
   if(!order){
@@ -546,14 +574,37 @@ function updateNightObjective(){
     const lastGeneralGuestLeaving=state.generalServed>=nightGeneralOrderTarget()
       &&state.departures.some(item=>!item.guestId);
     if(lastGeneralGuestLeaving){
-      dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div>`;
+      // 예전에는 진행 수만 남겼는데, 그 줄을 빼고 나니 판이 통째로 비었습니다.
+      dom.objectiveBody.innerHTML=`
+        <div class="prep-summary">
+          <strong>마무리</strong>
+          <div>마지막 손님이 식사를 마치는 중입니다.</div>
+        </div>`;
       return;
     }
     const storyVisitor=state.orders.some(item=>item.customerType==="story"&&!isCookableOrder(item));
-    dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div>${storyVisitor?"특별 손님이 자신의 차례를 기다리고 있습니다.":"다음 손님을 기다리고 있습니다."}</div>`;
+    dom.objectiveBody.innerHTML=`
+      <div class="prep-summary">
+        <strong>대기</strong>
+        <div>${storyVisitor?"특별 손님이 자신의 차례를 기다리고 있습니다.":"다음 손님을 기다리고 있습니다."}</div>
+      </div>`;
     return;
   }
   const d=dishById(order.dishId),step=d.cook[order.cookStep];
-  const special=order.specialRecipe?" · 특별 조리":"";
-  dom.objectiveBody.innerHTML=`<div><strong>${progress}</strong></div><div><strong>${storyOrderLabel(order)} · ${d.name}${special}</strong></div><div><strong>${stationById(step.station).label}</strong>에서 조리하세요.</div><div class="recipe-steps">${d.cook.map((s,i)=>`<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${stationById(s.station).label}</span></div>`).join("")}</div>`;
+  const special=order.specialRecipe?'<small class="special-order"> · 특별 조리</small>':"";
+  /* 조리 단계 칸은 **두 단계 이상일 때만** 답니다. 지금 메뉴는 전부 한 단계라
+     (game-data.js MENU_DATA 의 cook 배열) 늘 달면 바로 위 「조리대」 줄과 똑같은
+     칸 하나가 붙을 뿐입니다. 여러 단계짜리 메뉴가 생기면 저절로 다시 나옵니다. */
+  const steps=d.cook.length>1
+    ?`<div class="recipe-steps">${d.cook.map((s,i)=>
+        `<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${stationById(s.station).label}</span></div>`).join("")}</div>`
+    :"";
+  dom.objectiveBody.innerHTML=`
+    <div class="prep-summary">
+      <strong>요리</strong>
+      <div>${d.name}${special}</div>
+      <strong>조리대</strong>
+      <div>${stationById(step.station).label}</div>
+      ${steps}
+    </div>`;
 }

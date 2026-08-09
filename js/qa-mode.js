@@ -479,7 +479,7 @@ function qaStoryJournalState(scene){
   if(!scene?.dynamicJournalHint)return null;
   const keys=Object.keys(scene.journalVariants||{});
   const saved=qaStoryJournalStates[scene.id];
-  return keys.includes(saved)?saved:(keys[0]||null);
+  return keys.includes(saved)?saved:null;
 }
 
 function qaStoryLinesForScene(scene){
@@ -570,7 +570,7 @@ function qaStoryBranchEntries(scene,line){
   addReplies(line?.orderCook?.replies,"조리 반응");
 
   if(scene?.dynamicJournalHint){
-    const labels={none:"기록 없음",clue:"음식 단서",confirmed:"음식 확정",shard:"조각 획득"};
+    const labels={clue:"음식 단서",confirmed:"음식 확정",shard:"조각 획득"};
     Object.entries(scene.journalVariants||{}).forEach(([journalState,lines])=>{
       branches.push({
         label:`영업일지 · ${labels[journalState]||journalState}`,

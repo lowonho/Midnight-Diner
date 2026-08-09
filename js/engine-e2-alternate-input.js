@@ -291,7 +291,9 @@ function playAlternateSuccess(completing=false){
 function showAlternateGrade(grade){
   const result=dom.miniContent.querySelector("#e2Result");
   if(!result)return;
-  result.textContent=grade==="perfect"?"PERFECT":"GOOD";
+  // 문구는 밤 조리와 같은 "완벽해요! / 맛있어요!" 입니다 (day-prep-minigames.js).
+  // 클래스는 그대로 등급 이름을 씁니다 — 색과 글자 크기는 e2-fry-prep.css 가 정합니다.
+  result.textContent=dayPrepGradeText(grade);
   result.className=`e2-result show ${grade}`;
 }
 

@@ -117,8 +117,7 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
      hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px).
                 말풍선 묶음을 통째로 올리고 내리는 값이 이것 하나입니다.
                 CUSTOMER_HUD 의 오프셋들은 tailY 와의 차이로만 화면에 나타나서
-                (bubbleY 등을 같이 옮기면 서로 상쇄됩니다) 높이는 여기서 잡습니다.
-                단, 강조 원은 머리에 남아야 하므로 CUSTOMER_HUD.ringY 로 되돌립니다
+                (labelY 등을 같이 옮기면 서로 상쇄됩니다) 높이는 여기서 잡습니다.
 
    headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
    젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
@@ -184,6 +183,8 @@ function loadCommonCustomerSheet(){
       }));
     });
   });
+  // 머리 위 패널·말풍선 그림도 같이 받습니다. (§1-3-1 / §1-3-2)
+  jobs.push(loadCustomerHudArt());
   return Promise.all(jobs).then(images=>{
     Object.keys(CUSTOMER_ART).forEach(checkHeadTops);
     checkSheetsMatch();
@@ -391,31 +392,187 @@ function customerEnterOffset(progress,setting){
 
 const CUSTOMER_DEPART = { fade:1.2 };
 
+/* 지금 고른 주문의 손님 표시 — 주문 말풍선이 부풀었다 줄었다 합니다.
+   ------------------------------------------------------------
+   예전에는 머리 둘레에 노란 원을 그렸습니다. 손으로 그린 손님 위에
+   재질 없는 벡터 원 하나가 얹혀서 게임 화면이 아니라 표시선처럼
+   보였고, 머리보다 원이 커서 무엇을 감싼 건지도 애매했습니다.
+   지금은 화면에 이미 있는 말풍선을 크게 했다 작게 합니다. 새로 얹는
+   도형이 없고, 커지는 것이 곧 "이 주문" 입니다.
+
+   [축이 꼬리 끝인 이유] 말풍선 한가운데를 축으로 삼으면 머리를 가리키는
+   꼬리 끝이 같이 오르내려서, 어느 손님 것인지가 흔들립니다. 꼬리 끝을
+   붙박아 두면 가리키는 곳은 그대로고 풍선만 부풉니다.
+
+   [max 를 더 못 올립니다] 특별 손님 이름표가 말풍선 바로 위(labelY -173)에
+   붙습니다. 꼬리 끝(-83.8)에서 풍선 윗변(-164.7)까지가 80.9 라, 1.06 이면
+   윗변이 -169.5 로 이름표 밑선까지 3.5px 만 남습니다. */
+const CUSTOMER_SELECT_PULSE = { min:.96, max:1.06, period:1.1 };
+
 // 손님 머리 위에 뜨는 것들의 y 오프셋(손님 기준 y 로부터).
 const CUSTOMER_HUD = {
-  bubbleY:-145, bubbleW:76, bubbleH:55,   // 주문 아이콘 패널
-  // 음식 그림은 가로형(264x152)이라 패널 안쪽에 폭 기준으로 맞춥니다.
-  // iconY 는 패널 세로 중앙(bubbleY + bubbleH/2).
-  iconY:-117, iconW:66, iconH:44,
-  tailY:-90,                              // 패널 꼬리
-  // 강조 원만 머리를 감싸야 해서 hudGap 을 되돌려 놓은 값입니다.
-  // 여기 오프셋은 전부 hy(= 머리끝 - hudGap) 기준이라 hudGap 을 키우면
-  // 말풍선과 함께 이 원도 같이 떠오릅니다. hudGap 을 바꿀 때는 같은 값만큼
-  // 반대로 옮겨 주세요. (지금은 hudGap 17 - 기본 7 = 10 만큼 되돌림)
-  ringY:-42, ringR:46,                    // 선택된 손님 강조 원
-  labelY:-152,                            // 번호 / 이름 — 주문 패널 위
+  /* 주문 패널(구름 말풍선)의 가로 크기입니다. 세로·꼬리 길이·음식 칸은
+     전부 그림 비율에서 나오므로(ORDER_PANEL) 크기 조절은 이 숫자 하나입니다.
+     좌석 간격이 논리 137 이라, 옆자리 패널과 31 을 띄우는 값입니다.
+     ⚠️ 여기를 바꾸면 tools/build-ui-common-webp.js 의 320x244 도 같이. */
+  panelW:106,
+  /* 구름 몸통의 아랫변. 꼬리는 이 아래로 6px 더 내려옵니다.
+     ⚠️ 머리 높이 보정(customerHudDrop)이 이 값을 기준선으로 씁니다 —
+        머리끝은 언제나 tailY + hudGap = -73 입니다. 패널 그림이 바뀌어도
+        이 값은 그대로 두어야 패널과 머리 사이가 벌어지지 않습니다. */
+  tailY:-90,
+  /* 특별 손님 이름 — 대사 말풍선 아랫변(-196)과 주문 패널 윗변(-164.7) 사이입니다.
+     말풍선이 떠 있든 없든 자리가 바뀌지 않습니다. 말풍선이 뜰 때마다 이름이
+     위로 뛰어오르면 같은 손님인데 이름이 옮겨 다니는 것처럼 보입니다. */
+  labelY:-173,
   /* 주문 패널이 없는 손님(메뉴를 고민 중이거나 구경만 하는 특별 손님)은
      패널 자리가 통째로 비므로 이름을 머리 바로 위까지 내립니다.
      머리끝은 tailY+hudGap = -73 이라, 여기서 9px 위가 글자 밑선입니다. */
   labelHeadY:-82,
-  // 대사 말풍선이 떠 있는 동안에는 이름이 말풍선 윗변 위로 올라갑니다.
-  labelSpeechGap:6,
-  speechY:-175,                           // 대사 말풍선
-  departSpeechY:-135
+  /* 대사 말풍선 아랫변 — 이름표가 있는 특별 손님 기준입니다.
+     패널 윗변(-164.7)까지 31 이 비어 있고, 그 31 을 이름 글자(높이 12)와
+     위아래 여백이 채웁니다. */
+  speechY:-196,
+  /* 이름이 없는 일반 손님은 그 31 이 통째로 빈칸이 됩니다. 그래서 이름 자리
+     (글자 12 + 이름~패널 사이 5)만큼 말풍선을 내려 패널에 붙입니다.
+     남는 14 는 이름이 있을 때 말풍선~이름 사이와 같은 값입니다.
+     ⚠️ 고른 주문이면 패널이 1.06 배로 부풀어 윗변이 -169.5 까지 올라옵니다.
+        여기서 더 내리면 부푼 패널이 말풍선을 뚫습니다. */
+  speechNoLabelY:-179,
+  /* 주문 패널이 없으면 말풍선도 그만큼 내려옵니다. 패널이 빠진 자리를 그대로
+     비워 두면 말풍선만 머리에서 한참 떠 있어서, 누가 하는 말인지 흐려집니다.
+     떠나는 손님(§1-4)도 패널이 없으므로 같은 높이를 씁니다. */
+  noPanelSpeechY:-135
 };
 
-const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17, pad:22 };
+
+/* ------------------------------------------------------------
+   1-3-1. 주문 패널 그림 (구름 말풍선)
+   ------------------------------------------------------------
+   assets/UI/Common/ui_order_panel_cloud.webp
+   (마스터는 같은 폴더의 ui_order_panel_cloud_selected_max_tail_right_curved_inward_4x.png,
+    webp 는 tools/build-ui-common-webp.js 산출물입니다)
+
+   예전에는 둥근 사각형 + 삼각형 꼬리를 그렸습니다. 손으로 그린 손님과
+   카운터 위에 재질 없는 벡터 도형 하나만 얹혀 있어서, 게임 화면이 아니라
+   표시선처럼 보였습니다.
+
+   [꼬리 방향] 원본은 꼬리가 오른쪽 아래에 붙어 있습니다.
+     1~3번 자리(slot 0~2)  좌우로 뒤집어 꼬리를 왼쪽에
+     4~5번 자리(slot 3~4)  원본 그대로 꼬리를 오른쪽에
+   뒤집기는 패널 그림 한 장에만 겁니다. 음식 그림까지 같이 뒤집히면
+   글자·무늬가 있는 메뉴가 거울처럼 보입니다. (drawOrderPanelArt)
+
+   [숫자는 원본 464x354 실측값입니다] 화면 크기가 아니라 **비율**로만 쓰므로
+   webp 를 다른 크기로 다시 뽑아도 여기는 고칠 것이 없습니다.
+     bodyBottom  구름 몸통의 아랫변. 이 아래 27px 이 꼬리입니다
+     tailTipX    꼬리 끝의 x. 그림 한가운데(232)에서 61.5 오른쪽입니다
+     inner*      크림색 안쪽에 **모서리까지** 들어가는 사각형(실측). 264x152 는
+                 food-props.js FOOD_PROP_SIZE 와 같은 비율이라 음식 그림이
+                 이 칸을 가로세로 모두 꽉 채웁니다.
+                 세로 중심 171 이 그림 한가운데(163)보다 조금 아래인 것은,
+                 구름 윗변의 뭉게뭉게가 아랫변보다 높이 솟아 있어서입니다
+     iconScale   음식 칸을 이 배만큼 키웁니다
+
+   [iconScale 이 1 보다 큰 이유] inner* 는 **네 모서리까지** 크림색 안에
+   들어가는, 가장 빡빡하게 잡은 사각형입니다. 그런데 음식 그림은 접시·냄비라
+   모서리가 비어 있고, 원화 자체도 기준 캔버스(264x152)보다 작습니다
+   (가장 큰 것이 244x136 — food-props.js §1 참고). 그래서 칸을 그대로 쓰면
+   음식이 구름 한가운데 조그맣게 얹힌 것처럼 보입니다.
+   1.25 면 가장 큰 원화의 실제 그림 폭이 크림색 폭에 거의 닿습니다.
+   더 올리면 넓적한 접시(볶음우동·떡볶이)가 구름 테두리를 뚫습니다.
+   ------------------------------------------------------------ */
+const ORDER_PANEL_ART = {
+  file:"assets/UI/Common/ui_order_panel_cloud.webp",
+  imgW:464, imgH:354,
+  bodyBottom:327,
+  tailTipX:293.5,
+  innerW:264, innerH:152, innerCY:171, iconScale:1.25,
+  leftTailSlots:3   // slot 이 이 값보다 작으면 꼬리를 왼쪽에 둡니다 (1~3번 자리)
+};
+
+/* 위 비율에 CUSTOMER_HUD.panelW 를 곱해 둔 논리 좌표 값들.
+   매 프레임 다섯 번씩 다시 계산할 이유가 없어서 한 번만 구합니다. */
+const ORDER_PANEL = (()=>{
+  const A=ORDER_PANEL_ART, scale=CUSTOMER_HUD.panelW/A.imgW;
+  return {
+    w:CUSTOMER_HUD.panelW,
+    h:A.imgH*scale,                        // 꼬리까지 포함한 그림 전체 높이 (80.9)
+    bodyH:A.bodyBottom*scale,              // 구름 몸통만의 높이 (74.7)
+    tipDx:(A.tailTipX-A.imgW/2)*scale,     // 그림 중심에서 꼬리 끝까지 (14.1)
+    // 음식 칸 (75.4 x 43.4). 중심은 그대로 두고 크기만 iconScale 배입니다.
+    iconW:A.innerW*scale*A.iconScale, iconH:A.innerH*scale*A.iconScale,
+    iconDy:A.innerCY*scale                 // 그림 위변에서 음식 칸 중심까지 (39.1)
+  };
+})();
+
+let orderPanelImage=null;
+
+
+/* ------------------------------------------------------------
+   1-3-2. 대사 말풍선 그림
+   ------------------------------------------------------------
+   assets/UI/Common/ui_dialogue_bubble_<가로>x<세로>.webp — 6장이 한 벌입니다.
+   폭 3종(좁게·중간·넓게) x 줄 수 2종.
+
+   늘려 쓰라고 만든 그림이 아니라 칸 크기마다 한 장씩 그린 것입니다.
+   그래서 글자 폭을 잰 다음 **들어가는 것 중 가장 작은 칸**으로 올림합니다.
+   (예전에는 글자 폭에 맞춰 도형을 그때그때 그렸습니다)
+
+   파일 이름의 숫자는 **화면(VIEW) 픽셀**입니다. 논리 좌표는 1.5 로 나눈 값이고,
+   그 값이 예전 도형의 크기와 정확히 같습니다 — 최소 폭 92, 최대 폭 158,
+   한 줄 32(=17+15), 두 줄 49(=17x2+15). 즉 말풍선이 놓이는 자리와 글자
+   위치는 그대로이고 껍데기만 그림으로 바뀝니다.
+   ------------------------------------------------------------ */
+const CUSTOMER_SPEECH_ART = {
+  dir:"assets/UI/Common/",
+  viewW:[138,188,237],      // 좁은 것부터. 논리로는 92 / 125.3 / 158
+  viewH:{ 1:48, 2:73.5 }    // 줄 수 → 화면 세로. 논리로는 32 / 49
+};
+
+// 파일 이름 규칙. 73.5 처럼 소수점이 있는 값은 `p` 로 적습니다 (73p5).
+const speechArtKey = (viewW,viewH) => `${viewW}x${String(viewH).replace(".","p")}`;
+
+// speechArtKey → HTMLImageElement. 못 불러온 것은 키가 없습니다.
+const speechBubbleImages = {};
+
+/* 이 글자 폭·줄 수에 쓸 말풍선. 그림을 못 불러왔으면 image 만 없고
+   크기는 그대로 나옵니다 — 부르는 쪽이 예전 도형으로 물러섭니다. */
+function speechBubbleArt(needW,lineCount){
+  const A=CUSTOMER_SPEECH_ART;
+  const viewW=A.viewW.find(v=>toLogic(v)>=needW) ?? A.viewW[A.viewW.length-1];
+  const viewH=A.viewH[lineCount] ?? A.viewH[2];
+  return { w:toLogic(viewW), h:toLogic(viewH), image:speechBubbleImages[speechArtKey(viewW,viewH)] };
+}
+
+/* maxWidth 는 줄바꿈 기준이고, 실제 말풍선 폭은 위 세 칸 중에서 고릅니다.
+   pad 는 글자 좌우에 두는 여백이라 "글자 폭 + pad" 로 칸을 고릅니다. */
+const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, lineH:17, pad:22 };
 const CUSTOMER_SPEECH_FONT = "bold 12px Malgun Gothic";
+
+
+/* 패널·말풍선 그림 불러오기. 손님 시트와 같은 길로 들어갑니다(§1-2 아래
+   loadCommonCustomerSheet). 그림이 없어도 게임은 돌아가야 하므로
+   실패해도 reject 하지 않고, 그리는 쪽이 예전 도형으로 물러섭니다. */
+function loadCustomerHudImage(src,onload){
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>{onload(image);resolve(image);};
+    image.onerror=()=>{console.warn(`[customers] 말풍선 그림을 불러오지 못했습니다: ${src}`);resolve(null);};
+    image.src=src;
+  });
+}
+
+function loadCustomerHudArt(){
+  const A=CUSTOMER_SPEECH_ART;
+  const jobs=[loadCustomerHudImage(ORDER_PANEL_ART.file,image=>{orderPanelImage=image;})];
+  A.viewW.forEach(viewW=>Object.values(A.viewH).forEach(viewH=>{
+    const key=speechArtKey(viewW,viewH);
+    jobs.push(loadCustomerHudImage(`${A.dir}ui_dialogue_bubble_${key}.webp`,
+      image=>{speechBubbleImages[key]=image;}));
+  }));
+  return Promise.all(jobs);
+}
 
 
 /* ------------------------------------------------------------
@@ -474,39 +631,50 @@ function drawCustomers(){
     const visitorOnly=storyEntrance&&order.guestOrder===false;
     const selected=!visitorOnly&&state.selectedOrderId===order.id;
     const H=CUSTOMER_HUD;
-    /* 이름을 말풍선 위에 얹어야 해서 말풍선 자리를 먼저 잽니다.
-       말풍선이 없으면 null 입니다. */
-    const speech=order.bubble&&order.bubbleTime>0&&progress>.85
-      ?customerSpeechBox(order.bubble,x,hy+H.speechY):null;
     if(!visitorOnly){
-      ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
-      roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
-      ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
-      roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,false,true);
+      const P=ORDER_PANEL;
+      // 꼬리는 1~3번 자리면 왼쪽, 4~5번 자리면 오른쪽입니다. (§1-3-1)
+      const tailLeft=order.slot<ORDER_PANEL_ART.leftTailSlots;
+      // 구름 몸통의 아랫변(tailY)을 기준으로 그림 위변을 잡습니다.
+      const top=hy+H.tailY-P.bodyH;
+      ctx.save();
+      /* 고른 주문이면 꼬리 끝을 축으로 풍선 전체를 부풀립니다.
+         꼬리까지 이 안에서 그려야 풍선과 한 몸으로 움직입니다. */
+      if(selected){
+        const S=CUSTOMER_SELECT_PULSE;
+        const scale=S.min+(S.max-S.min)*(.5+.5*Math.sin(t*Math.PI*2/S.period));
+        const pivotX=x+(tailLeft?-P.tipDx:P.tipDx),pivotY=top+P.h;
+        ctx.translate(pivotX,pivotY);ctx.scale(scale,scale);ctx.translate(-pivotX,-pivotY);
+      }
+      drawOrderPanelArt(x,top,tailLeft,selected);
       // 주문 표시라 아직 조리 전입니다. 등급은 기본(normal) 그림을 씁니다.
       // 반짝임은 요리사가 손에 들었을 때만 나옵니다. (player.js syncCarriedFoodFx)
-      drawFoodProp(order.dishId,x,hy+H.iconY,H.iconW,H.iconH);
-      ctx.fillStyle="#3b2518";ctx.beginPath();
-      ctx.moveTo(x-5,hy+H.tailY);ctx.lineTo(x+6,hy+H.tailY+10);ctx.lineTo(x+10,hy+H.tailY);ctx.fill();
+      drawFoodProp(order.dishId,x,top+P.iconDy,P.iconW,P.iconH);
+      ctx.restore();
     }
+    /* 머리 위 이름표는 특별 손님만 답니다. 일반 손님에게 붙던 자리 번호는
+       뺐습니다 — 좌측 「현재 주문」 목록과 우측 패널이 이미 몇 번 손님인지
+       적어 주고, 머리 위 숫자는 주문 패널과 겹쳐 어수선하기만 했습니다.
 
-    if(selected){
-      ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
-      ctx.arc(x,hy+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
+       쌓는 순서는 주문 패널이 있든 없든 「말풍선 - 이름 - 패널(또는 머리)」로
+       같고, 패널이 없으면 묶음이 통째로 한 단 내려올 뿐입니다.
+         패널 있음   말풍선 -196 / 이름 -173 / 패널 윗변 -164.7
+         패널 없음   말풍선 -135 / 이름  -82 / 머리끝    -73 */
+    if(order.guestId){
+      ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
+      ctx.fillText(storyOrderLabel(order),x,hy+(visitorOnly?H.labelHeadY:H.labelY));
+      ctx.textAlign="left";
     }
-    /* 이름(특별 손님) / 자리 번호(일반 손님)가 앉는 높이는 세 가지입니다.
-         말풍선이 떠 있으면  말풍선 바로 위 — 말풍선에 가리지 않게
-         주문 패널이 있으면  패널 바로 위 — 패널·꼬리와 겹치지 않게
-         둘 다 없으면        머리 바로 위 */
-    const labelY=speech?speech.top-H.labelSpeechGap
-      :visitorOnly?hy+H.labelHeadY
-      :hy+H.labelY;
-    ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,labelY);
-    ctx.textAlign="left";
 
     ctx.restore();
-    if(speech)drawCustomerSpeech(speech,entryAlpha);
+    /* 말풍선 아랫변은 바로 아래에 무엇이 있느냐로 정합니다.
+         패널 + 이름  -196   패널만 -179   패널 없음 -135 */
+    if(order.bubble&&order.bubbleTime>0&&progress>.85){
+      const bottom=visitorOnly?H.noPanelSpeechY
+        :order.guestId?H.speechY
+        :H.speechNoLabelY;
+      drawCustomerSpeech(order.bubble,x,hy+bottom,entryAlpha);
+    }
   });
 
   /* 떠나는 손님 — 자리에 앉은 채로 마저 먹다가 사라집니다. (§1-4)
@@ -516,9 +684,9 @@ function drawCustomers(){
     const alpha=clamp(Math.max(0,item.life)/CUSTOMER_DEPART.fade,0,1);
     const motion=customerMotionOf(customerArtSet(item),"eat");
     drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
-    const speech=customerSpeechBox(item.bubble,x,
-      y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY);
-    if(speech)drawCustomerSpeech(speech,alpha);
+    // 떠나는 손님은 주문 패널이 없으므로 앉아 있는 손님의 「패널 없음」 높이와 같습니다.
+    drawCustomerSpeech(item.bubble,x,
+      y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.noPanelSpeechY,alpha);
   });
 }
 
@@ -541,9 +709,12 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
     const cols=art.motions[motion].cols;
     const cellW=sheet.width/cols,cellH=sheet.height/art.rows;
     const drawW=B.h*cellW/cellH;
-    ctx.drawImage(sheet,
-      (frame%cols)*cellW,(variant%art.rows)*cellH,cellW,cellH,
-      x-drawW/2,y+CUSTOMER_FOOT_OFFSET-B.h,drawW,B.h);
+    const sx=(frame%cols)*cellW,sy=(variant%art.rows)*cellH;
+    const dx=x-drawW/2,dy=y+CUSTOMER_FOOT_OFFSET-B.h;
+    // 지금 음식을 갖다 줄 손님이면 몸 뒤에 빛을 깝니다. (fx.js §3 drawCustomerGlow)
+    drawCustomerGlow(customer,sheet,`${set}_${motion}_${variant}_${frame%cols}`,
+                     sx,sy,cellW,cellH,dx,dy,drawW,B.h);
+    ctx.drawImage(sheet,sx,sy,cellW,cellH,dx,dy,drawW,B.h);
     ctx.restore();
     return;
   }
@@ -558,32 +729,64 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
   ctx.restore();
 }
 
-/* 대사 말풍선이 차지할 자리. 이름표를 말풍선 위에 얹어야 해서
-   "재기"와 "그리기"를 나눠 두었습니다. 할 말이 없으면 null 입니다.
+/* 주문 패널 한 장. x 는 가로 중심, top 은 그림 위변입니다.
+   뒤집기를 이 함수 안에 가둬 둡니다 — 부르는 쪽에서 뒤집으면 음식 그림까지
+   같이 뒤집혀서, 글자나 무늬가 있는 메뉴가 거울처럼 보입니다. */
+function drawOrderPanelArt(x,top,tailLeft,selected){
+  const P=ORDER_PANEL;
+  if(!orderPanelImage){ drawOrderPanelFallback(x,top,tailLeft,selected); return; }
+  ctx.save();
+  /* 고른 주문 표시. 그림 한 장이라 예전처럼 테두리 색과 굵기를 바꿀 수
+     없어서, 구름 모양을 그대로 따라가는 금빛 번짐으로 대신합니다.
+     부풀기(CUSTOMER_SELECT_PULSE)만으로는 작아진 순간에 티가 안 납니다. */
+  if(selected){ ctx.shadowColor="rgba(255,196,92,.9)";ctx.shadowBlur=9; }
+  // 원본 꼬리는 오른쪽입니다. 왼쪽 꼬리는 가로 중심(x)을 축으로 뒤집습니다.
+  if(tailLeft){ ctx.translate(x*2,0);ctx.scale(-1,1); }
+  ctx.drawImage(orderPanelImage,x-P.w/2,top,P.w,P.h);
+  ctx.restore();
+}
+
+/* 그림을 못 읽었을 때만 씁니다. 자리와 크기는 그림과 같으므로 이쪽으로
+   물러서도 음식 그림이나 이름표가 어긋나지 않습니다. */
+function drawOrderPanelFallback(x,top,tailLeft,selected){
+  const P=ORDER_PANEL,left=x-P.w/2,bottom=top+P.bodyH;
+  const tipX=x+(tailLeft?-P.tipDx:P.tipDx),dir=tailLeft?-1:1;
+  ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
+  roundRect(ctx,left,top,P.w,P.bodyH,14,true,false);
+  ctx.strokeStyle=selected?"#f5bd50":"#5a3724";ctx.lineWidth=selected?4:2;
+  roundRect(ctx,left,top,P.w,P.bodyH,14,false,true);
+  ctx.fillStyle=selected?"#f5bd50":"#5a3724";ctx.beginPath();
+  ctx.moveTo(tipX-7*dir,bottom-2);ctx.lineTo(tipX,top+P.h);ctx.lineTo(tipX+5*dir,bottom-2);
+  ctx.fill();
+}
+
+/* 대사 말풍선. bottomY 는 아랫변이고 상자는 위로 자랍니다 — 줄 수가 늘어도
+   가리키는 손님 쪽 끝이 움직이지 않습니다.
+
+   [폭은 세 칸 중에서 고릅니다] 껍데기가 그림이라 아무 폭으로나 늘일 수
+   없습니다. 글자 폭 + 좌우 여백이 들어가는 것 중 가장 작은 칸을 씁니다.
+   (§1-3-2 speechBubbleArt)
 
    [화면 안으로 밀지 않습니다] 예전에는 좌우 margin 안으로 clamp 했습니다.
    그래서 5번(오른쪽 끝) 자리 손님만 말풍선이 왼쪽으로 비켜서, 누가 하는
    말인지 알아보기 어려웠습니다. 우측 패널에 조금 잘리더라도 말하는 손님
    머리 한가운데에 뜨는 쪽이 낫습니다. */
-function customerSpeechBox(text,x,bottomY){
-  if(!text)return null;
-  const S=CUSTOMER_SPEECH;
-  ctx.save();ctx.font=CUSTOMER_SPEECH_FONT;
-  const lines=wrapCanvasText(text,S.maxWidth,S.maxLines);
-  const width=Math.min(S.maxW,Math.max(S.minW,...lines.map(line=>ctx.measureText(line).width+S.pad)));
-  ctx.restore();
-  const height=lines.length*S.lineH+15;
-  return { lines, width, height, left:x-width/2, top:bottomY-height };
-}
-
-function drawCustomerSpeech(box,alpha=1){
+function drawCustomerSpeech(text,x,bottomY,alpha=1){
+  if(!text)return;
   const S=CUSTOMER_SPEECH;
   ctx.save();ctx.globalAlpha=alpha;
   ctx.font=CUSTOMER_SPEECH_FONT;
-  ctx.fillStyle="rgba(35,20,13,.95)";ctx.strokeStyle="#d0a05b";ctx.lineWidth=2;
-  roundRect(ctx,box.left,box.top,box.width,box.height,8,true,true);
+  const lines=wrapCanvasText(text,S.maxWidth,S.maxLines);
+  const art=speechBubbleArt(Math.max(...lines.map(line=>ctx.measureText(line).width))+S.pad,lines.length);
+  const left=x-art.w/2,top=bottomY-art.h;
+  if(art.image) ctx.drawImage(art.image,left,top,art.w,art.h);
+  else{
+    // 예비 도형. 그림 6장을 못 읽었을 때만 여기까지 내려옵니다.
+    ctx.fillStyle="rgba(35,20,13,.95)";ctx.strokeStyle="#d0a05b";ctx.lineWidth=2;
+    roundRect(ctx,left,top,art.w,art.h,8,true,true);
+  }
   ctx.fillStyle="#f8dfae";ctx.textAlign="center";
-  box.lines.forEach((line,i)=>ctx.fillText(line,box.left+box.width/2,box.top+20+i*S.lineH));
+  lines.forEach((line,i)=>ctx.fillText(line,x,top+20+i*S.lineH));
   ctx.textAlign="left";
   ctx.restore();
 }

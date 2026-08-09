@@ -42,10 +42,10 @@
    ⚠️ 좌측 HUD 의 left/width(.left-hud)를 고치면 이 두 값도 같이 고쳐야 선이 어긋나지 않습니다.
    [높이] height 로는 못 줍니다 — 격자 줄에 묶여서 판만 키울 수가 없습니다(위 grid-template-rows).
    위아래 padding 으로 벌리고, 넘치는 만큼 줄 밖으로 대칭으로 나갑니다.
-   [아래로만 늘리기] 줄이 align-items:center 라 padding-bottom 만 키우면 판이 위아래로
+   [아래로만 늘리기] 줄이 align-items:center 라 위아래 여백을 키우면 판이 위아래로
    반씩 커져서 윗변까지 올라갑니다. 늘린 만큼을 margin-top 으로 되돌려 주면
    (가운데 정렬은 margin 을 포함한 바깥 상자 기준) 윗변은 제자리에 두고 아래로만 자랍니다.
-   ⚠️ 그래서 아래 --logo-panel-drop 하나만 고치면 됩니다. margin-top 과 padding-bottom 을
+   ⚠️ 그래서 아래 --logo-panel-drop 하나만 고치면 됩니다. margin-top 과 padding 을
       따로 만지면 윗변이 어긋납니다.
    판 아래끝(지금 약 187)이 좌측 HUD 시작선(y 200)을 넘지 않는 선까지만 키우세요. */
 .small-logo {
@@ -58,8 +58,13 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: calc(14 * var(--upx)) calc(8 * var(--upx))
-           calc((14 + var(--logo-panel-drop)) * var(--upx));
+  /* [위아래 여백을 같게 두는 이유] 예전에는 늘린 --logo-panel-drop 을 통째로
+     아래 여백에만 얹어서, 판은 아래로 자라는데 로고와 단계 줄은 제자리에 남았습니다.
+     그러면 판 안에서 내용이 drop 의 절반만큼 위로 쏠려 보입니다(16 일 때 8px).
+     그래서 drop 을 위아래로 반씩 나눠 얹습니다 — 여백 합(28 + drop)은 그대로라
+     판 높이와 윗변은 변하지 않고, 로고·글씨만 절반만큼 내려와 가운데에 섭니다.
+     ⚠️ 다시 아래로만 얹지 마세요. 판을 키울수록 내용이 위로 뜹니다. */
+  padding: calc((14 + var(--logo-panel-drop) / 2) * var(--upx)) calc(8 * var(--upx));
   line-height: 1.05;
 }
 /* 타이틀 글씨는 타이틀 화면과 같은 로고 그림입니다(assets/UI/Main).
@@ -216,7 +221,9 @@
      DAY 67.7(67.7) · 손님 수 101.6(93.6) · 특별 손님 111.7(102.7) · 일지 64.3(56.4) · 설정 64.3(56.4)
    ⚠️ 위 .top-hud 의 22% 와 짝입니다. 한쪽만 고치면 칸 폭이 전부 어긋납니다.
       (칸 묶음 왼쪽 끝이 1503.3 → 1471.3 으로 왔습니다 — 그 자리에 있던 오른쪽 전등도
-       같은 만큼 안쪽으로 옮겼습니다. js/decoration.js DECORATION_LAMPS) */
+       안쪽으로 옮겼습니다. 지금 전등 오른끝이 1467 이라 여유가 4 밖에 없습니다.
+       여기를 더 넓혀 왼쪽 끝이 1467 아래로 오면 전등이 다시 물리므로,
+       js/decoration.js DECORATION_LAMPS 의 좌우 벌림값도 같이 줄이세요) */
 .hud-stats {
   height: 60%;
   display: grid;
@@ -267,16 +274,44 @@
   box-shadow: inset 0 0 0 1px rgba(255,241,196,.5), 0 1px 2px rgba(0,0,0,.55);
 }
 
+/* [윗변] 좌우 판의 윗변이 **다릅니다.** 원래는 같은 값(20.4%)을 썼는데,
+   우측만 예전 자리(18.4%)로 되돌렸습니다.
+
+     좌측 20.4%  상단 HUD 아랫변이 16.2%(top 1.5 + height 14.7)라, 18.4% 로 두면
+                 사이가 2.2%(=24) 밖에 안 떠서 상단 판에 붙어 보입니다.
+                 2% 를 더 내려 사이를 4.2%(=45)로 벌린 값입니다.
+     우측 18.4%  아랫변이 5번 자리 손님 대사 말풍선을 덮고 있었습니다.
+                 20.4% 면 밤 판 아랫변이 화면 y 560 인데, 2줄 말풍선 윗변이
+                 531.6~537(손님 머리 높이마다 다름)이라 최대 28px 을 가립니다.
+                 2% 올려 아랫변을 538.4 로 끌어올린 값입니다.
+
+   ⚠️ 우측을 올려도 겹침이 완전히 없어지지는 않습니다 — 아랫변 538.4 와
+      2줄 말풍선 윗변이 아직 1.4~6.8px 물립니다(둥근 모서리 자리라 눈에는
+      잘 안 띕니다). 완전히 띄우려면 17.8% 까지 올려야 하는데, 그러면
+      상단 HUD 아랫변(16.2%)과 사이가 1.6%(=17)로 좁아집니다.
+   ⚠️ 좌우 어깨가 2%(=21.5) 어긋납니다. 의도한 것입니다 — 되돌릴 때는
+      두 값을 같이 20.4% 로 맞추세요.
+   ⚠️ 아래로 얼마나 갈 수 있는지는 판 높이가 정합니다. 가장 긴 낮 좌측 판이
+      20.4 + 33.5 = 53.9% 로 끝나고, 바 카운터 뒷변(약 72%)까지는 아직
+      멉니다. 판 높이(.left-hud height)를 키우면 여기부터 다시 보세요. */
 .left-hud, .right-hud {
   position: absolute;
   z-index: 5;
-  top: 18.4%;
   min-height: 31%;
   padding: .9%;
   transition: opacity .25s ease;
 }
-.left-hud { left: 1.35%; width: 15.2%; }
-.right-hud { right: 1.35%; width: 15.2%; }
+/* [폭] 좌우가 다릅니다.
+     좌측 15.2%  ⚠️ 여기는 못 넓힙니다. 상단 로고 판(.small-logo)이 왼쪽 모서리를
+                 맞춰 따라와야 하는데, 그 판은 이미 격자 칸(15%)을 넘겨 놓은
+                 상태라 더 넓히면 가운데 메뉴 카드 줄(x 333.5 부터)을 덮습니다.
+                 좌측은 글자만 키우고 폭은 그대로 둡니다.
+     우측 18%    글자를 키운 만큼 넓혔습니다(291.2 → 344.9). 오른쪽 모서리는
+                 right 1.35% 라 그대로이므로, 오른쪽 선을 맞춰 둔 상단 스탯 칸
+                 (.hud-stats 의 margin-right -19.1)은 고칠 것이 없습니다.
+                 왼쪽으로만 자랍니다(x 1600.9 → 1547.1). */
+.left-hud { top: 20.4%; left: 1.35%; width: 15.2%; }
+.right-hud { top: 18.4%; right: 1.35%; width: 18%; }
 
 /* 좌측 패널은 높이를 **고정**합니다.
    ------------------------------------------------------------
@@ -290,9 +325,11 @@
    DAY_DATA maxSelectedMenus) 목록의 최대 길이가 정해졌습니다 —
    메뉴 3개를 고르는 **56가지 조합을 전부 재서** 가장 긴 것에 맞췄습니다.
      tools/left-hud-measure-smoke.html · 1920x1080 · 도트 글꼴 붙은 상태
-       가장 긴 조합  어묵탕 · 닭꼬치 · 떡볶이 (세부 작업 3+3+3 = 9줄)  358.4 = 33.30%
-       가장 짧은 조합 볶음우동 · 새우튀김 · 감자튀김 (2+1+2 = 5줄)     298.4 = 27.73%
-     여유를 조금 얹어 33.5%(360.5) 입니다. 33.1% 로 두면 2px 모자라 가장 긴 조합에서
+       (옛 글자 크기) 가장 긴 조합 358.4 = 33.30% · 가장 짧은 조합 298.4 = 27.73%
+     ⚠️ 글자를 키우면서(메뉴 이름 13→15 · 세부 작업 10→12 · 번호 11→12) 다시 쟀습니다.
+       가장 긴 조합  어묵탕 · 닭꼬치 · 떡볶이 (세부 작업 3+3+3 = 9줄)  390.1 = 36.26%
+       가장 짧은 조합 볶음우동 · 새우튀김 · 감자튀김 (2+1+2 = 5줄)     319.0 = 29.64%
+     여유를 조금 얹어 36.5%(392.7) 입니다. 36.3% 로 두면 1px 모자라 가장 긴 조합에서
      스크롤 막대가 생깁니다 — 딱 맞춰 박지 마세요.
    ⚠️ 예전 값은 53.6%(577) 였습니다 — 메뉴를 5개까지 고르던 시절 기준이라
       3개짜리 목록에는 아래가 200 넘게 비었습니다.
@@ -306,7 +343,7 @@
    목록이 넘칠 때는 목록만 굴러갑니다 — 버튼이 스크롤에 밀려나지 않습니다.
    제목줄·합계 줄·버튼은 flex:none 이라 눌리지도 않습니다. */
 .left-hud {
-  height: 33.5%;
+  height: 36.5%;
   /* ⚠️ 위 공용 규칙의 min-height:31% 를 반드시 풀어야 합니다. min-height 는 height 를
      이깁니다 — 이걸 안 풀면 밤 규격(29.3% = 315)을 적어도 31%(334)로 늘어납니다.
      낮·밤 다 height 로 못박으므로 최소 높이는 이제 할 일이 없습니다. */
@@ -334,24 +371,68 @@
   font-size: calc(12 * var(--upx));   /* 밤 값(15)보다 한 단계 작게 — 위 .hud-stats strong 와 짝 */
   text-overflow: ellipsis;
 }
-/* 낮 우측 패널 최소 높이.
+/* 낮 우측 패널 높이 (최소가 아니라 **고정**입니다).
    ------------------------------------------------------------
-   [이 값은 바닥일 뿐, 실제 높이는 내용이 정합니다] 낮 패널은 내용만큼
-   자랍니다(좌측처럼 height 로 못박지 않습니다). 그래서 이 min-height 는
-   "이보다 짧아지지는 마라" 는 바닥선이고, 실제로는 늘 내용 쪽이 이깁니다.
+   [최대 길이로 못박습니다] 담기는 줄 수가 달라집니다 — 「다음 작업」은 아직
+   안 끝난 **메뉴 수**만큼 줄이 서고(js/day.js updateDayObjective), 준비를 하나씩
+   마칠 때마다 한 줄씩 사라집니다. 내용을 따라 자라게 두면 준비할 때마다 판이
+   조금씩 오그라들어 아래끝이 계속 움직입니다. 그래서 좌측 판처럼 **가장 길
+   때 하나로** 못박고, 남는 높이는 본문 칸이 먹습니다(아래 flex) — 조작 칩은
+   줄 수와 상관없이 늘 판 아래 같은 자리에 붙습니다.
 
-   [실측] tools/right-hud-measure-smoke.html · 1920x1080 · 도트 글꼴 붙은 상태
-     (옛) 메뉴 목록 + 완료 수 + 조작 안내   279.4 = 25.87%
-     지금  다음 작업 + 준비물               219.1 = 20.29%
-     지금  준비 완료 / 메뉴 정하기 안내     219.1 = 20.29%
-   글이 짧아져도 219 에서 멈추는 이유는 .objective-body 의 min-height(90)
-   때문입니다 — 글 자체는 57~87 밖에 안 됩니다.
+   [20.1% 의 근거] 하루 메뉴는 3개 고정이라(js/game-data.js DAY_DATA
+   maxSelectedMenus) 「다음 작업」은 3줄이 최대입니다. 그 3줄의 실측이 206.6
+   (19.20%)인데, 딱 그만큼만 주면 셋째 줄이 조작 칩 구분선에 닿습니다 —
+   칩 위 여백이 8 뿐이라 글자를 키운 지금은 붙어 보입니다. 한 줄 간격의
+   절반쯤(10)을 얹어 216.3 = 20.1% 로 잡았습니다.
+   [실측] tools/right-hud-measure-smoke.html · 1920x1080
+     % 의 기준은 1080 이 아니라 프레임 안쪽 1076 입니다(.game-frame 테두리 2px).
+     (옛) 메뉴 목록 + 완료 수 + 조작 안내      235.0 = 21.84%
+     (옛) 다음 작업 + 준비물 · 글자 키운 뒤    226.7 = 21.06%
+     지금  다음 작업 3줄(최대)                206.6 = 19.20%   ← 여기에 여유 10
+     지금  다음 작업 1줄                      164.3 = 15.26%
+     지금  준비 완료 / 메뉴 정하기             164.3 / 182.7
+   못박아 두었으므로 위 어느 경우든 판은 216.3 으로 같습니다. 줄이 적을 때
+   남는 높이는 본문 칸이 먹고, 조작 칩은 늘 판 아래 같은 자리입니다.
+   ⚠️ maxSelectedMenus 를 올리거나 문구 · .objective-body · .controls-help 를
+      건드리면 위 하네스로 다시 재세요.
 
-   [왜 20.3% 이 아니라 19.5% 인가] 실측값을 그대로 박으면, 글꼴이 늦게
-   붙거나 문구가 한 줄 줄었을 때 바닥선이 내용보다 커져서 아래가 빕니다.
-   실측(20.29%)보다 한 뼘 낮게 두어 늘 내용 크기로 서게 합니다.
-   ⚠️ 문구나 .objective-body / .controls-help 를 건드리면 위 하네스로 다시 재세요. */
-.phase-prep .right-hud { min-height: 19.5%; }
+   ※ 밤은 바로 아래에서 따로 잡습니다. */
+.phase-prep .right-hud {
+  height: 20.1%;
+  /* ⚠️ 공용 규칙의 min-height:31% 를 풀어야 height 가 삽니다 — min-height 가
+     height 를 이깁니다(.left-hud 에도 같은 주의가 붙어 있습니다). */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.phase-prep .right-hud > * { flex: none; }
+/* 남는 높이는 본문이 먹습니다. .objective-body 자신의 min-height(90)를 여기서
+   풀어야 flex 칸이 내용보다 작아질 수 있습니다(줄이 늘어도 판이 안 밀립니다). */
+.phase-prep .right-hud > .objective-body { flex: 1 1 auto; min-height: 0; }
+
+/* 밤 우측 패널 최소 높이.
+   ------------------------------------------------------------
+   밤 판에는 낮에 숨는 「영업 기록」이 같이 붙습니다. 예전에는 공용 규칙의
+   31%(=333.5)를 그대로 썼는데, 그 값은 어디서 나온 수가 아니라서 담긴 것보다
+   20 이 더 컸습니다. 게다가 기록 칸이 자라던 탓에 기록이 없는 초반에는
+   빈 자리가 94 까지 벌어졌습니다.
+
+   그래서 두 가지를 같이 잡았습니다 —
+     · 기록 칸 높이를 못박아(.relationship-list) 기록 수와 무관하게 판이 같은 키
+     · 그렇게 나온 "가장 클 때"에 바닥선을 맞춤
+
+   [실측] tools/right-hud-measure-smoke.html · 1920x1080 · 기준은 프레임 안쪽 1076
+     (옛) 31% 규칙 · 기록 없음   판 333.5   내용 239.8   빈 자리 93.7
+     (옛) 31% 규칙 · 기록 8명    판 333.5   내용 312.4   빈 자리 21.1
+     (옛) 옛 글자 크기           판 312.4 = 29.04%       빈 자리 0
+     지금  글자 키운 뒤          판 354.7 = 32.96%       빈 자리 0
+   바닥선은 그 32.96% 바로 위인 33% 로 두어 늘 내용 크기로 서게 합니다.
+   ⚠️ .relationship-list 의 height 나 밤 문구를 건드리면 위 하네스로 다시 재세요.
+   ⚠️ 판이 42 길어진 만큼 아래끝이 538 → 555 로 내려왔습니다. 5번 자리 손님의
+      2줄 대사 말풍선 윗변(531.6~537)을 그만큼 더 덮습니다 — 자세한 값은
+      바탕화면 「달빛식탁_손님말풍선_규격」 §5. */
+.phase-open .right-hud { min-height: 33%; }
 
 /* 밤 좌측 패널은 낮과 따로 잡습니다.
    ------------------------------------------------------------
@@ -361,13 +442,12 @@
      밤  주문 목록뿐. 그리고 **주문 줄은 자리 수만큼이 최대**입니다.
 
    [29.3% 의 근거] 실측입니다(높이를 auto 로 풀고 자리를 다 채워서 잰 값).
-     자리 수 CUSTOMER_SEATS 4개 → 주문 줄 4개
-     줄 하나 57 · 줄 사이 5      → 목록 243
-     테두리 + 안쪽 여백 + 제목줄 → 71.5
-     합계 314.5 = 프레임 안쪽 높이 1076 의 29.23%  (여유 조금 얹어 29.3%)
-   ⚠️ js/customers.js 의 CUSTOMER_SEATS 개수나 .order-row 높이를 바꾸면 다시 재세요.
-      혹시 넘치더라도 목록이 굴러가므로(.order-list 는 .drag-scroll) 잘리지는 않습니다. */
-.phase-open .left-hud { height: 29.3%; }
+     (옛) 자리 4개 · 옛 글자 크기   314.5 = 29.23%  (여유 얹어 29.3%)
+     지금  자리 5개 · 글자 키운 뒤  351.5 = 32.66%  (여유 얹어 32.7%)
+   ⚠️ js/customers.js 의 CUSTOMER_SEATS 개수나 .order-row 높이·글자 크기를 바꾸면
+      다시 재세요. 혹시 넘치더라도 목록이 굴러가므로(.order-list 는 .drag-scroll)
+      잘리지는 않습니다. */
+.phase-open .left-hud { height: 32.7%; }
 
 .panel-heading {
   display: flex;
@@ -377,7 +457,7 @@
   margin-bottom: calc(6 * var(--upx));
   border-bottom: 1px solid rgba(224,163,77,.4);
   color: #efc77b;
-  font-size: calc(15 * var(--upx));
+  font-size: calc(17 * var(--upx));   /* 예전 15 */
 }
 .phase-dot {
   width: calc(9 * var(--upx));
@@ -424,7 +504,7 @@
   border-radius: calc(3 * var(--upx));
   background: rgba(255,255,255,.025);
   color: #ead5ae;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(12 * var(--upx));   /* 예전 11 */
 }
 .inventory-row .dot {
   width: calc(8 * var(--upx));
@@ -441,7 +521,7 @@
 .objective-body {
   min-height: calc(90 * var(--upx));
   color: #ead8b8;
-  font-size: calc(12 * var(--upx));
+  font-size: calc(14 * var(--upx));   /* 예전 12 */
   line-height: 1.45;
 }
 .objective-body strong { color: #ffd787; }
@@ -472,9 +552,9 @@
    패널이 커지지는 않습니다. */
 /* ⚠️ 번호는 첫 줄에만 둡니다. 예전처럼 두 줄(1 / 3)에 걸치면 여러 줄에 걸친 칸이라
    baseline 정렬 대상에서 빠져(윗변 정렬로 되돌아가) 위 정렬이 통째로 안 먹습니다. */
-.prep-task-row > span { grid-row:1; color:#b99563; font-size:calc(11 * var(--upx)); }
+.prep-task-row > span { grid-row:1; color:#b99563; font-size:calc(12 * var(--upx)); }   /* 예전 11 */
 /* 줄상자를 글자에 바짝 붙여 이름이 줄 위쪽에 앉게 합니다(기본 normal 은 약 1.2). */
-.prep-task-row > strong { color:#e7c98f; font-size:calc(13 * var(--upx)); line-height:1.1; }
+.prep-task-row > strong { color:#e7c98f; font-size:calc(15 * var(--upx)); line-height:1.1; }   /* 예전 13 */
 .prep-task-row > div { grid-column:2; }
 
 /* 메뉴 이름 아래로 들어가는 세부 준비 작업. (내용은 js/day.js renderPrepChecklist) */
@@ -483,10 +563,10 @@
    폭을 고정해 두 줄로 접히는 항목도 글자 시작선이 안 흔들립니다. */
 .prep-subtask {
   display: grid;
-  grid-template-columns: calc(11 * var(--upx)) 1fr;
+  grid-template-columns: calc(13 * var(--upx)) 1fr;   /* 예전 11 — 글자 커진 만큼 'ㄴ' 칸도 */
   gap: calc(2 * var(--upx));
   color: #c0a074;
-  font-size: calc(10 * var(--upx));
+  font-size: calc(12 * var(--upx));   /* 예전 10 */
   line-height: 1.4;
 }
 .prep-subtask::before {
@@ -546,7 +626,7 @@
 .order-row strong { overflow: hidden; color: #f1ce8b; text-overflow: ellipsis; white-space: nowrap; }
 .order-row em { grid-column: 2 / 4; color: #a98b67; font-size: .88em; font-style: normal; }
 .special-order { color: #e7a76a; }
-.order-empty { color: #a98b67; font-size: calc(11 * var(--upx)); line-height: 1.45; }
+.order-empty { color: #a98b67; font-size: calc(13 * var(--upx)); line-height: 1.45; }   /* 예전 11 */
 
 .relationship-box {
   margin-top: calc(7 * var(--upx));
@@ -560,23 +640,31 @@
   gap: calc(5 * var(--upx));
   margin-bottom: calc(4 * var(--upx));
   color: #e8c47d;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(13 * var(--upx));   /* 예전 11 */
 }
 .relationship-heading small {
   color: #8f765b;
-  font-size: calc(8 * var(--upx));
+  font-size: calc(9 * var(--upx));    /* 예전 8 */
   text-align: right;
 }
+/* 기록 칸은 **높이를 고정**합니다(max-height 가 아닙니다).
+   ------------------------------------------------------------
+   손님을 기록할 때마다 자라던 칸이라, 판 크기를 "가장 클 때"로 잡아 두면
+   기록이 없는 초반에는 그 차이(약 73)가 판 아래쪽 빈 자리로 남았습니다.
+   칸 높이를 못박으면 남는 자리가 판 꼬리가 아니라 **기록 칸 안쪽**으로
+   들어갑니다 — 제목과 조작 칩 사이라 "아직 빈 목록"으로 읽힙니다.
+   덕분에 판 높이도 기록 수와 무관하게 늘 같습니다(.phase-open .right-hud). */
 .relationship-list {
-  max-height: calc(92 * var(--upx));
+  height: calc(92 * var(--upx));
   display: grid;
+  align-content: start;   /* 줄이 적어도 위부터 채웁니다(고정 높이라 안 하면 세로 중앙에 뜹니다) */
   gap: calc(3 * var(--upx));
   overflow: auto;
   scrollbar-width: thin;
 }
 .relationship-empty {
   color: #8f765b;
-  font-size: calc(9 * var(--upx));
+  font-size: calc(11 * var(--upx));   /* 예전 9 */
   line-height: 1.35;
 }
 .relationship-row {
@@ -588,7 +676,7 @@
   border: 1px solid #4e3020;
   border-radius: calc(4 * var(--upx));
   background: #160d09;
-  font-size: calc(10 * var(--upx));
+  font-size: calc(12 * var(--upx));   /* 예전 10 */
 }
 .relationship-row strong {
   overflow: hidden;
@@ -623,7 +711,7 @@
   padding-top: calc(7 * var(--upx));
   border-top: 1px solid rgba(224,163,77,.25);
   color: #c6aa7e;
-  font-size: calc(10 * var(--upx));
+  font-size: calc(12 * var(--upx));   /* 예전 10 */
 }
 .controls-help div { display: flex; align-items: center; gap: calc(4 * var(--upx)); }
 

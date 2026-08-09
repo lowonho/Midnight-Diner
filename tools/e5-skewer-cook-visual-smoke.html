@@ -273,7 +273,37 @@
                    boardRoom:+(boardRect.bottom - r.bottom).toFixed(1),
                    flipped:s.classList.contains("flipped"),
                    current:s.classList.contains("current") }
-        })
+        }),
+        /* 오른쪽 아래 '완성 담기' 칸. **접시는 원화 한 장**이고(.ts-serve-art),
+           담은 꼬치는 그 위에 얹힙니다 — 손잡이는 접시 아래로 나와야 자연스럽습니다.
+             upx        이 화면의 1upx 가 실제 몇 px 인가 (1920 프레임 기준값으로 되돌릴 때 나눕니다)
+             art        접시 그림 상자. "없음" 이면 webp 를 못 찾아 임시 도형으로 떨어진 것입니다
+             handleOut  꼬치가 접시 아래 테두리 밖으로 나온 길이 (양수라야 맞습니다)
+             topRoom    조각 더미 위쪽이 접시 안에 남아 있는 여유 (음수 = 접시 밖으로 튀어나감)
+             figureRoom 접시 아래 손잡이가 칸 밖으로 안 나가는지 (양수 = 여유) */
+        serve:(() => {
+          const panel = document.querySelector(".ts-serve");
+          if (!panel) return null;
+          const figureRect = rect(document.querySelector(".ts-serve-figure"));
+          const plate = document.querySelector(".ts-serve-plate");
+          const plateRect = rect(plate);
+          const art = document.querySelector(".ts-serve-art");
+          return {
+            upx:+getComputedStyle(document.documentElement).getPropertyValue("--upx").trim().replace("px","") || 1,
+            panel:box(panel), title:box(panel.querySelector(".ts-col-title")),
+            figure:box(document.querySelector(".ts-serve-figure")),
+            now:box(panel.querySelector(".ts-now")),
+            plate:box(plate), art:art ? box(art) : "없음",
+            mark:document.querySelectorAll(".ts-serve-mark").length,
+            served:[...document.querySelectorAll(".ts-served")].map(one => {
+              const r = rect(one), stack = rect(one.querySelector(".gs-pieces"));
+              return { box:box(one),
+                       handleOut:+(r.bottom - plateRect.bottom).toFixed(1),
+                       topRoom:stack ? +(stack.top - plateRect.top).toFixed(1) : 0 };
+            }),
+            figureRoom:+(figureRect.bottom - plateRect.bottom).toFixed(1)
+          };
+        })()
       });
       document.body.dataset.ready = "true";
     }

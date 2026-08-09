@@ -47,6 +47,7 @@
     "verify:ui-menuselect": "node tools/build-ui-menuselect-webp.js --verify",
     "build:ui-record": "node tools/build-ui-record-webp.js",
     "verify:ui-record": "node tools/build-ui-record-webp.js --verify",
+    "preview:journal-face": "node tools/journal-face-preview.js",
     "build:conversation": "node tools/build-conversation-webp.js",
     "verify:conversation": "node tools/build-conversation-webp.js --verify",
     "build:cutscene": "node tools/build-cutscene-webp.js",

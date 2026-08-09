@@ -129,17 +129,19 @@ check(qaStoryDayForScene(STORY_SCENES["SCN-D01"],7)===7,
   "day:null인 SCN-D01은 전달된 Day 7 맥락을 유지해야 합니다.");
 
 const l02=STORY_SCENES["SCN-L02"];
-check(qaStoryJournalState(l02)==="none","SCN-L02의 기본 QA 상태는 기록 없음이어야 합니다.");
-check(qaStoryLinesForScene(l02).length===l02.lines.length+l02.journalVariants.none.length,
-  "SCN-L02 미리보기에는 공통 내레이션과 선택한 상태 대사를 함께 표시해야 합니다.");
+check(qaStoryJournalState(l02)===null,"SCN-L02의 기본 QA 상태는 별도의 기록 없음 분기를 만들지 않아야 합니다.");
+check(qaStoryLinesForScene(l02).length===l02.lines.length,
+  "SCN-L02 기본 미리보기에는 기록 확인 내레이션만 표시해야 합니다.");
 qaStoryJournalStates[l02.id]="confirmed";
 check(qaStoryJournalState(l02)==="confirmed"
-  &&qaStoryLinesForScene(l02).at(-1).text.includes("확인한 음식은"),
+  &&qaStoryLinesForScene(l02).at(-1).text.includes("음식은 맞았지만"),
   "영업일지 음식 확정 상태를 실제 대화 미리보기 줄에 반영해야 합니다.");
 const journalBranches=qaStoryBranchEntries(l02,l02.lines[0]);
 same(journalBranches.map(entry=>entry.label),[
-  "영업일지 · 기록 없음","영업일지 · 음식 단서","영업일지 · 음식 확정","영업일지 · 조각 획득"
-],"영업일지 네 상태 분기 표시");
+  "영업일지 · 음식 단서","영업일지 · 음식 확정","영업일지 · 조각 획득"
+],"영업일지 세 기록 상태 분기 표시");
+check(!String(qaStoryBranchEntries).includes('none:"기록 없음"'),
+  "삭제한 영업일지 기록 없음 라벨을 QA 코드에도 남기지 않아야 합니다.");
 check(journalBranches.every(entry=>entry.sceneId==="SCN-L02"&&entry.journalState),
   "영업일지 상태 행은 같은 장면을 해당 상태로 다시 여는 링크여야 합니다.");
 

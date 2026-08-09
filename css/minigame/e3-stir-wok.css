@@ -115,6 +115,7 @@
 
 /* 가운데 : 불 위의 철판 */
 .yk-board { position: relative; display: grid; place-items: center; min-width: 0; }
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 */
 .e3-result {
   position: absolute;
   z-index: 12;
