@@ -112,7 +112,11 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
      footY      발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
      headWidth  실루엣 가로폭이 이 값(셀 높이 대비)에 처음 닿는 줄이 머리끝
      headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
-     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px)
+     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px).
+                말풍선 묶음을 통째로 올리고 내리는 값이 이것 하나입니다.
+                CUSTOMER_HUD 의 오프셋들은 tailY 와의 차이로만 화면에 나타나서
+                (bubbleY 등을 같이 옮기면 서로 상쇄됩니다) 높이는 여기서 잡습니다.
+                단, 강조 원은 머리에 남아야 하므로 CUSTOMER_HUD.ringY 로 되돌립니다
 
    headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
    젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
@@ -367,7 +371,11 @@ const CUSTOMER_HUD = {
   // iconY 는 패널 세로 중앙(bubbleY + bubbleH/2).
   iconY:-117, iconW:66, iconH:44,
   tailY:-90,                              // 패널 꼬리
-  ringY:-52, ringR:46,                    // 선택된 손님 강조 원
+  // 강조 원만 머리를 감싸야 해서 hudGap 을 되돌려 놓은 값입니다.
+  // 여기 오프셋은 전부 hy(= 머리끝 - hudGap) 기준이라 hudGap 을 키우면
+  // 말풍선과 함께 이 원도 같이 떠오릅니다. hudGap 을 바꿀 때는 같은 값만큼
+  // 반대로 옮겨 주세요. (지금은 hudGap 17 - 기본 7 = 10 만큼 되돌림)
+  ringY:-42, ringR:46,                    // 선택된 손님 강조 원
   labelY:-152,                            // 번호 / 이름
   speechY:-175,                           // 대사 말풍선
   departSpeechY:-135
