@@ -135,11 +135,11 @@ function createSaveSlotItem(slot){
     summary.className="save-slot-summary";
     summary.textContent=saveSlotSummary(slot.data);
     details.append(summary);
-    const sceneTitle=saveSlotSceneTitle(slot.data);
-    if(sceneTitle){
+    const progressLabel=saveSlotProgressLabel(slot.data);
+    if(progressLabel){
       const story=document.createElement("span");
       story.className="save-slot-story";
-      story.textContent=`이야기 · ${sceneTitle}`;
+      story.textContent=`진행 · ${progressLabel}`;
       details.append(story);
     }
   }else{
@@ -207,15 +207,57 @@ function saveSlotPhaseLabel(phase){
   return "진행 중";
 }
 
-function saveSlotSceneTitle(data){
+function saveSlotCheckpointScene(data){
   const checkpoint=data?.storyCheckpoint;
   const sceneId=checkpoint?.sceneId
     ||checkpoint?.scene?.id
     ||checkpoint?.queue?.[checkpoint?.queueIndex||0]
     ||checkpoint?.queue?.[0];
-  if(!sceneId)return "";
-  if(typeof STORY_SCENES==="object"&&STORY_SCENES?.[sceneId]?.title)return STORY_SCENES[sceneId].title;
-  return checkpoint?.sceneTitle||sceneId;
+  if(!sceneId||typeof STORY_SCENES!=="object"||!STORY_SCENES)return null;
+  return STORY_SCENES[sceneId]||null;
+}
+
+function saveSlotProgressLabel(data){
+  const saved=data?.state||{};
+  const numericDay=Math.floor(Number(saved.day));
+  const dayLabel=Number.isFinite(numericDay)&&numericDay>0?`${numericDay}일차`:"현재 회차";
+  const scene=saveSlotCheckpointScene(data);
+  const sceneType=String(scene?.sceneType||"");
+  const isPrologue=saved.story?.prologueComplete===false
+    ||scene?.moment==="newGame"
+    ||sceneType==="prologue"
+    ||sceneType==="prologueInteraction";
+  if(isPrologue)return "0일차 · 프롤로그 진행 중";
+
+  const orders=Array.isArray(saved.orders)?saved.orders:[];
+  const activeOrderId=saved.carrying?.orderId??saved.selectedOrderId;
+  const selectedOrder=orders.find(order=>order?.id===activeOrderId)||null;
+  const firstQueuedOrder=orders
+    .map((order,index)=>({order,index}))
+    .sort((a,b)=>(Number(a.order?.id)||0)-(Number(b.order?.id)||0)||a.index-b.index)[0]?.order||null;
+  const activeOrder=selectedOrder||firstQueuedOrder;
+  const specialScene=scene?.specialGuest===true
+    ||sceneType==="specialGuestArrival"
+    ||sceneType==="specialGuestMissing"
+    ||sceneType==="specialGuestResult";
+  const specialOrder=activeOrder?.customerType==="story"||!!activeOrder?.storySceneId;
+
+  const phases=typeof GAME_PHASES==="object"&&GAME_PHASES?GAME_PHASES:{};
+  const phase=saved.phase;
+  const isOpen=phase===phases.OPEN||phase==="night";
+  if(isOpen&&(specialScene||specialOrder))return `${dayLabel} · 특별 손님 응대 중`;
+  if(isOpen&&activeOrder){
+    const served=Math.max(0,Math.floor(Number(saved.generalServed)||0));
+    return `${dayLabel} · ${served+1}번째 손님 응대 중`;
+  }
+  if(isOpen)return `${dayLabel} · 영업 중`;
+  if(phase===phases.RESULT||phase==="result")return `${dayLabel} · 영업 마감`;
+  if(
+    phase===phases.MENU_SELECT||phase==="menuSelect"
+    ||phase===phases.INGREDIENT_SELECT||phase==="ingredientSelect"
+    ||phase===phases.PREP||phase==="day"
+  )return `${dayLabel} · 영업 준비 중`;
+  return `${dayLabel} · 진행 중`;
 }
 
 function formatSaveSlotTime(date){
@@ -226,10 +268,10 @@ function formatSaveSlotTime(date){
 
 function saveSlotAccessibleLabel(slot){
   if(!slot.data)return `${slot.label}, 빈 슬롯`;
-  const scene=saveSlotSceneTitle(slot.data);
+  const progress=saveSlotProgressLabel(slot.data);
   const date=new Date(slot.data.savedAt);
   const time=Number.isNaN(date.getTime())?"":`, ${formatSaveSlotTime(date)} 저장`;
-  return `${slot.label}, ${saveSlotSummary(slot.data)}${scene?`, 이야기 ${scene}`:""}${time}`;
+  return `${slot.label}, ${saveSlotSummary(slot.data)}${progress?`, 진행 ${progress}`:""}${time}`;
 }
 
 function selectSaveSlot(slot){

@@ -900,6 +900,24 @@ assert(firstChoiceLine.prompt==="어떤 음식을 내줄까?"
   "힌트 대사 뒤 선택 질문을 붙이고 정답 음식명은 먼저 말하지 않아야 합니다.");
 
 const rainy=getStoryGuestState("rainyChild");
+assert(!rainy.clueFound&&!rainy.foodConfirmed
+  &&getStoryGuestResult("rainyChild").evaluationTier==null
+  &&getStoryGuestResult("rainyChild").fragmentState==="none",
+  "특별 손님의 도착 대사를 듣기 전에는 음식 단서와 결과가 없어야 합니다.");
+assert(recordStoryArrivalClue(STORY_SCENES["SCN-G1-A"],{save:false})
+  &&rainy.clueFound&&!rainy.foodConfirmed
+  &&getStoryGuestResult("rainyChild").evaluationTier==null
+  &&getStoryGuestResult("rainyChild").fragmentState==="none",
+  "도착 대사를 모두 들으면 조리 결과와 무관하게 음식 단서만 기록해야 합니다.");
+assert(!recordStoryArrivalClue(STORY_SCENES["SCN-G1-A"],{save:false})
+  &&normalizeStoryState(JSON.parse(JSON.stringify(state.story)))
+    .guestState.rainyChild.clueFound,
+  "도착 단서는 중복 기록되지 않고 저장 복원 뒤에도 유지되어야 합니다.");
+assert(String(showStoryLine).includes("recordStoryArrivalClue(scene,{save:true})"),
+  "특별 손님 대사를 SKIP하거나 선택 화면을 복원해도 단서를 즉시 저장해야 합니다.");
+assert(String(finishStoryTyping).includes("lastArrivalDialogueIndex")
+  &&String(finishStoryTyping).includes("recordStoryArrivalClue(scene,{save:true})"),
+  "특별 손님의 마지막 음식 묘사가 모두 출력된 순간 단서를 즉시 저장해야 합니다.");
 storySession={scene:STORY_SCENES["SCN-G1-A"],suspended:true,pendingCook:null};
 const wrongResult=applyStoryCookingResult({
   guestId:"rainyChild",storySceneId:"SCN-G1-A",
