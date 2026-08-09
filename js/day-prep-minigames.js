@@ -652,7 +652,7 @@ function dayPrepGradeText(grade){
 
 /* 자기 판정 표시가 없던 게임(E1 칼질 · E10 멸치)에 공용 판정을 띄웁니다.
    hostSelector 는 그 게임의 조리판입니다(position:relative 여야 합니다).
-   모양은 css/minigame/_prep-common.css 의 .prep-verdict — 밤 E5/E6 와 같은 판입니다. */
+   모양은 css/minigame/shared-prep-common.css 의 .prep-verdict — 밤 E5/E6 와 같은 판입니다. */
 function showDayPrepVerdict(hostSelector,data=state.mini?.data){
   const host=dom.miniContent?.querySelector(hostSelector);
   if(!host)return;

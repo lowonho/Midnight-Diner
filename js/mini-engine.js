@@ -216,6 +216,87 @@ function updateMiniScore(m = state.mini, scoreOverride = null) {
   dom.miniContent.querySelectorAll("[data-mini-score]").forEach(value => {
     value.textContent = score;
   });
+  trackMiniScoreDrop(m, score);
+}
+
+/* ---- 점수가 깎일 때 조리판 한가운데 뜨는 '-10점' --------------
+   우측 점수 카드의 숫자는 조리 연출을 보는 동안 눈에 잘 안 들어옵니다.
+   그래서 **깎인 만큼**을 조리판(플레이 영역) 한가운데에 크게 한 번 띄웁니다.
+     "무엇을 하면 깎이나"  우측 칸 고정 안내 (ui-mini-frame.js 의 MINI_PENALTY)
+     "방금 얼마나 깎였나"  여기                                    ← 새로 붙은 것
+   둘은 역할이 다르니 한쪽으로 합치지 마세요.
+
+   [왜 엔진마다 안 붙이고 여기 한 곳인가]
+   깎이는 곳이 엔진마다 여러 군데(잘못 그은 획 · 무동작 · 타이밍 놓침 · 태움 …)라
+   그 자리마다 연출을 넣으면 빠뜨리기 쉽습니다. 화면에 보이는 점수는 결국
+   updateMiniScore 한 곳을 지나므로, **표시된 숫자가 줄어든 순간**만 잡습니다.
+   덕분에 앞으로 붙는 엔진도 따로 손볼 것이 없습니다.
+
+   [띄우지 않는 경우]
+     점수 카드가 없는 화면   낮 준비는 점수가 아니라 완성 개수입니다
+     m.timeOver             시간 종료는 0 점으로 떨어지는 규칙이라 −40 같은 숫자가
+                            뜨면 마치 그만큼 실수한 것처럼 보입니다. TIME OVER 연출에 맡깁니다
+     m.complete             마무리 판정("아쉬워요!")과 같은 자리에서 겹칩니다
+
+   ⚠️ 한 프레임에 두 군데서 깎이면 합쳐서 한 장으로 뜹니다(−5 −5 → −10).
+      화면에 보이는 숫자의 차이를 그대로 쓰기 때문입니다. */
+const MINI_PENALTY_POP_SLOTS = 3;   // 겹쳐 뜰 때 아래로 밀어 두는 자리 수
+let miniPenaltyPopOwner = null;     // 지금 기준이 되는 판(state.mini)
+let miniPenaltyPopScore = 0;        // 마지막으로 화면에 보인 점수
+
+function trackMiniScoreDrop(m, score) {
+  // 점수 카드가 없는 화면(낮 준비)에는 깎일 점수 자체가 없습니다.
+  if (!dom.miniContent.querySelector("[data-mini-score]")) {
+    miniPenaltyPopOwner = null;
+    return;
+  }
+  // 판이 바뀌면 첫 점수를 기준으로 잡기만 하고 아무것도 띄우지 않습니다.
+  if (miniPenaltyPopOwner !== m) {
+    miniPenaltyPopOwner = m;
+    miniPenaltyPopScore = score;
+    clearMiniPenaltyPops();
+    return;
+  }
+  const drop = miniPenaltyPopScore - score;
+  miniPenaltyPopScore = score;
+  if (drop > 0 && !m.timeOver && !m.complete) spawnMiniPenaltyPop(drop);
+}
+
+/* 조리판(.mini-stage) 위에 깔리는 표시 전용 칸.
+   ⚠️ #miniContent 안이 아니라 그 바깥에 둡니다 — 엔진들이 진행 중에도
+      miniContent.innerHTML 을 통째로 다시 그리기 때문에, 안에 두면
+      뜨는 도중에 사라집니다. */
+function miniPenaltyPopLayer() {
+  // #miniContent 의 부모를 타고 올라갑니다 — dom.miniOverlay 를 쓰면
+  // 오버레이를 안 만드는 tools/*-visual-smoke.html 에서 자리를 못 찾습니다.
+  const stage = dom.miniContent?.closest(".mini-stage");
+  if (!stage) return null;
+  let layer = stage.querySelector(".mini-penalty-pops");
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.className = "mini-penalty-pops";
+    layer.setAttribute("aria-hidden", "true");
+    stage.appendChild(layer);
+  }
+  return layer;
+}
+
+function clearMiniPenaltyPops() {
+  dom.miniContent?.closest(".mini-stage")?.querySelector(".mini-penalty-pops")?.replaceChildren();
+}
+
+function spawnMiniPenaltyPop(amount) {
+  const layer = miniPenaltyPopLayer();
+  if (!layer) return;
+  const pop = document.createElement("b");
+  pop.className = "mini-penalty-pop";
+  // 연달아 깎이면 같은 자리에 겹쳐 읽을 수 없게 되므로 한 칸씩 내려 답니다.
+  pop.style.setProperty("--pop-slot", layer.childElementCount % MINI_PENALTY_POP_SLOTS);
+  pop.textContent = `-${amount}점`;
+  // 설정창을 열면 CSS 애니메이션도 같이 멈추므로(minigame-frame.css),
+  // 타이머가 아니라 애니메이션 끝에 맞춰 걷어냅니다.
+  pop.addEventListener("animationend", () => pop.remove(), { once: true });
+  layer.appendChild(pop);
 }
 
 /* ---- 여러 엔진이 함께 쓰는 도우미 ----------------------------

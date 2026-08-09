@@ -490,9 +490,9 @@ assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
   &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
   "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
 
-assert(Object.keys(STORY_SCENES).length===56,"새 시나리오는 총 56개 장면이어야 합니다.");
+assert(Object.keys(STORY_SCENES).length===57,"새 시나리오는 총 57개 장면이어야 합니다.");
 const requiredStaticScenes=[
-  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D01",
+  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D00","SCN-D01",
   "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
 ];
 requiredStaticScenes.forEach(id=>assert(STORY_SCENES[id]?.id===id,"필수 장면 누락: "+id));
@@ -689,6 +689,33 @@ for(let day=1;day<=7;day++){
 }
 assert(STORY_EVENT_SCHEDULE.dayStart[1].includes("SCN-L01"),
   "회귀 후 첫째 날 장면이 일정에 등록되어야 합니다.");
+
+/* 둘째 날부터의 날짜 구분 카드. 첫째 날은 SCN-P05(1회차)·SCN-L01(2회차)이
+   이미 카드를 띄우므로 넣으면 안 됩니다. */
+const dailyPrepOpening=STORY_SCENES["SCN-D00"];
+assert(dailyPrepOpening.title==="영업 준비"
+  &&dailyPrepOpening.day===null
+  &&dailyPrepOpening.moment==="dayStart"
+  &&dailyPrepOpening.repeatEachDay===true
+  &&dailyPrepOpening.timeOfDay==="day"
+  &&storySceneShowsIntroCard(dailyPrepOpening)
+  &&dailyPrepOpening.lines.at(-1)?.speaker==="protagonist"
+  &&dailyPrepOpening.lines.at(-1)?.text==="오늘의 준비를 시작하자.",
+  "다음 날로 넘어갈 때는 DAY 카드가 붙은 영업 준비 장면과 다은의 시작 대사가 있어야 합니다.");
+assert(!STORY_EVENT_SCHEDULE.dayStart[1].includes("SCN-D00"),
+  "첫째 날에는 이미 다른 장면이 DAY 카드를 띄우므로 SCN-D00을 넣으면 안 됩니다.");
+for(let day=2;day<=7;day++){
+  assert(STORY_EVENT_SCHEDULE.dayStart[day][0]==="SCN-D00",
+    "둘째 날부터는 낮 준비가 날짜 구분 장면으로 시작해야 합니다.");
+}
+{
+  const savedDay=state.day;
+  state.day=3;
+  assert(storySceneDayLabel(dailyPrepOpening)==="DAY 3"
+    &&storySceneProgressKey(dailyPrepOpening).includes("day3"),
+    "날짜 구분 카드는 현재 날짜를 표시하고 날짜별 완료 키를 써야 합니다.");
+  state.day=savedDay;
+}
 
 const guestContracts=[
   [1,1,"rainyChild","kimchi","first_raindrop","첫 빗방울","after",6],
@@ -1374,7 +1401,7 @@ assert(state.story.loop===2&&state.day===1
   &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
   "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 
-console.log("STORY_CONTRACT_OK 56");
+console.log("STORY_CONTRACT_OK 57");
 `;
 
 const context = {
