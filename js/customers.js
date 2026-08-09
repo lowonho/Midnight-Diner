@@ -30,9 +30,13 @@ const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.map(x=>Math.round(toLogic(x)));
 // FRONT_STATIONS.counter.y 는 조리도구 쪽 뒷선이라 서빙 기준으로 쓰면 방향이
 // 반대가 됩니다. 실제 이동 영역의 손님 쪽 하한선을 읽어 가장 가까운 자리를 씁니다.
 const CUSTOMER_SERVICE_Y = toLogic(CHEF_WALK_AREA.bottomY);
-// 손님 좌석 x와도 거의 일치해야 합니다. 자동 반경 8은 프레임당 이동량
-// (약 5 논리 px)보다 커서 밀착했는데 판정을 건너뛰는 일은 없습니다.
-const CUSTOMER_SERVE_REACH = 12;     // E 키 서빙 · 프롬프트 표시
+// 반경 기준점은 (좌석 x, CUSTOMER_SERVICE_Y) 입니다. 12 였을 때는 손님
+// 정면 한 점에 딱 맞춰 서야만 E 가 떠서 서빙이 너무 까다로웠습니다.
+// 좌석 간격이 논리 132(VIEW 198), 이동 영역 깊이가 논리 190 이므로
+// 42 는 좌우로 좌석 간격의 3분의 1, 앞뒤로 카운터에서 한 걸음 정도까지
+// 인정하는 값입니다. 옆자리 손님과 겹치지 않는 선에서 최대한 넓혔습니다.
+// (판정은 들고 있는 주문의 좌석 하나만 보므로 겹쳐도 오배달은 없습니다.)
+const CUSTOMER_SERVE_REACH = 42;     // E 키 서빙 · 프롬프트 표시
 const CUSTOMER_AUTO_SERVE_REACH = 8; // 완전히 붙으면 자동 서빙
 
 // 앉았을 때의 기준 y. 머리·어깨가 의자 등받이(VIEW 878)보다 위로
@@ -399,12 +403,19 @@ const CUSTOMER_HUD = {
   // 말풍선과 함께 이 원도 같이 떠오릅니다. hudGap 을 바꿀 때는 같은 값만큼
   // 반대로 옮겨 주세요. (지금은 hudGap 17 - 기본 7 = 10 만큼 되돌림)
   ringY:-42, ringR:46,                    // 선택된 손님 강조 원
-  labelY:-152,                            // 번호 / 이름
+  labelY:-152,                            // 번호 / 이름 — 주문 패널 위
+  /* 주문 패널이 없는 손님(메뉴를 고민 중이거나 구경만 하는 특별 손님)은
+     패널 자리가 통째로 비므로 이름을 머리 바로 위까지 내립니다.
+     머리끝은 tailY+hudGap = -73 이라, 여기서 9px 위가 글자 밑선입니다. */
+  labelHeadY:-82,
+  // 대사 말풍선이 떠 있는 동안에는 이름이 말풍선 윗변 위로 올라갑니다.
+  labelSpeechGap:6,
   speechY:-175,                           // 대사 말풍선
   departSpeechY:-135
 };
 
-const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17, pad:22, margin:180 };
+const CUSTOMER_SPEECH = { maxWidth:142, maxLines:2, minW:92, maxW:158, lineH:17, pad:22 };
+const CUSTOMER_SPEECH_FONT = "bold 12px Malgun Gothic";
 
 
 /* ------------------------------------------------------------
@@ -463,6 +474,10 @@ function drawCustomers(){
     const visitorOnly=storyEntrance&&order.guestOrder===false;
     const selected=!visitorOnly&&state.selectedOrderId===order.id;
     const H=CUSTOMER_HUD;
+    /* 이름을 말풍선 위에 얹어야 해서 말풍선 자리를 먼저 잽니다.
+       말풍선이 없으면 null 입니다. */
+    const speech=order.bubble&&order.bubbleTime>0&&progress>.85
+      ?customerSpeechBox(order.bubble,x,hy+H.speechY):null;
     if(!visitorOnly){
       ctx.fillStyle=selected?"#fff0bd":"#efd9ae";
       roundRect(ctx,x-H.bubbleW/2,hy+H.bubbleY,H.bubbleW,H.bubbleH,9,true,false);
@@ -479,12 +494,19 @@ function drawCustomers(){
       ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
       ctx.arc(x,hy+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
     }
+    /* 이름(특별 손님) / 자리 번호(일반 손님)가 앉는 높이는 세 가지입니다.
+         말풍선이 떠 있으면  말풍선 바로 위 — 말풍선에 가리지 않게
+         주문 패널이 있으면  패널 바로 위 — 패널·꼬리와 겹치지 않게
+         둘 다 없으면        머리 바로 위 */
+    const labelY=speech?speech.top-H.labelSpeechGap
+      :visitorOnly?hy+H.labelHeadY
+      :hy+H.labelY;
     ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,hy+H.labelY);
+    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,labelY);
     ctx.textAlign="left";
 
     ctx.restore();
-    if(order.bubble&&order.bubbleTime>0&&progress>.85)drawCustomerSpeech(order.bubble,x,hy+H.speechY,entryAlpha);
+    if(speech)drawCustomerSpeech(speech,entryAlpha);
   });
 
   /* 떠나는 손님 — 자리에 앉은 채로 마저 먹다가 사라집니다. (§1-4)
@@ -494,7 +516,9 @@ function drawCustomers(){
     const alpha=clamp(Math.max(0,item.life)/CUSTOMER_DEPART.fade,0,1);
     const motion=customerMotionOf(customerArtSet(item),"eat");
     drawCustomerSprite(item.variant,x,y,customerFrame(item,motion,t,index),alpha,item,motion);
-    drawCustomerSpeech(item.bubble,x,y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY,alpha);
+    const speech=customerSpeechBox(item.bubble,x,
+      y+customerHudDrop(item,item.variant)+CUSTOMER_HUD.departSpeechY);
+    if(speech)drawCustomerSpeech(speech,alpha);
   });
 }
 
@@ -534,19 +558,32 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
   ctx.restore();
 }
 
-function drawCustomerSpeech(text,x,bottomY,alpha=1){
-  if(!text)return;
+/* 대사 말풍선이 차지할 자리. 이름표를 말풍선 위에 얹어야 해서
+   "재기"와 "그리기"를 나눠 두었습니다. 할 말이 없으면 null 입니다.
+
+   [화면 안으로 밀지 않습니다] 예전에는 좌우 margin 안으로 clamp 했습니다.
+   그래서 5번(오른쪽 끝) 자리 손님만 말풍선이 왼쪽으로 비켜서, 누가 하는
+   말인지 알아보기 어려웠습니다. 우측 패널에 조금 잘리더라도 말하는 손님
+   머리 한가운데에 뜨는 쪽이 낫습니다. */
+function customerSpeechBox(text,x,bottomY){
+  if(!text)return null;
   const S=CUSTOMER_SPEECH;
-  ctx.save();ctx.globalAlpha=alpha;
-  ctx.font="bold 12px Malgun Gothic";
+  ctx.save();ctx.font=CUSTOMER_SPEECH_FONT;
   const lines=wrapCanvasText(text,S.maxWidth,S.maxLines);
   const width=Math.min(S.maxW,Math.max(S.minW,...lines.map(line=>ctx.measureText(line).width+S.pad)));
+  ctx.restore();
   const height=lines.length*S.lineH+15;
-  const left=clamp(x-width/2,S.margin,W-S.margin-width),top=bottomY-height;
+  return { lines, width, height, left:x-width/2, top:bottomY-height };
+}
+
+function drawCustomerSpeech(box,alpha=1){
+  const S=CUSTOMER_SPEECH;
+  ctx.save();ctx.globalAlpha=alpha;
+  ctx.font=CUSTOMER_SPEECH_FONT;
   ctx.fillStyle="rgba(35,20,13,.95)";ctx.strokeStyle="#d0a05b";ctx.lineWidth=2;
-  roundRect(ctx,left,top,width,height,8,true,true);
+  roundRect(ctx,box.left,box.top,box.width,box.height,8,true,true);
   ctx.fillStyle="#f8dfae";ctx.textAlign="center";
-  lines.forEach((line,i)=>ctx.fillText(line,left+width/2,top+20+i*S.lineH));
+  box.lines.forEach((line,i)=>ctx.fillText(line,box.left+box.width/2,box.top+20+i*S.lineH));
   ctx.textAlign="left";
   ctx.restore();
 }

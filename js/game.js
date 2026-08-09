@@ -826,6 +826,9 @@ function completeMiniContext(m,score) {
   state.mini=null;dom.miniOverlay.classList.remove(UI_CLASS.overlayOpen);
   // 화면이 실제로 사라지는 곳. 굽는 소리가 여기까지 살아 있으면 낮/밤 화면으로 새어 나갑니다.
   audio.stopOwner(m);audio.stopLoops();
+  // 끌고 가던 그림(.order-drag-ghost)도 여기서 걷어냅니다 — 미니게임 화면이 아니라
+  // document.body 에 붙어 있어서, 창을 닫아도 저 혼자 남습니다.
+  if(typeof clearOrderDragGhosts==="function")clearOrderDragGhosts();
   if(m.context.mode==="story"){
     completeStoryCookStep(score);
     updateUI(true);

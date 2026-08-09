@@ -603,6 +603,14 @@ try{
   batterSource.dispatchEvent(new PointerEvent("pointerup",{pointerId:31,pointerType:"mouse",clientX:20,clientY:20,bubbles:true}));
   document.elementFromPoint=originalElementFromPoint;
   assert(state.mini.data.step===1&&!document.querySelector(".order-drag-ghost"),"E8 pointer drag places flour and cleans its ghost");
+  /* 주인이 사라진 드래그 유령(.order-drag-ghost)은 document.body 에 붙어 있어서
+     화면을 다시 그려도 저 혼자 남습니다 — 김치전 반죽에서 물컵이 화면에 붙어 버린
+     버그가 이것이었습니다. 다음 렌더와 창 닫기가 반드시 걷어내야 합니다. */
+  const orphanGhost=document.createElement("span");orphanGhost.className="order-drag-ghost water";document.body.appendChild(orphanGhost);
+  renderKimchiBatterIngredients();
+  assert(!orphanGhost.isConnected,"E8 a stale drag ghost is swept away on the next render");
+  document.body.appendChild(orphanGhost);clearOrderDragGhosts();
+  assert(!orphanGhost.isConnected&&typeof sweepStaleOrderDragGhosts==="function","E8 leaving the minigame clears every drag ghost");
   const skewerPatterns=Array.from({length:200},createSkewerPattern);
   const skewerCountOf=(pattern,ingredient)=>pattern.filter(slot=>slot===ingredient).length;
   assert(SKEWER_MIN_PIECES.chicken===2&&SKEWER_MIN_PIECES.greenOnion===1&&SKEWER_MIN_PIECES.chicken+SKEWER_MIN_PIECES.greenOnion<=SKEWER_SLOT_COUNT,"E8 skewer minimums are two chicken and one green onion and still leave free slots");

@@ -190,7 +190,8 @@
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .sk-count { text-align: center; }
-.sk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
+/* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
+.sk-count strong { display: block; color: var(--gold-bright); }
 /* `flex: 1` 이 없어 내용만큼(175.4)만 잡고 아래가 비었습니다.
    E2(.fp-control) 처럼 남는 자리를 다 쓰게 맞췄습니다. */
 .sk-guide { flex: 1; display: flex; flex-direction: column; }
@@ -268,7 +269,6 @@
   .sk-piece { width: calc(62 * var(--upx)); height: calc(40 * var(--upx)); }
   .sk-piece.greenOnion { width: calc(56 * var(--upx)); height: calc(32 * var(--upx)); }
   .sk-guide-pieces .sk-piece.has-asset { width: calc(58 * var(--upx)); height: calc(50.8 * var(--upx)); margin: calc(-10 * var(--upx)) 0; }
-  .sk-count strong { font-size: calc(42 * var(--upx)); }
 }
 
 @media (prefers-reduced-motion:reduce) {

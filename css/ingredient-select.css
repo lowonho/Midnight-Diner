@@ -65,9 +65,13 @@
       목록이 패널보다 길어지는데, 안 자르면 금테 밖으로 그대로 흘러나옵니다. */
 .fridge-panel {
   grid-template-columns: minmax(0,1fr);
-  padding: calc(17 * var(--upx)) calc(15 * var(--upx));
   overflow: hidden;
 }
+/* ⚠️ 넉넉한 세로 여백은 **그림이 든 카드에만** 줍니다. 진행도 카드(완료 개수)는
+   글자만 들어서 필요가 없고, 여기에 17 을 걸면 공용 진행도 카드가 잡아 둔
+   세로 여백(잉크 보정이 들어간 18/6)까지 통째로 지워져 다른 12화면과 어긋납니다. */
+.fridge-panel:not(.fridge-count-card) { padding: calc(17 * var(--upx)) calc(15 * var(--upx)); }
+.fridge-count-card { padding-inline: calc(15 * var(--upx)); }
 
 .fridge-right {
   height: 100%;
@@ -287,15 +291,10 @@
 .fridge-clear strong { color: var(--gold-bright); font-size: calc(28 * var(--upx)); letter-spacing: .06em; }
 
 /* ---- 우 위 : 완료 개수 (C 198.1) ----------------------------- */
+/* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
 .fridge-count {
-  margin: 0;
   color: var(--gold-bright);
   text-align: center;
-  font-size: calc(46 * var(--upx));
-  font-family: var(--font-bold);
-  -webkit-text-stroke: var(--bold-stroke) currentColor;
-  font-weight: 900;
-  line-height: 1.1;
 }
 .fridge-count b { color: #f2a03c; }
 /* ---- 우 아래 : 찾아야 할 재료 (A2 403.1) ---------------------

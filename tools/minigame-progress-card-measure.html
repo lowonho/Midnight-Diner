@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>미니게임 진행도 카드 측정</title>
+  <!-- 저장소 루트 기준으로 css/ 와 assets/ 를 찾습니다 -->
+  <base href="../">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/minigame-parts.css">
+  <link rel="stylesheet" href="css/minigames.css">
+  <link rel="stylesheet" href="css/day-prep-minigames.css">
+  <link rel="stylesheet" href="css/ingredient-select.css">
+  <link rel="stylesheet" href="css/minigame-frame.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    body { margin:0; background:#2a1a10; }
+    .row { display:flex; flex-wrap:wrap; gap:16px; padding:16px; align-items:flex-start; }
+    .cell { width:250px; }
+    .cell > .tag { color:#fff; font:12px/1.4 monospace; padding:2px 0; }
+    #out { color:#dfd; font:12px/1.5 monospace; white-space:pre; padding:12px; }
+  </style>
+</head>
+<body>
+  <div class="row" id="row"></div>
+  <div id="out"></div>
+  <script>
+  "use strict";
+  const SCORE = extra => `<h3 class="TITLE">점수</h3>
+      <p class="mini-score-value"><b>72</b><span>점</span></p>${extra || ""}`;
+
+  const CARDS = [
+    // ── 준비(낮) 분수형 ─────────────────────────────
+    ["E1 썰기(준비)", "cut-card cut-count-card", "cut-card-title",
+      `<h3 class="TITLE">완성 개수</h3><p class="cut-count-value"><b>0</b> / 8</p>`],
+    ["E2 튀김옷", "fp-panel fp-count", "fp-col-title",
+      `<h3 class="TITLE">진행도</h3><strong><b>0</b> / 1</strong><div class="fp-bar"><i style="width:0%"></i></div>`],
+    ["E3 김치볶기", "kf-panel kf-count", "kf-col-title",
+      `<h3 class="TITLE">진행도</h3><strong>0 / 5</strong>`],
+    ["E8 반죽", "bt-panel bt-count", "bt-col-title",
+      `<h3 class="TITLE">완성 개수</h3><strong>0 / 1</strong>`],
+    ["E8 꼬치", "sk-panel sk-count", "sk-col-title",
+      `<h3 class="TITLE">완성 개수</h3><strong>0 / 4</strong>`],
+    ["E10 멸치", "anchovy-card anchovy-count-card", "anchovy-card-title",
+      `<h3 class="TITLE">완성 개수</h3><p class="anchovy-count"><b>0</b> / 12</p>`],
+    ["E13 냉장고", "fridge-panel fridge-count-card", "fridge-col-title",
+      `<h3 class="TITLE">완료 개수</h3><p class="fridge-count"><b>0</b> / 8</p>`],
+    // ── 영업(밤) 점수형 ─────────────────────────────
+    ["E1 썰기(영업)", "cut-card cut-count-card mini-score-panel", "cut-card-title", SCORE()],
+    ["E3 볶음우동", "yk-panel yk-count mini-score-panel", "yk-col-title", SCORE()],
+    ["E4 끓이기", "heat-panel heat-count mini-score-panel", "heat-col-title",
+      SCORE(`<div class="heat-hold"><i style="width:40%"></i></div>`)],
+    ["E5 김치전", "ts-panel ts-count mini-score-panel", "ts-col-title", SCORE()],
+    ["E5 닭꼬치", "ts-panel ts-count ts-count-big mini-score-panel", "ts-col-title", SCORE()],
+    ["E6 튀기기", "fry-card fry-progress-card mini-score-panel", "fry-card-title", SCORE()]
+  ];
+
+  const row = document.getElementById("row");
+  row.innerHTML = CARDS.map(([name, cls, titleCls, inner]) =>
+    `<div class="cell"><div class="tag">${name}</div>
+       <div class="${cls}" data-name="${name}">${inner.replace(/class="TITLE"/g, `class="${titleCls}"`)}</div>
+     </div>`).join("");
+
+  function report() {
+    const lines = [];
+    row.querySelectorAll("[data-name]").forEach(card => {
+      const cr = card.getBoundingClientRect();
+      const cs = getComputedStyle(card);
+      const padTop = parseFloat(cs.paddingTop), padBottom = parseFloat(cs.paddingBottom);
+      const borderTop = parseFloat(cs.borderTopWidth), borderBottom = parseFloat(cs.borderBottomWidth);
+      const kids = [...card.children];
+      const first = kids[0].getBoundingClientRect(), last = kids[kids.length - 1].getBoundingClientRect();
+      const gapTop = first.top - cr.top;                 // 카드 위 테두리 ~ 첫 자식 위
+      const gapBottom = cr.bottom - last.bottom;         // 마지막 자식 아래 ~ 카드 아래 테두리
+      const contentH = last.bottom - first.top;
+      const inner = cr.height - padTop - padBottom - borderTop - borderBottom;
+      lines.push(
+        `${card.dataset.name.padEnd(14)} card=${cr.height.toFixed(1).padStart(6)}` +
+        ` inner=${inner.toFixed(1).padStart(6)} used=${contentH.toFixed(1).padStart(6)}` +
+        ` 위=${gapTop.toFixed(1).padStart(5)} 아래=${gapBottom.toFixed(1).padStart(5)}` +
+        ` 넘침=${(contentH > inner ? "예" : "-").padStart(2)}`);
+      kids.forEach(kid => {
+        const kr = kid.getBoundingClientRect(), ks = getComputedStyle(kid);
+        // 글자가 실제로 차지하는 잉크 높이를 재려면 line box 가 아니라 글꼴 상자를 봐야 합니다.
+        lines.push(`    ${(kid.tagName + "." + (kid.className || "-")).padEnd(28)}` +
+          ` h=${kr.height.toFixed(1).padStart(6)} fs=${ks.fontSize.padStart(7)}` +
+          ` lh=${ks.lineHeight.padStart(8)} mt=${ks.marginTop.padStart(6)} mb=${ks.marginBottom.padStart(6)}` +
+          ` font=${ks.fontFamily.split(",")[0]}`);
+      });
+    });
+    lines.push("", "── 잉크(글자가 실제로 칠해지는 범위) 기준 가운데 어긋남 ──",
+      "  글자 상자가 아니라 획이 칠해지는 높이로 잽니다. 도트 글꼴은 줄 상자 안에서",
+      "  획이 위쪽에 몰려 있어, 상자를 가운데 맞춰도 눈에는 위로 떠 보입니다.",
+      "  +면 잉크가 카드 가운데보다 그만큼 위에 있다는 뜻입니다.");
+    const ctx = document.createElement("canvas").getContext("2d");
+    row.querySelectorAll("[data-name]").forEach(card => {
+      const cr = card.getBoundingClientRect();
+      let inkTop = Infinity, inkBottom = -Infinity;
+      // 글자가 들어 있는 요소만 봅니다 (띠·게이지는 상자 그대로가 잉크입니다)
+      card.querySelectorAll("h3, p, strong, b, span").forEach(el => {
+        if (el.querySelector("h3,p,strong,b,span")) return;   // 잎사귀만
+        const text = el.textContent.trim();
+        if (!text) return;
+        const es = getComputedStyle(el), er = el.getBoundingClientRect();
+        ctx.font = `${es.fontWeight} ${es.fontSize} ${es.fontFamily}`;
+        const tm = ctx.measureText(text);
+        // 줄 상자 안에서 기준선이 놓이는 자리 = (줄 높이 − 글꼴 높이) / 2 + 글꼴 오름
+        const fa = tm.fontBoundingBoxAscent, fd = tm.fontBoundingBoxDescent;
+        const baseline = er.top + (er.height - (fa + fd)) / 2 + fa;
+        inkTop = Math.min(inkTop, baseline - tm.actualBoundingBoxAscent);
+        inkBottom = Math.max(inkBottom, baseline + tm.actualBoundingBoxDescent);
+      });
+      card.querySelectorAll(".fp-bar, .heat-hold").forEach(bar => {
+        const br = bar.getBoundingClientRect();
+        inkTop = Math.min(inkTop, br.top); inkBottom = Math.max(inkBottom, br.bottom);
+      });
+      const off = (cr.top + cr.bottom) / 2 - (inkTop + inkBottom) / 2;
+      lines.push(`${card.dataset.name.padEnd(14)} 잉크높이=${(inkBottom - inkTop).toFixed(1).padStart(6)}` +
+        ` 위로어긋남=${off.toFixed(1).padStart(5)}px (=${(off / (cr.height / 140.6)).toFixed(1).padStart(5)}upx)`);
+    });
+    document.getElementById("out").textContent = lines.join("\n");
+    document.title = "done";
+  }
+
+  document.fonts.ready.then(() => setTimeout(report, 300));
+  </script>
+</body>
+</html>

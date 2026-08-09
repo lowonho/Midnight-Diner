@@ -83,15 +83,10 @@
   /* 원래 20 → 공용 --mg-col-gap(12). 참고 모양 카드가 395.1 → 403.1 */
   gap: var(--mg-col-gap);
 }
+/* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
 .anchovy-count {
-  margin: 0;
   color: var(--gold-bright);
   text-align: center;
-  font-size: calc(46 * var(--upx));
-  font-family: var(--font-bold);
-  -webkit-text-stroke: var(--bold-stroke) currentColor;
-  font-weight: 900;
-  line-height: 1.1;
 }
 .anchovy-count b { color: #f2a03c; }
 .anchovy-ref-card { grid-template-rows: auto minmax(0,1fr); align-content: stretch; }

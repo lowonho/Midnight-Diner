@@ -472,7 +472,8 @@
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .yk-count { text-align: center; }
-.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
+/* ⚠️ 이 카드는 공용 점수 카드(miniScorePanelMarkup)를 씁니다 — 안쪽이 h3 + p.mini-score-value
+   뿐이라 <strong> 이 없습니다. 큰 숫자 크기는 css/minigame-parts.css 의 공용 규칙이 정합니다. */
 .yk-next { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .yk-next-arrow {
   flex: 1;
@@ -632,7 +633,6 @@
 @media (max-width:600px) {
   .yk-griddle { height: min(100%,calc(300 * var(--upx))); }
   .yk-ing-art i { width: calc(60 * var(--upx)); height: calc(60 * var(--upx)); }
-  .yk-count strong { font-size: calc(42 * var(--upx)); }
   .yk-next-arrow { min-height: calc(60 * var(--upx)); font-size: calc(56 * var(--upx)); }
   .yk-next-arrow-asset { width: calc(76 * var(--upx)); height: calc(76 * var(--upx)); }
   .yk-chip { font-size: calc(26 * var(--upx)); }

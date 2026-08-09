@@ -542,17 +542,8 @@
 /* ── 오른쪽 : 진행도 카드 + 완성 망 ─────────────────────────── */
 /* 진행도 카드는 높이가 정해져 있고(공용 --mg-prog-h), 망 패널이 남는 자리를 다 씁니다. */
 .fry-side { height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr); gap: var(--mg-col-gap); }
-.fry-progress-value {
-  margin: 0;
-  color: var(--gold-bright);
-  text-align: center;
-  font-size: calc(52 * var(--upx));
-  font-family: var(--font-bold);
-  -webkit-text-stroke: var(--bold-stroke) currentColor;
-  font-weight: 900;
-  line-height: 1.05;
-}
-.fry-progress-value b { color: #f2a03c; }
+/* ⚠️ 이 카드는 공용 점수 카드(miniScorePanelMarkup)를 씁니다 — 안쪽이 h3 + p.mini-score-value
+   뿐이라 크기 규칙은 css/minigame-parts.css 의 공용 큰 숫자 규칙이 정합니다. */
 
 /* 제목 한 줄 + 남는 자리를 다 쓰는 망. `align-content:stretch` 만으로는
    제목 줄까지 같이 늘어나 망이 절반만 차지합니다. */

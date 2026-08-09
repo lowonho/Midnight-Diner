@@ -264,15 +264,39 @@ function drawFixtureLabel(text,x,y,float){
 // 그 파일의 drawFoodProp(dishId, centerX, centerY, maxW, maxH, grade) 입니다.
 // (예전 drawFoodIcon(index, ...) 은 스프라이트시트 인덱스를 받았습니다)
 
-// 캔버스 텍스트 줄바꿈. 호출 전에 ctx.font 를 먼저 설정해야 합니다.
+/* 캔버스 텍스트 줄바꿈. 호출 전에 ctx.font 를 먼저 설정해야 합니다.
+
+   [띄어쓰기 단위로 끊습니다] 예전에는 글자 단위로 잘라서 "김치볶음밥 주
+   세요" 처럼 낱말 한가운데가 갈라졌습니다. 짧은 손님 멘트에서는 이게
+   눈에 띄게 읽기 나쁩니다. 지금은 어절을 통째로 다음 줄로 넘깁니다.
+
+   [한 어절이 줄보다 길면] 그 어절만 예외로 글자 단위로 끊습니다.
+   띄어쓰기가 없는 긴 문장이 통째로 상자 밖으로 삐져나가지 않게 하는
+   최후의 수단입니다. */
 function wrapCanvasText(text,maxWidth,maxLines){
   const lines=[];let line="";
-  for(const char of text){
-    const next=line+char;
-    if(line&&ctx.measureText(next).width>maxWidth){lines.push(line.trim());line=char;if(lines.length===maxLines)break;}
-    else line=next;
+  const source=String(text??"");
+  // 줄을 확정하고, 더 담을 자리가 없으면 true.
+  const push=()=>{lines.push(line.trim());line="";return lines.length>=maxLines;};
+
+  for(const word of source.split(/\s+/).filter(Boolean)){
+    const joined=line?`${line} ${word}`:word;
+    if(!line||ctx.measureText(joined).width<=maxWidth)line=joined;
+    else{if(push())break;line=word;}
+
+    // 지금 줄이 어절 하나뿐인데도 넘치는 경우에만 글자 단위로 쪼갭니다.
+    if(ctx.measureText(line).width<=maxWidth)continue;
+    const long=line;let full=false;line="";
+    for(const char of long){
+      if(line&&ctx.measureText(line+char).width>maxWidth&&(full=push()))break;
+      line+=char;
+    }
+    if(full)break;
   }
+
   if(lines.length<maxLines&&line.trim())lines.push(line.trim());
-  if(lines.length===maxLines&&lines.join("").length<text.replace(/\s/g,"").length)lines[maxLines-1]=`${lines[maxLines-1].replace(/[.…]*$/g,"")}…`;
+  // 담지 못한 글자가 남았으면 마지막 줄을 말줄임표로 마무리합니다.
+  const dropped=lines.join("").replace(/\s/g,"").length<source.replace(/\s/g,"").length;
+  if(lines.length===maxLines&&dropped)lines[maxLines-1]=`${lines[maxLines-1].replace(/[.…]*$/g,"")}…`;
   return lines;
 }

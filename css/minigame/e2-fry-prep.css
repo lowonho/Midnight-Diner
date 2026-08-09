@@ -175,9 +175,12 @@
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
 .fp-count { text-align: center; }
-.fp-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; }
+/* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
+.fp-count strong { display: block; color: var(--gold-bright); }
 .fp-count strong b { color: #f2a03c; }
-.fp-bar { height: calc(12 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(6 * var(--upx)); background: #140c07; }
+/* ⚠️ margin-top 을 주지 마세요. 카드가 세로 가운데 정렬이라 위쪽 여백만 늘리면
+   글자 덩어리가 통째로 내려앉습니다. 위 간격은 카드의 --mg-prog-gap 이 맡습니다. */
+.fp-bar { height: calc(12 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(6 * var(--upx)); background: #140c07; }
 .fp-bar i { display: block; height: 100%; background: linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition: width .12s; }
 .fp-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); text-align: center; }
 /* 키 버튼은 안내이면서 실제 버튼입니다 (키보드·마우스 둘 다 지원) */
@@ -742,7 +745,6 @@
 
 
 @media (max-width:600px) {
-  .fp-count strong { font-size: calc(42 * var(--upx)); }
   .fp-key { width: calc(44 * var(--upx)); height: calc(42 * var(--upx)); font-size: calc(24 * var(--upx)); }
   .fp-control-desc { font-size: calc(13 * var(--upx)); }
   .fp-ing-name { font-size: calc(16 * var(--upx)); }
