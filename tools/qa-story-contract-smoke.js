@@ -135,6 +135,8 @@ const journalBranches=qaStoryBranchEntries(l02,l02.lines[0]);
 same(journalBranches.map(entry=>entry.label),[
   "영업일지 · 음식 단서","영업일지 · 음식 확정","영업일지 · 조각 획득"
 ],"영업일지 세 기록 상태 분기 표시");
+check(!String(qaStoryBranchEntries).includes('none:"기록 없음"'),
+  "삭제한 영업일지 기록 없음 라벨을 QA 코드에도 남기지 않아야 합니다.");
 check(journalBranches.every(entry=>entry.sceneId==="SCN-L02"&&entry.journalState),
   "영업일지 상태 행은 같은 장면을 해당 상태로 다시 여는 링크여야 합니다.");
 
