@@ -498,7 +498,10 @@
   align-items:center;
   justify-content:center;
   box-sizing:border-box;
-  font-family:inherit;
+  /* 키캡 글자는 굵은 쪽입니다 — E2 `.fp-key` 와 같습니다. 물려받게 두면 얇은
+     본문 글꼴이 와서, 바로 아래 '꾹 눌러 올리기' 보다 가늘어 보입니다. */
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   box-shadow: var(--mg-key-shadow);
   transition:transform .1s ease,filter .1s ease;
 }

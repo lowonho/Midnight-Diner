@@ -31,12 +31,12 @@
      y 540 (예전값)  바구니 위쪽 518 — 주황 테두리를 넘어 바닥까지 올라감
      y 546           524 — 테두리에 딱 붙음
      y 550 (지금값)  528 — 테두리에서 3 띄고 상판에 온전히 얹힘
-     y 554           진행 숫자가 금색 테두리와 의자 등받이를 파고듦
+     y 558           바구니 아래 끝이 금색 테두리(583)를 넘어 의자로 내려감
 
-   ⚠️ 더 내릴 자리는 없습니다. 진행 숫자 baseline 이 y+37 이라
-      (drawPrepObjects 의 textY) 550 에서 이미 587 — 금색 테두리 코앞입니다.
-      상판 58 에 바구니 48 + 숫자 9 라 여유가 1 밖에 안 남습니다.
-      여기서 더 내리려면 숫자를 어디로 옮길지부터 정해야 합니다.
+   ⚠️ 진행 글자("0/2" · "준비 완료")는 예전에 바구니 **아래**(baseline y+39)에
+      있었지만, 논리 589 라 금색 테두리를 넘어 손님 의자 등받이에 가렸습니다.
+      그래서 이름표 **위**로 올렸습니다(→ statusGap, drawPrepObjects).
+      아래쪽 여유는 이제 바구니 아래 끝(576)과 금색 테두리(583) 사이 7 입니다.
    ------------------------------------------------------------ */
 const PREP_LAYOUT = {
   y: 550,          // 준비물이 놓이는 높이. 바 상판(논리 y 525~583) 안입니다.
@@ -50,8 +50,8 @@ const PREP_LAYOUT = {
   // (의자 중심 = counter.js COUNTER_CHAIR_CENTERS. VIEW 좌표라 toLogic 으로 옮깁니다)
   chairLeadIn: 30,
   // 오른쪽 끝은 간판(signage.js OPEN_SIGN, 논리 x 1104~) 앞까지 씁니다.
-  // 간판은 논리 y 588 부터라 준비물(그림 528~576, 진행 숫자 baseline 587)과
-  // 세로로 겹치지 않아서 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
+  // 간판은 논리 y 588 부터라 준비물(그림 528~576)과 세로로 겹치지 않아서
+  // 살짝 걸쳐도 됩니다. signOverlap 이 그 걸치는 정도입니다.
   signOverlap: 10,
   rightLimitFallback: 1090,  // 간판이 없을 때의 오른쪽 한계
   // 개수가 적을 때 화면 끝까지 억지로 벌리지 않도록 간격 상한을 둡니다.
@@ -72,6 +72,14 @@ const PREP_LAYOUT = {
   // 이름표는 준비물 위쪽. 아래에 두면 카운터 앞 의자에 가립니다.
   // 재료 바구니 원화(artH 56)가 예비 도형보다 위로 더 올라와서 -26 → -32 로 띄웠습니다.
   labelDy: -32,
+  /* 진행 글자("0/2" · "준비 완료")를 이름표 **윗변에서** 이만큼 위에 놓습니다.
+     예전에는 바구니 아래였는데, 바 상판이 그 아래로 금색 테두리와 손님 의자라
+     글자가 등받이에 가렸습니다. 위쪽은 빈 바닥이라 가릴 것이 없습니다.
+     기준을 labelDy 가 아니라 **이름표 윗변**으로 잡은 이유는, 명판 높이
+     (FIXTURE_LABEL.h)나 labelDy 를 고쳐도 간격이 그대로 따라오게 하려는 것입니다.
+     글자는 이름표와 같은 둥실(float.dy)을 타서 간격이 늘 일정합니다.
+     5 는 글자 테두리(lineWidth 3, 바깥으로 1.5)를 빼고 3.5 가 남는 값입니다. */
+  statusGap: 5,
   boxW: 72, boxH: 42,       // 원화가 없을 때 그리는 예비 나무 상자
   /* 재료 바구니 원화를 넣을 칸. 실제 그림은 이 칸 안에 비율을 지켜 들어갑니다
      (food-props.js drawFoodPrepProp — 배율 기준은 그림 크기가 아니라 기준 캔버스).
@@ -341,7 +349,9 @@ function drawPrepReadyBadge(x,y){
    ------------------------------------------------------------
    예전 나무 상자는 어두워서 밝은 글자만으로 읽혔지만, 재료 바구니
    원화는 밝은 나무색이라 같은 색으로 얹으면 글자가 사라집니다.
-   그래서 이름표(FIXTURE_LABEL)와 같은 어두운 색으로 테두리를 두릅니다. */
+   그래서 이름표(FIXTURE_LABEL)와 같은 어두운 색으로 테두리를 두릅니다.
+   지금은 글자가 이름표 위 밝은 바닥에 놓여서 이 테두리가 더 중요합니다
+   — 판 없이 바닥에 바로 얹히는 글자라 테두리가 판 노릇을 합니다. */
 function drawPrepStatusText(text,x,y,color){
   ctx.font="bold 11px Malgun Gothic";ctx.textAlign="center";
   ctx.strokeStyle="#1b100b";ctx.lineWidth=3;ctx.lineJoin="round";ctx.strokeText(text,x,y);
@@ -379,11 +389,16 @@ function drawPrepObjects(){
        움직임까지 붙여야 "저기 아직 남았다"가 한눈에 들어옵니다.
        다 끝낸 자리만 잔잔한 idle 로 남아서, 남은 자리와 갈립니다. */
     const glow=!done&&!state.mini&&!state.paused;
-    drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,
-      labelFloatStep(`prep_${item.task.id}`,glow||prepObjectUsable(item,near)),glow);
+    /* 둥실 값은 한 프레임에 한 번만 구합니다. labelFloatStep 은 부를 때마다
+       위상을 진행시켜서, 이름표와 진행 글자가 각각 부르면 두 배로 빨라집니다. */
+    const float=labelFloatStep(`prep_${item.task.id}`,glow||prepObjectUsable(item,near));
+    drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,float,glow);
 
-    // 진행 글자는 그림 아래로 내려서 재료를 가리지 않게 합니다.
-    const textY=item.y+(art?art.h/2+L.artDy+11:18);
+    /* 진행 글자는 이름표 **위**입니다. 바구니 아래는 금색 테두리 바로 아래가
+       손님 의자라, 예전 자리(baseline 논리 589)에서는 등받이에 가렸습니다.
+       윗변 계산은 drawFixtureLabel 과 같은 식입니다 (baseline-5-h/2). */
+    const labelTop=item.y+L.labelDy-5-FIXTURE_LABEL.h/2+(float?.dy||0);
+    const textY=labelTop-L.statusGap;
     if(done){
       /* 완료 도장은 그림 오른쪽 모서리에 걸칩니다.
          가로는 그림 폭 기준입니다 — 메뉴마다 73~90 으로 달라서 고정값을 쓰면

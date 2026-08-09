@@ -110,6 +110,19 @@
   --mg-ing-panel-gap: calc(10 * var(--upx));
   --mg-ing-list-gap:  calc(10 * var(--upx));
 
+  /* 재료 이름·개수(.○-ing-name · .cut-card-caption)를 카드 아래에서 띄우는 값.
+     카드 안쪽은 [그림칸(1fr) · 이름] 두 줄이라 이름 줄이 늘 맨 아래에 붙습니다.
+     아래 여백이 8(+테두리 2)뿐이라 글자가 카드 아래 액자에 얹힌 것처럼 보였습니다.
+     E1 어묵 카드에서 잰 값입니다 (280 카드 · tools/e1-cut-screen-visual-smoke.html).
+       카드 위 ─ 그림 위   59.4      ← 그림칸이 1fr 이라 남는 자리가 위아래로 갈립니다
+       그림 아래 ─ 이름 위 54.7
+       이름 아래 ─ 카드 아래 10.7   ← 여기만 유독 좁습니다
+     그림칸(1fr)에서 이만큼 빼는 방식이라 그림이 이름 쪽으로 내려올 수 없습니다.
+     (이름만 transform 으로 올리면 세로로 꽉 찬 재료 그림과 겹칠 수 있습니다)
+     ⚠️ 낮은 카드는 그림칸이 원래 좁아서 같은 값을 주면 그림이 눈에 띄게 줄어듭니다.
+        아래 카드 높이별 블록에서 175 · 139 카드만 값을 줄여 둡니다. */
+  --mg-ing-name-lift: calc(10 * var(--upx));
+
   /* 카드 '지금 차례' 표시 테두리. E2 만 #e3a94c 로 혼자 달랐습니다.
      (E8반죽·E8꼬치는 sk-next-pulse 로 #fff2c4 까지 깜빡입니다 — 같은 색의 연출입니다) */
   --mg-card-active: #ffe08d;
@@ -694,6 +707,29 @@
 /* E4 는 하단 띠를 없앤 613.2 칸에 175 카드 세 장을 넣습니다.
    카드 높이와 목록 정렬은 css/minigames.css 의 .heat-ing-list 가 정합니다. */
 .yk-ing-card { --mg-card-art: var(--mg-art-b-139); }
+
+/* ---- 재료 이름·개수를 카드 아래에서 띄웁니다 -----------------
+   이름 줄이 있는 카드 9장(E1 · E2 · E3 둘 · E4 · E5 · E8 둘 · E10)만입니다.
+   E6 튀기기·E7 은 이름 줄이 없어 여기 없습니다.
+   값의 근거는 위 --mg-ing-name-lift 주석에 적어 두었습니다.
+   ⚠️ 이 블록은 위 카드 겉모습(`padding: 8 6` 을 쓰는 .sc-goal … 블록)보다
+      뒤에 있어야 합니다. 앞에 두면 그 padding 한 줄이 아래 여백을 도로 8 로
+      되돌립니다. */
+.cut-ing-card,
+.anchovy-ing-card,
+.ts-ing-card,
+.fp-ing-card,
+.sk-ing-card,
+.kf-ing-card,
+.bt-ing-card,
+.heat-ing-card,
+.yk-ing-card {
+  padding-bottom: calc(8 * var(--upx) + var(--mg-ing-name-lift));
+}
+/* 낮은 카드는 그림칸이 원래 좁습니다 — 같은 10 을 빼면 그림이 눈에 띄게 작아집니다 */
+.bt-ing-card,
+.heat-ing-card { --mg-ing-name-lift: calc(6 * var(--upx)); }   /* 175 카드 */
+.yk-ing-card   { --mg-ing-name-lift: calc(4 * var(--upx)); }   /* 139 카드 */
 
 /* 그림 자리는 카드가 주는 높이를 그대로 씁니다.
    원래 200(E1) · 190(E10) 으로 달랐던 에셋 자리가 하나가 됩니다. */

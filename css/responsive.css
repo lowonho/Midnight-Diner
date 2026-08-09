@@ -12,7 +12,10 @@
   .small-logo { display: none; }
   .top-hud { grid-template-columns: 1fr 23%; }
   .menu-card strong { font-size: 7px; }
-  .left-hud, .right-hud { width: 19.5%; padding: .6%; }
+  /* [+2px] css/hud.css 에서 판 테두리를 걷고 그림으로 바꾸면서, 그 2px 을 여백으로
+     되돌려 놓았습니다. 여기서 padding 을 통째로 다시 쓰면 그 보정까지 지워져
+     좁은 창에서만 글자가 판 금선 쪽으로 2px 밀립니다. */
+  .left-hud, .right-hud { width: 19.5%; padding: calc(.6% + 2px); }
   .objective-body { font-size: 7px; }
   .inventory-row { min-height: 18px; font-size: 7px; }
   .gold-button { padding: 5px; font-size: 8px; }
