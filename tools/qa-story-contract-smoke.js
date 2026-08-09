@@ -65,6 +65,11 @@ assert(storySource.includes("if(storySession.qaPreview)")
 "스토리 실행기는 QA 미리보기에서 실제 진행 처리를 우회해야 합니다.");
 assert(saveSource.includes("if(window.QA_MODE?.enabled)return false;"),
 "QA 스토리 탐색 중에는 저장 쓰기가 차단되어야 합니다.");
+assert(qaModeSource.includes("function qaSeedPriorPerfectStoryGuests(day)")
+  &&qaModeSource.match(/qaSeedPriorPerfectStoryGuests\(state\.day\);/g)?.length===2
+  &&qaModeSource.includes("targetDay>=DayManager.maxDay?targetDay:targetDay-1")
+  &&qaModeSource.includes('result.fragmentState="full";'),
+"QA 날짜 이동은 이전 날짜와 7일차 교복 인형을 완벽 완료로 준비해 최종 손님 흐름을 검사할 수 있어야 합니다.");
 
 const bootstrap = `
 var state={day:4,story:{sentinel:true}};

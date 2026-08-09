@@ -86,13 +86,13 @@ const MENU_DATA=Object.freeze([
 const ALL_MENU_IDS=Object.freeze(MENU_DATA.map(menu=>menu.id));
 
 const DAY_DATA=Object.freeze({
-  1:{day:1,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:3,specialMenu:null,isSpecialDay:false},
-  2:{day:2,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:4,specialMenu:null,isSpecialDay:false},
-  3:{day:3,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:5,specialMenu:null,isSpecialDay:false},
-  4:{day:4,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
-  5:{day:5,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:4,specialMenu:null,isSpecialDay:false},
-  6:{day:6,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:7,specialMenu:null,isSpecialDay:false},
-  7:{day:7,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:5,maxSelectedMenus:5,generalOrderTarget:5,specialMenu:null,isSpecialDay:false}
+  1:{day:1,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  2:{day:2,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  3:{day:3,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  4:{day:4,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  5:{day:5,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  6:{day:6,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false},
+  7:{day:7,requiredMenus:[],optionalMenus:[...ALL_MENU_IDS],minSelectedMenus:3,maxSelectedMenus:3,generalOrderTarget:6,specialMenu:null,isSpecialDay:false}
 });
 
 const DayManager={

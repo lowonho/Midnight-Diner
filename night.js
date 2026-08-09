@@ -36,6 +36,38 @@ function orderableDishes(){
 }
 function hasOrderableStock(){return orderableDishes().length>0;}
 
+/* 일반 손님 주문은 선택 메뉴를 무작위로 계속 뽑지 않고 한 바퀴씩 순회합니다.
+   한 바퀴 안에서는 모든 메뉴가 정확히 한 번씩 나오며, 바퀴가 바뀔 때마다
+   날짜와 순번으로 다시 섞습니다. 누적 일반 손님 번호로 계산하므로 저장 후
+   불러와도 메뉴 분배가 이어지고 별도 세이브 필드가 필요하지 않습니다. */
+function shuffledGeneralDishes(available,cycle){
+  const dishes=[...available];
+  let seed=2166136261;
+  const source=`${state.day}|${cycle}|${dishes.map(dish=>dish.id).join("|")}`;
+  for(let index=0;index<source.length;index++){
+    seed=Math.imul(seed^source.charCodeAt(index),16777619)>>>0;
+  }
+  const random=()=>{
+    seed=(seed+0x6d2b79f5)>>>0;
+    let value=seed;
+    value=Math.imul(value^(value>>>15),value|1);
+    value^=value+Math.imul(value^(value>>>7),value|61);
+    return ((value^(value>>>14))>>>0)/4294967296;
+  };
+  for(let index=dishes.length-1;index>0;index--){
+    const swapIndex=Math.floor(random()*(index+1));
+    [dishes[index],dishes[swapIndex]]=[dishes[swapIndex],dishes[index]];
+  }
+  return dishes;
+}
+
+function dishForNextGeneralOrder(available=orderableDishes()){
+  if(!available.length)return null;
+  const orderIndex=Math.max(0,Math.floor(Number(state.generalSpawnedCustomers)||0));
+  const cycle=Math.floor(orderIndex/available.length);
+  return shuffledGeneralDishes(available,cycle)[orderIndex%available.length]||null;
+}
+
 function updateNightOrderEntrances(dt,storyOnly=false){
   state.orders.forEach(order=>{
     if(storyOnly&&order.customerType!=="story")return;
@@ -307,8 +339,7 @@ function spawnOrder(slot,options={}) {
     // 그 시점까지 빈 좌석을 새 일반 손님으로 채우면 대본 순서가 뒤집힙니다.
     if(forceStory||waitingForLastStoryGuest())return false;
     if(state.generalSpawnedCustomers>=nightGeneralOrderTarget())return false;
-    const available=orderableDishes();
-    if(available.length)dish=available[Math.floor(Math.random()*available.length)];
+    dish=dishForNextGeneralOrder();
   }
   if(!generalOnly&&!dish&&(state.story?.pendingNightGuests?.length||0)){
     for(const candidate of storyPlansForSpawn(true)){

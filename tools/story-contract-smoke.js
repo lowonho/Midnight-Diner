@@ -505,14 +505,14 @@ assert(STORY_EVENT_SCHEDULE.dayStart[1].includes("SCN-L01"),
   "회귀 후 첫째 날 장면이 일정에 등록되어야 합니다.");
 
 const guestContracts=[
-  [1,1,"rainyChild","kimchi","first_raindrop","첫 빗방울","after",1],
-  [2,2,"lanternGuest","oden","remaining_warmth","남은 온기","before",0],
-  [3,3,"twinShadows","tofu","two_half_names","반쪽 이름 두 개","after",2],
-  [4,4,"crowCourier","skewer","undelivered_letter","배달되지 못한 편지","after",3],
-  [5,5,"starBeast","fries","golden_salt","금빛 소금","after",3],
-  [6,6,"seawaterGuest","shrimpTempura","eastern_scale","동쪽의 비늘","after",7],
+  [1,1,"rainyChild","kimchi","first_raindrop","첫 빗방울","after",6],
+  [2,2,"lanternGuest","oden","remaining_warmth","남은 온기","after",6],
+  [3,3,"twinShadows","tofu","two_half_names","반쪽 이름 두 개","after",6],
+  [4,4,"crowCourier","skewer","undelivered_letter","배달되지 못한 편지","after",6],
+  [5,5,"starBeast","fries","golden_salt","금빛 소금","after",6],
+  [6,6,"seawaterGuest","shrimpTempura","eastern_scale","동쪽의 비늘","after",6],
   [7,7,"schoolDoll","tteokbokki","stopped_minute_hand","멈춘 분침","before",0],
-  [8,7,"facelessDaeun","yakisoba","daeuns_tomorrow","김다은의 내일","after",5]
+  [8,7,"facelessDaeun","yakisoba","daeuns_tomorrow","김다은의 내일","after",6]
 ];
 
 let quotedDaeunReflectionCount=0;
@@ -533,6 +533,8 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
     prefix+" 달빛 조각 연결");
   assert(arrival.triggerTiming===timing&&arrival.triggerAfterGeneral===afterGeneral,
     prefix+" 일반 주문 기준 등장 시점");
+  assert(arrival.arrival===(number===7?"early":"last"),
+    prefix+(number===7?" 교복 인형은 7일차 첫 손님으로 등장":" 특별 손님은 일반 손님 여섯 명 뒤 마지막에 등장"));
   assert(arrival.missingMenuSceneId===prefix+"-B",
     prefix+" 미준비 분기 연결");
   same(arrival.resultSceneIds,
@@ -584,8 +586,8 @@ same(STORY_SPECIAL_GUEST_BY_DAY,{
 },"날짜별 특별 손님 일정");
 
 const g8=STORY_SCENES["SCN-G8-A"];
-assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===5,
-  "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 5건 뒤 등장해야 합니다.");
+assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===6,
+  "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 6건 뒤 등장해야 합니다.");
 same(
   STORY_SCENES["SCN-G1-B"].lines.filter(line=>line.speaker==="rainyChild").map(line=>line.text),
   [
@@ -1025,17 +1027,17 @@ same(storyFragmentCounts({baseOnly:true}),{count:7,partial:1,full:6},
 assert(!storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A")
   &&storySceneIdsForMoment("nightEnd",7)[0]==="SCN-J02",
   "기본 조각이 일곱 개여도 완전 조각이 아니면 G8은 등장하지 않아야 합니다.");
-assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:5}),
+assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:6}),
   "과거 조각 또는 현재 부분 조각을 G8 실제 등장 준비 조건에 쓰면 안 됩니다.");
 
 getStoryGuestResult("schoolDoll").fragmentState="full";
-state.generalServed=5;
-state.generalSpawnedCustomers=5;
+state.generalServed=6;
+state.generalSpawnedCustomers=6;
 same(storyFragmentCounts({baseOnly:true}),{count:7,partial:0,full:7},
   "기본 손님 7명의 완전 조각 계산");
 assert(storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A"),
   "이번 회차 기본 완전 조각 7개를 모아야 마지막 예약 손님이 등장해야 합니다.");
-assert(storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:5}),
+assert(storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerAfterGeneral:6}),
   "현재 회차 기본 완전 조각 7개와 등장 시점을 만족하면 G8 계획이 준비되어야 합니다.");
 prepareStoryNight();
 assert(state.story.pendingNightGuests.some(plan=>plan.sceneId==="SCN-G8-A"),

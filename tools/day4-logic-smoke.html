@@ -44,7 +44,7 @@ try{
     const available=[...data.requiredMenus,...data.optionalMenus];
     assert(data.requiredMenus.length===0,`Day ${data.day} required menus: ${data.requiredMenus}`);
     assert(allMenuIds.every(id=>available.includes(id))&&available.every(id=>allMenuIds.includes(id)),`Day ${data.day} menu set: ${available}`);
-    assert(data.minSelectedMenus===5&&data.maxSelectedMenus===5,`Day ${data.day} selection cap: ${data.minSelectedMenus}~${data.maxSelectedMenus}`);
+    assert(data.minSelectedMenus===3&&data.maxSelectedMenus===3,`Day ${data.day} selection cap: ${data.minSelectedMenus}~${data.maxSelectedMenus}`);
   });
 
   const day4Ids=selectedPrepTasks().map(task=>task.id);
@@ -77,16 +77,16 @@ try{
   assert(CUT_FEEL_CONFIG.hitZoneScale===.7&&CUT_FEEL_CONFIG.travelSpeedScale===1.15&&CUT_FEEL_CONFIG.doubleTapWindow===.35&&CUT_FEEL_CONFIG.pathLeadInFallback===12&&CUT_FEEL_CONFIG.pathRecoveryMs===340&&CUT_FEEL_CONFIG.flowVisualSettleMs===180&&CUT_FEEL_CONFIG.completeDelayMs===620&&CUT_FEEL_CONFIG.startCountdownSeconds===3&&CUT_FEEL_CONFIG.startCountdownStepSeconds===.5&&CUT_FEEL_CONFIG.startSignalMs===300,"E1 tighter, faster, continuous path timing config");
   assert(Object.entries(CUT_HIT_TOLERANCE).map(([ingredient,tolerance])=>`${ingredient}:${tolerance}`).join(",")==="radish:3.4,fishCake:3.4,cabbage:3.1,chicken:3.5,greenOnion:3.5,kimchi:3.3,tofu:4.2"&&CUT_HORIZONTAL_HIT_TOLERANCE.fishCake===3.4,"E1 ingredient-specific tuned hit boxes");
   assert(DAY_PREP_MINI_CONFIG.cutRadish.hitTolerance===CUT_HIT_TOLERANCE.radish&&DAY_PREP_MINI_CONFIG.cutFishCake.hitTolerance===CUT_HIT_TOLERANCE.fishCake&&DAY_PREP_MINI_CONFIG.cutTofuKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutPancakeKimchi.hitTolerance===CUT_HIT_TOLERANCE.kimchi&&DAY_PREP_MINI_CONFIG.cutSkewerChicken.hitTolerance===CUT_HIT_TOLERANCE.chicken&&DAY_PREP_MINI_CONFIG.cutSkewerGreenOnion.hitTolerance===CUT_HIT_TOLERANCE.greenOnion&&DAY_PREP_MINI_CONFIG.cutTofuBlock.hitTolerance===CUT_HIT_TOLERANCE.tofu,"E1 all shared cut tasks use ingredient hit-box tuning");
-  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="6,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="16,19,22"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 uses six cabbage cuts and speeds up the four-cut fish cake");
+  assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.requiredPieces).join(",")==="6,7,4"&&TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.travelSpeed).join(",")==="22,19,22"&&TTEOKBOKKI_CUT_SEQUENCE[0].travelSpeed===DAY_PREP_MINI_CONFIG.cutRadish.travelSpeed&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalLastCut,"E1 matches tteokbokki cabbage speed to radish and keeps the four-cut fish cake");
   assert(TTEOKBOKKI_CUT_SEQUENCE.map(item=>item.hitTolerance).join(",")==="3.1,3.5,3.4"&&TTEOKBOKKI_CUT_SEQUENCE.at(-1).horizontalHitTolerance===3.4,"E1 tteokbokki ingredients use tuned hit boxes");
 
   Array.from({length:7},(_,index)=>{
     dayPrepAssets[`tteokCabbage${index}`]={src:`assets/minigame/E1/cabbage-${index}.png`};
   });
   state.mini={context:{mode:"dayPrep"},complete:false,data:{}};
-  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:16,title:"E1 smoke",description:"smoke"});
+  startCuttingMinigame({taskId:"smokeCut",ingredient:"cabbage",assetPrefix:"tteokCabbage",requiredHits:6,hitTolerance:CUT_HIT_TOLERANCE.cabbage,travelSpeed:22,title:"E1 smoke",description:"smoke"});
   const cabbageMini=state.mini,cabbageStart=cabbageMini.data.knifeX;
-  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-18.4)<1e-9,"E1 applies the tighter hit zone while keeping six-cut cabbage at the slower 18.4 speed");
+  assert(Math.abs(cabbageMini.data.hitTolerance-CUT_HIT_TOLERANCE.cabbage*.7)<1e-9&&Math.abs(cabbageMini.data.travelSpeed-25.3)<1e-9,"E1 keeps cabbage hit tuning while matching the radish travel speed of 25.3");
   timingCutAction();
   assert(cabbageMini.data.phase==="countdown"&&cabbageMini.data.inputLocked&&cabbageMini.data.successes===0&&dom.miniContent.querySelector("#cutStartCountdown strong").textContent==="3!"&&dom.miniContent.querySelector("#dayPrepAction").disabled,"E1 countdown locks movement and input at three");
   MINI_ENGINES.timing.update(cabbageMini,.51);

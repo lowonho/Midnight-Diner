@@ -137,6 +137,8 @@ assert(title.includes('dom.menuSelectOverlay.classList.remove("open");'),
   "메뉴 선택 저장을 불러와도 선택창을 자동으로 띄우면 안 됩니다.");
 
 assert(night.includes("function ordersInArrivalOrder()")
+  &&night.includes("function dishForNextGeneralOrder(")
+  &&night.includes("dish=dishForNextGeneralOrder();")
   &&night.includes("function syncSelectedOrderToQueue()")
   &&night.includes("const order=alreadyStartedOrder()||ordersInArrivalOrder()[0]||null;")
   &&!night.includes("function selectOrder(")
@@ -173,7 +175,10 @@ assert(dayPrep.includes("현재 작업은 초기화되어 다음에 처음부터
   "준비 미니게임 닫기 안내는 이어하기가 아닌 초기화를 알려야 합니다.");
 
 const dayRules=[...gameData.matchAll(/\b\d:\{day:\d,requiredMenus:\[\],optionalMenus:\[\.\.\.ALL_MENU_IDS\],minSelectedMenus:(\d),maxSelectedMenus:(\d)/g)];
-assert(dayRules.length===7&&dayRules.every(match=>match[1]==="5"&&match[2]==="5"),
-  "요청에 따라 현재 일차별 조리 메뉴 수는 다섯 개로 유지해야 합니다.");
+assert(dayRules.length===7&&dayRules.every(match=>match[1]==="3"&&match[2]==="3"),
+  "모든 일차에서 오늘의 조리 메뉴는 정확히 세 개를 선택해야 합니다.");
+const guestTargets=[...gameData.matchAll(/generalOrderTarget:(\d)/g)].map(match=>Number(match[1]));
+assert(guestTargets.length===7&&guestTargets.every(target=>target===6),
+  "모든 일차의 영업은 일반 손님 여섯 명을 받아야 합니다.");
 
 console.log("GAMEPLAY_FLOW_CONTRACT_OK pause · cook-only evaluation · fridge menu · FIFO story arrival");

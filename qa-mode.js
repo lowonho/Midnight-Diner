@@ -190,12 +190,38 @@ function qaEnsureSession(){
   return true;
 }
 
+// 날짜를 바로 건너뛰어도 그날의 후반 스토리를 실제 영업 흐름으로 확인할 수 있게
+// 이전 날짜 대표 손님은 완벽 완료 상태로 채웁니다. 마지막 날은 교복 인형 결과와
+// 무관하게 얼굴 없는 김다은까지 점검할 수 있도록 당일 대표 손님도 포함합니다.
+// QA 모드에서는 저장이 차단되므로 실제 진행 슬롯이나 영구 영업일지에는 영향을 주지 않습니다.
+function qaSeedPriorPerfectStoryGuests(day){
+  if(typeof storyPrimaryGuestForDay!=="function"||typeof getStoryGuestResult!=="function")return false;
+  let seeded=false;
+  const targetDay=Number(day);
+  const lastSeedDay=targetDay>=DayManager.maxDay?targetDay:targetDay-1;
+  for(let priorDay=DayManager.minDay;priorDay<=lastSeedDay;priorDay++){
+    const scene=storyPrimaryGuestForDay(priorDay);
+    if(!scene?.character)continue;
+    const result=getStoryGuestResult(scene.character);
+    result.visited=true;
+    result.evaluationScore=100;
+    result.evaluationTier="great";
+    result.fragmentState="full";
+    result.fragmentName=scene.shardName||scene.shardId||null;
+    const guest=typeof getStoryGuestState==="function"?getStoryGuestState(scene.character):null;
+    if(guest)guest.foodConfirmed=true;
+    seeded=true;
+  }
+  return seeded;
+}
+
 function qaJumpToDay(day){
   if(!QA_MODE_ENABLED)return false;
   if(!qaEnsureSession())return false;
   qaCancelTransientState();
   state.day=DayManager.setDay(day);
   resetDay(false);
+  qaSeedPriorPerfectStoryGuests(state.day);
   updateUI(true);syncPhaserObjects();
   qaRefreshPanel(`Day ${state.day} 시작 상태로 이동했습니다.`);
   return true;
@@ -210,7 +236,7 @@ function qaJumpToDay(day){
 
 /* 오늘 밤 특별 손님이 찾는 음식들입니다(story-data.js 의 일차별 등장 장면 → dishId).
    QA 가 메뉴를 대신 고를 때 이것부터 담아야 합니다. 그러지 않으면 목록 앞에서
-   다섯 개를 그냥 끊어 담게 되고, 5·6·7일차 정답(감자튀김·새우튀김·떡볶이)이
+   세 개를 그냥 끊어 담게 되고, 5·6·7일차 정답(감자튀김·새우튀김·떡볶이)이
    빠져서 특별 손님 선택지에 정답 자체가 안 나옵니다. */
 function qaSpecialGuestDishIdsForToday(){
   if(typeof STORY_SPECIAL_GUEST_BY_DAY==="undefined")return [];
@@ -248,6 +274,7 @@ function qaSwitchToNight(){
   if(!qaEnsureSession())return false;
   if(state.phase===GAME_PHASES.OPEN){qaRefreshPanel("이미 밤 영업 중입니다.");return false;}
   qaCancelTransientState();
+  qaSeedPriorPerfectStoryGuests(state.day);
   qaFinishTodayPrep();
   updateUI(true);
   beginNight();   // 손님 수·이야기 손님까지 실제 규칙대로 시작합니다

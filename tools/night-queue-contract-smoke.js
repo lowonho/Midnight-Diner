@@ -65,77 +65,84 @@ const resetNight=day=>{
 let played=[];
 playStoryScenes=ids=>{played.push([...ids]);return true;};
 
-// Day 1: 첫 일반 손님 다음 순번으로 아이가 이미 들어오되, 선대화하지 않습니다.
+// Day 1: 특별 손님은 일반 손님 여섯 명을 모두 마친 뒤에만 입장합니다.
 resetNight(1);
 ensureNightOrders();
 assert(state.orders.length===2,"첫날 시작 대기 손님은 두 명이어야 합니다.");
-assert(state.orders[0].customerType==="general"
-  &&state.orders[1].guestId==="rainyChild",
-  "첫날 도착 순서는 일반 손님 다음 비에 젖은 아이여야 합니다.");
-assert(state.generalSpawnedCustomers===1
-  &&state.orders[1].entryDelay>0
-  &&state.orders[1].bubble==="",
-  "아이는 두 번째로 나타나며 자기 차례 전에는 말풍선을 띄우면 안 됩니다.");
-assert(currentOrder()?.id===state.orders[0].id&&played.length===0,
-  "아이가 와 있어도 첫 일반 손님의 차례를 추월하면 안 됩니다.");
+assert(state.orders.every(order=>order.customerType==="general")
+  &&state.generalSpawnedCustomers===2,
+  "영업 시작에는 일반 손님만 두 명 대기해야 합니다.");
+assert(state.story.pendingNightGuests[0].arrival==="last"
+  &&state.story.pendingNightGuests[0].triggerAfterGeneral===6,
+  "첫날 특별 손님은 일반 손님 여섯 명 뒤 마지막 순번으로 예약되어야 합니다.");
 
-const firstGeneral=state.orders[0];
-const rainyChild=state.orders[1];
-spawnOrder(2,{generalOnly:true});
-assert(currentOrder()?.id===firstGeneral.id,
-  "뒤 손님이 더 생겨도 첫 주문이 자동 선택되어야 합니다.");
+state.generalSpawnedCustomers=6;state.generalServed=5;
+state.orders=[{id:6,slot:0,dishId:"oden",customerType:"general",guestOrder:true,entered:1,cookStep:0,cookScores:[]}];
+nextOrderId=7;
+assert(!processStoryNightTrigger()
+  &&!state.orders.some(order=>order.customerType==="story"),
+  "여섯 번째 일반 손님을 대접하기 전에는 특별 손님이 들어오면 안 됩니다.");
 
-updateNightOrderEntrances(.7);
-updateNightOrderEntrances(.5);
-assert(rainyChild.entered===1,"아이의 두 번째 입장 연출이 완료되어야 합니다.");
+state.generalServed=6;state.orders=[];state.departures=[{slot:0,life:1}];
+assert(!processStoryNightTrigger()
+  &&!state.orders.some(order=>order.customerType==="story"),
+  "마지막 일반 손님의 퇴장 연출이 끝나기 전에는 특별 손님이 들어오면 안 됩니다.");
 
-state.carrying={orderId:firstGeneral.id,dishId:firstGeneral.dishId,cookScore:80};
-serveOrder(firstGeneral);
-assert(state.generalServed===1&&!state.carrying
-  &&!state.orders.some(order=>order.id===firstGeneral.id),
-  "실제 제공 경로가 첫 일반 손님을 완료하고 운반 상태를 해제해야 합니다.");
-assert(currentOrder()===null,
-  "대화 전 특별 손님이 선두라면 뒤 일반 주문을 건너뛰어 조리하면 안 됩니다.");
-
-state.mini={type:"heat",context:{orderId:rainyChild.id}};
-assert(!resumeDeferredStoryOrderScene()&&played.length===0,
-  "미니게임 중에는 특별 손님 대화를 열면 안 됩니다.");
-state.mini=null;state.carrying={orderId:999,dishId:"oden",cookScore:80};
-assert(!resumeDeferredStoryOrderScene()&&played.length===0,
-  "음식 운반 중에는 특별 손님 대화를 열면 안 됩니다.");
-state.carrying=null;state.departures=[{slot:firstGeneral.slot,life:1}];
-assert(!resumeDeferredStoryOrderScene()&&played.length===0,
-  "앞 손님의 반응과 퇴장이 끝나기 전에 특별 손님 대화를 열면 안 됩니다.");
 state.departures=[];
+assert(processStoryNightTrigger(),"일반 손님 여섯 명이 모두 떠나면 특별 손님이 입장해야 합니다.");
+const rainyChild=state.orders[0];
+assert(state.orders.length===1&&rainyChild.guestId==="rainyChild"
+  &&rainyChild.storyArrival==="last",
+  "비에 젖은 아이가 일곱 번째이자 마지막 손님이어야 합니다.");
+
+updateNightOrderEntrances(1);
 assert(resumeDeferredStoryOrderScene()&&played.length===1
   &&played[0][0]===rainyChild.storySceneId,
-  "첫 손님을 대접하고 안전해진 뒤 아이의 대화를 시작해야 합니다.");
+  "특별 손님이 입장을 마친 뒤 마지막 주문 대화를 시작해야 합니다.");
 
 rainyChild.guestOrder=true;
 assert(currentOrder()?.id===rainyChild.id,
-  "대화가 끝나 주문이 정해지면 아이가 다음 조리 차례가 되어야 합니다.");
+  "대화가 끝나 주문이 정해지면 특별 손님 주문을 조리해야 합니다.");
 
-// Day 3: 일반 둘 다음의 특별 손님 순번을 미니게임이 끝날 때까지 예약합니다.
-resetNight(3);played=[];
-ensureNightOrders();
-assert(state.orders.map(order=>order.customerType).join(",")==="general,general,story"
-  &&state.orders[2].guestId==="twinShadows",
-  "셋째 날 실제 초기 생성도 일반 둘 다음의 특별 손님 순서여야 합니다.");
+// Day 7: 교복 인형은 첫 손님, 얼굴 없는 김다은은 일반 여섯 명 뒤 마지막 손님입니다.
+resetNight(7);played=[];
+assert(!ensureNightOrders()&&state.orders.length===0,
+  "7일차에는 교복 인형보다 일반 손님이 먼저 생성되면 안 됩니다.");
+assert(processStoryNightTrigger()
+  &&state.orders.length===1
+  &&state.orders[0].guestId==="schoolDoll"
+  &&state.orders[0].storyArrival==="early",
+  "교복 인형은 7일차 영업 시작 직후 첫 손님으로 입장해야 합니다.");
+assert(state.story.pendingNightGuests.some(plan=>plan.guestId==="facelessDaeun"),
+  "교복 인형을 처리하는 동안 얼굴 없는 김다은의 마지막 예약을 유지해야 합니다.");
 
-resetNight(3);played=[];
-state.orders=[
-  {id:1,slot:0,dishId:"oden",customerType:"general",guestOrder:true,entered:1,cookStep:0,cookScores:[]},
-  {id:2,slot:1,dishId:"tofu",customerType:"general",guestOrder:true,entered:1,cookStep:0,cookScores:[]}
-];
-state.generalSpawnedCustomers=2;nextOrderId=3;state.mini={type:"chop",context:{orderId:1}};
-assert(!processStoryNightTrigger()
-  &&!state.orders.some(order=>order.customerType==="story"),
-  "미니게임 중에는 도착 차례가 된 특별 손님의 입장을 시작하면 안 됩니다.");
-state.mini=null;
-assert(processStoryNightTrigger(),"안전해지면 예약된 특별 손님이 입장해야 합니다.");
-assert(state.orders.map(order=>order.customerType).join(",")==="general,general,story"
-  &&state.orders[2].guestId==="twinShadows",
-  "셋째 날 특별 손님은 두 일반 손님 다음의 세 번째 순번이어야 합니다.");
+state.orders=[];state.generalServed=6;state.generalSpawnedCustomers=6;
+STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestResult(id).fragmentState="full";});
+assert(processStoryNightTrigger()
+  &&state.orders.length===1
+  &&state.orders[0].guestId==="facelessDaeun"
+  &&state.orders[0].storyArrival==="last",
+  "기본 완전 조각 7개를 모으면 일반 손님 여섯 명 뒤 얼굴 없는 김다은이 마지막으로 입장해야 합니다.");
+
+// 선택한 세 메뉴는 한 바퀴에 한 번씩 주문되어 여섯 명 기준 정확히 두 번씩 나옵니다.
+resetNight(2);played=[];
+const balancedMenuIds=["oden","tofu","kimchi"];
+state.selectedMenus=[...balancedMenuIds];
+Object.values(state.inventory).forEach(item=>{item.prepared=false;});
+balancedMenuIds.forEach(id=>{state.inventory[id].prepared=true;});
+const generalDishIds=[];
+for(let index=0;index<6;index++){
+  assert(spawnOrder(0,{generalOnly:true}),"일반 손님 "+(index+1)+" 생성");
+  generalDishIds.push(state.orders[0].dishId);
+  state.orders=[];state.generalServed++;
+}
+const generalDishCounts=Object.fromEntries(balancedMenuIds.map(id=>[
+  id,generalDishIds.filter(dishId=>dishId===id).length
+]));
+assert(new Set(generalDishIds.slice(0,3)).size===3
+  &&new Set(generalDishIds.slice(3,6)).size===3
+  &&Object.values(generalDishCounts).every(count=>count===2),
+  "선택 메뉴 순환 분배: "+generalDishIds.join(","));
 
 // 완성 음식은 쓰레기통 가까이에서만 폐기되고, 같은 주문을 처음부터 다시 조리합니다.
 resetNight(1);played=[];nearStationId=null;trashAnimationCount=0;lastSaveAllowDuringStory=null;
