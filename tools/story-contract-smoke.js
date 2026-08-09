@@ -524,7 +524,7 @@ assert(STORY_SCENES["SCN-P03"].lines.at(-1)?.text==="나 여기 갇힌건가??"
   &&p04DiscoveryText.includes("그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다.")
   &&p04.lines[0]?.openJournalOnAdvance===true,
   "문으로 나가지 못한 뒤 다른 출구를 찾다가 영업일지를 발견하고 펼치는 흐름이어야 합니다.");
-assert(p04.lines[1]?.text==="첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?"
+assert(p04.lines[1]?.text==="앞에 두 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?"
   &&p04.lines[2]?.text.includes("내일로 가는 문")
   &&JSON.stringify(STORY_SCENES).includes("내일로 가는 문")
   &&!JSON.stringify(STORY_SCENES).includes("새벽문"),

@@ -44,6 +44,21 @@
   pointer-events: auto;
 }
 
+/* 쓰레기통은 우측 목표 패널 바로 아래에 있습니다. 일반 배치처럼 이름표 위에
+   프롬프트를 쌓으면 패널 경계와 겹치므로, 쓰레기통에서만 행동명을 첫 줄로
+   올려 이름표 바로 아래에서 아래 방향으로 나타나게 합니다. */
+.station-prompt[data-action^="trash"] {
+  transform: translate(-50%,0) translateY(calc(8 * var(--upx)));
+}
+.station-prompt[data-action^="trash"].show {
+  transform: translate(-50%,0) translateY(calc(3 * var(--upx)));
+}
+.station-prompt[data-action^="trash"] .prompt-label { order: -1; }
+.station-prompt[data-action="trash-blocked"] .prompt-label {
+  border-color: rgba(183,91,75,.96);
+  color: #ffc4b8;
+}
+
 /* 키캡 위 화살표.
    키캡만 덩그러니 떠 있으면 무엇을 가리키는 건지 읽히지 않아서 얹었습니다.
    색·모양은 게임 안 안내 화살표(js/fx.js FX_GUIDE)와 맞췄습니다.

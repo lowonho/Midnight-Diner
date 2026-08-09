@@ -991,12 +991,13 @@ function updatePrompt(){
   const prompt=dom.stationPrompt;
   const hide=(mobileAction=false)=>{
     prompt.classList.remove(UI_CLASS.promptShow);prompt.disabled=true;
+    prompt.dataset.action="";
     dom.stationPromptLabel.textContent="";
     dom.actionButton.classList.toggle(UI_CLASS.actionAvailable,mobileAction);
   };
   if(state.paused||![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)){hide();return;}
   if(state.mini){hide(true);return;}
-  let text="",visibleText="",x=0,y=0;
+  let text="",visibleText="",action="",x=0,y=0;
   const storyStep=activeStoryCookStep();
   if(storyStep){
     const required=storyStep.station;
@@ -1010,9 +1011,13 @@ function updatePrompt(){
     const trash=nearestStation("trash");
     const dish=dishById(state.carrying.dishId);
     if(trash?.id==="trash"&&dish){
-      text=UI_TEXT.prompt.discard(dish.name);
-      visibleText=UI_TEXT.prompt.discardVisible;
-      x=trash.ix;y=promptYFor(trash);
+      const discardBlocked=order?.discardedOnce===true;
+      text=discardBlocked?UI_TEXT.prompt.discardLimit(dish.name):UI_TEXT.prompt.discard(dish.name);
+      visibleText=discardBlocked?UI_TEXT.prompt.discardLimitVisible:UI_TEXT.prompt.discardVisible;
+      action=discardBlocked?"trash-blocked":"trash";
+      // 집기 사용 지점(ix)이 아니라 쓰레기통 이름표의 가로 중심에 맞춥니다.
+      // trash 전용 CSS는 행동명을 이 y부터 아래로 쌓아 목표 패널을 피합니다.
+      x=trash.x+trash.w/2;y=trashActionPromptY(trash);
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
@@ -1042,6 +1047,7 @@ function updatePrompt(){
   // 기본 상호작용은 키캡만 표시하고, 실수로 누르면 음식을 잃는 폐기
   // 상호작용만 행동명을 함께 표시합니다.
   prompt.setAttribute("aria-label",text);prompt.disabled=false;
+  prompt.dataset.action=action;
   dom.stationPromptLabel.textContent=visibleText;
   // 좌표만 넘기고, 그 값으로 어디에 앉힐지는 CSS 가 정합니다. (css/interaction.css)
   prompt.style.setProperty(UI_VAR.promptX,`${x/W*100}%`);

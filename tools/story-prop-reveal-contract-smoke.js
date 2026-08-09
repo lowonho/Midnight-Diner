@@ -86,7 +86,7 @@ const advanceBody = storySource.split("function storyAdvance()")[1] || "";
 assert(advanceBody.indexOf("releaseStoryPropReveal") > 0
   && advanceBody.indexOf("releaseStoryPropReveal") < advanceBody.indexOf("storySession.typing"),
   "소품이 떠오르는 동안의 클릭은 자막 쪽 넘김보다 먼저 '기다림 끝내기'로 가야 합니다.");
-assert(/function resetStoryStage\(\)[\s\S]{0,400}?clearStoryPropReveal\(\)/.test(storySource)
+assert(/function resetStoryStage\([^)]*\)[\s\S]{0,500}?clearStoryPropReveal\(\)/.test(storySource)
   && /function clearStoryRuntime\(\)[\s\S]{0,400}?clearStoryPropReveal\(\)/.test(storySource),
   "소품은 장면 전환과 런타임 종료에서 반드시 정리되어야 합니다.");
 /* 영업일지를 펼치는 줄은 다음 줄의 showStoryLine 을 부르지 않습니다(책을 닫아야

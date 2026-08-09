@@ -534,7 +534,7 @@ const STORY_SCENES = {
         propReveal: { prop: "businessJournalClosed" },
         openJournalOnAdvance: true
       },
-      storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
+      storyLine("protagonist", "앞에 두 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
       storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네.", { motion: "sad" }),
       storyLine("protagonist", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지.", { motion: "resolve" }),
       { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎는다. 햇빛이 들어찬다."), timeOfDay: "day" },

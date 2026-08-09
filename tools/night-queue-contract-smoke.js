@@ -18,7 +18,10 @@ const CUSTOMER_VARIANT_COUNT=6;
 let nextOrderId=1;
 const dom={};
 const audio={serve(){}};
-const UI_TEXT={toast:{discardDone:name=>name+" 폐기"}};
+const UI_TEXT={toast:{
+  discardDone:name=>name+" 폐기",
+  discardLimit:name=>name+"은 이미 한 번 폐기했습니다. 손님에게 내어 주세요."
+}};
 let nearStationId=null,trashAnimationCount=0,lastSaveAllowDuringStory=null;
 const toastMessages=[];
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
@@ -168,6 +171,7 @@ assert(discardCarriedDish()
   &&state.carrying===null
   &&discardOrder.cookStep===0
   &&discardOrder.cookScores.length===0
+  &&discardOrder.discardedOnce===true
   &&currentOrder()?.id===discardOrder.id,
   "쓰레기통 가까이에서는 접시만 버리고 같은 선두 주문을 처음부터 다시 조리해야 합니다.");
 assert(serviceSnapshot.join(",")===[state.served,state.generalServed,state.satisfactionTotal,state.fiveStar].join(",")
@@ -178,6 +182,37 @@ assert(trashAnimationCount===1
   &&toastMessages.at(-1).includes("폐기")
   &&lastSaveAllowDuringStory===false,
   "일반 주문 폐기에는 쓰레기통 연출과 안내 뒤 일반 자동저장을 남겨야 합니다.");
+
+// 같은 손님의 같은 접시는 다시 완성해도 두 번째로 버릴 수 없습니다.
+discardOrder.cookStep=discardDish.cook.length;
+discardOrder.cookScores=[91,87];
+state.carrying={orderId:discardOrder.id,dishId:discardDish.id,cookScore:89};
+const secondDiscardScores=[...discardOrder.cookScores];
+const animationBeforeSecondDiscard=trashAnimationCount;
+const saveBeforeSecondDiscard=lastSaveAllowDuringStory;
+assert(!discardCarriedDish()
+  &&state.carrying?.orderId===discardOrder.id
+  &&discardOrder.cookStep===discardDish.cook.length
+  &&discardOrder.cookScores.join(",")===secondDiscardScores.join(",")
+  &&discardOrder.discardedOnce===true,
+  "같은 손님 주문은 두 번째 폐기를 거부하고 완성 음식을 그대로 들고 있어야 합니다.");
+assert(trashAnimationCount===animationBeforeSecondDiscard
+  &&lastSaveAllowDuringStory===saveBeforeSecondDiscard
+  &&toastMessages.at(-1).includes("손님에게 내어"),
+  "두 번째 폐기는 연출·저장을 만들지 않고 손님에게 제공하라는 안내만 보여야 합니다.");
+
+// 메뉴가 같아도 다른 손님의 주문이면 각 주문에 한 번씩 폐기할 수 있습니다.
+const sameDishNextOrder={
+  id:52,slot:2,dishId:discardDish.id,customerType:"general",guestOrder:true,entered:1,
+  cookStep:discardDish.cook.length,cookScores:[74,78]
+};
+state.orders=[discardOrder,sameDishNextOrder];
+state.carrying={orderId:sameDishNextOrder.id,dishId:discardDish.id,cookScore:76};
+assert(discardCarriedDish()
+  &&sameDishNextOrder.discardedOnce===true
+  &&sameDishNextOrder.cookStep===0
+  &&discardOrder.discardedOnce===true,
+  "같은 메뉴를 주문한 서로 다른 손님은 각자 자기 접시를 한 번씩 폐기할 수 있어야 합니다.");
 
 // 특별 손님 주문을 버려도 대화 체크포인트와 선택한 음식은 유지합니다.
 const specialOrder={
@@ -195,11 +230,12 @@ assert(discardCarriedDish()
   &&specialOrder.dishId==="kimchi"
   &&specialOrder.storyDishId==="kimchi"
   &&specialOrder.specialRecipe
+  &&specialOrder.discardedOnce===true
   &&specialOrder.cookStep===0
   &&lastSaveAllowDuringStory===true,
   "특별 손님 음식 폐기는 주문·대화 체크포인트를 유지한 채 재조리 상태로 저장해야 합니다.");
 
-console.log("NIGHT_QUEUE_CONTRACT_OK FIFO · deferred special arrival/dialogue · trash retry");
+console.log("NIGHT_QUEUE_CONTRACT_OK FIFO · deferred special arrival/dialogue · one trash retry per order");
 `;
 
 vm.runInNewContext(`${bootstrap}\n${source}\n${test}`,{
