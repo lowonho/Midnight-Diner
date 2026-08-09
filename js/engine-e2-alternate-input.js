@@ -367,6 +367,15 @@ function fryPrepIngredientMarkup(item){
   </div>`;
 }
 
+/* 조작 카드에 올라가는 "마우스를 잡고 좌우로" 그림입니다.
+   키보드 없이 포인터로만 하는 준비 작업 두 개가 같은 그림을 씁니다 —
+   새우 굴리기 · 봉투 흔들기. 둘 다 손이 하는 일이 "좌우로 크게 왕복"이라
+   화살표도 ↔ 하나로 같습니다.
+   (봉투는 대각선으로도 흔들 수 있지만 한 번으로 세는 기준은 가로 거리뿐이라
+    ↔ 가 맞습니다 — FRIES_BAG_DRAG_CONFIG 쪽 설명 참고)
+   그림 자체는 css/minigame/e2-fry-prep.css 의 .fp-drag-mouse 임시 도형입니다. */
+const FRY_PREP_DRAG_CONTROL_MARKUP='<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>';
+
 // view = { ingredients, stage(가운데 마크업), done, total, percent,
 //          keys, expectedIndex, keyLink, controlMarkup, controlName, controlDesc }
 // keys 는 문자열("a") 또는 {value,glyph} 입니다. 문자열이면 대문자로 보여 줍니다.
@@ -569,10 +578,10 @@ function renderPotatoStarchShake(){
     done:data.presses>=data.total?1:0,
     total:1,
     percent,
-    // controlMarkup:"" → 조작 카드에서 **키 버튼 줄을 통째로 뺍니다.**
-    // 예전에는 여기에 랜덤 알파벳 두 개(A / D 같은)가 키캡으로 올라갔고 키보드와
-    // 짝이었습니다. 키보드를 뺀 지금은 눌러도 뜻이 없는 글자라 함께 지웠습니다.
-    controlMarkup:"",
+    // 키 버튼 줄 대신 마우스 그림입니다. 예전에는 여기에 랜덤 알파벳 두 개
+    // (A / D 같은)가 키캡으로 올라갔고 키보드와 짝이었습니다. 키보드를 뺀 지금은
+    // 눌러도 뜻이 없는 글자라, 실제 조작인 "마우스로 좌우" 그림으로 바꿨습니다.
+    controlMarkup:FRY_PREP_DRAG_CONTROL_MARKUP,
     controlName:"봉투를 잡고<br />크게 흔들기",
     controlDesc:"좌우로 크게 왕복할수록<br />가루가 잘 묻습니다",
     phase:data.phase
@@ -857,7 +866,7 @@ function renderShrimpCoat(){
     done:data.successes,
     total:data.total,
     percent,
-    controlMarkup:'<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>',
+    controlMarkup:FRY_PREP_DRAG_CONTROL_MARKUP,
     controlName:"새우를 꺼내<br />좌우로 굴리기",
     controlDesc:"다 묻으면 새우가 스스로<br />재료칸으로 돌아갑니다",
     phase:data.phase

@@ -24,21 +24,50 @@ registerDayPrepEngine("orderPlace",{noKeyboard:true});
 
    dragOnly  짧게 누르는 자동 배치를 끕니다. 반드시 끌어다 놓아야 합니다.
              (김치전 반죽은 "볼에 붓는" 동작이라 클릭 한 번으로 들어가면
-              재료가 어디로 갔는지 안 보입니다) */
+              재료가 어디로 갔는지 안 보입니다)
+
+   ⚠️ 끄는 일을 **원본 카드에 매달지 않습니다.** 커서를 따라오는 그림(유령)은
+      화면(dom.miniContent)이 다시 그려져도 살아남는 document.body 에 붙는데,
+      끄는 도중에 화면이 다시 그려져 카드가 사라지면 크롬은 그 카드에 pointerup 도
+      lostpointercapture 도 보내 주지 않습니다. 그러면 유령을 지울 사람이 없어서
+      **그림이 화면에 영구히 붙어 버립니다** — 김치전 반죽에서 재료를 놓은 뒤
+      420ms 뒤의 재렌더(renderKimchiBatterIngredients) 사이에 다음 재료를 집었다
+      놓으면 물컵이 그대로 남던 것이 이 경우입니다. 젓기(E9)로 넘어가도, 창을
+      닫아도 남습니다.
+      그래서 움직임·놓기는 **창(window) 전체에서 캡처 단계로** 받고,
+      주인이 사라진 유령은 sweepStaleOrderDragGhosts 로 걷어냅니다. */
+
+/* 지금 끌고 있는 유령만 담아 둡니다. 여기 없는 .order-drag-ghost 는 주인이 사라진
+   찌꺼기라는 뜻입니다. */
+const liveOrderDragGhosts=new Set();
+
+// 화면을 다시 묶을 때(= 매 렌더) 부릅니다. 주인 없는 것만 지우므로,
+// 끌고 있는 그림은 화면이 갈아 끼워져도 그대로 커서를 따라옵니다.
+function sweepStaleOrderDragGhosts(){
+  document.querySelectorAll(".order-drag-ghost").forEach(ghost=>{if(!liveOrderDragGhosts.has(ghost))ghost.remove();});
+}
+
+// 미니게임 화면을 떠날 때 부릅니다. 끌고 있던 것까지 통째로 지웁니다.
+function clearOrderDragGhosts(){
+  liveOrderDragGhosts.clear();
+  document.querySelectorAll(".order-drag-ghost").forEach(ghost=>ghost.remove());
+}
+
 function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghostSelector,onPlace,onMiss,dragOnly=false}){
   let active=null,suppressClick=false;
+  sweepStaleOrderDragGhosts();
 
   function targetAt(x,y){return document.elementFromPoint(x,y)?.closest(targetSelector)||null;}
   function clearTarget(){dom.miniContent.querySelectorAll(`${targetSelector}.order-drop-ready`).forEach(target=>target.classList.remove("order-drop-ready"));}
   function moveGhost(event){
-    if(!active)return;
+    if(!active||active.pointerId!==event.pointerId)return;
     const dx=event.clientX-active.startX,dy=event.clientY-active.startY;
     if(!active.dragging&&Math.hypot(dx,dy)>=5){
       active.dragging=true;active.source.classList.add("order-source-dragging");
       active.ghost=document.createElement("span");active.ghost.className=`order-drag-ghost ${active.item}`;
       const art=active.source.querySelector(ghostSelector);
       active.ghost.innerHTML=art?art.outerHTML:active.source.textContent;
-      document.body.appendChild(active.ghost);
+      document.body.appendChild(active.ghost);liveOrderDragGhosts.add(active.ghost);
     }
     if(!active.dragging)return;
     event.preventDefault();
@@ -47,8 +76,9 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
   }
   function finishPointer(event,cancelled=false){
     if(!active||active.pointerId!==event.pointerId)return;
-    const drag=active;active=null;clearTarget();
-    drag.source.classList.remove("order-source-dragging");drag.ghost?.remove();
+    const drag=active;active=null;clearTarget();detachDragWindow();
+    drag.source.classList.remove("order-source-dragging");
+    if(drag.ghost){liveOrderDragGhosts.delete(drag.ghost);drag.ghost.remove();}
     if(!drag.dragging)return;
     suppressClick=true;miniSetTimeout(()=>{suppressClick=false;},0);
     const target=cancelled?null:targetAt(event.clientX,event.clientY);
@@ -56,13 +86,41 @@ function bindOrderPlacementPointers({sources,targetSelector,itemFromSource,ghost
     else onMiss?.(drag.item,drag.source);
   }
 
+  /* 끄는 동안만 창에 매답니다.
+     · 캡처 단계(true)로 받는 이유 : 중간에서 stopPropagation 하는 손이 있어도
+       놓는 것은 반드시 우리에게 먼저 옵니다.
+     · blur 도 받습니다 — 창 밖에서 손을 떼면 페이지가 pointerup 을 못 봅니다. */
+  const upWindow=event=>finishPointer(event);
+  const cancelWindow=event=>finishPointer(event,true);
+  const blurWindow=()=>{if(active)finishPointer({pointerId:active.pointerId},true);};
+  function attachDragWindow(){
+    window.addEventListener("pointermove",moveGhost,true);
+    window.addEventListener("pointerup",upWindow,true);
+    window.addEventListener("pointercancel",cancelWindow,true);
+    window.addEventListener("blur",blurWindow);
+  }
+  function detachDragWindow(){
+    window.removeEventListener("pointermove",moveGhost,true);
+    window.removeEventListener("pointerup",upWindow,true);
+    window.removeEventListener("pointercancel",cancelWindow,true);
+    window.removeEventListener("blur",blurWindow);
+  }
+
   sources.forEach(source=>{
     source.addEventListener("pointerdown",event=>{
       if(event.pointerType==="mouse"&&event.button!==0||source.disabled)return;
       event.preventDefault();
+      // 앞의 것이 아직 안 끝났으면(손가락 두 개 등) 먼저 접습니다 — 안 그러면 유령이 남습니다.
+      if(active)finishPointer({pointerId:active.pointerId},true);
       active={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,item:itemFromSource(source),source,dragging:false,ghost:null};
       source.setPointerCapture?.(event.pointerId);
+      attachDragWindow();
     });
+    /* 카드에도 그대로 매달아 둡니다. 창 쪽이 이미 받았으면 finishPointer 가
+       (active 가 비어) 곧바로 되돌아 나오므로 두 번 처리되지 않습니다.
+       ⚠️ 이쪽을 지우면 안 됩니다 — 검사 하네스(tools/day4-logic-smoke.html)의
+          dom.miniContent 는 문서에 붙지 않은 div 라, 거기서 일어난 이벤트는
+          window 까지 올라오지 않습니다. */
     source.addEventListener("pointermove",moveGhost);
     source.addEventListener("pointerup",event=>finishPointer(event));
     source.addEventListener("pointercancel",event=>finishPointer(event,true));

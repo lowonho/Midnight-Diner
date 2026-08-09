@@ -90,8 +90,8 @@
    ⚠️ 공용 타이머 카드(#miniTimer)는 이 화면에서 숨겨져 있습니다
       (css/minigame-parts.css). 카운트다운을 여기서 직접 그리는 이유입니다. */
 .heat-count { text-align: center; }
-.heat-count-value { margin: 0; color: var(--gold-bright); font-size: calc(40 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.heat-count-value b { color: #f2a03c; }
+/* ⚠️ 이 카드는 공용 점수 카드(miniScorePanelMarkup)를 씁니다 — 안쪽이 h3 + p.mini-score-value
+   뿐이라 크기 규칙은 css/minigame-parts.css 의 공용 큰 숫자 규칙이 정합니다. */
 /* ── 오른쪽 아래 : 조작 ─────────────────────────────────────
    누르는 동안 상승하고 떼면 하강하는 한 버튼입니다(키보드·마우스 둘 다 지원). */
 .heat-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(12 * var(--upx)); text-align: center; }

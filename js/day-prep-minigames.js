@@ -737,6 +737,9 @@ function closeDayPrepMini(completed=false){
   dom.miniClose.hidden=true;
   dom.miniContent.classList.remove("prep-complete-flash");
   dom.miniContent.innerHTML="";
+  /* 끌고 가던 재료 그림은 dom.miniContent 가 아니라 document.body 에 붙어 있어서
+     위의 innerHTML 비우기로는 안 지워집니다 (engine-e8-order-place.js 주석 참고). */
+  if(typeof clearOrderDragGhosts==="function")clearOrderDragGhosts();
   updateUI(true);
   saveGame();
   if(completed!==true)showToast("준비 작업을 닫았습니다. 현재 작업은 초기화되어 다음에 처음부터 다시 해야 합니다.");

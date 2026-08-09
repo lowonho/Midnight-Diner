@@ -784,13 +784,20 @@
 .two-side-pan.cook-over .cook-steam { border-left-color:rgba(116,105,99,.82); filter:opacity(1); }
 .cook-steam.steam-one { left:calc(105 * var(--upx)); }
 .cook-steam.steam-two { left:calc(177 * var(--upx)); animation-delay:.45s; }
-/* 김치전이 팬에서 **확 떠올랐다** 내려앉습니다. 조리 칸 위로 삐져나가도 되도록
-   뒤집는 동안에는 칸의 자르기를 잠깐 풉니다 (아래 .ts-board:has(...) 규칙).
-   ⚠️ 75 → 250. 이 값만 키우고 자르기를 안 풀면 김치전이 칸 위쪽에서 뭉텅 잘립니다. */
+/* 김치전이 팬에서 **확 떠올랐다** 내려앉습니다.
+   ⚠️ 250 → 160. 예전에는 250 까지 띄우고 그동안 칸의 자르기를 통째로 풀었는데
+      (`.ts-board:has(.two-side-pan.flipping) { overflow:visible }`), 그러면 평소
+      칸이 잘라 주던 것들이 0.6초 동안 한꺼번에 튀어나왔습니다 — 좌우로 123.6 씩
+      나가 있는 **가스버너 상판**이 재료 카드·조작 카드를 덮고, 팬 손잡이가 점수
+      카드 위로 뻗었습니다. 지금은 자르기를 그대로 두고 **칸 안에서** 띄웁니다.
+   [상한] 팬 윗변이 칸 위끝에서 30 밖에 안 떨어져 있고, 김치전 윗변은 103 입니다.
+      팬이 들리는 몫(아래 pan-toss 26)까지 더해도 김치전이 칸 위끝에 닿지 않는
+      값이 160 입니다. 더 키우려면 팬 자리(--ts-pan-drop · --ts-pan-w)부터 낮춰야
+      합니다 — 이 값만 올리면 김치전 윗쪽이 칸에서 뭉텅 잘립니다. */
 @keyframes two-side-food-flip {
   0%   { transform:translateY(0) rotateX(0); }
-  46%  { transform:translateY(calc(-250 * var(--upx))) rotateX(90deg) scale(.78); }
-  72%  { transform:translateY(calc(-120 * var(--upx))) rotateX(150deg) scale(.88); }
+  46%  { transform:translateY(calc(-160 * var(--upx))) rotateX(90deg) scale(.72); }
+  72%  { transform:translateY(calc(-77 * var(--upx))) rotateX(150deg) scale(.84); }
   100% { transform:translateY(0) rotateX(180deg); }
 }
 /* ⚠️ 꼬치가 세로로 서 있으므로 막대를 축으로 구르는 것은 rotateX 가 아니라
@@ -810,12 +817,18 @@
       반동 뒤집기(↑꾹→↓) 부품과 짝이던 것들입니다.
    ⚠️ transform 을 씁니다. 팬의 가운데 정렬은 margin-left 로 하고 있어서 안 부딪힙니다
       (위 `.ts-cooktop .two-side-pan` 주석 참고). */
-/* 팬도 같이 들립니다 — 김치전만 떠오르면 팬이 가만히 있어 손목으로 튕긴 느낌이 안 납니다. */
+/* 팬도 같이 들립니다 — 김치전만 떠오르면 팬이 가만히 있어 손목으로 튕긴 느낌이 안 납니다.
+   ⚠️ 86 → 26. 팬 윗변과 칸 위끝 사이가 **30 밖에 없습니다** (칸 615.6 - 팬 자리
+      184.6 - 팬 세로 400.9). 86 을 쓰면 팬 위가 56 잘리는데, 예전에는 그동안
+      칸의 자르기를 통째로 풀어서(아래 .ts-board 주석) 잘리는 대신 가스버너 상판이
+      좌우 카드 위로 튀어나왔습니다. 기울기(rotate)는 그대로입니다 — 팬 테두리
+      꼭대기는 가로 한가운데라 돌려도 위로 올라가지 않습니다(손잡이 쪽만 들립니다).
+      값을 올리려면 팬 자리(--ts-pan-drop)부터 낮추세요. */
 @keyframes pan-toss {
   0%,100% { transform:translateY(0) rotate(0); }
-  20% { transform:translateY(calc(-86 * var(--upx))) rotate(-7deg); }
-  50% { transform:translateY(calc(-44 * var(--upx))) rotate(4deg); }
-  76% { transform:translateY(calc(-12 * var(--upx))) rotate(-1.5deg); }
+  20% { transform:translateY(calc(-26 * var(--upx))) rotate(-7deg); }
+  50% { transform:translateY(calc(-13 * var(--upx))) rotate(4deg); }
+  76% { transform:translateY(calc(-4 * var(--upx))) rotate(-1.5deg); }
 }
 /* ⚠️ 여기 있던 신호 불빛 애니메이션 두 벌(ts-cue-pulse · ts-cue-halo)을 **뺐습니다.**
    빛이 0.5초마다 세졌다 옅어져서, 누르기 신호에도 양념 신호에도 자루가 껌뻑였습니다.
@@ -1064,8 +1077,8 @@
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
 .ts-count { text-align: center; }
-.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; }
-.ts-count strong b { color: #f2a03c; }
+/* ⚠️ 이 카드는 공용 점수 카드(miniScorePanelMarkup)를 씁니다 — 안쪽이 h3 + p.mini-score-value
+   뿐이라 크기 규칙은 css/minigame-parts.css 의 공용 큰 숫자 규칙이 정합니다. */
 /* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
 /* ⚠️ 여기 있던 `margin-top: 8` 을 뺐습니다. 카드에 이미 `row-gap: 6` 이 있어
    간격은 그대로 남고, 카드가 필요로 하는 높이가 144.8 → 136.8 로 줄어
@@ -1078,7 +1091,6 @@
    "남은 시간 안에 몇 자루를 끝냈나" 가 이 게임의 전부가 되어 그쪽 얼개를 가져왔습니다.
    김치전은 예전 [진행도 + 조작] 그대로라 아래 규칙이 안 걸립니다
    (engine-e5 의 twoSideSideMarkup 이 두 얼개를 가릅니다). */
-.ts-count-big strong { font-size: calc(46 * var(--upx)); }
 .ts-time-left {
   margin: calc(10 * var(--upx)) 0 0;
   padding-top: calc(10 * var(--upx));
@@ -1259,11 +1271,17 @@
   /* 팬 손잡이가 칸 오른쪽으로 15 나갑니다 — E3 김치 볶기(.kf-board)와 같이 잘라 냅니다. */
   overflow: hidden;
 }
-/* ⚠️ **뒤집는 동안만** 자르기를 풉니다. 김치전이 팬 위로 250 이나 떠오르는데
-   칸이 잘라 내면 그 순간 김치전이 뭉텅 사라집니다. 손잡이가 잠깐 드러나지만
-   0.6초짜리 연출이고, "정말 뒤집는 느낌"이 그보다 중요합니다.
-   (평소에는 위 overflow:hidden 이 그대로라 손잡이는 계속 잘립니다) */
-.ts-board:has(.two-side-pan.flipping) { overflow: visible; }
+/* ⚠️ 여기 있던 `.ts-board:has(.two-side-pan.flipping) { overflow: visible }` 을 **뺐습니다.**
+   김치전이 팬 위로 250 이나 떠오르니 잘리지 말라고 뒤집는 0.6초만 자르기를 풀었는데,
+   이 칸이 잘라 주고 있던 것이 김치전만이 아니었습니다. 풀리는 순간 함께 튀어나왔습니다.
+     · 가스버너 상판(.ts-cooktop) — 칸보다 좌우로 123.6 씩 넓습니다. 왼쪽 재료 카드와
+       오른쪽 조작 카드를 덮어 글씨가 가려졌습니다. (실측 1920 폭 : 칸 574~1324 인데
+       화구가 462~1436 까지 벌어집니다)
+     · 팬 손잡이 — 오른쪽으로 15 나가 있어 점수 카드 위로 뻗었습니다.
+     · 팬·김치전 자체 — 칸 위끝을 넘어 미니게임 액자 테두리 밖까지 올라갔습니다.
+   지금은 자르기를 늘 그대로 두고, 대신 뜨는 높이를 칸 안에 들어오는 값으로 잡았습니다
+   (위 two-side-food-flip 160 · pan-toss 26). 높이를 다시 키우고 싶으면 자르기를 풀지
+   말고 팬 자리(--ts-pan-drop · --ts-pan-w)를 낮춰 칸 위쪽 여백부터 만드세요. */
 .e5-result {
   position:absolute;
   z-index:12;
@@ -1511,7 +1529,6 @@
 
 /* 좁은 화면 보정 (채썰기·김치 볶기와 같은 방식으로 줄입니다) */
 @media (max-width:600px) {
-  .ts-count strong { font-size: calc(42 * var(--upx)); }
   .ts-guide-text b { font-size: calc(14 * var(--upx)); }
   .ts-guide-text em { font-size: calc(11 * var(--upx)); }
   .ts-now { font-size: calc(12 * var(--upx)); }

@@ -267,15 +267,10 @@
 }
 /* 늘어난 카드 안에서 견본 그림은 세로 가운데로 모입니다 */
 .cut-ref-card { align-content: center; }
+/* 크기·줄 간격·여백은 공용 큰 숫자 규칙(css/minigame-parts.css)이 정합니다 */
 .cut-count-value {
-  margin: 0;
   color: var(--gold-bright);
   text-align: center;
-  font-size: calc(46 * var(--upx));
-  font-family: var(--font-bold);
-  -webkit-text-stroke: var(--bold-stroke) currentColor;
-  font-weight: 900;
-  line-height: 1.1;
 }
 .cut-count-value b { color: #f2a03c; }
 /* 그릇 아래쪽이 카드 테두리에 닿지 않게 아래 여백을 조금 더 줍니다 */
@@ -1199,5 +1194,5 @@
   .cut-board .prep-work-object { width:min(84%,calc(420 * var(--upx))); }
   .cut-card-figure { min-height: calc(96 * var(--upx)); }
   .cut-card-figure .cut-sample { width: calc(115 * var(--upx)); }
-  .cut-count-value { font-size: calc(38 * var(--upx)); }
+  /* 큰 숫자 크기는 --mg-prog-num 이 좁은 화면에서 같이 줄어듭니다 */
 }
