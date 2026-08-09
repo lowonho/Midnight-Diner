@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FRAGMENT_SFX_LOCK_PENDING</title>
+<style>body{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<body>FRAGMENT_SFX_LOCK_PENDING</body>
+<iframe id="game" title="runtime" style="position:fixed;width:1px;height:1px;opacity:.001;pointer-events:none" src="../index.html?qa-story=SCN-G1-%EC%99%84%EB%B2%BD"></iframe>
+<script>
+"use strict";
+const wait=duration=>new Promise(resolve=>setTimeout(resolve,duration));
+const frame=document.getElementById("game");
+frame.addEventListener("load",async()=>{
+  try{
+    await wait(1200);
+    const result=await frame.contentWindow.eval(`(async()=>{
+      const wait=duration=>new Promise(resolve=>setTimeout(resolve,duration));
+      if(storySession?.scene?.id!=="SCN-G1-완벽")throw new Error("QA fragment scene did not open");
+      const cases=[
+        ["SCN-G1-완벽","fragment_full_d1"],["SCN-G2-완벽","fragment_full_d2"],
+        ["SCN-G3-완벽","fragment_full_d3"],["SCN-G4-완벽","fragment_full_d4"],
+        ["SCN-G5-완벽","fragment_full_d5"],["SCN-G6-완벽","fragment_full_d6"],
+        ["SCN-G7-완벽","fragment_full_d7"],["SCN-G8-완벽","daeun_ribbon_handoff"]
+      ];
+      const nextButton=document.getElementById("storyNextButton");
+      const skipButton=document.getElementById("storySkipButton");
+      audio.stopAllFiles();
+      for(const [sceneId,cue] of cases){
+        const scene=STORY_SCENES[sceneId];
+        const lines=storyLinesForScene(scene);
+        const fragmentIndex=lines.findIndex(line=>line?.fragmentHandoff?.state==="full");
+        if(fragmentIndex<0)throw new Error("full fragment handoff line was not found: "+sceneId);
+        storySession.scene=scene;
+        storySession.lines=lines;
+        storySession.lineIndex=fragmentIndex;
+        storySession.fragmentRevealedAt=fragmentIndex;
+        storySession.playedFragmentSfx={};
+        const shown=applyStoryFragmentHandoff(lines[fragmentIndex]);
+        const entry=storySession.fragmentSfxLock?.entry;
+        if(!shown||!entry)throw new Error("fragment sound did not create a playback entry: "+sceneId);
+        if(entry.name!==cue)throw new Error("wrong guest fragment sound: "+sceneId+" / "+entry.name);
+        if(!audio.activeFiles.has(entry)||entry.src!==audio.files[cue][0]||!entry.playbackPromise){
+          throw new Error("fragment sound was not registered: "+sceneId);
+        }
+        if(!nextButton.disabled||!skipButton.disabled)throw new Error("advance buttons were not locked: "+sceneId);
+        const beforeIndex=storySession.lineIndex;
+        storyAdvance();
+        if(storySession.lineIndex!==beforeIndex)throw new Error("story advanced during fragment sound: "+sceneId);
+        if(!storyFragmentSfxLockIsActive())throw new Error("fragment lock released too early: "+sceneId);
+        entry.element.dispatchEvent(new Event("ended"));
+        await wait(0);
+        if(storyFragmentSfxLockIsActive()||nextButton.disabled||skipButton.disabled){
+          throw new Error("fragment lock did not release after ended: "+sceneId);
+        }
+        audio.stopFile(entry);
+      }
+      applyStoryFragmentHandoff(null);
+      return {
+        checkedGuests:cases.length,
+        unlockedAfterEnded:!storyFragmentSfxLockIsActive()&&!nextButton.disabled&&!skipButton.disabled
+      };
+    })()`);
+    if(result.checkedGuests!==8)throw new Error(`not all guest sounds were checked: ${JSON.stringify(result)}`);
+    if(!result.unlockedAfterEnded)throw new Error(`fragment lock did not release after ended: ${JSON.stringify(result)}`);
+    document.title="FRAGMENT_SFX_LOCK_OK";
+    document.body.textContent="FRAGMENT_SFX_LOCK_OK";
+    document.body.style.background="#d9f8d9";
+  }catch(error){
+    document.title="FRAGMENT_SFX_LOCK_FAIL";
+    document.body.textContent=`FRAGMENT_SFX_LOCK_FAIL ${error.stack||error}`;
+    document.body.style.background="#ffdada";
+  }
+},{once:true});
+</script>

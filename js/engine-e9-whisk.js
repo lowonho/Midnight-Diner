@@ -114,7 +114,7 @@ function startWhiskPointer(event,work){
   m.data.pointerActive=true;m.data.lastAngle=null;m.data.direction=0;m.data.strokeProgress=0;
   m.data.outsideActive=false;m.data.reverseActive=false;m.data.jumpActive=false;
   work.classList.add("stirring");work.classList.remove("off-course");
-  audio.loop?.("whisk_mix",m,.72);
+  audio.loop?.("whisk_mix",m,.7);
   renderWhiskTool(m,config);
   work.setPointerCapture?.(event.pointerId);moveWhiskPointer(event);
 }

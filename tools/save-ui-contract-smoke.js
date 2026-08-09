@@ -118,8 +118,31 @@ assert(gameSource.includes("function audioIsEnabled()")
   "세 음향 버튼은 실제 설정과 ON/OFF 표시를 함께 갱신해야 합니다.");
 assert(gameSource.includes("fileGain(entry){return sfxAudioIsEnabled()")
   &&gameSource.includes("bgmFileGain(){return bgmAudioIsEnabled()")
-  &&gameSource.includes("this.master.gain.value = audioMasterGain()"),
+  &&gameSource.includes("this.master.gain.value = audioMasterGain()")
+  &&gameSource.includes("bgmTrackGains:Object.freeze({")
+  &&gameSource.includes("this.ctx.createMediaElementSource(element)")
+  &&gameSource.includes("this.bgm.gain.value = bgmAudioIsEnabled()?state.audio.bgm * .65:0"),
   "전체·배경음악·효과음 OFF는 각 파일 및 Web Audio 출력에 적용되어야 합니다.");
+assert(gameSource.includes("sfxFileGains:Object.freeze({")
+  &&gameSource.includes("normalization:this.sfxFileGains[src]??1")
+  &&gameSource.includes('location.protocol==="file:"')
+  &&gameSource.includes("connectSfxEntry(entry)")
+  &&gameSource.includes("entry.gainNode.gain.value=entry.normalization*(entry.gain??1)")
+  &&gameSource.includes("this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .72:0"),
+  "효과음은 파일별 측정 보정값과 호출 게인을 Web Audio SFX 버스에서 함께 적용해야 합니다.");
+const sfxFilesStart=gameSource.indexOf("files:Object.freeze({");
+const sfxGainsStart=gameSource.indexOf("sfxFileGains:Object.freeze({");
+const sfxRuntimeStart=gameSource.indexOf("preloaded:",sfxGainsStart);
+const mappedSfxPaths=[...new Set(
+  (gameSource.slice(sfxFilesStart,sfxGainsStart).match(/assets\/sfx\/[^"']+\.MP3/g)||[])
+)];
+const normalizedSfxPaths=[...new Set(
+  (gameSource.slice(sfxGainsStart,sfxRuntimeStart).match(/assets\/sfx\/[^"']+\.MP3/g)||[])
+)];
+assert(mappedSfxPaths.length===65
+  &&normalizedSfxPaths.length===65
+  &&mappedSfxPaths.every(path=>normalizedSfxPaths.includes(path)),
+  "등록된 65개 효과음은 빠짐없이 파일별 음량 보정값을 가져야 합니다.");
 assert(saveSource.includes('const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1"')
   &&saveSource.includes("bgmEnabled:true")
   &&saveSource.includes("sfxEnabled:true")

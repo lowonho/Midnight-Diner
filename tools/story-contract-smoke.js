@@ -11,6 +11,7 @@ const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
 const gameSource = fs.readFileSync(path.join(root, "js/game.js"), "utf8");
 const titleSource = fs.readFileSync(path.join(root, "js/title.js"), "utf8");
+const qaSource = fs.readFileSync(path.join(root, "js/qa-mode.js"), "utf8");
 
 if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   ||!titleSource.includes('journalLastGameplayPageId=String(pageId||"")')){
@@ -24,6 +25,7 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   "assets/sfx/story/sfx_open_door.MP3",
   "assets/sfx/ui/sfx_next_book.MP3",
   ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`),
+  "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3",
   "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3",
   "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3",
   "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3",
@@ -36,9 +38,11 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
 });
 if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
   ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
+  ||!gameSource.includes('storyFacelessDaeun:"assets/bgm/story/bgm_story_faceless_daeun.MP3"')
   ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
   ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
   ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')
+  ||!gameSource.includes('daeun_ribbon_handoff:["assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3"]')
   ||!Array.from({length:7},(_,index)=>index+1).every(day=>
     gameSource.includes(`fragment_full_d${day}:["assets/sfx/story/fragments/sfx_d${day}_finish.MP3"]`)
   )){
@@ -110,13 +114,29 @@ if(endingAssetPaths.length!==5
   ||endingAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
   throw new Error("다섯 엔딩 장면은 서로 다른 실제 배경 파일을 사용해야 합니다.");
 }
+if(!qaSource.includes("storySession.playedFragmentSfx={};")){
+  throw new Error("QA에서 조각 전달 대사를 다시 열 때 획득음도 다시 재생할 수 있어야 합니다.");
+}
+const endingBgmPaths=[...gameSource.matchAll(/\bending\w+:\s*"(assets\/bgm\/story\/ending\/[^"]+\.MP3)"/g)]
+  .map(match=>match[1]);
+if(endingBgmPaths.length!==5
+  ||new Set(endingBgmPaths).size!==5
+  ||endingBgmPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("다섯 엔딩 BGM은 서로 다른 실제 MP3 파일을 사용해야 합니다.");
+}
 
 const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
 const playedAudio=[];
 const audio={
   play(name,options){
-    const entry={name,options,element:{addEventListener(){}}};
+    const listeners={};
+    const element={
+      ended:false,
+      addEventListener(type,callback){(listeners[type]||(listeners[type]=[])).push(callback);},
+      dispatch(type){(listeners[type]||[]).splice(0).forEach(callback=>callback());}
+    };
+    const entry={name,options,element,playbackPromise:null};
     playedAudio.push(entry);
     return entry;
   },
@@ -223,6 +243,13 @@ assert(applyStoryEndingBackground(STORY_SCENES["END-01"])
   &&!endingLayerStyles["--story-ending-art"].includes("/css/assets/")
   &&endingLayerAttributes["aria-hidden"]==="false",
   "엔딩 진입 시 해당 일러스트와 배경 전용 상태를 표시해야 합니다.");
+assert(applyStoryEndingBackground(STORY_SCENES["SCN-EPI01"])
+  &&endingLayerClasses.has("show")
+  &&endingOverlayClasses.has("story-ending-active")
+  &&endingLayer.dataset.sceneId==="SCN-EPI01"
+  &&endingLayerStyles["--story-ending-art"].includes("05_morning_together_restaurant_unified_v2.png")
+  &&endingLayerAttributes["aria-hidden"]==="false",
+  "비가 그친 아침 후일담은 함께 오는 아침 엔딩 일러스트를 이어서 표시해야 합니다.");
 assert(!applyStoryEndingBackground(null)
   &&!endingLayerClasses.has("show")
   &&!endingOverlayClasses.has("story-ending-active")
@@ -248,11 +275,13 @@ const fragmentLayer={
 };
 const fragmentName={textContent:""};
 const fragmentKicker={textContent:""};
-document.getElementById=id=>id==="storyFragmentHandoff"
-  ?fragmentLayer
-  :id==="storyFragmentKicker"
-    ?fragmentKicker
-    :id==="storyFragmentName"?fragmentName:null;
+const fragmentNextButton={disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}};
+const fragmentSkipButton={disabled:false,attributes:{},setAttribute(name,value){this.attributes[name]=value;}};
+document.getElementById=id=>id==="storyFragmentHandoff"?fragmentLayer
+  :id==="storyFragmentKicker"?fragmentKicker
+  :id==="storyFragmentName"?fragmentName
+  :id==="storyNextButton"?fragmentNextButton
+  :id==="storySkipButton"?fragmentSkipButton:null;
 const partialFragmentLine=STORY_SCENES["SCN-G1-맛있다"].lines.find(line=>line.fragmentHandoff);
 const fullFragmentLine=STORY_SCENES["SCN-G1-완벽"].lines.find(line=>line.fragmentHandoff);
 const storyBeforeFragmentSfx=state.story;
@@ -287,14 +316,46 @@ assert(applyStoryFragmentHandoff(fullFragmentLine)
   "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
 assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
   &&Object.entries(STORY_FULL_FRAGMENT_SFX_BY_DAY).every(([day,cue])=>cue==="fragment_full_d"+day)
-  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.slice(0,7)")
+  &&STORY_DAEUN_RIBBON_SFX==="daeun_ribbon_handoff"
+  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.includes(guestId)")
+  &&!String(playStoryFullFragmentSfx).includes('fragmentState==="full"')
   &&String(playStoryFullFragmentSfx).includes('handoff?.state!=="full"')
+  &&String(playStoryFullFragmentSfx).includes("allowRetry")
+  &&String(storyAdvance).includes("storyFullFragmentSfxWasPlayed(line)")
   &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
   "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
 assert(playedAudio.at(-1)?.name==="fragment_full_d1"
-  &&playedAudio.at(-1)?.options?.gain===.9
+  &&playedAudio.at(-1)?.options?.gain===1.6
   &&storySession.ambientAudio===guestAmbientEntry,
   "조각 획득 효과음은 손님별 대화 테마를 끊지 않고 별도로 겹쳐 재생해야 합니다.");
+const firstFragmentEntry=playedAudio.at(-1);
+const lockedFragmentLineIndex=storySession.lineIndex;
+assert(storyFragmentSfxLockIsActive()
+  &&fragmentNextButton.disabled
+  &&fragmentSkipButton.disabled
+  &&storyAdvance()
+  &&storySession.lineIndex===lockedFragmentLineIndex,
+  "조각 획득 효과음이 재생되는 동안 버튼·대사창·키보드 진행을 모두 막아야 합니다.");
+firstFragmentEntry.element.dispatch("ended");
+assert(!storyFragmentSfxLockIsActive()
+  &&!fragmentNextButton.disabled
+  &&!fragmentSkipButton.disabled,
+  "조각 획득 효과음의 실제 ended 이벤트 뒤에만 진행 버튼을 다시 활성화해야 합니다.");
+const daeunRibbonLine=STORY_SCENES["SCN-G8-완벽"].lines.find(line=>line.fragmentHandoff);
+storySession={scene:STORY_SCENES["SCN-G8-완벽"],playedFragmentSfx:{}};
+assert(applyStoryFragmentHandoff(daeunRibbonLine)
+  &&playedAudio.at(-1)?.name==="daeun_ribbon_handoff"
+  &&playedAudio.at(-1)?.options?.gain===1.6,
+  "얼굴 없는 김다은이 완전한 리본 조각을 건네는 순간 전용 전달음을 재생해야 합니다.");
+const failedDaeunEntry=playedAudio.at(-1);
+failedDaeunEntry.element.dispatch("error");
+const playedBeforeRetry=playedAudio.length;
+assert(!storyFragmentSfxLockIsActive()
+  &&playStoryFullFragmentSfx(daeunRibbonLine)
+  &&playedAudio.length===playedBeforeRetry+1
+  &&storyFragmentSfxLockIsActive(),
+  "조각 효과음 재생이 거절되거나 실패하면 다음 입력에서 같은 소리를 다시 시도해야 합니다.");
+playedAudio.at(-1).element.dispatch("ended");
 assert(!applyStoryFragmentHandoff(null)
   &&!("--fragment-art" in fragmentLayerStyles)
   &&!fragmentLayerClasses.has("show"),
@@ -466,13 +527,15 @@ assert(!prologueDoorLine?.sfxOnComplete
   "달빛식탁에 갇히다 장면 진입 시 문소리를 먼저 재생한 뒤 식당 BGM을 시작해야 합니다.");
 assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
   &&String(restoreStoryCheckpoint).includes("applyStorySceneAudio(scene)")
+  &&String(applyStorySceneAudio).includes("currentAmbientActive")
   &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
   &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
   &&String(clearStoryRuntime).includes("clearStoryAudio()")
-  &&String(finishStorySession).includes("clearStoryAudio({fadeAmbient:true})"),
+  &&String(clearStoryAudio).includes("if(!preserveBgm)audio?.setStoryBgm?.(null)")
+  &&String(finishStorySession).includes("preserveBgm:!!storySession.scene?.storyBgmHoldAfterFinish"),
   "스토리 음향은 장면 시작·중간 복원·종료 수명주기를 따라야 합니다.");
 const guestArrivalAudioNames=Array.from({length:7},(_,index)=>
-  STORY_SCENES["SCN-G"+(index+1)+"-A"].storyAmbient?.name
+  STORY_SCENES["SCN-G"+(index+1)+"-A"].storyEntrySfx?.name
 );
 same(guestArrivalAudioNames,[
   "story_guest_d1_arrival","story_guest_d2_arrival","story_guest_d3_arrival",
@@ -482,19 +545,23 @@ same(guestArrivalAudioNames,[
 assert(Array.from({length:7},(_,index)=>STORY_SCENES["SCN-G"+(index+1)+"-A"])
   .every((arrival,index)=>{
     const prefix="SCN-G"+(index+1);
-    return [arrival,STORY_SCENES[prefix+"-B"],STORY_SCENES[prefix+"-아쉽다"],
-      STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]]
-      .every(scene=>scene.storyBgm==="night"
-        &&scene.storyAmbient?.name===arrival.storyAmbient.name
-        &&scene.storyAmbientFadeOut===1400);
+    const laterScenes=[STORY_SCENES[prefix+"-B"],STORY_SCENES[prefix+"-아쉽다"],
+      STORY_SCENES[prefix+"-맛있다"],STORY_SCENES[prefix+"-완벽"]];
+    return arrival.storyBgm==="night"
+      &&arrival.storyEntrySfx?.gain===.65
+      &&!arrival.storyEntrySfx?.delayBgmUntilComplete
+      &&laterScenes.every(scene=>scene.storyBgm==="night"
+        &&!scene.storyEntrySfx&&!scene.storyAmbient);
   }),
-  "1~7일차 특별 손님의 모든 대화는 밤 BGM과 손님별 테마를 함께 유지해야 합니다.");
+  "1~7일차 특별 손님 테마는 등장 장면에서만 한 번 재생해야 합니다.");
 assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
   &&String(suspendStoryForOrderCook).includes("stopStoryAmbient(")
+  &&String(suspendStoryForOrderCook).includes("stopStoryEntrySfx()")
   &&String(restoreStoryCheckpoint).includes("if(!restored.suspended)applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes("currentAmbient?.name!==cue.name")
+  &&String(applyStorySceneAudio).includes("if(entryCue?.name&&storySession)")
   &&String(stopStoryAmbient).includes("audio.fadeOutFile(entry,duration)"),
-  "특별 손님 대화가 조리로 넘어가거나 종료될 때 테마 효과음을 자연스럽게 줄여야 합니다.");
+  "스토리 앰비언스와 한 번만 재생하는 등장 효과음은 서로 다른 수명주기를 따라야 합니다.");
 const guestArrivalAudioFiles=[
   "sfx_story_d1_raindrop_arrival.MP3","sfx_story_d2_lantern_arrival.MP3",
   "sfx_story_d3_twin_shadow_arrival.MP3","sfx_story_d4_crow_letter_arrival.MP3",
@@ -535,11 +602,11 @@ assert(l01.minLoop===2&&l01.repeatEachLoop
   &&storySceneHasRequiredInteraction(l01),
   "2회차 첫째 날에는 마지막 대사를 읽고 영업일지를 연 뒤에만 다음 단서로 이어져야 합니다.");
 assert(l01.lines.some(line=>line.speaker==="protagonist"
-  &&line.text==="손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다."),
-  "회귀 첫 장면에서 손님에게 초면처럼 대하려는 다은의 판단을 알려야 합니다.");
+  &&line.text==="손님들은 나를 기억하지 못하겠지? 나만 돌아왔으니까."),
+  "회귀 첫 장면에서 다은만 이전 회차를 기억한다는 판단을 알려야 합니다.");
 assert(l02.minLoop===2&&l02.repeatEachLoop&&l02.dynamicJournalHint,
   "2회차 이후 날짜별 동적 영업일지 안내를 사용해야 합니다.");
-same(Object.keys(l02.journalVariants),["none","clue","confirmed","shard"],
+same(Object.keys(l02.journalVariants),["clue","confirmed","shard"],
   "영업일지 상태별 안내 종류");
 Object.values(l02.journalVariants).forEach(lines=>assert(Array.isArray(lines)&&lines.length>0,
   "영업일지 상태별 대사는 lines 배열이어야 합니다."));
@@ -602,12 +669,17 @@ assert(!initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가�
 same(l01.lines.slice(-4).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",
-  "손님들은 나를 처음 보는 거니까, 나도 처음 뵙는 것처럼 대해야겠다.",
+  "손님들은 나를 기억하지 못하겠지? 나만 돌아왔으니까.",
   "누가 어떤 음식을 찾았는지는 이 장부를 보면 돼."
 ],"회귀 후 첫째 날의 영업일지 안내 대사");
-assert(l02.journalVariants.shard[0].text.includes("지난 회차")
-  &&l02.journalVariants.shard[0].text.includes("이번 회차에 다시 얻어야"),
-  "과거 조각 기록은 남아도 이번 회차에 조각을 다시 얻어야 합니다.");
+assert(l02.lines[0]?.text==="다은은 기록이 남아있는지 영업일지를 확인한다."
+  &&l02.journalVariants.clue[0]?.text==="이 날에는 손님이 원했던 음식에 대한 단서가 있어. 그 말에 맞는 음식을 준비해 보자."
+  &&l02.journalVariants.confirmed[0]?.text==="지난번엔 음식은 맞았지만 달빛 조각을 얻지 못했어 이번엔 완벽하게 조리해서 조각을 얻어야겠다."
+  &&l02.journalVariants.shard[0]?.text==="지난번에 조각을 얻었으니 똑같이 해서 다시 조각을 얻자!",
+  "영업일지 확인 내레이션과 단서·음식 확정·조각 획득 반응을 정해진 문구로 표시해야 합니다.");
+assert(String(storyLinesForScene).includes("source=[...source,...variant]")
+  &&!String(storyLinesForScene).includes("scene.journalVariants.none"),
+  "기록이 없으면 확인 내레이션만 표시하고, 기록이 있으면 상태별 반응을 이어서 표시해야 합니다.");
 
 same(STORY_EVENT_SCHEDULE.newGame[1],
   ["SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05"],"프롤로그 진입 일정");
@@ -703,6 +775,17 @@ same(STORY_SPECIAL_GUEST_BY_DAY,{
 const g8=STORY_SCENES["SCN-G8-A"];
 assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral===6,
   "얼굴 없는 김다은은 기본 조각 7개와 7일차 일반 주문 6건 뒤 등장해야 합니다.");
+const g8AudioSceneIds=["SCN-G8-A","SCN-G8-B","SCN-G8-아쉽다","SCN-G8-맛있다","SCN-G8-완벽"];
+assert(g8AudioSceneIds.every(sceneId=>
+  STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
+  &&STORY_SCENES[sceneId].storyBgmCrossfade===1000
+  &&STORY_SCENES[sceneId].storyBgmHoldAfterFinish===true)
+  &&["SCN-J02","SCN-J03"].every(sceneId=>
+    STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
+    &&STORY_SCENES[sceneId].storyBgmCrossfade===1000),
+  "얼굴 없는 김다은의 모든 대화와 결과 장면은 전용 BGM을 유지해야 합니다.");
+assert(gameSource.includes('(state.phase!=="result"||!!this.storyBgmTrack)'),
+  "결과 단계에서도 엔딩 장면 전용 BGM은 재생할 수 있어야 합니다.");
 same(
   STORY_SCENES["SCN-G1-B"].lines.filter(line=>line.speaker==="rainyChild").map(line=>line.text),
   [
@@ -716,6 +799,21 @@ assert(
     line.speaker==="schoolDoll"&&line.text==="오늘도 4시 44분에 끝나겠네요."
   ),
   "G7 준비 음식 없음·오답 첫 반응 대사"
+);
+same(
+  Array.from({length:8},(_,index)=>STORY_SCENES["SCN-G"+(index+1)+"-B"].lines
+    .find(line=>line.speaker==="protagonist")?.text),
+  [
+    "알겠어. 다음에는 그 소리가 기억나게 하는 음식을 준비해 볼게",
+    "알겠어요. 다음에는 나무꼬치에 꿰인 긴 재료를 따뜻한 국물에 담은 음식을 준비해 볼게요.",
+    "알겠어. 다음에는 흰 것과 붉은 것이 한 접시에 함께 있는 음식을 준비해 볼게.",
+    "알겠어요. 다음에는 불에 구운 작은 조각을 꼬치에 꿴 음식을 준비해 볼게요.",
+    "알겠어. 다음에는 손끝에 소금이 남는 길고 노란 음식을 준비해 볼게.",
+    "알겠어요. 다음에는 겉은 바삭하고 속에는 바다 냄새가 남은 음식을 준비해 볼게요.",
+    "알겠어. 다음에는 빨간 소스와 말랑한 조각이 함께 든 음식을 준비해 볼게.",
+    "알겠어. 다음에는 굵은 면을 팬에 볶아 함께 나눠 먹던 음식을 준비해 볼게."
+  ],
+  "G1~G8 오답 단서 뒤 김다은은 다음에 준비할 음식을 구체적으로 되짚어야 합니다."
 );
 assert(
   STORY_SCENES["SCN-G7-맛있다"].lines.at(-1)?.fragmentHandoff?.state==="partial"
@@ -775,12 +873,25 @@ same(STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices.map(choice=>
 assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requiredFlag,
   "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
 
+same(["SCN-J01","END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].storyBgm),[
+  "endingLoopReturn","endingAloneMorning","endingGuestsDawn","endingOpenForever","endingMorningTogether"
+],"다섯 엔딩 장면의 전용 BGM");
+assert(["SCN-J01","END-01","END-02","END-03","END-04"]
+  .every(id=>STORY_SCENES[id].storyBgmCrossfade===1500)
+  &&STORY_SCENES["SCN-EPI01"].storyBgm===STORY_SCENES["END-04"].storyBgm,
+  "엔딩 BGM은 1.5초로 전환하고 진엔딩 에필로그까지 같은 곡을 이어야 합니다.");
+
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
   ["nextLoop","nextLoop","nextLoop","clearRunKeepMeta"],
   "엔딩별 이어하기 정책");
 assert(["END-01","END-02","END-03"].every(id=>!STORY_SCENES[id].retryJudgementSceneId)
   &&STORY_SCENES["END-04"].retryJudgementSceneId==="SCN-J03",
   "일반 엔딩에는 재선택을 붙이지 않고 진엔딩만 마지막 분기로 돌아갈 수 있어야 합니다.");
+assert(STORY_SCENES["END-02"].lines[0]?.text
+  ==="다은은 달빛 조각을 이용해 손님들이 나아갈 수 있는 길을 밝혀준다.\\n손님들은 그 길을 따라 기억을 되찾아 각자의 아침으로 떠나지만 다은은 떠나지 못하고 식당에 남게된다."
+  &&STORY_SCENES["END-03"].lines[0]?.text
+  ==="다은은 달빛을 식당에 붙잡아둔다.\\n손님들의 기억은 다시 흐려지고 다은은 달빛식탁의 새 주인이 된다.",
+  "손님들의 새벽과 영원히 영업 중 엔딩은 달빛으로 길을 밝히거나 식당에 붙잡는 결과를 설명해야 합니다.");
 storySession={conclusionAction:null};
 queueStoryConclusion(STORY_SCENES["END-01"]);
 same(storySession.conclusionAction,{type:"nextLoop",toTitle:false},
@@ -969,8 +1080,11 @@ assert(rainy.clueFound&&!rainy.shardOwned&&!rainy.memoryUnlocked
   &&getStoryGuestResult("rainyChild").visited
   &&getStoryGuestResult("rainyChild").fragmentState==="none",
   "오답 음식 B분기는 진행용 페이지에 단서만 기록해야 합니다.");
-assert(storyLinesForScene(STORY_SCENES["SCN-L02"])[0].text.includes("팬 위에서 둥글게"),
-  "회귀 영업일지에는 실제로 얻은 단서를 동적으로 넣어야 합니다.");
+assert(storyLinesForScene(STORY_SCENES["SCN-L02"])[0].text
+  ==="다은은 기록이 남아있는지 영업일지를 확인한다."
+  &&storyLinesForScene(STORY_SCENES["SCN-L02"]).at(-1).text
+  ==="이 날에는 손님이 원했던 음식에 대한 단서가 있어. 그 말에 맞는 음식을 준비해 보자.",
+  "회귀 영업일지는 기록 확인 뒤 실제 상태에 맞는 안내를 이어서 표시해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G1-맛있다"]);
 getStoryGuestResult("rainyChild").evaluationScore=73;
 const rainyResult=getStoryGuestResult("rainyChild");

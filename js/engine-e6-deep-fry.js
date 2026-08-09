@@ -232,7 +232,7 @@ registerMiniEngine("fry", {
       completionGrade: null
     };
     clearFryPointer();
-    audio.loop?.("deep_fry", m, .68);
+    audio.loop?.("deep_fry", m, .7);
     renderFry();
   },
 

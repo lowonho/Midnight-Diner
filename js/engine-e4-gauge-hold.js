@@ -52,7 +52,7 @@ const HEAT_CONFIG=Object.freeze({
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
     targetSize:.22,targetHold:5,targetSpeed:.40,
-    initialValue:.26,initialTarget:.54,initialTargetDirection:1,
+    initialValue:0,initialTarget:.11,initialTargetDirection:1,
     riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
   }),
   tteokbokki:Object.freeze({
@@ -61,7 +61,7 @@ const HEAT_CONFIG=Object.freeze({
     visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
     // 구간 폭만 어묵탕보다 좁고, 이동 속도는 두 요리가 같습니다.
     targetSize:.19,targetHold:5,targetSpeed:.40,
-    initialValue:.28,initialTarget:.6,initialTargetDirection:-1,
+    initialValue:0,initialTarget:.095,initialTargetDirection:1,
     riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
   }),
   // 어느 설정에도 없는 요리가 들어왔을 때 쓰는 안전망입니다.
@@ -71,7 +71,7 @@ const HEAT_CONFIG=Object.freeze({
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
     targetSize:.22,targetHold:5,targetSpeed:.40,
-    initialValue:.26,initialTarget:.54,initialTargetDirection:1,
+    initialValue:0,initialTarget:.11,initialTargetDirection:1,
     riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
   })
 });
@@ -82,6 +82,12 @@ const HEAT_CONFIG=Object.freeze({
 const HEAT_KNOB_MAX_TURN=120;
 
 const HEAT_FEEL_CONFIG=Object.freeze({
+  startCountdownSeconds:3,
+  startCountdownStepSeconds:.5,
+  startSignalMs:300,
+  targetLaunchSpeed:.20,
+  targetLaunchSlowSeconds:.7,
+  targetLaunchEaseSeconds:.4,
   /* 적정 온도를 벗어난 채로 이만큼 지나면 −10 입니다.
      ⚠️ 이 값은 화면 두 군데에 그대로 적혀 있습니다. 고치면 셋을 같이 고치세요.
           진행도 카드의 '/ 1.0초'  (아래 heatScreenMarkup 의 miniScoreTimeMarkup)
@@ -149,12 +155,21 @@ function heatTargetPhase(target,direction,config){
   return direction>=0?offset:span*2-offset;
 }
 
-/* 목표 구간은 같은 속도로 위아래 끝을 계속 왕복합니다. 무작위 목적지나 dash가
-   없어서 갑자기 빨라지지 않으며, 끝에서는 위치가 끊기지 않고 방향만 바뀝니다. */
+function heatTargetSpeed(data,config){
+  const launchSpeed=Math.min(config.targetSpeed,HEAT_FEEL_CONFIG.targetLaunchSpeed);
+  const easeStart=HEAT_FEEL_CONFIG.targetLaunchSlowSeconds;
+  const elapsed=data.total??Number.POSITIVE_INFINITY;
+  if(elapsed<=easeStart)return launchSpeed;
+  const ease=Math.min(1,(elapsed-easeStart)/HEAT_FEEL_CONFIG.targetLaunchEaseSeconds);
+  return launchSpeed+(config.targetSpeed-launchSpeed)*ease;
+}
+
+/* 목표 구간은 시작할 때만 천천히 출발한 뒤 원래 속도까지 부드럽게 올라갑니다.
+   이후에는 같은 속도로 위아래 끝을 계속 왕복하며, 끝에서는 위치가 끊기지 않고 방향만 바뀝니다. */
 function updateHeatTarget(data,config,dt,random=Math.random){
   updateHeatPinch(data,dt,random);
   const half=config.targetSize/2,span=1-config.targetSize,period=span*2;
-  data.targetPhase=(data.targetPhase+config.targetSpeed*dt)%period;
+  data.targetPhase=(data.targetPhase+heatTargetSpeed(data,config)*dt)%period;
   if(data.targetPhase<=span){
     data.target=half+data.targetPhase;
     data.targetDirection=1;
@@ -250,6 +265,7 @@ function heatSceneMarkup(config){
     ${heatGaugeMarkup()}
     <strong class="heat-state-label" id="heatStateLabel">온도 낮음</strong>
     <span class="e4-result" id="e4Result" aria-live="polite"></span>
+    <div class="heat-start-countdown" id="heatStartCountdown" aria-live="assertive"><strong>${HEAT_FEEL_CONFIG.startCountdownSeconds}!</strong></div>
   </div>`;
 }
 
@@ -334,9 +350,46 @@ function heatScreenMarkup(config){
 }
 
 function setHeatControl(m,active){
-  dom.miniContent.querySelector("#heatLift")?.classList.toggle("pressed",active&&!m?.complete);
-  if(!m||m.complete||m.data.phase==="complete")return false;
+  const available=!!m&&!m.complete&&m.data.phase==="ready";
+  dom.miniContent.querySelector("#heatLift")?.classList.toggle("pressed",active&&available);
+  if(!available)return false;
   m.data.holding=active;
+  return true;
+}
+
+function startHeatLoop(m){
+  if(m.data.loopStarted)return;
+  m.data.loopStarted=true;
+  if(m.data.configId==="oden")audio.loop?.("clear_simmer",m,.7);
+  else if(m.data.configId==="tteokbokki")audio.loop?.("thick_boil",m,.7);
+}
+
+function advanceHeatCountdown(m,dt){
+  const data=m.data;
+  if(data.phase!=="countdown")return false;
+  data.countdownRemaining=Math.max(0,data.countdownRemaining-dt);
+  const nextStep=Math.ceil(data.countdownRemaining/HEAT_FEEL_CONFIG.startCountdownStepSeconds);
+  const overlay=dom.miniContent.querySelector("#heatStartCountdown");
+  const label=overlay?.querySelector("strong");
+  if(nextStep>0){
+    if(nextStep!==data.countdownStep){
+      data.countdownStep=nextStep;
+      if(label){label.textContent=`${nextStep}!`;label.classList.remove("tick");void label.offsetWidth;label.classList.add("tick");}
+    }
+    return true;
+  }
+  data.countdownStep=0;
+  data.countdownRemaining=0;
+  data.value=0;
+  data.velocity=0;
+  data.holding=false;
+  data.phase="ready";
+  if(label)label.textContent="시작!";
+  overlay?.classList.add("go");
+  startHeatLoop(m);
+  miniSetTimeout(()=>{
+    if(state.mini===m&&!m.complete)dom.miniContent.querySelector("#heatStartCountdown")?.remove();
+  },HEAT_FEEL_CONFIG.startSignalMs);
   return true;
 }
 
@@ -397,11 +450,10 @@ registerMiniEngine("heat",{
       targetPhase:heatTargetPhase(config.initialTarget,config.initialTargetDirection,config),
       sizeScale:1,pinchIn:HEAT_FEEL_CONFIG.pinchFirstDelay,pinchTime:0,pinchDur:0,pinchDepth:0,
       outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
-      holding:false,phase:"ready"
+      holding:false,phase:"countdown",loopStarted:false,
+      countdownRemaining:HEAT_FEEL_CONFIG.startCountdownSeconds*HEAT_FEEL_CONFIG.startCountdownStepSeconds,
+      countdownStep:HEAT_FEEL_CONFIG.startCountdownSeconds
     };
-    // 냄비의 끓는 루프만 비교 청음할 수 있도록 가스불 효과음은 잠시 제외합니다.
-    if(configId==="oden")audio.loop?.("clear_simmer",m,.55);
-    else if(configId==="tteokbokki")audio.loop?.("thick_boil",m,.55);
     // 3열 화면입니다. 칸 크기는 css/minigame-parts.css 의 공용 규격이 정하고,
     // 여기서는 어느 칸에 무엇을 넣을지만 정합니다.
     dom.miniContent.innerHTML=heatScreenMarkup(config);
@@ -415,6 +467,7 @@ registerMiniEngine("heat",{
   update(m,dt){
     const data=m.data,config=HEAT_CONFIG[data.configId];
     if(data.phase==="complete")return;
+    if(advanceHeatCountdown(m,dt))return;
     data.total+=dt;
     const desiredVelocity=data.holding?config.riseSpeed:-config.fallSpeed;
     const response=data.holding?config.riseResponse:config.fallResponse;
