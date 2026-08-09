@@ -2979,7 +2979,7 @@ function processStoryNightTrigger(){
   state.respawns.forEach(item=>occupied.add(item.slot));
   const freeSlot=typeof randomFreeCustomerSlot==="function"
     ?randomFreeCustomerSlot(occupied)
-    :CUSTOMER_SEATS.findIndex((_,slot)=>!occupied.has(slot));
+    :CUSTOMER_SEATS.findIndex((_,slot)=>slot<CUSTOMER_USABLE_SEATS&&!occupied.has(slot));
   if(freeSlot<0)return false;
   state.respawns=state.respawns.filter(respawn=>respawn.slot!==freeSlot);
   const spawned=spawnOrder(freeSlot,{forceStory:true,storyPlan:plan});

@@ -87,6 +87,14 @@
               <span class="phase-dot"></span>
             </div>
             <div id="objectiveBody" class="objective-body"></div>
+            <!-- 요리 점수 기준. 셰프가 들고 다니는 접시 그림이 갈리는 선과 같습니다
+                 (js/food-props.js FOOD_GRADE_MIN) — 한쪽만 고치면 안내와 그림이 어긋납니다.
+                 밤에만 보입니다(.phase-prep 에서 「영업 기록」과 함께 숨김). -->
+            <div class="score-guide">
+              <div><b>100점</b><span>완벽한 요리</span></div>
+              <div><b>70~99점</b><span>평범한 요리</span></div>
+              <div><b>70점 미만</b><span>아쉬운 요리</span></div>
+            </div>
             <div class="relationship-box">
               <div class="relationship-heading"><span>영업 기록</span><small>특별 손님과 달빛 조각</small></div>
               <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span></div>

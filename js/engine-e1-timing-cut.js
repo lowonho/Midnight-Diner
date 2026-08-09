@@ -147,7 +147,15 @@ function playCutIngredientSfx(data,tapStep=0){
   audio.play?.(name,{owner:state.mini});
 }
 
-function cutMistakeScore(data){return clamp(100-(data?.mistakes??0)*10,0,100);}
+/* 밤 조리 칼질 점수 — 100 에서 깎아 내려갑니다.
+     MISS(초록 구간 밖)   -10
+     GOOD(초록 구간 안)   -5   ← 노란 중심을 벗어난 절단
+     PERFECT(노란 중심)    0
+   우측 칸 감점 안내(js/ui-mini-frame.js 의 MINI_PENALTY.chop)가 말하는
+   "완벽한 타이밍에 썰지 않으면 깎인다"가 곧 이 GOOD 감점입니다.
+   낮 준비는 점수 대신 완성 개수라 goodCuts 를 세도 결과가 달라지지 않습니다
+   (timing 엔진의 score 가 dayPrep 이면 100 을 그대로 돌려줍니다). */
+function cutMistakeScore(data){return clamp(100-(data?.mistakes??0)*10-(data?.goodCuts??0)*5,0,100);}
 
 function cutIngredientLabel(data){
   return data.ingredientLabel||CUT_INGREDIENT_LABEL[data.ingredient]||"재료";
@@ -346,7 +354,7 @@ function startCuttingMinigame(options){
     ?Math.abs(firstCutX-suppliedCutPosition(options.ingredient,1,verticalCount))
     :CUT_FEEL_CONFIG.pathLeadInFallback;
   const startKnifeX=Math.min(CUT_FEEL_CONFIG.startXCeiling,firstCutX+firstBeatDistance);
-  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:startKnifeX,startKnifeX,knifeY:CUT_FEEL_CONFIG.horizontalStartY,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds*CUT_FEEL_CONFIG.startCountdownStepSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
+  setDayPrepData({mode:"timing",phase:"countdown",successes:0,taskId:options.taskId,ingredient:options.ingredient,assetPrefix:options.assetPrefix||"",total:options.requiredHits,hitTolerance,travelSpeed,knifeX:startKnifeX,startKnifeX,knifeY:CUT_FEEL_CONFIG.horizontalStartY,onComplete:options.onComplete,requiresDoubleTap:!!options.requiresDoubleTap,tapStep:0,tapWindow:0,pendingGrade:null,inputLocked:true,mistakes:0,goodCuts:0,cutScores:[],countdownRemaining:CUT_FEEL_CONFIG.startCountdownSeconds*CUT_FEEL_CONFIG.startCountdownStepSeconds,countdownStep:CUT_FEEL_CONFIG.startCountdownSeconds,
     // 왼쪽 재료 카드에 쓰는 이름·개수 (없으면 재료 id 로 찾고 ×1 로 씁니다)
     ingredientLabel:options.ingredientLabel||"",
     ingredientCount:options.ingredientCount||1,
@@ -706,7 +714,11 @@ function completeTimingCut(m,grade="good",missMessage=""){
   if(grade==="miss"){
     data.mistakes=(data.mistakes||0)+1;
     audio.bad();
-  }else playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
+  }else{
+    // 초록 구간(GOOD)은 성공이지만 노란 중심이 아니라 밤 점수에서 5점 깎입니다.
+    if(grade==="good")data.goodCuts=(data.goodCuts||0)+1;
+    playCutIngredientSfx(data,data.requiresDoubleTap?2:0);
+  }
   data.cutScores?.push(grade==="perfect"?100:grade==="good"?85:45);
   data.successes++;
   const board=dom.miniContent.querySelector(".cut-board"),work=dom.miniContent.querySelector("#prepWorkObject"),judgement=dom.miniContent.querySelector("#cutJudgement");
@@ -908,8 +920,8 @@ registerMiniEngine("chop",{
       10
     );
     m.data=isTofu
-      ?{marker:0,dir:1,speed:.78,hits:[],mistakes:0,cuts:0,total:6,tofuStyle:true,ingredient:"tofu",ingredientLabel:"두부",ingredientCount:1,assetPrefix:"",zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
-      :{marker:0,dir:1,speed:.92,hits:[],mistakes:0,cuts:0,total:5,tofuStyle:false,ingredient:"radish",ingredientLabel:"절임무",ingredientCount:1,assetPrefix:"",zoneWidth:.24,zoneStarts:[.38,.38,.38,.38,.38]};
+      ?{marker:0,dir:1,speed:.78,hits:[],mistakes:0,goodCuts:0,cuts:0,total:6,tofuStyle:true,ingredient:"tofu",ingredientLabel:"두부",ingredientCount:1,assetPrefix:"",zoneWidth:.14,zoneStarts:[.18,.56,.3,.67,.42,.22]}
+      :{marker:0,dir:1,speed:.92,hits:[],mistakes:0,goodCuts:0,cuts:0,total:5,tofuStyle:false,ingredient:"radish",ingredientLabel:"절임무",ingredientCount:1,assetPrefix:"",zoneWidth:.24,zoneStarts:[.38,.38,.38,.38,.38]};
     if(isTofu)dom.miniTimer.textContent="0 / 6";
     renderNightChop(m);
   },
@@ -930,7 +942,8 @@ registerMiniEngine("chop",{
     const data=m.data,cutIndex=data.cuts;
     const score=markerScore(m,.5),grade=cutTimingGrade(data.marker,data.zoneStarts[cutIndex],data.zoneWidth);
     data.hits.push(score);data.cuts++;
-    if(grade==="miss"){data.mistakes++;audio.bad();}else playCutIngredientSfx(data);
+    if(grade==="miss"){data.mistakes++;audio.bad();}
+    else{if(grade==="good")data.goodCuts=(data.goodCuts||0)+1;playCutIngredientSfx(data);}
     showNightChopImpact(m,cutIndex,grade);
     data.marker=0;data.dir=1;data.speed+=.08;
     if(data.cuts>=data.total){
@@ -951,6 +964,7 @@ function tofuChopAction(m){
     dom.miniFeedback.textContent="절단선을 놓쳤습니다. 초록 구간에서 다시 썰어주세요.";audio.bad();return;
   }
   const grade=cutTimingGrade(data.marker,zoneStart,data.zoneWidth);
+  if(grade==="good")data.goodCuts=(data.goodCuts||0)+1;
   data.hits.push(cutZoneScore(data.marker,zoneStart,data.zoneWidth));
   data.cuts++;playCutIngredientSfx(data);
   showNightChopImpact(m,cutIndex,grade);
