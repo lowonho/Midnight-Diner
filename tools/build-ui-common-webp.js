@@ -83,6 +83,82 @@
    ⚠️ 두 장을 **같은 228x165 로 강제**하는 것이 중요합니다. 납품본이
       4312x3120 과 4316x3116 으로 0.24% 다른데, 그대로 두면 낮↔밤이
       바뀔 때 간판이 미세하게 들썩입니다.
+
+   ------------------------------------------------------------
+   [3] 준비 완료 도장 — 간판과 같은 기준입니다
+   ------------------------------------------------------------
+   낮 준비물 위에 찍히는 초록 체크 도장(js/prep.js)도 같은 프레임 캔버스에
+   그립니다. 그래서 기준도 [2] 와 같습니다 — 화면에 그려지는 픽셀 수 그대로.
+     js/prep.js PREP_READY_BADGE.size(논리 30) x VIEW_SCALE(1.5) = 45
+   다만 도장은 놓이는 자리가 준비물 그림 폭을 따라 움직여서(prep.js 의
+   badgeX) VIEW 좌표가 정수로 떨어진다는 보장이 없습니다. 간판처럼 완전한
+   1:1 은 아니고, 반픽셀만큼 보간될 수 있습니다. 둥근 도장이라 눈에
+   띄지 않는 정도이고, 그 대신 확대는 절대 일어나지 않게 45 를 지킵니다.
+
+   ⚠️ 납품본이 190x193 이라 정사각(45x45)으로 뽑으면 세로가 1.6% 눌립니다.
+      원 하나짜리 그림이라 보이지 않고, 그리는 쪽 상수(size 하나)와 파일을
+      정사각으로 맞춰 두는 편이 나중에 크기를 바꿀 때 헷갈리지 않습니다.
+      (가로세로비 경고 한계인 2% 안쪽입니다)
+
+   ------------------------------------------------------------
+   [4] 손님 주문 패널(구름 말풍선) — 여기만 2배율입니다
+   ------------------------------------------------------------
+   위 셋과 달리 이것은 프레임 캔버스가 아니라 **게임 캔버스**에 그립니다
+   (js/customers.js drawCustomers). 게임 캔버스도 결국 1920x1080 이라
+   화면 픽셀 수는 논리폭 106 x VIEW_SCALE(1.5) = 159 로 정해집니다.
+
+   그런데 이 패널만은 1:1 을 노릴 수 없습니다.
+     · 고른 주문이면 1.06 배까지 부풉니다 (CUSTOMER_SELECT_PULSE)
+     · 놓이는 자리가 손님 머리 높이를 따라 캐릭터마다 다릅니다
+       (CUSTOMER_HEAD_TOPS 는 소수점 값입니다)
+   어차피 매 프레임 배율과 위치가 어긋나므로, 1:1 을 맞추는 대신 화면
+   픽셀의 2배(320x244)로 뽑아 축소 여유를 둡니다. 확대는 일어나지 않고
+   축소만 일어나므로 부푼 순간에도 가장자리가 뭉개지지 않습니다.
+
+   ⚠️ js/customers.js CUSTOMER_HUD.panelW 를 바꾸면 여기 320x244 도 같이
+      바꾸세요. 반대로 이 크기를 바꿔도 게임 쪽은 고칠 것이 없습니다 —
+      customers.js 는 그림 안의 위치를 전부 **비율**로 적어 둡니다.
+
+   ------------------------------------------------------------
+   [5] 손님 대사 말풍선 — 6장이 한 벌입니다
+   ------------------------------------------------------------
+   폭 3종 x 줄 수 2종. 늘려 쓰라고 만든 그림이 아니라, 글자가 들어가는 칸
+   크기마다 한 장씩 그린 것입니다. 파일 이름의 `display_138x48` 은
+   **화면(VIEW) 픽셀**이고, 논리 좌표로는 1.5 로 나눈 92x32 입니다.
+
+     138x48    92 x 32     한 줄 · 좁게
+     188x48   125.3 x 32   한 줄 · 중간
+     237x48   158 x 32     한 줄 · 넓게
+     138x73.5  92 x 49     두 줄 · 좁게
+     188x73.5 125.3 x 49   두 줄 · 중간
+     237x73.5 158 x 49     두 줄 · 넓게
+
+   [주문 패널과 같은 2배율입니다] 이쪽도 게임 캔버스에 그립니다. 부풀지는
+   않지만 놓이는 y 가 손님 머리 높이를 따라 소수점이라 1:1 이 성립하지
+   않고, 73.5 는 애초에 파일로 만들 수 없는 크기입니다. 2배(147)로 뽑아
+   두면 세로가 정확히 절반으로 줄어들어 비율이 어긋나지 않습니다.
+
+   ⚠️ 6장 모두 마스터의 정확히 절반입니다(4배율 → 2배율). 그래서 가로세로비
+      경고가 뜰 일이 없고, 한 장만 다른 크기로 뽑으면 말풍선마다 테두리
+      굵기가 달라 보입니다. 고칠 때는 여섯 줄을 같이 고치세요.
+
+   ------------------------------------------------------------
+   [6] 대사 말풍선만 어둡게 뽑습니다 (tone / BUBBLE_TONE)
+   ------------------------------------------------------------
+   납품본의 채움색이 #351e0b 인데, 이 말풍선이 대신하는 예전 벡터 도형은
+   #23140d 였습니다. 밤 주방(어두운 남색 타일) 위에 그대로 얹으니 말풍선만
+   떠 보여서, 예전 밝기로 되돌립니다.
+
+   [단순 곱셈이 아니라 감마인 이유] 채움색과 금테를 같은 비율로 누르면
+   (linear 0.66) 금테가 203 → 133 까지 같이 죽어서 테두리가 흐물흐물해집니다.
+   감마 곡선은 어두운 쪽을 더 많이 누릅니다.
+     감마 1.26   채움 53 → 35 (0.66배)   금테 203 → 191 (0.94배)
+   채움만 예전 밝기로 내려가고 테두리는 거의 그대로 남습니다.
+
+   ⚠️ **마스터를 다시 그려 어둡게 받으면 BUBBLE_TONE 을 1 로 되돌리세요.**
+      안 그러면 두 번 어두워집니다. PNG 는 언제나 손대지 않은 원본입니다.
+   ⚠️ 이 감마는 대사 말풍선 6장에만 걸려 있습니다. 주문 패널(구름)은 밝은
+      크림색이 원래 색이라 그대로 둡니다.
    ============================================================ */
 
 const fs = require("fs");
@@ -91,10 +167,16 @@ const sharp = require("sharp");
 
 const UI_DIR = path.join(__dirname, "..", "assets", "UI", "Common");
 
+/* 대사 말풍선 6장에 거는 감마. 아래 [6] 을 읽고 고치세요.
+   1 이면 손대지 않습니다. 1.26 은 채움색을 예전 벡터 말풍선과 같은
+   밝기(#23140d)로 내리면서 금테는 거의 그대로 남기는 값입니다. */
+const BUBBLE_TONE = 1.26;
+
 /* [file]     UI_DIR 기준 파일 이름 (PNG 마스터)
    [size]     뽑아낼 WebP 크기 [가로, 세로]
    [out]      출력 이름을 따로 줄 것. 기본은 확장자만 .webp 로 바꾼 이름입니다.
    [lossless] 무손실로 뽑을 것
+   [tone]     어둡게 하는 감마. 1 보다 크면 어두워집니다. 없으면 손대지 않습니다 (아래 [6])
    [why]      그 크기의 근거. 주석용입니다. */
 const FILES = [
   { file:"ui_cursor_cat_default_256.png", out:"ui_cursor_cat_default_48.webp", size:[48,48], lossless:true, why:"CSS 커서 (상한은 128, 실제로는 48)" },
@@ -104,7 +186,24 @@ const FILES = [
   /* 간판 마스터는 `_4x` 입니다. 출력 이름에는 `_4x` 를 빼서 내보냅니다 —
      js/signage.js 가 `ui_shop_status_<상태>.webp` 로 찾기 때문입니다. (아래 [4x 마스터] 참고) */
   { file:"ui_shop_status_before_4x.png", out:"ui_shop_status_before.webp", size:[228,165], lossless:true, why:"js/signage.js OPEN_SIGN 152x110 x1.5 (낮 · 영업 전)" },
-  { file:"ui_shop_status_open_4x.png",   out:"ui_shop_status_open.webp",   size:[228,165], lossless:true, why:"js/signage.js OPEN_SIGN 152x110 x1.5 (밤 · 영업 중)" }
+  { file:"ui_shop_status_open_4x.png",   out:"ui_shop_status_open.webp",   size:[228,165], lossless:true, why:"js/signage.js OPEN_SIGN 152x110 x1.5 (밤 · 영업 중)" },
+  /* 준비 완료 도장. 간판과 같은 프레임 캔버스라 기준도 같습니다 — 화면에
+     그려지는 픽셀 수(30 x1.5 = 45) 그대로입니다. (아래 [3] 참고) */
+  { file:"ui_status_ready.png", size:[45,45], lossless:true, why:"js/prep.js PREP_READY_BADGE 30 x1.5 (준비 완료 도장)" },
+  /* 손님 주문 패널. 이것만 게임 캔버스라 배율 기준이 다릅니다 — 화면
+     픽셀(106 x1.5 = 159)의 2배입니다. 출력 이름에서는 발주 당시 이름
+     (`_selected_max_tail_right_curved_inward_4x`)을 떼어 냅니다. (아래 [4] 참고) */
+  { file:"ui_order_panel_cloud_selected_max_tail_right_curved_inward_4x.png", out:"ui_order_panel_cloud.webp",
+    size:[320,244], lossless:true, why:"js/customers.js CUSTOMER_HUD.panelW 106 x1.5 x2 (손님 주문 패널)" },
+  /* 손님 대사 말풍선 6종. 전부 마스터의 정확히 절반(= 화면 크기의 2배)입니다.
+     출력 이름에서 `_0N_display` 와 `_4x` 를 떼어 화면 크기만 남깁니다 —
+     js/customers.js 가 `ui_dialogue_bubble_<가로>x<세로>.webp` 로 찾습니다. (아래 [5] 참고) */
+  { file:"ui_dialogue_bubble_01_display_138x48_4x.png",   out:"ui_dialogue_bubble_138x48.webp",   size:[276, 96], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 92x32 x1.5 x2 (한 줄 · 좁게)" },
+  { file:"ui_dialogue_bubble_02_display_188x48_4x.png",   out:"ui_dialogue_bubble_188x48.webp",   size:[376, 96], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 125.3x32 x1.5 x2 (한 줄 · 중간)" },
+  { file:"ui_dialogue_bubble_03_display_237x48_4x.png",   out:"ui_dialogue_bubble_237x48.webp",   size:[474, 96], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 158x32 x1.5 x2 (한 줄 · 넓게)" },
+  { file:"ui_dialogue_bubble_04_display_138x73p5_4x.png", out:"ui_dialogue_bubble_138x73p5.webp", size:[276,147], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 92x49 x1.5 x2 (두 줄 · 좁게)" },
+  { file:"ui_dialogue_bubble_05_display_188x73p5_4x.png", out:"ui_dialogue_bubble_188x73p5.webp", size:[376,147], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 125.3x49 x1.5 x2 (두 줄 · 중간)" },
+  { file:"ui_dialogue_bubble_06_display_237x73p5_4x.png", out:"ui_dialogue_bubble_237x73p5.webp", size:[474,147], lossless:true, tone:BUBBLE_TONE, why:"손님 대사 말풍선 158x49 x1.5 x2 (두 줄 · 넓게)" }
 ];
 
 /* [간판도 무손실인 이유] 1078 → 228 로 크게 줄이는 그림이라 축소만으로도
@@ -130,6 +229,28 @@ function resized(src, w, h){
   return sharp(src).resize(w, h, { kernel:"lanczos3", fit:"fill" });
 }
 
+/* 어둡게 하기. out = 255 * (in/255)^gamma 를 **RGB 에만** 겁니다. (아래 [6])
+
+   ⚠️ 알파는 건드리면 안 됩니다. 알파까지 눌리면 둥근 모서리의 반투명
+      가장자리가 얇아져서 테두리가 갉아먹힌 것처럼 보입니다.
+   ⚠️ 축소한 **뒤에** 겁니다. 축소하면서 섞인 테두리 중간색까지 같은
+      곡선을 타야 테두리 굵기가 그대로 남습니다.
+   sharp 에 이 곡선이 없어서(modulate 는 LCh 라 파란 채널이 0 으로 죽습니다)
+   raw 버퍼에 직접 표를 씌웁니다. 256칸 표라 파일당 한 번이면 끝납니다. */
+async function toned(image, gamma){
+  if(!gamma || gamma === 1) return image;
+  const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject:true });
+  const lut = new Uint8Array(256);
+  for(let v=0; v<256; v++) lut[v] = Math.round(255*Math.pow(v/255, gamma));
+  for(let i=0; i<data.length; i+=4){
+    data[i]=lut[data[i]]; data[i+1]=lut[data[i+1]]; data[i+2]=lut[data[i+2]];
+  }
+  return sharp(data, { raw:{ width:info.width, height:info.height, channels:4 } });
+}
+
+// 축소 + 톤. convert 와 verify 가 **반드시** 같이 써야 하는 한 벌입니다.
+const pipeline = (src, f) => toned(resized(src, f.size[0], f.size[1]), f.tone);
+
 function checkAspect(f, meta){
   const source = meta.width / meta.height;
   const target = f.size[0] / f.size[1];
@@ -150,7 +271,7 @@ async function convert(){
     const meta = await sharp(src).metadata();
     checkAspect(f, meta);
     const [w,h] = f.size;
-    await resized(src, w, h)
+    await (await pipeline(src, f))
       .webp(f.lossless ? {lossless:true, effort:EFFORT}
                        : {quality:QUALITY, effort:EFFORT, alphaQuality:100})
       .toFile(out);
@@ -158,7 +279,8 @@ async function convert(){
     pngTotal+=a; webpTotal+=b;
     console.log(path.basename(out).padEnd(34), `${meta.width}x${meta.height}`.padStart(11), `${w}x${h}`.padStart(11),
       `${kb(a)}KB`.padStart(8), `${kb(b)}KB`.padStart(8),
-      `${Math.round((1-b/a)*100)}%`.padStart(7), "  "+(f.lossless?"무손실":`q${QUALITY}`));
+      `${Math.round((1-b/a)*100)}%`.padStart(7),
+      "  "+(f.lossless?"무손실":`q${QUALITY}`)+(f.tone?` · 감마 ${f.tone}`:""));
   }
   console.log("-".repeat(92));
   console.log("합계".padEnd(26), "".padStart(11), "".padStart(11),
@@ -166,18 +288,21 @@ async function convert(){
     `${Math.round((1-webpTotal/pngTotal)*100)}%`.padStart(7));
 }
 
-// 같은 크기로 줄인 무손실 기준본과 WebP 를 픽셀 단위로 비교합니다.
-// (원본 크기와 직접 비교하면 크기가 달라 비교 자체가 불가능합니다)
+/* 같은 크기로 줄인 무손실 기준본과 WebP 를 픽셀 단위로 비교합니다.
+   (원본 크기와 직접 비교하면 크기가 달라 비교 자체가 불가능합니다)
+
+   ⚠️ 기준본도 반드시 pipeline() 으로 만드세요. 감마를 뺀 기준본과 비교하면
+      어둡게 한 만큼이 통째로 "손실"로 잡혀서, 무손실인데도 RGB 평균 오차가
+      20 넘게 찍힙니다. 여기서 재는 것은 **인코딩 손실**뿐입니다. */
 async function verify(){
-  console.log("\n품질 검증 (같은 크기로 축소한 무손실 기준본 대비)");
+  console.log("\n품질 검증 (같은 크기로 축소 + 같은 감마를 건 무손실 기준본 대비)");
   console.log("파일".padEnd(34), "알파최대오차".padStart(12), "RGB평균".padStart(9), "RGB최대".padStart(8));
   for(const f of FILES){
     const src = path.join(UI_DIR, f.file);
     const out = outPath(f);
     if(!fs.existsSync(out))continue;
-    const [w,h] = f.size;
     const [a,b] = await Promise.all([
-      resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
+      (await pipeline(src,f)).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
     if(a.data.length!==b.data.length){ console.log(path.basename(out),"크기 불일치!"); continue; }

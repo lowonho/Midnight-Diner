@@ -269,6 +269,51 @@ function drawPrepFallbackObject(item,done){
   }
 }
 
+/* 준비 완료 도장 (초록 동그라미 + 체크).
+   ------------------------------------------------------------
+   원래는 여기서 직접 원을 그리고 그 위에 "✓" 글자를 얹었습니다.
+   지금은 원화 한 장으로 바꿨습니다 — 글꼴에 든 체크 글자는 컴퓨터마다
+   굵기와 위치가 달라서, 원 한가운데에 놓이지 않는 화면이 있었습니다.
+
+   [크기] 논리 30. 예전 원(반지름 15)과 같은 지름이라 도장이 놓이는
+   자리도 그대로입니다. 이 값을 고치면 tools/build-ui-common-webp.js 의
+   목표 크기(30 x1.5 = 45)도 같이 고쳐야 확대가 일어나지 않습니다.
+
+   [실패해도 통과시키는 이유] 도장 한 장 때문에 게임 전체가 로딩 실패로
+   빠지면 안 됩니다. 못 읽으면 아래 예비 도형(예전 원 + ✓)으로 그립니다.
+   ------------------------------------------------------------ */
+const PREP_READY_BADGE = {
+  src:"assets/UI/Common/ui_status_ready.webp",
+  size:30,
+  // 그림을 못 읽었을 때만 쓰는 예비 도형 값입니다.
+  fallback:{ fill:"#91b961", mark:"#17200e", font:"bold 18px sans-serif", markDy:6 }
+};
+
+let prepReadyBadgeImage = null;
+
+function loadPrepReadyBadge(){
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>{prepReadyBadgeImage=image;resolve(image);};
+    image.onerror=()=>{console.warn(`준비 완료 도장을 불러오지 못했습니다: ${PREP_READY_BADGE.src}`);resolve(null);};
+    image.src=PREP_READY_BADGE.src;
+  });
+}
+
+// (x, y) 는 도장 한가운데입니다.
+function drawPrepReadyBadge(x,y){
+  const B=PREP_READY_BADGE,half=B.size/2;
+  if(prepReadyBadgeImage){
+    ctx.drawImage(prepReadyBadgeImage,x-half,y-half,B.size,B.size);
+    return;
+  }
+  const F=B.fallback;
+  ctx.fillStyle=F.fill;ctx.beginPath();ctx.arc(x,y,half,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=F.mark;ctx.font=F.font;ctx.textAlign="center";ctx.fillText("✓",x,y+F.markDy);
+  ctx.textAlign="left";
+}
+
+
 /* 진행 숫자 · "준비 완료" 글자.
    ------------------------------------------------------------
    예전 나무 상자는 어두워서 밝은 글자만으로 읽혔지만, 재료 바구니
@@ -305,12 +350,14 @@ function drawPrepObjects(){
        만 알립니다 — 어느 것부터 할지는 그대로 플레이어가 정합니다.
        다 끝낸 자리는 꺼져서, 남은 자리만 눈에 들어옵니다.
 
-       [둥실은 같이 안 켭니다] 남은 준비물이 한꺼번에 크게 흔들리면
-       바 테이블 위가 통째로 출렁여서 오히려 어디를 볼지 알기 어렵습니다.
-       빠른 둥실은 가까이 가서 E 를 누를 수 있을 때만입니다. */
+       [둥실도 빛과 같이 켭니다] 멀리 있어도 남은 준비물은 다 같이 크게·
+       빠르게 흔들립니다(주방 집기 이름표와 같은 active 값). 빛만 켜고
+       가만히 두면 바 테이블이 화면 아래쪽 구석이라 눈이 잘 안 갑니다.
+       움직임까지 붙여야 "저기 아직 남았다"가 한눈에 들어옵니다.
+       다 끝낸 자리만 잔잔한 idle 로 남아서, 남은 자리와 갈립니다. */
     const glow=!done&&!state.mini&&!state.paused;
     drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,
-      labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)),glow);
+      labelFloatStep(`prep_${item.task.id}`,glow||prepObjectUsable(item,near)),glow);
 
     // 진행 글자는 그림 아래로 내려서 재료를 가리지 않게 합니다.
     const textY=item.y+(art?art.h/2+L.artDy+11:18);
@@ -321,9 +368,7 @@ function drawPrepObjects(){
          세로는 그림 한가운데 높이입니다. 예전처럼 위쪽(y-18)에 두면
          이름표를 -32 로 올린 지금은 명판 오른쪽 아래 모서리를 파고듭니다. */
       const badgeX=item.x+(art?art.w/2-8:34),badgeY=item.y+(art?L.artDy:-18);
-      ctx.fillStyle="#91b961";ctx.beginPath();ctx.arc(badgeX,badgeY,15,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#17200e";ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.fillText("✓",badgeX,badgeY+6);
-      ctx.textAlign="left";
+      drawPrepReadyBadge(badgeX,badgeY);
       drawPrepStatusText("준비 완료",item.x,textY,"#d9e8b5");
     }else{
       // 메뉴 이름은 바로 위 이름표("두부김치 준비")에 이미 있어서 숫자만 씁니다.

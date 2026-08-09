@@ -24,7 +24,11 @@
      update(m, dt)     매 프레임. dt 는 지난 시간(초).
      timerRuns(m)      제한시간을 깎을지 여부. 생략하면 true(깎음).
                        두부 썰기처럼 타이머 자리에 횟수를 쓰는 게임은 false.
-     timeout(m)        제한시간이 0 이 됐을 때. 생략하면 finishMini(m.score||35).
+     timeout(m)        제한시간이 0 이 됐을 때. **연출과 마무리 흐름만** 맡습니다.
+                       ⚠️ 점수는 여기서 정하지 마세요 — 시간이 끝난 판은
+                          무조건 최저점입니다(아래 MINI_TIMEOUT_SCORE).
+                          엔진이 finishMini 에 무엇을 넘기든 game.js 가 덮어씁니다.
+                       생략하면 곧바로 finishMini(MINI_TIMEOUT_SCORE).
      action(m)         Space / ACTION 버튼 / 화면 안 조작 버튼을 눌렀을 때.
      noKeyboard        true 면 **마우스 전용 게임**입니다. game.js 가 키를 통째로
                        무시합니다 — 아래 key/keyup 도, Space 기본 동작(action)도
@@ -41,6 +45,24 @@
    ============================================================ */
 
 const MINI_ENGINES = {};
+
+/* ---- 제한시간을 넘긴 판의 점수 --------------------------------
+   제한시간이 있는 게임에서 시간이 0 이 되면, 그때까지 얼마나 해 뒀든
+   **최저점**입니다. 시간 안에 못 끝낸 요리는 손님에게 낼 수 없다는 규칙이라
+   "절반쯤 했으니 절반쯤 준다"를 두지 않습니다.
+   0 점이면 cookingScoreTier 가 "disappointing" 이라 판정 문구는 "아쉬워요!",
+   결과음은 audio.bad() 로 떨어집니다 (game-data.js · game.js 의 audio.result).
+
+   [어디서 걸리나]  game.js 두 곳뿐입니다.
+     updateMini   시간이 0 이 된 프레임에 m.timeOver 를 세우고 점수 카드를 내립니다
+     finishMini   m.timeOver 면 엔진이 넘긴 점수를 이 값으로 갈아끼웁니다
+   그래서 엔진마다 따로 손볼 것이 없고, 앞으로 붙는 엔진도 자동으로 같은 규칙입니다.
+
+   ⚠️ m.timeOver(판 하나 전체가 시간 초과)와 engine-e5 의 m.data.timedOut 은
+      다른 값입니다. 뒤엣것은 그 게임이 자기 연출을 위해 따로 세우는 표시입니다.
+   ⚠️ 제한시간이 아예 없는 게임(timerRuns:false — 낮 준비 전부, 두부 썰기,
+      볶음우동, 김치 볶기, 튀기기)은 시간이 줄지 않으므로 여기 걸리지 않습니다. */
+const MINI_TIMEOUT_SCORE = 0;
 
 /* 설정창이 열린 동안에도 브라우저의 기본 setTimeout/setInterval 은 계속
    흐릅니다. 미니게임 연출·완료 콜백을 이 등록소로 통일하면 설정을 여는
@@ -135,6 +157,9 @@ function miniEngine(m = state.mini) {
    갱신만 맡습니다. 이후 게임별 배점만 바꿀 때 마크업을 다시 손댈 필요가 없습니다. */
 function miniCurrentScore(m = state.mini) {
   if (!m) return 0;
+  // 시간이 끝난 판은 카드도 곧바로 최저점으로 내려갑니다 — TIME OVER 연출이
+  // 흐르는 동안 옛 점수가 남아 있으면 마지막에 0 점으로 뚝 떨어져 보입니다.
+  if (m.timeOver) return MINI_TIMEOUT_SCORE;
   const engineScore = miniEngine(m)?.score?.(m);
   const score = Number.isFinite(engineScore) ? engineScore : m.score;
   return Math.round(clamp(Number.isFinite(score) ? score : 0, 0, 100));

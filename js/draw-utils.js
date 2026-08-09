@@ -223,7 +223,7 @@ function fixtureLabelWidth(text){
 }
 
 /* float 은 labelFloatStep() 의 반환값입니다. 안 넘기면 예전처럼 가만히 있습니다.
-   glow 가 참이면 판 뒤에 안내 등불빛을 깝니다. (fx.js §3 drawPlateGlow)
+   glow 가 참이면 판 뒤에 안내 발광을 깝니다. (fx.js §3 drawPlateGlow)
 
    [판 한가운데를 기준으로 놓습니다] 판 높이가 바뀌어도 위아래로 똑같이
    늘어나게 하려는 것입니다. 예전 도형 명판의 한가운데(글자 baseline 위 5)를

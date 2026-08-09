@@ -447,6 +447,7 @@
 .heat-state-label { position:absolute; z-index:9; left:48%; top:calc(6 * var(--upx)); min-width:calc(125 * var(--upx)); padding:calc(7 * var(--upx)) calc(14 * var(--upx)); border:2px solid #765033; border-radius:calc(16 * var(--upx)); background:#241610; color:#c7b08a; text-align:center; font-size:calc(17 * var(--upx)); transform:translateX(-50%); }
 .heat-cook-scene.heat-ideal .heat-state-label { border-color:#809e4e; color:#ddeb9e; box-shadow:0 0 calc(13 * var(--upx)) rgba(139,184,83,.25); }
 .heat-cook-scene.heat-high .heat-state-label { border-color:#b7553d; color:#ffc0a0; }
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 */
 .e4-result { position:absolute; z-index:10; left:50%; top:45%; opacity:0; color:#f3d5a0; font-size:calc(29 * var(--upx)); font-weight:1000; letter-spacing:calc(2 * var(--upx)); text-shadow:0 calc(3 * var(--upx)) 0 #5a2e13,0 0 calc(18 * var(--upx)) rgba(255,202,92,.65); transform:translate(-50%,calc(8 * var(--upx))) scale(.82); pointer-events:none; }
 .e4-result.show { animation:e4-result-pop .62s ease-out forwards; }
 .e4-result.perfect { color:#ffe083; font-size:calc(33 * var(--upx)); }

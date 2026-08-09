@@ -469,10 +469,10 @@ registerMiniEngine("twoSideCook", {
     twoSideUnits(m.data).forEach(unit=>tickTwoSideUnit(m,unit,dt));
   },
 
-  /* 제한시간이 끝났습니다. 멸치 손질(engine-e10)과 같은 마감입니다 —
-     그때까지 끝낸 만큼으로 셈하고 TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
-     ⚠️ 이게 없으면 game.js 가 finishMini(35) 로 뚝 끊습니다. 꼬치를 원할 때
-        올리는 방식이 되면서 시간이 모자라는 판이 실제로 생겨 필요해졌습니다. */
+  /* 제한시간이 끝났습니다. TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
+     ⚠️ 이게 없으면 game.js 가 연출 없이 그 자리에서 끊습니다. 꼬치를 원할 때
+        올리는 방식이 되면서 시간이 모자라는 판이 실제로 생겨 필요해졌습니다.
+     ⚠️ 점수는 최저점으로 고정입니다 — mini-engine.js 의 MINI_TIMEOUT_SCORE 참고. */
   timeout(m){ timeoutTwoSideCook(m); },
 
   // ACTION 버튼(휴대용 화면의 큰 버튼)으로도 클릭 신호에 답할 수 있게 열어 둡니다.
@@ -1628,7 +1628,11 @@ function finishTwoSideCook(m){
   const average=Math.round(data.hits.reduce((sum,score)=>sum+score,0)/Math.max(1,data.hits.length));
   // 못 마친 자루가 있으면 그만큼 깎습니다 (시간 종료로 들어온 길)
   const missing=twoSideUnits(data).filter(unit=>!unit.done).length;
-  const score=data.dishStyle==="pancake"
+  /* ⚠️ 시간이 끝나 들어온 판은 최저점입니다 — game.js 의 finishMini 가 어차피
+     MINI_TIMEOUT_SCORE 로 덮어쓰므로, 화면에 띄우는 판정도 같은 값으로 맞춥니다.
+     (여기서 계산한 점수를 그대로 띄우면 "맛있어요!" 를 보여 주고 0 점을 주게 됩니다) */
+  const score=m.timeOver?MINI_TIMEOUT_SCORE
+    :data.dishStyle==="pancake"
     ?pancakeScore(data)
     :data.dishStyle==="skewer"
     ?skewerScore(data)
@@ -1636,13 +1640,15 @@ function finishTwoSideCook(m){
     :Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4-missing*12,40,95));
   const result=dom.miniContent.querySelector("#e5Result");
   dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
-  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(grade,"show");}
+  // 시간 초과일 때만 붉은 판정 색을 씁니다. 나머지는 예전 그대로 perfect/good 입니다.
+  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(m.timeOver?"disappointing":grade,"show");}
   dom.miniFeedback.textContent=cookingScoreMessage(score);
   finishMini(score);
 }
 
-/* 제한시간 종료. 멸치 손질(engine-e10 의 timeoutAnchovy)과 같은 마감입니다 —
-   돌던 신호를 전부 끄고 TIME OVER 를 잠깐 보여 준 뒤, 그때까지 끝낸 만큼으로 마칩니다. */
+/* 제한시간 종료. 돌던 신호를 전부 끄고 TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
+   ⚠️ 점수는 여기서 정하지 않습니다 — 시간이 끝난 판은 최저점입니다
+      (mini-engine.js 의 MINI_TIMEOUT_SCORE · game.js 의 finishMini). */
 const TWO_SIDE_TIMEOUT_END_MS=1200;
 
 function timeoutTwoSideCook(m){
@@ -1657,7 +1663,7 @@ function timeoutTwoSideCook(m){
     board.insertAdjacentHTML("beforeend",
       `<div class="ts-timeout"><strong>TIME OVER</strong><span>${twoSideDone(data)} / ${TWO_SIDE_VIEW[data.dishStyle].total} 완성</span></div>`);
   }
-  dom.miniFeedback.textContent="시간이 끝났습니다. 여기까지 구운 것으로 마칩니다.";audio.bad();
+  dom.miniFeedback.textContent="시간이 끝났습니다. 시간 안에 끝내지 못하면 점수를 받지 못합니다.";audio.bad();
   miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},TWO_SIDE_TIMEOUT_END_MS);
 }
 

@@ -1282,15 +1282,13 @@
    지금은 자르기를 늘 그대로 두고, 대신 뜨는 높이를 칸 안에 들어오는 값으로 잡았습니다
    (위 two-side-food-flip 160 · pan-toss 26). 높이를 다시 키우고 싶으면 자르기를 풀지
    말고 팬 자리(--ts-pan-drop · --ts-pan-w)를 낮춰 칸 위쪽 여백부터 만드세요. */
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 —
+   낮 준비까지 13화면이 같은 판을 씁니다. 여기는 색과 크기만 정합니다. */
 .e5-result {
   position:absolute;
   z-index:12;
   left:50%;
   top:50%;
-  padding:calc(8 * var(--upx)) calc(24 * var(--upx));
-  border:2px solid currentColor;
-  border-radius:calc(9 * var(--upx));
-  background:rgba(27,17,11,.88);
   color:#ffe29a;
   font-size:calc(34 * var(--upx));
   font-weight:1000;
@@ -1300,6 +1298,9 @@
   pointer-events:none;
 }
 .e5-result.good { color:#f2c878; }
+/* 시간 초과(최저점)일 때의 판정 색. 낮 준비의 .prep-verdict.disappointing 과 같은 붉은빛입니다
+   — css/minigame/_prep-common.css 와 같은 값을 씁니다. */
+.e5-result.disappointing { color:#f0a08b; }
 .e5-result.show { animation:e5-result-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
 .ts-board.e5-complete .two-side-pan { filter:drop-shadow(0 0 calc(18 * var(--upx)) rgba(255,200,105,.5)); }
 /* ⚠️ 여기 있던 `.ts-flip-arrow`(조리 도구 위를 가로지르던 회색 곡선 + 삼각형)는

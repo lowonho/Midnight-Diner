@@ -34,7 +34,8 @@
 .order-place-reject { animation: order-place-reject .34s ease; }
 /* ⚠️ 글자는 PERFECT/GOOD 이 아니라 "완벽해요! / 맛있어요!" 입니다 — 밤 조리와
    같은 말을 씁니다(js/day-prep-minigames.js 의 dayPrepGradeText). 한글 다섯 자는
-   PERFECT 보다 넓어서 크기를 52 → 42 로 낮추고 줄바꿈을 막았습니다. */
+   PERFECT 보다 넓어서 크기를 52 → 42 로 낮췄습니다.
+   글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다. */
 .order-result {
   position: absolute;
   z-index: 15;
@@ -44,7 +45,6 @@
   font-size: calc(42 * var(--upx));
   font-weight: 1000;
   letter-spacing: .08em;
-  white-space: nowrap;
   text-shadow: 0 calc(4 * var(--upx)) 0 #5b2d15,0 0 calc(18 * var(--upx)) rgba(255,214,112,.75);
   pointer-events: none;
 }
@@ -56,22 +56,18 @@
    같은 모양의 판 하나를 조리판 가운데에 띄웁니다.
    붙이는 곳은 js/day-prep-minigames.js 의 showDayPrepVerdict — 조리판이
    position:relative 여야 가운데에 섭니다.
+   글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다.
    ⚠️ 오른쪽 진행도/완성 개수 패널과는 상관없습니다. 이건 조리판 위에만 뜹니다. */
 .prep-verdict {
   position: absolute;
   z-index: 15;
   left: 50%;
   top: 50%;
-  padding: calc(8 * var(--upx)) calc(24 * var(--upx));
-  border: 2px solid currentColor;
-  border-radius: calc(9 * var(--upx));
-  background: rgba(27,17,11,.88);
   color: #ffe29a;
   font-size: calc(34 * var(--upx));
   font-weight: 1000;
   letter-spacing: .08em;
   line-height: 1.15;
-  white-space: nowrap;
   opacity: 0;
   transform: translate(-50%,-42%) scale(.72);
   pointer-events: none;

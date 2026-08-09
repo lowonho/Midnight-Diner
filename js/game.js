@@ -815,7 +815,12 @@ function miniAction() {
 }
 
 function finishMini(score) {
-  const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  const m=state.mini;if(!m||m.complete)return;m.complete=true;
+  /* 제한시간을 넘긴 판은 그때까지 얼마나 해 뒀든 최저점입니다.
+     엔진이 계산해 넘긴 점수가 있어도 여기서 갈아끼웁니다 — 규칙을 한 곳에 두면
+     엔진마다 마감 점수를 다시 손볼 필요가 없습니다 (mini-engine.js 참고). */
+  if(m.timeOver)score=MINI_TIMEOUT_SCORE;
+  score=Math.round(clamp(score,0,100));m.score=score;
   updateMiniScore(m,score);
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
@@ -935,8 +940,14 @@ function updateMini(dt) {
   engine.update?.(m,dt);
   updateMiniScore(m);
   if(Number.isFinite(m.time)&&m.time<=0){
+    /* 제한시간 종료. 여기서는 "시간이 끝났다"는 표시만 세웁니다 —
+       실제 점수는 아래 finishMini 가 MINI_TIMEOUT_SCORE 로 강제합니다.
+       엔진의 timeout 은 TIME OVER 연출과 마무리 흐름만 맡습니다.
+       ⚠️ 이 블록은 마칠 때까지 매 프레임 다시 들어옵니다(E5 는 연출 1.2초 뒤에
+          마칩니다). 표시는 처음 한 번만 세우고, 엔진 쪽도 각자 재진입을 막습니다. */
+    if(!m.timeOver){m.timeOver=true;updateMiniScore(m);}
     if(engine.timeout)engine.timeout(m);
-    else finishMini(m.score||35);
+    else finishMini(MINI_TIMEOUT_SCORE);
   }
 }
 
@@ -1257,6 +1268,7 @@ Promise.all([
   loadStageAssets(),
   loadCounterAssets(),
   loadSignageAssets(),
+  loadPrepReadyBadge(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);

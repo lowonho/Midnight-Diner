@@ -73,22 +73,18 @@
 /* js/day.js updateDayObjective / updateMenuSelectionObjective 가 넣는 것과 같은 글입니다.
    ⚠️ 저쪽 문구를 바꾸면 여기도 같이 바꿔야 실측값이 의미가 있습니다. */
 const CASES = {
-  // 정리하기 전 내용. 얼마나 줄었는지 견주려고 남겨 둡니다.
-  "(옛) 낮 요약": `
-    <div class="prep-summary">
-      <strong>오늘의 메뉴</strong>
-      <div>김치전 · 떡볶이 · 새우튀김 · 두부김치 · 닭꼬치</div>
-      <strong>준비할 작업</strong>
-      <div>완료 0 · 남음 11</div>
-      <strong>조작</strong>
-      <div>WASD 이동 · E 상호작용 · ESC 메뉴</div>
-    </div>`,
-  "낮 · 다음 작업": `
+  // 메뉴 3개가 하루 최대입니다(DAY_DATA maxSelectedMenus) — 판 높이를 정하는 경우.
+  "낮 · 남은 3": `
     <div class="prep-summary">
       <strong>다음 작업</strong>
-      <div>두부김치용 김치 썰기</div>
-      <strong>준비물</strong>
-      <div>바 테이블의 「두부김치 준비」</div>
+      <div>두부김치 준비</div>
+      <div>떡볶이 준비</div>
+      <div>새우튀김 준비</div>
+    </div>`,
+  "낮 · 남은 1": `
+    <div class="prep-summary">
+      <strong>다음 작업</strong>
+      <div>새우튀김 준비</div>
     </div>`,
   "낮 · 준비 완료": `
     <div class="prep-summary">
@@ -146,18 +142,24 @@ function measure(){
 
   function run(phaseClass,cases,label=phaseClass){
     app.className=`game-app ${phaseClass}`;
-    lines.push("",`[${label}] min-height 규칙 ${getComputedStyle(panel).minHeight}`);
+    const rule=getComputedStyle(panel);
+    lines.push("",`[${label}] 높이 규칙 — height ${rule.height} · min-height ${rule.minHeight}`);
     Object.entries(cases).forEach(([name,html])=>{
       body.innerHTML=html;
       const h=panel.getBoundingClientRect().height;
-      // 규칙을 잠시 풀고 재면 "내용만의 키"입니다. 이 둘이 벌어진 만큼이
-      // 판 아래에 남는 빈 자리입니다.
-      const savedPanel=panel.style.minHeight;panel.style.minHeight="0";
+      /* 규칙을 잠시 풀고 재면 "내용만의 키"입니다. 이 둘이 벌어진 만큼이
+         판에 남는 빈 자리입니다.
+         ⚠️ min-height 만 풀면 안 됩니다 — 낮 판은 height 로 못박혀 있어서
+            (.phase-prep .right-hud) 그것까지 같이 풀어야 내용 키가 나옵니다. */
+      panel.style.height="auto";panel.style.minHeight="0";
       const natural=panel.getBoundingClientRect().height;
-      panel.style.minHeight=savedPanel;
-      const saved=body.style.minHeight;body.style.minHeight="0";
+      panel.style.height="";panel.style.minHeight="";
+      /* 글 높이 = 본문 칸이 글만큼만 있을 때의 키.
+         ⚠️ 낮 본문 칸은 flex:1 이라 판이 남겨 준 높이를 그대로 씁니다. 그래서
+            최소 높이뿐 아니라 flex 도 같이 풀어야 글 길이가 드러납니다. */
+      body.style.minHeight="0";body.style.flex="none";
       const textH=body.getBoundingClientRect().height;
-      body.style.minHeight=saved;
+      body.style.minHeight="";body.style.flex="";
       lines.push(`  ${name.padEnd(14)} 판 ${h.toFixed(1)} = ${(h/inner*100).toFixed(2)}%`
         +`  · 내용만 ${natural.toFixed(1)} = ${(natural/inner*100).toFixed(2)}%`
         +`  · 빈 자리 ${(h-natural).toFixed(1)}  · 글 ${textH.toFixed(1)}`);
@@ -171,7 +173,7 @@ function measure(){
     const r=document.getElementById(id).getBoundingClientRect();
     return {top:r.top-frameTop,bottom:r.bottom-frameTop};
   }
-  [["phase-prep",CASES["낮 · 다음 작업"]],["phase-open",NIGHT_CASES["밤 · 조리"]]].forEach(([phaseClass,html])=>{
+  [["phase-prep",CASES["낮 · 남은 3"]],["phase-open",NIGHT_CASES["밤 · 조리"]]].forEach(([phaseClass,html])=>{
     app.className=`game-app ${phaseClass}`;
     body.innerHTML=html;   // 판 아랫변은 담긴 글에 따라 달라지므로 대표 경우로 채웁니다
     const top=edges("topHud"),left=edges("leftHud"),right=edges("rightHud");
@@ -193,11 +195,12 @@ function measure(){
       .map(name=>`<div class="relationship-row"><strong>${name}</strong><span>달빛 조각 회수</span></div>`).join("");
   run("phase-open",NIGHT_CASES,"phase-open · 영업 기록 8명(최대)");
 
-  /* 화면에는 눈으로 확인할 일이 가장 많은 경우를 남겨 둡니다 —
-     밤 · 조리 + 기록 없음(첫날 밤). 판 아래가 비는지 여기서 바로 보입니다. */
+  /* 화면에는 낮 · 남은 3(판 높이를 정하는 경우)을 남겨 둡니다.
+     밤 화면을 보려면 아래 두 줄의 phase-prep/CASES 를 phase-open/NIGHT_CASES 로 바꾸세요. */
   document.getElementById("relationshipList").innerHTML=
     '<span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span>';
-  body.innerHTML=NIGHT_CASES["밤 · 조리"];
+  app.className="game-app phase-prep";
+  body.innerHTML=CASES["낮 · 남은 3"];
   document.getElementById("out").textContent=lines.join("\n");
 }
 addEventListener("load",measure);
