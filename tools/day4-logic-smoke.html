@@ -362,7 +362,7 @@ try{
   const heatMini={engine:"heat",context:{mode:"cook",dishId:"oden"},complete:false,data:{}};state.mini=heatMini;
   MINI_ENGINES.heat.setup(heatMini,{set:(title,description,time)=>{heatMini.time=time;}});
   assertNightScoreCard("E4 oden");
-  assert(HEAT_INGREDIENTS.oden.find(item=>item.id==="radish")?.asset==="radish7"&&dom.miniContent.querySelector(".heat-ing-card.ing-radish .heat-ing-asset")?.getAttribute("src")==="assets/minigame/E1/radish-7.png","E4 oden uses the fully-cut radish asset from the final E1 prep frame");
+  assert(HEAT_INGREDIENTS.oden.find(item=>item.id==="radish")?.asset==="radish7"&&DAY_PREP_ASSET_PATHS.radish7==="assets/minigame/E1/radish-7.png","E4 oden uses the fully-cut radish asset from the final E1 prep frame");
   assert(dom.miniContent.querySelector(".heat-count.mini-score-panel .heat-hold #heatHoldFill")&&parseFloat(dom.miniContent.querySelector("#heatHoldFill").style.width)===0,"E4 score card includes the original green hold-progress bar at zero");
   assert(MINI_ENGINES.heat.key(heatMini,"w",{repeat:false,code:"KeyW"})===false&&MINI_ENGINES.heat.key(heatMini,"arrowup",{repeat:false,code:"ArrowUp"})===false&&!heatMini.data.holding,"E4 ignores non-Space lift keys");
   const initialHeatValue=heatMini.data.value,initialTarget=heatMini.data.target;

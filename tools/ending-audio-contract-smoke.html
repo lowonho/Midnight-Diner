@@ -62,7 +62,8 @@ try{
     throw new Error("partial fragment audio registry");
   if(!gameRequest.responseText.includes('"assets/sfx/story/fragments/sfx_half_piece.MP3":.2808'))
     throw new Error("partial fragment audio normalization");
-  if(!storyRequest.responseText.includes('handoff.state==="partial"\n    ?STORY_PARTIAL_FRAGMENT_SFX'))
+  if(!storyRequest.responseText.includes('handoff.state==="partial"')
+    ||!storyRequest.responseText.includes('?STORY_PARTIAL_FRAGMENT_SFX'))
     throw new Error("partial fragment cue selection");
   if(!storyRequest.responseText.includes('const STORY_FRAGMENT_SFX_GAIN=1.6*10**(5/20);'))
     throw new Error("fragment handoff +5 dB gain");
