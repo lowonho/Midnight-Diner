@@ -56,6 +56,21 @@ const DISH_IDS=["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteo
 const DISHES=["어묵탕","두부김치","김치전","닭꼬치","볶음우동","새우튀김","떡볶이","감자튀김"];
 const GUESTS=["비에 젖은 아이","등불을 머리에 인 손님","둘이 붙은 그림자","까마귀 우편배달부",
   "별을 먹는 작은 짐승","바닷물로 된 손님","멈춰버린 교복 인형","얼굴 없는 김다은"];
+// 초상화는 js/story.js 의 STORY_PORTRAIT_ART 를 따라갑니다. 여기서 story.js 를
+// 통째로 부를 수는 없어서(게임 전역이 잔뜩 필요합니다) 같은 규칙만 흉내 냅니다.
+// guestId 도 story-data.js 의 것을 그대로 써야 그림이 붙습니다.
+const GUEST_IDS=["rainyChild","lanternGuest","twinShadows","crowCourier",
+  "starBeast","seawaterGuest","schoolDoll","facelessDaeun"];
+const PORTRAIT_DIRS={
+  rainyChild:"char_cust_rain_child",lanternGuest:"char_cust_lantern_head",
+  twinShadows:"char_cust_joined_shadows",crowCourier:"char_cust_crow_postman",
+  starBeast:"char_cust_star_eating_beast",seawaterGuest:"char_cust_seawater_guest",
+  schoolDoll:"char_cust_stopped_school_doll",facelessDaeun:"char_cust_faceless_kim_daeun"
+};
+function storyJournalGuestPortraitArt(guestId){
+  const dir=PORTRAIT_DIRS[guestId];
+  return dir?`assets/Conversation/${dir}/${dir}_motion_02.webp`:"";
+}
 // js/story-data.js 의 순서·이름 그대로입니다 (달빛 조각 그림 짝짓기 확인용).
 const SHARDS=[
   ["first_raindrop","첫 빗방울"],["remaining_warmth","남은 온기"],
@@ -97,8 +112,13 @@ function getGameplayJournalPages(){
   }));
   // 7일차는 손님이 둘이라 진행용 일지에서 가장 긴 장입니다.
   // 글자 크기를 키운 뒤 넘치는지 보려고 실제 서식대로 길게 적어 둡니다.
+  // 일기 장의 그림 두 장은 guestId(초상화)와 shardId+fragmentState(달빛 조각)로
+  // 정해집니다. 마지막 손님만 아직 조각을 못 받은 상태로 두어 두 모양을 다 봅니다.
   const entryFor=index=>({
-    guestId:`guest-${index}`,guestName:GUESTS[index],
+    guestId:GUEST_IDS[index],
+    shardId:SHARDS[index][0],shardName:SHARDS[index][1],
+    fragmentState:index===7?"none":index===2?"partial":"full",
+    guestName:GUESTS[index],
     clue:"비 오는 날 우산도 없이 뛰어가다 처마 밑에서 한참을 서 있었다는 이야기를 했다.",
     dishNote:`이 손님이 기억하는 음식은 ${DISHES[index]}이었다.`,
     reactionNote:"“그때 그 맛이랑 똑같아서 한참을 못 먹었다”",
@@ -119,9 +139,10 @@ function getGameplayJournalPages(){
 
 window.MoonlightTableSave={
   collectionPages(){
+    // id 는 실제 컬렉션과 같게 guestId 그대로입니다(초상화를 그것으로 찾습니다).
     const guests=GUESTS.map((displayName,index)=>({
-      id:`guest-${index}`,kind:"guest",displayName,label:displayName,
-      unlocked:index<unlockedGuests,notificationPending:index===3,portraitRow:index%6,
+      id:GUEST_IDS[index],guestId:GUEST_IDS[index],kind:"guest",displayName,label:displayName,
+      unlocked:index<unlockedGuests,notificationPending:index===3,
       dishName:DISHES[index],preferredStyle:"빗소리가 묻힐 만큼 고르게 익힌 따뜻한 김치전",
       completedStory:"김다은이 포기한 내일이었다. 다은은 자신이 닫은 내일로 가는 문을 알아보고, 이 밤을 어떻게 끝낼지 스스로 선택하기로 했다.",
       shardId:SHARDS[index][0],shardName:SHARDS[index][1],

@@ -55,6 +55,21 @@ function journalMoonPieceArt(page){
   return file?`${JOURNAL_MOON_PIECE_DIR}/${file}`:"";
 }
 
+/* 특별 손님 초상화입니다. 로비 컬렉션 장과 인게임 일기 장이 같은 그림 한 장을
+   씁니다 — 대화씬 원화의 motion_02 이고, 주소는 js/story.js 한 곳이 정합니다.
+   (page 는 컬렉션 장, entry 는 일기 장의 손님 한 명입니다. 둘 다 guestId 를 듭니다) */
+function journalGuestArt(source){
+  const guestId=String(source?.guestId||source?.id||"");
+  if(!guestId||typeof storyJournalGuestPortraitArt!=="function")return "";
+  return storyJournalGuestPortraitArt(guestId);
+}
+
+// 달빛 조각 그림은 '이번 회차에 받았을 때'만 붙입니다. 아직이면 자리도 없습니다.
+function journalEntryShardArt(entry){
+  if(entry?.fragmentState!=="full"&&entry?.fragmentState!=="partial")return "";
+  return journalMoonPieceArt(entry);
+}
+
 // 엔딩 장의 가로 직사각형에 깔리는 그 엔딩의 컷씬 그림입니다.
 // 파일은 tools/build-story-ending-webp.js 가 PNG 원본에서 뽑습니다.
 // 열쇠는 story-data.js 의 TITLE_JOURNAL_ENDING_DEFS 의 id 입니다.
@@ -87,6 +102,7 @@ function journalElements(){
     pageKind:document.getElementById("journalPageKind"),
     pageProgress:document.getElementById("journalPageProgress"),
     pagePortrait:document.getElementById("journalPagePortrait"),
+    pageGuests:document.getElementById("journalPageGuests"),
     pageTitle:document.getElementById("journalPageTitle"),
     pageNote:document.getElementById("journalPageNote"),
     pageNoteArt:document.getElementById("journalPageNoteArt"),
@@ -449,6 +465,53 @@ function renderJournalArtSpread(elements,page){
   apply(elements.pageArtRight,spread?.right);
 }
 
+/* ── 일기 장의 특별 손님 카드 ─────────────────────────────────
+   인게임 일기 장은 그날 만난 특별 손님의 기록이라, 표제 면에 로비 컬렉션과
+   똑같은 그림 두 장을 놓습니다 — 대화씬 초상화와 그날 받은 달빛 조각입니다.
+   7일차처럼 손님이 둘인 날은 나란히 두 벌이 섭니다.
+   손님을 아직 만나지 않은 날에는 카드가 없어 일기 액자가 그대로 남습니다. */
+function journalDayGuestCards(page){
+  if(journalMode!=="gameplay"||page?.pageType!=="day"||!page.recorded)return [];
+  return (page.entries||[]).filter(entry=>journalGuestArt(entry)||journalEntryShardArt(entry));
+}
+
+function createJournalGuestCard(entry){
+  const card=document.createElement("div");
+  card.className="journal-guest-card";
+  const append=(className,art,text)=>{
+    const node=document.createElement("div");
+    node.className=className;
+    if(art)node.style.backgroundImage=`url("${art}")`;
+    if(text)node.textContent=text;
+    card.append(node);
+    return node;
+  };
+  const portraitArt=journalGuestArt(entry);
+  if(portraitArt)append("journal-guest-portrait",portraitArt);
+  append("journal-guest-name","",entry.guestName||"");
+  const shardArt=journalEntryShardArt(entry);
+  if(shardArt){
+    const partial=entry.fragmentState==="partial";
+    append("journal-guest-shard",shardArt).classList.toggle("is-partial",partial);
+    append("journal-guest-shard-name","",
+      partial?`「${entry.shardName}」 일부`:`「${entry.shardName}」`);
+  }
+  return card;
+}
+
+// 카드가 서면 일기 액자(.frame-day)는 자리를 비켜 줍니다. 표제 면 한 칸에
+// 액자와 카드가 같이 들어가면 달빛 조각이 종이 밖으로 밀려납니다.
+function renderJournalGuestCards(elements,page){
+  if(!elements.pageGuests)return false;
+  const entries=journalDayGuestCards(page);
+  elements.pageGuests.hidden=!entries.length;
+  elements.pageGuests.classList.toggle("is-pair",entries.length>1);
+  elements.pageGuests.replaceChildren(...entries.map(createJournalGuestCard));
+  elements.page?.classList.toggle("has-guest-cards",entries.length>0);
+  if(elements.pagePortrait)elements.pagePortrait.hidden=entries.length>0;
+  return entries.length>0;
+}
+
 function renderJournalPage({acknowledge=false}={}){
   const elements=journalElements();
   const page=journalPages[journalPageIndex]||null;
@@ -459,6 +522,7 @@ function renderJournalPage({acknowledge=false}={}){
     elements.pageNote.textContent="이야기가 시작되면 이곳에 기록이 생깁니다.";
     if(elements.pageNoteArt)elements.pageNoteArt.hidden=true;
     renderJournalArtSpread(elements,null);
+    renderJournalGuestCards(elements,null);
     elements.pageMeta.textContent="";
     elements.pagePortrait.textContent="?";
     elements.previous.disabled=true;elements.next.disabled=true;
@@ -475,11 +539,11 @@ function renderJournalPage({acknowledge=false}={}){
   elements.page.classList.toggle("is-gameplay-page",isGameplayRecord);
   elements.pageKind.textContent=journalPageKindLabel(page);
   elements.pageProgress.textContent=`${journalPageIndex+1} / ${journalPages.length}`;
-  const portraitRow=Number(page.portraitRow);
   const isGuestPortrait=!isGameplayRecord&&page.kind!=="ending";
-  const hasPortrait=isGuestPortrait&&Number.isFinite(portraitRow)&&portraitRow>=0&&portraitRow<=5;
-  elements.pagePortrait.classList.toggle("has-portrait",hasPortrait);
-  elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!hasPortrait);
+  // 잠긴 손님은 그림 대신 실루엣만 남깁니다. 얼굴이 미리 보이면 안 됩니다.
+  const guestArt=isGuestPortrait&&page.unlocked?journalGuestArt(page):"";
+  elements.pagePortrait.classList.toggle("has-art-portrait",!!guestArt);
+  elements.pagePortrait.classList.toggle("portrait-placeholder",isGuestPortrait&&!guestArt);
   elements.pagePortrait.classList.toggle("journal-page-icon",isGameplayRecord);
   // 인게임 세 구역은 각자 원화 액자를 씁니다.
   const frame=!isGameplayRecord?""
@@ -490,14 +554,13 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pagePortrait.classList.toggle("frame-rules",frame==="rules");
   elements.pagePortrait.classList.toggle("frame-recipe",frame==="recipe");
   elements.pagePortrait.classList.toggle("frame-day",frame==="day");
-  if(hasPortrait){
-    const row=Math.floor(portraitRow);
-    elements.pagePortrait.style.setProperty("--journal-portrait-y",row===5?"100%":`${row*20}%`);
-  }
   // 본 엔딩은 ☾ 자리에 그 엔딩의 컷씬 그림이 대신 들어갑니다.
   const endingArt=journalEndingArt(page);
   elements.pagePortrait.classList.toggle("has-cutscene",!!endingArt);
-  elements.pagePortrait.style.backgroundImage=endingArt?`url("${endingArt}")`:"";
+  // 인라인 style 은 CSS 배경을 확실히 덮습니다. 잠긴 장에서는 비워 두어야
+  // .is-locked 의 실루엣이 그대로 보입니다(위 guestArt 참고).
+  const portraitArt=endingArt||guestArt;
+  elements.pagePortrait.style.backgroundImage=portraitArt?`url("${portraitArt}")`:"";
   elements.pagePortrait.textContent=!page.unlocked
     ?"?"
     :isGameplayRecord?page.pageType==="rules"?"!":page.pageType==="recipe"?String(page.recipeNumber||"·"):String(page.day||"·")
@@ -514,6 +577,7 @@ function renderJournalPage({acknowledge=false}={}){
   elements.pageMeta.textContent=metaText;
   renderJournalRelic(elements,page);
   renderJournalArtSpread(elements,page);
+  renderJournalGuestCards(elements,page);
   elements.previous.disabled=journalPageIndex<=0;
   elements.next.disabled=journalPageIndex>=journalPages.length-1;
   if(isGameplayRecord)journalLastGameplayPageId=page.id;

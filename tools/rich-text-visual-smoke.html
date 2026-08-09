@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>「강조」 굵은 글씨 스모크</title>
+<!-- 경로는 전부 루트(index.html) 기준입니다. -->
+<base href="../" />
+<link rel="stylesheet" href="css/base.css" />
+<link rel="stylesheet" href="css/app-shell.css" />
+<link rel="stylesheet" href="css/components.css" />
+<link rel="stylesheet" href="css/hud.css" />
+<link rel="stylesheet" href="css/story.css" />
+<link rel="stylesheet" href="css/settings.css" />
+<style>
+  body { padding: 24px 32px; overflow: auto; background: #100b08; }
+  h1 { margin: 0 0 4px; font-size: 22px; color: var(--gold-bright); }
+  .note { margin: 0 0 20px; font-size: 13px; color: #b79b76; }
+  .case { margin-bottom: 22px; }
+  .case > h2 { margin: 0 0 6px; font-size: 14px; color: #dfa34d; letter-spacing: .06em; }
+
+  /* 실제 대사창을 index.html 에서 그대로 떠 왔습니다. 감춰 두는 규칙만 풉니다. */
+  #storyMount .story-overlay {
+    position: static; opacity: 1; visibility: visible;
+    width: 100%; height: auto; padding: 0; background: none;
+  }
+  #storyMount .story-stage,
+  #storyMount .story-cutscene,
+  #storyMount .story-fragment-handoff,
+  #storyMount .story-prop-reveal,
+  #storyMount .story-ending-background,
+  #storyMount .story-skip { display: none; }
+  #storyMount .story-text { max-height: none; }
+
+  /* 굵기 비교용 — 같은 문장을 강조 없이도 한 번 보여 줍니다. */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .compare > div { padding: 10px 14px; border: 1px solid #3b2618; border-radius: 6px; }
+  .compare h3 { margin: 0 0 6px; font-size: 12px; color: #8d7458; }
+</style>
+</head>
+<body>
+<h1>「강조」 → 굵은 글씨 스모크</h1>
+<p class="note">
+  js/rich-text.js 가 화면에 붙은 글자를 훑어 「…」 를 &lt;b class="emph"&gt; 로 감쌉니다.
+  아래 글자는 전부 <b>textContent 로만</b> 넣었습니다 — 태그를 직접 넣은 곳은 없습니다.
+</p>
+
+<div class="case">
+  <h2>1. 대사창 (index.html #storyOverlay 원본 마크업)</h2>
+  <div id="storyMount"></div>
+</div>
+
+<div class="case">
+  <h2>2. 영업일지 본문 (.journal-page p)</h2>
+  <div class="journal-page" style="max-width:760px">
+    <p id="journalSample" class="journal-page-note"></p>
+  </div>
+</div>
+
+<div class="case">
+  <h2>3. 좌우 패널 · 토스트</h2>
+  <div class="objective-body" id="objectiveSample" style="max-width:420px"></div>
+  <div class="toast show" id="toastSample" style="position:static;margin-top:10px;display:inline-block"></div>
+</div>
+
+<div class="case">
+  <h2>4. 타자 효과 도중 (「 만 열리고 아직 안 닫힌 상태)</h2>
+  <div class="compare">
+    <div><h3>열리는 중</h3><p class="story-text" id="typingSample" style="max-height:none"></p></div>
+    <div><h3>다 찍힌 뒤</h3><p class="story-text" id="typedSample" style="max-height:none"></p></div>
+  </div>
+</div>
+
+<script>
+/* index.html 의 진짜 마크업을 떠 옵니다(file:// 에서 fetch 는 막히고 XHR 은 됩니다). */
+(function mountStoryOverlay(){
+  const request=new XMLHttpRequest();
+  request.open("GET","index.html",false);
+  request.send();
+  const parsed=new DOMParser().parseFromString(request.responseText,"text/html");
+  const overlay=parsed.getElementById("storyOverlay");
+  document.getElementById("storyMount").appendChild(document.importNode(overlay,true));
+})();
+
+const DIALOGUE="카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다.\n"+
+  "달빛 조각 「첫 빗방울」을 건네자, 장부에 「마지막 손님」이라는 문구가 그제야 나타난다.";
+
+document.getElementById("storySpeaker").hidden=false;
+document.getElementById("storySpeaker").textContent="김다은";
+document.getElementById("storyText").textContent=DIALOGUE;
+
+document.getElementById("journalSample").textContent=
+  "달빛 조각 「첫 빗방울」을 건넸다.\n손님이 「비 오는 날의 국밥」을 기억한다고 했다.";
+
+document.getElementById("objectiveSample").textContent=
+  "왼쪽 「영업 시작」 버튼으로 밤 영업을 시작하세요.";
+
+document.getElementById("toastSample").textContent=
+  "영업일지에 새 엔딩 「달빛을 붙잡은 식탁」이 기록되었습니다.";
+
+document.getElementById("typingSample").textContent="달빛 조각 「첫 빗";
+document.getElementById("typedSample").textContent="달빛 조각 「첫 빗방울」을 받았습니다.";
+
+/* story.js 가 자막 쪽수를 셀 때 쓰는 감춰진 사본입니다. 여기에 <b> 가 끼면
+   재는 값이 흔들리므로 rich-text.js 가 건너뛰어야 합니다. */
+const measure=document.createElement("p");
+measure.className="story-text story-text-measure";
+measure.textContent="달빛 조각 「첫 빗방울」을 건넸다.";
+document.getElementById("storyText").parentElement.appendChild(measure);
+</script>
+<script src="js/rich-text.js"></script>
+<script>
+/* 눈으로 못 보는 것들은 화면에 적습니다 — --dump-dom 은 헤드리스 새 모드에서
+   빈 문자열만 돌려주므로, 스크린샷 한 장에 다 담기는 편이 확실합니다. */
+window.addEventListener("error",event=>{document.body.dataset.error=String(event.message);});
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  const storyText=document.getElementById("storyText");
+  const marks=[...document.querySelectorAll("b.emph")];
+  const style=marks.length?getComputedStyle(marks[0]):null;
+  const parentStyle=getComputedStyle(storyText);
+  const rows=[
+    ["감싼 개수",marks.length],
+    ["겹쳐 감싼 것(0 이어야 함)",document.querySelectorAll("b.emph b.emph").length],
+    ["textContent 그대로(true 여야 함)",storyText.textContent===DIALOGUE],
+    ["강조 글꼴 = 본문 글꼴",style?`${style.fontFamily.split(",")[0]} / ${parentStyle.fontFamily.split(",")[0]}`:"-"],
+    ["강조 획 굵기",style?style.webkitTextStrokeWidth:"-"],
+    ["측정용 사본에 손댔나(0 이어야 함)",document.querySelectorAll(".story-text-measure b.emph").length],
+    ["오류",document.body.dataset.error||"없음"]
+  ];
+  const box=document.createElement("pre");
+  box.style.cssText="margin-top:18px;padding:12px 14px;border:1px solid #3b2618;border-radius:6px;color:#cbb08a;font:12px/1.6 monospace;white-space:pre";
+  box.textContent=rows.map(([label,value])=>`${label.padEnd(34," ")} ${value}`).join("\n");
+  document.body.appendChild(box);
+}));
+</script>
+</body>
+</html>

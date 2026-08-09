@@ -375,6 +375,11 @@ function gameplayJournalGuestRecord(definition){
   else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
+    // 아래 세 줄은 일기 장에 붙는 그림 두 장(초상화·달빛 조각)의 재료입니다.
+    // 조각 그림은 이번 회차에 실제로 받았을 때만 나옵니다(js/title.js).
+    shardId:definition.shardId,
+    shardName:definition.shardName,
+    fragmentState:currentFragmentState,
     guestName:definition.guestId==="facelessDaeun"
       &&!(guest.memoryUnlocked||Number(guest.revealedStoryLevel)>=3)
       ?(STORY_CHARACTERS.facelessDaeun?.name||"얼굴 없는 손님")
@@ -1945,6 +1950,19 @@ function storyPortraitMotionArt(portraitKey,motion){
   const index=STORY_PROTAGONIST_MOTIONS[motion]||STORY_PROTAGONIST_MOTIONS[STORY_PROTAGONIST_DEFAULT_MOTION];
   return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
 }
+
+/* 영업일지에 붙는 특별 손님 초상화입니다. 로비 컬렉션과 인게임 일기 장이
+   같은 그림 한 장을 씁니다 — 대화씬 원화의 motion_02(soft, 잔잔한 미소)입니다.
+   어느 장면에서 만났는지와 무관하게 늘 같은 얼굴이어야 기록처럼 읽힙니다.
+   그림이 없는 배역(주인공·목소리뿐인 화자)은 빈 문자열입니다. */
+const JOURNAL_GUEST_PORTRAIT_MOTION="soft";
+function storyJournalGuestPortraitArt(guestId){
+  const id=String(guestId||"");
+  if(!id||id==="protagonist")return "";
+  const key=storyPortraitKey(id);
+  return key?storyPortraitMotionArt(key,JOURNAL_GUEST_PORTRAIT_MOTION):"";
+}
+window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
 
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
    커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로
