@@ -134,7 +134,7 @@ assert(settingsCssSource.includes('--journal-book-image: url("../assets/UI/Journ
   "영업일지는 펼친 책 원화를 깐 중앙 펼침책 레이아웃이어야 합니다.");
 
 /* 영업일지 UI 원화 — PNG 마스터와 WebP 산출물이 짝을 이루고, CSS 가 실제로 씁니다.
-   제목 판만 마스터 이름과 산출물 이름이 다릅니다(어두운 판으로 교체하면서
+   제목 판과 견출지 3종은 마스터 이름과 산출물 이름이 다릅니다(원화를 교체하면서
    build-ui-journal-webp.js 의 out 으로 이름을 정리했습니다). */
 const journalArtDir=path.join(root,"assets","UI","Journal");
 [
@@ -142,7 +142,9 @@ const journalArtDir=path.join(root,"assets","UI","Journal");
   ["ui_business_journal_title_panel_dark_thin_gold_4x","ui_journal_title_panel_dark"],
   ["ui_journal_close"],
   ["ui_journal_arrow_prev"],["ui_journal_arrow_next"],
-  ["ui_journal_tab_caution"],["ui_journal_tab_cooking"],["ui_journal_tab_diary"],
+  ["ui_journal_tab_notice_paper_4x","ui_journal_tab_notice"],
+  ["ui_journal_tab_cooking_paper_4x","ui_journal_tab_cooking"],
+  ["ui_journal_tab_diary_paper_4x","ui_journal_tab_diary"],
   ["ui_journal_picture_caution"],["ui_journal_picture_cooking"],["ui_journal_picture_diary"]
 ].forEach(([master,out=master])=>{
   assert(fs.existsSync(path.join(journalArtDir,`${master}.png`)),

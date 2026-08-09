@@ -38,6 +38,14 @@ const PREP_LAYOUT = {
   // 개수가 적을 때 화면 끝까지 억지로 벌리지 않도록 간격 상한을 둡니다.
   // 남는 폭은 좌우로 나눠 가운데 정렬합니다.
   maxStep: 172,
+  /* 자리 간격을 이 배율만큼 좁힙니다. 좁아진 만큼 줄 전체가 오른쪽으로 붙습니다
+     — 오른쪽 끝 자리는 제자리에 두고 왼쪽만 당겨 오기 때문입니다(prepObjectLayout).
+     왼쪽(철판 쪽)에 빈 자리가 너무 많이 남아서 넣은 값입니다.
+     0.92 면 다섯 자리 기준 간격 159 → 146, 맨 왼쪽 자리가 51 오른쪽으로 옵니다.
+     (0.86 까지 좁혀 봤더니 준비물끼리 답답해 보여서 되돌린 값입니다)
+     ⚠️ 더 줄이려면 이름표 폭을 보세요 — '새우튀김 준비' 명판이 112 라
+     간격이 그 아래로 내려가면 옆 이름표와 붙습니다. */
+  stepScale: 0.92,
   // 상호작용 판정 범위. 원이 아니라 세로로 긴 영역입니다. (→ nearestPrepObject 주석)
   reach: 62,       // 준비물 좌우로 이만큼 안에 서야 손질을 시작할 수 있습니다
   reachBack: 62,   // 서는 자리(iy)보다 뒤(주방 쪽)로 이만큼까지
@@ -86,15 +94,23 @@ function prepDishGroups(){
   }).filter(Boolean);
 }
 
+/* 자리 계산
+   ------------------------------------------------------------
+   [오른쪽 끝을 기준으로 잡습니다] 먼저 예전처럼 좌우 한계에 꽉 채워
+   가운데 정렬한 자리를 구하고(fullStep), 그 **맨 오른쪽 자리만 그대로
+   둔 채** 간격을 stepScale 만큼 좁힙니다. 그래서 줄 전체가 오른쪽으로
+   붙고, 오른쪽 끝 준비물(간판 앞)은 개수가 몇 개든 늘 같은 자리입니다.
+   자리가 하나뿐이면 fullStep 이 0 이라 예전처럼 가운데 그대로입니다. */
 function prepObjectLayout(){
   const groups=prepDishGroups(),count=groups.length;
   if(!count)return [];
   const L=PREP_LAYOUT;
   const {left,right}=prepObjectRange();
-  const step=count===1?0:Math.min((right-left)/(count-1), L.maxStep);
-  const start=left+(right-left-step*(count-1))/2;
+  const fullStep=count===1?0:Math.min((right-left)/(count-1), L.maxStep);
+  const lastX=left+(right-left-fullStep*(count-1))/2+fullStep*(count-1);
+  const step=fullStep*L.stepScale;
   return groups.map((group,index)=>{
-    const x=start+step*index;
+    const x=lastX-step*(count-1-index);
     return { ...group, x, y:PREP_LAYOUT.y, ix:x, iy:PREP_LAYOUT.iy };
   });
 }

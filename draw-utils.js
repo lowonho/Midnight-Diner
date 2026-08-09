@@ -135,11 +135,83 @@ function applyLabelScale(scale,cx,cy){
 }
 
 
+/* 명판 그림 — 앞쪽 철판·계산대 명패와 같은 에셋
+   ------------------------------------------------------------
+   assets/counter/ui_nameplate (188x92, 나무판 + 금장 테두리).
+   counter.js 가 철판·계산대 명패로 이미 받아 둔 그림을 그대로 씁니다.
+   (같은 파일을 여기서 또 받으면 다운로드가 두 번 일어납니다)
+
+   주방 집기 이름표(kitchen.js)와 낮 준비물 이름표(prep.js)가 같이 씁니다.
+   원래 kitchen.js 안에 있던 것을, 준비물 이름표도 같은 판을 쓰게 되면서
+   이 공용 파일로 옮겼습니다.
+
+   ⚠️ counter.js 가 아직 안 받았거나 받기에 실패하면 null 입니다.
+      부르는 쪽은 예전 도형 명판으로 되돌아가야 합니다.
+
+   [3분할로 늘립니다] 네 귀퉁이에 금장 장식이 박혀 있어서 통째로 늘이면
+   장식만 옆으로 눌립니다. 좌우 끝(cap)은 세로와 같은 배율로 그대로 두고
+   가운데만 늘입니다. 가운데는 가로결 나뭇결이라 가로로 늘어나도
+   눈에 띄지 않습니다.
+
+   [미리 그려 두는 이유] 폭 종류가 이름 가짓수만큼뿐입니다. 폭마다 한 번만
+   그려 캔버스에 담아 두고 이후에는 1:1 복사만 합니다. VIEW 픽셀로 만들어
+   두어야 프레임 캔버스(x1.5)에서 흐려지지 않습니다.
+   ------------------------------------------------------------ */
+const NAMEPLATE_ART = {
+  key:"counter_nameplate",
+  srcY:4, srcH:84,   // 원본 위 4px 은 투명 여백이라 뺍니다
+  cap:30             // 좌우 끝 금장 장식 폭 (원본 px)
+};
+
+/* 판 위 글자 색. 철판 명패와 같습니다 (counter.js COUNTER_LABEL_STYLE).
+   나뭇결 위에 밝은 글자만 얹으면 획이 결에 묻혀서, 저쪽도 어두운 외곽선을
+   두르고 있습니다. 외곽선 굵기는 글자 크기마다 달라서 부르는 쪽이 정합니다
+   (철판 21px 에 4 → 집기 13px 에 2.5 → 준비물 12px 에 2.3). */
+const NAMEPLATE_TEXT = { fill:"#f4dcab", activeFill:"#fff2d2", stroke:"#1d1108" };
+
+const nameplateCanvases = {};
+
+function nameplateCanvas(w,h){
+  const cacheKey=`${w}x${h}`;
+  if(cacheKey in nameplateCanvases) return nameplateCanvases[cacheKey];
+
+  const image=typeof counterImages!=="undefined"?counterImages[NAMEPLATE_ART.key]:null;
+  if(!image) return null;   // 아직 로딩 전. 캐시에 넣지 않아야 다음 프레임에 다시 봅니다.
+
+  const A=NAMEPLATE_ART;
+  const canvas=document.createElement("canvas");
+  canvas.width =Math.round(toView(w));
+  canvas.height=Math.round(toView(h));
+  const g=canvas.getContext("2d");
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
+
+  const capW=Math.round(A.cap*(canvas.height/A.srcH));   // 세로와 같은 배율
+  const midW=canvas.width-capW*2;
+  if(midW>0){
+    g.drawImage(image, 0,A.srcY, A.cap,A.srcH,                     0,0, capW,canvas.height);
+    g.drawImage(image, A.cap,A.srcY, image.width-A.cap*2,A.srcH,   capW,0, midW,canvas.height);
+    g.drawImage(image, image.width-A.cap,A.srcY, A.cap,A.srcH,     canvas.width-capW,0, capW,canvas.height);
+  }else{
+    // 장식 두 개도 못 들어갈 만큼 좁으면 그냥 통째로 줄입니다.
+    g.drawImage(image, 0,A.srcY, image.width,A.srcH, 0,0, canvas.width,canvas.height);
+  }
+
+  nameplateCanvases[cacheKey]=canvas;
+  return canvas;
+}
+
+
 /* 집기·준비물 이름표. (x, y) 는 글자 baseline 기준입니다.
    폭은 고정값이 아니라 글자 실측 폭 + 좌우 여백입니다.
    "두부김치용 김치 썰기" 처럼 긴 이름이 명판을 뚫고 나가지 않게 하려는 것이고,
-   짧은 이름은 minW 아래로는 줄어들지 않아 명판 크기가 들쭉날쭉해지지 않습니다. */
-const FIXTURE_LABEL = { minW:70, padX:11, h:24, radius:5, font:"bold 12px Malgun Gothic", bg:"#1b100b", line:"#9a6235", text:"#f0c87b" };
+   짧은 이름은 minW 아래로는 줄어들지 않아 명판 크기가 들쭉날쭉해지지 않습니다.
+
+   [여백·높이가 커진 이유] 판이 도형에서 나무판 그림(NAMEPLATE_ART)으로
+   바뀌면서 상하좌우 끝을 금장 테두리가 차지합니다. 예전 값(11 / 24)으로는
+   글자가 테두리에 바짝 붙습니다. 집기 이름표와 같은 비율로 맞춘 값입니다
+   — 저쪽은 13px 글자에 여백 17 · 높이 29 라, 12px 글자면 16 · 27 입니다.
+   bg·line·text 는 그림을 못 받았을 때 쓰는 예비 도형 값입니다. */
+const FIXTURE_LABEL = { minW:70, padX:16, h:27, radius:5, strokeWidth:2.3, font:"bold 12px Malgun Gothic", bg:"#1b100b", line:"#9a6235", text:"#f0c87b" };
 
 // 이름표 폭. 글자 폭 측정에 ctx.font 를 쓰므로 원래 font 는 되돌려 놓습니다.
 function fixtureLabelWidth(text){
@@ -150,19 +222,41 @@ function fixtureLabelWidth(text){
   return width;
 }
 
-// float 은 labelFloatStep() 의 반환값입니다. 안 넘기면 예전처럼 가만히 있습니다.
+/* float 은 labelFloatStep() 의 반환값입니다. 안 넘기면 예전처럼 가만히 있습니다.
+
+   [판 한가운데를 기준으로 놓습니다] 판 높이가 바뀌어도 위아래로 똑같이
+   늘어나게 하려는 것입니다. 예전 도형 명판의 한가운데(글자 baseline 위 5)를
+   그대로 쓰므로, 판만 커지고 준비물·완료 도장과의 간격은 그대로입니다. */
 function drawFixtureLabel(text,x,y,float){
   const L=FIXTURE_LABEL,w=fixtureLabelWidth(text);
-  const boxY=y-17+(float?.dy||0);
+  const boxY=y-5-L.h/2+(float?.dy||0);
   ctx.save();
   applyLabelScale(float?.scale,x,boxY+L.h/2);
-  ctx.fillStyle=L.bg;
-  roundRect(ctx,x-w/2,boxY,w,L.h,L.radius,true,false);
-  ctx.strokeStyle=float?.active?LABEL_FLOAT.activeLine:L.line;ctx.lineWidth=2;
-  roundRect(ctx,x-w/2,boxY,w,L.h,L.radius,false,true);
-  ctx.fillStyle=float?.active?LABEL_FLOAT.activeText:L.text;ctx.font=L.font;ctx.textAlign="center";
-  ctx.fillText(text,x,boxY+17);
-  ctx.textAlign="left";
+
+  /* 판. 철판 명패와 같은 나무판 그림입니다.
+     [강조 표현] 그림 판에는 바꿀 테두리가 없어서, 글자 색과 크기
+     (applyLabelScale)로만 강조합니다 — 집기 이름표(kitchen.js)와 같습니다. */
+  const plate=nameplateCanvas(w,L.h);
+  if(plate){
+    ctx.drawImage(plate,x-w/2,boxY,w,L.h);
+  }else{
+    // 그림을 아직 못 받았을 때의 예비 도형 (예전 명판)
+    ctx.fillStyle=L.bg;
+    roundRect(ctx,x-w/2,boxY,w,L.h,L.radius,true,false);
+    ctx.strokeStyle=float?.active?LABEL_FLOAT.activeLine:L.line;ctx.lineWidth=2;
+    roundRect(ctx,x-w/2,boxY,w,L.h,L.radius,false,true);
+  }
+
+  /* 글자는 판 한가운데. textBaseline="middle" 을 쓰면 판 높이를 바꿔도
+     baseline 보정값을 다시 잡을 필요가 없습니다. */
+  const textY=boxY+L.h/2;
+  ctx.font=L.font;ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.lineJoin="round";                         // 획 모서리에 뿔이 서지 않게
+  ctx.strokeStyle=NAMEPLATE_TEXT.stroke;ctx.lineWidth=L.strokeWidth;
+  ctx.strokeText(text,x,textY);
+  ctx.fillStyle=float?.active?NAMEPLATE_TEXT.activeFill:NAMEPLATE_TEXT.fill;
+  ctx.fillText(text,x,textY);
+  ctx.textAlign="left";ctx.textBaseline="alphabetic";ctx.lineJoin="miter";
   ctx.restore();
 }
 

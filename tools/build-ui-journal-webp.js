@@ -71,11 +71,18 @@ const FILES = [
   { file:"ui_journal_arrow_next.png", size:[144,116], lossless:true, why:"다음 화살표 72x58 x2" },
 
   /* ── 견출지 3종 ────────────────────────────────────────────
-     가로 130 고정, 세로는 원본 비율대로 다릅니다(책에 끼워 넣는 깊이가
-     조금씩 달라지지만 아래쪽은 책 뒤로 가려서 안 보입니다). */
-  { file:"ui_journal_tab_caution.png", size:[260,126], why:"주의사항 견출지 130x63 x2" },
-  { file:"ui_journal_tab_cooking.png", size:[260,137], why:"요리 견출지 130x68.4 x2" },
-  { file:"ui_journal_tab_diary.png",   size:[260,121], why:"일기 견출지 130x60.4 x2" },
+     2026-08-09 에 금테 견출지에서 색종이 견출지로 교체했습니다. 세 장 모두
+     같은 마스터 크기(367x188)에 같은 모양이라, 예전처럼 그림마다 금테
+     윗변 높이를 따로 보정할 일이 없습니다(css/settings.css 참고).
+     마스터 둘레에 2px 투명 여백이 있어 잘라 씁니다.
+     이전 금테 판(ui_journal_tab_caution/cooking/diary.png)은 안 쓰지만
+     마스터라 지우지 않고 남겨 둡니다. */
+  { file:"ui_journal_tab_notice_paper_4x.png",  out:"ui_journal_tab_notice.webp",
+    crop:[2,2,363,184], size:[260,132], why:"주의사항 견출지 130x66 x2" },
+  { file:"ui_journal_tab_cooking_paper_4x.png", out:"ui_journal_tab_cooking.webp",
+    crop:[2,2,363,184], size:[260,132], why:"요리 견출지 130x66 x2" },
+  { file:"ui_journal_tab_diary_paper_4x.png",   out:"ui_journal_tab_diary.webp",
+    crop:[2,2,363,184], size:[260,132], why:"일기 견출지 130x66 x2" },
 
   /* ── 인게임 그림 자리 3종 ──────────────────────────────────
      주의사항·요리·일기 장의 동그란 액자입니다. */
@@ -89,7 +96,19 @@ const FILES = [
      꽉 채웠을 때의 크기가 319x243 입니다. 넉넉하게 x2 로 뽑습니다.
      마스터 1403x1121 둘레에 투명 여백이 있어 잘라 씁니다. */
   { file:"journal_warning.png", crop:[80,104,1254,957], size:[668,510],
-    why:"주의사항 손글씨 334x255 x2 (여백 잘라낸 1254x957 기준)" }
+    why:"주의사항 손글씨 334x255 x2 (여백 잘라낸 1254x957 기준)" },
+
+  /* ── 주의사항 다음 안내 장(양면 그림) ──────────────────────
+     글 없이 원화 두 장만 놓는 장입니다. 두 면 다 본문 자리가 334x420 이고
+     CSS 는 background-size:contain 이라 원본 비율 그대로 들어갑니다.
+     그래서 세로는 상자(420)가 아니라 폭 334 에 맞췄을 때의 높이 x2 입니다.
+       요리   1201x1419 → 334x394.6 → 668x789
+       선택지 1224x1187 → 334x323.9 → 668x648
+     둘 다 마스터 둘레에 1px 투명 줄이 있어 잘라 씁니다. */
+  { file:"ui_log_story_guest_cooking_v01.png",  crop:[1,0,1201,1419], size:[668,789],
+    why:"안내 장 왼쪽 면 그림 334x394.6 x2" },
+  { file:"ui_log_story_choice_answer_v03.png",  crop:[0,1,1224,1187], size:[668,648],
+    why:"안내 장 오른쪽 면 그림 334x323.9 x2" }
 ];
 
 const QUALITY = 92;

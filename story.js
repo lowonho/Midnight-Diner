@@ -389,8 +389,9 @@ function gameplayJournalGuestRecord(definition){
 }
 
 // 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
-// 첫 장은 규칙, 다음 여덟 장은 음식별 레시피, 마지막 일곱 장은 날짜별
-// 기록입니다. 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
+// 첫 장은 규칙, 둘째 장은 양면 그림 안내, 다음 여덟 장은 음식별 레시피,
+// 마지막 일곱 장은 날짜별 기록입니다.
+// 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
 function getGameplayJournalPages(){
   const definitionsByGuest=Object.fromEntries(
     GAMEPLAY_JOURNAL_PAGE_DEFS.map(definition=>[definition.guestId,definition])
@@ -399,7 +400,7 @@ function getGameplayJournalPages(){
   const recipesByDish=Object.fromEntries(STORY_JOURNAL_RECIPES.map(recipe=>[recipe.dishId,recipe]));
   const menuNames=STORY_MENU_RULES.dishIds.map(id=>menusById[id]?.displayName).filter(Boolean);
   const menuRule="매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.";
-  const total=1+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
+  const total=2+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
   const rulesPage={
     id:"gameplay-rules",
     pageType:"rules",
@@ -419,14 +420,32 @@ function getGameplayJournalPages(){
     menuRule,
     menuNames
   };
+  // 주의사항 뒤에 붙는 두 번째 장은 글 없이 원화 두 장만 양면에 놓습니다.
+  // 왼쪽 면은 손님 주문·조리, 오른쪽 면은 선택지·대답 안내 그림입니다.
+  // 견출지는 새로 만들지 않고 주의사항 구역에 함께 묶입니다(title.js 참고).
+  const guidePage={
+    id:"gameplay-guide",
+    pageType:"guide",
+    index:1,
+    number:2,
+    total,
+    title:"영업일지 안내",
+    label:"영업일지 안내",
+    tabLabel:"주의사항",
+    dayLabel:"주의사항",
+    unlocked:true,
+    locked:false,
+    artLeft:"assets/UI/Journal/ui_log_story_guest_cooking_v01.webp",
+    artRight:"assets/UI/Journal/ui_log_story_choice_answer_v03.webp"
+  };
   const recipePages=STORY_MENU_RULES.dishIds.map((dishId,index)=>{
     const menu=menusById[dishId];
     const recipe=recipesByDish[dishId];
     return {
       id:`gameplay-recipe-${dishId}`,
       pageType:"recipe",
-      index:index+1,
-      number:index+2,
+      index:index+2,
+      number:index+3,
       total,
       recipeNumber:index+1,
       dishId,
@@ -443,7 +462,7 @@ function getGameplayJournalPages(){
   });
   const dayPages=GAMEPLAY_JOURNAL_DAY_GUEST_IDS.map((guestIds,index)=>{
     const day=index+1;
-    const pageIndex=1+recipePages.length+index;
+    const pageIndex=2+recipePages.length+index;
     const entries=guestIds
       .map(guestId=>gameplayJournalGuestRecord(definitionsByGuest[guestId]))
       .filter(Boolean);
@@ -464,7 +483,7 @@ function getGameplayJournalPages(){
       entries
     };
   });
-  return [rulesPage,...recipePages,...dayPages];
+  return [rulesPage,guidePage,...recipePages,...dayPages];
 }
 
 window.getGameplayJournalPages=getGameplayJournalPages;

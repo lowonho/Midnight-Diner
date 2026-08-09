@@ -29,7 +29,7 @@ const dom = Object.fromEntries([
   "masterVolumeRow","masterVolume","masterVolumeValue","masterAudioToggle",
   "bgmVolumeRow","bgmVolume","bgmVolumeValue","bgmAudioToggle",
   "sfxVolumeRow","sfxVolume","sfxVolumeValue","sfxAudioToggle",
-  "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton",
+  "saveLoadActions","manualSaveButton","loadGameButton","resumeButton","returnTitleButton","settingsCloseButton",
   "miniOverlay","miniStation","miniTitle","miniTimer","miniClose","miniPause","miniDescription","miniContent","miniFeedback",
   "resultOverlay","servedResult","satisfactionResult","fiveStarResult","popularityResult","wasteResult","revenueResult","resultComment","nextDayButton",
   "menuSelectOverlay","menuSelectTitle","menuSelectDescription","menuSelectGrid","menuSelectCount","menuSelectConfirm",
@@ -455,7 +455,7 @@ audio.preload();
 // 미니게임 조작 버튼은 조리 효과음 영역이므로 이 목록에 넣지 않습니다.
 const UI_CLICK_SELECTOR=[
   "#startButton","#continueButton","#titleSettingsButton",
-  "#settingsButton","#codexButton","#resumeButton","#returnTitleButton",
+  "#settingsButton","#codexButton","#resumeButton","#settingsCloseButton","#returnTitleButton",
   // 냉장고 칸(.fridge-slot)은 넣지 않습니다 — 찾았을 때/아닐 때 소리를 게임이 직접 냅니다.
   "#menuSelectConfirm",".menu-select-option",
   "#phaseButton","#nextDayButton","#miniClose","#miniPause","#ingredientPause"
@@ -881,7 +881,7 @@ function updateUI(force=false) {
   const isDayPreparation=isMenuSelect||isPrep||isIngredientSelect;
   dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isDayPreparation);
   dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
-  dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
+  dom.phaseName.textContent=UI_TEXT.phaseNameWithDay(state.day,state.phase);
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
   // 낮에도 밤과 같은 두 칸을 띄웁니다. 낮은 아직 손님이 오기 전이라
@@ -1013,6 +1013,8 @@ function draw(){
 
 dom.settingsButton.addEventListener("click",()=>openSettings("game"));
 dom.resumeButton.addEventListener("click",closeSettings);
+// 오른쪽 위 × 는 "게임으로 돌아가기"와 같은 동작입니다.
+dom.settingsCloseButton?.addEventListener("click",closeSettings);
 dom.phaseButton.addEventListener("click",()=>{
   if(settingsOverlayIsOpen())return;
   beginNight();

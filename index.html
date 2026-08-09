@@ -269,6 +269,11 @@
            붙는 .is-lobby 하나로 css/settings.css 가 처리합니다.
            마크업은 두 화면이 똑같이 씁니다. -->
       <div class="settings-window">
+        <!-- 오른쪽 위 닫기 ×. "게임으로 돌아가기"(#resumeButton)와 같은 일을 합니다
+             (game.js 가 둘 다 closeSettings 에 겁니다). 그림은 불러오기 창의
+             닫기 단추와 같은 것을 씁니다 — 두 창의 × 가 달라 보이지 않게.
+             스크롤 칸(.settings-scroll) 밖에 두어야 내용이 밀려도 구석에 남습니다. -->
+        <button id="settingsCloseButton" class="settings-close" type="button" aria-label="설정 닫기">×</button>
         <div class="settings-scroll">
           <p class="eyebrow"><span class="eyebrow-ingame">PAUSE MENU</span><span class="eyebrow-lobby">SETTINGS</span></p>
           <h2 id="settingsTitle">설정</h2>
@@ -385,10 +390,12 @@
                 <div id="journalPageRelicArt" class="journal-page-relic-art" aria-hidden="true"></div>
                 <figcaption id="journalPageRelicName" class="journal-page-relic-name"></figcaption>
               </figure>
+              <div id="journalPageArtLeft" class="journal-page-art" aria-hidden="true" hidden></div>
             </section>
             <section class="journal-page-leaf journal-page-right" role="region" aria-label="영업일지 기록 내용" tabindex="0">
               <p id="journalPageNote">완벽한 음식을 대접하면 이 페이지가 열립니다.</p>
               <div id="journalPageNoteArt" class="journal-page-note-art" aria-hidden="true" hidden></div>
+              <div id="journalPageArtRight" class="journal-page-art" aria-hidden="true" hidden></div>
             </section>
           </article>
           </div>
