@@ -460,8 +460,7 @@ function drawStationLabels(){
   if(trashInFront()) drawStation(STATIONS.trash);
   const preferred=state.phase==="night"&&state.carrying?"trash":currentRequirement();
   const near=nearestStation(preferred);
-  const plateW=stationLabelPlateWidth();
-  Object.values(STATIONS).forEach(s=>labelStation(s,near,plateW));
+  Object.values(STATIONS).forEach(s=>labelStation(s,near));
 }
 
 // 요리사 발끝이 쓰레기통 접지선보다 위 = 요리사가 더 뒤 = 쓰레기통이 앞.
@@ -470,56 +469,132 @@ function trashInFront(){
   return (state?.player?.y ?? 0) < s.y+s.h;
 }
 
-// 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
-// (12 → 3글자 이름표가 약 63px. 예전 88폭 집기의 명판 72px 과 비슷합니다)
-const LABEL_PAD_X = 12;
+/* 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
+
+   [17 인 이유] 판이 나무판 그림(§ STATION_PLATE_ART)으로 바뀌면서
+   좌우 끝을 금장 장식이 차지합니다. 예전 도형 명판 기준이던 12 로는
+   글자가 그 장식에 바짝 붙었습니다. 앞쪽 철판 명패와 같은 비율로
+   맞춘 값입니다 — 저쪽은 14px 글자에 여백 18.6 이라, 13px 글자면 17 입니다.
+   글자 크기는 그대로 두고 여백만 키운 것이라 판만 넉넉해집니다. */
+const LABEL_PAD_X = 17;
 
 const STATION_LABEL_FONT = "bold 13px Malgun Gothic";
 
-/* 명판 폭
+/* 명판 폭 — 글자 수가 같으면 폭도 같습니다
    ------------------------------------------------------------
-   예전에는 이름마다 "글자 폭 + 여백"으로 따로 계산했습니다. 그래서
-   조리대 줄 위에 길이가 제각각인 판이 늘어서 있었습니다.
+   예전에는 이름마다 "글자 폭 + 여백"으로 따로 계산했습니다. 맑은 고딕은
+   한글도 글자마다 폭이 조금씩 달라서, 같은 4글자인 '후라이팬'과
+   '직화구이'의 명판 길이가 몇 px 씩 어긋나 줄이 지저분해 보였습니다.
 
-   지금은 **세 글자 이상은 전부 가장 긴 이름표 폭**으로 맞춥니다.
-   지금 표에서 가장 긴 것은 4글자('후라이팬'·'직화구이'·'쓰레기통')라
-   3글자('냉장고'·'튀김기')도 그 폭이 됩니다. 이름이 바뀌면 폭도 저절로
-   따라가므로 여기에 숫자를 박아 두지 않습니다.
-
-   [두 글자만 예외] '도마'·'냄비'까지 4글자 폭으로 늘리면 글자 양옆
-   빈칸이 글자보다 넓어져서, 판만 있고 이름이 없는 것처럼 보입니다.
-   그래서 두 글자는 예전처럼 글자에 맞춘 폭을 씁니다.
+   그래서 **글자 수별로 한 폭씩** 정합니다. 그 글자 수 중 가장 긴 이름에
+   맞추므로, 어떤 이름도 판을 뚫고 나가지 않으면서 같은 글자 수끼리는
+   판 길이가 딱 맞습니다.
+     2글자  도마 · 냄비
+     3글자  냉장고 · 튀김기
+     4글자  후라이팬 · 직화구이 · 쓰레기통
 
    [숨긴 이름표는 안 셉니다] '식기세척기'(5글자)·'싱크대'는 hideLabel
-   이라 화면에 없습니다. 이걸 세면 보이지도 않는 이름 때문에 나머지가
-   다 같이 길어집니다.
+   이라 화면에 없습니다. 이걸 세면 보이지도 않는 이름 때문에 같은 글자
+   수의 판이 다 같이 길어집니다.
 
    [한 번만 재는 이유] 이름과 글꼴이 고정이라 값이 변하지 않습니다.
    맑은 고딕은 윈도우 기본 글꼴이라 첫 프레임에도 이미 준비돼 있어서
    웹폰트처럼 나중에 폭이 바뀔 일이 없습니다. */
-const LABEL_FIT_MAX_CHARS = 2;   // 이 글자 수까지는 글자에 맞춘 폭
-
 function labelPlateWidthFor(text){
   return Math.round(ctx.measureText(text).width)+LABEL_PAD_X*2;
 }
 
-let stationLabelPlateWidthCache = 0;
-function stationLabelPlateWidth(){
-  if(stationLabelPlateWidthCache) return stationLabelPlateWidthCache;
+const stationLabelPlateWidths = {};   // 글자 수 → 폭
+function stationLabelPlateWidth(label){
+  const chars=label.length;
+  if(stationLabelPlateWidths[chars]) return stationLabelPlateWidths[chars];
   const previousFont=ctx.font;
   ctx.font=STATION_LABEL_FONT;
-  stationLabelPlateWidthCache=Object.values(STATIONS)
-    .filter(s=>!s.hideLabel)
-    .reduce((max,s)=>Math.max(max,labelPlateWidthFor(s.label)),0);
+  // 자기 자신을 초깃값으로 둡니다 — 숨긴 이름표가 물어봐도 답이 나옵니다.
+  stationLabelPlateWidths[chars]=Object.values(STATIONS)
+    .filter(s=>!s.hideLabel&&s.label.length===chars)
+    .reduce((max,s)=>Math.max(max,labelPlateWidthFor(s.label)),labelPlateWidthFor(label));
   ctx.font=previousFont;
-  return stationLabelPlateWidthCache;
+  return stationLabelPlateWidths[chars];
+}
+
+
+/* 이름표 판 그림 — 앞쪽 철판 명패와 같은 에셋
+   ------------------------------------------------------------
+   assets/counter/ui_nameplate (188x92, 나무판 + 금장 테두리).
+   counter.js 가 철판·계산대 명패로 이미 받아 둔 그림을 그대로 씁니다.
+   (같은 파일을 여기서 또 받으면 다운로드가 두 번 일어납니다)
+
+   ⚠️ counter.js 가 아직 안 받았거나 받기에 실패하면 그림이 없습니다.
+      그때는 예전 도형 명판으로 되돌아갑니다. (labelStation 아래쪽)
+
+   [3분할로 늘립니다] 네 귀퉁이에 금장 장식이 박혀 있어서 통째로 늘이면
+   장식만 옆으로 눌립니다. 좌우 끝(CAP)은 세로와 같은 배율로 그대로 두고
+   가운데만 늘입니다. 가운데는 가로결 나뭇결이라 가로로 늘어나도
+   눈에 띄지 않습니다.
+
+   [미리 그려 두는 이유] 폭 종류가 글자 수만큼(3가지)뿐입니다. 폭마다
+   한 번만 그려 캔버스에 담아 두고 이후에는 1:1 복사만 합니다.
+   VIEW 픽셀로 만들어 두어야 프레임 캔버스(x1.5)에서 흐려지지 않습니다.
+   ------------------------------------------------------------ */
+const STATION_PLATE_ART = {
+  key:"counter_nameplate",
+  srcY:4, srcH:84,   // 원본 위 4px 은 투명 여백이라 뺍니다
+  cap:30             // 좌우 끝 금장 장식 폭 (원본 px)
+};
+
+/* 판 위 글자도 철판 명패와 같은 색·외곽선입니다. (counter.js COUNTER_LABEL_STYLE)
+   나뭇결 위에 밝은 글자만 얹으면 획이 결에 묻혀서, 저쪽도 어두운 외곽선을
+   두르고 있습니다. 굵기는 글자 크기에 맞춰 줄인 값입니다
+   (철판 21px 에 4 → 여기 13px 에 2.5). */
+const STATION_LABEL_TEXT = {
+  fill:"#f4dcab", activeFill:"#fff2d2",
+  stroke:"#1d1108", strokeWidth:2.5
+};
+
+const stationPlateCanvases = {};
+
+function stationPlateCanvas(w,h){
+  const cacheKey=`${w}x${h}`;
+  if(cacheKey in stationPlateCanvases) return stationPlateCanvases[cacheKey];
+
+  const image=typeof counterImages!=="undefined"?counterImages[STATION_PLATE_ART.key]:null;
+  if(!image) return null;   // 아직 로딩 전. 캐시에 넣지 않아야 다음 프레임에 다시 봅니다.
+
+  const A=STATION_PLATE_ART;
+  const canvas=document.createElement("canvas");
+  canvas.width =Math.round(toView(w));
+  canvas.height=Math.round(toView(h));
+  const g=canvas.getContext("2d");
+  g.imageSmoothingEnabled=true;g.imageSmoothingQuality="high";
+
+  const capW=Math.round(A.cap*(canvas.height/A.srcH));   // 세로와 같은 배율
+  const midW=canvas.width-capW*2;
+  if(midW>0){
+    g.drawImage(image, 0,A.srcY, A.cap,A.srcH,                     0,0, capW,canvas.height);
+    g.drawImage(image, A.cap,A.srcY, image.width-A.cap*2,A.srcH,   capW,0, midW,canvas.height);
+    g.drawImage(image, image.width-A.cap,A.srcY, A.cap,A.srcH,     canvas.width-capW,0, capW,canvas.height);
+  }else{
+    // 장식 두 개도 못 들어갈 만큼 좁으면 그냥 통째로 줄입니다.
+    g.drawImage(image, 0,A.srcY, image.width,A.srcH, 0,0, canvas.width,canvas.height);
+  }
+
+  stationPlateCanvases[cacheKey]=canvas;
+  return canvas;
 }
 
 /* 이름표 판의 크기와 높이(논리 좌표).
    game.js 의 E 키캡도 같은 값을 봐야 둘이 어긋나지 않으므로 상수로 뺐습니다.
-   여기만 고치면 이름표와 키캡이 같이 따라옵니다. */
-const STATION_LABEL_H    = 23;   // 판 높이
-const STATION_LABEL_RISE = 25;   // 집기 윗변에서 판 윗변까지 (위로)
+   여기만 고치면 이름표와 키캡이 같이 따라옵니다.
+
+   ⚠️ [둘은 같이 움직여야 합니다] 판 아랫변은 집기 윗변보다 2 위
+      (= RISE - H = 2) 여야 합니다. 높이만 키우면 판이 집기 속으로
+      파고들고, 올림만 키우면 판이 허공에 뜹니다.
+      2026-08-09 에 여백을 키우면서 23/25 → 29/31 로 같이 올렸습니다
+      (판 그림의 금장 테두리가 세로도 먹어서, 23 으로는 글자가 위아래
+       테두리에 닿았습니다. 앞쪽 철판 명패와 같은 비율입니다). */
+const STATION_LABEL_H    = 29;   // 판 높이
+const STATION_LABEL_RISE = 31;   // 집기 윗변에서 판 윗변까지 (위로)
 
 // 이름표 판의 윗변. 둥실 흔들림(labelFloatStep)은 뺀 기준 위치입니다.
 function stationLabelTop(s){
@@ -558,7 +633,7 @@ function stationPromptY(s){
    E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
    앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
    둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
-function labelStation(s,near,plateW){
+function labelStation(s,near){
   /* 이름표를 끈 집기(§1 hideLabel)는 여기서 바로 빠집니다.
      labelFloatStep 을 부르기 전에 빠져야 합니다 — 그 함수는 집기마다 둥실
      상태를 기억해 두는데, 안 그릴 것까지 부르면 쓰지도 않을 상태가 계속 쌓입니다. */
@@ -566,26 +641,44 @@ function labelStation(s,near,plateW){
   const active=stationUsable(s,near);
   const f=labelFloatStep(`station_${s.id}`,active);
 
-  /* 이름표 폭. 두 글자만 글자에 맞추고 나머지는 통일 폭입니다.
+  /* 이름표 폭은 글자 수가 정합니다(stationLabelPlateWidth).
      집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰
-     집기에서 명판만 길쭉해지기 때문입니다. (stationLabelPlateWidth) */
+     집기에서 명판만 길쭉해지기 때문입니다. */
   ctx.font=STATION_LABEL_FONT;
   const h=STATION_LABEL_H,cx=s.x+s.w/2;
-  const w=s.label.length<=LABEL_FIT_MAX_CHARS
-    ? labelPlateWidthFor(s.label)
-    : (plateW??stationLabelPlateWidth());
+  const w=stationLabelPlateWidth(s.label);
   // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
   // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.
   const x=cx-w/2,y=stationLabelTop(s)+f.dy;
 
   ctx.save();
   applyLabelScale(f.scale,cx,y+h/2);
-  ctx.fillStyle="#1a0e09";roundRect(ctx,x,y,w,h,5,true,false);
-  ctx.strokeStyle=active?LABEL_FLOAT.activeLine:FIXTURE_LABEL.line;
-  ctx.lineWidth=2;roundRect(ctx,x,y,w,h,5,false,true);
-  ctx.fillStyle=active?LABEL_FLOAT.activeText:FIXTURE_LABEL.text;
-  ctx.textAlign="center";
-  ctx.fillText(s.label,cx,y+16);ctx.textAlign="left";
+
+  /* 판. 철판 명패와 같은 나무판 그림입니다.
+     [강조 표현이 다릅니다] 예전 도형 명판은 강조될 때 테두리 색을
+     바꿨는데, 그림 판에는 바꿀 테두리가 없습니다. 대신 글자 색과
+     크기(applyLabelScale)로만 강조합니다 — 앞쪽 철판 명패가 쓰는
+     방식과 같습니다. (counter.js COUNTER_FLOAT) */
+  const plate=stationPlateCanvas(w,h);
+  if(plate){
+    ctx.drawImage(plate,x,y,w,h);
+  }else{
+    // 그림을 아직 못 받았을 때의 예비 도형 (예전 명판)
+    ctx.fillStyle="#1a0e09";roundRect(ctx,x,y,w,h,5,true,false);
+    ctx.strokeStyle=active?LABEL_FLOAT.activeLine:FIXTURE_LABEL.line;
+    ctx.lineWidth=2;roundRect(ctx,x,y,w,h,5,false,true);
+  }
+
+  /* 글자는 판 한가운데. textBaseline="middle" 을 쓰면 판 높이를 바꿔도
+     baseline 보정값을 다시 잡을 필요가 없습니다. */
+  const T=STATION_LABEL_TEXT,textY=y+h/2;
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.lineJoin="round";                         // 획 모서리에 뿔이 서지 않게
+  ctx.strokeStyle=T.stroke;ctx.lineWidth=T.strokeWidth;
+  ctx.strokeText(s.label,cx,textY);
+  ctx.fillStyle=active?T.activeFill:T.fill;
+  ctx.fillText(s.label,cx,textY);
+  ctx.textAlign="left";ctx.textBaseline="alphabetic";ctx.lineJoin="miter";
   ctx.restore();
 }
 

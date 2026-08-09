@@ -71,11 +71,18 @@ const FILES = [
   { file:"ui_journal_arrow_next.png", size:[144,116], lossless:true, why:"다음 화살표 72x58 x2" },
 
   /* ── 견출지 3종 ────────────────────────────────────────────
-     가로 130 고정, 세로는 원본 비율대로 다릅니다(책에 끼워 넣는 깊이가
-     조금씩 달라지지만 아래쪽은 책 뒤로 가려서 안 보입니다). */
-  { file:"ui_journal_tab_caution.png", size:[260,126], why:"주의사항 견출지 130x63 x2" },
-  { file:"ui_journal_tab_cooking.png", size:[260,137], why:"요리 견출지 130x68.4 x2" },
-  { file:"ui_journal_tab_diary.png",   size:[260,121], why:"일기 견출지 130x60.4 x2" },
+     2026-08-09 에 금테 견출지에서 색종이 견출지로 교체했습니다. 세 장 모두
+     같은 마스터 크기(367x188)에 같은 모양이라, 예전처럼 그림마다 금테
+     윗변 높이를 따로 보정할 일이 없습니다(css/settings.css 참고).
+     마스터 둘레에 2px 투명 여백이 있어 잘라 씁니다.
+     이전 금테 판(ui_journal_tab_caution/cooking/diary.png)은 안 쓰지만
+     마스터라 지우지 않고 남겨 둡니다. */
+  { file:"ui_journal_tab_notice_paper_4x.png",  out:"ui_journal_tab_notice.webp",
+    crop:[2,2,363,184], size:[260,132], why:"주의사항 견출지 130x66 x2" },
+  { file:"ui_journal_tab_cooking_paper_4x.png", out:"ui_journal_tab_cooking.webp",
+    crop:[2,2,363,184], size:[260,132], why:"요리 견출지 130x66 x2" },
+  { file:"ui_journal_tab_diary_paper_4x.png",   out:"ui_journal_tab_diary.webp",
+    crop:[2,2,363,184], size:[260,132], why:"일기 견출지 130x66 x2" },
 
   /* ── 인게임 그림 자리 3종 ──────────────────────────────────
      주의사항·요리·일기 장의 동그란 액자입니다. */

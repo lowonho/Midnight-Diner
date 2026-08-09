@@ -53,9 +53,31 @@
   border: 0;
   border-radius: 0;
   background: var(--ms-cell) center / 100% 100% no-repeat;
+
+  /* 이름 한 줄 + 그 아래 음식 그림. 그림이 남는 높이를 전부 먹게 세로 flex 입니다.
+     ⚠️ 칸 높이는 그림이 들어오기 전과 똑같은 108 입니다. 예전에 있던 설명
+        두 줄(필수/선택 · 플레이 가능)이 빠진 자리를 그대로 물려받았을 뿐이라,
+        tools/build-ui-menuselect-webp.js 의 칸 크기표는 건드릴 필요가 없습니다. */
+  display: flex; flex-direction: column; align-items: center;
 }
-.menu-select-option strong,.menu-select-option small { display: block; }
-.menu-select-option small { margin-top: calc(7 * var(--upx)); color: #76523a; }
+.menu-select-option strong { display: block; }
+
+/* 음식 프롭은 가로형(264x152)이고 장마다 여백을 잘라낸 크기가 달라서, 폭이나
+   높이를 못박으면 요리마다 크기가 들쭉날쭉해집니다. 자리를 정해 주고 contain 으로
+   맞춰 넣으면 어떤 그림이든 이 칸 안에서 같은 눈높이로 보입니다.
+   ⚠️ flex-basis 가 0 이어야 합니다(auto 아님). auto 로 두면 칸 높이를 셀 때
+      그림의 제 높이(폭 144 기준 약 83)가 그대로 더해져서, 칸이 108 을 넘겨
+      길쭉해집니다 — 그러면 칸 그림이 세로로 늘어나고 창까지 같이 커집니다.
+      0 이면 그림은 높이를 요구하지 않고 min-height 108 이 남긴 자리만 채웁니다.
+   min-height:0 은 flex 항목이 제 내용 높이 밑으로 못 줄어드는 기본값을 푸는
+   짝입니다(이게 없으면 basis 0 이어도 결국 제 높이만큼 버팁니다). */
+.menu-select-option-art {
+  flex: 1 1 0; min-height: 0;
+  width: 100%; margin-top: calc(6 * var(--upx));
+  object-fit: contain;
+  /* 그림이 없거나 못 불러왔을 때 깨진 아이콘 대신 빈자리로 남깁니다. */
+  color: transparent;
+}
 
 /* 골라 놓은 칸. 칸 그림은 한 장뿐이라 "고른 상태" 그림이 따로 없습니다.
    그래서 예전처럼 밖으로 금테를 두르고, 판은 밝기로만 띄웁니다.
@@ -101,5 +123,7 @@
 
 @media (max-width:700px) {
   .menu-select-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .menu-select-option { min-height: calc(78 * var(--upx)); }
+  /* 2열이라 칸이 넓어지는 대신 짧아지는데, 78 이면 이름 줄을 빼고 그림에
+     남는 높이가 35 밖에 안 돼 요리가 실처럼 눌립니다. 그림 자리를 벌어 줍니다. */
+  .menu-select-option { min-height: calc(96 * var(--upx)); }
 }

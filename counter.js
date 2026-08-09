@@ -338,6 +338,24 @@ const COUNTER_DEPTH = {
 
 const GRIDDLE_IDLE_FRAME = 0;      // §3-1 빈 철판 프레임이 없어 0번을 정지 상태로 씁니다.
 
+/* 볶음우동을 움직일 것인가
+   ------------------------------------------------------------
+   false 면 언제나 0번 프레임 한 장으로 고정합니다. 조리 중이라고
+   프레임을 돌리지 않습니다.
+
+   [끈 이유] 음식을 1.35배로 키우면서(GRIDDLE_FOOD_SCALE) 프레임 사이
+   덩어리 차이도 같이 커졌습니다. 원래 몇 px 씩 지글거리던 것이 눈에
+   띄게 들썩이는 움직임이 되어, 카운터 앞을 지나가기만 해도 화면 왼쪽
+   아래가 산만해졌습니다.
+
+   [조리 중인 건 김으로 보여 줍니다] 이걸 꺼도 setCounterCooking() 은
+   그대로 돕니다 — 철판 앞에 서면 김이 진해지는 신호는 남습니다.
+   (STEAM_ALPHA_IDLE → STEAM_ALPHA_COOK)
+
+   다시 켜려면 이 한 줄만 true 로 바꾸면 됩니다. 아래 조리 루프·뒤집기
+   프레임표와 애니메이션은 그대로 남겨 두었습니다. */
+const GRIDDLE_FOOD_ANIMATE = false;
+
 /* 조리 루프에 쓸 프레임
    ------------------------------------------------------------
    8프레임 중 2 / 3 / 6 번은 뒤집기라 음식이 철판 밖으로 크게 솟구칩니다.
@@ -673,10 +691,13 @@ function setCounterCooking(on){
   if(counter.cooking===on)return;
   counter.cooking=on;
   const scene=counter.scene;
-  if(on) counter.griddleSurface.play("counter_griddle_cooking");
-  else{
-    counter.griddleSurface.stop();
-    counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+  // 음식은 0번 프레임 고정입니다. (GRIDDLE_FOOD_ANIMATE)
+  if(GRIDDLE_FOOD_ANIMATE){
+    if(on) counter.griddleSurface.play("counter_griddle_cooking");
+    else{
+      counter.griddleSurface.stop();
+      counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+    }
   }
   // 김은 끄지 않고 진하기만 바꿉니다.
   counter.steamPlumes.forEach(plume=>scene.tweens.killTweensOf(plume));
@@ -688,8 +709,10 @@ function setCounterCooking(on){
 }
 
 // 뒤집기 1회 재생 후 조리 루프(또는 정지)로 복귀. 실제 조리 이벤트용 훅입니다.
+// 음식을 고정해 둔 동안(GRIDDLE_FOOD_ANIMATE=false)에는 아무 일도 하지 않습니다 —
+// 여기만 살려 두면 가만히 있던 음식이 한 번씩 튀어올라 더 이상해집니다.
 function counterPlayGriddleToss(){
-  if(!counter.griddleSurface)return;
+  if(!counter.griddleSurface||!GRIDDLE_FOOD_ANIMATE)return;
   counter.griddleSurface.play("counter_griddle_toss");
   counter.griddleSurface.once("animationcomplete",()=>{
     if(counter.cooking)counter.griddleSurface.play("counter_griddle_cooking");

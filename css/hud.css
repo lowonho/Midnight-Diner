@@ -14,8 +14,9 @@
      메뉴 카드 줄이 왼쪽으로 밀리므로, 넓히는 폭은 '꼭 필요한 만큼'만 잡습니다
      (24% 까지 갔다가 메뉴판이 너무 쏠려 보여 되돌린 값입니다 — 어느 칸을 얼마나
       넓혔는지는 아래 .hud-stats 주석 참고).
-     ⚠️ 가운데가 메뉴 카드 5장(200 x5) + 간격 10 x4 = **1040** 아래로 내려가면
-        카드가 200 을 못 지키고 같이 줄어듭니다. 1920 기준 한계는 26.4% 입니다. */
+     ⚠️ 가운데가 메뉴 카드 5장(202 x5) + 간격 10 x4 = **1050** 아래로 내려가면
+        카드가 202 를 못 지키고 같이 줄어듭니다. 1920 기준 한계는 26.0% 입니다
+        (카드 폭을 200 에서 202 로 키우면서 26.4% 에서 조금 좁아진 값입니다). */
   grid-template-columns: 15% 1fr 20.25%;
   /* 줄 높이를 못박아 둡니다. 자동으로 두면 줄이 '가장 키 큰 칸'을 따라가서,
      왼쪽 타이틀 판을 키우는 순간 가운데 메뉴 카드(.menu-cards 는 이 줄의 90%)와
@@ -71,20 +72,37 @@
   aspect-ratio: 1697 / 706;   /* 납품 원본 크기 */
   background: url("../assets/UI/Main/ui_title_logo_hud.webp") center/contain no-repeat;
 }
+/* 로고 그림과 단계 줄(「1일차 메뉴 선택」) 사이 간격입니다.
+   판 자체가 line-height:1.05 로 바짝 붙어 있어서 로고 밑변에 글자가 닿아 보였습니다.
+   ⚠️ 여기를 키우면 판이 위아래로 반씩 자랍니다(줄이 align-items:center).
+      판 아래끝이 좌측 HUD 시작선(y 200)을 넘지 않아야 하는데 지금 약 190 이라
+      앞으로 늘릴 수 있는 폭은 20 정도입니다. 더 필요하면 위 --logo-panel-drop 과
+      함께 다시 재세요. */
 .small-logo small {
-  margin-top: .5em;
+  margin-top: calc(12 * var(--upx));
   color: #d7ad6c;
   font-size: calc(13 * var(--upx));
 }
 
 /* 하루 최대 5개까지 선택되므로 5장이 가운데 정렬로 들어가는 폭을 기준으로 잡았습니다.
-   (상단 HUD 가운데 칸 ≈ 65% 폭 · 카드 5장 + 간격 4개) */
+   (상단 HUD 가운데 칸 ≈ 65% 폭 · 카드 5장 + 간격 4개)
+   [판만 키우기] 카드 200x120(=90%) → 202x125(=94%) 로 키웠습니다.
+   세로만 확실히 키우고 가로는 살짝만 늘린 값입니다(210 까지 갔다가 옆으로 넓어 보여 되돌림).
+   안에 든 것은 그대로입니다 — 음식 그림은 flex:none 이라 안 늘어나고(.food-icon 폭 145),
+   이름·수량 글씨는 --upx 고정값이라 판만 커지고 여백이 그만큼 넓어집니다. */
+/* [오른쪽으로 20] 가운데 칸(1fr)은 화면 한가운데가 아닙니다 — 좌우 칸이 15% 대 20.25%
+   라 칸 자체가 프레임 중앙보다 약 48 왼쪽에 있고, 그래서 카드 줄이 왼쪽으로 쏠려 보입니다.
+   margin 이 아니라 transform 으로 미는 이유: margin-left 는 칸 폭을 그만큼 깎아서
+   위 ⚠️ 의 1050 한계에 먼저 걸리고, 가운데 정렬이라 민 값의 절반만 움직입니다.
+   transform 은 자리는 그대로 두고 그린 것만 옮겨서 카드 폭에 영향이 없습니다.
+   ⚠️ 48 을 넘기면 이번엔 오른쪽 스탯 칸 쪽으로 붙습니다. */
 .menu-cards {
-  height: 90%;
+  height: 94%;
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(calc(110 * var(--upx)),calc(200 * var(--upx))));
+  grid-template-columns: repeat(auto-fit,minmax(calc(110 * var(--upx)),calc(202 * var(--upx))));
   justify-content: center;
   gap: calc(10 * var(--upx));
+  transform: translateX(calc(20 * var(--upx)));
 }
 /* 카드 높이(.menu-cards 의 90%)는 이름표+음식 그림보다 항상 조금 큽니다.
    그냥 두면 내용이 위에 붙고 남는 높이가 전부 아래로 몰려 음식이 아래쪽으로
@@ -125,10 +143,14 @@
    game.js buildMenuCards() 가 인라인 style 로 넣습니다. (경로는 food-props.js) */
 /* flex: none — 세로 flex 안에서 그림이 눌려 비율이 깨지지 않게 합니다.
    margin 은 위아래를 같게 둬야 가운데 정렬이 한쪽으로 치우치지 않습니다. */
+/* [폭 145] 원래 160 이었습니다. 카드 안쪽(200 - 좌우 padding 4 = 192)에 비해
+   그림이 꽉 차 보여서 한 단계 줄인 값입니다. 이름줄·수량표와의 여백이 그만큼 생깁니다.
+   ⚠️ 카드 높이는 .menu-cards 의 90% 로 못박혀 있어 여기를 줄여도 카드는 안 줄어듭니다
+      (남는 높이는 위아래로 갈라집니다 — .menu-card 의 justify-content:center). */
 .food-icon {
   position: relative;
   flex: none;
-  width: calc(160 * var(--upx));
+  width: calc(145 * var(--upx));
   aspect-ratio: 264 / 152;
   display: block;
   margin: calc(2 * var(--upx)) auto;
@@ -195,12 +217,18 @@
   gap: calc(3 * var(--upx));
   margin-right: calc(-19.1 * var(--upx));
 }
+/* [gap] 이름줄(span)과 값줄(strong) 사이 간격입니다. 없으면 두 줄이 서로
+   붙어 「방문 예정 손님 / 3명」이 한 덩어리로 뭉쳐 보입니다.
+   칸 높이가 80(=줄 133 의 60%)인데 두 줄을 합쳐도 30 남짓이라 여유가 많습니다 —
+   더 벌리고 싶으면 이 값만 키우세요(15 쯤부터 칸을 넘칩니다).
+   ⚠️ 아래 .stat-money 는 가로 배치라 자기 gap(4)을 따로 갖습니다. */
 .hud-stats > div {
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: calc(6 * var(--upx));
   border: 1px solid #744522;
   border-radius: calc(4 * var(--upx));
   background: #160c08;

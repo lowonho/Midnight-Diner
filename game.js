@@ -881,7 +881,7 @@ function updateUI(force=false) {
   const isDayPreparation=isMenuSelect||isPrep||isIngredientSelect;
   dom.gameApp.classList.toggle(UI_CLASS.phasePrep,isDayPreparation);
   dom.gameApp.classList.toggle(UI_CLASS.phaseOpen,isOpen);
-  dom.phaseName.textContent=UI_TEXT.phaseName[state.phase]||UI_TEXT.phaseNameFallback;
+  dom.phaseName.textContent=UI_TEXT.phaseNameWithDay(state.day,state.phase);
   dom.dayText.textContent=state.day;
   dom.timeLabel.textContent=isDayPreparation?UI_TEXT.timeLabelPrep:isOpen?UI_TEXT.timeLabelOpen:UI_TEXT.timeLabelOther;
   // 낮에도 밤과 같은 두 칸을 띄웁니다. 낮은 아직 손님이 오기 전이라

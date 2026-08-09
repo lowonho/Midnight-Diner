@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>오늘의 메뉴 선택 — 한 화면 확인</title>
+<link rel="stylesheet" href="../css/base.css" />
+<link rel="stylesheet" href="../css/components.css" />
+<link rel="stylesheet" href="../css/menu-select.css" />
+<style>
+  /* .overlay 는 position:absolute 라 기준 상자가 있어야 화면을 채웁니다.
+     본 게임에선 #gameFrame 이 그 역할이라, 여기선 body 를 그 자리에 세웁니다. */
+  html,body { height:100%; margin:0; }
+  body { position:relative; background:#140c08; }
+</style>
+</head>
+<body>
+<script src="../food-props.js"></script>
+<script>
+// 본 게임의 dishById 자리. 이름만 있으면 되는 화면이라 이 표로 충분합니다.
+const DISHES=[
+  {id:"oden",name:"어묵탕"},{id:"tofu",name:"두부김치"},
+  {id:"kimchi",name:"김치전"},{id:"skewer",name:"닭꼬치"},
+  {id:"yakisoba",name:"볶음우동"},{id:"shrimpTempura",name:"새우튀김"},
+  {id:"tteokbokki",name:"떡볶이"},{id:"fries",name:"감자튀김"}
+];
+
+// day.js renderMenuSelection 의 칸 마크업과 같은 문자열이어야 의미가 있습니다.
+function optionMarkup(dish,{required=false,selected=false,special=""}={}){
+  // foodPropUrl 은 index.html(저장소 뿌리) 기준 경로를 줍니다. 이 확인 파일만
+  // tools/ 안에 있어서 여기서 한 단계 올려 줍니다. 본 게임에선 그대로 맞습니다.
+  const art=foodPropUrl(dish.id);
+  const src=art?"../"+art:"";
+  return `<button class="menu-select-option ${selected?"selected":""} ${required?"required":""}" data-menu-id="${dish.id}" type="button" aria-pressed="${selected}" title="${dish.name}${required?" · 필수 메뉴":""}${special}" ${required?"disabled":""}><strong>${dish.name}</strong><img class="menu-select-option-art" src="${src}" alt="" /></button>`;
+}
+
+fetch("../index.html").then(r=>r.text()).then(html=>{
+  const parsed=new DOMParser().parseFromString(html,"text/html");
+  const overlay=parsed.getElementById("menuSelectOverlay");
+  if(!overlay){document.body.textContent="index.html 에서 #menuSelectOverlay 를 못 찾았습니다.";return;}
+  document.body.append(document.importNode(overlay,true));
+  const live=document.getElementById("menuSelectOverlay");
+  live.classList.add("open");                       // .overlay 는 .open 이 없으면 안 보입니다
+  document.getElementById("menuSelectTitle").textContent="Day 3 · 오늘의 메뉴 선택";
+  document.getElementById("menuSelectDescription").textContent=
+    "오늘의 특별음식 두부김치은 필수입니다. 총 3~4개를 선택하세요.";
+  document.getElementById("menuSelectGrid").innerHTML=DISHES.map((dish,i)=>optionMarkup(dish,{
+    required:i===1, selected:i===1||i===2||i===5, special:i===1?" · 특별음식":""
+  })).join("");
+  document.getElementById("menuSelectCount").textContent="선택 3 / 필수 3";
+  // 그림 8장이 다 뜬 뒤에 찍어야 빈 칸이 안 나옵니다.
+  Promise.all([...live.querySelectorAll("img")].map(img=>img.complete
+    ? Promise.resolve()
+    : new Promise(done=>{img.onload=img.onerror=done;})))
+    .then(()=>{document.title="ready · "+document.title;});
+});
+</script>
+</body>
+</html>

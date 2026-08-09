@@ -30,6 +30,11 @@ const UI_TEXT = Object.freeze({
     [GAME_PHASES.RESULT]:"영업 종료"
   }),
   phaseNameFallback: "영업 준비",
+  /* 실제로 상단 타이틀 판에 찍히는 줄입니다. 단계 이름만으로는 며칠째인지가
+     안 보여서 앞에 "n일차"를 붙입니다 — 예) 「1일차 메뉴 선택」.
+     ⚠️ 위 phaseName 을 직접 읽지 말고 이 함수를 쓰세요(game.js updateUI).
+     타이틀 판 안쪽 폭이 275 라 13px 글자로 약 20자까지 한 줄에 들어갑니다. */
+  phaseNameWithDay: (day,phase) => `${day}일차 ${UI_TEXT.phaseName[phase]||UI_TEXT.phaseNameFallback}`,
 
   // 낮에도 밤과 같은 칸이 뜨지만, 낮에는 아직 아무도 오지 않았으므로
   // 오늘 밤 받을 손님 수를 미리 알려 줍니다(밤이 되면 남은 수로 줄어듭니다).
