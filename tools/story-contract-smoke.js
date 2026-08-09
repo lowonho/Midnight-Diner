@@ -102,6 +102,13 @@ if(endingAssetPaths.length!==5
   ||endingAssetPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
   throw new Error("다섯 엔딩 장면은 서로 다른 실제 배경 파일을 사용해야 합니다.");
 }
+const endingBgmPaths=[...gameSource.matchAll(/\bending\w+:\s*"(assets\/bgm\/story\/ending\/[^"]+\.MP3)"/g)]
+  .map(match=>match[1]);
+if(endingBgmPaths.length!==5
+  ||new Set(endingBgmPaths).size!==5
+  ||endingBgmPaths.some(asset=>!fs.existsSync(path.join(root,...asset.split("/"))))){
+  throw new Error("다섯 엔딩 BGM은 서로 다른 실제 MP3 파일을 사용해야 합니다.");
+}
 
 const bootstrap = `
 var state={story:null,day:1,phase:"day",screen:"game",player:{x:0,y:0,facing:"down",moving:false}};
@@ -741,6 +748,14 @@ same(STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices.map(choice=>
   ["이 밤을 그대로 붙잡는다","내일을 모두에게 돌려준다"],"조각 8개 선택지 문구");
 assert(!STORY_SCENES["SCN-J03"].lines.find(line=>line.choices).choices[1].requiredFlag,
   "END-04 선택에 편지 읽기 플래그를 요구하면 안 됩니다.");
+
+same(["SCN-J01","END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].storyBgm),[
+  "endingLoopReturn","endingAloneMorning","endingGuestsDawn","endingOpenForever","endingMorningTogether"
+],"다섯 엔딩 장면의 전용 BGM");
+assert(["SCN-J01","END-01","END-02","END-03","END-04"]
+  .every(id=>STORY_SCENES[id].storyBgmCrossfade===1500)
+  &&STORY_SCENES["SCN-EPI01"].storyBgm===STORY_SCENES["END-04"].storyBgm,
+  "엔딩 BGM은 1.5초로 전환하고 진엔딩 에필로그까지 같은 곡을 이어야 합니다.");
 
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
   ["nextLoop","nextLoop","nextLoop","clearRunKeepMeta"],

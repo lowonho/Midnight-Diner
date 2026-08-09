@@ -179,7 +179,12 @@ const audio = {
     day:"assets/bgm/bgm_day.mp3",
     night:"assets/bgm/bgm_night.mp3",
     storyCompany:"assets/bgm/story/bgm_company_story.mp3",
-    storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"
+    storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3",
+    endingLoopReturn:"assets/bgm/story/ending/bgm_ending_loop_return.MP3",
+    endingAloneMorning:"assets/bgm/story/ending/bgm_ending_alone_morning.MP3",
+    endingGuestsDawn:"assets/bgm/story/ending/bgm_ending_guests_dawn.MP3",
+    endingOpenForever:"assets/bgm/story/ending/bgm_ending_open_forever.MP3",
+    endingMorningTogether:"assets/bgm/story/ending/bgm_ending_morning_together.MP3"
   }),
   // 400ms 단위의 스테레오 RMS를 측정해 낮 BGM(-24.65dBFS)에 맞춘 값입니다.
   // 원본 파일을 다시 인코딩하지 않고 트랙 GainNode에서만 보정합니다.
@@ -187,7 +192,12 @@ const audio = {
     day:1,
     night:3.685,
     storyCompany:.95,
-    storySikdang:.571
+    storySikdang:.571,
+    endingLoopReturn:.7233,
+    endingAloneMorning:.3972,
+    endingGuestsDawn:.394,
+    endingOpenForever:.6087,
+    endingMorningTogether:.4126
   }),
   // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
   // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.

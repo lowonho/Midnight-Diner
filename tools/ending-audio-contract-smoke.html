@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ENDING_AUDIO_PENDING</title>
+<body>ENDING_AUDIO_PENDING</body>
+<script src="../js/game-data.js"></script>
+<script src="../js/story-data.js"></script>
+<script>
+"use strict";
+try{
+  const expected={
+    "SCN-J01":"endingLoopReturn",
+    "END-01":"endingAloneMorning",
+    "END-02":"endingGuestsDawn",
+    "END-03":"endingOpenForever",
+    "END-04":"endingMorningTogether"
+  };
+  for(const [sceneId,track] of Object.entries(expected)){
+    if(STORY_SCENES[sceneId]?.storyBgm!==track)throw new Error(`${sceneId} BGM mapping`);
+    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==1500)throw new Error(`${sceneId} crossfade`);
+  }
+  if(STORY_SCENES["SCN-EPI01"]?.storyBgm!==expected["END-04"])
+    throw new Error("true-ending epilogue continuation");
+  document.title="ENDING_AUDIO_OK";document.body.textContent="ENDING_AUDIO_OK 5";
+}catch(error){
+  document.title="ENDING_AUDIO_FAIL";document.body.textContent=`ENDING_AUDIO_FAIL ${error.stack||error}`;
+}
+</script>

@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>BGM_LEVEL_AUDIT_RUNNING</title>
+<pre id="output">분석 중…</pre>
+<script type="module">
+try{
+  const paths=[
+    "assets/bgm/bgm_day.mp3",
+    "assets/bgm/bgm_night.mp3",
+    "assets/bgm/story/bgm_company_story.mp3",
+    "assets/bgm/story/bgm_in_first_sikdang.mp3",
+    "assets/bgm/story/ending/bgm_ending_loop_return.MP3",
+    "assets/bgm/story/ending/bgm_ending_alone_morning.MP3",
+    "assets/bgm/story/ending/bgm_ending_guests_dawn.MP3",
+    "assets/bgm/story/ending/bgm_ending_open_forever.MP3",
+    "assets/bgm/story/ending/bgm_ending_morning_together.MP3"
+  ];
+  const context=new AudioContext();
+  const gains={
+    "bgm_day.mp3":1,"bgm_night.mp3":3.685,"bgm_company_story.mp3":.95,"bgm_in_first_sikdang.mp3":.571,
+    "bgm_ending_loop_return.MP3":.7233,"bgm_ending_alone_morning.MP3":.3972,
+    "bgm_ending_guests_dawn.MP3":.394,"bgm_ending_open_forever.MP3":.6087,
+    "bgm_ending_morning_together.MP3":.4126
+  };
+  const db=value=>value>0?20*Math.log10(value):-Infinity;
+  const round=value=>Number.isFinite(value)?Number(value.toFixed(2)):null;
+  const percentile=(values,ratio)=>values.length?values[Math.min(values.length-1,Math.floor(values.length*ratio))]:0;
+  const rows=[];
+
+  for(const path of paths){
+    const encoded=await fetch(`../${path}`).then(response=>response.arrayBuffer());
+    const buffer=await context.decodeAudioData(encoded);
+    const blockSize=Math.max(1,Math.round(buffer.sampleRate*.4));
+    const blocks=[];
+    let peak=0,totalSquares=0,totalSamples=0;
+    for(let start=0;start<buffer.length;start+=blockSize){
+      const end=Math.min(buffer.length,start+blockSize);
+      let squares=0,samples=0;
+      for(let channel=0;channel<buffer.numberOfChannels;channel++){
+        const data=buffer.getChannelData(channel);
+        for(let index=start;index<end;index++){
+          const value=data[index],absolute=Math.abs(value);
+          peak=Math.max(peak,absolute);squares+=value*value;samples++;
+        }
+      }
+      const rms=Math.sqrt(squares/Math.max(1,samples));
+      blocks.push({rms,squares,samples});totalSquares+=squares;totalSamples+=samples;
+    }
+    const active=blocks.filter(block=>db(block.rms)>-50);
+    const activeSquares=active.reduce((sum,block)=>sum+block.squares,0);
+    const activeSamples=active.reduce((sum,block)=>sum+block.samples,0);
+    const levels=active.map(block=>block.rms).sort((a,b)=>a-b);
+    const name=path.split("/").pop(),gain=gains[name]??1,gainDb=db(gain);
+    const rawPeak=db(peak),rawRms=db(Math.sqrt(totalSquares/Math.max(1,totalSamples)));
+    const rawActive=db(Math.sqrt(activeSquares/Math.max(1,activeSamples)));
+    const rawMedian=db(percentile(levels,.5)),rawP90=db(percentile(levels,.9));
+    rows.push({
+      name,duration:round(buffer.duration),gain,peakDb:round(rawPeak),
+      rmsDb:round(rawRms),activeRmsDb:round(rawActive),medianBlockDb:round(rawMedian),p90BlockDb:round(rawP90),
+      adjustedPeakDb:round(rawPeak+gainDb),adjustedActiveRmsDb:round(rawActive+gainDb),
+      adjustedP90BlockDb:round(rawP90+gainDb)
+    });
+  }
+  await context.close();
+  document.title="BGM_LEVEL_AUDIT_OK";
+  document.querySelector("#output").textContent=`BGM_LEVEL_AUDIT_OK ${rows.length}\n${JSON.stringify(rows,null,2)}`;
+}catch(error){
+  document.title="BGM_LEVEL_AUDIT_FAIL";
+  document.querySelector("#output").textContent=`BGM_LEVEL_AUDIT_FAIL\n${error.stack||error}`;
+}
+</script>
