@@ -1,11 +1,11 @@
 /* ============================================================
-   E6 · 튀기기 (engine-e6-deep-fry.js)
+   E6 · 튀기기 (js/engine-e6-deep-fry.js)
    원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
    ============================================================ */
 
 /* ============================================================
-   E6 튀기기 (감자튀김 · 새우튀김) — engine-e6-deep-fry.js
+   E6 튀기기 (감자튀김 · 새우튀김) — js/engine-e6-deep-fry.js
 
    3열 구성입니다. **하단 공용 띠(.mg-strip)는 쓰지 않습니다** —
    띠 자리에 막대기도 빈칸도 두지 않고, 3열이 세로 613.2 를 전부 씁니다.
@@ -439,7 +439,7 @@
 
 /* ── 고양이 발 집게 커서 ──────────────────────────────────────
    이 화면만 쓰는 마우스 포인터입니다. body 에 붙어 포인터를 따라다닙니다
-   (engine-e6-deep-fry.js 의 mountFryCursor 설명 참고).
+   (js/engine-e6-deep-fry.js 의 mountFryCursor 설명 참고).
 
    [겹치는 순서] 아래팔 → **집은 튀김** → 윗팔. 이 순서라야 집게가 튀김을
    물고 있는 것처럼 보입니다. 아래팔·윗팔 두 장을 겹치면 닫힌 집게 한 장과
@@ -547,6 +547,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(52 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.05;
 }

@@ -30,17 +30,28 @@ const UI_TEXT = Object.freeze({
     [GAME_PHASES.RESULT]:"영업 종료"
   }),
   phaseNameFallback: "영업 준비",
+  /* 실제로 상단 타이틀 판에 찍히는 줄입니다. 단계 이름만으로는 며칠째인지가
+     안 보여서 앞에 "n일차"를 붙입니다 — 예) 「1일차 메뉴 선택」.
+     ⚠️ 위 phaseName 을 직접 읽지 말고 이 함수를 쓰세요(game.js updateUI).
+     타이틀 판 안쪽 폭이 275 라 13px 글자로 약 20자까지 한 줄에 들어갑니다. */
+  phaseNameWithDay: (day,phase) => `${day}일차 ${UI_TEXT.phaseName[phase]||UI_TEXT.phaseNameFallback}`,
 
-  timeLabelPrep: "준비",
+  // 낮에도 밤과 같은 칸이 뜨지만, 낮에는 아직 아무도 오지 않았으므로
+  // 오늘 밤 받을 손님 수를 미리 알려 줍니다(밤이 되면 남은 수로 줄어듭니다).
+  timeLabelPrep: "방문 예정 손님",
   // 밤에는 시간이 아니라 남은 손님 수로 마감을 셉니다. 그래서 같은 칸의
   // 이름과 값이 밤에만 손님 수로 바뀝니다.
   timeLabelOpen: "남은 손님",
   timeLabelOther: "남은 시간",
-  timeNoLimit: "제한 없음",
   guestsLeft: count => `${count}명`,
   blank: "-",
 
   money: value => `${value.toLocaleString()}원`,
+  // 낮에는 같은 칸이 그날의 특별 손님 이름표가 됩니다. 처음 가는 날짜의
+  // 이름은 미리 알려 주지 않습니다(hud-special-guest.js 가 판정합니다).
+  satisfactionLabelPrep: "오늘의 특별 손님",
+  satisfactionLabelOther: "손님 반응",
+  specialGuestUnknown: "???",
   // 내부 점수는 조리 판정에 그대로 쓰되 HUD에서는 손님의 표정처럼
   // 정성적인 반응만 보여 줍니다.
   guestResponse: value => cookingScoreMessage(value),
@@ -55,7 +66,9 @@ const UI_TEXT = Object.freeze({
     [GAME_PHASES.OPEN]:"영업 중",
     [GAME_PHASES.RESULT]:"마감"
   }),
-  leftTitlePrep: "오늘의 준비",
+  // 상단 타이틀 판이 "1일차 낮 재료 준비", 우측이 "현재 목표"를 맡으므로
+  // 좌측 제목은 이 판이 무엇인지(=목록)만 말합니다.
+  leftTitlePrep: "준비 목록",
   leftTitleOther: "현재 주문",
 
   phaseButton: "영업 시작",

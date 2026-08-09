@@ -36,7 +36,25 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 
-const CUTSCENE_DIR = path.join(__dirname, "..", "assets", "Cutscene");
+const REPO = path.join(__dirname, "..");
+const CUTSCENE_DIR = path.join(REPO, "assets", "Cutscene");
+
+/* ------------------------------------------------------------
+   [PNG 마스터는 저장소 밖에 두어도 됩니다]
+   ------------------------------------------------------------
+   달빛 조각 여덟 장은 7680x4320 이라 장당 23MB, 합쳐 190MB 입니다. 게임 실행
+   에는 WebP 만 있으면 되므로 저장소에 넣으면 clone 만 무거워집니다.
+   (.gitignore 가 assets/Cutscene/Moonpiece/*.png 를 막아 둡니다)
+
+     권장 위치 : <저장소>/../Midnight-Diner-art-masters/Cutscene/<하위 폴더>/
+     바꾸려면  : MD_ART_MASTERS (대화씬 마스터의 Conversation 폴더)의 형제
+                 Cutscene 폴더를 봅니다
+
+   아래 srcPath() 가 마스터 폴더를 먼저 보고, 없으면 저장소 안(assets/Cutscene)
+   을 봅니다. 그래서 옮기기 전이든 후든 같은 명령이 그대로 돕니다. */
+const MASTER_ROOT = process.env.MD_ART_MASTERS
+  ? path.join(process.env.MD_ART_MASTERS, "..", "Cutscene")
+  : path.join(REPO, "..", "Midnight-Diner-art-masters", "Cutscene");
 
 /* [file]  CUTSCENE_DIR 기준 경로 (PNG 마스터)
    [size]  뽑아낼 WebP 크기 [가로, 세로]
@@ -49,7 +67,29 @@ const FILES = [
   { file:"prologue/rainy_alley_woman_high_angle_4k.png", size:[1920,1080],
     why:"SCN-P02 앞부분 · 비 쏟아지는 골목에 선 김다은(부감)" },
   { file:"prologue/cutscene_03_rain_entry.png", size:[1920,1080],
-    why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면" }
+    why:"SCN-P02 뒷부분 · 빗속에서 달빛식탁 문을 여는 장면" },
+  { file:"prologue/cutscene_empty_restaurant_journal_variant_03_4k.png", size:[1920,1080],
+    why:"SCN-P03 전체 · 주인 없는 식당, 카운터 위의 영업일지" },
+
+  /* 완전한 달빛 조각을 건네받는 순간(SCN-G*-완벽 의 마지막 대사) 깔립니다.
+     파일 이름 앞 번호가 곧 손님 번호이고, js/story-cinematic.js 는 조각 id
+     (shard_<shardId>)로 부릅니다. 여덟 장 모두 김다은이 그려져 있습니다. */
+  { file:"Moonpiece/cutscene_special_01_rain_child_variant_b.png", size:[1920,1080],
+    why:"SCN-G1-완벽 · 비에 젖은 아이가 첫 빗방울을 건넨다" },
+  { file:"Moonpiece/cutscene_special_02_lantern_head_variant_a.png", size:[1920,1080],
+    why:"SCN-G2-완벽 · 등불을 머리에 인 손님이 남은 온기를 건넨다" },
+  { file:"Moonpiece/cutscene_special_03_joined_shadows_variant_b.png", size:[1920,1080],
+    why:"SCN-G3-완벽 · 둘이 붙은 그림자가 반쪽 이름 두 개를 건넨다" },
+  { file:"Moonpiece/cutscene_special_04_crow_postman_variant_a.png", size:[1920,1080],
+    why:"SCN-G4-완벽 · 까마귀 우편배달부가 배달되지 못한 편지를 건넨다" },
+  { file:"Moonpiece/cutscene_special_05_star_eater_variant_b.png", size:[1920,1080],
+    why:"SCN-G5-완벽 · 별을 먹는 작은 짐승이 금빛 소금을 건넨다" },
+  { file:"Moonpiece/cutscene_special_06_sea_guest_variant_b.png", size:[1920,1080],
+    why:"SCN-G6-완벽 · 바닷물로 된 손님이 동쪽의 비늘을 건넨다" },
+  { file:"Moonpiece/cutscene_special_07_stopped_school_doll_variant_a.png", size:[1920,1080],
+    why:"SCN-G7-완벽 · 멈춰버린 교복 인형이 멈춘 분침을 건넨다" },
+  { file:"Moonpiece/cutscene_special_08_faceless_daeun_variant_b.png", size:[1920,1080],
+    why:"SCN-G8-완벽 · 얼굴 없는 김다은이 김다은의 내일을 건넨다" }
 ];
 
 const QUALITY = 88;
@@ -58,7 +98,12 @@ const EFFORT = 6;     // cwebp 의 -m 6 에 해당. 느리지만 파일이 더 �
 // 가로세로비가 원본과 크게 다르면 늘려 쓰고 있다는 뜻이라 미리 알려 줍니다.
 const ASPECT_TOLERANCE = 0.02;
 
-function srcPath(f){ return path.join(CUTSCENE_DIR, f.file); }
+// 마스터 폴더(저장소 밖)를 먼저 보고, 없으면 저장소 안을 봅니다.
+// WebP 는 어느 쪽에서 읽었든 항상 저장소 안(assets/Cutscene)에 씁니다.
+function srcPath(f){
+  const outside = path.join(MASTER_ROOT, f.file);
+  return fs.existsSync(outside) ? outside : path.join(CUTSCENE_DIR, f.file);
+}
 function outPath(f){ return path.join(CUTSCENE_DIR, f.file.replace(/\.png$/, ".webp")); }
 function kb(bytes){ return Math.round(bytes/1024); }
 
@@ -85,9 +130,12 @@ async function convert(){
   for(const f of FILES){
     const src = srcPath(f);
     const out = outPath(f);
-    if(!fs.existsSync(src)) throw new Error(`원본이 없습니다: ${src}\n  (${f.why})`);
+    if(!fs.existsSync(src)) throw new Error(
+      `원본이 없습니다: ${src}\n  (${f.why})\n`
+      + `  마스터 폴더도 확인했습니다: ${path.join(MASTER_ROOT, f.file)}`);
     const meta = await sharp(src).metadata();
     checkAspect(f, meta);
+    fs.mkdirSync(path.dirname(out), {recursive:true});
     const [w,h] = f.size;
     await resized(src, w, h).webp({quality:QUALITY, effort:EFFORT}).toFile(out);
     const a=fs.statSync(src).size, b=fs.statSync(out).size;

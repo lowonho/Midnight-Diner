@@ -109,6 +109,27 @@ function setup(overlay){
     const last=visible.at(-1).getBoundingClientRect();
     document.body.dataset.slack=String(Math.round(scroll.getBoundingClientRect().bottom-last.bottom));
     document.body.dataset.upx=getComputedStyle(document.documentElement).getPropertyValue("--upx").trim();
+
+    // 오른쪽 위 닫기 × 의 자리. dy 는 제목 줄 한가운데에서 벗어난 정도(0 이 맞은 것),
+    // right 는 판 오른쪽 끝에서 단추 오른쪽까지입니다 (구석 장식을 비켜났는지 봅니다).
+    // 값은 px 이 아니라 upx 라, css/settings.css 의 숫자와 바로 견줄 수 있습니다.
+    const closeButton=overlay.querySelector(".settings-close");
+    const title=overlay.querySelector(".settings-window h2");
+    if(closeButton&&title){
+      // --upx 는 계산식 그대로 읽혀서 숫자로 못 씁니다. 자(尺) 하나를 실제로
+      // 그려 보고 그 폭을 100 으로 나눠 1upx 가 몇 px 인지 알아냅니다.
+      const ruler=document.createElement("div");
+      ruler.style.cssText="position:absolute;width:calc(100 * var(--upx));height:0";
+      overlay.append(ruler);
+      const upx=ruler.getBoundingClientRect().width/100;
+      ruler.remove();
+      const button=closeButton.getBoundingClientRect();
+      const heading=title.getBoundingClientRect();
+      const round=value=>Math.round(value/upx*10)/10;
+      document.body.dataset.close=
+        `dy=${round((button.top+button.bottom)/2-(heading.top+heading.bottom)/2)}upx `+
+        `right=${round(rect.right-button.right)}upx size=${round(button.width)}upx`;
+    }
   });
 }
 </script>

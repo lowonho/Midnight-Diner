@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>right-hud measure</title>
+<!-- 낮 우측 HUD 높이 실측용. 본 게임을 띄우지 않고 hud.css 만 걸어 재 봅니다.
+     index.html 과 같은 순서로 걸어야 뒤 파일이 앞 파일을 덮는 관계가 같습니다.
+     (본 게임 캔버스·스크립트는 필요 없어서 뺐습니다) -->
+<link rel="stylesheet" href="../css/base.css" />
+<link rel="stylesheet" href="../css/app-shell.css" />
+<link rel="stylesheet" href="../css/components.css" />
+<link rel="stylesheet" href="../css/hud.css" />
+<link rel="stylesheet" href="../css/responsive.css" />
+<style>
+  /* 게임 프레임과 같은 16:9 무대를 1920x1080 로 못박습니다.
+     이 크기에서 --upx 가 정확히 1px 이라 CSS 에 적힌 숫자를 그대로 읽을 수 있습니다. */
+  html,body{margin:0;background:#120a07;}
+  .game-frame{position:relative;width:1920px;height:1080px;overflow:hidden;background:#241610;}
+  .hidden-hud{opacity:1 !important;}   /* 재는 동안에는 보이게 */
+</style>
+</head>
+<body>
+<div class="game-app phase-prep" id="gameApp">
+  <section class="game-frame">
+    <!-- index.html 의 #rightHud 를 그대로 옮긴 것입니다. 구조가 달라지면 여기도 맞추세요. -->
+    <aside id="rightHud" class="right-hud wood-panel">
+      <div class="panel-heading">
+        <strong id="objectiveTitle">현재 목표</strong>
+        <span class="phase-dot"></span>
+      </div>
+      <div id="objectiveBody" class="objective-body"></div>
+      <div class="relationship-box">
+        <div class="relationship-heading"><span>영업 기록</span><small>특별 손님과 달빛 조각</small></div>
+        <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span></div>
+      </div>
+      <div class="controls-help">
+        <div><kbd>WASD</kbd><span>이동</span></div>
+        <div><kbd>E</kbd><span>상호작용</span></div>
+        <div><kbd>ESC</kbd><span>설정 / 일시정지</span></div>
+      </div>
+    </aside>
+  </section>
+</div>
+
+<pre id="out" style="color:#ead8b8;font:13px monospace;padding:12px"></pre>
+
+<script>
+/* js/day.js updateDayObjective / updateMenuSelectionObjective 가 넣는 것과 같은 글입니다.
+   ⚠️ 저쪽 문구를 바꾸면 여기도 같이 바꿔야 실측값이 의미가 있습니다. */
+const CASES = {
+  // 정리하기 전 내용. 얼마나 줄었는지 견주려고 남겨 둡니다.
+  "(옛) 낮 요약": `
+    <div class="prep-summary">
+      <strong>오늘의 메뉴</strong>
+      <div>김치전 · 떡볶이 · 새우튀김 · 두부김치 · 닭꼬치</div>
+      <strong>준비할 작업</strong>
+      <div>완료 0 · 남음 11</div>
+      <strong>조작</strong>
+      <div>WASD 이동 · E 상호작용 · ESC 메뉴</div>
+    </div>`,
+  "낮 · 다음 작업": `
+    <div class="prep-summary">
+      <strong>다음 작업</strong>
+      <div>두부김치용 김치 썰기</div>
+      <strong>준비물</strong>
+      <div>바 테이블의 「두부김치 준비」</div>
+    </div>`,
+  "낮 · 준비 완료": `
+    <div class="prep-summary">
+      <strong>준비 완료</strong>
+      <div>왼쪽 「영업 시작」 버튼으로 밤 영업을 시작하세요.</div>
+    </div>`,
+  "메뉴 선택": `
+    <div class="prep-summary">
+      <strong>메뉴 정하기</strong>
+      <div>주방의 냉장고 앞으로 이동해 오늘 준비할 메뉴를 정하세요.</div>
+    </div>`
+};
+
+function measure(){
+  const panel=document.getElementById("rightHud"),body=document.getElementById("objectiveBody");
+  /* ⚠️ 글꼴이 CDN 이라 인터넷이 없으면 예비 글꼴(맑은 고딕)로 잽니다.
+     도트 글꼴은 줄 간격이 달라서(굵은 글씨 1.0배) 값이 조금 달라집니다.
+     그래서 실측값을 그대로 min-height 로 박지 말고, 그보다 **낮게** 잡아
+     패널이 늘 내용 크기로 서게 두세요. */
+  const fontsReady=["12px NeoDunggeunmoPro","12px NeoDunggeunGothicPro"]
+    .map(f=>`${f.split(" ")[1]}=${document.fonts.check(f)?"O":"X(예비 글꼴)"}`).join(" · ");
+  const lines=[`글꼴 ${fontsReady}`,`min-height 규칙: ${getComputedStyle(panel).minHeight} (프레임 1080 기준)`];
+  Object.entries(CASES).forEach(([name,html])=>{
+    body.innerHTML=html;
+    const h=panel.getBoundingClientRect().height;
+    // 실제 글이 차지한 높이(min-height 를 잠시 풀고 잽니다)
+    const saved=body.style.minHeight;body.style.minHeight="0";
+    const textH=body.getBoundingClientRect().height;
+    body.style.minHeight=saved;
+    lines.push(`${name.padEnd(14)} 패널 ${h.toFixed(1)}px = ${(h/1080*100).toFixed(2)}%  · 글 높이 ${textH.toFixed(1)}px`);
+  });
+  // 화면에는 대표 경우(낮 · 다음 작업)를 남겨 둡니다 — 눈으로 볼 때와 캡처용.
+  body.innerHTML=CASES["낮 · 다음 작업"];
+  document.getElementById("out").textContent=lines.join("\n");
+}
+addEventListener("load",measure);
+</script>
+</body>
+</html>

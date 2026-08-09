@@ -1,5 +1,5 @@
 /* ============================================================
-   E12 · 채칼 (engine-e12-grab-shake.js)
+   E12 · 채칼 (js/engine-e12-grab-shake.js)
    원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
    
@@ -264,7 +264,7 @@
   z-index: 3;
   left: calc(var(--md-ing-cx) - var(--md-ing-w) * var(--md-ing-fit) / 2);
   /* --md-ing-drift : 장이 넘어갈 때마다 조금씩 아래로 미는 값 (01 은 0).
-     engine-e2-alternate-input.js 의 공용 채칼 화면 코드가 넣어 줍니다. */
+     js/engine-e2-alternate-input.js 의 공용 채칼 화면 코드가 넣어 줍니다. */
   bottom: calc(100% - var(--md-ing-b) - var(--md-ing-drift,0) * var(--upx));
   width: calc(var(--md-ing-w) * var(--md-ing-fit));
   height: calc(var(--md-ing-h) * var(--md-ing-fit));
@@ -305,7 +305,7 @@
 .md-ingredient.move-down { animation: md-slide-down .13s ease; }
 
 /* 썰린 채 더미 : 채반 한가운데에 수북이 쌓입니다.
-   가닥 자리(--md-x/--md-y)는 engine-e2-alternate-input.js 가 계산합니다. */
+   가닥 자리(--md-x/--md-y)는 js/engine-e2-alternate-input.js 가 계산합니다. */
 .md-pile {
   position: absolute;
   z-index: 3;

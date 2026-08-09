@@ -1,5 +1,5 @@
 /* ============================================================
-   E3 · 볶음우동 조리 · 철판 볶기 (engine-e3-direction-seq.js)
+   E3 · 볶음우동 조리 · 철판 볶기 (js/engine-e3-direction-seq.js)
    원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
    
@@ -15,7 +15,7 @@
    화구·철판·면·뒤집개는 assets/minigame/E3 의 납품 그림입니다.
    그림이 있으면 .has-asset(.has-prep-asset) 이 붙어 아래 임시 CSS 도형이 꺼지고
    <img> 가 대신 보입니다. 도형은 납품 전 대비로 남겨 둔 것입니다.
-   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+   (경로는 js/day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]
    css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 게임이 떠 있을
@@ -78,7 +78,7 @@
   height: 100%;
   object-fit: contain;
 }
-.yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.yk-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .yk-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 우동 사리 / 소스병 / 손질 야채 */
 .yk-ing-card .yk-ing-art i {
@@ -247,7 +247,7 @@
 .yk-food.has-prep-asset .yk-food-fallback { display:none; }
 /* 면 그림 5장을 **같은 자리에 겹쳐 두고** 갈아 끼웁니다 (김치 볶기와 같은 방식).
    평소에는 base 한 장만 보이고, 볶을 때 그 방향 장이 240ms 동안 대신 켜집니다
-   (engine-e3-direction-seq.js 의 E3_FEEL_CONFIG.actionMs 가 scrape-○ 를 떼는 시각).
+   (js/engine-e3-direction-seq.js 의 E3_FEEL_CONFIG.actionMs 가 scrape-○ 를 떼는 시각).
    ⚠️ 전환(transition)을 두지 않습니다. 뒤집는 한 순간이라 툭 바뀌어야 뒤집힌 것처럼
       보이고, 겹쳐 페이드하면 두 장이 같이 비쳐 면이 두 겹으로 보입니다.
    ⚠️ 김치와 달리 **다섯 장의 캔버스가 2200x803 으로 똑같습니다.** 그래서 상자
@@ -393,7 +393,7 @@
 .yk-spatula.has-prep-asset.spatula-left { left: 18.3%; right: auto; transform-origin: 65% 83.6%; }
 .yk-spatula.has-prep-asset.spatula-right { right: 18.3%; left: auto; transform-origin: 35% 83.6%; }
 /* 뒤집개 3장도 면처럼 겹쳐 두고 갈아 끼웁니다. 어느 장이 보이는지는 data-spatula 하나가
-   정하고, 그 값은 engine-e3-direction-seq.js 의 stirSpatulaState() 가 씁니다.
+   정하고, 그 값은 js/engine-e3-direction-seq.js 의 stirSpatulaState() 가 씁니다.
      clean     한 번도 안 볶은 깨끗한 뒤집개
      stirring  볶는 중 (철판 위에 손을 대고 있는 동안)
      rested    한 번 볶고 손을 뗀 상태 — 면이 살짝 남습니다
@@ -428,7 +428,7 @@
       보였습니다. 한쪽을 고치면 다른 쪽도 같이 보세요.
 
    ⚠️ 기둥은 이제 정해진 자리에 박혀 있지 않습니다. 한 모금이 사그라들 때마다
-      **다음 모금을 어디에서 피울지 새로 뽑습니다** (day-prep-minigames.js 의
+      **다음 모금을 어디에서 피울지 새로 뽑습니다** (js/day-prep-minigames.js 의
       placeMinigameSmoke). 그래서 여기 적는 것은 자리가 아니라 **뽑을 범위**입니다.
       크기·박자·진하기는 세 화면이 똑같고, 이 화면만 다른 것 둘만 덮어씁니다.
 
@@ -455,7 +455,7 @@
 .yk-board.cook-stage-2 .mg-smoke { opacity: .46; }
 .yk-board.cook-stage-3 .mg-smoke { opacity: .56; }
 /* 김 — 연기 그림이 없을 때 쓰는 예전 CSS 김 두 줄입니다
-   (engine-e3-direction-seq.js 의 minigameSmokeMarkup 이 빈 문자열을 돌려줄 때) */
+   (js/engine-e3-direction-seq.js 의 minigameSmokeMarkup 이 빈 문자열을 돌려줄 때) */
 .yk-steam {
   position: absolute;
   z-index: 2;
@@ -472,7 +472,7 @@
 
 /* 오른쪽 : 진행도 · 다음 순서 */
 .yk-count { text-align: center; }
-.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.yk-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
 .yk-next { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .yk-next-arrow {
   flex: 1;
@@ -481,6 +481,8 @@
   min-height: calc(96 * var(--upx));
   color: #f6c96a;
   font-size: calc(88 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(22 * var(--upx)) rgba(255,182,80,.5), 0 calc(4 * var(--upx)) 0 rgba(0,0,0,.45);
@@ -532,6 +534,8 @@
   background-repeat: no-repeat;
   color: #e0a44a;                  /* 그림이 못 뜰 때 남는 글자 화살표(←↑→↓) 색 */
   font-size: calc(40 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   text-shadow: 0 0 calc(12 * var(--upx)) rgba(224,164,74,.45);

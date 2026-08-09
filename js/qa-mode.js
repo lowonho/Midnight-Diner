@@ -991,6 +991,8 @@ function qaResetJournalPages(){
   try{localStorage.removeItem(JOURNAL_KEY);}
   catch(error){qaRefreshPanel(`영업일지를 초기화하지 못했습니다: ${error.message}`);return false;}
   window.refreshJournalUI?.();
+  // 키를 직접 지웠으므로 낮 HUD가 기억해 둔 손님 이름 공개도 함께 잠급니다.
+  window.clearHudSpecialGuestCache?.();
   qaRefreshPanel("컬렉션 영업일지를 처음 상태(전부 잠김)로 되돌렸습니다.");
   return true;
 }

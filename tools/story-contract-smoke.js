@@ -150,10 +150,16 @@ const assert=(condition,message)=>{
   if(!condition)throw new Error(message);
 };
 
-assert(String(showStoryLine).includes("applyStoryFragmentHandoff(line)")
+/* 조각 전달 레이어는 줄이 바뀔 때마다 다시 정해져야 합니다. showStoryLine 이
+   매 줄 applyStoryFragmentHandoff 를 부르고, 켤지 말지는 fragmentRevealedAt
+   으로 판단합니다(대사를 읽고 한 번 더 눌러야 뜹니다). */
+assert(String(showStoryLine).includes("applyStoryFragmentHandoff(")
+  &&String(showStoryLine).includes("fragmentRevealedAt")
   &&String(resetStoryStage).includes("applyStoryFragmentHandoff(null)")
   &&String(clearStoryRuntime).includes("applyStoryFragmentHandoff(null)"),
   "조각 전달 레이어는 다음 줄·다음 장면·런타임 종료에서 반드시 해제되어야 합니다.");
+assert(String(storyAdvance).includes("fragmentRevealedAt"),
+  "달빛 조각은 대사를 다 읽고 한 번 더 눌렀을 때 떠야 합니다(storyAdvance 의 조각 박자).");
 assert(String(showStoryLine).includes("applyStoryEndingBackground(scene)")
   &&String(resetStoryStage).includes("applyStoryEndingBackground(null)")
   &&String(clearStoryRuntime).includes("applyStoryEndingBackground(null)"),
@@ -315,21 +321,25 @@ assert(expectedGameplayJournalGuestIds.every(id=>{
 const initialGameplayJournal=getGameplayJournalPages();
 const initialRecipePages=initialGameplayJournal.filter(page=>page.pageType==="recipe");
 const initialDayPages=initialGameplayJournal.filter(page=>page.pageType==="day");
-assert(initialGameplayJournal.length===16
+assert(initialGameplayJournal.length===17
   &&initialGameplayJournal[0].pageType==="rules"
+  &&initialGameplayJournal[1].pageType==="guide"
   &&initialRecipePages.length===8
   &&initialDayPages.every((page,index)=>
     page.pageType==="day"&&page.day===index+1&&!page.recorded&&page.entries.length===0),
-  "새 게임의 진행용 영업일지는 주의사항 1장, 음식별 레시피 8장, 빈 1~7일차 기록으로 구성되어야 합니다.");
-same(initialGameplayJournal.map(page=>page.number),Array.from({length:16},(_,index)=>index+1),
-  "진행용 영업일지 16장의 페이지 번호");
+  "새 게임의 진행용 영업일지는 주의사항 1장, 양면 그림 안내 1장, 음식별 레시피 8장, 빈 1~7일차 기록으로 구성되어야 합니다.");
+same(initialGameplayJournal.map(page=>page.number),Array.from({length:17},(_,index)=>index+1),
+  "진행용 영업일지 17장의 페이지 번호");
+// 안내 장은 글이 아니라 양면 원화 두 장이라, 그림 주소가 빠지면 빈 종이가 됩니다.
+assert(initialGameplayJournal[1].artLeft==="assets/UI/Journal/ui_log_story_guest_cooking_v01.webp"
+  &&initialGameplayJournal[1].artRight==="assets/UI/Journal/ui_log_story_choice_answer_v03.webp",
+  "안내 장의 왼쪽 면은 손님 조리 그림, 오른쪽 면은 선택지·대답 그림이어야 합니다.");
 same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
 same(initialGameplayJournal[0].rules,[
   "매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.",
-  "손님에게 항상 친절하게 대한다.",
-  "내일로 가는 문은 달빛 조각으로만 열 수 있다."
-],"영업일지의 간결한 주의사항 세 가지");
+  "손님에게 항상 친절하게 대한다."
+],"영업일지의 간결한 주의사항 두 가지");
 same(initialRecipePages.map(page=>page.dishId),STORY_MENU_RULES.dishIds,
   "음식별 레시피 여덟 장의 순서");
 assert(initialRecipePages.every(page=>page.ingredients.length>0&&page.prepSteps.length>0&&page.cookSteps.length>0),
@@ -550,9 +560,11 @@ assert(String(prepareStoryNight).includes("guest?.visits")
 assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadows"')
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
-assert(initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문")&&rule.includes("달빛 조각으로만"))
+// 내일의 문을 여는 목표는 프롤로그 대사(SCN-P04)가 이미 짚어 줍니다.
+// 주의사항 장에는 매일 지켜야 할 두 가지만 남기고 목표 문장은 빼 둡니다.
+assert(!initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
-  "영업일지 첫 장은 세부 등급을 선공개하지 않고 달빛 조각으로 내일의 문을 여는 목표만 알려야 합니다.");
+  "영업일지 첫 장은 세부 등급도 내일의 문 목표도 적지 않고 매일의 영업 규칙만 남겨야 합니다.");
 same(l01.lines.slice(-4).map(line=>line.text),[
   "달빛 조각은 사라졌지만 기록은 남아 있어.",
   "이번에도 같은 손님들이 같은 날 찾아온다면 다시 모을 수 있을 거야.",

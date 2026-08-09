@@ -1,5 +1,5 @@
 /* ============================================================
-   E4 · 화력 유지 (engine-e4-gauge-hold.js)
+   E4 · 화력 유지 (js/engine-e4-gauge-hold.js)
    원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
    ============================================================ */
@@ -13,14 +13,14 @@
    원래 이 화면만 3열을 안 쓰고 폭 1360.2 를 통으로 썼습니다. 좌·우 칸이
    생기면서 가운데가 824.2 로 좁아졌고, 냄비 아래에 있던 유지 바와 진행
    문구는 우측 진행도 카드로, ± 버튼은 우측 조작 카드로 옮겼습니다.
-   (마크업은 engine-e4-gauge-hold.js 의 heatScreenMarkup)
+   (마크업은 js/engine-e4-gauge-hold.js 의 heatScreenMarkup)
 
    [화구와 냄비는 분리된 두 겹입니다]
    화구(가스버너 3장)는 assets/minigame/E4 의 납품 에셋이고 규칙은
    css/minigame-parts.css 의 .mg-burner 가 갖고 있습니다 — E3 김치 볶기 ·
    E5 김치전과 같은 방식입니다. 냄비는 그 위에 얹히는 CSS 도형입니다.
 
-   나머지 그림(냄비·국물·재료)은 아직 임시 CSS 도형입니다. day-prep-minigames.js 의
+   나머지 그림(냄비·국물·재료)은 아직 임시 CSS 도형입니다. js/day-prep-minigames.js 의
    DAY_PREP_ASSET_PATHS 경로에 파일을 넣으면 .has-asset 이 붙어
    도형이 꺼지고 <img> 가 대신 보입니다. */
 .heat-scene {
@@ -32,7 +32,7 @@
 
 /* ── 왼쪽 : 재료 카드 (보여주기만 합니다) ─────────────────────
    냄비에 이미 들어가 있는 재료입니다. 개수는 낮 준비에서 손질한 수와 같고,
-   그 값은 engine-e4-gauge-hold.js 의 HEAT_INGREDIENTS 가 준비 설정에서 읽어 옵니다. */
+   그 값은 js/engine-e4-gauge-hold.js 의 HEAT_INGREDIENTS 가 준비 설정에서 읽어 옵니다. */
 /* 카드 높이를 그림에 맞춰 고정하고, 남는 20.1 은 위아래로 나눠 가집니다.
    (E5 `.ts-ing-list` 와 같은 방식이고 상한값만 다릅니다) */
 .heat-ing-list { flex: 1; display: grid; grid-auto-rows: minmax(0,var(--heat-ing-card-h)); align-content: center; gap: var(--mg-ing-list-gap); }
@@ -44,7 +44,7 @@
 .heat-ing-asset { max-width: 100%; max-height: calc(116 * var(--upx)); object-fit: contain; }
 /* 높이를 못박습니다 — 개수(×N)가 없는 재료는 이름 줄이 3 짧아져 그 카드만
    그림칸이 3 커집니다(불린 떡 · 양념장). 세 장의 그림 크기를 맞추려는 것입니다. */
-.heat-ing-name { margin: 0; height: calc(26 * var(--upx)); display: flex; align-items: baseline; justify-content: center; gap: calc(6 * var(--upx)); color: #f0dcb4; font-size: calc(17 * var(--upx)); font-weight: 800; }
+.heat-ing-name { margin: 0; height: calc(26 * var(--upx)); display: flex; align-items: baseline; justify-content: center; gap: calc(6 * var(--upx)); color: #f0dcb4; font-size: calc(17 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .heat-ing-name b { color: var(--gold-bright); font-size: calc(19 * var(--upx)); }
 
 /* 재료 그림 (임시 도형) — 냄비 안에 떠 있는 조각(.heat-radish · .heat-tteok …)을
@@ -90,7 +90,7 @@
    ⚠️ 공용 타이머 카드(#miniTimer)는 이 화면에서 숨겨져 있습니다
       (css/minigame-parts.css). 카운트다운을 여기서 직접 그리는 이유입니다. */
 .heat-count { text-align: center; }
-.heat-count-value { margin: 0; color: var(--gold-bright); font-size: calc(40 * var(--upx)); font-weight: 900; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.heat-count-value { margin: 0; color: var(--gold-bright); font-size: calc(40 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .heat-count-value b { color: #f2a03c; }
 /* ── 오른쪽 아래 : 조작 ─────────────────────────────────────
    누르는 동안 상승하고 떼면 하강하는 한 버튼입니다(키보드·마우스 둘 다 지원). */
@@ -101,9 +101,9 @@
    읽히지 않았습니다. 칸 폭이 250 뿐이라 옆으로 나누면 둘 다 좁아집니다. */
 .heat-key-row { display: grid; grid-template-columns: minmax(0,1fr); justify-items: center; gap: calc(9 * var(--upx)); width: 100%; }
 .heat-key-text { display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--upx)); color: var(--gold-bright); text-align: center; }
-.heat-key-text b { font-size: calc(18 * var(--upx)); font-weight: 800; }
-.heat-key-text em { color: #d8bb8b; font-size: calc(14 * var(--upx)); font-style: normal; font-weight: 700; }
-.heat-control-name { margin: 0; color: #d8bb8b; font-size: calc(15 * var(--upx)); font-weight: 700; }
+.heat-key-text b { font-size: calc(18 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
+.heat-key-text em { color: #d8bb8b; font-size: calc(14 * var(--upx)); font-style: normal; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
+.heat-control-name { margin: 0; color: #d8bb8b; font-size: calc(15 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
 
 .heat-cook-scene {
   position:relative;
@@ -146,7 +146,7 @@
 /* ── 버너 손잡이 강조 (빤짝임) ────────────────────────────────
    "이 손잡이도 눌러서 조작할 수 있다" 를 글자 말고 그림으로 알려 주는 유인 효과입니다.
    퍼져 나가는 링 2개 + 주변을 도는 반짝임 4개이고, 마크업은
-   engine-e4-gauge-hold.js 의 heatKnobHintMarkup 입니다.
+   js/engine-e4-gauge-hold.js 의 heatKnobHintMarkup 입니다.
 
    ⚠️ 자리 세 값(82.68% · 86.58% · 12.9%)은 css/minigame-parts.css 의 .mg-burner-knob 과
       **똑같아야 합니다.** 한쪽만 고치면 빤짝임이 손잡이에서 어긋나 허공에서 돕니다.
@@ -257,7 +257,7 @@
    메뉴 2종 x 끓는 세기 3단계 x 4장짜리 스프라이트입니다. 4장이 한 바퀴 돌고,
    어느 벌을 쓸지는 **온도 구간**(.heat-low/.heat-ideal/.heat-high)이 고릅니다.
    화구와 같은 방식이라 재생은 전부 CSS 가 합니다 — 자바스크립트 타이머 없음.
-   (마크업은 engine-e4-gauge-hold.js 의 heatPotMarkup)
+   (마크업은 js/engine-e4-gauge-hold.js 의 heatPotMarkup)
 
      가로 · 비율       메뉴마다 다릅니다(아래 .heat-pot-art.oden / .tteokbokki).
                       같은 폭이면 떡볶이 냄비가 더 작아 보여서 그쪽을 더 키웠습니다.
@@ -479,7 +479,7 @@
   box-shadow:0 calc(5 * var(--upx)) calc(12 * var(--upx)) rgba(0,0,0,.38);
   pointer-events:none;
 }
-.heat-wrap-label { color:#d8bb8b; font-size:calc(15 * var(--upx)); font-weight:800; line-height:1; white-space:nowrap; }
+.heat-wrap-label { color:#d8bb8b; font-size:calc(15 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; line-height:1; white-space:nowrap; }
 /* 조작 카드의 불 조절 키. 겉모습은 공용 --mg-key-*(css/minigame-parts.css)를 따르고
    크기·글꼴만 이 화면 것입니다 — E5 `.ts-key` 와 같은 큰 사각 한 글자입니다. */
 .heat-key {
@@ -527,7 +527,7 @@
   box-shadow:inset 0 0 calc(9 * var(--upx)) rgba(225,246,145,.28);
   transition:bottom .06s linear,height .06s linear;
 }
-/* 구간이 좁아지는 동안(engine-e4-gauge-hold.js 의 updateHeatPinch). 폭만 줄면
+/* 구간이 좁아지는 동안(js/engine-e4-gauge-hold.js 의 updateHeatPinch). 폭만 줄면
    화면이 작아서 눈에 잘 안 띄어, 띠 색까지 주황으로 당겨 경고처럼 보이게 합니다. */
 .heat-target.pinching {
   border-top-color:#ffcf7a;

@@ -1,5 +1,5 @@
 /* ============================================================
-   E5 · 김치전 · 닭꼬치 굽기 (engine-e5-two-side-cook.js)
+   E5 · 김치전 · 닭꼬치 굽기 (js/engine-e5-two-side-cook.js)
    원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
    
@@ -16,7 +16,7 @@
    ⚠️ **색을 필터로 만들지 않습니다.** 예전에는 한 장을 brightness/sepia 로 태웠는데,
       익힘 단계까지 그려진 그림 5장이 들어오면서 필터를 그대로 두면 두 번 태워집니다.
    다섯 장을 같은 자리에 겹쳐 두고 지금 단계까지를 `on` 으로 켭니다
-   (engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS · updatePancakeCookArt).
+   (js/engine-e5-two-side-cook.js 의 PANCAKE_COOK_STEPS · updatePancakeCookArt).
    ⚠️ 위 장이 아래 장을 완전히 덮으므로 **아래 장을 끄지 않습니다.** 서로 흐려지게
       하면 넘어가는 순간 두 장 다 반투명이 되어 팬 바닥이 비칩니다. */
 .pancake-food-asset { position:absolute; z-index:0; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .5s ease; }
@@ -74,7 +74,7 @@
    화로 몸통 · 벌건 숯 · 석쇠 살까지 **한 장에 다 그려져 있습니다**. 그래서
    그림이 있으면 위 임시 몸통(테두리·배경·그림자)과 아래 숯덩이·살·열기를
    전부 끕니다 — 겹치면 숯 위에 숯을 깔고 열기를 두 번 입히는 셈입니다.
-   (마크업은 engine-e5-two-side-cook.js 의 charcoalSkewerMarkup)
+   (마크업은 js/engine-e5-two-side-cook.js 의 charcoalSkewerMarkup)
 
    다섯 장은 숯이 달아올랐다 사그라드는 연속 그림입니다. 한 자리에 겹쳐 두고
    **CSS 가 차례로 한 장씩 켭니다** — 자바스크립트 타이머가 없으므로 미니게임이
@@ -222,7 +222,7 @@
 .grill-skewer b::after { content:""; position:absolute; z-index:3; inset:-2px; border-radius:inherit; background:repeating-linear-gradient(12deg,transparent 0 20%,rgba(45,21,14,.9) 22% 28%,transparent 30% 47%); opacity:0; transition:opacity .2s ease; }
 /* ── 낮에 꽂은 그대로 굽기 ───────────────────────────────────
    조각·꼬챙이 그림은 E8 '닭꼬치 꽂기'와 **같은 파일**입니다
-   (assets/minigame/E8/ · engine-e5-two-side-cook.js 의 grillSkewerMarkup).
+   (assets/minigame/E8/ · js/engine-e5-two-side-cook.js 의 grillSkewerMarkup).
    ⚠️ 예전에는 꼬치 한 자루가 통째로 그려진 그림 한 장(.grill-skewer-asset)을
       깔았습니다. 그 방식으로는 낮에 꽂은 배치가 무엇이든 늘 같은 꼬치가 구워집니다.
 
@@ -341,7 +341,7 @@
       .rebound-controls · .two-side-pan.rebound-fail)과 꼬치 ←→ 순서표
       (.skewer-flip-sequence · .skewer-flip-pair · .skewer-flip-controls)입니다.
       ↑꾹→↓ 와 ←→ 연타가 드래그 한 번으로 바뀌면서 쓸 자리가 없어졌습니다.
-      되살리려면 engine-e5-two-side-cook.js 쪽 단계(phase "flip" / "skewerFlip")부터
+      되살리려면 js/engine-e5-two-side-cook.js 쪽 단계(phase "flip" / "skewerFlip")부터
       함께 되돌려야 합니다 — CSS 만 되살리면 아무 데도 안 붙습니다. */
 .two-side-pan.flipping .cook-food { animation:two-side-food-flip .6s ease-in-out; }
 .two-side-pan.flipping { animation:pan-toss .62s ease-in-out; }
@@ -352,7 +352,7 @@
      cue-flip  흰빛 — 드래그해서 뒤집기
      cue-sauce 붉은빛 — 클릭해서 양념 바르기
    --cue-left 는 남은 시간(1 → 0)이라 신호가 사그라드는 것이 그대로 보입니다
-   (engine-e5-two-side-cook.js 의 update 가 매 프레임 넣습니다).
+   (js/engine-e5-two-side-cook.js 의 update 가 매 프레임 넣습니다).
    ⚠️ box-shadow 가 아니라 drop-shadow 입니다 — 상자(타원·사각) 둘레가 아니라
       **조리물 실루엣**을 따라 빛나야 합니다. 김치전 완성 표시와 같은 이유입니다. */
 .cue-preheat { --cue-left:1; }
@@ -506,7 +506,7 @@
 .ts-drag-arrow.has-asset::before,
 .ts-drag-arrow.has-asset::after { display: none; }
 /* ⚠️ 선택자에 **부모를 꼭 붙입니다.** 이 <img> 에는 공용 `.prep-asset` 이 함께 붙는데
-   (day-prep-minigames.js 의 dayPrepAssetMarkup), 거기 `display:block; max-width:100%`
+   (js/day-prep-minigames.js 의 dayPrepAssetMarkup), 거기 `display:block; max-width:100%`
    가 특정도가 같아 파일 순서로 이깁니다 — 실제로 두 장이 한꺼번에 떠서 화살표가
    십자 모양으로 겹쳐 보였습니다. */
 .ts-drag-arrow .ts-arrow-img {
@@ -699,6 +699,8 @@
   color:#fff0bb;
   font-size:calc(20 * var(--upx));
   font-style:normal;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight:900;
   line-height:1.25;
   text-shadow:0 calc(2 * var(--upx)) calc(3 * var(--upx)) #160703;
@@ -764,7 +766,7 @@
       되살릴 일은 없겠지만, 예전 이름을 찾으신다면 그쪽을 보세요.
 
    기둥은 정해진 자리에 박혀 있지 않습니다 — 한 모금이 사그라들 때마다 다음
-   모금을 어디에서 피울지 새로 뽑습니다 (day-prep-minigames.js 의
+   모금을 어디에서 피울지 새로 뽑습니다 (js/day-prep-minigames.js 의
    placeMinigameSmoke). 그래서 이 화면이 정하는 것은 **뽑을 범위와 진하기**뿐이고,
    범위 기본값(팬 상자 기준 %)은 공용 쪽에 있습니다. 김치전 팬 상자
    (710 x 308.4)가 그 기본값의 기준이라 여기서 덮어쓸 범위는 없습니다.
@@ -855,7 +857,7 @@
 
    그림은 전부 임시 CSS 도형입니다. 재료 카드에 파일을 넣으면 .has-asset 이
    붙어 도형이 꺼지고 <img> 가 대신 보입니다.
-   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+   (경로는 js/day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  채썰기·김치 볶기와 같습니다.
    css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 화면이 떠 있을
@@ -906,7 +908,7 @@
    그림칸 세로 225 보다 작으므로 카드를 밀어낼 일은 없습니다.
    바로 아래 `.ts-ing-art i` 의 150 은 에셋이 없을 때 쓰는 임시 도형이라 그대로 둡니다. */
 .ts-ing-asset { max-width: 100%; max-height: calc(210 * var(--upx)); object-fit: contain; }
-.ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.ts-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .ts-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
 /* 재료 그림 (임시 도형) — 김치전 반죽 한 그릇 */
@@ -1062,7 +1064,7 @@
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
 .ts-count { text-align: center; }
-.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
+.ts-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; }
 .ts-count strong b { color: #f2a03c; }
 /* 남은 시간 (숨긴 공용 타이머 카드 대신입니다) */
 /* ⚠️ 여기 있던 `margin-top: 8` 을 뺐습니다. 카드에 이미 `row-gap: 6` 이 있어
@@ -1086,6 +1088,8 @@
   gap: calc(2 * var(--upx));
   color: #c9b58d;
   font-size: calc(14 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .ts-time-left b { color: #f4d58b; font-size: calc(25 * var(--upx)); line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -1197,8 +1201,8 @@
   text-align: center;
   transform: translate(-50%,-50%);
 }
-.ts-timeout strong { color: #ff8b6a; font-size: calc(42 * var(--upx)); font-weight: 900; letter-spacing: .06em; }
-.ts-timeout span { font-size: calc(18 * var(--upx)); font-weight: 700; }
+.ts-timeout strong { color: #ff8b6a; font-size: calc(42 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; letter-spacing: .06em; }
+.ts-timeout span { font-size: calc(18 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
 
 /* ⚠️ 여기 있던 **키캡 한 벌을 통째로 뺐습니다** — .ts-keys / .ts-key(.expected ·
    .holding) / .ts-key-row / .ts-key-link / .ts-key-text / .ts-control-name 과
@@ -1210,8 +1214,8 @@
 .ts-guide { display: flex; flex-direction: column; gap: calc(11 * var(--upx)); }
 .ts-guide-row { display: grid; grid-template-columns: calc(34 * var(--upx)) minmax(0,1fr); align-items: center; gap: calc(9 * var(--upx)); text-align: left; }
 .ts-guide-text { display: flex; flex-direction: column; gap: calc(2 * var(--upx)); }
-.ts-guide-text b { color: var(--gold-bright); font-size: calc(16 * var(--upx)); font-weight: 800; line-height: 1.2; }
-.ts-guide-text em { color: #d8bb8b; font-size: calc(13 * var(--upx)); font-style: normal; font-weight: 700; line-height: 1.25; }
+.ts-guide-text b { color: var(--gold-bright); font-size: calc(16 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; line-height: 1.2; }
+.ts-guide-text em { color: #d8bb8b; font-size: calc(13 * var(--upx)); font-style: normal; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; line-height: 1.25; }
 /* 아이콘 넷은 전부 CSS 도형입니다 (그림 파일을 늘리지 않으려고).
      click     동그라미 + 위에서 내려찍는 점
      drag-up   위를 가리키는 화살표
@@ -1230,7 +1234,7 @@
 .ts-guide-icon.sauce::after { left: calc(10 * var(--upx)); top: calc(16 * var(--upx)); width: calc(14 * var(--upx)); height: calc(15 * var(--upx)); border-radius: calc(3 * var(--upx)) calc(3 * var(--upx)) calc(6 * var(--upx)) calc(6 * var(--upx)); background: linear-gradient(#3a2a20,#171009); transform: rotate(20deg); }
 /* 맨 아래 "지금 할 일" 한 줄. 신호가 켜진 동안(.on)만 금색으로 밝아집니다 —
    화면 가운데 불빛과 같은 박자로 뜁니다 (engine-e5 의 updateTwoSideHint). */
-.ts-now { margin: 0; min-height: calc(38 * var(--upx)); display: grid; place-items: center; padding: calc(6 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #5b3b23; border-radius: calc(8 * var(--upx)); background: #1b110b; color: #d0ad72; font-size: calc(14 * var(--upx)); font-weight: 800; line-height: 1.3; }
+.ts-now { margin: 0; min-height: calc(38 * var(--upx)); display: grid; place-items: center; padding: calc(6 * var(--upx)) calc(8 * var(--upx)); border: 2px solid #5b3b23; border-radius: calc(8 * var(--upx)); background: #1b110b; color: #d0ad72; font-size: calc(14 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; line-height: 1.3; }
 .ts-now.on { border-color: #ffd98f; background: #2b1a0d; color: #ffe6a8; animation: ts-now-blink .42s ease-in-out infinite alternate; }
 .ts-now.done { border-color: #8fbf55; color: #d8f2a8; }
 @keyframes ts-now-blink { from { box-shadow: none; } to { box-shadow: 0 0 calc(14 * var(--upx)) rgba(255,205,110,.5); } }
@@ -1283,7 +1287,7 @@
 /* ⚠️ 여기 있던 `.ts-flip-arrow`(조리 도구 위를 가로지르던 회색 곡선 + 삼각형)는
    뺐습니다. 뒤집기를 알려 주는 임시 도형이었는데, 팬·화로 그림이 들어온 뒤로는
    그림 위에 걸친 회색 선으로만 보였습니다. 뒤집는 때는 게이지의 초록·금색 구간과
-   오른쪽 조작 카드가 알려 줍니다. 되살리려면 engine-e5-two-side-cook.js 의
+   오른쪽 조작 카드가 알려 줍니다. 되살리려면 js/engine-e5-two-side-cook.js 의
    twoSideScreenMarkup 주석과 함께 되돌리세요. */
 /* 가운데에서는 조리 도구를 크게 씁니다 (기본 크기는 위 .two-side-pan).
    팬은 E3 김치 볶기와 같습니다. 세로는 그림 비율(2.3022)에서 뽑습니다. */
@@ -1427,7 +1431,7 @@
    화구 칸(.ts-cooktop) 위에서만 포인터가
    뒤집개로 바뀝니다. CSS `cursor: url()` 이 아니라 **DOM 한 겹을 body 에 붙여**
    따라다니게 합니다 — 크롬이 커서 그림을 128x128 로 제한해서 그 크기로는
-   뒤집개가 뭉개집니다 (engine-e5-two-side-cook.js 의 mountTwoSideSpatula).
+   뒤집개가 뭉개집니다 (js/engine-e5-two-side-cook.js 의 mountTwoSideSpatula).
    그림이 없으면 `.has-spatula` 가 안 붙어 기본 포인터 그대로입니다.
 
    ⚠️ 선택자가 긴 이유는 E6 집게 커서(.fry-screen.has-tongs)와 같습니다 —
@@ -1475,7 +1479,7 @@
      .ts-gauge-slot .ts-action / .rebound-gauge / .skewer-flip-sequence
    조작이 "게이지를 보고 Space" 에서 "재료를 누르고 떼기·드래그" 로 바뀌면서
    볼 것도 누를 것도 없어졌습니다. 판정에 쓰던 구간 값(goodStart 등)도 함께
-   사라졌으니, 되살리려면 engine-e5-two-side-cook.js 의 TWO_SIDE_COOK_CONFIG 부터
+   사라졌으니, 되살리려면 js/engine-e5-two-side-cook.js 의 TWO_SIDE_COOK_CONFIG 부터
    되돌려야 합니다 — CSS 만 되살리면 빈 띠 하나가 남습니다.
    (.doneness-gauge 겉모습의 공용 뼈대는 css/minigame-parts.css 에 있고
     다른 화면들이 계속 씁니다 — 그쪽은 지우지 마세요) */

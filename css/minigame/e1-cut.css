@@ -1,11 +1,11 @@
 /* ============================================================
-   E1 · 썰기 (engine-e1-timing-cut.js)
+   E1 · 썰기 (js/engine-e1-timing-cut.js)
    원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
    
    타이밍 칼질과 빠른 칼질(Day4~)이 도마·칼·재료 도형을 함께 씁니다.
    맨 위 재료 도형(.prep-work-object · *-shape · .cut-line · .knife-effect)은
-   engine-e1-timing-cut.js 만 쓰므로 여기 있습니다.
+   js/engine-e1-timing-cut.js 만 쓰므로 여기 있습니다.
    ============================================================ */
 
 .prep-work-object {
@@ -93,7 +93,7 @@
    (.cut-sample)이 같은 값을 씁니다 — 두 자리 다 그림을 통째로 보여줘야 해서
    상자 비율을 그림에 맞춥니다.
    ⚠️ 납품 에셋을 갈아 끼우면 여기 숫자도 같이 재세요. 값이 어긋나면 그림이
-      상자 안에서 레터박스로 뜨고, 절단선(engine-e1-timing-cut.js 의
+      상자 안에서 레터박스로 뜨고, 절단선(js/engine-e1-timing-cut.js 의
       CUT_POSITION_PERCENTAGES)이 실제 칼자국에서 밀립니다. */
 .radish-shape     { --ing-ar: 1096 / 266; }
 .greenOnion-shape { --ing-ar: 1071 / 242; }
@@ -150,8 +150,8 @@
 .prep-work-object.tough-first-hit .knife-effect { opacity:.88; transform:translateY(calc(7 * var(--upx))) rotate(15deg); }
 
 .tough-cut-hint { display:flex; align-items:center; justify-content:center; gap:calc(8 * var(--upx)); }
-.tough-cut-hint span { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:2px solid #7b5132; border-radius:calc(7 * var(--upx)); background:#21140e; color:#d5b783; font-size:calc(13 * var(--upx)); font-weight:900; transition:transform .1s,background .1s,color .1s; }
-.tough-cut-hint::after { content:"빠르게!"; color:#e8bd72; font-size:calc(12 * var(--upx)); font-weight:900; }
+.tough-cut-hint span { padding:calc(6 * var(--upx)) calc(10 * var(--upx)); border:2px solid #7b5132; border-radius:calc(7 * var(--upx)); background:#21140e; color:#d5b783; font-size:calc(13 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:900; transition:transform .1s,background .1s,color .1s; }
+.tough-cut-hint::after { content:"빠르게!"; color:#e8bd72; font-size:calc(12 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:900; }
 .tough-cut-hint.first-done span:first-child { background:#769950; color:#fff7cf; transform:translateY(2px); }
 .tough-cut-hint.first-done span:last-child { border-color:#ffe08d; background:#c77c37; color:#29170c; animation:tough-second-tap .22s ease-in-out infinite alternate; }
 
@@ -184,7 +184,7 @@
    [재료 카드] [도마] [완성 개수 · 완성 예시] 3열입니다.
    멸치(E10)와 같은 틀이라 칸 크기도 맞췄습니다.
 
-   공용 프레임(ui-mini-frame.js · css/minigame-frame.css)은 손대지 않고,
+   공용 프레임(js/ui-mini-frame.js · css/minigame-frame.css)은 손대지 않고,
    이 게임이 떠 있는 동안에만 가운데 열 제한(.mini-content)을 풀어
    좌우 카드 자리를 만듭니다. 개수는 오른쪽 '완성 개수' 카드가 대신
    보여주므로 공용 진행 카드(#miniTimer)는 이 게임에서만 숨깁니다.
@@ -225,6 +225,8 @@
   color: var(--cream);
   text-align: center;
   font-size: calc(18 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .cut-card-caption b { color: var(--gold-bright); }
@@ -270,6 +272,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }
@@ -330,7 +334,7 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  /* 점선을 따라 긋는 조작(engine-e1-timing-cut.js · attachCutDragInput)이
+  /* 점선을 따라 긋는 조작(js/engine-e1-timing-cut.js · attachCutDragInput)이
      도마 위에서 일어납니다. 모바일에서 그 획이 화면 스크롤로 새지 않도록
      터치 제스처를 끕니다. */
   touch-action: none;
@@ -883,7 +887,7 @@
 .cut-timing .prep-timing-marker::after { bottom: calc(-14 * var(--upx)); border-bottom: calc(15 * var(--upx)) solid #fff6d6; }
 
 /* ── 칠 때 조준선 자리에서 터지는 빛 ─────────────────────
-   engine-e1-timing-cut.js 의 flashCutTimingBar 가 자리(left)와 판정 색을
+   js/engine-e1-timing-cut.js 의 flashCutTimingBar 가 자리(left)와 판정 색을
    붙입니다. 그림 파일 없이 그라디언트 한 겹 + mask 로 그립니다 —
    바를 세로로 꿰뚫는 얇고 날카로운 섬광(칼자국 쪽이 어울립니다).
 
@@ -968,7 +972,7 @@
   height: calc(44 * var(--upx));
   max-width: 100%;
   transform: none;
-  /* 바 자체도 썰기 입력입니다 (engine-e1-timing-cut.js 의 renderTimingCut) */
+  /* 바 자체도 썰기 입력입니다 (js/engine-e1-timing-cut.js 의 renderTimingCut) */
   cursor: var(--cursor-cat-click);
 }
 .mg-strip .cut-timing .prep-timing-marker { top: calc(-4 * var(--upx)); bottom: calc(-4 * var(--upx)); }
@@ -1007,12 +1011,14 @@
   background: rgba(30,17,8,.58);
   color: #f2d3a0;
   font-size: calc(16 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
 }
 .cut-action { min-width: calc(150 * var(--upx)); padding: calc(8 * var(--upx)) calc(16 * var(--upx)); font-size: calc(15 * var(--upx)); }
-.cut-step-note { color: #e0bd85; font-size: calc(15 * var(--upx)); font-weight: 800; }
+.cut-step-note { color: #e0bd85; font-size: calc(15 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .cut-footer .rapid-hold-meter { width: calc(220 * var(--upx)); }
 
 @keyframes cut-knife-chop {
@@ -1034,7 +1040,7 @@
       안쪽 62.5 자리에 있고(날 한가운데를 재료 한가운데에 맞추므로), 도마
       안쪽 여백이 22 뿐입니다.
    ⚠️ 이 획이 다 끝나기 전에 다음 박자로 넘어가면 칼이 중간에 순간이동합니다 —
-      engine-e1-timing-cut.js 의 pathRecoveryMs 가 이 길이보다 길어야 합니다. */
+      js/engine-e1-timing-cut.js 의 pathRecoveryMs 가 이 길이보다 길어야 합니다. */
 @keyframes cut-knife-chop-asset {
   0%   { transform: translateY(calc(-84 * var(--upx))) rotate(-5deg) scale(1.05); }
   /* 내려오는 동안 기울기를 유지합니다 — 빼면 가속 때문에 5도가 첫 프레임에

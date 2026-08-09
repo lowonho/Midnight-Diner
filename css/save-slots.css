@@ -15,6 +15,8 @@
   border: 1px solid #9a6332;
   border-radius: calc(7 * var(--upx));
   color: #f4d59d;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   background:
     linear-gradient(rgba(87, 49, 27, .92), rgba(37, 21, 14, .96)),
@@ -47,7 +49,7 @@
 /* ============================================================
    저장/불러오기 창 — assets/UI/Save 에셋 적용
    ------------------------------------------------------------
-   같은 #saveSlotOverlay 를 세 가지 문맥에서 씁니다 (save-ui.js).
+   같은 #saveSlotOverlay 를 세 가지 문맥에서 씁니다 (js/save-ui.js).
      · 저장하기  — 게임 중 설정창의 저장하기
      · 불러오기  — 게임 중 설정창의 불러오기
      · 이어하기  — 타이틀의 이어하기
@@ -314,6 +316,8 @@
   border-radius: 0;
   color: #ffe3cf;
   font-size: calc(23 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   background: var(--sv-delete) center / 100% 100% no-repeat;
   text-shadow: 0 calc(2 * var(--upx)) calc(3 * var(--upx)) rgba(48, 8, 4, .75);
@@ -356,13 +360,15 @@
   overflow: hidden;
   color: #f2d5a4;
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 /* 장면 제목이 들어오는 줄이라 카드에서 제일 길어질 수 있습니다.
-   story-data.js 의 가장 긴 제목(22자) + "이야기 · " 가 안 잘리는 크기입니다. */
+   js/story-data.js 의 가장 긴 제목(22자) + "이야기 · " 가 안 잘리는 크기입니다. */
 .save-slot-story {
   overflow: hidden;
   color: #c0a681;
@@ -372,7 +378,7 @@
 }
 
 /* 빈 칸에는 요약 대신 작은 나무 명패를 놓습니다. 명패 크기가 곧 글자 자리라
-   save-ui.js 는 여기에 짧은 말(빈 칸 / 여기에 저장)만 넣습니다. */
+   js/save-ui.js 는 여기에 짧은 말(빈 칸 / 여기에 저장)만 넣습니다. */
 .save-slot-empty-text {
   display: grid;
   place-items: center;

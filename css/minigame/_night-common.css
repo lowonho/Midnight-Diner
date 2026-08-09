@@ -3,7 +3,7 @@
    원래 css/minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/minigames.css 의 @import 목록이 정합니다.
    
-   여러 화면이 함께 쓰는 버튼·게이지와, 옛 미니게임(engine-legacy-night.js)의 조각들입니다.
+   여러 화면이 함께 쓰는 버튼·게이지와, 옛 미니게임(js/engine-legacy-night.js)의 조각들입니다.
    ⚠️ .serving-oden-* 는 지금 어느 js 도 쓰지 않습니다(옛 서빙 화면 잔재).
       지우기 전에 story/night 쪽에서 문자열로 만들지 않는지 한 번만 확인하세요.
    ============================================================ */
@@ -67,6 +67,8 @@
   color: #2d1b11;
   box-shadow: inset 0 0 0 2px rgba(255,240,190,.5);
   cursor: pointer;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .choice-button { min-height: calc(52 * var(--upx)); padding: calc(8 * var(--upx)); }
@@ -86,6 +88,8 @@
   border-radius: calc(8 * var(--upx));
   background: #f1d39f;
   color: #2d1b11;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .progress-track {
@@ -128,7 +132,7 @@
   background: linear-gradient(90deg,#a33c32 0 34%,#d5a63f 48% 67%,#6f9c4d 68% 82%,#d5a63f 83% 92%,#a33c32 100%);
 }
 
-.cut-count { color: #f3d495; font-size: calc(18 * var(--upx)); font-weight: 800; }
+.cut-count { color: #f3d495; font-size: calc(18 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 
 
 

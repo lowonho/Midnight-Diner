@@ -11,13 +11,13 @@
    여기 남는 것은 냉장고 안쪽과 좌·우 패널 내용물뿐입니다.
 
    [오버레이가 #miniOverlay 가 아닌 이유]
-   메뉴 선택 직후 · 낮 준비 앞에서 독립적으로 뜨는 단계라 game.js 의 미니게임
+   메뉴 선택 직후 · 낮 준비 앞에서 독립적으로 뜨는 단계라 js/game.js 의 미니게임
    열고닫기 흐름을 타지 않습니다. 오버레이는 자기 것을 쓰되(#ingredientSelectOverlay)
    클래스는 공용 프레임과 같은 것을 써서 등장 연출 · 손 그림 커서 · 패널 그림을
    그대로 물려받습니다.
 
    [건드릴 때 주의]
-   1. id 는 game.js 의 dom 목록과 ingredient-select.js 가 그대로 씁니다. 바꾸지 마세요.
+   1. id 는 js/game.js 의 dom 목록과 js/ingredient-select.js 가 그대로 씁니다. 바꾸지 마세요.
    2. 패널 크기는 여기가 아니라 css/minigame-parts.css 의 --mg-* 를 고치세요.
       A1/A2/C 그림이 크기별 통짜라 값만 바꾸면 그림이 어긋납니다.
    ============================================================ */
@@ -30,6 +30,8 @@
   margin: 0;
   color: var(--cream);
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
 }
 .ingredient-select-overlay #ingredientSelectTitle {
@@ -38,6 +40,8 @@
   overflow: hidden;
   color: var(--gold-bright);
   font-size: calc(3.6 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
   text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
@@ -155,7 +159,7 @@
    그림에서 두 칸의 안쪽 폭이 1% 쯤 다르기 때문입니다.
 
    ⚠️ 격자에 **선반 두께(2행·4행)와 가운데 기둥(5열)이 빈 줄로 들어 있습니다.**
-      칸은 engine-e13-fridge-find.js 의 e13SlotCell 이 준 자리에 직접 앉습니다.
+      칸은 js/engine-e13-fridge-find.js 의 e13SlotCell 이 준 자리에 직접 앉습니다.
    ⚠️ 그림을 새로 받으면 위 숫자를 다시 재세요(가로/세로 밝기 gradient 봉우리). */
 .fridge-slots {
   position: absolute;
@@ -189,7 +193,7 @@
 }
 .fridge-slot.empty { pointer-events: none; }
 /* 크기는 칸이 아니라 **재료 실물 크기**를 따릅니다.
-   --art-size 는 ingredient-select.js 의 재료 표가 정합니다(1 = 두부 한 모쯤).
+   --art-size 는 js/ingredient-select.js 의 재료 표가 정합니다(1 = 두부 한 모쯤).
    1 보다 큰 재료(배추·무·대파…)는 칸 밖으로 넘칩니다 — 칸막이가 없는 냉장고라
    옆 재료와 겹쳐도 아무렇게나 넣어 둔 것처럼 보입니다. */
 .fridge-art {
@@ -206,7 +210,7 @@
    90도로 세우면 김치와 생선이 차렷 자세로 서 있어 우스꽝스럽습니다.
    40~50도로 눕혀 아무렇게나 넣어 둔 것처럼 보이게 합니다.
    기울기(--art-turn)는 칸마다 다르고 방향도 절반씩 갈립니다
-   (ingredient-select.js 의 ingredientSlotPose). 재료 표의 `long:true` 가 이 규칙을 켭니다.
+   (js/ingredient-select.js 의 ingredientSlotPose). 재료 표의 `long:true` 가 이 규칙을 켭니다.
 
    [상자를 가로·세로 바꿔 잡는 방법]
    돌리기(transform)는 **레이아웃 상자를 안 바꿉니다.** 그래서 돌리기 전 상자를
@@ -247,6 +251,8 @@
   background: rgba(20,12,7,.82);
   color: #f4dfb7;
   font-size: calc(11 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   white-space: nowrap;
   opacity: 0;
@@ -286,6 +292,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }
@@ -305,7 +313,7 @@
    ⚠️ 칸 높이를 고정(96)하면 재료가 많은 날 마지막 줄이 패널 밖으로 흘러나옵니다.
       1fr 로 두어 **줄 수에 맞춰 아이콘이 같이 줄어들게** 합니다. 대신 재료가
       적은 날 아이콘이 우스울 만큼 커지지 않도록 최대 높이만 걸어 둡니다. */
-/* 열 수는 재료 개수에 따라 2열 또는 3열입니다(ingredient-select.js 가 --goal-columns 를 줍니다).
+/* 열 수는 재료 개수에 따라 2열 또는 3열입니다(js/ingredient-select.js 가 --goal-columns 를 줍니다).
    재료가 많은 날 2열로 두면 칸이 95x48 처럼 납작해져서 아이콘이 손톱만 해집니다.
    3열로 나누면 칸이 63x81 로 반듯해져 아이콘이 오히려 커집니다. */
 .fridge-goal-list {
@@ -359,7 +367,7 @@
    표처럼 정갈해서 재미가 없습니다. 대신 가로 쪽 한도를 세로보다 낮게 잡아
    (118 vs 130) 위아래로만 넉넉히 겹치고 옆 칸은 거의 침범하지 않습니다.
    [기울기] 재료마다 몇 도씩 다르게 눕혀 아무렇게나 놓아 둔 느낌을 냅니다
-   (--goal-turn 은 ingredient-select.js 가 재료 이름에서 뽑습니다 — 다시 그려도 안 흔들립니다). */
+   (--goal-turn 은 js/ingredient-select.js 가 재료 이름에서 뽑습니다 — 다시 그려도 안 흔들립니다). */
 .fridge-goal-art {
   /* 세 한도 중 가장 작은 값입니다.
        126cqh  칸 높이 — 위아래로는 이만큼까지만
@@ -397,7 +405,7 @@
    냉기 (fx_cold_air_anim_01~05)
    ------------------------------------------------------------
    냉장고 안에 2~3덩이가 아무 데나 떠서 천천히 흐릅니다.
-   자리·크기·시작 박자는 ingredient-select.js 의 fridgeColdAirMarkup 이 뿌립니다.
+   자리·크기·시작 박자는 js/ingredient-select.js 의 fridgeColdAirMarkup 이 뿌립니다.
 
    [다섯 장을 겹쳐 두고 자기 차례에만 켭니다]
    스프라이트 시트가 아니라 낱장이라, 겹쳐 두고 20% 씩 돌아가며 보여 줍니다
@@ -422,17 +430,17 @@
   pointer-events: none;
 }
 /* 한 덩이의 일생 : 스르륵 떠올라 흐르다 사라집니다. **한 번만** 돕니다 —
-   다 사라지면 ingredient-select.js 가 자리와 개수를 다시 뽑아 새 무리를 띄웁니다.
+   다 사라지면 js/ingredient-select.js 가 자리와 개수를 다시 뽑아 새 무리를 띄웁니다.
    (계속 반복시키면 같은 자리에서만 김이 나 스티커처럼 보입니다) */
 .fridge-cold-puff {
-  --cold-life: 3.4s;                /* ingredient-select.js 의 FRIDGE_COLD_AIR_LIFE 와 같아야 합니다 */
+  --cold-life: 3.4s;                /* js/ingredient-select.js 의 FRIDGE_COLD_AIR_LIFE 와 같아야 합니다 */
   position: absolute;
   aspect-ratio: 559 / 429;          /* 가장 큰 04 장의 비율 */
   opacity: 0;
   animation: fridge-cold-life var(--cold-life) ease-in-out var(--cold-life-delay,0s) both;
 }
 .fridge-cold-frame {
-  --cold-cycle: 1.3s;               /* 한 바퀴 — ingredient-select.js 의 FRIDGE_COLD_AIR_CYCLE 과 같아야 합니다 */
+  --cold-cycle: 1.3s;               /* 한 바퀴 — js/ingredient-select.js 의 FRIDGE_COLD_AIR_CYCLE 과 같아야 합니다 */
   position: absolute;
   left: 50%;
   top: 50%;

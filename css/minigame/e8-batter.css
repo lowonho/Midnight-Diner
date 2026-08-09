@@ -1,5 +1,5 @@
 /* ============================================================
-   E8+E9 · 김치전 반죽 (engine-e8-order-place.js → engine-e9-whisk.js)
+   E8+E9 · 김치전 반죽 (js/engine-e8-order-place.js → js/engine-e9-whisk.js)
    원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
    
@@ -15,7 +15,7 @@
    조작과 그림 방향이 맞아떨어지도록 옆에서 본 볼에서 바꿨습니다.
    그림은 전부 임시 CSS 도형이고, assets/prep/batter/ 에 파일을 넣으면
    .has-asset 이 붙어 도형이 꺼지고 <img> 가 대신 보입니다.
-   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+   (경로는 js/day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  닭꼬치·멸치와 같습니다.
    css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 게임이 떠 있을
@@ -70,7 +70,7 @@
 /* 카드 한 장이 176.4 이고 이름 줄이 아래 26 을 가져가므로 그림 자리는 126 쯤 남습니다.
    납품 그림이 정사각(1024)이라 세로가 먼저 막힙니다 → 120 (뽑는 크기는 그 2배인 240). */
 .bt-ing-asset { max-width: 100%; max-height: calc(120 * var(--upx)); object-fit: contain; }
-.bt-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-weight: 800; }
+.bt-ing-name { display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(21 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .bt-ing-name b { color: var(--gold-bright); font-size: calc(23 * var(--upx)); }
 /* 재료 그림 (임시 도형) — 부침가루 한 그릇 / 물병 / 썰어 둔 김치 */
 .bt-ing-card.flour .bt-ing-art i { border-radius: calc(7 * var(--upx)) calc(7 * var(--upx)) 46% 46%; background: linear-gradient(#c58c43,#89591f); box-shadow: inset 0 calc(-9 * var(--upx)) calc(12 * var(--upx)) rgba(70,40,15,.45); }
@@ -93,7 +93,7 @@
   background: linear-gradient(#4d2e1a,#33200f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
 }
-.bt-progress { margin: 0; color: #e9c88b; font-size: calc(20 * var(--upx)); font-weight: 800; }
+.bt-progress { margin: 0; color: #e9c88b; font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .bt-progress b { color: var(--gold-bright); }
 
 /* 반죽 볼 (위에서 내려다본 모습) */
@@ -195,7 +195,7 @@
   100% { transform: scale(1); filter: none; }
 }
 /* 세 가지를 다 넣고 젓기로 넘어가기 전, 담긴 볼을 보여 주는 한 박자
-   (engine-e8-order-place.js 의 BATTER_FULL_HOLD_MS). */
+   (js/engine-e8-order-place.js 의 BATTER_FULL_HOLD_MS). */
 .bt-bowl-wrap.filled .bt-bowl { animation: batter-filled-hold 1.15s ease both; }
 @keyframes batter-filled-hold {
   0%   { transform: scale(1); }
@@ -260,7 +260,7 @@
 }
 
 /* E9 반죽 그림 10장 (batterMix0~9). 저을수록 이어지는 한 벌이라 전부 같은
-   자리에 겹쳐 두고, engine-e9-whisk.js 가 지금 장에만 .show 를 붙입니다.
+   자리에 겹쳐 두고, js/engine-e9-whisk.js 가 지금 장에만 .show 를 붙입니다.
    opacity 전환이 짧게 겹치면서 장 넘김이 뚝뚝 끊기지 않고 이어집니다.
 
    ⚠️ 이 그림들은 **볼까지 통째로** 그려져 있습니다. 그래서
@@ -341,7 +341,7 @@
 .whisk-wire::before { width:calc(38 * var(--upx)); }
 .whisk-wire::after { width:calc(15 * var(--upx)); border-color:#eee9df; }
 .whisk-tool.has-asset::before,.whisk-tool.has-asset::after,.whisk-tool.has-asset .whisk-wire { display:none; }
-/* 거품기 3종을 겹쳐 두고 지금 상태(.show)만 보입니다 — engine-e9-whisk.js 의 renderWhiskTool.
+/* 거품기 3종을 겹쳐 두고 지금 상태(.show)만 보입니다 — js/engine-e9-whisk.js 의 renderWhiskTool.
      state-clean  섞기 전 · state-mix 젓는 중 · state-rest 젓다 멈춤 */
 .whisk-tool-asset { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .14s linear; }
 .whisk-tool-asset.show { opacity:1; }
@@ -357,7 +357,7 @@
 
 /* 오른쪽 : 완성 개수 · 참고 모양 */
 .bt-count { text-align: center; }
-.bt-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-weight: 900; line-height: 1.1; }
+.bt-count strong { display: block; margin-top: calc(4 * var(--upx)); color: var(--gold-bright); font-size: calc(58 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.1; }
 .bt-guide { flex: 1; display: flex; flex-direction: column; gap: calc(8 * var(--upx)); }
 .bt-guide-figure { flex: 1; display: grid; place-items: center; min-height: 0; }
 .bt-guide-figure .bt-bowl { width: calc(172 * var(--upx)); height: calc(172 * var(--upx)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.3), 0 calc(4 * var(--upx)) calc(10 * var(--upx)) rgba(0,0,0,.45); }
@@ -366,7 +366,7 @@
 .bt-guide-figure .bt-bowl.has-asset { box-shadow: none; }
 .bt-guide-asset { max-width: 100%; max-height: calc(170 * var(--upx)); object-fit: contain; }
 /* 참고 모양이 무엇인지 한 줄. E8(재료 3가지)과 E9(고르게 섞인 반죽)를 가릅니다. */
-.bt-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-weight: 700; text-align: center; }
+.bt-guide-note { margin: 0; color: #e0c391; font-size: calc(18 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; text-align: center; }
 
 /* ⚠️ transform 을 쓰지 않습니다. 여기에 rotate 를 되살리면 재료 카드가 다시 기웁니다. */
 @keyframes batter-pour { 60% { opacity:.6; } 100% { opacity:.25; } }

@@ -88,8 +88,13 @@ const BACKGROUND_LAYERS = [
   { key:"bg_window_view_night", x:464,  y:130, depth:15 },  // 창밖 야경
   { key:"bg_window_view_day",   x:464,  y:130, depth:15 },  // 창밖 주간 (야경 위에 크로스페이드)
   { key:"bg_window",            x:464,  y:130, depth:20 },  // 창틀 (유리 부분 투명)
-  { key:"bg_floor",             x:0,    y:545, depth:30 }   // 바닥
+  { key:"bg_floor_night",       x:0,    y:545, depth:30 },  // 바닥 야간
+  { key:"bg_floor_day",         x:0,    y:545, depth:30 }   // 바닥 주간 (야간 위에 크로스페이드)
 ];
+
+// 낮에 alpha 1, 밤에 alpha 0 으로 크로스페이드하는 레이어들.
+// 같은 자리에 밤 버전이 깔려 있어서, 낮 버전만 흐려지면 밤 그림이 드러납니다.
+const DAY_FADE_LAYERS = ["bg_window_view_day","bg_floor_day"];
 
 const BACKGROUND_ASSET_DIR = "assets/bg/";
 
@@ -130,6 +135,7 @@ function loadStageImage(key){
 function loadStageAssets(){
   return Promise.all([
     ...BACKGROUND_LAYERS.map(layer=>loadStageImage(layer.key)),
+    loadDecorationAssets(),
     loadChefSheets(),
     loadCommonCustomerSheet()
   ]);
@@ -170,8 +176,12 @@ function createStage(scene){
     stageLayers.bg_window_view_day,
     stageStarLayer,
     stageLayers.bg_window,
-    stageLayers.bg_floor
+    stageLayers.bg_floor_night,
+    stageLayers.bg_floor_day
   ]);
+
+  // 배경 소품(서비스 벨·전등·벽 장식·좌측벽 화분). 배치값은 decoration.js 한 곳에 모여 있습니다.
+  createDecoration(scene);
 
   timeOfDay=timeOfDay||"day";
   applyTimeOfDay(timeOfDay,true);
@@ -195,11 +205,33 @@ function createStarLayer(scene){
   return layer;
 }
 
-// 집기·손님·이펙트를 그리는 프레임 캔버스. 1920x1080 으로 만들고
-// 드로잉 쪽은 beginStageFrame() 이 걸어주는 배율 위에서 논리 좌표를 씁니다.
+/* 집기·손님·이펙트를 그리는 프레임 캔버스. 1920x1080 으로 만들고
+   드로잉 쪽은 beginStageFrame() 이 걸어주는 배율 위에서 논리 좌표를 씁니다.
+
+   [보간을 켜 두는 이유]
+   2026-08-08 이전에는 imageSmoothingEnabled=false (최근접 이웃) 였습니다.
+   이 플래그는 **drawImage 에만** 걸립니다 — 도형·글자는 패스 래스터라이저가
+   그리므로 켜든 끄든 똑같습니다. 그래서 실제로 영향받는 것은 이 캔버스에
+   올라가는 그림 몇 장뿐입니다.
+
+   끄면 축소할 때 평균을 내지 않고 픽셀 하나를 골라 씁니다. 원본이 그리는
+   크기보다 클수록 버리는 비율이 커져서, 낮 준비물 바구니(4배 원화를 7.3배로
+   축소)가 모래알처럼 부서졌습니다. 원화 해상도를 올릴수록 나빠지는 방식이라
+   보간을 켜는 쪽으로 바꿨습니다.
+
+   프로젝트의 다른 설정도 전부 같은 방향입니다 — Phaser pixelArt:false /
+   antialias:true, css/app-shell.css image-rendering:auto. 픽셀아트가 아니라
+   일러스트 톤이라, 혹시 원본보다 크게 그리게 되더라도 계단보다 흐림이
+   덜 튑니다.
+
+   ⚠️ 1:1 로 그리는 그림은 VIEW 좌표가 **정수**여야 합니다. 반픽셀에 걸치면
+      예전에는 반올림돼 선명했지만 이제는 양쪽에 반씩 섞여 흐려집니다.
+      (그래서 signage.js OPEN_SIGN.x 를 1105 → 1104 로 옮겼습니다) */
 function createStageFrameTexture(scene,key,depth=STAGE_DEPTH.overlay){
   const texture=scene.textures.createCanvas(key,VIEW_W,VIEW_H);
-  texture.getContext().imageSmoothingEnabled=false;
+  const context=texture.getContext();
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality="high";
   scene.add.image(0,0,key).setOrigin(0).setDepth(depth);
   return texture;
 }
@@ -234,20 +266,24 @@ function syncStageTimeOfDay(phase){
 }
 
 function applyTimeOfDay(mode,instant=false){
-  const dayView=stageLayers.bg_window_view_day;
   const scene=stageContainer?.scene;
-  if(!dayView||!scene)return;
+  const dayViews=DAY_FADE_LAYERS.map(key=>stageLayers[key]).filter(Boolean);
+  if(!dayViews.length||!scene)return;
+
+  // 밤에만 켜지는 배경 소품(팬 위 김치전 · 조리 연기). 배치·연출은 decoration.js.
+  // 배경과 같은 시간으로 같이 페이드해야 배경만 밤이 되는 순간이 없습니다.
+  setDecorationTimeOfDay(mode,instant?0:TIME_OF_DAY_FADE_MS);
 
   const dayAlpha=mode==="day"?1:0;
   const ambientAlpha=mode==="day"?0:AMBIENT_NIGHT_ALPHA;
 
-  scene.tweens.killTweensOf(dayView);
+  dayViews.forEach(view=>scene.tweens.killTweensOf(view));
   scene.tweens.killTweensOf(stageAmbient);
   if(instant){
-    dayView.setAlpha(dayAlpha);
+    dayViews.forEach(view=>view.setAlpha(dayAlpha));
     stageAmbient.setAlpha(ambientAlpha);
   }else{
-    scene.tweens.add({targets:dayView,alpha:dayAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
+    scene.tweens.add({targets:dayViews,alpha:dayAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
     scene.tweens.add({targets:stageAmbient,alpha:ambientAlpha,duration:TIME_OF_DAY_FADE_MS,ease:"Sine.easeInOut"});
   }
   stageStarLayer.setVisible(mode==="night");

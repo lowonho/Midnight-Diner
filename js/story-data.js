@@ -338,6 +338,23 @@ function createSpecialGuestArc(config) {
       ...storyNarration(fragmentState === "full"
         ? "손님은 떠나기 전, 환하게 빛나는 달빛 조각을 다은에게 건넨다."
         : "손님은 떠나기 전, 희미하게 빛나는 달빛 조각을 다은에게 건넨다."),
+      /* [완전한 조각을 건네는 마지막 대사에서만 컷씬을 깝니다]
+         이 줄은 결과 장면의 마지막 대사입니다. 여기서 손님이 조각을 건네는
+         원화 한 장이 화면을 채우고, 그 위에 기존 조각 오버레이가 그대로
+         뜹니다(컷씬 z-index 1 < 오버레이 3).
+
+         "맛있다"(partial)에는 안 겁니다 — 원화가 완전한 조각을 건네는
+         그림이고, 그쪽은 조각 오버레이도 뜨지 않습니다.
+
+         컷 이름은 story-cinematic.js 의 STORY_CUTSCENES 키와 같은 규칙으로
+         조각 id 에서 만듭니다. 손으로 짝지으면 여덟 군데에서 어긋날 수
+         있고, 이름이 틀려도 컷만 조용히 안 뜹니다. */
+      /* hold — 대사창과 조각 오버레이를 올리기 전에 그림만 보여 주고 입력을
+         기다립니다. 손님이 조각을 건네는 그 손이 이 장면의 절정이라, 한 번
+         누를 때까지 그것만 보게 둡니다. */
+      ...(fragmentState === "full"
+        ? { cinematic: { cut: `shard_${config.shardId}`, hold: true } }
+        : {}),
       fragmentHandoff: {
         shardId: config.shardId,
         shardName: config.shardName,
@@ -429,11 +446,11 @@ const STORY_SCENES = {
            바뀌는 첫 줄에만 적습니다. 자세한 것은 story-cinematic.js 참고.
 
            여기부터 "맛은 나쁘지 않아…" 까지 — 야근 중인 사무실. */
-        cinematic: { cut: "prologueOffice" }
+        cinematic: { cut: "prologueOffice", hold: true }
       },
       storyLine("recalledBoss", "맛은 나쁘지 않아. 그런데 이걸 사람들이 사서 먹을까?"),
       // 여기부터 장면 끝까지 — 회사를 나와 혼자 걷는 밤 퇴근길.
-      { ...storyLine("protagonist", "또 처음부터 바꾸라고 하겠지.", { motion: "sad" }), cinematic: { cut: "prologueCommute" } },
+      { ...storyLine("protagonist", "또 처음부터 바꾸라고 하겠지.", { motion: "sad" }), cinematic: { cut: "prologueCommute", hold: true } },
       storyLine("protagonist", "더 버티면 내가 좋아했던 음식까지 싫어하게 될 것 같아.", { motion: "sad" }),
       storyLine("protagonist", "오늘도 겨우 퇴근이네.", { motion: "sad" }),
       storyLine("protagonist", "그냥 내일이 오지 않았으면 좋겠다.", { motion: "sad" })
@@ -457,11 +474,11 @@ const STORY_SCENES = {
       {
         ...storyNarration("다은은 평소처럼 익숙한 퇴근길을 걷는다.\n비 예보는 없었지만 굵은 빗방울이 하나둘 떨어지더니 순식간에 거센 비가 쏟아진다.\n다은은 비를 피할 곳을 찾아 늘 지나던 골목 안쪽으로 뛰어간다."),
         // 여기부터 "갑자기 무슨 비야… 우산도 없는데." 까지 — 비 쏟아지는 골목.
-        cinematic: { cut: "prologueRainAlley" }
+        cinematic: { cut: "prologueRainAlley", hold: true }
       },
       storyLine("protagonist", "갑자기 무슨 비야… 우산도 없는데.", { motion: "angry" }),
       // 여기부터 장면 끝까지 — 달빛식탁을 발견하고 문을 여는 장면.
-      { ...storyNarration("고개를 들자 골목 끝에 작은 식당 하나가 보인다.\n매일 지나던 퇴근길인데도 한 번도 본 적 없는 식당이다."), cinematic: { cut: "prologueRainEntry" } },
+      { ...storyNarration("고개를 들자 골목 끝에 작은 식당 하나가 보인다.\n매일 지나던 퇴근길인데도 한 번도 본 적 없는 식당이다."), cinematic: { cut: "prologueRainEntry", hold: true } },
       storyLine("protagonist", "저런 식당이 여기 있었나? 일단 비부터 피하자.", { motion: "think" })
     ]
   },
@@ -480,7 +497,13 @@ const STORY_SCENES = {
     interactionTarget: "journal",
     nextSceneId: "SCN-P04",
     lines: [
-      storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
+      {
+        ...storyNarration("식당 안은 따뜻하고 아늑했지만 주인은 보이지 않았다.\n카운터 위에는 「영업일지」라고 적힌 낡은 장부 한 권만 놓여 있었다."),
+        /* 이 장면은 처음부터 끝까지 한 컷입니다. 나갔다 다시 들어오는 뒤쪽
+           대사도 같은 가게 안이라 컷이 바뀌지 않습니다. hold 라서 그림이 먼저
+           한 번 뜨고, 스페이스바나 클릭 한 번에 대사창이 올라옵니다. */
+        cinematic: { cut: "prologueEmptyRestaurant", hold: true }
+      },
       storyLine("protagonist", "아무도 없나…?", { motion: "think" }),
       storyNarration("다은은 들어왔던 문을 다시 열고 빗속으로 발을 내딛는다.\n그러나 다음 발을 딛는 순간, 다은은 다시 식당 안에 서 있다."),
       storyLine("protagonist", "분명 밖으로 나갔는데 왜 다시 안으로 들어온 거야?", { motion: "think" }),
@@ -503,6 +526,12 @@ const STORY_SCENES = {
     lines: [
       {
         ...storyNarration("다은은 다른 출구를 찾기 위해 식당을 둘러본다.\n그때 카운터 위에 있던 영업일지가 눈에 들어와 펼쳐본다."),
+        /* 자막보다 먼저 영업일지 한 권이 흰빛과 함께 떠오릅니다. "눈에 들어와"
+           가 성립하려면 그림을 보고 나서 그 문장을 읽어야 합니다.
+           소품과 빛 색은 story-prop-reveal.js 의 STORY_PROPS 에 있습니다.
+           ⚠️ 영업일지 UI(openJournalOnAdvance)를 여는 것과는 다른 일입니다.
+              이건 그림 한 장이고, 책은 이 자막을 다 읽고 눌러야 펼쳐집니다. */
+        propReveal: { prop: "businessJournalClosed" },
         openJournalOnAdvance: true
       },
       storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),

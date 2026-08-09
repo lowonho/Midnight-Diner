@@ -502,6 +502,67 @@ async function verifySheet(sheet, expectedRows){
   return { ok, cellW, cellH, cols, heights };
 }
 
+/* ------------------------------------------------------------
+   5-1. 머리끝 표 뽑기
+   ------------------------------------------------------------
+   js/customers.js §1-2-1 이 읽는 CUSTOMER_HEAD_TOPS 를 찍어 줍니다.
+   말풍선·주문 패널이 캐릭터마다 다른 머리 높이를 따라가려면 이 값이
+   필요한데, 게임에서 직접 재면 file:// 로 열었을 때 캔버스 픽셀 읽기가
+   막혀서(SecurityError) 보정이 통째로 꺼집니다. 그래서 여기서 재고,
+   게임은 표만 읽습니다.
+
+   판정 기준은 js/customers.js 와 같습니다 — "제일 위 픽셀"이 아니라
+   실루엣 가로폭이 HEAD_WIDTH 에 처음 닿는 줄을 머리끝으로 봅니다.
+   가늘게 솟은 머리끝(쪽머리·안테나)에 말풍선이 끌려 올라가지 않게요.
+
+   아래 세 값은 js/customers.js CUSTOMER_ART_BASE 의 headWidth / headBand / h
+   와 같아야 합니다. 한쪽만 고치면 표와 게임의 기준이 어긋납니다.
+   ------------------------------------------------------------ */
+
+const HEAD_WIDTH = .16;   // = CUSTOMER_ART_BASE.headWidth
+const HEAD_BAND  = .35;   // = CUSTOMER_ART_BASE.headBand
+const DRAW_H     = 170;   // = CUSTOMER_ART_BASE.h (화면에 그리는 캐릭터 높이)
+
+async function headTopsOf(sheet, expectedRows){
+  const { data, info } = await sharp(outPathOf(sheet)).ensureAlpha().raw().toBuffer({ resolveWithObject:true });
+  const cellW = sheet.cellW / DIVISOR;
+  const cellH = Math.floor(info.height / expectedRows);
+  const band    = Math.max(1, Math.round(cellH * HEAD_BAND));
+  const minRun  = Math.max(1, Math.round(cellH * HEAD_WIDTH));
+  const scale   = DRAW_H / cellH;   // 셀 px → 논리 px
+
+  const tops = [];
+  for(let row = 0; row < expectedRows; row++){
+    let top = 0;
+    for(let y = 0; y < band; y++){
+      let solid = 0;
+      for(let x = 0; x < cellW; x++)
+        if(data[((row * cellH + y) * info.width + x) * 4 + 3] > 128) solid++;
+      if(solid >= minRun){ top = y; break; }
+    }
+    // 0번 프레임 한 장만 봅니다. 프레임마다 재면 숨쉬는 동안 말풍선이 떱니다.
+    tops.push(Math.round(top * scale * 10) / 10);
+  }
+  return tops;
+}
+
+async function printHeadTops(){
+  const idle = SHEETS.filter(s => s.motion === "idle");
+  const table = {};
+  for(const sheet of idle){
+    if(!fs.existsSync(outPathOf(sheet))) return;
+    table[sheet.set] = await headTopsOf(sheet, filesOf(sheet).length);
+  }
+  const width = Math.max(...Object.keys(table).map(k => k.length));
+  console.log("\ncustomers.js CUSTOMER_HEAD_TOPS 에 적을 값 (논리 px · 그림 위변 기준):");
+  console.log("const CUSTOMER_HEAD_TOPS = {");
+  Object.entries(table).forEach(([set, tops], i, all) => {
+    const body = tops.map(v => String(v.toFixed(1)).padStart(4)).join(", ");
+    console.log(`  ${(set + ":").padEnd(width + 1)} [${body}]${i < all.length - 1 ? "," : ""}`);
+  });
+  console.log("};");
+}
+
 async function verify(){
   console.log("\n검증");
   let allOk = true;
@@ -524,6 +585,8 @@ async function verify(){
       + ` · 행별 키 ${sameHeights ? "일치" : "불일치"} (${list.map(r => r.heights.join("/")).join("  vs  ")})`);
     if(!sameCell || !sameHeights) allOk = false;
   }
+
+  await printHeadTops();
 
   console.log("-".repeat(80));
   console.log(allOk ? "전부 통과" : "실패 항목 있음 — 위 표를 확인하세요");

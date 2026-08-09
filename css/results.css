@@ -1,28 +1,135 @@
+/* ============================================================
+   오늘의 영업 기록 창 — assets/UI/Record 에셋 적용
+   ------------------------------------------------------------
+   [테두리를 CSS 로 그리지 않는 이유]
+   창의 나뭇결과 안쪽 금선, 칸의 금테와 모서리 장식, 버튼의 크림빛 판과
+   테두리가 전부 그림 안에 있습니다. 마크업의 .wood-panel / .gold-button 에서
+   오는 border · border-radius · box-shadow · 배경 그라디언트를 여기서 전부
+   걷어냅니다. 남겨 두면 이중으로 겹칩니다.
+   (css/menu-select.css · css/save-slots.css · css/settings.css 와 같은 처리입니다)
+
+   [크기는 그림이 정하지 않습니다 — 반대입니다]
+   창 높이는 "머리글 + 칸 3개 + 총평 + 버튼"이 쌓인 결과라 내용이 정하고,
+   그림은 그 자리에 늘어나 채웁니다(background-size: 100% 100%).
+   그래서 아래 크기 값은 에셋을 붙이기 전과 같은 자리를 지키는 쪽으로만
+   손댔습니다 — 걷어낸 테두리 굵기를 여백으로 되돌린 것뿐입니다.
+
+   ⚠️ 딱 하나 예외가 버튼 높이입니다. 다음 날 준비 버튼 그림은 9.47:1 로
+      아주 납작해서, 예전 높이(50.3)에 맞추면 10% 뭉갭니다. aspect-ratio 로
+      그림 비율을 그대로 따르게 했습니다(폭 426 → 높이 45).
+
+   PNG 가 마스터, 실제로 쓰는 WebP 는 tools/build-ui-record-webp.js 가
+   만듭니다. ⚠️ 창 폭(480)이나 칸 높이(83)를 키우면 그 스크립트의 크기 표도
+   같이 키워야 합니다 (안 그러면 확대되면서 뭉갭니다).
+
+   실제 크기 확인은 tools/result-visual-smoke.html 로 합니다.
+   ============================================================ */
+#resultOverlay {
+  --rec-window: url("../assets/UI/Record/ui_business_record_window_inset_gold.webp");
+  --rec-cell:   url("../assets/UI/Record/ui_business_record_cell.webp");
+  --rec-button: url("../assets/UI/Record/ui_next_day_button.webp");
+}
+
+/* ── 창 ──────────────────────────────────────────────────── */
+/* 여백이 25 가 아니라 27 인 것은, 걷어낸 .wood-panel 의 2px 테두리를 여백으로
+   되돌려 안쪽 자리(426)를 예전 그대로 두기 위해서입니다. 그래야 칸 세 개의
+   폭이 135.3 으로 유지되고, 칸 그림(541x332)의 비율과 정확히 맞습니다.
+
+   그림 안쪽 금선은 가장자리에서 가로 1.7% · 세로 2.1% 자리에 있습니다.
+   창 폭 480 기준 약 8px 이라 이 여백 안에 넉넉히 들어갑니다.
+   여백을 12 밑으로 줄이면 글자가 금선을 밟습니다. */
+.result-window {
+  padding: calc(27 * var(--upx));
+
+  /* .wood-panel 이 그리던 것 걷어내기 */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--rec-window) center / 100% 100% no-repeat;
+}
+
+/* ── 기록 칸 (서빙한 손님 · 손님들의 반응 · 오늘의 접시) ──────
+   세 칸이 전부 같은 그림 한 장이라, 이 한 장만 캐시에 올라갑니다.
+   (뒤에 이어지는 매출·인기도·폐기 세 칸은 .retired-economy-ui 라
+    css/hud.css 에서 display:none 입니다 — 화면에는 3칸뿐입니다) */
 .result-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: calc(10 * var(--upx));
   margin: calc(17 * var(--upx)) 0;
 }
+/* 값이 한 줄이냐 두 줄이냐에 따라 판 높이가 매번 달라지던 곳입니다.
+   가장 긴 값(두 줄)에 맞춰 칸 높이를 붙박아 두면 판도 같이 고정됩니다.
+     83 = 위아래 여백 12+12 + 테두리 2 + 항목 이름 14 + 이름·값 사이 5 + 값 두 줄 37.8
+   값 글자 크기나 줄 간격을 바꾸면 이 숫자도 같이 고쳐야 합니다.
+
+   ⚠️ 83 은 그림 비율과 맞물려 있습니다. 칸 폭은 창 안쪽 426 을 3등분한
+      135.3 이고, 135.3 x 83 은 원화 541x332 와 비율이 같습니다(1.630).
+      높이를 바꾸면 그림이 눌리므로 tools/build-ui-record-webp.js 도 함께 고치세요.
+
+   여백이 12/8 이 아니라 13/9 인 것은 창과 같은 이유입니다 — 걷어낸 1px
+   테두리를 여백으로 되돌려 글자 자리를 예전 그대로 둡니다. */
 .result-grid div {
-  padding: calc(12 * var(--upx)) calc(8 * var(--upx));
-  border: 1px solid #704221;
-  border-radius: calc(7 * var(--upx));
-  background: #160c08;
+  min-height: calc(83 * var(--upx));
+  padding: calc(13 * var(--upx)) calc(9 * var(--upx));
+
+  border: 0;
+  border-radius: 0;
+  background: var(--rec-cell) center / 100% 100% no-repeat;
+}
+/* 칸이 좁아 "아주 좋았어/요" 처럼 낱말 한가운데가 잘리던 곳입니다.
+   keep-all 이면 한글도 띄어쓰기에서만 줄이 바뀝니다. 띄어쓰기가 없는
+   긴 낱말 하나가 칸을 넘칠 때만 anywhere 가 예외로 받아 줍니다. */
+.result-grid span,
+.result-grid strong {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .result-grid span {
   display: block;
   color: #af8c60;
-  font-size: calc(11 * var(--upx));
+  font-size: calc(10 * var(--upx));
 }
+/* 17 이면 "모든 접시에 정성이 전해졌어요" 가 세 줄이라 칸이 그때만 커졌습니다.
+   14 부터는 지금 쓰는 문구가 전부 두 줄 안에 들어갑니다(더 줄여도 두 줄 그대로). */
 .result-grid strong {
   display: block;
   margin-top: calc(5 * var(--upx));
   color: #ffe09a;
-  font-size: calc(20 * var(--upx));
+  font-size: calc(14 * var(--upx));
+  line-height: 1.35;
 }
+/* 총평도 지금은 어느 문구 조합이든 두 줄이지만, 문구가 길어져도 판이 흔들리지
+   않게 두 줄 자리를 잡아 둡니다. 24(줄 간격) x 2 = 48 */
 .result-comment {
+  min-height: calc(48 * var(--upx));
   margin: calc(13 * var(--upx)) 0;
   color: #d9bf97;
   line-height: 1.5;
 }
+
+/* ── 다음 날 준비 버튼 ────────────────────────────────────── */
+/* 그라디언트·테두리·아래 그림자가 전부 버튼 그림 안에 있어서 걷어냅니다.
+
+   ⚠️ 높이를 여백(padding)으로 만들지 않고 aspect-ratio 로 잡은 이유
+      이 그림은 1704x180, 즉 9.47:1 로 아주 납작합니다. 예전 버튼 크기
+      (426x50.3)에 그대로 채우면 세로로 10% 부푼 모양이 되어 모서리 둥근
+      정도와 금테 굵기가 눈에 띄게 달라집니다. 폭은 창이 정하므로(100%)
+      높이를 그림 비율에 맡기면 어떤 창 폭에서도 원화 그대로 나옵니다.
+      대신 padding 으로 높이를 만들 수 없으니 글자는 flex 로 가운데 놓습니다.
+      (창이 5px 정도 짧아집니다. 이 창 높이에 기대는 곳은 없습니다) */
+#nextDayButton {
+  aspect-ratio: 1704 / 180;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--rec-button) center / 100% 100% no-repeat;
+}
+/* .gold-button:active 의 box-shadow 는 위에서 지운 그림자를 되살리므로 같이 막습니다.
+   눌리는 느낌은 translateY 만으로 남깁니다. */
+#nextDayButton:active { box-shadow: none; }

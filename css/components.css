@@ -1,5 +1,5 @@
 /* JS 가 요소 하나를 숨길 때 씁니다. (UI_CLASS.hidden)
-   원래 game.js 가 style.display 로 직접 껐다 켰는데, 인라인 스타일은
+   원래 js/game.js 가 style.display 로 직접 껐다 켰는데, 인라인 스타일은
    CSS 로 덮어쓸 수 없어서 클래스로 바꿨습니다.
    HUD 뭉치를 통째로 감추는 .hidden-hud(투명 + 클릭 차단)와는 다릅니다. */
 .is-hidden { display: none !important; }
@@ -39,6 +39,8 @@
   border: 2px solid #b27636;
   border-radius: calc(7 * var(--upx));
   color: #24150f;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   background: linear-gradient(#ffe099,#c9883e);
   box-shadow: inset 0 0 0 2px #fff0bf,0 calc(3 * var(--upx)) 0 #6e3a1f;

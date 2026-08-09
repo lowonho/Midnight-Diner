@@ -110,12 +110,16 @@ const CUSTOMER_SPRITE = { frameW:44, frameH:60, w:83, h:113, anchor:.838, cols:4
      footY      발바닥이 오는 논리 y. 세로 위치는 이 값 하나로 정합니다
      headWidth  실루엣 가로폭이 이 값(셀 높이 대비)에 처음 닿는 줄이 머리끝
      headBand   머리를 찾을 범위. 셀 위쪽 이 비율까지만 봅니다
-     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px)
+     hudGap     잰 머리끝과 주문 패널 아랫변 사이에 둘 간격(논리 px).
+                말풍선 묶음을 통째로 올리고 내리는 값이 이것 하나입니다.
+                CUSTOMER_HUD 의 오프셋들은 tailY 와의 차이로만 화면에 나타나서
+                (bubbleY 등을 같이 옮기면 서로 상쇄됩니다) 높이는 여기서 잡습니다.
+                단, 강조 원은 머리에 남아야 하므로 CUSTOMER_HUD.ringY 로 되돌립니다
 
    headWidth / headBand 가 셀 "폭"이 아니라 "높이" 기준인 이유: 셀 폭에는
    젓가락·두 그림자용 여백이 들어 있고 그 여백이 세트마다 달라서, 폭을
    기준으로 삼으면 세트가 바뀔 때 판정선이 같이 움직입니다. */
-const CUSTOMER_ART_BASE = { h:170, footY:670, headWidth:.16, headBand:.35, hudGap:7 };
+const CUSTOMER_ART_BASE = { h:170, footY:670, headWidth:.16, headBand:.35, hudGap:17 };
 
 /* 그림 세트. rows 는 시트의 행 수(= 캐릭터 수),
    cols 는 시트의 열 수, fps 는 재생 속도입니다.
@@ -177,7 +181,7 @@ function loadCommonCustomerSheet(){
     });
   });
   return Promise.all(jobs).then(images=>{
-    Object.keys(CUSTOMER_ART).forEach(measureHeadTops);
+    Object.keys(CUSTOMER_ART).forEach(checkHeadTops);
     checkSheetsMatch();
     return images;
   });
@@ -226,32 +230,70 @@ function checkSheetsMatch(){
    재는 건 0번 프레임 한 장뿐입니다. 프레임마다 다시 재면 숨쉬는 동안
    말풍선이 1~2px 씩 떨리기 때문입니다.
 
-   결과는 CUSTOMER_HUD 오프셋에 더할 값(논리 px)입니다. 잰 머리끝이
-   "주문 패널 아랫변(tailY) 에서 hudGap 만큼 위"에 오도록 맞춥니다.
-   footY 를 고치면 머리끝도 같이 움직이므로 말풍선이 저절로 따라옵니다.
+   [값은 표로 박아 둡니다 — 게임에서 재지 않습니다]
+   예전에는 시트를 불러온 뒤 캔버스에 그려서 픽셀을 읽었습니다. 그런데
+   getImageData 는 file:// 로 열면 텍스처 오염 때문에 SecurityError 로
+   막힙니다. 이 파일은 그때 보정을 통째로 끄고 넘어갔기 때문에, 정적
+   서버로 열면 말풍선이 머리를 따라오고 index.html 을 그냥 더블클릭해서
+   열면 8명 전부 같은 높이에 서는 상태였습니다. 화면에는 에러가 안 뜨고
+   콘솔 경고 한 줄만 남아서, 열어 본 방식에 따라 되기도 하고 안 되기도
+   하는 것으로 보입니다. 실제로 이 증상으로 한 번 헤맸습니다.
+
+   그래서 재는 일은 빌드 스크립트(tools/build-customer-sprites.js)로
+   옮기고, 게임은 아래 표만 읽습니다. 어디서 열든 결과가 같습니다.
+   원화를 갈아 끼웠으면 npm run build:customer 가 찍어 주는 표를
+   그대로 옮겨 적으세요. (cols 값을 옮겨 적는 것과 같은 방식입니다)
+   옮겨 적는 것을 잊어도 캔버스를 읽을 수 있는 환경에서는 아래
+   checkHeadTops() 가 어긋난 행을 콘솔에 찍어 줍니다.
    ------------------------------------------------------------ */
 
-// 세트 이름 → 캐릭터별 보정값(논리 px) 배열
-const customerHeadDrops = {};
+/* 세트 이름 → 캐릭터별 머리끝 위치.
+   단위는 논리 px 이고, 기준은 "그려진 캐릭터 그림의 위변"입니다.
+   즉 그림 맨 위에서 이만큼 내려온 줄이 머리끝입니다.
+   셀 해상도가 아니라 그리는 크기(CUSTOMER_ART_BASE.h) 기준이라
+   시트를 더 큰 해상도로 다시 뽑아도 이 값은 그대로입니다.
 
-function measureHeadTops(set){
+   특별 손님 0번(비에 젖은 아이)과 4번(작은 짐승)이 유난히 큰 것은
+   빌드 쪽 CHARACTER_SCALE 로 키를 줄여 놓아서, 줄어든 만큼 셀 위쪽에
+   빈 자리가 생기기 때문입니다. 말풍선이 그만큼 내려와야 맞습니다. */
+const CUSTOMER_HEAD_TOPS = {
+  common:  [ 6.0,  6.6,  5.4,  6.6,  9.0,  8.4,  5.4,  6.6],
+  special: [35.6,  9.0,  7.8, 10.2, 49.4, 11.5,  6.0, 11.5]
+};
+
+// 이 손님의 말풍선 묶음을 얼마나 내려야 하는지(논리 px).
+// 머리끝이 "주문 패널 아랫변(tailY)에서 hudGap 만큼 위"에 오도록 맞춥니다.
+// 표에 없는 행이거나 예전 시트로 물러선 손님은 보정하지 않습니다.
+function customerHudDrop(customer,variant){
+  const set=customerArtSet(customer);
+  if(!set)return 0;
+  const top=CUSTOMER_HEAD_TOPS[set]?.[variant%CUSTOMER_ART[set].rows];
+  if(top===undefined)return 0;
+  const B=CUSTOMER_ART_BASE;
+  return (CUSTOMER_FOOT_OFFSET-B.h+top)-(CUSTOMER_HUD.tailY+B.hudGap);
+}
+
+/* 표가 지금 시트와 맞는지 확인만 합니다. 그림에는 영향이 없습니다.
+   캔버스를 읽지 못하는 환경(file://)에서는 조용히 건너뜁니다 —
+   확인을 못 할 뿐이고, 말풍선 위치는 표에서 나오므로 똑같이 동작합니다. */
+function checkHeadTops(set){
   const art=CUSTOMER_ART[set];
   const image=customerSheets[sheetKey(set,CUSTOMER_BASE_MOTION)];
-  customerHeadDrops[set]=[];
-  if(!image)return;
+  const table=CUSTOMER_HEAD_TOPS[set];
+  if(!image||!table)return;
 
   const B=CUSTOMER_ART_BASE;
   const cellW=Math.floor(image.width/art.motions[CUSTOMER_BASE_MOTION].cols);
   const cellH=Math.floor(image.height/art.rows);
   const band=Math.max(1,Math.round(cellH*B.headBand));
   const minRun=Math.max(1,Math.round(cellH*B.headWidth));
+  const scale=B.h/cellH;
 
-  let tops;
   try{
     const canvas=document.createElement("canvas");
     canvas.width=cellW;canvas.height=band;
     const cell=canvas.getContext("2d",{willReadFrequently:true});
-    tops=[];
+    const off=[];
     for(let row=0;row<art.rows;row++){
       cell.clearRect(0,0,cellW,band);
       cell.drawImage(image,0,row*cellH,cellW,band,0,0,cellW,band);
@@ -262,29 +304,16 @@ function measureHeadTops(set){
         for(let x=0;x<cellW;x++) if(pixels[(y*cellW+x)*4+3]>128) solid++;
         if(solid>=minRun){top=y;break;}
       }
-      tops.push(top);
+      const measured=top*scale;
+      if(Math.abs(measured-(table[row]??NaN))>1)
+        off.push(`${row}행 표 ${table[row]} / 실제 ${measured.toFixed(1)}`);
     }
-  }catch(error){
-    // 캔버스를 읽지 못하면(예: file:// 로 열어 텍스처가 오염된 경우)
-    // 보정 없이 예전처럼 전부 같은 높이로 둡니다.
-    console.warn("[customers] 머리 높이를 재지 못해 말풍선 보정을 끕니다.",error);
-    return;
+    if(off.length)
+      console.warn(`[customers] ${set} CUSTOMER_HEAD_TOPS 가 시트와 다릅니다 `
+        +`(npm run build:customer 가 찍어 주는 표로 갱신하세요): ${off.join(" · ")}`);
+  }catch{
+    // file:// 등에서 픽셀을 못 읽는 경우. 확인만 건너뜁니다.
   }
-
-  // 손님 기준 y 로부터 머리끝까지의 거리(위가 음수) → 말풍선이 있어야 할 자리와의 차이.
-  // 머리끝은 패널 아랫변(tailY)보다 hudGap 만큼 아래에 있는 것이 기준입니다.
-  const scale=B.h/cellH;
-  const wanted=CUSTOMER_HUD.tailY+B.hudGap;
-  customerHeadDrops[set]=tops.map(top=>
-    (CUSTOMER_FOOT_OFFSET-B.h+top*scale)-wanted);
-}
-
-// 이 손님의 말풍선 묶음을 얼마나 내려야 하는지(논리 px).
-// 예전 시트로 물러선 손님은 보정하지 않습니다.
-function customerHudDrop(customer,variant){
-  const set=customerArtSet(customer);
-  if(!set)return 0;
-  return customerHeadDrops[set]?.[variant%CUSTOMER_ART[set].rows]||0;
 }
 
 
@@ -365,7 +394,11 @@ const CUSTOMER_HUD = {
   // iconY 는 패널 세로 중앙(bubbleY + bubbleH/2).
   iconY:-117, iconW:66, iconH:44,
   tailY:-90,                              // 패널 꼬리
-  ringY:-52, ringR:46,                    // 선택된 손님 강조 원
+  // 강조 원만 머리를 감싸야 해서 hudGap 을 되돌려 놓은 값입니다.
+  // 여기 오프셋은 전부 hy(= 머리끝 - hudGap) 기준이라 hudGap 을 키우면
+  // 말풍선과 함께 이 원도 같이 떠오릅니다. hudGap 을 바꿀 때는 같은 값만큼
+  // 반대로 옮겨 주세요. (지금은 hudGap 17 - 기본 7 = 10 만큼 되돌림)
+  ringY:-42, ringR:46,                    // 선택된 손님 강조 원
   labelY:-152,                            // 번호 / 이름
   speechY:-175,                           // 대사 말풍선
   departSpeechY:-135

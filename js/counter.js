@@ -46,7 +46,14 @@ const COUNTER_ASSETS = [
   { key:"counter_nameplate",       file:"ui_nameplate" },
   { key:"counter_griddle_surface", file:"counter_griddle_surface_cook", sheet:{ frameWidth:256, frameHeight:263 }, frames:8 },
   { key:"counter_pos_set",         file:"fix_pos_set",                  sheet:{ frameWidth:382, frameHeight:446 }, frames:6 },
-  { key:"counter_steam",           file:"fx_griddle_cook",              sheet:{ frameWidth:620, frameHeight:280 }, frames:8 }
+
+  /* 철판 김 — 주방 조리대(냄비·직화구이·튀김기)와 같은 연기를 씁니다.
+     한 가게 안에서 연기가 두 종류로 갈리지 않게 하려는 것입니다.
+     그림이 배경 소품 폴더에 있어서 dir 을 따로 적습니다.
+     (예전 그림: fx_griddle_cook 620x280x8 — 낮고 넓게 깔리는 김. ADD 블렌드였습니다)
+     배치·프레임 규격 설명은 decoration.js §3-7 에 있습니다. */
+  { key:"counter_steam",           file:"fx_cooking_steam_6f",          dir:"assets/bg/decoration/",
+    sheet:{ frameWidth:327, frameHeight:800 }, frames:6 }
 ];
 
 /* 분리 에셋 (선택)
@@ -132,7 +139,10 @@ const COUNTER_LAYOUT = {
        body 317  →  조리면 중심 화면 474.9
        food 340  →  음식   중심 화면 474.0   (23 = 36px × 0.664 ÷ 1.04)
      음식 위치만 조정하려면 griddleFood.x 만 고치면 됩니다.
-     (단, 김도 음식 중심에 맞춰져 있으니 steam.x 도 같이 옮겨야 합니다) */
+     (단, 김도 음식 중심에 맞춰져 있으니 steamPlumes 도 같이 옮겨야 합니다)
+
+     ⚠️ griddleFood 는 **배율 1 기준값**입니다. 실제 배치는 아래
+        GRIDDLE_FOOD_SCALE 을 곱한 값으로 덮어씁니다. */
   griddleBody: { x:317, y:1017, w:327, h:336 },
   griddleFood: { x:340, y:1017, w:327, h:336 },
 
@@ -149,20 +159,32 @@ const COUNTER_LAYOUT = {
      860 으로 24 올려 밑동을 853 에 두면 앞쪽에 38px 여유가 생깁니다. */
   pos:      { x:52,  y:860,  w:143,  h:167 },
 
-  /* 철판 김. 알파가 매우 낮아 ADD 블렌드가 필요합니다. (§3-2)
-     크기·위치를 음식 덩어리에 맞춰 잡은 값입니다. (실측 기준, 화면 좌표)
+  /* 철판 김 (주방 조리대와 같은 6프레임 연기 · §1 counter_steam)
+     ------------------------------------------------------------
+     시트 한 칸이 327x800 이고 연기 밑동이 칸 안 (168, 729) 에 있습니다.
+     그래서 이 소품만 좌하단(0,1) 이 아니라 **밑동**을 origin 으로 씁니다.
+     크기를 바꿔도 발원점이 음식 위에 그대로 남습니다.
 
-                     x 범위        폭     중심     y 범위
-       음식(조리루프)  409 ~ 539   130   474.0   807 ~ 856
-       김             391 ~ 557   165   474.1   750 ~ 845
+     [두 줄기인 이유] 철판 음식은 가로로 넓은 덩어리입니다
+     (배율 1.35 기준 화면 x 386~562). 한 줄기만 세우면 넓은 철판
+     한가운데에서 실오라기 하나 올라오는 꼴이라, 두 줄기를 시작 프레임과
+     속도만 어긋나게 세워 한 몸처럼 부풀지 않게 했습니다.
 
-     - 중심 x 를 음식에 맞춥니다. griddleFood.x 를 옮기면 여기도 같이 옮기세요.
-     - 폭은 음식보다 좌우 17px 씩만 넓힙니다. 김은 퍼지니까 딱 맞추면 좁아 보이고,
-       스펙값(310)처럼 넓으면 음식 없는 철판 가장자리에서 연기가 납니다.
-     - 아랫단(845)을 음식 덩어리(807~856) 안에 넣습니다. 위로 띄우면
-       음식과 끊겨서 허공에 뜬 것처럼 보입니다.
-     크기를 바꾸면 w/h 를 같은 비율로 바꾸세요. (620:280 = 2.214) */
-  steam:    { x:358, y:852,  w:270,  h:122 },
+     [발원점] 설계 좌표라 fitX/fitY 를 거칩니다. 음식 덩어리
+     (화면 y 790~856) 안에서 시작해 밑동이 음식에 묻힙니다.
+       설계 (471, 820) → 화면 (452, 812)
+       설계 (518, 823) → 화면 (500, 815)
+     griddleFood 를 옮기거나 키우면 여기도 같이 봐야 합니다.
+
+     [크기] 화면에서 약 171 높이로 그려 연기가 126 쯤 올라갑니다.
+     주방 조리대 연기(137)보다 큰 이유는 철판이 카메라 앞쪽이기 때문입니다.
+     w/h 는 327:800 비율을 지켜야 연기가 눌리지 않습니다. */
+  steamSize:   { w:67, h:164 },
+  steamOrigin: { x:168/327, y:729/800 },
+  steamPlumes: [
+    { x:471, y:820, startFrame:0, timeScale:1.00 },
+    { x:518, y:823, startFrame:3, timeScale:0.85 }
+  ],
 
   // 의자 5개 — 같은 에셋 재사용. 바닥선 1042 로 카운터(1012)보다 앞쪽입니다.
   chairSize: { w:88, h:172, y:1042 },
@@ -201,6 +223,41 @@ const COUNTER_LAYOUT = {
     { id:"plate_griddle",  x:415, y:937, text:"철판",   zone:"griddle"  }
   ]
 };
+
+/* 철판 음식만 따로 키우기
+   ------------------------------------------------------------
+   철판은 화면 앞쪽에 크게 있는데 볶음우동 덩어리는 스펙 크기 그대로라
+   철판 가운데에 작게 얹혀 있었습니다. 음식만 키웁니다.
+
+   [w/h 만 키우면 안 되는 이유] 배치 origin 이 프레임 왼쪽 아래(0,1)
+   입니다. 그대로 키우면 늘어난 만큼 음식이 오른쪽 위로 밀려서 철판
+   밖으로 나갑니다. 프레임 안 "음식 덩어리"의 밑변과 가로 중심을
+   고정한 채 키워야 제자리에서 커집니다.
+
+     프레임 512x526 안에서 (§1-3 분리 에셋 정렬 실측)
+       음식 밑변  y 283 = 높이의 53.8%
+       음식 중심  x 239 = 폭의 46.7%
+
+   크기를 다시 조절할 때는 GRIDDLE_FOOD_SCALE 한 숫자만 고치세요.
+     1.00  화면 x 409~539 (폭 130)   에셋 스펙 그대로
+     1.35  화면 x 386~562 (폭 176)   지금 값
+   ------------------------------------------------------------ */
+const GRIDDLE_FOOD_SCALE  = 1.35;
+const GRIDDLE_FOOD_ANCHOR = { bottom:283/526, centerX:239/512 };
+
+function griddleFoodBox(base,scale){
+  const w=base.w*scale, h=base.h*scale;
+  const contentBottom =base.y-base.h*(1-GRIDDLE_FOOD_ANCHOR.bottom);
+  const contentCenterX=base.x+base.w*GRIDDLE_FOOD_ANCHOR.centerX;
+  return {
+    x:contentCenterX-w*GRIDDLE_FOOD_ANCHOR.centerX,
+    y:contentBottom  +h*(1-GRIDDLE_FOOD_ANCHOR.bottom),
+    w, h
+  };
+}
+
+// 배율을 적용한 실제 배치로 덮어씁니다. 아래 코드는 griddleFood 만 보면 됩니다.
+COUNTER_LAYOUT.griddleFood = griddleFoodBox(COUNTER_LAYOUT.griddleFood,GRIDDLE_FOOD_SCALE);
 
 // 의자 5개의 최종 중심 x (COUNTER_FIT 적용 후 VIEW 좌표).
 // customers.js 의 좌석이 이 값에서 파생됩니다. 의자를 옮기거나
@@ -281,6 +338,24 @@ const COUNTER_DEPTH = {
 
 const GRIDDLE_IDLE_FRAME = 0;      // §3-1 빈 철판 프레임이 없어 0번을 정지 상태로 씁니다.
 
+/* 볶음우동을 움직일 것인가
+   ------------------------------------------------------------
+   false 면 언제나 0번 프레임 한 장으로 고정합니다. 조리 중이라고
+   프레임을 돌리지 않습니다.
+
+   [끈 이유] 음식을 1.35배로 키우면서(GRIDDLE_FOOD_SCALE) 프레임 사이
+   덩어리 차이도 같이 커졌습니다. 원래 몇 px 씩 지글거리던 것이 눈에
+   띄게 들썩이는 움직임이 되어, 카운터 앞을 지나가기만 해도 화면 왼쪽
+   아래가 산만해졌습니다.
+
+   [조리 중인 건 김으로 보여 줍니다] 이걸 꺼도 setCounterCooking() 은
+   그대로 돕니다 — 철판 앞에 서면 김이 진해지는 신호는 남습니다.
+   (STEAM_ALPHA_IDLE → STEAM_ALPHA_COOK)
+
+   다시 켜려면 이 한 줄만 true 로 바꾸면 됩니다. 아래 조리 루프·뒤집기
+   프레임표와 애니메이션은 그대로 남겨 두었습니다. */
+const GRIDDLE_FOOD_ANIMATE = false;
+
 /* 조리 루프에 쓸 프레임
    ------------------------------------------------------------
    8프레임 중 2 / 3 / 6 번은 뒤집기라 음식이 철판 밖으로 크게 솟구칩니다.
@@ -298,7 +373,7 @@ const GRIDDLE_TOSS_FRAMES = [2,6,3,6,2];
 const GRIDDLE_COOK_FPS   = 7;
 const GRIDDLE_TOSS_FPS   = 12;
 
-const STEAM_FPS          = 10;
+const STEAM_FPS          = 8;      // 주방 조리대 연기(decoration.js)와 같은 속도
 const STEAM_FADE_MS      = 200;
 // 김은 항상 나옵니다. 조리 중일 때만 조금 진해집니다.
 const STEAM_ALPHA_IDLE   = 0.70;
@@ -360,7 +435,7 @@ function loadCounterImage(asset){
     const image=new Image();
     image.onload=()=>{counterImages[asset.key]=image;resolve(image);};
     image.onerror=()=>reject(new Error(`카운터 이미지를 불러오지 못했습니다: ${asset.file}`));
-    image.src=`${COUNTER_ASSET_DIR}${asset.file}${COUNTER_EXT}`;
+    image.src=`${asset.dir??COUNTER_ASSET_DIR}${asset.file}${COUNTER_EXT}`;
   });
 }
 
@@ -399,7 +474,7 @@ const counter = {
   ready:false,
   splitGriddle:false,   // 분리 에셋(본체+음식)을 쓰는 중인가
   barTable:null, register:null, griddleBody:null, griddleSurface:null, griddleFront:null,
-  pos:null, steam:null,
+  pos:null, steamPlumes:[],
   chairs:[],      // { id, image, groundY } — 나중에 y 기준 깊이 정렬용
   condiments:[],  // 수저통. 영업 중에만 보입니다
   open:false,     // 영업 중인가
@@ -459,9 +534,7 @@ function createCounter(scene){
   counter.pos.setFrame(0);
 
   // 김은 처음부터 계속 돕니다. 조리 중일 때만 진해집니다.
-  counter.steam=placeCounterSprite(scene,"counter_steam",L.steam,COUNTER_DEPTH.steam);
-  counter.steam.setBlendMode(Phaser.BlendModes.ADD).setAlpha(STEAM_ALPHA_IDLE);
-  counter.steam.play("counter_steam_loop");
+  counter.steamPlumes=L.steamPlumes.map(data=>placeCounterSteam(scene,data));
 
   counter.chairs=L.chairs.map(data=>{
     const image=scene.add.image(fitX(data.x),fitY(L.chairSize.y),"counter_chair")
@@ -505,6 +578,24 @@ function placeCounterSprite(scene,key,box,depth){
     .setOrigin(0,1).setDisplaySize(fitSize(box.w),fitSize(box.h)).setDepth(depth);
 }
 
+/* 김 한 줄기. 다른 소품과 달리 좌하단이 아니라 연기 밑동이 origin 입니다.
+   그래서 (x, y) 가 곧 "연기가 나오는 지점"입니다. (§2 steamPlumes)
+
+   [ADD 블렌드를 뺐습니다] 예전 김은 알파가 매우 낮아서 ADD 로 띄워야
+   보였습니다. 지금 그림은 알파가 제대로 들어 있어서, ADD 로 두면
+   철판 위가 하얗게 타 버립니다. */
+function placeCounterSteam(scene,data){
+  const L=COUNTER_LAYOUT;
+  const sprite=scene.add.sprite(fitX(data.x),fitY(data.y),"counter_steam")
+    .setOrigin(L.steamOrigin.x,L.steamOrigin.y)
+    .setDisplaySize(fitSize(L.steamSize.w),fitSize(L.steamSize.h))
+    .setDepth(COUNTER_DEPTH.steam)
+    .setAlpha(STEAM_ALPHA_IDLE);
+  sprite.play({key:"counter_steam_loop",startFrame:data.startFrame});
+  sprite.anims.timeScale=data.timeScale;
+  return sprite;
+}
+
 function createCounterPlate(scene,data){
   const w=fitSize(COUNTER_LAYOUT.plateSize.w),h=fitSize(COUNTER_LAYOUT.plateSize.h);
   const baseY=fitY(data.y);
@@ -541,7 +632,7 @@ function createCounterAnimations(scene){
   if(!scene.anims.exists("counter_steam_loop")){
     scene.anims.create({
       key:"counter_steam_loop",
-      frames:scene.anims.generateFrameNumbers("counter_steam",{start:0,end:7}),
+      frames:scene.anims.generateFrameNumbers("counter_steam",{start:0,end:5}),
       frameRate:STEAM_FPS, repeat:-1
     });
   }
@@ -600,23 +691,28 @@ function setCounterCooking(on){
   if(counter.cooking===on)return;
   counter.cooking=on;
   const scene=counter.scene;
-  if(on) counter.griddleSurface.play("counter_griddle_cooking");
-  else{
-    counter.griddleSurface.stop();
-    counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+  // 음식은 0번 프레임 고정입니다. (GRIDDLE_FOOD_ANIMATE)
+  if(GRIDDLE_FOOD_ANIMATE){
+    if(on) counter.griddleSurface.play("counter_griddle_cooking");
+    else{
+      counter.griddleSurface.stop();
+      counter.griddleSurface.setFrame(GRIDDLE_IDLE_FRAME);
+    }
   }
   // 김은 끄지 않고 진하기만 바꿉니다.
-  scene.tweens.killTweensOf(counter.steam);
+  counter.steamPlumes.forEach(plume=>scene.tweens.killTweensOf(plume));
   scene.tweens.add({
-    targets:counter.steam,
+    targets:counter.steamPlumes,
     alpha:on?STEAM_ALPHA_COOK:STEAM_ALPHA_IDLE,
     duration:STEAM_FADE_MS, ease:"Sine.easeInOut"
   });
 }
 
 // 뒤집기 1회 재생 후 조리 루프(또는 정지)로 복귀. 실제 조리 이벤트용 훅입니다.
+// 음식을 고정해 둔 동안(GRIDDLE_FOOD_ANIMATE=false)에는 아무 일도 하지 않습니다 —
+// 여기만 살려 두면 가만히 있던 음식이 한 번씩 튀어올라 더 이상해집니다.
 function counterPlayGriddleToss(){
-  if(!counter.griddleSurface)return;
+  if(!counter.griddleSurface||!GRIDDLE_FOOD_ANIMATE)return;
   counter.griddleSurface.play("counter_griddle_toss");
   counter.griddleSurface.once("animationcomplete",()=>{
     if(counter.cooking)counter.griddleSurface.play("counter_griddle_cooking");
@@ -643,7 +739,7 @@ function applyCounterOpenState(){
   const open=counter.open;
   counter.condiments.forEach(item=>item.setVisible(open));
   if(counter.splitGriddle)counter.griddleSurface?.setVisible(open);
-  counter.steam?.setVisible(open);
+  counter.steamPlumes.forEach(plume=>plume.setVisible(open));
 }
 
 function counterSetOpen(open){

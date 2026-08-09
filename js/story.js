@@ -389,8 +389,9 @@ function gameplayJournalGuestRecord(definition){
 }
 
 // 식당 안에서 여는 진행용 영업일지는 오직 현재 state.story를 읽습니다.
-// 첫 장은 규칙, 다음 여덟 장은 음식별 레시피, 마지막 일곱 장은 날짜별
-// 기록입니다. 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
+// 첫 장은 규칙, 둘째 장은 양면 그림 안내, 다음 여덟 장은 음식별 레시피,
+// 마지막 일곱 장은 날짜별 기록입니다.
+// 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
 function getGameplayJournalPages(){
   const definitionsByGuest=Object.fromEntries(
     GAMEPLAY_JOURNAL_PAGE_DEFS.map(definition=>[definition.guestId,definition])
@@ -399,7 +400,7 @@ function getGameplayJournalPages(){
   const recipesByDish=Object.fromEntries(STORY_JOURNAL_RECIPES.map(recipe=>[recipe.dishId,recipe]));
   const menuNames=STORY_MENU_RULES.dishIds.map(id=>menusById[id]?.displayName).filter(Boolean);
   const menuRule="매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.";
-  const total=1+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
+  const total=2+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
   const rulesPage={
     id:"gameplay-rules",
     pageType:"rules",
@@ -414,11 +415,28 @@ function getGameplayJournalPages(){
     locked:false,
     rules:[
       menuRule,
-      "손님에게 항상 친절하게 대한다.",
-      "내일로 가는 문은 달빛 조각으로만 열 수 있다."
+      "손님에게 항상 친절하게 대한다."
     ],
     menuRule,
     menuNames
+  };
+  // 주의사항 뒤에 붙는 두 번째 장은 글 없이 원화 두 장만 양면에 놓습니다.
+  // 왼쪽 면은 손님 주문·조리, 오른쪽 면은 선택지·대답 안내 그림입니다.
+  // 견출지는 새로 만들지 않고 주의사항 구역에 함께 묶입니다(title.js 참고).
+  const guidePage={
+    id:"gameplay-guide",
+    pageType:"guide",
+    index:1,
+    number:2,
+    total,
+    title:"영업일지 안내",
+    label:"영업일지 안내",
+    tabLabel:"주의사항",
+    dayLabel:"주의사항",
+    unlocked:true,
+    locked:false,
+    artLeft:"assets/UI/Journal/ui_log_story_guest_cooking_v01.webp",
+    artRight:"assets/UI/Journal/ui_log_story_choice_answer_v03.webp"
   };
   const recipePages=STORY_MENU_RULES.dishIds.map((dishId,index)=>{
     const menu=menusById[dishId];
@@ -426,8 +444,8 @@ function getGameplayJournalPages(){
     return {
       id:`gameplay-recipe-${dishId}`,
       pageType:"recipe",
-      index:index+1,
-      number:index+2,
+      index:index+2,
+      number:index+3,
       total,
       recipeNumber:index+1,
       dishId,
@@ -444,7 +462,7 @@ function getGameplayJournalPages(){
   });
   const dayPages=GAMEPLAY_JOURNAL_DAY_GUEST_IDS.map((guestIds,index)=>{
     const day=index+1;
-    const pageIndex=1+recipePages.length+index;
+    const pageIndex=2+recipePages.length+index;
     const entries=guestIds
       .map(guestId=>gameplayJournalGuestRecord(definitionsByGuest[guestId]))
       .filter(Boolean);
@@ -465,7 +483,7 @@ function getGameplayJournalPages(){
       entries
     };
   });
-  return [rulesPage,...recipePages,...dayPages];
+  return [rulesPage,guidePage,...recipePages,...dayPages];
 }
 
 window.getGameplayJournalPages=getGameplayJournalPages;
@@ -674,6 +692,26 @@ function initializeStoryUI(){
   storyUiInitialized=true;
   document.getElementById("storyNextButton").addEventListener("click",storyAdvance);
   document.getElementById("storyText").addEventListener("click",storyAdvance);
+  /* [대사창이 감춰진 동안의 클릭은 오버레이가 받습니다]
+     위 두 곳이 대사를 넘기는 유일한 마우스 입력입니다. 그런데 컷씬 대기
+     (story-cinematic-hold)와 씬 인트로(scene-intro)에서는 대사창이 통째로
+     visibility:hidden 이고, 감춰진 요소는 클릭 대상이 아닙니다. 그래서 그
+     동안은 화면 아무 곳을 눌러도 아무 일이 없었습니다 — 컷씬 대기는 시간이
+     아니라 입력을 기다리므로 마우스만 쓰는 사람에게는 화면이 멈춥니다.
+
+     ⚠️ 걸러내는 기준은 "지금 대기 중인가"가 아니라 "누른 곳이 대사창 안인가"
+        입니다. 클릭은 #storyText 에서 처리된 뒤 여기까지 거슬러 올라오는데,
+        그 사이에 대사가 한 줄 넘어가 새 컷의 대기가 막 시작된 상태일 수
+        있습니다. 그때 대기 여부만 보면 방금 시작한 대기를 같은 클릭이 곧바로
+        풀어 버려서, 장면 중간에 컷이 바뀌는 줄만 그림이 한 번도 안 보입니다.
+        대사창이 보이는 동안에는 눌린 곳이 늘 대사창 안이고, 감춰진 동안에는
+        늘 바깥이라 이 기준이면 어긋나지 않습니다.
+        버튼(건너뛰기 등)은 자기 처리기가 따로 있어 같이 제외합니다. */
+  document.getElementById("storyOverlay")?.addEventListener("click",event=>{
+    if(event.target?.closest?.(".story-dialogue-box,button"))return;
+    if(!storyCinematicHoldIsActive()&&!storySession?.sceneIntroActive)return;
+    storyAdvance();
+  });
   document.getElementById("storySkipButton")?.addEventListener("click",skipCurrentStoryScene);
   document.getElementById("endingRetryBranchButton")?.addEventListener("click",retryLastEndingBranch);
   document.getElementById("endingAcceptButton")?.addEventListener("click",acceptCurrentEnding);
@@ -1083,6 +1121,7 @@ function clearStoryRuntime(){
   setStoryGameUiVisible(false);
   clearStoryCinematic();
   applyStoryFragmentHandoff(null);
+  clearStoryPropReveal();
   applyStoryEndingBackground(null);
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
@@ -1293,6 +1332,9 @@ function beginNextStoryScene(){
   storySession.lines=storyLinesForScene(scene);
   storySession.lineIndex=0;
   storySession.subtitle=null;
+  // 지난 장면에서 조각을 띄웠던 줄 번호가 남아 있으면, 같은 번호의 줄에서
+  // 조각이 한 박자 빨리 떠 버립니다.
+  storySession.fragmentRevealedAt=null;
   resetStoryStage();
   setStoryGameUiVisible(false);
   document.getElementById("storySceneTitle").textContent=storySceneCardText(scene);
@@ -1487,27 +1529,62 @@ function showStoryLine(requestedPageIndex=0,requestedStartOffset=null){
   setStoryGameUiVisible(line.showGameUI===true);
   applyStoryEndingBackground(scene);
   applyStoryCinematic(line);
-  applyStoryFragmentHandoff(line);
-  speakerEl.classList.remove("revealed");
-  speakerEl.hidden=!speakerLabel;
-  speakerEl.textContent=speakerLabel;
-  badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
+  /* 컷씬을 먼저 혼자 보여 주는 줄(cinematic.hold)에서는 조각 오버레이를
+     그동안 비워 둡니다. 감추는 게 아니라 안 켜는 것이라야 1초 뒤에 조각이
+     제대로 떠오릅니다 — 자세한 것은 story-cinematic.js 의 hold 설명. */
+  const holding=beginStoryCinematicHold(line);
+  if(holding)applyStoryFragmentHandoff(null);
   setStoryPortrait(speakerId,line);
   updateStoryCinematicSpeaking(line);
   updateStorySkipButton();
   choices.innerHTML="";choices.classList.remove("open");
-  setStoryNextButton(false);
-  next.style.display="block";
   const fullText=storyLineText(line);
-  textEl.textContent="";
   const pages=paginateStorySubtitle(fullText,textEl);
   const pageOffsets=storySubtitlePageOffsets(fullText,pages);
   const pageIndex=Number.isInteger(requestedStartOffset)&&requestedStartOffset>=0
     ?storySubtitlePageForOffset(requestedStartOffset,pageOffsets)
     :Math.max(0,Math.min(pages.length-1,Math.floor(Number(requestedPageIndex)||0)));
   storySession.subtitle={lineIndex:storySession.lineIndex,pages,pageOffsets,pageIndex};
-  next.style.display=line.choices&&pageIndex===pages.length-1?"none":"block";
-  startStorySubtitleTyping(line);
+
+  /* [대사창 안에 보이는 것은 창이 사라진 뒤에 갈아 끼웁니다]
+     대기에 들어가면 대사창은 0.2초에 걸쳐 사라집니다(css/story.css 의
+     transition). 그동안 창은 아직 화면에 있으므로, 여기서 이름과 글자를 바로
+     바꾸면 **읽던 대사가 다음 화자 이름과 빈 줄로 먼저 바뀐 뒤에** 창이
+     내려갑니다. 그래서 대기 중에는 아래 reveal 까지 미뤄 두고, 사라지는
+     동안에는 방금 읽던 대사를 그대로 두었다가 창이 다시 올라올 때 갈아
+     끼웁니다. 쪽수 계산은 위에서 이미 끝났고, 폭은 감춰진 요소에서도 그대로라
+     미뤄도 영향이 없습니다(측정은 따로 만든 사본에서 합니다).
+
+     대기가 없는 줄은 창이 계속 떠 있으므로 예전처럼 그 자리에서 바꿉니다. */
+  const fillStoryDialogueBox=()=>{
+    speakerEl.classList.remove("revealed");
+    speakerEl.hidden=!speakerLabel;
+    speakerEl.textContent=speakerLabel;
+    badge.textContent=speakerId&&STORY_GUEST_IDS.includes(speakerId)&&isCharacterNameRevealed(speakerId)?storyRelationLabel(speakerId):"";
+    setStoryNextButton(false);
+    next.style.display=line.choices&&pageIndex===pages.length-1?"none":"block";
+    textEl.textContent="";
+  };
+  if(!holding)fillStoryDialogueBox();
+
+  /* 대기가 없는 줄이면 그 자리에서 바로 부릅니다. 대기 중이면 클릭 한 번 뒤에
+     대사와 조각 오버레이가 함께 올라옵니다.
+     자막 쪽수 계산은 대기와 상관없이 위에서 이미 끝났습니다 — 대사창은
+     visibility 로만 감춰서 폭을 재는 데 문제가 없습니다. */
+  scheduleStoryCinematicReveal(()=>{
+    if(holding)fillStoryDialogueBox();
+    /* 달빛 조각은 이 줄에서 바로 띄우지 않습니다. 대사와 동시에 큰 오버레이가
+       덮여서 "손님이 조각을 건넨다"를 읽기도 전에 그림이 먼저 나와 버립니다.
+       한 번 더 눌렀을 때 떠오르도록 storyAdvance() 가 따로 켭니다.
+       (QA 미리보기는 그림 확인용이라 기다리지 않고 바로 보여 줍니다) */
+    const revealed=storySession.qaPreview||storySession.fragmentRevealedAt===storySession.lineIndex;
+    applyStoryFragmentHandoff(revealed?line:null);
+    /* 소품(프롤로그 영업일지)은 달빛 조각과 반대로 자막보다 **먼저** 뜹니다.
+       "눈에 들어와"는 그림을 보고 나서 읽어야 성립하기 때문입니다. 그래서
+       떠오르는 동안만 자막을 붙잡습니다 — 소품이 없는 줄은 붙잡지 않고 그
+       자리에서 바로 타이핑합니다(story-prop-reveal.js 설명). */
+    scheduleStoryPropReveal(line,()=>startStorySubtitleTyping(line));
+  });
 }
 
 function showStorySubtitlePage(pageIndex){
@@ -1635,6 +1712,14 @@ function storyAdvance(){
     if(storySession.scene?.transitionOnly)return true;
     return finishStorySceneIntro();
   }
+  /* 컷씬만 보여 주는 동안의 클릭은 "다음 대사"가 아니라 "그만 기다리고
+     대사를 올려라"입니다. 이걸 먼저 안 보면 대기 중에는 아직 typing 이
+     없어서 클릭 한 번에 그 대사를 통째로 건너뛰게 됩니다. */
+  if(releaseStoryCinematicHold())return true;
+  /* 소품이 떠오르는 동안의 클릭도 "다음 대사"가 아니라 "그만 기다리고 자막을
+     올려라"입니다. 이걸 먼저 안 보면 그동안은 아직 typing 이 없어서 아래
+     자막 쪽 넘김으로 빠지고, 첫 쪽이 통째로 지나갑니다. */
+  if(releaseStoryPropReveal())return true;
   if(storySession.typing&&!storySession.typing.complete){finishStoryTyping();return true;}
   if(showNextStorySubtitlePage())return true;
   // QA_REMOVE: 미리보기에서는 조리·선택·완료 처리 없이 대사 인덱스만 이동합니다.
@@ -1643,6 +1728,15 @@ function storyAdvance(){
   }
   if(storySession.waitingForJournal)return true;
   const line=storySession.lines[storySession.lineIndex];
+  /* 달빛 조각 한 박자. 대사를 다 읽고 한 번 더 누르면 그때 조각이 떠오르고,
+     그다음 누름에 장면이 넘어갑니다. 대사와 같이 띄우면 글을 읽기도 전에
+     오버레이가 화면을 덮어 버립니다(showStoryLine 쪽 주석 참고). */
+  if(line?.fragmentHandoff?.state==="full"&&storySession.fragmentRevealedAt!==storySession.lineIndex){
+    storySession.fragmentRevealedAt=storySession.lineIndex;
+    applyStoryFragmentHandoff(line);
+    audio?.uiClick?.();
+    return true;
+  }
   if(line?.openJournalOnAdvance){
     // 이 자막을 모두 읽은 뒤 책을 실제로 펼칩니다. 책을 닫기 전에는 다음
     // 자막의 타이핑을 시작하지 않아, 책 뒤에서 대사가 지나가지 않습니다.
@@ -1650,6 +1744,10 @@ function storyAdvance(){
     storySession.subtitle=null;
     storySession.typing=null;
     storySession.waitingForJournal=true;
+    /* 소품으로 띄워 둔 영업일지를 여기서 내립니다. 이 줄은 다음 줄의
+       showStoryLine 을 부르지 않고 책을 펼치므로(책을 닫아야 이어집니다),
+       놔두면 펼친 책 뒤로 같은 책이 한 권 더 비칩니다. */
+    clearStoryPropReveal();
     audio?.uiClick?.();
     const opened=line.journalPageId&&typeof openGameplayJournalPage==="function"
       ?openGameplayJournalPage(line.journalPageId)
@@ -1712,21 +1810,29 @@ const STORY_ACTOR_MARGIN=8;
 const STORY_ACTOR_GUTTER=1.5;
 
 /* [컷씬 중에도 말하는 줄에서는 원화를 올립니다]
-   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css).
-   그러면 그 장면 내내 김다은 원화가 한 번도 안 나옵니다.
+   컷씬이 깔리면 배우 무대가 통째로 감춰집니다(css/story.css). 컷은 대사 한
+   줄이 아니라 '구간'에 걸리므로, 그대로 두면 그 구간의 대사가 전부 배우 없이
+   지나갑니다 — 장면 전체가 한 컷인 SCN-P03 은 김다은이 네 마디를 하는 동안
+   컷 속 자세 하나로만 서 있었습니다.
 
-   그렇다고 항상 세우면 같은 사람이 화면에 둘이 될 수 있습니다 — 프롤로그 세
-   컷처럼 원화 안에 김다은이 이미 그려져 있는 경우입니다. 그래서 '말하는 줄'
-   이면서 '그 컷에 김다은이 안 그려져 있을 때'만 올립니다. 컷마다의 그 여부는
-   story-cinematic.js 의 STORY_CUTSCENES[].protagonist 에 적혀 있습니다. */
+   그래서 '말하는 줄'에서는 무대를 다시 올립니다. 다만 컷에 따라서는 올리면
+   안 됩니다(조각 전달 컷은 그 사람이 이미 그려져 있어 둘이 됩니다). 그 판단은
+   컷마다 story-cinematic.js 의 STORY_CUTSCENES[].speakerArt 에 적혀 있습니다. */
 function updateStoryCinematicSpeaking(line){
   const overlay=document.getElementById("storyOverlay");
   if(!overlay)return;
-  const drawnInCut=typeof storyCinematicDrawsProtagonist==="function"&&storyCinematicDrawsProtagonist();
-  // 컷에 그려져 있는 건 김다은뿐이므로, 이 이유로 막는 것도 김다은일 때만입니다.
-  // 같은 컷 위에서 손님이 말하는 장면이 생기면 그 원화는 그대로 올라와야 합니다.
-  const duplicate=line?.speaker==="protagonist"&&drawnInCut;
-  const speaking=!!line?.speaker&&storySpeakerHasPortrait(line.speaker)&&!duplicate;
+  /* 화자가 없는 줄(내레이션·속말 자막)에서는 직전 화자를 이어받습니다.
+     안 그러면 자막과 대사가 번갈아 나오는 프롤로그에서 한 칸 넘길 때마다
+     무대가 통째로 내려갔다 올라와, 배우가 매번 새로 떠오르는 것처럼 보입니다.
+     조명 쪽과 같은 기준입니다(storyStageSpeaker 주석).
+
+     ⚠️ 컷을 혼자 보여 주는 줄(cinematic.hold)만 예외입니다. 그 한 박자는
+        원화만 보라고 일부러 비워 두는 자리라, 여기서 이어받으면 그 위에
+        배우가 서서 연출이 사라집니다. */
+  const speakerId=line?.cinematic?.hold?(line?.speaker||null):storyStageSpeaker(line?.speaker||null);
+  // 컷씬이 안 깔려 있으면 true 라 평소 대화에는 영향이 없습니다.
+  const allowedByCut=typeof storyCinematicShowsSpeakerArt!=="function"||storyCinematicShowsSpeakerArt();
+  const speaking=!!speakerId&&storySpeakerHasPortrait(speakerId)&&allowedByCut;
   overlay.classList.toggle("story-cinematic-speaking",speaking);
 }
 
@@ -1734,10 +1840,16 @@ function resetStoryStage(){
   clearStoryCinematic();
   document.getElementById("storyOverlay")?.classList.remove("story-cinematic-speaking");
   applyStoryFragmentHandoff(null);
+  /* 소품도 여기서 정리합니다. 남겨 두면 자막을 붙잡고 있던 타이머가 뒤늦게
+     터져서, 사라진 대사를 다음 장면 위에 타이핑합니다. */
+  clearStoryPropReveal();
   applyStoryEndingBackground(null);
   const stage=document.getElementById("storyStage");
   if(stage)stage.innerHTML="";
   if(storySession)storySession.actors=[];
+  // 배우를 지웠으니 "직전 화자" 기억도 함께 버립니다(storyStageSpeaker 참고).
+  // 남겨 두면 다음 장면 첫 내레이션에서 지난 장면 사람이 조명을 받습니다.
+  if(storySession)storySession.lastSpeakerId=null;
 }
 
 /* ------------------------------------------------------------------
@@ -1783,12 +1895,13 @@ const STORY_PROTAGONIST_DEFAULT_MOTION="calm";
 const STORY_PORTRAIT_ART=Object.freeze({
   protagonistChef:{dir:"char_cust_kim_daeun_chef",stem:"char_cust_kim_daeun",height:181.3,drop:73.3},
   protagonistOffice:{dir:"char_cust_kim_daeun_office",stem:"char_cust_kim_daeun_office",height:163.1,drop:63.7},
-  rainyChild:{dir:"char_cust_rain_child",stem:"char_cust_rain_child",height:167.6,drop:64.9},
+  // 아이라 어른들보다 작게 세웁니다(도구의 scale 0.85).
+  rainyChild:{dir:"char_cust_rain_child",stem:"char_cust_rain_child",height:142.5,drop:40.8},
   lanternGuest:{dir:"char_cust_lantern_head",stem:"char_cust_lantern_head",height:177.3,drop:74.0},
   twinShadows:{dir:"char_cust_joined_shadows",stem:"char_cust_joined_shadows",height:167.0,drop:64.6},
   crowCourier:{dir:"char_cust_crow_postman",stem:"char_cust_crow_postman",height:176.6,drop:73.7},
   // 작은 짐승만 대사창 턱에 걸터앉는 방식입니다(도구의 anchor:"feet").
-  starBeast:{dir:"char_cust_star_eating_beast",stem:"char_cust_star_eating_beast",height:188.3,drop:51.7},
+  starBeast:{dir:"char_cust_star_eating_beast",stem:"char_cust_star_eating_beast",height:151.8,drop:42.6},
   seawaterGuest:{dir:"char_cust_seawater_guest",stem:"char_cust_seawater_guest",height:167.0,drop:66.1},
   schoolDoll:{dir:"char_cust_stopped_school_doll",stem:"char_cust_stopped_school_doll",height:167.0,drop:66.1},
   facelessDaeun:{dir:"char_cust_faceless_kim_daeun",stem:"char_cust_faceless_kim_daeun",height:167.0,drop:66.1}
@@ -1827,15 +1940,56 @@ function storyPortraitArtValue(source){
 /* 대사마다 그림을 바꾸므로, 처음 쓰이는 순간 받아오면 한 박자 비어 보입니다.
    무대에 오르는 인물의 아홉 장을 그때 한꺼번에 미리 받아 둡니다(인물당 1.5MB
    안팎). 열 명분을 전부 받지는 않습니다 — 한 장면에 서는 건 많아야 셋이고,
-   그 날 안 나오는 손님까지 받으면 15MB 를 통째로 내려받게 됩니다. */
+   그 날 안 나오는 손님까지 받으면 15MB 를 통째로 내려받게 됩니다.
+
+   ⚠️ 받아 온 Image 객체는 반드시 붙잡아 둡니다. 예전에는 만들어 놓고 버렸는데,
+      그러면 해독(decode)해 둔 그림이 함께 사라져서 대사마다 다시 해독하게 되고
+      그 사이 배경이 비어 배우가 깜빡였습니다(아래 setStoryPortraitArt 참고). */
+const storyPortraitArtImages=new Map();
+function storyPortraitArtImage(source){
+  let image=storyPortraitArtImages.get(source);
+  if(!image){
+    image=new Image();
+    image.src=source;
+    storyPortraitArtImages.set(source,image);
+  }
+  return image;
+}
 const storyPortraitArtPreloaded=new Set();
 function preloadStoryPortraitArt(portraitKey){
   if(!portraitKey||storyPortraitArtPreloaded.has(portraitKey))return;
   storyPortraitArtPreloaded.add(portraitKey);
   Object.keys(STORY_PROTAGONIST_MOTIONS).forEach(motion=>{
-    const image=new Image();
-    image.src=storyPortraitMotionArt(portraitKey,motion);
+    storyPortraitArtImage(storyPortraitMotionArt(portraitKey,motion));
   });
+}
+
+/* [동작을 갈아 끼울 때 배우가 통째로 깜빡이던 문제]
+   background-image 를 곧바로 바꾸면, 새 그림이 화면에 올라오기 전 한두 프레임
+   동안 배경이 비어서 인물이 통째로 사라졌다 나타납니다. 원화가 1250x1800 이라
+   해독이 공짜가 아니고, 대사마다 동작이 바뀌니 한마디마다 그게 보였습니다.
+
+   그래서 decode() 로 그림이 그릴 준비를 마친 것을 확인한 뒤에야 바꿉니다.
+   기다리는 동안에는 직전 동작이 그대로 서 있으므로, 눈에는 아무 효과 없이
+   다음 동작으로 바로 넘어간 것처럼 보입니다(크로스페이드가 아닙니다).
+
+   ⚠️ decode() 는 비동기라, 기다리는 사이에 대사가 넘어가 다른 동작이 예약될
+      수 있습니다. 마지막으로 요청한 경로를 dataset 에 적어 두고, 돌아왔을 때
+      그 경로가 아직 최신일 때만 반영합니다. 안 그러면 지나간 동작이 뒤늦게
+      덮어써서 대사와 자세가 어긋납니다. */
+function setStoryPortraitArt(portrait,source){
+  if(!portrait||!source)return;
+  if(portrait.dataset.artSource===source)return;   // 같은 동작이면 손댈 것이 없습니다
+  portrait.dataset.artSource=source;
+  const apply=()=>{
+    if(portrait.dataset.artSource!==source)return; // 기다리는 사이 다음 줄로 넘어갔습니다
+    portrait.style.setProperty("--portrait-art",storyPortraitArtValue(source));
+  };
+  const image=storyPortraitArtImage(source);
+  // decode() 가 실패해도(경로 오타 등) 예전처럼 그냥 넣습니다 — 여기서 삼키면
+  // 그림이 없는 것과 원화 자체가 안 나오는 것을 구분할 수 없게 됩니다.
+  if(typeof image.decode==="function")image.decode().then(apply,apply);
+  else apply();
 }
 
 /* 말하는 사람의 동작만 바꿉니다. 나머지 배우는 마지막 동작 그대로 어두워진 채
@@ -1850,8 +2004,7 @@ function applyStorySpeakerMotion(line){
   const actor=(storySession?.actors||[]).find(entry=>entry.id===actorId);
   const portrait=actor?.element.querySelector(".story-portrait.art");
   if(!portrait)return;
-  portrait.style.setProperty("--portrait-art",
-    storyPortraitArtValue(storyPortraitMotionArt(portraitKey,line.motion)));
+  setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,line.motion));
 }
 
 function applyStoryPortraitArt(portrait,speakerId){
@@ -1863,8 +2016,7 @@ function applyStoryPortraitArt(portrait,speakerId){
     // 인물마다 캔버스에 그려진 크기와 발끝 높이가 달라 상자 치수를 따로 넣습니다.
     portrait.style.setProperty("--art-height",`${art.height}%`);
     portrait.style.setProperty("--art-drop",`${-art.drop}%`);
-    portrait.style.setProperty("--portrait-art",
-      storyPortraitArtValue(storyPortraitMotionArt(portraitKey,STORY_PROTAGONIST_DEFAULT_MOTION)));
+    setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,STORY_PROTAGONIST_DEFAULT_MOTION));
     return;
   }
   const character=STORY_CHARACTERS[speakerId];
@@ -1934,16 +2086,35 @@ function layoutStoryActors(){
   });
 }
 
+/* [화자가 없는 줄은 직전 화자의 조명을 그대로 잇습니다]
+   내레이션과 속말 자막(storyCaption)에는 speaker 가 없습니다. 예전에는 그런
+   줄에서 조명을 전부 껐는데, 자막과 대사가 번갈아 나오는 장면에서는 말하는
+   사람이 바뀐 것도 아닌데 한 칸 넘길 때마다 배우가 가라앉았다 다시 떠올라
+   화면이 깜빡이는 것처럼 보였습니다.
+
+   그래서 마지막으로 말한 사람을 기억해 두고, 화자가 없는 줄은 그 상태를
+   그대로 이어받습니다. 조명과 3.2% 떠오름이 움직이는 것은 **실제로 말하는
+   사람이 바뀌는 순간뿐**입니다. 같은 사람이 계속 말하면서 동작(그림)만
+   바뀔 때는 아무 연출 없이 자세만 갈아 끼웁니다.
+   ⚠️ 기억은 장면 단위입니다. resetStoryStage() 가 배우와 함께 지웁니다. */
+function storyStageSpeaker(speakerId){
+  if(!storySession)return speakerId||null;
+  if(speakerId)storySession.lastSpeakerId=speakerId;
+  return speakerId||storySession.lastSpeakerId||null;
+}
+
 function setStoryPortrait(speakerId,line=null){
   if(!storySession)return;
-  if(speakerId)ensureStoryActor(speakerId);
-  const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(speakerId)
+  const stageSpeakerId=storyStageSpeaker(speakerId);
+  if(stageSpeakerId)ensureStoryActor(stageSpeakerId);
+  const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(stageSpeakerId)
     ?"twinShadows"
-    :speakerId;
-  // 나레이션이면 발화자가 없으므로 전원 어둡게 유지합니다.
+    :stageSpeakerId;
   (storySession.actors||[]).forEach(actor=>{
-    actor.element.classList.toggle("is-active",!!speakerId&&actor.id===activeActorId);
+    actor.element.classList.toggle("is-active",!!stageSpeakerId&&actor.id===activeActorId);
   });
+  // 동작(그림)은 실제로 화자가 적힌 줄에서만 바꿉니다 — 이어받은 줄에서는
+  // 직전 자세 그대로 서 있어야 자막 한 줄에 자세가 튀지 않습니다.
   applyStorySpeakerMotion(line);
 }
 
@@ -1967,6 +2138,12 @@ function recordStorySceneOutcome(scene){
     guest.lastVisitDay=state.day;
     result.visited=true;
     recordStoryJournalGuest(guestId,scene);
+    // 평가와 무관한 "만났다" 기록입니다. 회차를 넘겨 남아서, 다음 회차에
+    // 같은 날짜의 낮 HUD가 '오늘의 특별 손님' 이름을 밝힙니다.
+    window.MoonlightTableSave?.recordGuestMeeting?.(guestId,{
+      day:Number(scene?.day)||Number(state.day)||1,
+      sceneId:scene.id||null
+    });
   }
   if(scene.missingMenu&&guestId){
     const guest=getStoryGuestState(guestId);

@@ -6,7 +6,7 @@
    여기 있는 것은 **두 개 이상의 미니게임이 함께 쓰는 것만** 입니다.
    한 게임만 쓰는 것을 여기 적으면 다시 겹칩니다 — 그 게임 파일로 보내세요.
      · .order-drag-ghost  E8(반죽·꼬치·불리기) · E2(새우)가 함께 쓰는 드래그 그림
-     · .prep-complete-flash  다 끝났을 때의 반짝임 (day-prep-minigames.js · E2)
+     · .prep-complete-flash  다 끝났을 때의 반짝임 (js/day-prep-minigames.js · E2)
      · coat-wrong / sk-next-pulse  두 게임 이상이 쓰는 @keyframes
    @keyframes 는 이름이 곧 전역이라 어느 파일에 있든 순서와 상관없습니다.
    ============================================================ */

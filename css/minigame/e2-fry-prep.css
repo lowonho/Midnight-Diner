@@ -1,5 +1,5 @@
 /* ============================================================
-   E2 · 튀김 준비 (engine-e2-alternate-input.js)
+   E2 · 튀김 준비 (js/engine-e2-alternate-input.js)
    원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
    
@@ -15,7 +15,7 @@
      · 새우튀김 : 한 단계씩 큰 그릇(.fp-roll-vessel) 안에서 새우를 굴립니다
    그림은 전부 임시 CSS 도형이고, 파일을 넣으면 .has-asset 이 붙어
    도형이 꺼지고 <img> 가 대신 보입니다.
-   (경로는 day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
+   (경로는 js/day-prep-minigames.js 의 DAY_PREP_ASSET_PATHS 참고)
 
    [공용 프레임과의 관계]  닭꼬치·김치 볶기와 같습니다.
    css/minigame-frame.css 는 건드리지 않고, 아래 두 줄만 이 화면이 떠 있을
@@ -90,7 +90,7 @@
   grid-auto-rows: minmax(0, var(--mg-ing-card-h));
   align-content: center;
 }
-.fp-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-weight: 800; }
+.fp-ing-name { margin: 0; display: flex; align-items: baseline; justify-content: center; gap: calc(7 * var(--upx)); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .fp-ing-name b { color: var(--gold-bright); font-size: calc(22 * var(--upx)); }
 
 /* ── 새우튀김 준비의 재료칸 : 굴릴 새우 세 마리 ──────────────
@@ -175,7 +175,7 @@
 
 /* ── 오른쪽 : 진행도 · 조작 ────────────────────────────────── */
 .fp-count { text-align: center; }
-.fp-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-weight: 900; line-height: 1.15; }
+.fp-count strong { display: block; color: var(--gold-bright); font-size: calc(52 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; line-height: 1.15; }
 .fp-count strong b { color: #f2a03c; }
 .fp-bar { height: calc(12 * var(--upx)); margin-top: calc(8 * var(--upx)); overflow: hidden; border: 2px solid #6b452a; border-radius: calc(6 * var(--upx)); background: #140c07; }
 .fp-bar i { display: block; height: 100%; background: linear-gradient(90deg,#b96f37,#e5bf6c,#88a856); transition: width .12s; }
@@ -195,6 +195,8 @@
   background: var(--mg-key-bg);
   color: var(--mg-key-color);
   font-size: calc(30 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1;
   cursor: pointer;
@@ -206,9 +208,9 @@
 .fp-key:active { transform: translateY(calc(3 * var(--upx))); box-shadow: none; }
 .fp-key.pressed { animation: fp-key-press .14s ease-out; }
 .fp-key.wrong { animation: fp-key-wrong .12s ease-out; border-color: #d6755e; background: linear-gradient(#efb09c,#c56752); }
-.fp-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-weight: 900; }
-.fp-control-name { margin: 0; color: var(--gold-bright); font-size: calc(20 * var(--upx)); font-weight: 800; }
-.fp-control-desc { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-weight: 700; line-height: 1.35; }
+.fp-key-link { color: #d0ad72; font-size: calc(22 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; }
+.fp-control-name { margin: 0; color: var(--gold-bright); font-size: calc(20 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
+.fp-control-desc { margin: 0; color: #d8bb8b; font-size: calc(16 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; line-height: 1.35; }
 .fp-drag-control { display:flex; align-items:center; justify-content:center; gap:calc(13 * var(--upx)); color:#f2c66e; }
 .fp-drag-control b { font-size:calc(38 * var(--upx)); line-height:1; animation:fp-drag-arrow 1.1s ease-in-out infinite; }
 .fp-drag-mouse { position:relative; display:block; width:calc(38 * var(--upx)); height:calc(55 * var(--upx)); border:calc(3 * var(--upx)) solid #f4d696; border-radius:calc(20 * var(--upx)); background:linear-gradient(#5c3a22,#2f1c10); box-shadow:0 calc(4 * var(--upx)) calc(8 * var(--upx)) rgba(0,0,0,.35); }
@@ -258,7 +260,7 @@
    반투명 비닐 안에 감자채(<i>)는 index 로 자리를 정하고, 튀김가루(<b>)는
    진행도만큼 개수가 늘어납니다.
 
-   봉투는 **잡고 끌 수 있습니다** (engine-e2-alternate-input.js 의 bindFriesBagDrag).
+   봉투는 **잡고 끌 수 있습니다** (js/engine-e2-alternate-input.js 의 bindFriesBagDrag).
    끄는 동안에는 손을 따라 가로세로 둘 다 밀려나고(--fp-drag-x / -y), 연타할 때의
    흔들림 애니메이션은 꺼집니다 — 둘 다 transform 이라 겹치면 봉투가 튑니다.
    그래서 ↖↘ 든 ↙↗ 든 손이 가는 대각선으로 흔들 수 있습니다.
@@ -330,7 +332,7 @@
 
    --fp-fx-turn 은 그때 흔든 대각선의 각도입니다. 물결은 흔든 방향의 양 끝에
    생기는 것이라, 봉투가 비스듬히 갔으면 물결도 같이 기울어야 합니다.
-   (기울기를 각도로 바꾸는 계산은 engine-e2-alternate-input.js 의
+   (기울기를 각도로 바꾸는 계산은 js/engine-e2-alternate-input.js 의
     setFriesShakeTilt 가 합니다 — CSS atan() 은 크롬 111 이상 전용입니다) */
 .fp-shake-fx {
   position: absolute;
@@ -373,14 +375,14 @@
     칸이 그대로 말해 주게 되면서 뺐습니다) */
 .fp-shrimp-roll-scene { width:100%; height:100%; min-height:0; display:grid; grid-template-rows:auto auto minmax(0,1fr) auto auto; align-items:center; justify-items:center; gap:calc(8 * var(--upx)); padding:calc(5 * var(--upx)) calc(12 * var(--upx)); }
 .fp-roll-stage-track { width:min(100%,calc(560 * var(--upx))); display:grid; grid-template-columns:repeat(3,1fr); align-items:center; gap:calc(7 * var(--upx)); }
-.fp-roll-stage-track span { min-width:0; display:flex; align-items:center; justify-content:center; gap:calc(6 * var(--upx)); padding:calc(7 * var(--upx)) calc(5 * var(--upx)); border:2px solid #664429; border-radius:calc(18 * var(--upx)); background:rgba(28,16,8,.62); color:#9f825e; font-size:calc(14 * var(--upx)); font-weight:900; white-space:nowrap; }
+.fp-roll-stage-track span { min-width:0; display:flex; align-items:center; justify-content:center; gap:calc(6 * var(--upx)); padding:calc(7 * var(--upx)) calc(5 * var(--upx)); border:2px solid #664429; border-radius:calc(18 * var(--upx)); background:rgba(28,16,8,.62); color:#9f825e; font-size:calc(14 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:900; white-space:nowrap; }
 .fp-roll-stage-track span i { display:grid; place-items:center; width:calc(22 * var(--upx)); height:calc(22 * var(--upx)); border-radius:50%; background:#3c2717; color:#b89970; font-style:normal; }
 .fp-roll-stage-track span.current { border-color:#f0bd61; background:#64401f; color:#ffe0a0; box-shadow:0 0 calc(12 * var(--upx)) rgba(240,189,97,.28); }
 .fp-roll-stage-track span.current i { background:#d79535; color:#2a180d; }
 .fp-roll-stage-track span.done { border-color:#799854; color:#cde3a2; }
 .fp-roll-stage-track span.done i { background:#6f9447; color:#fff5d1; }
 .fp-roll-title { display:flex; align-items:baseline; justify-content:center; gap:calc(11 * var(--upx)); color:#e7c58c; }
-.fp-roll-title small { font-size:calc(14 * var(--upx)); font-weight:800; }
+.fp-roll-title small { font-size:calc(14 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; }
 .fp-roll-title strong { color:#ffe0a0; font-size:calc(23 * var(--upx)); }
 /* 그릇 = 옆으로 긴 트레이 한 장. **도마 가로를 꽉 채웁니다** —
    .fp-shrimp-roll-scene 의 좌우 여백(12)을 음수 margin 으로 되돌려
@@ -451,7 +453,7 @@
 }
 .fp-roll-meter { width:min(78%,calc(440 * var(--upx))); height:calc(13 * var(--upx)); overflow:hidden; border:2px solid #69472c; border-radius:calc(8 * var(--upx)); background:#180d08; box-shadow:inset 0 calc(2 * var(--upx)) calc(4 * var(--upx)) rgba(0,0,0,.5); }
 .fp-roll-meter i { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#d58a35,#f4d36d,#83a957); transition:width .05s linear; }
-.fp-roll-hint { margin:0; color:#e0be87; font-size:calc(15 * var(--upx)); font-weight:800; }
+.fp-roll-hint { margin:0; color:#e0be87; font-size:calc(15 * var(--upx)); font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; }
 
 /* 이전 세 그릇 마크업의 스타일은 저장 데이터 호환용으로 남겨 둡니다. */
 .fp-coat-row { display: flex; align-items: center; justify-content: center; gap: calc(10 * var(--upx)); }
@@ -464,7 +466,7 @@
 .fp-coat-station.breadcrumbs { grid-area: 2 / 2 / 3 / 4; }
 /* z-index 는 그릇 위로 올리려는 것입니다 — 그릇을 붙여 놓으면서 화살표 끝이
    옆 그릇 상자에 몇 px 물리는데, 그냥 두면 뒤에 오는 그릇이 덮어 가립니다. */
-.fp-coat-arrow { position: relative; z-index: 3; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-weight: 900; }
+.fp-coat-arrow { position: relative; z-index: 3; color: #edb653; font-size: calc(38 * var(--upx)); font-style: normal; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 900; }
 /* 그림 화살표가 들어오면 글자 화살표 자리(글꼴 높이)를 없애야 상자가 그림에 맞습니다 */
 .fp-coat-arrow.has-asset { font-size: 0; line-height: 0; }
 .fp-coat-arrow-asset { display: block; width: calc(52 * var(--upx)); height: auto; filter: drop-shadow(0 calc(3 * var(--upx)) calc(4 * var(--upx)) rgba(40,22,8,.55)); }
@@ -675,7 +677,7 @@
 .fp-coat-station.shake-right .fp-shrimp { animation: fp-roll-right .18s ease; }
 
 /* ── 옮기기 : 다 묻은 새우를 집어 다음 그릇에 놓습니다 ────────
-   포인터 처리는 E8 공용 배치기(engine-e8-order-place.js)를 그대로 씁니다.
+   포인터 처리는 E8 공용 배치기(js/engine-e8-order-place.js)를 그대로 씁니다.
    그래서 끄는 동안 붙는 클래스도 E8 것과 같습니다 —
    원본은 .order-source-dragging, 놓을 자리는 .order-drop-ready,
    커서를 따라다니는 복제본은 .order-drag-ghost 입니다. */
@@ -706,7 +708,7 @@
    --fp-tilt 는 "가로로 간 만큼에 견준 세로 이동"입니다. 0 이면 정확히 좌우고,
    음수면 ↖↘, 양수면 ↙↗ 로 흔듭니다. 한 번 흔들 때마다 값이 바뀌므로
    축이 조금씩 기울어 손으로 흔드는 것처럼 보입니다
-   (engine-e2-alternate-input.js 의 FRIES_SHAKE_TILTS · 끌어서 흔들 때는
+   (js/engine-e2-alternate-input.js 의 FRIES_SHAKE_TILTS · 끌어서 흔들 때는
     손이 실제로 지나간 방향이 그대로 들어옵니다). */
 /* 거리를 한 번 더 키웠습니다(30 → 62 · 되돌아오는 12 → 24) — 끌어서 흔들 때의
    폭(봉투 폭의 34%)과 결을 맞춥니다. 62 면 봉투가 조리대 안(여유 120)에 그대로

@@ -22,7 +22,33 @@
    따라옵니다) --upx 는 "에셋 기준 크기"가 정해진 것에만 쓰세요.
    글꼴 크기·테두리·여백처럼 % 로 적기 어려운 값들입니다.
    ============================================================ */
+/* 글꼴 두 벌. 얇은 쪽(--font-body)은 일반 문구, 굵은 쪽(--font-bold)은 제목·수치·
+   라벨처럼 font-weight 600 이상을 주는 자리입니다. 둘 다 도트 글꼴입니다. */
+@font-face {
+  font-family: 'Galmuri11';
+  src: url('https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/Galmuri11.woff2') format('woff2');
+  font-weight: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NeoDunggeunGothicPro';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/NeoDunggeunmoPro-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-display: swap;
+}
+
 :root {
+  /* 일반 문구 */
+  --font-body: 'Galmuri11', "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  /* 굵은 글씨 — font-weight 600 이상을 주는 곳은 이 값을 같이 적어 둡니다 */
+  --font-bold: 'NeoDunggeunGothicPro', "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  /* 굵은 글씨 획 굵기 보정. 지금은 0 이라 글꼴이 가진 획 그대로 나옵니다.
+     NeoDunggeunmoPro 는 굵기가 한 벌뿐이라 font-weight 를 올려도 화면은
+     그대로입니다 — 획을 실제로 불리는 건 이 값입니다. 글자 크기에 비례하는
+     em 이라 작은 글씨도 같은 비율로 두꺼워집니다.
+     더 굵게 하려면 0.02~0.05em, 0.06em 을 넘기면 0·8 의 속구멍이 메워집니다. */
+  --bold-stroke: 0;
+
   --vh1: min(1vh, .5625vw);
   --vw1: min(1vw, 1.7778vh);
   --upx: calc(var(--vw1) / 19.2);
@@ -48,7 +74,17 @@ html, body {
   overflow: hidden;
   background: #070504;
   color: var(--cream);
-  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  font-family: var(--font-body);
+  /* 굵은 글씨 자리에 적힌 font-weight: 700~900 을 브라우저가 합성 볼드로
+     흉내내지 않게 막습니다. 두 글꼴 다 굵기가 한 벌뿐이라, 흉내낸 굵기는
+     도트를 뭉갤 뿐입니다. 이 한 줄이 굵기를 글꼴 본래 값으로 돌립니다. */
+  font-synthesis-weight: none;
+}
+/* 브라우저가 알아서 굵게 그리는 태그들. CSS 에 font-weight 를 적어 두지 않아
+   개별 규칙에서 잡히지 않으므로 여기서 한 번에 굵은 글꼴로 돌립니다. */
+h1, h2, h3, h4, h5, h6, b, strong, th {
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
 }
 /* 크기를 따로 안 준 글자의 기본값. 1920 프레임에서 16px(브라우저 기본값)이라
    지금 화면은 그대로이고, 창을 줄이면 같이 줄어듭니다. */

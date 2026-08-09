@@ -215,12 +215,14 @@ body:has(#settingsOverlay.open) .mini-overlay * {
    원래는 제목 위에 조리대 이름(예: "준비 테이블 · 무 바구니")을 작게 얹었는데,
    그 자리가 "이 게임을 어떻게 하는지" 한 줄 안내로 더 쓸모 있어서 바꿨습니다.
    order:2 로 제목 아래로 내려보냅니다(마크업 순서는 그대로 둡니다).
-   글은 ui-mini-frame.js 의 MINI_SUBTITLE 이 채웁니다. */
+   글은 js/ui-mini-frame.js 의 MINI_SUBTITLE 이 채웁니다. */
 .mini-title-panel #miniStation {
   order: 2;
   margin: 0;
   color: var(--cream);
   font-size: calc(19 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -230,6 +232,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   overflow: hidden;
   color: var(--gold-bright);
   font-size: calc(3.6 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
   text-shadow: 0 calc(.3 * var(--mh)) 0 #4a2410;
@@ -279,6 +283,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(2.1 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   white-space: nowrap;
   pointer-events: none;
@@ -307,6 +313,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   background: linear-gradient(#6f9145, #4d6b32);
   color: #f6f2d8;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   letter-spacing: .1em;
 }
@@ -328,9 +336,9 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.mini-description { color: #3a2513; font-weight: 700; }
+.mini-description { color: #3a2513; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 700; }
 .mini-description::before { content: "• "; color: #8b6034; }
-.mini-feedback { color: #8a3b22; font-weight: 800; }
+.mini-feedback { color: #8a3b22; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight: 800; }
 .mini-feedback:empty { display: none; }
 .mini-esc-hint {
   flex: none;
@@ -339,6 +347,8 @@ body:has(#settingsOverlay.open) .mini-overlay * {
   gap: calc(.6 * var(--mw));
   color: #5a3d22;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .mini-esc-hint kbd {

@@ -67,6 +67,16 @@ var state={
 var audio=null;
 function applyStoryCinematic(){return false;}
 function clearStoryCinematic(){}
+/* 컷씬 대기(js/story-cinematic.js)는 여기 관심사가 아닙니다. 대기 없이 바로
+   올리는 쪽으로 흉내 냅니다 — 자막 쪽수는 대기와 상관없이 나뉘어야 합니다. */
+function beginStoryCinematicHold(){return false;}
+function scheduleStoryCinematicReveal(reveal){reveal();return false;}
+function releaseStoryCinematicHold(){return false;}
+/* 소품 띄우기(js/story-prop-reveal.js)도 마찬가지입니다. 소품이 없는 대사와 같이
+   붙잡지 않고 바로 올리는 쪽으로 흉내 냅니다. */
+function scheduleStoryPropReveal(line,reveal){reveal();return false;}
+function releaseStoryPropReveal(){return false;}
+function clearStoryPropReveal(){}
 function updateRelationshipUI(){}
 function updateUI(){}
 function saveGame(){}

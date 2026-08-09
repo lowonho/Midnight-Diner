@@ -21,14 +21,14 @@
    index.html 을 수정하지 않기로 해서 <script> 태그를 여기서 넣습니다.
    document.write 는 문서 파싱 중에만 순서가 보장되므로 이 파일 최상단에
    있어야 하고, 여기 적힌 순서대로 실행됩니다.
-   (표 → 등록 → 임시 carry 순. 뒤 파일이 앞 파일의 상수를 씁니다)
+   (표 → 등록 → 발밑 그림자 → 임시 carry 순. 뒤 파일이 앞 파일의 상수를 씁니다)
 
    index.html 을 고칠 수 있게 되면 이 블록을 지우고
    <script> 3줄을 player.js 앞에 넣으면 됩니다.
    ------------------------------------------------------------ */
 
 if(document.readyState==="loading"){
-  ["js/chef-anim-table.js","js/chef-anims.js","js/chef-carry-temp.js"]
+  ["js/chef-anim-table.js","js/chef-anims.js","js/chef-shadow.js","js/chef-carry-temp.js"]
     .forEach(src=>document.write(`<script src="${src}"><\/script>`));
 }else{
   console.error("player.js 가 파싱 단계 밖에서 실행됐습니다. 요리사 스프라이트 파일을 주입하지 못했습니다.");
@@ -137,6 +137,9 @@ function createPlayer(scene){
 
   registerChefTextures(scene);   // chef-anims.js
   registerChefAnims(scene);      // chef-anims.js
+
+  // 발밑 그림자. 요리사보다 먼저 만들어야 depth 가 같더라도 뒤에 깔립니다.
+  if(typeof createChefShadow==="function") createChefShadow(scene);   // chef-shadow.js — 지우면 이 줄도 무시됨
 
   // 배율은 방향마다 다릅니다. 첫 프레임부터 어긋나지 않게 시작 방향 기준으로 겁니다.
   // (이후 매 프레임 syncPhaserObjects 가 현재 모션에 맞춰 다시 겁니다)
@@ -250,6 +253,10 @@ function syncPhaserObjects(){
   // 거기에 원근 보정을 곱합니다 — 앞으로 나올수록 커집니다.
   // origin 이 발바닥이라 배율이 변해도 발은 제자리에 붙어 있습니다.
   playerSprite.setScale(chefAnimScale(animKey)*chefPerspectiveScale(toView(p.y)));
+
+  // 발밑 그림자는 요리사 위치·원근·재생 중인 모션을 스프라이트에서 그대로 읽습니다.
+  // 그래서 여기 이 줄 하나면 됩니다. (chef-shadow.js)
+  if(typeof syncChefShadow==="function") syncChefShadow(playerSprite);
 
   const held=state.carrying;
   carriedFood.setVisible(!!held).setPosition(toView(p.x),toView(p.y+PLAYER_CARRY.food.dy));

@@ -345,7 +345,7 @@
    화구 그림 3장에 **이미 그려져 있는** 손잡이 위에 같은 그림 한 장을 그대로
    겹칩니다. 그림 쪽 손잡이는 늘 꺼진 자리(세로)에 멈춰 있고, 실제로 도는 것은
    이 한 장입니다 — 겹쳐 두었으니 아래 것이 비치지만 않으면 티가 안 납니다.
-   (마크업은 day-prep-minigames.js 의 minigameBurnerMarkup · MINIGAME_BURNER_KNOB)
+   (마크업은 js/day-prep-minigames.js 의 minigameBurnerMarkup · MINIGAME_BURNER_KNOB)
 
    [자리] 냄비 화구 캔버스 1432x663 에서 손잡이를 실측한 값입니다.
      손잡이  x 1096~1272 · y 487~661 = 176 x 174 · 중심 (1184, 574)
@@ -357,7 +357,7 @@
       있어서, 1.1배만 되어도 상판 밖 투명 배경으로 넘어갑니다.
 
    [도는 각] 0도가 그림에 그려진(꺼진) 방향과 같습니다. 각은 화면이 정합니다 —
-   E4 는 불 세기를 그대로 따라 0~120deg 를 줍니다(engine-e4-gauge-hold.js 의
+   E4 는 불 세기를 그대로 따라 0~120deg 를 줍니다(js/engine-e4-gauge-hold.js 의
    HEAT_KNOB_MAX_TURN). 매 프레임 갱신되므로 transition 은 넣지 않습니다. */
 .mg-burner-knob {
   position: absolute;
@@ -386,7 +386,7 @@
 /* ---- 조리 연기 fx (팬·철판 위로 피어오르는 연기) ---------------
    그림 5장이 **한 모금**입니다 (01 작은 김 → 03 길게 오른 기둥 → 05 흩어지는
    조각). 스프라이트 시트가 아니라 낱장이라, 다섯 장을 겹쳐 두고 자기 차례에만
-   한 장씩 켭니다. markup 은 day-prep-minigames.js 의 minigameSmokeMarkup 입니다.
+   한 장씩 켭니다. markup 은 js/day-prep-minigames.js 의 minigameSmokeMarkup 입니다.
 
    [한 바퀴의 생김새]  피었다 사그라들고 **쉽니다**. 한 바퀴(--mg-smoke-cycle)를
    100 으로 놓으면 이렇습니다.
@@ -396,7 +396,7 @@
      60 ~ 63  05 가 사그라듦
      63 ~ 100 쉬는 참. 다섯 장이 **전부 꺼져 있습니다.**
    ⚠️ 쉬는 참이 있는 것이 핵심입니다. 자바스크립트가 다음 모금의 자리를 뽑는 순간이
-      바로 여기라서(day-prep-minigames.js 의 mountMinigameSmoke), 이 구간을 없애면
+      바로 여기라서(js/day-prep-minigames.js 의 mountMinigameSmoke), 이 구간을 없애면
       연기가 보이는 채로 순간이동합니다.
    ⚠️ 그래서 장 지연이 **양수**입니다 — 뒷 장일수록 늦게 시작합니다. 화구·화로처럼
       쉬지 않고 도는 것들과 부호가 반대입니다.
@@ -425,7 +425,7 @@
      ⚠️ x 는 상자 왼쪽이 아니라 **연기 뿌리**(상자 아래 가운데) 자리입니다.
      ⚠️ top 은 상자 윗변이 넘으면 안 되는 선입니다(상자 세로 기준 %). y 와 w 를
         따로 크게 잡아도 여기서 걸리므로, 이 값만 맞으면 잘릴 일이 없습니다 —
-        어떻게 걸리는지는 day-prep-minigames.js 의 placeMinigameSmoke 참고. */
+        어떻게 걸리는지는 js/day-prep-minigames.js 의 placeMinigameSmoke 참고. */
   --mg-smoke-zone-x: 16 62;
   --mg-smoke-zone-y: 34 54;
   --mg-smoke-zone-w: 20 28;
@@ -736,11 +736,15 @@
 .mini-score-value b {
   color: #f2a03c;
   font-size: calc(58 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
 }
 .mini-score-value span {
   color: #f4d58b;
   font-size: calc(20 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 
@@ -762,12 +766,14 @@
   color: #e9c88b;
   text-align: center;
   font-size: calc(21 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   letter-spacing: .06em;
 }
 
 /* 제목 양옆의 ★ 는 .starred 를 붙였을 때만 나옵니다.
-   닭꼬치(.sk-col-title)만 engine-e8-order-place.js 가 "★ 재료 ★" 를 글자로
+   닭꼬치(.sk-col-title)만 js/engine-e8-order-place.js 가 "★ 재료 ★" 를 글자로
    직접 써서 이 규칙을 안 탔는데, 좌 칸 통일 때 .starred 로 바꿨습니다.
    이제 13화면이 같은 ★ 를 씁니다. */
 /* ---- 게이지 바 + 포인터 마커 (공용 규격) --------------------
@@ -816,6 +822,8 @@
   background: rgba(90,61,34,.14);
   color: #5a3d22;
   font-size: calc(1.5 * var(--mh));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
   white-space: nowrap;
 }

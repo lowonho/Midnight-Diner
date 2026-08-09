@@ -1,5 +1,5 @@
 /* ============================================================
-   E10 · 멸치 머리 떼기 (engine-e10-target-click.js)
+   E10 · 멸치 머리 떼기 (js/engine-e10-target-click.js)
    원래 css/day-prep-minigames.css 한 파일에 있던 것을 미니게임별로 갈랐습니다.
    읽는 순서(= 우선순위)는 css/day-prep-minigames.css 의 @import 목록이 정합니다.
    ============================================================ */
@@ -47,6 +47,8 @@
   color: var(--cream);
   text-align: center;
   font-size: calc(18 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
 .anchovy-card-caption b { color: var(--gold-bright); }
@@ -86,6 +88,8 @@
   color: var(--gold-bright);
   text-align: center;
   font-size: calc(46 * var(--upx));
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 900;
   line-height: 1.1;
 }

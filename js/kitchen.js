@@ -23,16 +23,17 @@
    게임이 쓰는 논리 좌표(1280x720)는 아래에서 toLogic() 으로 한 번에
    만듭니다. (chef-walk-area.js 와 같은 방식)
 
-   stand [x, y]        요리사가 서는 상호작용 지점 (발끝 기준)
+   standY              요리사가 서는 자리의 y (발끝 기준). x 는 §1-1 이 정합니다.
+   stand [x, y]        줄 밖에 있는 집기(쓰레기통)만 x 까지 직접 적습니다.
    facing              그 자리에서 요리사가 바라보는 방향
 
-   집기 몸통 사각형은 손으로 적지 않습니다. §1-1 STATION_ART 의 배치값
-   (가로 중심·폭·접지선)에서 계산합니다. 그림과 판정 사각형이 따로 놀면
-   이름표가 집기에서 떠 보이기 때문에 한 곳에서만 정합니다.
+   집기 몸통 사각형은 손으로 적지 않습니다. §1-1 STATION_SLICES 의 조각 폭과
+   불투명 범위에서 계산합니다. 그림과 판정 사각형이 따로 놀면 이름표가
+   집기에서 떠 보이기 때문에 한 곳에서만 정합니다.
 
-   [stand x] 뒤쪽 8종은 집기 가로 중심(STATION_ART 의 cx)과 같은 값입니다.
-   집기를 옮기면 서는 자리도 같이 옮겨야 "집기 앞에 섰는데 다른 집기가
-   잡히는" 일이 없습니다.
+   [stand x] 뒤쪽 8종은 집기 가로 중심과 같은 값이라 §1-1 에서 만듭니다.
+   여기 또 적어 두면 집기를 옮겼을 때 한쪽만 고쳐서 "집기 앞에 섰는데
+   다른 집기가 잡히는" 일이 생깁니다.
 
    [stand y 640] 뒤쪽 조리대는 전부 같은 줄에 섭니다.
    요리사 이동 영역 상한이 y=614(chef-walk-area.js) 라서 조리대 접지선
@@ -49,15 +50,26 @@
    안 됩니다 — 안내 토스트("먼저 싱크대에서…")·현재 목표 칸·상호작용 프롬프트가
    전부 이 글자를 씁니다 (game.js · night.js · story.js). 이름표를 다시 켜려면
    그 줄만 지우면 됩니다. */
+
+/* [stand x 가 없는 이유] 뒤쪽 8종은 서는 자리 x 를 여기 적지 않습니다.
+   §1-1 의 줄 배치에서 집기 가로 중심을 그대로 가져다 씁니다. 두 곳에 적으면
+   집기를 옮겼을 때 한쪽만 고쳐서 "집기 앞에 섰는데 다른 집기가 잡히는" 일이
+   생깁니다. 쓰레기통만 줄 밖에 있어서 stand 를 직접 적습니다. */
 const STATION_SPEC = {
-  fridge:     {label:"냉장고",    stand:[ 435,640], facing:"up"},
-  sink:       {label:"싱크대",    stand:[ 646,640], facing:"up", hideLabel:true},
-  board:      {label:"도마",      stand:[ 830,640], facing:"up"},
-  pot:        {label:"냄비",      stand:[ 982,640], facing:"up"},
-  pan:        {label:"후라이팬",  stand:[1114,640], facing:"up"},
-  grill:      {label:"직화구이",  stand:[1264,640], facing:"up"},
-  fryer:      {label:"튀김기",    stand:[1415,640], facing:"up"},
-  dishwasher: {label:"식기세척기",stand:[1536,640], facing:"up", hideLabel:true},
+  // labelDy -52 = 냉장고 위 소품(decoration.js §3-5 prop_fridge_top_decor)만큼
+  //   이름표를 위로 비켜 놓은 값입니다. 소품이 상판 위 y 256~332 를 쓰는데
+  //   이름표 기본 자리가 y 259~294 라 주전자 몸통을 가로질렀습니다.
+  //   -52 면 이름표가 y 207~242 로 올라가 소품 위 타일 벽에 놓이고,
+  //   둥실 진폭(±7)을 빼도 14 정도 여유가 남습니다.
+  //   소품 높이를 바꾸면 이 값도 같이 봐야 합니다.
+  fridge:     {label:"냉장고",    standY:640, facing:"up", labelDy:-52},
+  sink:       {label:"싱크대",    standY:640, facing:"up", hideLabel:true},
+  board:      {label:"도마",      standY:640, facing:"up"},
+  pot:        {label:"냄비",      standY:640, facing:"up"},
+  pan:        {label:"후라이팬",  standY:640, facing:"up"},
+  grill:      {label:"직화구이",  standY:640, facing:"up"},
+  fryer:      {label:"튀김기",    standY:640, facing:"up"},
+  dishwasher: {label:"식기세척기",standY:640, facing:"up", hideLabel:true},
   // labelDy = 이름표를 내릴 거리(VIEW). 다른 집기는 몸통 위에 떠 있지만
   //           쓰레기통은 키가 작아 그러면 허공에 뜬 것처럼 보입니다.
   //           앞쪽 계산대·철판 명패(counter.js)처럼 몸통에 걸치게 내립니다.
@@ -70,47 +82,48 @@ const STATION_SPEC = {
 /* ------------------------------------------------------------
    1-1. 집기 에셋 9종
    ------------------------------------------------------------
-   [파일] assets/utensils/counter/<이름>.webp
+   [파일] assets/utensils/new/<이름>.webp
    PNG 가 원본이고 WebP 는 빌드 산출물입니다. (npm run build:utensils)
    WebP 를 못 읽는 브라우저면 자동으로 같은 이름의 PNG 로 되돌립니다.
-   WebP 는 화면에서 쓰는 크기에 맞춰 줄여서 굽습니다. 아래 값은 전부
-   원본 PNG 좌표라서 어느 쪽을 불러도 배치는 똑같습니다.
 
-   canvas [w, h]        원본 캔버스 크기 (에셋 px)
-   body   [x, y, w, h]  캔버스 안에서 집기가 실제로 그려진 영역 (에셋 px)
-                        npm run verify:utensils 가 "불투명 영역" 으로 찍어 줍니다.
-   cx                   몸통을 놓을 가로 중심 (VIEW)
-   w                    몸통을 그릴 폭 (VIEW)
-   ground               밑동이 바닥에 닿는 선 (VIEW). 생략하면 뒤쪽 조리대 줄.
+   [줄로 놓는다] 뒤쪽 8종은 집기마다 폭을 따로 정하지 않습니다.
+   받은 원화가 **한 장으로 그린 조리대 줄을 8조각으로 자른 것**이라,
+   자른 순서대로 그냥 이어 붙이면 그린 그대로가 됩니다. 조각 폭을 다 더하면
+   1757px 이고 조각끼리는 겹치지도 벌어지지도 않습니다 — 한 픽셀은 정확히
+   한 조각에만 속합니다. 그래서 빈틈이 "거의" 없는 게 아니라 아예 없습니다.
 
-   [들뜸 방지] 뒤쪽 8종은 ground 를 적지 않습니다. 전부 STATION_GROUND_Y
-   한 줄에 발을 딛기 때문에, 이 값 하나만 움직이면 줄 전체가 같이 움직입니다.
-   에셋마다 캔버스 여백이 다르지만 body 밑변을 기준으로 맞추므로
-   여백 차이가 높이 차이로 새지 않습니다.
+   예전에는 집기마다 폭을 손으로 정하고 이웃과 8px 씩 겹쳐서 옆면을
+   맞물리게 했습니다. 지금 원화는 옆면을 이웃과 나눠 쓰도록 그려져 있어서
+   겹치면 오히려 그 부분이 두 번 그려집니다. 겹침은 그래서 없앴습니다.
 
-   [각도 유지] 배율은 w/body.w 하나뿐이고 세로도 같은 배율을 씁니다.
-   가로세로를 따로 맞추면 그림이 눌리거나 늘어나서 원근이 틀어집니다.
-   그래서 몸통 높이는 배치값이 아니라 에셋 비율이 정합니다.
+   [세로 기준] 조각마다 그림이 아래로 내려온 정도가 조금씩 다릅니다
+   (냉장고 452, 싱크대 444 …). 조각별 밑변을 각각 바닥선에 맞추면 원화에서
+   의도한 앞뒤 원근이 무너집니다. 그래서 **줄 전체에서 가장 아래로 내려온
+   픽셀**(=냉장고 452) 하나만 바닥선에 맞추고, 나머지는 원화의 높이차를
+   그대로 둡니다. 조각들이 같은 480px 캔버스에 그려져 있어서 이렇게 하면
+   원화 한 장을 통째로 놓은 것과 같아집니다.
 
-   [폭을 정한 기준] 조리대 6종(싱크대~튀김기)은 조작 손잡이 띠가 한 줄에
-   오도록 맞췄습니다. 이 띠가 곧 상판 높이라, 여기가 어긋나면 같은 줄에
-   선 집기들이 저마다 다른 높이의 가구처럼 보입니다.
+   [각도 유지] 배율은 줄 전체에 하나뿐입니다(가로 폭에서 나옵니다). 세로도
+   같은 배율을 쓰므로 그림이 눌리거나 늘어나지 않습니다.
 
-   [cx 를 정한 기준] 8종을 옆으로 붙인 뒤 줄 전체를 화면 중앙(x 960)에
-   맞춘 결과입니다. HUD 좌우 패널이 대칭(각 1.35% 여백 + 15.2% 폭)이라
-   화면 중앙이 곧 HUD 사이 빈 칸의 중앙입니다.
+   [줄 폭 1276 을 정한 기준] 줄을 화면 중앙(x 960)에 맞춰 322~1598 에
+   놓입니다. 뒤쪽 벽이 302~1610 이라 양옆으로 16 씩 남습니다. 벽을 넘기면
+   집기 옆구리가 좌우 벽 속으로 파고듭니다. HUD 좌우 패널이 대칭이라
+   화면 중앙이 곧 HUD 사이 빈 칸의 중앙이기도 합니다.
 
-   붙이는 계산은 사각형이 아니라 실루엣으로 합니다. 3/4 시점이라 집기마다
-   옆면이 기울어 있어서, 사각형만 맞대면 위아래에 벽이 그대로 보입니다.
-   이웃한 두 실루엣이 가장 가까워지는 높이에서 8px 겹치게 두면 옆면끼리
-   맞물려 한 줄로 이어져 보입니다. 더 겹치면 상판이 서로를 잘라먹습니다.
+   [낮 · 밤] 지금은 식기세척기 하나만 낮/밤 그림이 다릅니다.
+   나머지 7종은 한 장으로 낮밤을 다 씁니다. night 를 안 적으면 낮 그림을
+   그대로 쓰므로(§1-2 drawStationArt), 밤 그림이 생기면 그 줄에 night 만
+   더하면 됩니다.
 
-   결과 줄 폭은 322~1598 로 뒤쪽 벽(302~1610) 안에 들어옵니다.
-   벽을 넘기면 집기 옆구리가 좌우 벽 속으로 파고듭니다.
+   조리 4종(냄비·후라이팬·직화구이·튀김기)은 한때 밤에 6칸 스프라이트
+   시트를 돌렸습니다. 시트가 낮 조각과 규격이 안 맞아 밤에만 집기 사이가
+   벌어져서 걷어냈고, 지금은 낮 그림 한 장으로 통일돼 있습니다.
+   (시트를 돌리던 코드는 커밋 a3f42cd 에 있습니다)
 
-   [상태] active = 그 집기를 쓰는 중일 때 갈아 끼우는 그림.
-   없는 집기는 idle 한 장으로 버팁니다. 두 장은 같은 캔버스에 그려져
-   있어야 몸통이 제자리에 있고 문·물줄기만 바뀝니다.
+   [주의 — 없어진 연출] 예전 에셋에 있던 "쓰는 중" 그림(냉장고 문 열림,
+   싱크대 물줄기)은 새 원화에 짝이 없어 빠졌습니다. 다시 살리려면 같은
+   조각 규격으로 그 상태 그림을 받아 day/night 옆에 붙이면 됩니다.
    ------------------------------------------------------------ */
 
 // 뒤쪽 조리대 8종이 바닥에 닿는 선(VIEW).
@@ -119,77 +132,131 @@ const STATION_SPEC = {
 // 요리사가 집기 속으로 파고들어 보이지 않습니다.
 const STATION_GROUND_Y = 614;
 
-const STATION_ART_DIR = "assets/utensils/counter/";
+const STATION_ART_DIR = "assets/utensils/new/";
 
-const STATION_ART = {
-  fridge:     {state:{idle:"fix_fridge_closed", active:"fix_fridge_open"},
-               canvas:[982,1283], body:[112,32,758,1219], cx: 435, w:226},
-  sink:       {state:{idle:"fix_sink_dry", active:"fix_sink_water"},
-               canvas:[810, 869], body:[ 32,33,746, 804], cx: 646, w:212},
-  board:      {state:{idle:"fix_prep_table"},
-               canvas:[745, 843], body:[ 32,32,681, 779], cx: 830, w:174},
-  pot:        {state:{idle:"fix_stove_module_a"},
-               canvas:[846,1106], body:[ 32,32,782,1042], cx: 982, w:146},
-  pan:        {state:{idle:"fix_stove_module_b"},
-               canvas:[760,1200], body:[ 32,32,696,1136], cx:1114, w:134},
-  grill:      {state:{idle:"fix_grill_counter"},
-               canvas:[937,1015], body:[ 32,32,873, 951], cx:1264, w:184},
-  fryer:      {state:{idle:"fix_fryer_counter_no_basket"},
-               canvas:[534, 768], body:[ 32,32,470, 704], cx:1415, w:134},
-  // 캔버스에 여백이 없어 body 가 캔버스와 같습니다. 고양이 귀가 위쪽 끝에
-  // 닿아 있어서, 다른 집기처럼 여백을 뺀 몸통만 잡으면 귀가 잘립니다.
-  // run 캔버스가 1px 더 깁니다(1506). 빈 줄이라 그림은 같은 자리에 오지만,
-  // 다시 뽑을 일이 있으면 두 장을 같은 캔버스로 맞추는 편이 깔끔합니다.
-  dishwasher: {state:{idle:"dish_washer_idle", active:"dish_washer_run"},
-               canvas:[808,1505], body:[  0, 1,808,1504], cx:1536, w:124},
-  // 쓰레기통만 뒤쪽 줄이 아니라 오른쪽 앞 바닥에 서 있어 ground 를 따로 줍니다.
-  // cx 1735 = 오른쪽 벽에 딱 붙인 자리입니다. 밑동 높이(y 786)에서 바닥이
-  // 끝나는 지점이 x 1797 이고(bg_floor 실측 = 걷기영역 벽 사선과 일치),
-  // 거기서 폭의 절반(62)을 뺀 값입니다. 더 밀면 밑동이 벽 속으로 들어갑니다.
-  // ground 도 더 못 내립니다 — 바 테이블 상판 뒷변이 y 780 이라 이미 6 걸쳐 있습니다.
-  trash:      {state:{idle:"prop_trash_closed", active:"prop_trash_open"},
-               canvas:[320, 560], body:[ 28,167,264, 374], cx:1735, w:124, ground:786}
+/* 줄 전체 배치값. width·centerX 는 VIEW, 나머지는 에셋 px 입니다. */
+const STATION_ROW = {
+  width: 1276,          // 줄 전체를 그릴 폭 (VIEW)
+  centerX: 960,         // 줄 가운데 (VIEW)
+  canvasH: 480,         // 조각 한 장의 캔버스 높이 (에셋 px). 8조각 모두 같습니다.
+  contentBottom: 452    // 줄에서 가장 아래로 내려온 픽셀 y (에셋 px). 이 선이 바닥선에 닿습니다.
 };
 
+/* 왼쪽부터 놓이는 순서 그대로입니다. 순서를 바꾸면 원화에서 이웃끼리
+   나눠 그린 옆면이 어긋나므로, 순서는 원화가 정합니다.
+
+   w          조각 폭 (에셋 px)
+   top/bottom 조각 안에서 그림이 있는 세로 범위 (에셋 px)
+              npm run verify:utensils 의 "불투명 영역" 이 찍어 줍니다.
+              판정 사각형과 이름표 높이가 이 값에서 나옵니다.
+   day/night  그림 파일. night 를 적지 않으면 낮 그림을 밤에도 씁니다.
+
+   [밤 그림을 더할 때] 낮 조각과 **같은 크롭·배율**로 받아야 합니다.
+   폭 w, 높이 480 의 같은 캔버스에 그려져 있으면 여기 night 만 적으면 끝이고,
+   집기가 낮↔밤에 한 픽셀도 움직이지 않습니다. 규격이 다른 그림을 넣으면
+   그 집기만 자리가 틀어지거나 이웃과 벌어집니다. */
+const STATION_SLICES = [
+  {id:"fridge",     w:277, top: 16, bottom:452, day:"fix_fridge_active"},
+  {id:"sink",       w:227, top: 16, bottom:444, day:"fix_sink_active"},
+  {id:"board",      w:245, top:125, bottom:446, day:"fix_cutting_board_active"},
+  {id:"pot",        w:197, top:111, bottom:449, day:"fix_pot_active"},
+  {id:"pan",        w:192, top:152, bottom:449, day:"fix_frying_pan_active"},
+  {id:"grill",      w:237, top:123, bottom:449, day:"fix_open_flame_grill_active"},
+  {id:"fryer",      w:193, top:120, bottom:447, day:"fix_fryer_active"},
+  {id:"dishwasher", w:189, top:116, bottom:449, day:"fix_dishwasher_day",
+   night:"fix_dishwasher_active"}
+];
+
+const STATION_ROW_TOTAL = STATION_SLICES.reduce((sum,slice)=>sum+slice.w,0);   // 1757
+const STATION_ROW_SCALE = STATION_ROW.width/STATION_ROW_TOTAL;                 // VIEW px / 에셋 px
+
+/* 조각 좌표(에셋 px) → 화면 좌표(VIEW).
+   x 는 줄 왼쪽 끝에서, y 는 "바닥에 닿는 선"에서 잽니다. */
+const STATION_ROW_LEFT = STATION_ROW.centerX-STATION_ROW.width/2;
+const rowX = assetX => STATION_ROW_LEFT+assetX*STATION_ROW_SCALE;
+const rowY = assetY => STATION_GROUND_Y-(STATION_ROW.contentBottom-assetY)*STATION_ROW_SCALE;
+
 /* 배치값 → 화면 사각형(논리 좌표).
-   body  집기 몸통. 판정·이름표가 쓰는 사각형입니다.
-   canvas 그림 한 장을 통째로 얹을 자리. 몸통보다 큽니다(냉장고 위 소품,
-          쓰레기통 열린 뚜껑, 수도꼭지 …). 이 여백까지 같이 확대해야
-          몸통이 제자리에 있으면서 위로 삐져나온 부분이 살아납니다.
-   VIEW 픽셀에 딱 떨어지게 반올림합니다 — 미리 줄여 둔 캔버스와 1:1 로
-   맞아야 그릴 때 다시 확대/축소가 걸리지 않습니다. */
-function stationArtLayout(art){
-  const [canvasW,canvasH]=art.canvas, [bodyX,bodyY,bodyW,bodyH]=art.body;
-  const scale=art.w/bodyW;                                    // VIEW px / 에셋 px
-  const ground=art.ground??STATION_GROUND_Y;
-  const snap=value=>toLogic(Math.round(value));
+   body   집기 몸통. 판정·이름표가 쓰는 사각형입니다.
+   canvas 그림 한 장을 통째로 얹을 자리. 몸통보다 큽니다(위쪽 여백).
+          낮·밤 그림이 같은 캔버스에 그려져 있어서 자리도 하나면 됩니다.
+
+   [폭이 아니라 양쪽 끝을 반올림합니다]
+   VIEW 픽셀에 딱 떨어지게 맞춰야 합니다 — 미리 줄여 둔 캔버스와 1:1 로
+   맞아야 그릴 때 다시 확대/축소가 걸리지 않습니다. 그런데 왼쪽 끝과 폭을
+   따로 반올림하면 "왼쪽 끝 + 폭" 이 옆 조각의 왼쪽 끝과 어긋납니다.
+   실제로 직화구이↔튀김기 사이가 그렇게 1px 벌어졌습니다.
+
+   그래서 폭은 반올림하지 않고 **양쪽 끝을 각각 반올림한 뒤 빼서** 만듭니다.
+   옆 조각의 왼쪽 끝은 이 조각의 오른쪽 끝과 같은 식에서 같은 값이 나오므로,
+   배율이 얼마든 두 조각은 반드시 같은 픽셀에서 맞닿습니다. */
+function stationRowLayout(slice,assetX){
+  // 가로는 줄 좌표(rowX), 세로는 바닥선 기준(rowY) 으로 양 끝을 잡습니다.
+  const span=(from,to,project)=>{
+    const a=Math.round(project(from)), b=Math.round(project(to));
+    return {at:toLogic(a), size:toLogic(b-a)};
+  };
+  const x=span(assetX,assetX+slice.w,rowX);
+  const bodyY=span(slice.top,slice.bottom+1,rowY);
+  const canvasY=span(0,STATION_ROW.canvasH,rowY);
   return {
-    body:  {x:snap(art.cx-art.w/2),                 y:snap(ground-bodyH*scale),
-            w:snap(art.w),                          h:snap(bodyH*scale)},
-    canvas:{x:snap(art.cx-(bodyX+bodyW/2)*scale),   y:snap(ground-(bodyY+bodyH)*scale),
-            w:snap(canvasW*scale),                  h:snap(canvasH*scale)}
+    body:  {x:x.at, y:bodyY.at,   w:x.size, h:bodyY.size},
+    canvas:{x:x.at, y:canvasY.at, w:x.size, h:canvasY.size}
+  };
+}
+
+/* 쓰레기통만 줄 밖입니다. 오른쪽 앞 바닥에 혼자 서 있어서 배치값을 직접 적습니다.
+   cx 1735 = 오른쪽 벽에 딱 붙인 자리입니다. 밑동 높이(y 786)에서 바닥이
+   끝나는 지점이 x 1797 이고(bg_floor 실측 = 걷기영역 벽 사선과 일치),
+   거기서 폭의 절반(62)을 뺀 값입니다. 더 밀면 밑동이 벽 속으로 들어갑니다.
+   ground 도 더 못 내립니다 — 바 테이블 상판 뒷변이 y 780 이라 이미 6 걸쳐 있습니다.
+   [파일] 이 한 종만 예전 폴더(assets/utensils/counter/)에 남아 있습니다. */
+const TRASH_ART = {day:"prop_trash_closed", active:"prop_trash_open",
+                   dir:"assets/utensils/counter/",
+                   canvas:[320,560], body:[28,167,264,374], cx:1735, w:124, ground:786};
+
+function trashLayout(){
+  const [canvasW,canvasH]=TRASH_ART.canvas, [bodyX,bodyY,bodyW,bodyH]=TRASH_ART.body;
+  const scale=TRASH_ART.w/bodyW, snap=value=>toLogic(Math.round(value));
+  return {
+    body:  {x:snap(TRASH_ART.cx-TRASH_ART.w/2),               y:snap(TRASH_ART.ground-bodyH*scale),
+            w:snap(TRASH_ART.w),                              h:snap(bodyH*scale)},
+    canvas:{x:snap(TRASH_ART.cx-(bodyX+bodyW/2)*scale),       y:snap(TRASH_ART.ground-(bodyY+bodyH)*scale),
+            w:snap(canvasW*scale),                            h:snap(canvasH*scale)}
   };
 }
 
 // 게임 로직·드로잉이 쓰는 논리 좌표(1280x720) 사본.
-// 좌표를 고칠 일이 있으면 위 STATION_SPEC / STATION_ART 만 고치면 됩니다.
-const STATION_LAYOUT = Object.fromEntries(
-  Object.entries(STATION_ART).map(([id,art])=>[id,stationArtLayout(art)]));
+// 좌표를 고칠 일이 있으면 위 STATION_ROW / STATION_SLICES 만 고치면 됩니다.
+const STATION_LAYOUT = (()=>{
+  const layout={}; let assetX=0;
+  STATION_SLICES.forEach(slice=>{ layout[slice.id]=stationRowLayout(slice,assetX); assetX+=slice.w; });
+  layout.trash=trashLayout();
+  return layout;
+})();
 
-const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])=>[id,{
-  id, label:spec.label, facing:spec.facing,
-  x:STATION_LAYOUT[id].body.x, y:STATION_LAYOUT[id].body.y,
-  w:STATION_LAYOUT[id].body.w, h:STATION_LAYOUT[id].body.h,
-  ix:toLogic(spec.stand[0]), iy:toLogic(spec.stand[1]),
-  labelDy:toLogic(spec.labelDy||0),
-  hideLabel:!!spec.hideLabel
-}]));
+/* [단위 주의] STATION_SPEC 의 stand/standY 는 VIEW 라서 toLogic 을 거칩니다.
+   반면 STATION_LAYOUT 의 body 는 이미 논리 좌표입니다(§1-1 의 snap).
+   서는 자리 x 를 몸통 중심에서 뽑을 때는 그래서 변환하지 않습니다 —
+   여기에 toLogic 을 한 번 더 걸면 집기가 화면 왼쪽 위로 쏠립니다. */
+const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])=>{
+  const body=STATION_LAYOUT[id].body;
+  return [id,{
+    id, label:spec.label, facing:spec.facing,
+    x:body.x, y:body.y, w:body.w, h:body.h,
+    ix:spec.stand?toLogic(spec.stand[0]):body.x+body.w/2,   // 줄 안이면 몸통 가로 중심
+    iy:toLogic(spec.stand?spec.stand[1]:spec.standY),
+    labelDy:toLogic(spec.labelDy||0),
+    hideLabel:!!spec.hideLabel
+  }];
+}));
 
 /* 이 거리(논리 좌표) 안에 들어와야 집기를 쓸 수 있습니다.
    40 → 55. 에셋 스펙대로 집기가 커지면서(냉장고 78→154 폭) 40 으로는
    집기 앞에 서 있는데도 손이 닿지 않는 자리가 생겼습니다.
-   상호작용 지점 간격이 가장 좁은 곳이 81(튀김기↔식기세척기)이라
-   55 까지는 겹쳐도 nearestStation() 이 더 가까운 쪽을 고릅니다. */
+   서는 자리 간격이 가장 좁은 곳이 92(튀김기↔식기세척기)라 55 면 옆
+   집기와 닿는 범위가 겹치는데, nearestStation() 이 그중 더 가까운 쪽을
+   고르므로 문제가 되지 않습니다. (조각 원화로 바꾸기 전에는 54였습니다) */
 const STATION_REACH = 55;
 
 
@@ -206,12 +273,19 @@ const STATION_REACH = 55;
 
    drawImage 가 원본 크기를 알아서 맞춰 주므로, WebP(줄여 구운 것)를
    불러왔든 PNG(원본)로 되돌아갔든 결과는 같습니다.
+
+   [2026-08-08] 프레임 캔버스도 보간을 켰습니다(stage.js). 그래서 이제는
+   매 프레임 축소해도 화질은 같습니다 — 이 미리 줄여 두기는 순수하게
+   **비용을 아끼려고** 남겨 둔 것입니다. 원본 490x640 을 293x383 으로 줄이는
+   일을 프레임마다 하지 않고 불러올 때 한 번만 합니다. 계산 결과가 정수
+   픽셀(toView 가 정수로 떨어짐)이라 이후 복사는 리샘플링 없이 지나갑니다.
    ------------------------------------------------------------ */
 
 const stationArt = {};   // "<집기id>_<상태>" → 미리 줄여 둔 캔버스
 
-function prerenderStationArt(id,image){
-  const rect=STATION_LAYOUT[id].canvas;
+/* 그림 한 장을 화면에서 쓸 크기로 줄여 캔버스에 담습니다.
+   rect 는 그 그림을 얹을 자리(논리 좌표)입니다. */
+function prerenderStationArt(rect,image){
   const canvas=document.createElement("canvas");
   canvas.width=Math.round(toView(rect.w));
   canvas.height=Math.round(toView(rect.h));
@@ -221,18 +295,24 @@ function prerenderStationArt(id,image){
   return canvas;
 }
 
-function loadStationArt(id,stateKey,file,ext=".webp"){
+function loadStationArt(id,stateKey,file,options={},ext=".webp"){
+  const dir=options.dir??STATION_ART_DIR;
   const image=new Image();
-  image.onload=()=>{stationArt[`${id}_${stateKey}`]=prerenderStationArt(id,image);};
+  image.onload=()=>{stationArt[`${id}_${stateKey}`]=prerenderStationArt(STATION_LAYOUT[id].canvas,image);};
   image.onerror=()=>{
-    if(ext===".webp"){loadStationArt(id,stateKey,file,".png");return;}   // WebP 미지원 브라우저
+    if(ext===".webp"){loadStationArt(id,stateKey,file,options,".png");return;}   // WebP 미지원 브라우저
     console.warn(`집기 에셋을 불러오지 못했습니다: ${file} (도형 플레이스홀더로 그립니다)`);
   };
-  image.src=`${STATION_ART_DIR}${file}${ext}`;
+  image.src=`${dir}${file}${ext}`;
 }
 
-Object.entries(STATION_ART).forEach(([id,art])=>
-  Object.entries(art.state).forEach(([stateKey,file])=>loadStationArt(id,stateKey,file)));
+STATION_SLICES.forEach(slice=>{
+  loadStationArt(slice.id,"day",slice.day);
+  // night 를 안 적은 집기는 밤에도 낮 그림을 씁니다 (아래 drawStationArt 가 되돌립니다).
+  if(slice.night) loadStationArt(slice.id,"night",slice.night);
+});
+loadStationArt("trash","day",TRASH_ART.day,{dir:TRASH_ART.dir});
+loadStationArt("trash","active",TRASH_ART.active,{dir:TRASH_ART.dir});
 
 
 /* ------------------------------------------------------------
@@ -353,30 +433,20 @@ function stationUsable(s,near){
 // 요리사가 그 뒤로 돌아갈 수 있고, 그때는 쓰레기통이 요리사를 가려야 합니다.
 // 그래서 접지선(몸통 아랫변) 기준으로 앞뒤를 갈라 그립니다. (trashInFront)
 
-/* 그리는 순서 = 겹치는 순서. 나중에 그린 집기가 위에 옵니다.
+/* 그리는 순서 = 왼쪽부터.
    ------------------------------------------------------------
-   집기들이 옆으로 붙어 있어 옆면이 서로 8px 겹칩니다. (§1-1)
-   어느 쪽이 위로 와야 하는지는 그림이 어느 방향에서 본 것이냐가 정합니다.
+   예전에는 순서가 중요했습니다. 집기마다 폭을 따로 정하고 이웃과 8px 씩
+   겹쳐 놨기 때문에, 어느 쪽을 위에 얹느냐에 따라 옆면이 잘려 보였습니다.
 
-     후라이팬 왼쪽   오른쪽 옆면이 보이게 그려져 있습니다
-                    → 오른쪽 이웃이 위. 왼쪽부터 그립니다.
-     후라이팬 오른쪽  왼쪽 옆면이 보이게 그려져 있습니다
-                    → 왼쪽 이웃이 위. 오른쪽부터 그립니다.
+   지금은 겹치는 부분이 없습니다. 8종이 원화 한 장을 자른 조각이라
+   한 픽셀은 정확히 한 조각에만 속합니다. (§1-1) 그래서 순서를 바꿔도
+   결과가 같고, 읽기 쉬우라고 원화에 그려진 순서 그대로 둡니다.
 
-   후라이팬이 그 경계라 양쪽에서 밀려 올라와 제일 위에 옵니다.
-   반대로 깔면 이웃이 옆면을 잘라먹어서 집기가 벽 쪽으로 한 칸 들어간
-   것처럼 보입니다.
-
-   경계를 옮기려면 STATION_OVERLAP_TOP 만 바꾸면 됩니다. 목록은
-   STATION_ART 에서 만들므로 집기를 추가해도 빠지지 않습니다.
+   규격이 다른 그림을 섞어서 자리가 서로 물리게 되면 그때는 순서가
+   다시 중요해집니다. 왼쪽부터 그리면 오른쪽 집기가 위에 오는데,
+   원화가 왼쪽 옆면을 보여 주는 3/4 시점이라 그 방향이 맞습니다.
    ------------------------------------------------------------ */
-const STATION_OVERLAP_TOP = "pan";
-
-const STATION_DRAW_ORDER = (()=>{
-  const ids=Object.keys(STATION_ART).filter(id=>id!=="trash");   // 쓰레기통은 아래에서 따로
-  const top=ids.indexOf(STATION_OVERLAP_TOP);
-  return [...ids.slice(top+1).reverse(), ...ids.slice(0,top+1)];
-})();
+const STATION_DRAW_ORDER = STATION_SLICES.map(slice=>slice.id);   // 쓰레기통은 아래에서 따로
 
 function drawStations(){
   // 쓰레기통은 뒤쪽 줄과 떨어져 있어 겹칠 일이 없습니다. 앞에 있으면 이름표 층에서 그립니다.
@@ -399,15 +469,81 @@ function trashInFront(){
   return (state?.player?.y ?? 0) < s.y+s.h;
 }
 
-// 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
-// (12 → 3글자 이름표가 약 63px. 예전 88폭 집기의 명판 72px 과 비슷합니다)
-const LABEL_PAD_X = 12;
+/* 이름표 글자 좌우 여백. 명판 길이를 조절하려면 이 값만 만지면 됩니다.
+
+   [17 인 이유] 판이 나무판 그림(draw-utils.js NAMEPLATE_ART)으로 바뀌면서
+   좌우 끝을 금장 장식이 차지합니다. 예전 도형 명판 기준이던 12 로는
+   글자가 그 장식에 바짝 붙었습니다. 앞쪽 철판 명패와 같은 비율로
+   맞춘 값입니다 — 저쪽은 14px 글자에 여백 18.6 이라, 13px 글자면 17 입니다.
+   글자 크기는 그대로 두고 여백만 키운 것이라 판만 넉넉해집니다. */
+const LABEL_PAD_X = 17;
+
+const STATION_LABEL_FONT = "bold 13px Malgun Gothic";
+
+/* 명판 폭 — 글자 수가 같으면 폭도 같습니다
+   ------------------------------------------------------------
+   예전에는 이름마다 "글자 폭 + 여백"으로 따로 계산했습니다. 맑은 고딕은
+   한글도 글자마다 폭이 조금씩 달라서, 같은 4글자인 '후라이팬'과
+   '직화구이'의 명판 길이가 몇 px 씩 어긋나 줄이 지저분해 보였습니다.
+
+   그래서 **글자 수별로 한 폭씩** 정합니다. 그 글자 수 중 가장 긴 이름에
+   맞추므로, 어떤 이름도 판을 뚫고 나가지 않으면서 같은 글자 수끼리는
+   판 길이가 딱 맞습니다.
+     2글자  도마 · 냄비
+     3글자  냉장고 · 튀김기
+     4글자  후라이팬 · 직화구이 · 쓰레기통
+
+   [숨긴 이름표는 안 셉니다] '식기세척기'(5글자)·'싱크대'는 hideLabel
+   이라 화면에 없습니다. 이걸 세면 보이지도 않는 이름 때문에 같은 글자
+   수의 판이 다 같이 길어집니다.
+
+   [한 번만 재는 이유] 이름과 글꼴이 고정이라 값이 변하지 않습니다.
+   맑은 고딕은 윈도우 기본 글꼴이라 첫 프레임에도 이미 준비돼 있어서
+   웹폰트처럼 나중에 폭이 바뀔 일이 없습니다. */
+function labelPlateWidthFor(text){
+  return Math.round(ctx.measureText(text).width)+LABEL_PAD_X*2;
+}
+
+const stationLabelPlateWidths = {};   // 글자 수 → 폭
+function stationLabelPlateWidth(label){
+  const chars=label.length;
+  if(stationLabelPlateWidths[chars]) return stationLabelPlateWidths[chars];
+  const previousFont=ctx.font;
+  ctx.font=STATION_LABEL_FONT;
+  // 자기 자신을 초깃값으로 둡니다 — 숨긴 이름표가 물어봐도 답이 나옵니다.
+  stationLabelPlateWidths[chars]=Object.values(STATIONS)
+    .filter(s=>!s.hideLabel&&s.label.length===chars)
+    .reduce((max,s)=>Math.max(max,labelPlateWidthFor(s.label)),labelPlateWidthFor(label));
+  ctx.font=previousFont;
+  return stationLabelPlateWidths[chars];
+}
+
+
+/* 이름표 판 그림 — 앞쪽 철판 명패와 같은 에셋
+   ------------------------------------------------------------
+   판을 만드는 코드는 draw-utils.js 의 nameplateCanvas() 에 있습니다.
+   낮 준비물 이름표(prep.js)도 같은 판을 쓰게 되면서 공용 파일로 옮겼습니다.
+   에셋·3분할 규칙은 그쪽 § NAMEPLATE_ART 주석을 보세요.
+
+   ⚠️ counter.js 가 아직 안 받았거나 받기에 실패하면 그림이 없습니다.
+      그때는 예전 도형 명판으로 되돌아갑니다. (labelStation 아래쪽)
+
+   글자 색도 철판 명패와 같습니다(draw-utils.js NAMEPLATE_TEXT). 외곽선
+   굵기만 글자 크기에 맞춰 줄인 값입니다 (철판 21px 에 4 → 여기 13px 에 2.5). */
+const STATION_LABEL_TEXT = { ...NAMEPLATE_TEXT, strokeWidth:2.5 };
 
 /* 이름표 판의 크기와 높이(논리 좌표).
    game.js 의 E 키캡도 같은 값을 봐야 둘이 어긋나지 않으므로 상수로 뺐습니다.
-   여기만 고치면 이름표와 키캡이 같이 따라옵니다. */
-const STATION_LABEL_H    = 23;   // 판 높이
-const STATION_LABEL_RISE = 25;   // 집기 윗변에서 판 윗변까지 (위로)
+   여기만 고치면 이름표와 키캡이 같이 따라옵니다.
+
+   ⚠️ [둘은 같이 움직여야 합니다] 판 아랫변은 집기 윗변보다 2 위
+      (= RISE - H = 2) 여야 합니다. 높이만 키우면 판이 집기 속으로
+      파고들고, 올림만 키우면 판이 허공에 뜹니다.
+      2026-08-09 에 여백을 키우면서 23/25 → 29/31 로 같이 올렸습니다
+      (판 그림의 금장 테두리가 세로도 먹어서, 23 으로는 글자가 위아래
+       테두리에 닿았습니다. 앞쪽 철판 명패와 같은 비율입니다). */
+const STATION_LABEL_H    = 29;   // 판 높이
+const STATION_LABEL_RISE = 31;   // 집기 윗변에서 판 윗변까지 (위로)
 
 // 이름표 판의 윗변. 둥실 흔들림(labelFloatStep)은 뺀 기준 위치입니다.
 function stationLabelTop(s){
@@ -454,24 +590,44 @@ function labelStation(s,near){
   const active=stationUsable(s,near);
   const f=labelFloatStep(`station_${s.id}`,active);
 
-  /* 이름표 폭은 "글자 폭 + 좌우 여백"입니다. 집기 폭을 따라가면
-     냉장고(154)·세면대(146) 같은 큰 집기에서 명판만 길쭉해집니다.
-     집기가 커져도 명판은 글자 길이만큼만 커집니다. */
-  ctx.font="bold 13px Malgun Gothic";
+  /* 이름표 폭은 글자 수가 정합니다(stationLabelPlateWidth).
+     집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰
+     집기에서 명판만 길쭉해지기 때문입니다. */
+  ctx.font=STATION_LABEL_FONT;
   const h=STATION_LABEL_H,cx=s.x+s.w/2;
-  const w=Math.round(ctx.measureText(s.label).width)+LABEL_PAD_X*2;
+  const w=stationLabelPlateWidth(s.label);
   // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
   // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.
   const x=cx-w/2,y=stationLabelTop(s)+f.dy;
 
   ctx.save();
   applyLabelScale(f.scale,cx,y+h/2);
-  ctx.fillStyle="#1a0e09";roundRect(ctx,x,y,w,h,5,true,false);
-  ctx.strokeStyle=active?LABEL_FLOAT.activeLine:FIXTURE_LABEL.line;
-  ctx.lineWidth=2;roundRect(ctx,x,y,w,h,5,false,true);
-  ctx.fillStyle=active?LABEL_FLOAT.activeText:FIXTURE_LABEL.text;
-  ctx.textAlign="center";
-  ctx.fillText(s.label,cx,y+16);ctx.textAlign="left";
+
+  /* 판. 철판 명패와 같은 나무판 그림입니다.
+     [강조 표현이 다릅니다] 예전 도형 명판은 강조될 때 테두리 색을
+     바꿨는데, 그림 판에는 바꿀 테두리가 없습니다. 대신 글자 색과
+     크기(applyLabelScale)로만 강조합니다 — 앞쪽 철판 명패가 쓰는
+     방식과 같습니다. (counter.js COUNTER_FLOAT) */
+  const plate=nameplateCanvas(w,h);
+  if(plate){
+    ctx.drawImage(plate,x,y,w,h);
+  }else{
+    // 그림을 아직 못 받았을 때의 예비 도형 (예전 명판)
+    ctx.fillStyle="#1a0e09";roundRect(ctx,x,y,w,h,5,true,false);
+    ctx.strokeStyle=active?LABEL_FLOAT.activeLine:FIXTURE_LABEL.line;
+    ctx.lineWidth=2;roundRect(ctx,x,y,w,h,5,false,true);
+  }
+
+  /* 글자는 판 한가운데. textBaseline="middle" 을 쓰면 판 높이를 바꿔도
+     baseline 보정값을 다시 잡을 필요가 없습니다. */
+  const T=STATION_LABEL_TEXT,textY=y+h/2;
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.lineJoin="round";                         // 획 모서리에 뿔이 서지 않게
+  ctx.strokeStyle=T.stroke;ctx.lineWidth=T.strokeWidth;
+  ctx.strokeText(s.label,cx,textY);
+  ctx.fillStyle=active?T.activeFill:T.fill;
+  ctx.fillText(s.label,cx,textY);
+  ctx.textAlign="left";ctx.textBaseline="alphabetic";ctx.lineJoin="miter";
   ctx.restore();
 }
 
@@ -527,19 +683,18 @@ function drawStation(s){
 }
 
 /* 지금 이 집기를 그릴 상태.
-   active = 쓰는 중일 때 갈아 끼우는 그림 (냉장고 문 열림 · 싱크대 물줄기 ·
-   쓰레기통 뚜껑 열림). 그 그림이 없는 집기는 아래 drawStationArt 가
-   idle 로 되돌립니다. */
+   뒤쪽 8종은 낮/밤으로 갈립니다. 쓰레기통만 뚜껑 열림이 따로 있습니다. */
 function stationArtState(id){
-  if(id==="trash")return trashIsOpen()?"active":"idle";
-  return state.mini?.stationId===id?"active":"idle";
+  if(id==="trash")return trashIsOpen()?"active":"day";
+  return state.phase==="night"?"night":"day";
 }
 
 /* 집기 그림 한 장. 그렸으면 true, 아직 못 불러왔으면 false 를 돌려주고
    도형 플레이스홀더로 넘깁니다. (§1-2)
    미리 축소해 둔 캔버스를 같은 크기로 얹기만 하므로 배율 계산이 없습니다. */
 function drawStationArt(s){
-  const art=stationArt[`${s.id}_${stationArtState(s.id)}`]??stationArt[`${s.id}_idle`];
+  // 그 상태 그림이 없으면(밤 그림이 없는 7종) 낮 그림으로 되돌립니다.
+  const art=stationArt[`${s.id}_${stationArtState(s.id)}`]??stationArt[`${s.id}_day`];
   if(!art)return false;
   const r=STATION_LAYOUT[s.id].canvas;
   ctx.drawImage(art,r.x,r.y,r.w,r.h);

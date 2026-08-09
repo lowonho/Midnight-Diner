@@ -47,6 +47,9 @@ const UI_DIR = path.join(__dirname, "..", "assets", "UI", "Journal");
 /* [file]     UI_DIR 기준 파일 이름 (PNG 마스터)
    [out]      산출물 이름을 마스터와 다르게 할 때만 (기본은 .png → .webp)
    [size]     뽑아낼 WebP 크기 [가로, 세로] = CSS 크기 x2
+   [crop]     원본에서 잘라 쓸 자리 [왼, 위, 가로, 세로]. 마스터 둘레에 투명
+              여백이 남아 있는 그림 전용입니다. 여백째 넣으면 CSS 상자 안에서
+              그림이 그만큼 작게 보입니다. 값은 알파 > 8 인 자리의 사각형입니다.
    [lossless] 무손실로 뽑을 것
    [why]      그 크기의 근거. 주석용입니다. */
 const FILES = [
@@ -68,17 +71,44 @@ const FILES = [
   { file:"ui_journal_arrow_next.png", size:[144,116], lossless:true, why:"다음 화살표 72x58 x2" },
 
   /* ── 견출지 3종 ────────────────────────────────────────────
-     가로 130 고정, 세로는 원본 비율대로 다릅니다(책에 끼워 넣는 깊이가
-     조금씩 달라지지만 아래쪽은 책 뒤로 가려서 안 보입니다). */
-  { file:"ui_journal_tab_caution.png", size:[260,126], why:"주의사항 견출지 130x63 x2" },
-  { file:"ui_journal_tab_cooking.png", size:[260,137], why:"요리 견출지 130x68.4 x2" },
-  { file:"ui_journal_tab_diary.png",   size:[260,121], why:"일기 견출지 130x60.4 x2" },
+     2026-08-09 에 금테 견출지에서 색종이 견출지로 교체했습니다. 세 장 모두
+     같은 마스터 크기(367x188)에 같은 모양이라, 예전처럼 그림마다 금테
+     윗변 높이를 따로 보정할 일이 없습니다(css/settings.css 참고).
+     마스터 둘레에 2px 투명 여백이 있어 잘라 씁니다.
+     이전 금테 판(ui_journal_tab_caution/cooking/diary.png)은 안 쓰지만
+     마스터라 지우지 않고 남겨 둡니다. */
+  { file:"ui_journal_tab_notice_paper_4x.png",  out:"ui_journal_tab_notice.webp",
+    crop:[2,2,363,184], size:[260,132], why:"주의사항 견출지 130x66 x2" },
+  { file:"ui_journal_tab_cooking_paper_4x.png", out:"ui_journal_tab_cooking.webp",
+    crop:[2,2,363,184], size:[260,132], why:"요리 견출지 130x66 x2" },
+  { file:"ui_journal_tab_diary_paper_4x.png",   out:"ui_journal_tab_diary.webp",
+    crop:[2,2,363,184], size:[260,132], why:"일기 견출지 130x66 x2" },
 
   /* ── 인게임 그림 자리 3종 ──────────────────────────────────
      주의사항·요리·일기 장의 동그란 액자입니다. */
   { file:"ui_journal_picture_caution.png", size:[224,230], why:"주의사항 그림 자리 112x115 x2" },
   { file:"ui_journal_picture_cooking.png", size:[224,238], why:"요리 그림 자리 112x119 x2" },
-  { file:"ui_journal_picture_diary.png",   size:[224,233], why:"일기 그림 자리 112x116.5 x2" }
+  { file:"ui_journal_picture_diary.png",   size:[224,233], why:"일기 그림 자리 112x116.5 x2" },
+
+  /* ── 주의사항 장 손글씨 ────────────────────────────────────
+     2번 줄 아래 남는 종이를 채우는 그림입니다. CSS 는 background-size:contain
+     이라 상자 비율이 조금 달라도 찌그러지지 않고, 이 그림이 종이 폭(319)을
+     꽉 채웠을 때의 크기가 319x243 입니다. 넉넉하게 x2 로 뽑습니다.
+     마스터 1403x1121 둘레에 투명 여백이 있어 잘라 씁니다. */
+  { file:"journal_warning.png", crop:[80,104,1254,957], size:[668,510],
+    why:"주의사항 손글씨 334x255 x2 (여백 잘라낸 1254x957 기준)" },
+
+  /* ── 주의사항 다음 안내 장(양면 그림) ──────────────────────
+     글 없이 원화 두 장만 놓는 장입니다. 두 면 다 본문 자리가 334x420 이고
+     CSS 는 background-size:contain 이라 원본 비율 그대로 들어갑니다.
+     그래서 세로는 상자(420)가 아니라 폭 334 에 맞췄을 때의 높이 x2 입니다.
+       요리   1201x1419 → 334x394.6 → 668x789
+       선택지 1224x1187 → 334x323.9 → 668x648
+     둘 다 마스터 둘레에 1px 투명 줄이 있어 잘라 씁니다. */
+  { file:"ui_log_story_guest_cooking_v01.png",  crop:[1,0,1201,1419], size:[668,789],
+    why:"안내 장 왼쪽 면 그림 334x394.6 x2" },
+  { file:"ui_log_story_choice_answer_v03.png",  crop:[0,1,1224,1187], size:[668,648],
+    why:"안내 장 오른쪽 면 그림 334x323.9 x2" }
 ];
 
 const QUALITY = 92;
@@ -93,21 +123,28 @@ function outPath(f){
 
 function kb(bytes){ return Math.round(bytes/1024); }
 
-// 축소 파이프라인. 검증(verify)도 같은 함수를 써야 "인코딩 손실"만 측정됩니다.
-function resized(src, w, h){
-  return sharp(src).resize(w, h, { kernel:"lanczos3", fit:"fill" });
+// 잘라 쓰는 자리. crop 이 없으면 원본 전체입니다.
+function sourceBox(f, meta){
+  if(!f.crop)return { left:0, top:0, width:meta.width, height:meta.height };
+  const [left,top,width,height] = f.crop;
+  return { left, top, width, height };
 }
 
-function checkAspect(f, meta){
-  const source = meta.width / meta.height;
+// 축소 파이프라인. 검증(verify)도 같은 함수를 써야 "인코딩 손실"만 측정됩니다.
+function resized(src, w, h, box){
+  return sharp(src).extract(box).resize(w, h, { kernel:"lanczos3", fit:"fill" });
+}
+
+function checkAspect(f, box){
+  const source = box.width / box.height;
   const target = f.size[0] / f.size[1];
   const drift = Math.abs(target - source) / source;
   if(drift > ASPECT_TOLERANCE){
     console.warn(`  ! ${f.file} : 가로세로비가 ${(drift*100).toFixed(1)}% 다릅니다. ` +
-      `원본 ${meta.width}x${meta.height}(${source.toFixed(3)}) → ${f.size[0]}x${f.size[1]}(${target.toFixed(3)})`);
+      `원본 ${box.width}x${box.height}(${source.toFixed(3)}) → ${f.size[0]}x${f.size[1]}(${target.toFixed(3)})`);
   }
-  if(f.size[0] > meta.width){
-    console.warn(`  ! ${f.file} : 원본(${meta.width})보다 크게 뽑고 있습니다. 확대는 화질에 도움이 안 됩니다.`);
+  if(f.size[0] > box.width){
+    console.warn(`  ! ${f.file} : 원본(${box.width})보다 크게 뽑고 있습니다. 확대는 화질에 도움이 안 됩니다.`);
   }
 }
 
@@ -119,9 +156,10 @@ async function convert(){
     const src = path.join(UI_DIR, f.file);
     const out = outPath(f);
     const meta = await sharp(src).metadata();
-    checkAspect(f, meta);
+    const box = sourceBox(f, meta);
+    checkAspect(f, box);
     const [w,h] = f.size;
-    await resized(src, w, h)
+    await resized(src, w, h, box)
       .webp(f.lossless ? {lossless:true, effort:EFFORT}
                        : {quality:QUALITY, effort:EFFORT, alphaQuality:100})
       .toFile(out);
@@ -147,8 +185,9 @@ async function verify(){
     const out = outPath(f);
     if(!fs.existsSync(out))continue;
     const [w,h] = f.size;
+    const box = sourceBox(f, await sharp(src).metadata());
     const [a,b] = await Promise.all([
-      resized(src,w,h).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
+      resized(src,w,h,box).ensureAlpha().raw().toBuffer({resolveWithObject:true}),
       sharp(out).ensureAlpha().raw().toBuffer({resolveWithObject:true})
     ]);
     if(a.data.length!==b.data.length){ console.log(path.basename(out),"크기 불일치!"); continue; }

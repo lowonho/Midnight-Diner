@@ -5,3 +5,13 @@ node_modules/
 # PNG 마스터는 장당 6~8MB 라 저장소 밖에 둡니다. 위치와 이유는
 # tools/build-conversation-webp.js 맨 위 [PNG 마스터는 저장소 밖에 있습니다] 참고.
 assets/Conversation/**/*.png
+
+# 달빛 조각 전달 컷씬(assets/Cutscene/Moonpiece)도 같은 이유입니다.
+# 7680x4320 PNG 여덟 장이 190MB 인데 WebP 로는 2.4MB 입니다. 마스터는
+# ../Midnight-Diner-art-masters/Cutscene/Moonpiece/ 로 옮겨 두세요.
+# (tools/build-cutscene-webp.js 가 그쪽을 먼저 찾습니다)
+assets/Cutscene/Moonpiece/*.png
+
+# 헤드리스 크롬 캡처(visual smoke)가 남기는 임시 프로필과 스크린샷.
+# --user-data-dir 로 넘긴 폴더에 캐시·쿠키·DB 가 수백 개 쌓입니다.
+.tmp-*
