@@ -50,6 +50,19 @@ const STORY_FRAGMENT_ASSETS = Object.freeze({
   daeuns_tomorrow: "assets/customer/Special/MoonPiece/08_faceless_daeun_ribbon.webp"
 });
 
+// "맛있다"에서 받는 부분 달빛 조각입니다. 최종 손님은 맛있다 결과로 조각을
+// 주지 않으므로 G1~G7만 연결합니다. 완전한 조각과 섞이지 않도록 별도 맵으로
+// 관리하며, 파일명의 g1~g7은 특별 손님 등장 순서와 같습니다.
+const STORY_PARTIAL_FRAGMENT_ASSETS = Object.freeze({
+  first_raindrop: "assets/customer/Special/MoonPiece/g1_rain_drop_fragment.png",
+  remaining_warmth: "assets/customer/Special/MoonPiece/g2_lantern_flame_fragment.png",
+  two_half_names: "assets/customer/Special/MoonPiece/g3_joined_shadows_fragment.png",
+  undelivered_letter: "assets/customer/Special/MoonPiece/g4_sealed_letter_fragment.png",
+  golden_salt: "assets/customer/Special/MoonPiece/g5_constellation_fragment.png",
+  eastern_scale: "assets/customer/Special/MoonPiece/g6_wave_fish_fragment.png",
+  stopped_minute_hand: "assets/customer/Special/MoonPiece/g7_stopped_clock_fragment.png"
+});
+
 // 1~7일차 특별 손님과 대화하는 동안 기본 밤 BGM 위로 겹쳐 재생하는 테마 효과음입니다.
 // 등장·주문 결과 대화 모두에 유지되고, 대화가 끝날 때 story.js가 자연스럽게 줄입니다.
 const SPECIAL_GUEST_ARRIVAL_AUDIO = Object.freeze({
@@ -343,8 +356,8 @@ function createSpecialGuestArc(config) {
          원화 한 장이 화면을 채우고, 그 위에 기존 조각 오버레이가 그대로
          뜹니다(컷씬 z-index 1 < 오버레이 3).
 
-         "맛있다"(partial)에는 안 겁니다 — 원화가 완전한 조각을 건네는
-         그림이고, 그쪽은 조각 오버레이도 뜨지 않습니다.
+         "맛있다"(partial)에는 이 컷을 깔지 않고, 부분 조각 전용 에셋만
+         기존 중앙 전달 레이어에 띄웁니다.
 
          컷 이름은 story-cinematic.js 의 STORY_CUTSCENES 키와 같은 규칙으로
          조각 id 에서 만듭니다. 손으로 짝지으면 여덟 군데에서 어긋날 수
@@ -359,7 +372,9 @@ function createSpecialGuestArc(config) {
         shardId: config.shardId,
         shardName: config.shardName,
         state: fragmentState,
-        asset: fragmentState === "full" ? STORY_FRAGMENT_ASSETS[config.shardId] || null : null
+        asset: fragmentState === "full"
+          ? STORY_FRAGMENT_ASSETS[config.shardId] || null
+          : STORY_PARTIAL_FRAGMENT_ASSETS[config.shardId] || null
       }
     }];
     return {
@@ -540,7 +555,7 @@ const STORY_SCENES = {
            2회차부터는 이미 아는 규칙이라 잠그지 않습니다. */
         journalRequiredReading: true
       },
-      storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
+      storyLine("protagonist", "앞에 두 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
       storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네.", { motion: "sad" }),
       storyLine("protagonist", "누가 올지도, 무슨 음식을 찾을지도 알 수 없어. 그래도 가만히 갇혀 있을 수는 없지.", { motion: "resolve" }),
       { ...storyNarration("영업일지를 덮는 순간 책장 사이로 새하얀 달빛이 번진다.\n창밖의 빗소리가 멎는다. 햇빛이 들어찬다."), timeOfDay: "day" },

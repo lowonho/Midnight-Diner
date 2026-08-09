@@ -382,7 +382,7 @@ function spawnOrder(slot,options={}) {
     // 일반 손님과 같은 프레임에 예약된 특별 손님도 화면에서는 그 다음에
     // 들어오도록 짧게 늦춥니다. 영업 전 첫 손님과 마지막 손님은 바로 나타납니다.
     entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0,
-    cookStep:0,cookScores:[]
+    cookStep:0,cookScores:[],discardedOnce:false
   },plan);
   state.orders.push(order);
   state.spawnedCustomers++;
@@ -475,6 +475,15 @@ function discardCarriedDish(){
   const dish=dishById(state.carrying.dishId);
   if(!order||!dish)return false;
 
+  // 폐기는 음식 종류가 아니라 현재 손님의 주문 한 접시를 기준으로 한 번만
+  // 허용합니다. 같은 메뉴를 주문한 다음 손님은 자기 주문에서 다시 한 번
+  // 폐기할 수 있고, 구 저장처럼 필드가 없으면 아직 폐기하지 않은 상태입니다.
+  if(order.discardedOnce===true){
+    showToast(UI_TEXT.toast.discardLimit(dish.name),true);
+    return false;
+  }
+
+  order.discardedOnce=true;
   order.cookStep=0;
   order.cookScores=[];
   state.carrying=null;

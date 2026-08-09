@@ -100,6 +100,8 @@
   z-index: 1;
   inset: 0;
   overflow: hidden;
+  /* 첫 컷을 디코딩하는 동안에도 아래 식당 플레이 화면이 비치지 않습니다. */
+  background: #080504;
   pointer-events: none;   /* 대사 넘기기 클릭이 이 판에 먹히면 안 됩니다 */
 }
 .story-cutscene[hidden] { display: none; }
@@ -223,8 +225,8 @@
   clip-path: inset(-100% -100% calc(-8 * var(--upx)) -100%);
 }
 
-/* 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은 위에
-   그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
+/* 부분 또는 완전한 달빛 조각을 건네는 동안 배우 무대만 어둡히고, 대사창은
+   위에 그대로 남깁니다. 조각 이미지는 --fragment-art로 손님별 에셋을 받습니다. */
 .story-fragment-handoff {
   position: absolute;
   z-index: 3;
@@ -243,18 +245,17 @@
   visibility: visible;
 }
 
-/* 컷씬(손님이 조각을 건네는 원화) 위에 겹칠 때는 암전이 아니라 얇은 막입니다.
+/* 컷씬(손님이 조각을 건네는 원화) 위에는 조각이 또렷하게 읽힐 만큼 암전합니다.
    위 .story-fragment-handoff 의 rgba(5,4,10,.91)은 뒤에 아무것도 없을 때
    배우 무대를 지우려고 짙은 것인데, 컷씬이 깔린 줄에서는 그 짙기가 보여 줄
    그림까지 덮습니다.
 
-   여기서 얇게 해도 글자가 뜨는 이유는 .story-cutscene::after 의 어둠막이
-   이미 아래쪽을 짙게 깔아 두기 때문입니다. 둘이 겹쳐서 위 45% · 아래 95%
-   정도가 됩니다. 조각 그림 자체는 drop-shadow 광량으로 떠오릅니다. */
+   .68은 인물과 배경 동작은 알아볼 수 있게 남기면서도 가운데 조각과 이름을
+   우선해서 읽히게 하는 값입니다. */
 .story-overlay.story-cinematic-active .story-fragment-handoff {
   background:
     radial-gradient(circle at 50% 38%,rgba(120,174,255,.18),transparent 36%),
-    rgba(5,4,10,.34);
+    rgba(5,4,10,.68);
 }
 .story-fragment-focus {
   position: absolute;
@@ -430,6 +431,10 @@
   opacity: 0;
   visibility: hidden;
 }
+.story-overlay.scene-intro .story-dialogue-box,
+.story-overlay.story-cinematic-hold .story-dialogue-box {
+  transform: translateY(calc(24 * var(--upx)));
+}
 /* 컷씬이 깔려 있어도 '말하는 줄'에서는 무대를 다시 올립니다. 컷은 대사 한 줄이
    아니라 구간에 걸려서, 안 올리면 그 구간의 대사가 전부 배우 없이 지나갑니다
    (프롤로그 퇴근길 내내, SCN-P03 은 장면 내내 원화가 한 번도 안 나옵니다).
@@ -600,7 +605,18 @@
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #25130c,inset 0 0 0 calc(5 * var(--upx)) #c1843e,0 calc(10 * var(--upx)) calc(28 * var(--upx)) rgba(0,0,0,.75);
   opacity: 1;
   visibility: visible;
-  transition: opacity .2s ease,visibility .2s ease;
+  transform: translateY(0);
+  transition: opacity .28s ease,visibility .28s ease,transform .34s cubic-bezier(.18,.82,.24,1);
+}
+/* 오버레이를 처음 열거나 배경 컷이 바뀌는 첫 대사에서만 JS가
+   아래 클래스를 재시작합니다. 일반 대사 한 줄을 넘길 때는 반복되지
+   않고, 같은 스토리 장면 안에서 다음 컷으로 바뀐 때만 다시 재생됩니다. */
+.story-overlay.story-dialogue-entering .story-dialogue-box {
+  animation: storyDialogueEnter .34s cubic-bezier(.18,.82,.24,1) both;
+}
+@keyframes storyDialogueEnter {
+  from { opacity: 0; transform: translateY(calc(24 * var(--upx))); }
+  to { opacity: 1; transform: translateY(0); }
 }
 /* [이름 줄 높이는 이름이 없어도 그대로입니다]
    내레이션 줄은 이름(<strong>)이 hidden 이라 줄 안에 흐르는 내용이 없습니다.
@@ -824,6 +840,9 @@
   .story-prop-reveal.show .story-prop-focus,
   .story-prop-focus::before,
   .story-prop-art { animation: none; opacity: 1; transform: none; }
+  .story-overlay.story-dialogue-entering .story-dialogue-box {
+    animation: none;
+  }
 }
 
 @media (max-width: 620px) {

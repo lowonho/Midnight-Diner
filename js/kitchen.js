@@ -600,6 +600,13 @@ function stationPromptY(s){
   return stationLabelTop(s) - STATION_PROMPT_GAP;
 }
 
+/* 쓰레기통의 행동명은 우측 목표 패널과 맞닿는 이름표 위가 아니라 이름표
+   바로 아래에 둡니다. 다른 집기의 E 키캡 배치는 그대로 유지합니다. */
+const TRASH_ACTION_PROMPT_GAP = 6;
+function trashActionPromptY(s){
+  return stationLabelTop(s) + STATION_LABEL_H + TRASH_ACTION_PROMPT_GAP;
+}
+
 /* 이름표 한 장.
    둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep)
 

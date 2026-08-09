@@ -654,6 +654,7 @@ assert(restoreCheckpointCalls>=4,
 // 특별 손님의 완성 음식을 폐기한 직후 상태: 주문과 대화는 남고 조리만 처음으로 돌아갑니다.
 state.orders[0].cookStep=0;
 state.orders[0].cookScores=[];
+state.orders[0].discardedOnce=true;
 state.carrying=null;
 assert(saveGame(true),"특별 손님 재조리 상태는 suspended 체크포인트와 함께 자동저장할 수 있어야 합니다.");
 const discardedStorySave=readSaveData("auto");
@@ -664,8 +665,16 @@ assert(storyCookingIsActive()
   &&state.carrying===null
   &&state.orders[0].cookStep===0
   &&state.orders[0].cookScores.length===0
+  &&state.orders[0].discardedOnce===true
   &&state.orders[0].specialRecipe,
-  "폐기 후 불러오기는 같은 특별 손님 주문과 대화를 유지하며 조리만 처음부터 재개해야 합니다.");
+  "폐기 후 불러오기는 같은 특별 손님 주문과 대화·주문별 폐기 횟수를 유지하며 조리만 처음부터 재개해야 합니다.");
+
+const legacyDiscardSave=JSON.parse(JSON.stringify(discardedStorySave));
+delete legacyDiscardSave.state.orders[0].discardedOnce;
+clearStoryRuntime();
+restoreGameState(legacyDiscardSave);
+assert(state.orders[0].discardedOnce===false,
+  "주문별 폐기 필드가 없는 구 저장은 아직 폐기하지 않은 상태로 복원해야 합니다.");
 
 const legacyAudioSave=JSON.parse(JSON.stringify(suspendedSave));
 legacyAudioSave.state.audio={master:.31,bgm:.52,sfx:.73};
