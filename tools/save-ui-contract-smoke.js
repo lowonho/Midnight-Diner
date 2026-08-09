@@ -93,6 +93,8 @@ assert(!indexSource.includes("심야식당"),
   "실제 게임 화면에 이전 게임명 심야식당이 남아 있으면 안 됩니다.");
 assert(packageData.description.startsWith("달빛식탁 Phaser 프로토타입"),
   "프로젝트 설명에도 새 게임명을 사용해야 합니다.");
+assert(/\bwaiting\s*:\s*\[\s*\]/.test(storyDataSource),
+  "일반 손님은 오래 기다려도 별도의 대기 문구를 표시하지 않아야 합니다.");
 assert(/id="journalButton"[^>]*class="title-meta-button"/.test(indexSource)
   &&/id="titleSettingsButton"[^>]*class="title-meta-button"/.test(indexSource),
   "이어하기 아래 영업일지와 설정은 같은 사각 버튼 스타일을 사용해야 합니다.");
@@ -221,9 +223,21 @@ assert(closeJournalSource.includes('journalMode==="gameplay"')
   &&closeJournalSource.includes("state.paused=journalWasPaused"),
   "게임 내 영업일지를 닫으면 기존 일시정지 상태를 복원해야 합니다.");
 assert(titleSource.includes('if(event.target===elements.overlay)closeJournal()')
-  &&titleSource.includes('if(event.key!=="Escape"')
+  &&titleSource.includes('if(event.key==="Escape")')
   &&titleSource.includes("closeJournal();"),
   "배경 클릭과 ESC로 닫아도 같은 영업일지 상태 복원 경로를 사용해야 합니다.");
+assert(titleSource.includes("function journalOverlayIsOpen()")
+  &&titleSource.includes('setModalBackgroundInert("journal",inert)')
+  &&titleSource.includes("function journalFocusableElements()")
+  &&titleSource.includes('if(event.key==="Tab")')
+  &&titleSource.includes('["pointerdown","click"].forEach')
+  &&titleSource.includes('if(journalOverlayIsOpen()&&!elements.overlay.contains(event.target))focusFirstJournalControl();')
+  &&gameSource.includes('if(typeof journalOverlayIsOpen==="function"&&journalOverlayIsOpen())return;'),
+  "영업일지는 배경을 inert 처리하고 포커스를 가두며 뒤쪽 게임의 포인터·키 입력을 차단해야 합니다.");
+assert(titleSource.includes("function resetGameplayJournalView()")
+  &&titleSource.includes('journalLastGameplayPageId="";')
+  &&titleSource.includes("clearStoryRuntime();resetGameplayJournalView();startGame();"),
+  "새 게임에서는 이전 플레이의 마지막 영업일지 장을 버리고 주의사항부터 열어야 합니다.");
 assert(titleSource.includes('typeof getGameplayJournalPages==="function"?getGameplayJournalPages():[]'),
   "게임 내 영업일지는 현재 세이브에 종속된 생성 함수를 사용해야 합니다.");
 assert(titleSource.includes("첫 장에는 영업 규칙이, 음식 장에는 레시피가, 날짜 장에는 직접 만난 뒤의 기록만 남습니다."),
@@ -635,10 +649,13 @@ function requestAnimationFrame(callback){
 
 const STORY_SCENES={
   "G-02":{title:"입담이 좋아도 자식과의 대화는 어려운 사람"},
-  "C1-04B":{title:"돌아갈 자리와 남을 자리"}
+  "C1-04B":{title:"돌아갈 자리와 남을 자리"},
+  "G-SP":{title:"얼굴 없는 김다은 · 완벽",moment:"specialGuestResult",sceneType:"specialGuestResult"},
+  "P-SECRET":{title:"달빛식탁에 갇히다",moment:"newGame",sceneType:"prologueInteraction"}
 };
 const GAME_PHASES={
   MENU_SELECT:"menuSelect",
+  INGREDIENT_SELECT:"ingredientSelect",
   PREP:"day",
   OPEN:"night",
   RESULT:"result"
@@ -756,14 +773,52 @@ check(
   "자동 저장 카드에 DAY, 진행 단계, 루프와 달빛 조각 요약이 보여야 합니다."
 );
 check(
-  card("auto").textContent.includes("이야기 · 입담이 좋아도 자식과의 대화는 어려운 사람"),
-  "자동 저장 카드에 현재 장면 제목이 보여야 합니다."
+  card("auto").textContent.includes("진행 · 2일차 · 영업 중")
+  &&!card("auto").textContent.includes("입담이 좋아도 자식과의 대화는 어려운 사람"),
+  "자동 저장 카드는 원문 장면 제목 대신 안전한 영업 진행을 보여야 합니다."
 );
 check(
   card("manual1").textContent.includes("DAY 7 · 낮 준비 · 루프 3 · 달빛 조각 2/8")
-  &&card("manual1").textContent.includes("이야기 · 돌아갈 자리와 남을 자리"),
-  "수동 저장 카드에도 진행 요약과 장면 제목이 보여야 합니다."
+  &&card("manual1").textContent.includes("진행 · 7일차 · 영업 준비 중")
+  &&!card("manual1").textContent.includes("돌아갈 자리와 남을 자리"),
+  "수동 저장 카드도 원문 장면 제목 없이 진행 단계만 보여야 합니다."
 );
+
+const regularProgressData={
+  savedAt,
+  state:{
+    day:4,phase:"night",generalServed:2,selectedOrderId:31,
+    orders:[{id:31,customerType:"general"}],story:{loop:1,prologueComplete:true}
+  }
+};
+equal(saveSlotProgressLabel(regularProgressData),"4일차 · 3번째 손님 응대 중",
+  "FIFO 일반 주문은 완료한 일반 손님 수 다음 순번으로 표시해야 합니다.");
+
+const specialProgressData={
+  savedAt,
+  state:{day:7,phase:"night",story:{loop:1,prologueComplete:true}},
+  storyCheckpoint:{sceneId:"G-SP"}
+};
+equal(saveSlotProgressLabel(specialProgressData),"7일차 · 특별 손님 응대 중",
+  "특별 손님 장면은 정체와 평가를 숨긴 공통 문구로 표시해야 합니다.");
+const specialItem=createSaveSlotItem({id:"special",label:"검증",manual:true,data:specialProgressData});
+const specialCard=specialItem.querySelector(".save-slot-card");
+check(
+  specialCard.textContent.includes("진행 · 7일차 · 특별 손님 응대 중")
+  &&!specialCard.textContent.includes("얼굴 없는 김다은")
+  &&!specialCard.textContent.includes("완벽")
+  &&!specialCard.getAttribute("aria-label").includes("얼굴 없는 김다은")
+  &&!specialCard.getAttribute("aria-label").includes("완벽"),
+  "저장 카드의 화면 문구와 접근성 이름 모두 특별 손님 정체·평가를 선공개하면 안 됩니다."
+);
+
+const prologueProgressData={
+  savedAt,
+  state:{day:1,phase:"day",story:{loop:1,prologueComplete:false}},
+  storyCheckpoint:{sceneId:"P-SECRET"}
+};
+equal(saveSlotProgressLabel(prologueProgressData),"0일차 · 프롤로그 진행 중",
+  "프롤로그 저장은 첫 영업일과 구분해 0일차로 표시해야 합니다.");
 closeSaveSlotDialog();
 
 manualButton.click();

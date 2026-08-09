@@ -63,6 +63,22 @@ const DISHES = MENU_DATA.map(menu=>({
 let nextOrderId = 1;
 let toastTimer = 0;
 let joystickPointer = null;
+// 한글 IME 조합 중에는 KeyboardEvent.key/keyCode가 한글 문자나 229가 될 수
+// 있습니다. 이동은 물리 키 위치인 event.code로도 별도 추적합니다.
+const physicalMoveKeys={w:false,a:false,s:false,d:false};
+window.physicalMoveKeys=physicalMoveKeys;
+
+function setPhysicalMoveKey(event,isDown){
+  const direction={KeyW:"w",KeyA:"a",KeyS:"s",KeyD:"d"}[event.code];
+  if(!direction)return false;
+  physicalMoveKeys[direction]=!!isDown;
+  return true;
+}
+
+function clearPhysicalMoveKeys(){
+  Object.keys(physicalMoveKeys).forEach(key=>{physicalMoveKeys[key]=false;});
+}
+window.clearPhysicalMoveKeys=clearPhysicalMoveKeys;
 
 const state = {
   screen:"title",
@@ -500,6 +516,9 @@ function showGameHud(show) {
 }
 
 let settingsReturnFocus=null;
+// 설정과 영업일지가 겹쳐 열리는 예외 경로에서도 한쪽을 닫았다는 이유로
+// 뒤쪽 화면의 inert가 먼저 풀리지 않도록 오버레이별 잠금 소유자를 셉니다.
+const modalBackgroundInertOwners=new Set();
 const SETTINGS_FOCUSABLE_SELECTOR=[
   "button:not(:disabled)",
   "[href]",
@@ -514,15 +533,23 @@ function settingsFocusableElements(){
     .filter(element=>!element.hidden&&element.getClientRects().length>0);
 }
 
-function setSettingsBackgroundInert(inert){
-  // 설정창은 appRoot 안에서 게임·타이틀 화면과 나란히 있으므로 appRoot 자체를
-  // 잠그면 설정창도 조작할 수 없게 됩니다. 실제 배경 두 화면만 잠급니다.
+function setModalBackgroundInert(owner,inert){
+  if(inert)modalBackgroundInertOwners.add(owner);
+  else modalBackgroundInertOwners.delete(owner);
+  const shouldBeInert=modalBackgroundInertOwners.size>0;
+  // 공용 오버레이는 appRoot 안에서 게임·타이틀 화면과 나란히 있으므로
+  // appRoot 자체가 아니라 실제 배경 두 화면만 잠급니다.
   [dom.titleScreen,dom.gameScreen].forEach(screen=>{
     if(!screen)return;
-    if(inert)screen.setAttribute("inert","");
+    if(shouldBeInert)screen.setAttribute("inert","");
     else screen.removeAttribute("inert");
   });
 }
+
+function setSettingsBackgroundInert(inert){
+  setModalBackgroundInert("settings",inert);
+}
+window.setModalBackgroundInert=setModalBackgroundInert;
 
 function focusFirstSettingsControl(){
   const preferred=dom.resumeButton&&!dom.resumeButton.disabled&&!dom.resumeButton.hidden
@@ -542,6 +569,8 @@ function openSettings(from=state.screen) {
     ||state.phase===GAME_PHASES.INGREDIENT_SELECT;
   if(from==="game"&&!saveBlocked)saveGame(true);
   state.settingsFrom=from; state.paused=true;
+  if(typeof resetPlayerKeyboardInput==="function")resetPlayerKeyboardInput();
+  else clearPhysicalMoveKeys();
   pauseMiniAsyncTasks();
   dom.pauseMessage.textContent=fromTitle?UI_TEXT.pauseFromTitle
     :saveBlocked?UI_TEXT.pauseSaveBlocked:UI_TEXT.pauseFromGame;
@@ -568,8 +597,9 @@ function closeSettings() {
   dom.settingsOverlay.classList.remove(UI_CLASS.overlayOpen);
   setSettingsBackgroundInert(false);
   resumeMiniAsyncTasks();
-  state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive();
-  if(state.settingsFrom!=="title")audio.resumeLoops();
+  state.paused=state.settingsFrom==="title"||state.phase==="result"||storyDialogueIsActive()
+    ||(typeof journalOverlayIsOpen==="function"&&journalOverlayIsOpen());
+  if(state.settingsFrom!=="title"&&!state.paused)audio.resumeLoops();
   const focusTarget=settingsReturnFocus;
   settingsReturnFocus=null;
   if(focusTarget?.isConnected&&!focusTarget.hidden&&!focusTarget.closest?.("[inert]")){
@@ -695,7 +725,9 @@ function nearestStoryCookStation(requiredId){
 }
 
 function interact() {
-  if(storyDialogueIsActive() || state.paused || state.mini || ![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)) return;
+  if(storyDialogueIsActive() || state.paused || state.mini
+    ||dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen)
+    ||![GAME_PHASES.MENU_SELECT,"day","night"].includes(state.phase)) return;
   const storyStep=activeStoryCookStep();
   if(storyStep){
     const required=storyStep.station;
@@ -869,7 +901,14 @@ function update(dt) {
     if(pauseNightCustomerPresentation&&order.customerType!=="story")return;
     order.waitingTime=(order.waitingTime||0)+dt;
     if(order.bubbleTime>0)order.bubbleTime=Math.max(0,order.bubbleTime-dt);
-    else if(!order.waitingBubbleShown&&order.waitingTime>=12){order.waitingBubbleShown=true;order.bubble=pickGeneralGuestBubble("waiting");order.bubbleTime=4;}
+    else if(!order.waitingBubbleShown&&!order.waitingBubbleDisabled&&order.waitingTime>=12){
+      // 대기 문구 목록을 비워 둔 기획에서는 빈 항목을 "undefined" 말풍선으로
+      // 만들지 않습니다. 목록이 다시 생겼을 때만 기존 12초 안내를 사용합니다.
+      const hasWaitingBubble=Array.isArray(GENERAL_GUEST_BUBBLES.waiting)&&GENERAL_GUEST_BUBBLES.waiting.length>0;
+      if(hasWaitingBubble){
+        order.waitingBubbleShown=true;order.bubble=pickGeneralGuestBubble("waiting");order.bubbleTime=4;
+      }else order.waitingBubbleDisabled=true;
+    }
   });
   state.departures.forEach(item=>{
     if(pauseNightCustomerPresentation&&!item.guestId)return;
@@ -1081,7 +1120,7 @@ dom.sfxAudioToggle.addEventListener("click",()=>{
 [[dom.masterVolume,"master",dom.masterVolumeValue],[dom.bgmVolume,"bgm",dom.bgmVolumeValue],[dom.sfxVolume,"sfx",dom.sfxVolumeValue]].forEach(([input,key,label])=>input.addEventListener("input",()=>{state.audio[key]=Number(input.value)/100;label.textContent=`${input.value}%`;persistAudioSettings();audio.apply();}));
 
 window.addEventListener("keydown",e=>{
-  const k=e.key.toLowerCase();
+  const k=gameInputKey(e);
   if(k==="escape"){
     // 엔딩 결론은 반드시 두 선택지 중 하나로만 닫습니다. 다른 오버레이보다
     // 먼저 확인해야 뒤쪽 설정창이 열리거나 닫히는 일도 없습니다.
@@ -1094,6 +1133,10 @@ window.addEventListener("keydown",e=>{
   // 설정창 뒤에서 미니게임 키 입력은 막되, 설정 안의 슬라이더 방향키와
   // 버튼 Space 같은 브라우저 기본 조작은 그대로 쓸 수 있어야 합니다.
   if(settingsOverlayIsOpen())return;
+  // 영업일지는 자체 키보드 탐색만 허용합니다. 뒤쪽 이야기 진행·상호작용·
+  // 미니게임으로 같은 키가 전달되지 않게 전역 게임 입력을 여기서 끝냅니다.
+  if(typeof journalOverlayIsOpen==="function"&&journalOverlayIsOpen())return;
+  if(dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen))return;
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)||e.code==="Space")e.preventDefault();
   // 화면 위에 보이는 대화가 뒤쪽 미니게임보다 항상 입력 우선권을 가집니다.
   if(storyDialogueIsActive()){
@@ -1110,18 +1153,40 @@ window.addEventListener("keydown",e=>{
     if(!engine?.key?.(state.mini,k,e)&&e.code==="Space")miniAction();
     return;
   }
+  if(state.paused)return;
+  setPhysicalMoveKey(e,true);
   if(k==="e"){interact();return;}
 });
 window.addEventListener("keyup",e=>{
-  if(settingsOverlayIsOpen()||storyDialogueIsActive())return;
+  // 오버레이 안에서 키를 놓아도 눌림 상태부터 반드시 해제해야 닫은 직후
+  // 캐릭터가 혼자 걷지 않습니다.
+  setPhysicalMoveKey(e,false);
+  if(settingsOverlayIsOpen()||storyDialogueIsActive()
+    ||(typeof journalOverlayIsOpen==="function"&&journalOverlayIsOpen()))return;
   if(!state.mini)return;
   const engine=miniEngine(state.mini);
   if(engine?.noKeyboard)return;                 // 마우스 전용 게임 (위 keydown 과 같은 이유)
-  engine?.keyup?.(state.mini,e.key.toLowerCase(),e);
+  engine?.keyup?.(state.mini,gameInputKey(e),e);
 });
-function beginJoystick(e){if(state.paused)return;joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);}
-function moveJoystick(e){if(e.pointerId!==joystickPointer)return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.setProperty(UI_VAR.knobX,`${px}px`);dom.joystickKnob.style.setProperty(UI_VAR.knobY,`${py}px`);state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
-function endJoystick(e){if(e.pointerId!==joystickPointer)return;joystickPointer=null;state.joyX=0;state.joyY=0;dom.joystickKnob.style.removeProperty(UI_VAR.knobX);dom.joystickKnob.style.removeProperty(UI_VAR.knobY);}
+window.addEventListener("blur",clearPhysicalMoveKeys);
+function gameInputKey(event){
+  const physical={KeyW:"w",KeyA:"a",KeyS:"s",KeyD:"d",KeyE:"e",Space:" "};
+  return physical[event.code]||String(event.key||"").toLowerCase();
+}
+function cancelJoystickInput(){
+  if(joystickPointer!==null&&dom.joystick.hasPointerCapture?.(joystickPointer)){
+    dom.joystick.releasePointerCapture(joystickPointer);
+  }
+  joystickPointer=null;state.joyX=0;state.joyY=0;
+  dom.joystickKnob.style.removeProperty(UI_VAR.knobX);
+  dom.joystickKnob.style.removeProperty(UI_VAR.knobY);
+}
+function beginJoystick(e){
+  if(state.paused||dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen))return;
+  joystickPointer=e.pointerId;dom.joystick.setPointerCapture(e.pointerId);moveJoystick(e);
+}
+function moveJoystick(e){if(e.pointerId!==joystickPointer||dom.menuSelectOverlay.classList.contains(UI_CLASS.overlayOpen))return;const r=dom.joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.31,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;dom.joystickKnob.style.setProperty(UI_VAR.knobX,`${px}px`);dom.joystickKnob.style.setProperty(UI_VAR.knobY,`${py}px`);state.joyX=clamp(dx/max,-1,1);state.joyY=clamp(dy/max,-1,1);}
+function endJoystick(e){if(e.pointerId!==joystickPointer)return;cancelJoystickInput();}
 dom.joystick.addEventListener("pointerdown",beginJoystick);dom.joystick.addEventListener("pointermove",moveJoystick);dom.joystick.addEventListener("pointerup",endJoystick);dom.joystick.addEventListener("pointercancel",endJoystick);
 
 class DinerScene extends Phaser.Scene {
