@@ -535,9 +535,10 @@ const STORY_SCENES = {
         openJournalOnAdvance: true,
         /* 첫 회차에서 처음 펼치는 장부입니다. 규칙을 모르는 채로 덮어 버리면
            바로 다음 대사("첫 장은 주의사항이고…")가 읽지도 않은 이야기를 하게
-           되므로, 모든 장을 한 번씩 펼치기 전에는 닫기 버튼을 딤드로 잠급니다.
-           2회차부터는 이미 아는 규칙이라 잠그지 않습니다(title.js 참고). */
-        journalReadAllPages: true
+           되므로, 주의사항 구역을 다 펼치기 전에는 닫기 버튼을 딤드로 잠급니다.
+           (레시피·일기 장은 잠금에 넣지 않습니다 — title.js 참고)
+           2회차부터는 이미 아는 규칙이라 잠그지 않습니다. */
+        journalRequiredReading: true
       },
       storyLine("protagonist", "첫 장은 주의사항이고, 다음 여덟 장은 요리 레시피… 나머지 일곱 장은 빈 종이네?", { motion: "think" }),
       storyLine("protagonist", "여기서 나가려면 달빛 조각을 모아 내일로 가는 문을 열어야 한다는 거네.", { motion: "sad" }),

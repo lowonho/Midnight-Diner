@@ -295,11 +295,22 @@ function drawPrepObjects(){
     if(!art)drawPrepFallbackObject(item,done);
 
     ctx.globalAlpha=1;
-    // 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
-    // 준비물은 메뉴당 하나라 이름표도 "메뉴 이름 + 준비" 한 가지로 씁니다.
-    // 지금 어떤 작업 차례인지는 아래 진행 숫자가 알려 줍니다.
+    /* 이름표 둥실. 주방 집기 이름표와 같은 규칙입니다. (draw-utils.js labelFloatStep)
+       준비물은 메뉴당 하나라 이름표도 "메뉴 이름 + 준비" 한 가지로 씁니다.
+       지금 어떤 작업 차례인지는 아래 진행 숫자가 알려 줍니다.
+
+       [빛은 아직 안 끝난 것 전부에 켭니다] 밤 조리는 갈 곳이 한 곳뿐이라
+       그 하나만 빛나지만, 낮 준비는 순서가 없어서 "다음 하나"를 고를 근거가
+       없습니다(fx.js §3). 그래서 남은 것을 다 같이 밝혀 "아직 이만큼 남았다"
+       만 알립니다 — 어느 것부터 할지는 그대로 플레이어가 정합니다.
+       다 끝낸 자리는 꺼져서, 남은 자리만 눈에 들어옵니다.
+
+       [둥실은 같이 안 켭니다] 남은 준비물이 한꺼번에 크게 흔들리면
+       바 테이블 위가 통째로 출렁여서 오히려 어디를 볼지 알기 어렵습니다.
+       빠른 둥실은 가까이 가서 E 를 누를 수 있을 때만입니다. */
+    const glow=!done&&!state.mini&&!state.paused;
     drawFixtureLabel(`${item.dish.name} 준비`,item.x,item.y+L.labelDy,
-      labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)));
+      labelFloatStep(`prep_${item.task.id}`,prepObjectUsable(item,near)),glow);
 
     // 진행 글자는 그림 아래로 내려서 재료를 가리지 않게 합니다.
     const textY=item.y+(art?art.h/2+L.artDy+11:18);

@@ -627,6 +627,42 @@ function dayPrepCompletionScore(data={}){
   return grade==="perfect"?100:grade==="good"?80:80;
 }
 
+/* ---- 마무리 판정 문구 · 표시 --------------------------------
+   밤 조리(E3~E6)는 끝날 때 조리판 가운데에 "완벽해요! / 맛있어요! / 아쉬워요!"
+   를 띄웁니다. 낮 준비도 **같은 말**을 씁니다 — 같은 판정을 낮에는 PERFECT/GOOD,
+   밤에는 완벽해요! 로 부르면 플레이어가 두 벌을 따로 배워야 합니다.
+   문구 기준은 game-data.js 의 cookingScoreMessage 한 곳뿐입니다.
+
+   ⚠️ 여기서 정하는 것은 **판정 표시**뿐입니다. 오른쪽 진행도/완성 개수 패널은
+      각 게임이 그대로 갖고 있습니다 — 이 함수들은 그 패널을 건드리지 않습니다. */
+
+// 점수까지 확정된 마무리용(시간 종료 감점까지 반영).
+function dayPrepVerdictText(data=state.mini?.data){
+  return cookingScoreMessage(dayPrepCompletionScore(data||{}));
+}
+
+// 등급만 있는 중간 단계용(채칼 재료 하나를 끝냈을 때 등).
+function dayPrepGradeText(grade){
+  return cookingScoreMessage(grade==="perfect"?100:grade==="miss"?50:80);
+}
+
+/* 자기 판정 표시가 없던 게임(E1 칼질 · E10 멸치)에 공용 판정을 띄웁니다.
+   hostSelector 는 그 게임의 조리판입니다(position:relative 여야 합니다).
+   모양은 css/minigame/_prep-common.css 의 .prep-verdict — 밤 E5/E6 와 같은 판입니다. */
+function showDayPrepVerdict(hostSelector,data=state.mini?.data){
+  const host=dom.miniContent?.querySelector(hostSelector);
+  if(!host)return;
+  const score=dayPrepCompletionScore(data||{});
+  let verdict=host.querySelector(".prep-verdict");
+  if(!verdict){
+    verdict=document.createElement("strong");
+    verdict.setAttribute("aria-live","polite");
+    host.appendChild(verdict);
+  }
+  verdict.textContent=cookingScoreMessage(score);
+  verdict.className=`prep-verdict ${cookingScoreTier(score)} show`;
+}
+
 /* ---- 엔진 등록 창구 ----------------------------------------
    engine-e*.js 파일들이 로드되면서 아래 두 함수를 호출해
    자기 자리를 채웁니다. 이 파일은 무엇이 등록되는지 알 필요가 없습니다. */

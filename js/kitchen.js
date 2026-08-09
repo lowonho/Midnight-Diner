@@ -601,16 +601,25 @@ function stationPromptY(s){
 }
 
 /* 이름표 한 장.
-   E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
-   앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
-   둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
+   둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep)
+
+   [빠르게 둥실대는 조건과 글자가 밝아지는 조건이 다릅니다]
+     둥실  지금 갈 곳이거나(안내 대상) 실제로 쓸 수 있을 때
+     글자  실제로 쓸 수 있을 때만 (stationUsable)
+
+   둘을 하나로 묶지 않은 이유가 있습니다. 글자 색은 "E 를 누르면 된다"는
+   약속이라 game.js updatePrompt() 가 키캡을 띄우는 조건과 정확히 같아야
+   합니다. 반면 둥실은 멀리서 눈에 띄라고 있는 것이라, 안내 대상이면
+   아직 닿지 않았어도 같이 흔들리는 편이 찾기 쉽습니다. 테두리 빛
+   (fx.js drawStationLabelGlow)과 같은 조건으로 켜지므로 빛과 움직임이
+   한 몸으로 붙습니다. */
 function labelStation(s,near){
   /* 이름표를 끈 집기(§1 hideLabel)는 여기서 바로 빠집니다.
      labelFloatStep 을 부르기 전에 빠져야 합니다 — 그 함수는 집기마다 둥실
      상태를 기억해 두는데, 안 그릴 것까지 부르면 쓰지도 않을 상태가 계속 쌓입니다. */
   if(s.hideLabel)return;
   const active=stationUsable(s,near);
-  const f=labelFloatStep(`station_${s.id}`,active);
+  const f=labelFloatStep(`station_${s.id}`,active||isGuidanceTarget(s));
 
   /* 이름표 폭은 글자 수가 정합니다(stationLabelPlateWidth).
      집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰

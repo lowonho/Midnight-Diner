@@ -1761,11 +1761,11 @@ function storyAdvance(){
        놔두면 펼친 책 뒤로 같은 책이 한 권 더 비칩니다. */
     clearStoryPropReveal();
     audio?.uiClick?.();
-    /* journalReadAllPages 인 줄(프롤로그)은 모든 장을 한 번씩 펼치기 전에는
-       닫기 버튼이 잠긴 채로 열립니다. 2회차부터의 해제 판정은 title.js 쪽에
-       있습니다. 나머지 줄은 예전 그대로 열립니다. */
-    const opened=line.journalReadAllPages&&typeof openGameplayJournalReadAll==="function"
-      ?openGameplayJournalReadAll()
+    /* journalRequiredReading 인 줄(프롤로그)은 주의사항 구역을 다 펼치기
+       전에는 닫기 버튼이 잠긴 채로 열립니다. 2회차부터의 해제 판정은 title.js
+       쪽에 있습니다. 나머지 줄은 예전 그대로 열립니다. */
+    const opened=line.journalRequiredReading&&typeof openGameplayJournalRequiredReading==="function"
+      ?openGameplayJournalRequiredReading()
       :line.journalPageId&&typeof openGameplayJournalPage==="function"
         ?openGameplayJournalPage(line.journalPageId)
         :typeof openGameplayJournal==="function"&&openGameplayJournal();

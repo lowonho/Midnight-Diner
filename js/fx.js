@@ -25,11 +25,13 @@ const FX_PARTICLE = {
   colors:["#ffe08c","#d49a4b","#9ebc6b"]
 };
 
-/* "지금 이것" 을 알리는 빛. 대상 테두리에 흰빛이 돕니다.
+/* "지금 이것" 을 알리는 빛. 대상 테두리에 등불빛이 돕니다.
    ------------------------------------------------------------
    지금 이 빛이 붙는 곳은 두 군데입니다.
      집기 이름표 명판   다음에 갈 조리대 (kitchen.js labelStation)
      손님 그림          지금 음식을 갖다 줄 손님 (customers.js)
+   둘이 같은 값을 씁니다. 동시에 뜨지 않지만 같은 뜻이라 색까지 갈리면
+   플레이어가 서로 다른 신호로 읽습니다.
 
    halo / body 는 발광 캔버스를 구울 때 한 번만 쓰는 값이고,
    breathMin~breathMax 는 매 프레임 거기에 곱하는 숨입니다.
@@ -46,14 +48,24 @@ const FX_PARTICLE = {
    빛이 "여기다" 라고 말하는 게 아니라 제 혼자 요동치는 것처럼 보입니다.
    ------------------------------------------------------------ */
 const FX_GUIDE_GLOW = {
-  color: "#ffffff",     // 흰빛
-  blur:   7,            // 후광이 번져 나가는 거리 (논리 px)
+  /* 가게 등불(assets/bg 의 등)과 같은 계열의 따뜻한 노란빛입니다.
+     한때 순백이었는데, 흰빛은 이 화면에서 유일하게 무채색인 광원이라
+     연출이 아니라 화면 위에 덧그린 표시선처럼 읽혔습니다. */
+  color: "#ffd27a",
+  blur:   8,            // 후광이 번져 나가는 거리 (논리 px)
   spread: 22,           // 발광 캔버스 여백. blur 보다 넉넉해야 후광이 잘리지 않습니다
   /* 한 번 얹은 세기(halo)를 passes 번 겹칩니다.
      한 장만 얹으면 번진 빛이 넓고 옅게 퍼져서, 밝은 타일 벽 앞에서는
      아예 안 보입니다. 겹치면 윤곽에 가까울수록 빠르게 진해져서
-     테두리는 또렷하고 바깥으로는 부드럽게 사라집니다. */
-  halo:   .8, haloPasses: 4,
+     테두리는 또렷하고 바깥으로는 부드럽게 사라집니다.
+     [세기를 고른 근거] 명판 왼쪽 바깥 3 / 6 / 10 / 16 논리 px 지점의
+     알파를 낮 화면에서 재 보면 이렇습니다.
+       .58 x3  132 / 100 /  53 / 10   ← 밝은 타일 벽 앞에서 거의 안 보입니다
+       .72 x4  178 / 142 /  81 / 17   ← 지금 값
+       .90 x4  208 / 172 / 104 / 24   ← 흰빛 시절 세기. 등불이 아니라 형광등입니다
+     노란빛은 흰빛보다 벽(베이지 타일)과 대비가 낮아서, 같은 알파라도
+     더 옅게 읽힙니다. 그래서 흰빛 때보다 낮추되 .58 까지는 못 내립니다. */
+  halo:   .72, haloPasses: 4,
   body:   0,            // 대상 안쪽에 스미는 빛 세기 (0 = 원화 그대로)
   noBlurBody: .2,       // ctx.filter 를 못 쓰는 브라우저에서만 쓰는 예비값
   /* 숨. 어두워지는 쪽(breathMin)을 너무 내리면 밝은 타일 벽 앞에서
@@ -130,15 +142,17 @@ function drawParticles(){
      명판 둥실   닿았나 → kitchen.js (E 를 누를 수 있으면 크게 둥실)
      키캡        어떻게 → css/interaction.css (닿으면 E)
 
-   [일반 낮 준비에는 안 그립니다] 낮 준비는 순서가 정해져 있지 않아서
-   (선행 작업이 걸린 두부김치류만 예외) "다음 하나"를 가리킬 근거가
-   없습니다. 예전에는 아직 안 한 것 중 첫 번째를 가리켰는데,
+   [낮 준비는 "하나"가 아니라 "남은 것 전부"입니다] 낮 준비는 순서가
+   정해져 있지 않아서(선행 작업이 걸린 두부김치류만 예외) "다음 하나"를
+   가리킬 근거가 없습니다. 예전에 아직 안 한 것 중 첫 번째를 가리켰다가,
    아무 준비물이나 먼저 해도 되는 규칙과 어긋나 오해를 줬습니다.
-   지금은 어떤 준비물이든 앞에 서면 이름표가 크게 둥실대므로
-   (prep.js prepObjectUsable) 따로 가리키지 않아도 알 수 있습니다.
+   그래서 낮에는 아직 안 끝낸 준비물의 이름표를 **다 같이** 밝힙니다.
+   순서를 말하지 않으면서 남은 양만 보여 주는 표현입니다.
+   판단은 prep.js drawPrepObjects() 가 하고, 그리는 것만 여기 있습니다.
 
    반대로 메뉴 선택·밤 조리·프롤로그 조리는 currentRequirement() 가
-   단계를 강제하므로 가리킬 곳이 실제로 하나뿐이고, 그래서 남겨 둡니다.
+   단계를 강제하므로 가리킬 곳이 실제로 하나뿐이고, 그때는 그 하나만
+   빛나면서 이름표도 같이 빠르게 둥실댑니다 (kitchen.js labelStation).
    ------------------------------------------------------------ */
 
 // 안내를 띄워도 되는 국면인가. 일시정지·미니게임 중에는 전부 끕니다.
@@ -153,6 +167,13 @@ function guidanceTarget(){
   if(!guidanceActive())return null;
   const requirement=currentRequirement();
   return requirement?stationById(requirement):null;
+}
+
+/* 이 집기가 지금 안내 대상인가.
+   빛을 그릴지(아래 drawStationLabelGlow)와, 이름표를 빠르게 둥실댈지
+   (kitchen.js labelStation)를 같은 함수로 판단해야 둘이 따로 놀지 않습니다. */
+function isGuidanceTarget(s){
+  return !!s&&guidanceTarget()?.id===s.id;
 }
 
 /* 지금 빛나야 할 손님의 주문 id. 없으면 null.
@@ -241,14 +262,17 @@ function drawGuideGlow(glow,x,y,boxW,boxH){
   ctx.restore();
 }
 
-/* 집기 이름표 명판. kitchen.js labelStation() 이 판을 그리기 **직전**에
-   부릅니다 (판이 빛 위에 얹혀야 안쪽이 깔끔합니다).
+/* 이름표 명판 한 장. 판을 그리기 **직전**에 부릅니다
+   (판이 빛 위에 얹혀야 안쪽이 깔끔합니다).
    x,y,w,h 는 그 프레임의 판 자리 — 둥실 흔들림까지 반영된 값입니다.
+
+   주방 집기(kitchen.js)와 낮 준비물(draw-utils.js drawFixtureLabel)이 같이
+   씁니다. 둘은 판 크기가 다르지만 같은 나무판 그림을 늘려 쓰므로,
+   크기를 캐시 키에 넣어 두면 굽는 코드는 하나면 됩니다.
 
    판 그림을 아직 못 받았으면 같은 크기의 둥근 사각형으로 굽습니다.
    그림이 나중에 도착하면 키가 달라져서 저절로 그림 쪽으로 넘어갑니다. */
-function drawStationLabelGlow(s,x,y,w,h){
-  if(guidanceTarget()?.id!==s.id)return;
+function drawPlateGlow(x,y,w,h){
   const plate=nameplateCanvas(w,h);
   const key=plate?`plate_${w}x${h}`:`platebox_${w}x${h}`;
   if(!(key in glowCanvases)){
@@ -258,6 +282,12 @@ function drawStationLabelGlow(s,x,y,w,h){
       : g=>{g.fillStyle="#fff";roundRect(g,0,0,vw,vh,toView(G.plateRadius),true,false);});
   }
   drawGuideGlow(glowCanvases[key],x,y,w,h);
+}
+
+// 주방 집기 이름표 — 지금 갈 차례인 집기에만. (kitchen.js labelStation)
+function drawStationLabelGlow(s,x,y,w,h){
+  if(!isGuidanceTarget(s))return;
+  drawPlateGlow(x,y,w,h);
 }
 
 /* 앞쪽 철판·계산대의 명패. game.js draw() 가 앞 층에서 한 번 부릅니다.

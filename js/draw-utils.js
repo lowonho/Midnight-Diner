@@ -223,15 +223,19 @@ function fixtureLabelWidth(text){
 }
 
 /* float 은 labelFloatStep() 의 반환값입니다. 안 넘기면 예전처럼 가만히 있습니다.
+   glow 가 참이면 판 뒤에 안내 등불빛을 깝니다. (fx.js §3 drawPlateGlow)
 
    [판 한가운데를 기준으로 놓습니다] 판 높이가 바뀌어도 위아래로 똑같이
    늘어나게 하려는 것입니다. 예전 도형 명판의 한가운데(글자 baseline 위 5)를
    그대로 쓰므로, 판만 커지고 준비물·완료 도장과의 간격은 그대로입니다. */
-function drawFixtureLabel(text,x,y,float){
+function drawFixtureLabel(text,x,y,float,glow=false){
   const L=FIXTURE_LABEL,w=fixtureLabelWidth(text);
   const boxY=y-5-L.h/2+(float?.dy||0);
   ctx.save();
   applyLabelScale(float?.scale,x,boxY+L.h/2);
+
+  // 판보다 먼저 그려야 판이 빛 위에 얹혀 안쪽이 깔끔합니다.
+  if(glow)drawPlateGlow(x-w/2,boxY,w,L.h);
 
   /* 판. 철판 명패와 같은 나무판 그림입니다.
      [강조 표현] 그림 판에는 바꿀 테두리가 없어서, 글자 색과 크기
