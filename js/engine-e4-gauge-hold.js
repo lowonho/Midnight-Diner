@@ -4,9 +4,12 @@
    E4 움직이는 온도 구간 추적 — 어묵탕 · 떡볶이 공통 엔진
 
    스페이스바를 누르는 동안 온도 커서가 올라가고, 떼면 내려옵니다. 플레이어는
-   위아래 끝을 일정한 속도로 왕복하는 적정 온도 박스를 따라가며 5초를 채웁니다.
-   플레이어 커서는 상승·하강 모두 0.48, 적정 온도 박스는 위·아래 모두
-   0.40의 일정한 속도로 움직입니다. 몇 초에 한 번은 박스 폭이 잠깐 좁아집니다.
+   불규칙하게 움직이는 적정 온도 박스를 따라가며 5초를 채웁니다.
+   플레이어 커서는 상승 0.72 · 하강 0.56 의 일정한 속도입니다.
+   적정 온도 박스는 [출발점 → 목적지] 한 구간씩 움직입니다 — 목적지도 방향도
+   매번 새로 뽑고, 성격(느긋 · 보통 · 훅)에 따라 걸리는 시간이 달라지며,
+   구간 안에서는 스르르 출발해 스르르 멈춥니다(속도의 페이드 인 · 아웃).
+   도착하면 잠깐 숨을 고르고, 몇 초에 한 번은 박스 폭이 잠깐 좁아집니다.
    냄비 그림만 메뉴별 설정으로 바꾸고, 추적 물리·유지 판정·완료는 한
    컨트롤러가 담당합니다.
 
@@ -51,18 +54,18 @@ const HEAT_CONFIG=Object.freeze({
     title:"어묵탕 끓이기",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:5,targetSpeed:.40,
+    targetSize:.22,targetHold:5,targetSpeed:.28,
     initialValue:0,initialTarget:.11,initialTargetDirection:1,
-    riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
+    riseSpeed:.72,fallSpeed:.56,riseResponse:60,fallResponse:60
   }),
   tteokbokki:Object.freeze({
     title:"떡볶이 끓이기",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"tteokbokki",ingredients:HEAT_INGREDIENTS.tteokbokki,
     // 구간 폭만 어묵탕보다 좁고, 이동 속도는 두 요리가 같습니다.
-    targetSize:.19,targetHold:5,targetSpeed:.40,
+    targetSize:.19,targetHold:5,targetSpeed:.28,
     initialValue:0,initialTarget:.095,initialTargetDirection:1,
-    riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
+    riseSpeed:.72,fallSpeed:.56,riseResponse:60,fallResponse:60
   }),
   // 어느 설정에도 없는 요리가 들어왔을 때 쓰는 안전망입니다.
   // 냄비 그림과 마찬가지로 재료 칸도 어묵탕 것을 그대로 씁니다.
@@ -70,9 +73,9 @@ const HEAT_CONFIG=Object.freeze({
     title:"화력 조절",
     description:"스페이스바를 꾹 눌러 온도를 올리고, 떼서 내리며 적정 온도를 따라가세요.",
     visual:"oden",ingredients:HEAT_INGREDIENTS.oden,
-    targetSize:.22,targetHold:5,targetSpeed:.40,
+    targetSize:.22,targetHold:5,targetSpeed:.28,
     initialValue:0,initialTarget:.11,initialTargetDirection:1,
-    riseSpeed:.48,fallSpeed:.48,riseResponse:60,fallResponse:60
+    riseSpeed:.72,fallSpeed:.56,riseResponse:60,fallResponse:60
   })
 });
 
@@ -88,6 +91,16 @@ const HEAT_FEEL_CONFIG=Object.freeze({
   targetLaunchSpeed:.20,
   targetLaunchSlowSeconds:.7,
   targetLaunchEaseSeconds:.4,
+  /* ── 적정 구간이 "한 번" 움직이는 방식 ──
+     한 번의 이동은 [출발점 → 목적지] 한 구간입니다. 목적지도 방향도 매번 새로
+     뽑고, 구간 안에서는 스르르 출발해 스르르 멈춥니다.
+     ⚠️ 위아래 끝을 같은 속도로 왕복하게 되돌리지 마세요. 그게 "너무 정직해서
+        쫄리는 맛이 없다" 는 이유였습니다. 다음에 어디로 갈지 예측이 되면
+        플레이어는 미리 가서 기다리기만 하면 됩니다. */
+  moveMinTravel:.16,        // 최소 이동 폭(전체 범위 대비). 이보다 짧으면 멈춘 것처럼 보입니다
+  moveTravelSpread:.2,
+  moveDurMin:.26,           // 아무리 짧은 이동도 이보다 빨리 끝나지 않습니다(순간이동 방지)
+  moveDurMax:2.2,
   /* 적정 온도를 벗어난 채로 이만큼 지나면 −10 입니다.
      ⚠️ 이 값은 화면 두 군데에 그대로 적혀 있습니다. 고치면 셋을 같이 고치세요.
           진행도 카드의 '/ 1.0초'  (아래 heatScreenMarkup 의 miniScoreTimeMarkup)
@@ -100,8 +113,11 @@ const HEAT_FEEL_CONFIG=Object.freeze({
   pinchGapRange:3.2,
   pinchDurMin:1,
   pinchDurRange:.9,
-  pinchDepthMin:.4,         // 가장 좁을 때 원래 폭의 40~60%가 남습니다
-  pinchDepthRange:.2
+  /* 가장 좁을 때 원래 폭의 66~80%가 남습니다.
+     ⚠️ 원래 40~60% 였는데 너무 많이 조여서 되돌렸습니다. 이건 "잠깐 긴장하는" 장치이지
+        벌을 주는 장치가 아닙니다. 절반 밑으로 내려가면 제자리에 잘 있어도 그냥 밀려납니다. */
+  pinchDepthMin:.2,
+  pinchDepthRange:.14
 });
 
 function heatConfigId(m){return HEAT_CONFIG[m.context?.dishId]?m.context.dishId:"default";}
@@ -150,10 +166,37 @@ function updateHeatPinch(data,dt,random=Math.random){
   data.pinchDepth=HEAT_FEEL_CONFIG.pinchDepthMin+random()*HEAT_FEEL_CONFIG.pinchDepthRange;
 }
 
-function heatTargetPhase(target,direction,config){
-  const half=config.targetSize/2,span=1-config.targetSize,offset=clamp(target,half,1-half)-half;
-  return direction>=0?offset:span*2-offset;
+/* 이동 성격 세 가지. speed 는 그때의 기준 속도(heatTargetSpeed)에 곱하는 배수입니다.
+   느긋 · 보통 · 훅 이 섞여야 "다음에 어떻게 움직일지" 예측이 안 됩니다 —
+   전부 cruise 뿐이면 끝에서 끝까지 같은 속도로 오가던 예전 그 움직임이 됩니다.
+   hold 는 도착한 뒤 숨 고르는 시간이라 빠른 이동일수록 짧습니다.
+
+   ⚠️ dash 를 더 키우지 마세요. 아래 heatMoveEase 의 최고 기울기가 평균의 1.5배라
+      dash 의 순간 속도는 targetSpeed(.28) x 1.9 x 1.5 = 초당 약 0.80 입니다.
+      온도 커서가 올라가는 속도(riseSpeed 0.72)와 거의 같은 선이라, 제일 빠른
+      구간에서도 바짝 붙으면 따라갈 수 있습니다. 여기서 더 키우면 커서가
+      아예 못 따라가서 쫄리는 게 아니라 운으로 바뀝니다.
+   ⚠️ 전체 속도는 여기가 아니라 메뉴 설정의 targetSpeed 로 조절하세요.
+      세 성격의 **비율**은 그대로 두고 다 같이 빨라지거나 느려집니다. */
+const HEAT_TARGET_PACES=Object.freeze([
+  Object.freeze({id:"drift", speed:.7,  holdMin:.26,holdRange:.32,weight:3}),
+  Object.freeze({id:"cruise",speed:1.15,holdMin:.1, holdRange:.22,weight:4}),
+  Object.freeze({id:"dash",  speed:1.9, holdMin:0,  holdRange:.18,weight:3})
+]);
+const HEAT_PACE_WEIGHT_TOTAL=HEAT_TARGET_PACES.reduce((sum,pace)=>sum+pace.weight,0);
+
+function pickHeatPace(random){
+  let roll=random()*HEAT_PACE_WEIGHT_TOTAL;
+  for(const pace of HEAT_TARGET_PACES){if((roll-=pace.weight)<0)return pace;}
+  return HEAT_TARGET_PACES[HEAT_TARGET_PACES.length-1];
 }
+
+/* 0 → 1 을 잇는 곡선입니다(smoothstep). 양 끝의 기울기가 0 이라 스르르 출발해
+   스르르 멈춥니다 — 이게 속도의 페이드 인 · 페이드 아웃입니다. 등속으로 밀면
+   출발과 정지가 딱딱 끊겨서 기계가 움직이는 것처럼 보입니다.
+   ⚠️ 4t³ 짜리 cubic ease-in-out 으로 바꾸지 마세요. 가운데 기울기가 평균의
+      3배까지 치솟아서, 같은 pace 값이어도 순간 속도가 두 배가 됩니다. */
+function heatMoveEase(t){return t*t*(3-2*t);}
 
 function heatTargetSpeed(data,config){
   const launchSpeed=Math.min(config.targetSpeed,HEAT_FEEL_CONFIG.targetLaunchSpeed);
@@ -164,19 +207,48 @@ function heatTargetSpeed(data,config){
   return launchSpeed+(config.targetSpeed-launchSpeed)*ease;
 }
 
-/* 목표 구간은 시작할 때만 천천히 출발한 뒤 원래 속도까지 부드럽게 올라갑니다.
-   이후에는 같은 속도로 위아래 끝을 계속 왕복하며, 끝에서는 위치가 끊기지 않고 방향만 바뀝니다. */
+/* 다음 이동 한 번을 통째로 계획합니다 — 어디로 · 얼마나 오래 · 도착 후 얼마나 쉴지.
+   목적지만 정하고 매 프레임 쫓아가게 하면 결국 늘 비슷한 속도가 나옵니다. 이동을 한
+   구간으로 잡아 두어야 그 안에서 가속·감속을 마음대로 그릴 수 있습니다.
+   random 인자를 열어 둔 것은 테스트에서 같은 움직임을 재현할 수 있게 하기 위해서입니다. */
+function retargetHeatZone(data,config,random=Math.random){
+  const half=config.targetSize/2,range=1-config.targetSize,pace=pickHeatPace(random);
+  let goal=half+random()*range;
+  // 지금 자리와 너무 가까우면 화면상 멈춘 것처럼 보이므로 최소 이동 폭을 줍니다.
+  if(Math.abs(goal-data.target)<range*HEAT_FEEL_CONFIG.moveMinTravel){
+    const step=range*(HEAT_FEEL_CONFIG.moveMinTravel+random()*HEAT_FEEL_CONFIG.moveTravelSpread);
+    /* ⚠️ 끝에 붙어 있을 때는 반대쪽으로 보냅니다. 벽 쪽으로 밀면 아래 clamp 에 걸려
+       제자리에 서 버리는데, 게임 시작 직후가 딱 그 상황입니다(구간이 바닥에서 출발). */
+    const direction=data.target-half<step?1:(1-half-data.target<step?-1:(random()<.5?-1:1));
+    goal=clamp(data.target+direction*step,half,1-half);
+  }
+  data.targetFrom=data.target;
+  data.targetGoal=goal;
+  data.targetPace=pace.id;
+  data.targetDirection=goal>=data.target?1:-1;
+  data.targetMoveTime=0;
+  /* 같은 거리라도 성격에 따라 걸리는 시간이 다릅니다 = 눈에 보이는 속도가 다릅니다.
+     기준 속도를 여기서 한 번 읽는 덕에, 시작 직후(heatTargetSpeed 의 느린 구간)에
+     계획된 첫 이동은 통째로 느긋합니다 — 출발이 부드러운 이유입니다. */
+  data.targetMoveDur=clamp(Math.abs(goal-data.targetFrom)/(heatTargetSpeed(data,config)*pace.speed),
+    HEAT_FEEL_CONFIG.moveDurMin,HEAT_FEEL_CONFIG.moveDurMax);
+  data.targetHoldIn=pace.holdMin+random()*pace.holdRange;
+}
+
+/* 목표 구간은 [출발점 → 목적지] 한 구간씩 움직입니다. 구간마다 목적지 · 방향 ·
+   성격(느긋/보통/훅)을 새로 뽑고, 구간 안에서는 스르르 출발해 스르르 멈춥니다. */
 function updateHeatTarget(data,config,dt,random=Math.random){
   updateHeatPinch(data,dt,random);
-  const half=config.targetSize/2,span=1-config.targetSize,period=span*2;
-  data.targetPhase=(data.targetPhase+heatTargetSpeed(data,config)*dt)%period;
-  if(data.targetPhase<=span){
-    data.target=half+data.targetPhase;
-    data.targetDirection=1;
-  }else{
-    data.target=1-half-(data.targetPhase-span);
-    data.targetDirection=-1;
+  if(data.targetMoveTime>=data.targetMoveDur){
+    // 도착했습니다. 잠깐 숨을 고른 뒤에야 다음 이동을 뽑습니다 —
+    // 쉬지 않고 계속 흐르면 리듬이 안 보여서 오히려 밋밋해집니다.
+    data.targetHoldIn-=dt;
+    if(data.targetHoldIn>0)return;
+    retargetHeatZone(data,config,random);
   }
+  data.targetMoveTime=Math.min(data.targetMoveDur,data.targetMoveTime+dt);
+  const half=config.targetSize/2,progress=heatMoveEase(data.targetMoveTime/data.targetMoveDur);
+  data.target=clamp(data.targetFrom+(data.targetGoal-data.targetFrom)*progress,half,1-half);
 }
 
 function heatFallbackMarkup(visual){
@@ -447,9 +519,14 @@ registerMiniEngine("heat",{
     m.data={
       configId,value:config.initialValue,velocity:0,target:config.initialTarget,inZone:0,total:0,
       targetDirection:config.initialTargetDirection,
-      targetPhase:heatTargetPhase(config.initialTarget,config.initialTargetDirection,config),
+      /* 첫 프레임에 바로 다음 이동을 뽑도록 "이미 도착했고 쉴 시간도 0" 인 상태로 둡니다.
+         ⚠️ 여기서 retargetHeatZone 을 미리 부르면 안 됩니다. 3-2-1 카운트다운 동안
+            구간이 바닥(initialTarget)에 서 있어야 하는데, 미리 뽑아 두면 그 사이에
+            목적지가 정해져 버려서 시작하자마자 튀어 오릅니다. */
+      targetFrom:config.initialTarget,targetGoal:config.initialTarget,targetPace:"cruise",
+      targetMoveTime:0,targetMoveDur:0,targetHoldIn:0,
       sizeScale:1,pinchIn:HEAT_FEEL_CONFIG.pinchFirstDelay,pinchTime:0,pinchDur:0,pinchDepth:0,
-      outsideTime:0,warnings:0,enteredZone:false,excursionWarned:false,
+      outsideTime:0,warnings:0,enteredZone:false,
       holding:false,phase:"countdown",loopStarted:false,
       countdownRemaining:HEAT_FEEL_CONFIG.startCountdownSeconds*HEAT_FEEL_CONFIG.startCountdownStepSeconds,
       countdownStep:HEAT_FEEL_CONFIG.startCountdownSeconds
@@ -479,11 +556,23 @@ registerMiniEngine("heat",{
 
     const zone=heatZoneState(data.value,data,config);
     if(zone==="ideal"){
-      data.enteredZone=true;data.outsideTime=0;data.excursionWarned=false;
+      data.enteredZone=true;data.outsideTime=0;
       data.inZone=Math.min(config.targetHold,data.inZone+dt);
     }else if(data.enteredZone){
       data.outsideTime+=dt;
-      if(data.outsideTime>=HEAT_FEEL_CONFIG.warningDelay&&!data.excursionWarned){data.warnings++;data.excursionWarned=true;audio.bad();}
+      /* 다 차면 0 으로 되돌리고 다시 채웁니다 — 벗어나 있는 동안 1초마다 계속 깎입니다.
+         E3 볶기의 '마지막 볶기 이후' 와 같은 방식입니다(js/engine-e3-direction-seq.js).
+         ⚠️ 예전에는 excursionWarned 라는 잠금값으로 **한 번만** 깎고 잠갔습니다.
+            그러면 우측 '적정 온도 이탈' 막대는 1.0 에 붙어 있는데 점수는 100 그대로라,
+            플레이어 눈에는 "한참 벗어나 있는데도 안 깎인다" 로 보입니다.
+         ⚠️ updateMiniScore 를 여기서 직접 불러야 깎이는 순간 우측 숫자와 '-10점'
+            연출이 같이 뜹니다. */
+      if(data.outsideTime>=HEAT_FEEL_CONFIG.warningDelay){
+        data.outsideTime=0;
+        data.warnings++;
+        audio.bad();
+        updateMiniScore(m);
+      }
     }
     updateHeatVisual(data,config);
     if(data.inZone>=config.targetHold)completeHeatHold(m);

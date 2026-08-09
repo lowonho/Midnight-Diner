@@ -26,6 +26,11 @@
 // 의자를 옮기거나 COUNTER_FIT.scale 을 바꾸면 손님도 자동으로 따라옵니다.
 const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.map(x=>Math.round(toLogic(x)));
 
+// 실제로 손님을 앉히는 자리 수입니다. 의자 그림은 5개 그대로 두고 5번(맨
+// 오른쪽) 자리는 비워 둡니다. 자리를 다시 열려면 이 값만 올리면 되고,
+// 좌석 선택은 night.js randomFreeCustomerSlot() 한 곳으로 모여 있습니다.
+const CUSTOMER_USABLE_SEATS = Math.min(4, CUSTOMER_SEATS.length);
+
 // 요리사가 카운터를 사이에 두고 손님 쪽으로 최대한 붙어야 서빙할 수 있습니다.
 // FRONT_STATIONS.counter.y 는 조리도구 쪽 뒷선이라 서빙 기준으로 쓰면 방향이
 // 반대가 됩니다. 실제 이동 영역의 손님 쪽 하한선을 읽어 가장 가까운 자리를 씁니다.

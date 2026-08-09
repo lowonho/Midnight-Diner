@@ -598,6 +598,37 @@ const STORY_SCENES = {
     ]
   },
 
+  /* ── 이튿날부터 매일 낮을 여는 구분 장면 ─────────────────────
+     밤 결과창에서 "다음 날"을 누르면 곧바로 낮 준비 화면이 떠서, 하루가
+     끝나고 다음 하루가 시작됐다는 감각이 없었습니다. 첫째 날은 프롤로그
+     끝의 SCN-P05 가 「DAY 1 · 영업 준비」 카드로 그 구분을 해 주는데,
+     둘째 날부터는 dayStart 에 걸린 장면이 SCN-L02(2회차 전용) 뿐이라
+     1회차에는 아무것도 뜨지 않았습니다.
+
+     그래서 같은 제목의 카드를 매일 띄우고, 김다은이 하루를 여는 한마디를
+     합니다. day 를 비워 두면 카드의 날짜는 storySceneDayLabel() 이
+     현재 state.day 로 채웁니다(story.js).
+
+     ⚠️ 첫째 날에는 넣지 않습니다 — 1회차는 SCN-P05, 2회차는 SCN-L01 이
+        이미 첫날 카드를 띄우므로 카드가 두 번 겹칩니다. 등록은 아래
+        STORY_EVENT_SCHEDULE.dayStart 의 2~7일차에만 되어 있습니다.
+     ⚠️ SCN-L02(영업일지 안내)보다 앞에 와야 합니다. 날짜 구분이 먼저 서고
+        그다음이 오늘의 준비 이야기입니다. */
+  "SCN-D00": {
+    id: "SCN-D00",
+    title: "영업 준비",
+    day: null,
+    moment: "dayStart",
+    sceneType: "dailyPrepOpening",
+    timeOfDay: "day",
+    character: "protagonist",
+    repeatEachDay: true,
+    lines: [
+      storyNarration("창밖이 다시 환해지고, 달빛식탁에 새로운 하루가 들어찬다."),
+      storyLine("protagonist", "오늘의 준비를 시작하자.", { motion: "resolve" })
+    ]
+  },
+
   "SCN-L02": {
     id: "SCN-L02",
     title: "메뉴 선택 전 영업일지 참고",
@@ -1209,14 +1240,16 @@ const STORY_EVENT_SCHEDULE = {
   newGame: {
     1: ["SCN-P01", "SCN-P02", "SCN-P03", "SCN-P04", "SCN-P05"]
   },
+  /* 첫째 날의 날짜 카드는 프롤로그 끝(SCN-P05) 또는 회귀 첫 장면(SCN-L01)이
+     이미 띄웁니다. 그래서 SCN-D00 은 둘째 날부터만 겹칩니다. */
   dayStart: {
     1: ["SCN-L01", "SCN-L02"],
-    2: ["SCN-L02"],
-    3: ["SCN-L02"],
-    4: ["SCN-L02"],
-    5: ["SCN-L02"],
-    6: ["SCN-L02"],
-    7: ["SCN-L02"]
+    2: ["SCN-D00", "SCN-L02"],
+    3: ["SCN-D00", "SCN-L02"],
+    4: ["SCN-D00", "SCN-L02"],
+    5: ["SCN-D00", "SCN-L02"],
+    6: ["SCN-D00", "SCN-L02"],
+    7: ["SCN-D00", "SCN-L02"]
   },
   nightStart: {
     1: ["SCN-D01"],

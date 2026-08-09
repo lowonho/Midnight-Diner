@@ -61,10 +61,14 @@ function orderableDishes(){
 }
 function hasOrderableStock(){return orderableDishes().length>0;}
 
+/* 좌석은 CUSTOMER_USABLE_SEATS(customers.js) 개까지만 씁니다. 손님이 앉는 자리를
+   늘리거나 줄이려면 그 값만 바꾸면 되고, 여기와 story.js 의 예비 경로가 함께
+   따라옵니다. */
 function randomFreeCustomerSlot(occupied=new Set()){
+  const usable=Math.min(CUSTOMER_SEATS.length,CUSTOMER_USABLE_SEATS);
   const freeSlots=CUSTOMER_SEATS
     .map((_,slot)=>slot)
-    .filter(slot=>!occupied.has(slot));
+    .filter(slot=>slot<usable&&!occupied.has(slot));
   return freeSlots.length
     ?freeSlots[Math.floor(Math.random()*freeSlots.length)]
     :-1;
@@ -348,6 +352,16 @@ function renderNightResult(){
 
 function spawnOrder(slot,options={}) {
   if(state.orders.some(order=>order.slot===slot))return false;
+  // 막아 둔 자리로 들어온 호출(예전 세이브의 재등장 예약 등)은 열려 있는
+  // 자리로 옮겨 앉힙니다. 빈자리가 없으면 등장 자체를 미룹니다.
+  if(!(slot>=0&&slot<Math.min(CUSTOMER_SEATS.length,CUSTOMER_USABLE_SEATS))){
+    slot=randomFreeCustomerSlot(new Set([
+      ...state.orders.map(order=>order.slot),
+      ...state.departures.map(item=>item.slot),
+      ...state.respawns.map(item=>item.slot)
+    ]));
+    if(slot<0)return false;
+  }
   normalizeNightOrderCounters();
   const forceStory=!!options.forceStory;
   const generalOnly=!!options.generalOnly;
@@ -639,12 +653,16 @@ function updateNightObjective(){
     ?`<div class="recipe-steps">${d.cook.map((s,i)=>
         `<div class="recipe-step ${i<order.cookStep?"done":i===order.cookStep?"current":""}"><span>${i+1}</span><span>${stationById(s.station).label}</span></div>`).join("")}</div>`
     :"";
+  /* 「요리 김치전 | 조리대 프라이팬」 — 네 줄이던 것을 **한 줄**에 둡니다
+     (.objective-line). 구분선 | 은 CSS 가 넣습니다.
+     이름과 값을 한 묶음(.objective-pair)에 넣는 것이 핵심입니다 — 같은 줄상자
+     안에 있어야 도트 글꼴 두 벌(이름=굵은 글꼴 · 값=본문 글꼴)의 밑선이 맞습니다.
+     따로 떼어 격자 칸에 앉히면 「요리」만 아래로 처져 보였습니다.
+     줄어든 만큼 판 아래가 비는데, 그 자리는 index.html 의 점수 기준 칸이 씁니다. */
   dom.objectiveBody.innerHTML=`
-    <div class="prep-summary">
-      <strong>요리</strong>
-      <div>${d.name}${special}</div>
-      <strong>조리대</strong>
-      <div>${stationById(step.station).label}</div>
+    <div class="prep-summary objective-line">
+      <span class="objective-pair"><strong>요리</strong><span>${d.name}${special}</span></span>
+      <span class="objective-pair"><strong>조리대</strong><span>${stationById(step.station).label}</span></span>
       ${steps}
     </div>`;
 }

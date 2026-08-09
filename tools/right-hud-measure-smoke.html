@@ -54,6 +54,11 @@
         <span class="phase-dot"></span>
       </div>
       <div id="objectiveBody" class="objective-body"></div>
+      <div class="score-guide">
+        <div><b>100점</b><span>완벽한 요리</span></div>
+        <div><b>70~99점</b><span>평범한 요리</span></div>
+        <div><b>70점 미만</b><span>아쉬운 요리</span></div>
+      </div>
       <div class="relationship-box">
         <div class="relationship-heading"><span>영업 기록</span><small>특별 손님과 달빛 조각</small></div>
         <div id="relationshipList" class="relationship-list"><span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span></div>
@@ -107,11 +112,16 @@ const NIGHT_CASES = {
     <div><strong>프라이팬</strong>에서 조리하세요.</div>
     <div class="recipe-steps"><div class="recipe-step current"><span>1</span><span>프라이팬</span></div></div>`,
   "밤 · 조리": `
-    <div class="prep-summary">
-      <strong>요리</strong>
-      <div>김치전<small class="special-order"> · 특별 조리</small></div>
-      <strong>조리대</strong>
-      <div>프라이팬</div>
+    <div class="prep-summary objective-line">
+      <span class="objective-pair"><strong>요리</strong><span>김치전</span></span>
+      <span class="objective-pair"><strong>조리대</strong><span>프라이팬</span></span>
+    </div>`,
+  /* 한 줄에 들어갈 수 있는 가장 긴 조합입니다 — 넘치면 「조리대 …」가 아랫줄로
+     내려갑니다(.objective-line 이 wrap). 판이 늘어나는지 보는 것이 목적입니다. */
+  "밤 · 조리(최장)": `
+    <div class="prep-summary objective-line">
+      <span class="objective-pair"><strong>요리</strong><span>두부김치<small class="special-order"> · 특별 조리</small></span></span>
+      <span class="objective-pair"><strong>조리대</strong><span>프라이팬</span></span>
     </div>`,
   "밤 · 운반": `
     <div class="prep-summary">
@@ -122,6 +132,12 @@ const NIGHT_CASES = {
     <div class="prep-summary">
       <strong>대기</strong>
       <div>다음 손님을 기다리고 있습니다.</div>
+    </div>`,
+  /* 본문이 가장 긴 경우입니다 — .objective-body 최소 높이를 정하는 것은 이 줄입니다. */
+  "밤 · 대기(특별)": `
+    <div class="prep-summary">
+      <strong>대기</strong>
+      <div>특별 손님이 자신의 차례를 기다리고 있습니다.</div>
     </div>`
 };
 
@@ -139,6 +155,14 @@ function measure(){
      CSS 에 적을 값이 미묘하게 어긋납니다. */
   const inner=document.querySelector(".game-frame").clientHeight;
   const lines=[`글꼴 ${fontsReady}`,`프레임 안쪽 높이 ${inner}px (테두리 뺀 값 — % 의 기준)`];
+  /* 점수 기준 칸(밤 전용)이 먹는 높이. .objective-body 최소 높이를 이만큼 내려야
+     판이 예전과 같은 키로 섭니다 — 위 여백까지 포함한 값입니다. */
+  {
+    const guide=document.querySelector(".score-guide");
+    app.className="game-app phase-open";
+    const g=getComputedStyle(guide);
+    lines.push(`점수 기준 칸 ${guide.getBoundingClientRect().height.toFixed(1)}px + 위 여백 ${g.marginTop}`);
+  }
 
   function run(phaseClass,cases,label=phaseClass){
     app.className=`game-app ${phaseClass}`;
@@ -196,11 +220,12 @@ function measure(){
   run("phase-open",NIGHT_CASES,"phase-open · 영업 기록 8명(최대)");
 
   /* 화면에는 낮 · 남은 3(판 높이를 정하는 경우)을 남겨 둡니다.
-     밤 화면을 보려면 아래 두 줄의 phase-prep/CASES 를 phase-open/NIGHT_CASES 로 바꾸세요. */
+     밤 화면(조리 안내 + 점수 기준 칸)을 보려면 주소 뒤에 ?night 를 붙이세요. */
   document.getElementById("relationshipList").innerHTML=
     '<span class="relationship-empty">아직 기록된 특별 손님이 없습니다.</span>';
-  app.className="game-app phase-prep";
-  body.innerHTML=CASES["낮 · 남은 3"];
+  const night=location.search.includes("night");
+  app.className=`game-app ${night?"phase-open":"phase-prep"}`;
+  body.innerHTML=night?NIGHT_CASES["밤 · 조리"]:CASES["낮 · 남은 3"];
   document.getElementById("out").textContent=lines.join("\n");
 }
 addEventListener("load",measure);

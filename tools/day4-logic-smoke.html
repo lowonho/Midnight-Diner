@@ -15,8 +15,13 @@ const audio={click(){},success(){},uiClick(){playedSfx.push("ui_click");},result
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 function shuffle(items){return [...items];}
 function miniAction(){MINI_ENGINES[state.mini?.engine]?.action?.(state.mini);}
+// ⚠️ setMiniTipHint 은 여기서 비워 두지만 miniPenaltyMarkup · miniScoreTimeMarkup 은
+//    아래 ui-mini-frame.js 에서 진짜 것을 불러옵니다. 여러 엔진이 화면을 그릴 때
+//    직접 부르는데, 안 불러오면 setup 에서 ReferenceError 로 죽어 그 뒤 단언이
+//    통째로 안 돌아갑니다(증상은 "E1 에서 실패" 한 줄뿐이라 원인 찾기가 오래 걸립니다).
 function setMiniTipHint(){}
 </script>
+<script src="../js/ui-mini-frame.js"></script>
 <script src="../js/day.js"></script>
 <script src="../js/prep.js"></script>
 <script src="../js/day-prep-minigames.js"></script>
@@ -254,25 +259,41 @@ try{
   assert(state.mini.data.successInputs===3&&state.mini.data.expected==="right"&&state.mini.data.drag?.pointerId===22,"E2 one held drag accepts the full return stroke without grabbing again");
   dom.miniContent.dispatchEvent(new PointerEvent("pointerup",{pointerId:22,pointerType:"mouse",clientX:-5,clientY:32,bubbles:true}));
   assert(!state.mini.data.drag&&!dom.miniContent.querySelector("#mandolineIngredient.dragging"),"E2 mandoline releases the ingredient cleanly");
-  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.default.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.riseSpeed===.48&&HEAT_CONFIG.oden.fallSpeed===.48&&HEAT_CONFIG.tteokbokki.riseSpeed===.48&&HEAT_CONFIG.tteokbokki.fallSpeed===.48&&HEAT_CONFIG.oden.targetSpeed===.40&&HEAT_CONFIG.tteokbokki.targetSpeed===.40&&!Object.hasOwn(HEAT_CONFIG.oden,"timeLimit")&&!Object.hasOwn(HEAT_CONFIG.tteokbokki,"timeLimit"),"Heat uses a five-second hold, no time limit, a 0.48 player cursor, and a 0.40 target");
-  /* 적정 구간은 무작위 목적지나 급가속 없이 위아래 끝을 같은 속도로 왕복합니다. */
-  const bouncingHeat={target:.5,targetDirection:1,targetPhase:heatTargetPhase(.5,1,HEAT_CONFIG.oden),sizeScale:1,pinchIn:99,pinchTime:0,pinchDur:0,pinchDepth:0,total:2};
-  const heatTargetStart=bouncingHeat.target;
-  updateHeatTarget(bouncingHeat,HEAT_CONFIG.oden,.25,()=>.5);
-  assert(Math.abs((bouncingHeat.target-heatTargetStart)-HEAT_CONFIG.oden.targetSpeed*.25)<1e-9,"E4 target moves at one constant cursor-matched speed after the launch easing");
-  let heatDirectionFlips=0,previousHeatDirection=bouncingHeat.targetDirection;
-  for(let frame=0;frame<600;frame++){
-    updateHeatTarget(bouncingHeat,HEAT_CONFIG.oden,1/60,()=>.5);
-    if(bouncingHeat.targetDirection!==previousHeatDirection){heatDirectionFlips++;previousHeatDirection=bouncingHeat.targetDirection;}
-  }
+  assert(HEAT_CONFIG.oden.targetHold===5&&HEAT_CONFIG.tteokbokki.targetHold===5&&HEAT_CONFIG.default.targetHold===5&&HEAT_CONFIG.oden.targetSize>HEAT_CONFIG.tteokbokki.targetSize&&HEAT_CONFIG.oden.riseSpeed===.72&&HEAT_CONFIG.oden.fallSpeed===.56&&HEAT_CONFIG.tteokbokki.riseSpeed===.72&&HEAT_CONFIG.tteokbokki.fallSpeed===.56&&HEAT_CONFIG.oden.targetSpeed===.28&&HEAT_CONFIG.tteokbokki.targetSpeed===.28&&!Object.hasOwn(HEAT_CONFIG.oden,"timeLimit")&&!Object.hasOwn(HEAT_CONFIG.tteokbokki,"timeLimit"),"Heat uses a five-second hold, no time limit, a 0.72 player cursor, and a 0.28 base target speed");
+  /* 적정 구간은 [출발점 → 목적지] 한 구간씩 움직입니다. random 값을 손으로 먹여
+     같은 거리라도 뽑힌 성격(pace)에 따라 걸리는 시간이 달라지는지 · 구간 안에서
+     스르르 출발해 스르르 멈추는지 · 도착 후 숨을 고르고 다음 이동을 새로 뽑는지를 봅니다.
+     ⚠️ 위아래 끝을 같은 속도로 왕복하던 예전 방식으로 되돌리지 마세요 —
+        다음 자리가 예측돼서 미리 가서 기다리기만 하면 되는 게임이 됩니다. */
+  const planHeat={target:.5,targetFrom:.5,targetGoal:.5,targetDirection:1,targetMoveTime:0,targetMoveDur:0,targetHoldIn:0,sizeScale:1,pinchIn:99,pinchTime:0,pinchDur:0,pinchDepth:0,total:2};
+  // [성격, 목적지, 도착 후 멈춤] 세 개씩. 첫 벌은 drift(느긋), 두 벌째는 cruise 입니다.
+  const heatPlanValues=[0,.2,.9, .5,.9,.1, .4,.3,.5],heatPlanRandom=()=>heatPlanValues.shift();
+  retargetHeatZone(planHeat,HEAT_CONFIG.oden,heatPlanRandom);
+  const slowHeatGoal=planHeat.targetGoal,slowHeatDur=planHeat.targetMoveDur,slowHeatDirection=planHeat.targetDirection;
+  planHeat.target=planHeat.targetFrom=.5;retargetHeatZone(planHeat,HEAT_CONFIG.oden,heatPlanRandom);
+  assert(slowHeatGoal<.5&&slowHeatDirection===-1&&planHeat.targetGoal>.5&&planHeat.targetDirection===1&&planHeat.targetMoveDur<slowHeatDur,"E4 target plans one move at a time and rerolls destination, direction, and pace");
+  const heatMidDur=planHeat.targetMoveDur;
+  updateHeatTarget(planHeat,HEAT_CONFIG.oden,heatMidDur/2,heatPlanRandom);const heatHalfway=planHeat.target;
+  updateHeatTarget(planHeat,HEAT_CONFIG.oden,heatMidDur/2,heatPlanRandom);
+  assert(Math.abs(heatHalfway-(.5+planHeat.targetGoal)/2)<1e-6&&Math.abs(planHeat.target-planHeat.targetGoal)<1e-6,"E4 target eases into and out of each move instead of running at one flat speed");
+  planHeat.targetHoldIn=0;const heatArrivedGoal=planHeat.targetGoal;
+  updateHeatTarget(planHeat,HEAT_CONFIG.oden,.05,heatPlanRandom);
+  assert(planHeat.targetGoal!==heatArrivedGoal&&planHeat.targetMoveTime<planHeat.targetMoveDur,"E4 target takes a breath at the destination and then starts a fresh move");
   const heatHalf=HEAT_CONFIG.oden.targetSize/2;
-  assert(heatDirectionFlips>=4&&bouncingHeat.target>=heatHalf&&bouncingHeat.target<=1-heatHalf,"E4 target repeatedly travels the full gauge and reverses continuously at both ends");
+  const paceHeat={target:.5,targetFrom:.5,targetGoal:.5,targetDirection:1,targetMoveTime:0,targetMoveDur:0,targetHoldIn:0,sizeScale:1,pinchIn:99,pinchTime:0,pinchDur:0,pinchDepth:0,total:2};
+  const heatStepSpeeds=new Set();let heatLast=paceHeat.target,heatLow=1,heatHigh=0;
+  for(let frame=0;frame<900;frame++){
+    updateHeatTarget(paceHeat,HEAT_CONFIG.oden,1/60);
+    heatStepSpeeds.add(Math.round(Math.abs(paceHeat.target-heatLast)*60*20));heatLast=paceHeat.target;
+    heatLow=Math.min(heatLow,paceHeat.target);heatHigh=Math.max(heatHigh,paceHeat.target);
+  }
+  assert(heatStepSpeeds.size>=8&&heatLow>=heatHalf-1e-9&&heatHigh<=1-heatHalf+1e-9&&heatHigh-heatLow>.4,"E4 target keeps changing speed while staying inside the gauge");
   const pinchHeat={sizeScale:1,pinchIn:.02,pinchTime:0,pinchDur:0,pinchDepth:0};
   const pinchRandom=()=>.5;
   updateHeatPinch(pinchHeat,.05,pinchRandom);updateHeatPinch(pinchHeat,pinchHeat.pinchDur/2,pinchRandom);
   const heatNarrowest=pinchHeat.sizeScale;
   updateHeatPinch(pinchHeat,pinchHeat.pinchDur,pinchRandom);
-  assert(heatNarrowest>=.4&&heatNarrowest<=.6&&heatZoneSize({sizeScale:heatNarrowest},HEAT_CONFIG.oden)<HEAT_CONFIG.oden.targetSize&&pinchHeat.sizeScale===1&&pinchHeat.pinchIn>0,"E4 ideal band shrinks to 40 to 60 percent before opening back up");
+  assert(heatNarrowest>=.66&&heatNarrowest<=.8&&heatZoneSize({sizeScale:heatNarrowest},HEAT_CONFIG.oden)<HEAT_CONFIG.oden.targetSize&&pinchHeat.sizeScale===1&&pinchHeat.pinchIn>0,"E4 ideal band shrinks only to 66 to 80 percent before opening back up");
   /* 새우튀김 준비는 한 마리가 세 걸음입니다 — 재료칸에서 꺼내기 → 굴리기 →
      (스스로) 재료칸으로 돌아가기. 첫 걸음은 실제로는 끌어다 놓기(E8 공용
      배치기)이고 셋째 걸음은 타이머라, 여기서는 그 둘이 부르는 함수를 바로
@@ -354,19 +375,35 @@ try{
   assert(heatMini.data.phase==="ready"&&heatMini.data.value===0&&heatMini.data.total===0&&dom.miniContent.querySelector("#heatStartCountdown.go strong").textContent==="시작!"&&playedSfx.join(",")==="clear_simmer","E4 opens input, animation, and simmer audio together on the start signal");
   MINI_ENGINES.heat.key(heatMini," ",{repeat:false,code:"Space"});MINI_ENGINES.heat.update(heatMini,.4);MINI_ENGINES.heat.keyup(heatMini," ",{code:"Space"});
   const raisedHeatValue=heatMini.data.value,raisedHeatTarget=heatMini.data.target;
-  assert(Math.abs((raisedHeatValue-initialHeatValue)-HEAT_CONFIG.oden.riseSpeed*.4)<1e-9&&Math.abs((raisedHeatTarget-initialTarget)-HEAT_FEEL_CONFIG.targetLaunchSpeed*.4)<1e-9,"E4 held-Space cursor moves at 0.48 while the ideal zone begins at the eased 0.20 launch speed");
-  assert(heatTargetSpeed({total:.7},HEAT_CONFIG.oden)===.2&&Math.abs(heatTargetSpeed({total:.9},HEAT_CONFIG.oden)-.3)<1e-9&&heatTargetSpeed({total:1.1},HEAT_CONFIG.oden)===HEAT_CONFIG.oden.targetSpeed,"E4 ideal-zone launch holds 0.20 for 0.7s and eases to the normal 0.40 over the next 0.4s");
+  /* 커서는 등속이라 정확히 riseSpeed x 시간만큼 오릅니다. 적정 구간은 구간마다
+     가속·감속하므로 "정확히 몇" 이 아니라 **느린 출발 속도(0.20)를 넘지 않는지**만
+     봅니다 — 첫 이동은 heatTargetSpeed 의 느린 구간에서 계획되기 때문입니다. */
+  assert(Math.abs((raisedHeatValue-initialHeatValue)-HEAT_CONFIG.oden.riseSpeed*.4)<1e-9&&raisedHeatTarget>initialTarget&&(raisedHeatTarget-initialTarget)<=HEAT_FEEL_CONFIG.targetLaunchSpeed*.4+1e-9,"E4 held-Space cursor moves at 0.72 while the ideal zone creeps up no faster than the 0.20 launch speed");
+  // 중간값은 숫자를 박지 말고 두 끝의 한가운데인지로 봅니다 — targetSpeed 를 조절할 때마다
+  // 이 줄까지 따라 고치게 되면, 정작 "부드럽게 이어지는가" 는 아무도 안 보게 됩니다.
+  const heatLaunchMid=(HEAT_FEEL_CONFIG.targetLaunchSpeed+HEAT_CONFIG.oden.targetSpeed)/2;
+  assert(heatTargetSpeed({total:.7},HEAT_CONFIG.oden)===HEAT_FEEL_CONFIG.targetLaunchSpeed&&Math.abs(heatTargetSpeed({total:.9},HEAT_CONFIG.oden)-heatLaunchMid)<1e-9&&heatTargetSpeed({total:1.1},HEAT_CONFIG.oden)===HEAT_CONFIG.oden.targetSpeed,"E4 ideal-zone launch holds the slow 0.20 for 0.7s and eases to the normal speed over the next 0.4s");
   MINI_ENGINES.heat.update(heatMini,.4);
   assert(MINI_ENGINES.heat.timerRuns()===false&&raisedHeatValue>initialHeatValue&&heatMini.data.value<raisedHeatValue&&heatMini.data.target!==initialTarget&&dom.miniContent.querySelector(".heat-tracker #heatTarget")&&dom.miniContent.querySelector("#heatLift")&&dom.miniContent.querySelector(".heat-pot-art.oden,.heat-pot.oden")&&!dom.miniContent.querySelector(".heat-strip")&&playedSfx.join(",")==="clear_simmer","E4 oden hold raises, release falls, target moves, and the redundant bottom strip stays removed");
   assert(!Number.isFinite(heatMini.time)&&typeof MINI_ENGINES.heat.timeout==="undefined"&&!dom.miniContent.querySelector(".heat-count-value")&&!dom.miniContent.querySelector("#heatTime")&&MINI_ENGINES.heat.score(heatMini)>=0,"E4 has no time limit or timeout path while the whole upper-right card shows only score");
-  heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.31;heatMini.data.warnings=0;
+  // ⚠️ outsideTime 은 warningDelay(1초)에서 아래 dt(.4)를 뺀 값보다 커야 −10 이 한 번 터집니다.
+  //    warningDelay 를 고치면 이 씨앗값도 같이 고치세요.
+  heatMini.data.enteredZone=true;heatMini.data.target=.5;heatMini.data.value=.1;heatMini.data.inZone=2;heatMini.data.outsideTime=.61;heatMini.data.warnings=0;
   MINI_ENGINES.heat.update(heatMini,.4);
   updateMiniScore(heatMini);
   assert(heatMini.data.inZone===2&&heatMini.data.warnings===1&&heatCompletionGrade(heatMini.data)==="good"&&MINI_ENGINES.heat.score(heatMini)===90&&dom.miniContent.querySelector("[data-mini-score]").textContent==="90"&&parseFloat(dom.miniContent.querySelector("#heatHoldFill").style.width)===40,"E4 warning deducts 10 points while preserving the green hold progress");
+  /* 벗어나 있는 동안 **계속** 깎여야 합니다. 예전에는 한 번 깎고 잠가 버려서,
+     이탈 막대는 1.0 에 붙어 있는데 점수는 그대로였습니다 — 플레이어 눈에는
+     "한참 벗어나 있는데 안 깎인다" 로 보입니다. 다시 돌아왔다 나가야만 깎이도록
+     되돌리지 마세요. */
+  for(let frame=0;frame<Math.round(HEAT_FEEL_CONFIG.warningDelay*2*60);frame++)MINI_ENGINES.heat.update(heatMini,1/60);
+  assert(heatMini.data.warnings>=3&&MINI_ENGINES.heat.score(heatMini)<=70&&heatMini.data.outsideTime<HEAT_FEEL_CONFIG.warningDelay,"E4 keeps deducting every second the cursor stays outside instead of latching after one warning");
+  heatMini.data.warnings=1;
   heatMini.data.warnings=4;assert(MINI_ENGINES.heat.score(heatMini)===60&&heatCompletionGrade(heatMini.data)==="miss","E4 warnings keep deducting 10 points below the tasty score tier");
   heatMini.data.warnings=11;assert(MINI_ENGINES.heat.score(heatMini)===0,"E4 repeated warnings continue deducting down to the natural zero-point floor");
   // 완료 판정만 보려는 곳이라 적정 구간과 커서를 같은 지점에 둡니다.
-  heatMini.data.target=.5;heatMini.data.targetDirection=1;heatMini.data.targetPhase=heatTargetPhase(.5,1,HEAT_CONFIG.oden);heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
+  // 완료 판정만 보려는 곳이라 적정 구간은 세워 둡니다(도착 + 긴 멈춤 + 좁아짐 예약 뒤로).
+  heatMini.data.target=.5;heatMini.data.targetDirection=1;heatMini.data.targetMoveTime=heatMini.data.targetMoveDur;heatMini.data.targetHoldIn=9;heatMini.data.pinchIn=9;heatMini.data.value=.5;heatMini.data.velocity=0;heatMini.data.inZone=4.99;heatMini.data.outsideTime=0;heatMini.data.warnings=0;heatMini.data.enteredZone=true;
   MINI_ENGINES.heat.update(heatMini,.02);
   assert(finishedScore===100&&dom.miniContent.querySelector("#e4Result.perfect"),"E4 perfect completion at hold target");
   playedSfx.length=0;

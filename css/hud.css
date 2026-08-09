@@ -235,10 +235,14 @@
   text-align: center;
   font-size: calc(12 * var(--upx));
 }
+/* [여백 10] 카드 원화(228x131.2)의 가장자리 장식은 짙은 테두리 0~3 · 안쪽 장식선
+   6.5~9 자리에 있습니다. 예전 여백 4/3 은 배지가 그 테두리 위에 걸터앉아
+   카드 밖으로 삐져나온 것처럼 보였습니다. 10 이면 장식선 안쪽으로 1 들어옵니다.
+   ⚠️ 좌우 두 배지(필수 · 주문 N)는 같이 나올 수 있으므로 여백을 함께 맞추세요. */
 .menu-tag,
 .order-count {
   position: absolute;
-  bottom: calc(3 * var(--upx));
+  bottom: calc(10 * var(--upx));
   padding: 1px calc(6 * var(--upx));
   border-radius: calc(8 * var(--upx));
   background: #2d1a11;
@@ -248,8 +252,8 @@
   -webkit-text-stroke: var(--bold-stroke) currentColor;
   font-weight: 800;
 }
-.menu-tag { left: calc(4 * var(--upx)); }
-.order-count { right: calc(4 * var(--upx)); background: #5b3420; }
+.menu-tag { left: calc(10 * var(--upx)); }
+.order-count { right: calc(10 * var(--upx)); background: #5b3420; }
 
 /* 경제 시스템을 제외한 칸 순서: DAY · 진행 · 만족도 · 도감 · 설정 */
 /* [오른쪽 -19.1] 칸 묶음의 오른쪽 모서리를 바로 아래 우측 HUD('영업 준비')와
@@ -426,7 +430,12 @@
                  (.hud-stats 의 margin-right -19.1)은 고칠 것이 없습니다.
                  왼쪽으로만 자랍니다(x 1600.9 → 1547.1). */
 .left-hud { top: 20.4%; left: 1.35%; width: 15.2%; }
-.right-hud { top: 18.4%; right: 1.35%; width: 18%; }
+/* [윗변 17.5%] 예전 18.4%. 우측 판만 좌측(20.4%)보다 높이 시작합니다 — 밤에는
+   「영업 기록」이 붙어 판이 훨씬 길어서, 좌측과 어깨를 맞추면 아래끝이 프레임
+   바닥으로 내려갑니다. 여기서 0.9% (9.7px) 더 올렸습니다.
+   ⚠️ 위로는 상단 판 아랫변(16.38%)이 벽입니다. 지금 사이가 1.31% (14.1px)라
+      더 올리면 상단 판에 붙습니다(실측 tools/right-hud-measure-smoke.html 세로 배치). */
+.right-hud { top: 17.5%; right: 1.35%; width: 18%; }
 
 /* 좌측 패널은 높이를 **고정**합니다.
    ------------------------------------------------------------
@@ -527,6 +536,7 @@
 }
 
 .phase-prep .relationship-box,
+.phase-prep .score-guide,
 .phase-prep .open-only-control {
   display: none;
   pointer-events: none;
@@ -717,7 +727,19 @@
 .inventory-row strong { color: #ffe09a; }
 
 .objective-body {
-  min-height: calc(90 * var(--upx));
+  /* [0] 최소 높이를 두지 않습니다 — 본문 칸은 담긴 글만큼만 섭니다.
+     (예전 90 → 50 → 0. 낮은 원래 아래에서 0 으로 풀고 flex 로 늘립니다:
+      .phase-prep .right-hud > .objective-body)
+     밤 안내는 상태마다 줄 수가 다릅니다 — 조리 21.5(한 줄) · 운반 39.6 · 대기 39.6.
+     못박아 두면 제일 짧은 조리 상태에서 아래가 28.5 뜨는데, 그 틈보다 상태에 따라
+     아래 칸(점수 기준 · 영업 기록 · 조작 안내)이 18 씩 오르내리는 쪽을 택했습니다.
+     판 자체는 min-height 34% 라 이 값과 무관하게 늘 같은 크기입니다 — 줄어든 만큼은
+     판 아래쪽 빈자리로 갑니다(조리 35.6 · 운반/대기 17.4. 실측
+     tools/right-hud-measure-smoke.html).
+     ⚠️ 밤 문구가 길어져 줄이 늘면 판이 34% 를 넘겨 자라고 그 크기로 구운 판 그림이
+        세로로 늘어납니다. 여유는 운반/대기 기준 17.4 = 한 줄(20.3)이 채 안 되니
+        문구를 늘리기 전에 위 하네스로 재세요. */
+  min-height: 0;
   color: #ead8b8;
   font-size: calc(14 * var(--upx));   /* 예전 12 */
   line-height: 1.45;
@@ -794,6 +816,32 @@
 .day3-prep-progress .overall { display:contents; color:#ffe09a; font-family: var(--font-bold); -webkit-text-stroke: var(--bold-stroke) currentColor; font-weight:800; }
 .prep-summary div { color: #d8c19e; }
 
+/* 한 줄짜리 변형 — 「요리 김치전 | 조리대 프라이팬」 (밤 조리 안내).
+   ------------------------------------------------------------
+   [줄상자] 이름과 값은 반드시 한 묶음(.objective-pair) 안에 **인라인**으로
+   둡니다. 도트 글꼴이 두 벌이라(이름 = --font-bold · 값 = 본문 글꼴) 서로 다른
+   칸에 앉히면 「요리」만 아래로 처져 보입니다. 같은 줄상자 안에 있으면 브라우저가
+   밑선을 맞춰 주므로 위치를 손으로 밀어 맞출 일이 없습니다.
+   [넘칠 때] 요리 이름이 길고 「· 특별 조리」까지 붙는 가장 긴 조합은 판 폭에
+   아슬아슬합니다. wrap 을 열어 두어 그때는 「조리대 …」가 아랫줄로 내려갑니다 —
+   본문 칸 최소 높이(.objective-body 50)가 두 줄까지 받으므로 판은 안 늘어납니다. */
+.objective-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: calc(2 * var(--upx)) calc(9 * var(--upx));
+}
+.objective-pair > span { margin-left: calc(6 * var(--upx)); color: #d8c19e; }
+/* 두 묶음 사이 구분선. 글에는 없는 기호라 CSS 로만 답니다. */
+.objective-pair + .objective-pair::before {
+  content: "|";
+  margin-right: calc(9 * var(--upx));
+  color: #8a6b46;
+}
+/* 여러 단계짜리 메뉴가 생기면 조리 단계 칸이 이 줄 안으로 들어옵니다 —
+   옆에 끼지 않게 줄을 통째로 차지하게 둡니다. */
+.objective-line .recipe-steps { flex: 1 0 100%; }
+
 /* 밤 주문 목록도 낮 준비 목록과 같은 자리를 씁니다 — 손님이 늘어 패널 최대 높이에
    걸리면 여기만 굴러가고, 그 아래 것들은 제자리에 남습니다. */
 .order-list {
@@ -825,6 +873,42 @@
 .order-row em { grid-column: 2 / 4; color: #a98b67; font-size: .88em; font-style: normal; }
 .special-order { color: #e7a76a; }
 .order-empty { color: #a98b67; font-size: calc(13 * var(--upx)); line-height: 1.45; }   /* 예전 11 */
+
+/* 요리 점수 기준 (밤 전용 · index.html #rightHud).
+   ------------------------------------------------------------
+   셰프가 들고 다니는 접시 그림이 갈리는 선을 그대로 적은 칸입니다
+   (js/food-props.js FOOD_GRADE_MIN — 100 / 70). 한쪽만 고치면 안내와 그림이
+   어긋나므로 그 상수를 바꾸면 index.html 의 세 줄도 같이 고치세요.
+   [자리] 「현재 목표」 본문이 두 줄로 줄면서(.objective-rows) 생긴 빈 자리입니다.
+   그래서 .objective-body 의 최소 높이도 이 칸이 먹는 만큼 함께 내렸습니다 —
+   둘은 짝이라 한쪽만 고치면 판이 늘어나고 판 그림이 세로로 늘어납니다. */
+.score-guide {
+  display: grid;
+  gap: calc(2 * var(--upx));
+  margin-top: calc(7 * var(--upx));
+  padding-top: calc(6 * var(--upx));
+  border-top: 1px solid rgba(224,163,77,.25);
+  color: #c6aa7e;
+  font-size: calc(13 * var(--upx));   /* 예전 11 — 옆 「영업 기록」 제목(13)과 같은 단 */
+  line-height: 1.3;
+}
+/* 점수 칸 폭을 못박아 오른쪽 설명 세 줄의 왼끝이 나란합니다.
+   66 은 가장 긴 「70점 미만」이 13px 에서 한 줄에 들어가는 폭입니다
+   (한글 13 x 3 + 숫자 6.5 x 2 + 사이 공백 = 58.5). */
+.score-guide > div {
+  display: grid;
+  grid-template-columns: calc(66 * var(--upx)) 1fr;
+  gap: calc(5 * var(--upx));
+}
+/* 도트 굵은 글꼴은 줄 간격이 1.0배라 여러 줄에서 겹칩니다. 여기는 한 줄이지만
+   위 line-height 1.3 을 물려받게 두어 세 줄의 줄 높이를 같게 맞춥니다. */
+.score-guide b {
+  color: #ffd787;
+  font-family: var(--font-bold);
+  -webkit-text-stroke: var(--bold-stroke) currentColor;
+  font-weight: 800;
+  line-height: inherit;
+}
 
 .relationship-box {
   margin-top: calc(7 * var(--upx));

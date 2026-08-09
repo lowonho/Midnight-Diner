@@ -14,6 +14,7 @@ var state={};
 const window={MoonlightTableSave:null,QA_MODE:null,addEventListener(){},matchMedia(){return {matches:false};}};
 const document={getElementById(){return null;}};
 const CUSTOMER_SEATS=[240,520,800,1080,1360];
+const CUSTOMER_USABLE_SEATS=4;
 const CUSTOMER_VARIANT_COUNT=6;
 let nextOrderId=1;
 const dom={};
@@ -70,9 +71,10 @@ playStoryScenes=ids=>{played.push([...ids]);return true;};
 
 const originalRandom=Math.random;
 Math.random=()=>.99;
-assert(randomFreeCustomerSlot(new Set())===4
-  &&randomFreeCustomerSlot(new Set([4]))===3,
-  "손님은 다섯 좌석 전체의 빈자리 중 무작위 좌석을 골라야 합니다.");
+assert(randomFreeCustomerSlot(new Set())===3
+  &&randomFreeCustomerSlot(new Set([3]))===2
+  &&randomFreeCustomerSlot(new Set([0,1,2,3]))===-1,
+  "손님은 열려 있는 네 좌석(1~4번)의 빈자리 중에서만 골라야 하고 5번 자리에는 앉지 않아야 합니다.");
 Math.random=originalRandom;
 
 // 날짜별 일반 손님 간격은 범위 안에서 흔들리고, 마지막 한 명은 더 빨리 옵니다.
