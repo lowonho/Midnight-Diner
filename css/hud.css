@@ -42,10 +42,10 @@
    ⚠️ 좌측 HUD 의 left/width(.left-hud)를 고치면 이 두 값도 같이 고쳐야 선이 어긋나지 않습니다.
    [높이] height 로는 못 줍니다 — 격자 줄에 묶여서 판만 키울 수가 없습니다(위 grid-template-rows).
    위아래 padding 으로 벌리고, 넘치는 만큼 줄 밖으로 대칭으로 나갑니다.
-   [아래로만 늘리기] 줄이 align-items:center 라 padding-bottom 만 키우면 판이 위아래로
+   [아래로만 늘리기] 줄이 align-items:center 라 위아래 여백을 키우면 판이 위아래로
    반씩 커져서 윗변까지 올라갑니다. 늘린 만큼을 margin-top 으로 되돌려 주면
    (가운데 정렬은 margin 을 포함한 바깥 상자 기준) 윗변은 제자리에 두고 아래로만 자랍니다.
-   ⚠️ 그래서 아래 --logo-panel-drop 하나만 고치면 됩니다. margin-top 과 padding-bottom 을
+   ⚠️ 그래서 아래 --logo-panel-drop 하나만 고치면 됩니다. margin-top 과 padding 을
       따로 만지면 윗변이 어긋납니다.
    판 아래끝(지금 약 187)이 좌측 HUD 시작선(y 200)을 넘지 않는 선까지만 키우세요. */
 .small-logo {
@@ -58,8 +58,13 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: calc(14 * var(--upx)) calc(8 * var(--upx))
-           calc((14 + var(--logo-panel-drop)) * var(--upx));
+  /* [위아래 여백을 같게 두는 이유] 예전에는 늘린 --logo-panel-drop 을 통째로
+     아래 여백에만 얹어서, 판은 아래로 자라는데 로고와 단계 줄은 제자리에 남았습니다.
+     그러면 판 안에서 내용이 drop 의 절반만큼 위로 쏠려 보입니다(16 일 때 8px).
+     그래서 drop 을 위아래로 반씩 나눠 얹습니다 — 여백 합(28 + drop)은 그대로라
+     판 높이와 윗변은 변하지 않고, 로고·글씨만 절반만큼 내려와 가운데에 섭니다.
+     ⚠️ 다시 아래로만 얹지 마세요. 판을 키울수록 내용이 위로 뜹니다. */
+  padding: calc((14 + var(--logo-panel-drop) / 2) * var(--upx)) calc(8 * var(--upx));
   line-height: 1.05;
 }
 /* 타이틀 글씨는 타이틀 화면과 같은 로고 그림입니다(assets/UI/Main).

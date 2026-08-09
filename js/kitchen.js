@@ -608,6 +608,10 @@ function labelStation(s,near){
      바꿨는데, 그림 판에는 바꿀 테두리가 없습니다. 대신 글자 색과
      크기(applyLabelScale)로만 강조합니다 — 앞쪽 철판 명패가 쓰는
      방식과 같습니다. (counter.js COUNTER_FLOAT) */
+  // 지금 갈 차례인 집기면 판 뒤에 빛을 깝니다. (fx.js §3 drawStationLabelGlow)
+  // 판보다 먼저 그려야 판이 빛 위에 얹혀 안쪽이 깔끔합니다.
+  drawStationLabelGlow(s,x,y,w,h);
+
   const plate=nameplateCanvas(w,h);
   if(plate){
     ctx.drawImage(plate,x,y,w,h);

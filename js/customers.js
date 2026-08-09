@@ -494,16 +494,22 @@ function drawCustomers(){
       ctx.strokeStyle="#ffd776";ctx.lineWidth=3;ctx.beginPath();
       ctx.arc(x,hy+H.ringY,H.ringR+Math.sin(t*5)*2,0,Math.PI*2);ctx.stroke();
     }
-    /* 이름(특별 손님) / 자리 번호(일반 손님)가 앉는 높이는 세 가지입니다.
+    /* 머리 위 이름표는 특별 손님만 답니다. 일반 손님에게 붙던 자리 번호는
+       뺐습니다 — 좌측 「현재 주문」 목록과 우측 패널이 이미 몇 번 손님인지
+       적어 주고, 머리 위 숫자는 주문 패널과 겹쳐 어수선하기만 했습니다.
+
+       앉는 높이는 세 가지입니다.
          말풍선이 떠 있으면  말풍선 바로 위 — 말풍선에 가리지 않게
          주문 패널이 있으면  패널 바로 위 — 패널·꼬리와 겹치지 않게
          둘 다 없으면        머리 바로 위 */
-    const labelY=speech?speech.top-H.labelSpeechGap
-      :visitorOnly?hy+H.labelHeadY
-      :hy+H.labelY;
-    ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
-    ctx.fillText(order.guestId?storyOrderLabel(order):`${order.slot+1}`,x,labelY);
-    ctx.textAlign="left";
+    if(order.guestId){
+      const labelY=speech?speech.top-H.labelSpeechGap
+        :visitorOnly?hy+H.labelHeadY
+        :hy+H.labelY;
+      ctx.fillStyle="#ffe1a0";ctx.font="bold 12px Malgun Gothic";ctx.textAlign="center";
+      ctx.fillText(storyOrderLabel(order),x,labelY);
+      ctx.textAlign="left";
+    }
 
     ctx.restore();
     if(speech)drawCustomerSpeech(speech,entryAlpha);
@@ -541,9 +547,12 @@ function drawCustomerSprite(variant,x,y,frame,alpha=1,customer={},motion=CUSTOME
     const cols=art.motions[motion].cols;
     const cellW=sheet.width/cols,cellH=sheet.height/art.rows;
     const drawW=B.h*cellW/cellH;
-    ctx.drawImage(sheet,
-      (frame%cols)*cellW,(variant%art.rows)*cellH,cellW,cellH,
-      x-drawW/2,y+CUSTOMER_FOOT_OFFSET-B.h,drawW,B.h);
+    const sx=(frame%cols)*cellW,sy=(variant%art.rows)*cellH;
+    const dx=x-drawW/2,dy=y+CUSTOMER_FOOT_OFFSET-B.h;
+    // 지금 음식을 갖다 줄 손님이면 몸 뒤에 빛을 깝니다. (fx.js §3 drawCustomerGlow)
+    drawCustomerGlow(customer,sheet,`${set}_${motion}_${variant}_${frame%cols}`,
+                     sx,sy,cellW,cellH,dx,dy,drawW,B.h);
+    ctx.drawImage(sheet,sx,sy,cellW,cellH,dx,dy,drawW,B.h);
     ctx.restore();
     return;
   }

@@ -1063,11 +1063,15 @@ function draw(){
   drawStations();        // kitchen.js   주방 집기 몸통
 
   beginFrontLayer();     // ── 요리사·카운터보다 앞 ───────────
+  /* 뒤쪽 집기의 안내 발광은 kitchen.js 가 이름표를 그리면서 같이 얹고,
+     손님 발광은 customers.js 가 손님을 그리면서 같이 얹습니다. (fx.js §3)
+     여기서 따로 부르는 건 앞쪽 철판 명패뿐입니다 — 저건 Phaser 객체라
+     이 캔버스에 그리는 순서와 무관합니다. */
   drawStationLabels();   // kitchen.js   집기 이름표 (요리사에 가리면 안 됨)
   drawSignage();         // signage.js   영업중 간판
   drawPrepObjects();     // prep.js      낮 준비물
   drawCustomers();       // customers.js 손님
-  drawGuidance();        // fx.js        안내 화살표
+  drawFrontPlateGlow();  // fx.js        앞쪽 철판 명패 발광
   drawParticles();       // fx.js        파티클·팝업
 
   commitFrame();         // draw-utils.js
@@ -1078,7 +1082,7 @@ function draw(){
 // drawFrontFixtures → signage.js (drawSignage)
 // drawPrepObjects → prep.js
 // drawCustomers/Sprite/Speech → customers.js
-// drawGuidance/drawParticles → fx.js
+// drawFrontPlateGlow/drawParticles → fx.js
 // drawFixtureLabel/roundRect/wrapCanvasText → draw-utils.js
 // drawFoodProp (음식 그림) → food-props.js
 
