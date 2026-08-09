@@ -159,7 +159,12 @@ function syncAudioControls(){
 
 const audio = {
   ctx:null, master:null, bgm:null, sfx:null,
-  bgmFiles:Object.freeze({day:"assets/bgm/bgm_day.mp3",night:"assets/bgm/bgm_night.mp3"}),
+  bgmFiles:Object.freeze({
+    day:"assets/bgm/bgm_day.mp3",
+    night:"assets/bgm/bgm_night.mp3",
+    storyCompany:"assets/bgm/story/bgm_company_story.mp3",
+    storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"
+  }),
   // 파일이 둘인 효과음은 호출할 때마다 1 → 2 → 1 순서로 골라 반복감을 줄입니다.
   // 논리 이름과 실제 파일명을 여기 한곳에서만 연결해 엔진 쪽에는 경로를 흩뿌리지 않습니다.
   files:Object.freeze({
@@ -188,6 +193,7 @@ const audio = {
     result_good:["assets/sfx/sfx_result_good.MP3"],
     timer_warning:["assets/sfx/sfx_timer_warning.MP3"],
     ui_click:["assets/sfx/sfx_ui_click.MP3"],
+    journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"],
     food_serve:["assets/sfx/sfx_food_serve.MP3"],
     pour_thin:["assets/sfx/sfx_pour_thin.MP3"],
     pour_thick:["assets/sfx/sfx_pour_thick.MP3"],
@@ -203,10 +209,19 @@ const audio = {
     skewer_turn:["assets/sfx/sfx_skewer_turn.MP3"],
     skewer_pierce:["assets/sfx/sfx_skewer_pierce.MP3"],
     anchovy_tension:["assets/sfx/sfx_anchovy_tension1.MP3","assets/sfx/sfx_anchovy_tension2.MP3"],
-    anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"]
+    anchovy_finish:["assets/sfx/sfx_anchovy_finish.MP3"],
+    story_rain:["assets/sfx/story/sfx_rain.MP3"],
+    story_open_door:["assets/sfx/story/sfx_open_door.MP3"],
+    fragment_full_d1:["assets/sfx/story/fragments/sfx_d1_finish.MP3"],
+    fragment_full_d2:["assets/sfx/story/fragments/sfx_d2_finish.MP3"],
+    fragment_full_d3:["assets/sfx/story/fragments/sfx_d3_finish.MP3"],
+    fragment_full_d4:["assets/sfx/story/fragments/sfx_d4_finish.MP3"],
+    fragment_full_d5:["assets/sfx/story/fragments/sfx_d5_finish.MP3"],
+    fragment_full_d6:["assets/sfx/story/fragments/sfx_d6_finish.MP3"],
+    fragment_full_d7:["assets/sfx/story/fragments/sfx_d7_finish.MP3"]
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
-  bgmElements:new Map(),bgmElement:null,bgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,
+  bgmElements:new Map(),bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
   preload(){
     Object.values(this.files).flat().forEach(src=>{
       if(this.preloaded.has(src))return;
@@ -297,7 +312,8 @@ const audio = {
       this.sfx.gain.value = sfxAudioIsEnabled()?state.audio.sfx * .35:0;
     }
     this.activeFiles.forEach(entry=>entry.element.volume=this.fileGain(entry));
-    if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
+    if(!bgmAudioIsEnabled())this.bgmElements.forEach(element=>{element.volume=0;});
+    else if(this.bgmElement&&!this.bgmFadeStart)this.bgmElement.volume=this.bgmFileGain();
   },
   tone(freq=440,duration=.09,type="square",gain=.12,when=0,target="sfx") {
     if (!this.ctx) return;
@@ -311,8 +327,9 @@ const audio = {
   success(){ this.tone(660,.09,"triangle",.12); this.tone(880,.12,"triangle",.1,.07); },
   bad(){ this.play("input_wrong",{gain:.9}); },
   result(scoreOrGrade){
-    const perfect=scoreOrGrade==="perfect"||Number(scoreOrGrade)>=90;
-    const good=scoreOrGrade==="good"||(Number(scoreOrGrade)>=70&&Number(scoreOrGrade)<90);
+    const numeric=Number(scoreOrGrade);
+    const perfect=scoreOrGrade==="perfect"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="perfect");
+    const good=scoreOrGrade==="good"||(Number.isFinite(numeric)&&cookingScoreTier(numeric)==="tasty");
     if(perfect)this.play("result_perfect",{gain:.38});else if(good)this.play("result_good",{gain:.38});else this.bad();
   },
   serve(){ this.play("food_serve",{gain:.9}); },
@@ -320,37 +337,116 @@ const audio = {
     if(!this.ctx)return;
     this.bgmStarted=true;this.syncBgm(true);
   },
+  setStoryBgm(track=null,{crossfadeDuration=0}={}){
+    const defaultTrack=state.phase==="night"?"night":"day";
+    const previousEffective=this.storyBgmTrack||defaultTrack;
+    const next=track&&Object.prototype.hasOwnProperty.call(this.bgmFiles,track)?track:null;
+    if(next===this.storyBgmTrack)return false;
+    this.storyBgmTrack=next;
+    const nextEffective=this.storyBgmTrack||defaultTrack;
+    if(this.bgmStarted&&nextEffective!==previousEffective){
+      if(Number(crossfadeDuration)>0)this.crossfadeBgm(nextEffective,Number(crossfadeDuration));
+      else this.syncBgm(true);
+    }else if(this.bgmStarted)this.syncBgm(false);
+    return true;
+  },
+  cancelBgmFade(){
+    if(this.bgmFadeFrame!=null)cancelAnimationFrame(this.bgmFadeFrame);
+    const outgoing=this.bgmOutgoingElement;
+    if(outgoing&&outgoing!==this.bgmElement){
+      try{outgoing.pause();outgoing.currentTime=0;outgoing.volume=0;}catch{}
+    }
+    this.bgmOutgoingElement=null;
+    this.bgmFadeFrame=null;this.bgmFadeStart=0;
+  },
+  startBgmFade(element){
+    this.cancelBgmFade();
+    this.bgmFadeStart=performance.now();
+    const step=now=>{
+      if(element!==this.bgmElement||element.paused){this.cancelBgmFade();return;}
+      const progress=clamp((now-this.bgmFadeStart)/this.bgmFadeDuration,0,1);
+      element.volume=this.bgmFileGain()*progress;
+      if(progress>=1){this.bgmFadeFrame=null;this.bgmFadeStart=0;return;}
+      this.bgmFadeFrame=requestAnimationFrame(step);
+    };
+    this.bgmFadeFrame=requestAnimationFrame(step);
+  },
+  crossfadeBgm(track,duration=this.bgmFadeDuration){
+    const incoming=this.bgmElements.get(track)||null;
+    const outgoing=this.bgmElement;
+    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
+    if(!incoming||!outgoing||incoming===outgoing||!shouldPlay){this.syncBgm(true);return false;}
+    this.cancelBgmFade();
+    const outgoingVolume=outgoing.paused?0:outgoing.volume;
+    this.bgmOutgoingElement=outgoing;
+    this.bgmTrack=track;this.bgmElement=incoming;this.bgmPlayPending=true;
+    try{incoming.pause();incoming.currentTime=0;}catch{}
+    incoming.volume=0;
+    const begin=()=>{
+      if(incoming!==this.bgmElement)return;
+      this.bgmPlayPending=false;
+      this.bgmFadeStart=performance.now();
+      const step=now=>{
+        if(incoming!==this.bgmElement||incoming.paused){this.cancelBgmFade();return;}
+        const progress=clamp((now-this.bgmFadeStart)/Math.max(1,duration),0,1);
+        const curve=progress*Math.PI*.5;
+        incoming.volume=this.bgmFileGain()*Math.sin(curve);
+        if(this.bgmOutgoingElement&&!this.bgmOutgoingElement.paused){
+          this.bgmOutgoingElement.volume=bgmAudioIsEnabled()?outgoingVolume*Math.cos(curve):0;
+        }
+        if(progress>=1){
+          const finishedOutgoing=this.bgmOutgoingElement;
+          if(finishedOutgoing&&finishedOutgoing!==incoming){
+            try{finishedOutgoing.pause();finishedOutgoing.currentTime=0;finishedOutgoing.volume=0;}catch{}
+          }
+          this.bgmOutgoingElement=null;this.bgmFadeFrame=null;this.bgmFadeStart=0;
+          return;
+        }
+        this.bgmFadeFrame=requestAnimationFrame(step);
+      };
+      this.bgmFadeFrame=requestAnimationFrame(step);
+    };
+    const started=incoming.play();
+    if(started?.then)started.then(begin).catch(()=>{this.bgmPlayPending=false;this.cancelBgmFade();});
+    else begin();
+    return true;
+  },
   syncBgm(force=false){
     if(!this.bgmStarted)return;
-    const track=state.phase==="night"?"night":"day";
+    const track=this.storyBgmTrack||(state.phase==="night"?"night":"day");
     if(force||track!==this.bgmTrack){
+      this.cancelBgmFade();
       if(this.bgmElement){this.bgmElement.pause();this.bgmElement.currentTime=0;}
       this.bgmTrack=track;this.bgmElement=this.bgmElements.get(track)||null;
       this.bgmPlayPending=false;this.bgmFadeStart=0;
     }
-    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&!state.paused;
+    const shouldPlay=state.screen==="game"&&state.phase!=="result"&&(!state.paused||!!this.storyBgmTrack);
     if(!shouldPlay){
       if(this.bgmElement&&!this.bgmElement.paused)this.bgmElement.pause();
-      this.bgmPlayPending=false;this.bgmFadeStart=0;return;
+      this.bgmPlayPending=false;this.cancelBgmFade();return;
     }
     const element=this.bgmElement;if(!element)return;
     const now=performance.now();
     if(element.paused&&!this.bgmPlayPending){
       element.volume=0;this.bgmFadeStart=now;this.bgmPlayPending=true;
       const started=element.play();
-      if(started?.then)started.then(()=>{this.bgmPlayPending=false;}).catch(()=>{this.bgmPlayPending=false;});
-      else this.bgmPlayPending=false;
+      if(started?.then)started.then(()=>{
+        this.bgmPlayPending=false;
+        if(element===this.bgmElement)this.startBgmFade(element);
+      }).catch(()=>{this.bgmPlayPending=false;this.cancelBgmFade();});
+      else{this.bgmPlayPending=false;this.startBgmFade(element);}
     }
-    if(!element.paused&&this.bgmFadeStart){
+    if(!element.paused&&this.bgmFadeStart&&this.bgmFadeFrame==null){
       const progress=clamp((now-this.bgmFadeStart)/this.bgmFadeDuration,0,1);
       element.volume=this.bgmFileGain()*progress;
       if(progress>=1)this.bgmFadeStart=0;
     }else if(!element.paused&&!this.bgmFadeStart)element.volume=this.bgmFileGain();
   },
   stopBgm(){
-    this.bgmStarted=false;this.bgmPlayPending=false;this.bgmFadeStart=0;this.bgmTrack=null;
+    this.cancelBgmFade();
+    this.bgmStarted=false;this.bgmPlayPending=false;this.bgmTrack=null;this.storyBgmTrack=null;
     this.bgmElements.forEach(element=>{element.pause();element.currentTime=0;element.volume=0;});
-    this.bgmElement=null;
+    this.bgmElement=null;this.bgmOutgoingElement=null;
   }
 };
 audio.preload();
@@ -645,6 +741,7 @@ function setupMini() {
   };
   engine.setup?.(m,{dish,set,difficulty});
   if((m.context.special||m.context.tutorial)&&Number.isFinite(m.data.speed))m.data.speed*=difficulty;
+  updateMiniScore(m);
 }
 
 // Space · ACTION 버튼 · 미니게임 안 조작 버튼이 모두 여기로 들어옵니다.
@@ -658,6 +755,7 @@ function miniAction() {
 
 function finishMini(score) {
   const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  updateMiniScore(m,score);
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
   audio.result(score);
@@ -764,6 +862,7 @@ function updateMini(dt) {
     if(previousTime>3&&m.time<=3&&!m.timerWarningPlayed){m.timerWarningPlayed=true;audio.play("timer_warning",{owner:m,gain:.85});}
   }
   engine.update?.(m,dt);
+  updateMiniScore(m);
   if(Number.isFinite(m.time)&&m.time<=0){
     if(engine.timeout)engine.timeout(m);
     else finishMini(m.score||35);
@@ -838,7 +937,7 @@ function updatePrompt(){
       text=UI_TEXT.prompt.discard(dish.name);
       visibleText=UI_TEXT.prompt.discardVisible;
       x=trash.ix;y=promptYFor(trash);
-    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=82){
+    }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
     }

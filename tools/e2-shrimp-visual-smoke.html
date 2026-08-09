@@ -49,9 +49,9 @@
         pointerId++;
       };
       const rollStage=()=>{
-        for(let index=0;index<5;index++)rollOne();
+        for(let index=0;index<state.mini.data.total;index++)rollOne();
         if(state.mini.data.step<2){setTimeout(rollStage,E2_FEEL_CONFIG.stageTransitionMs+30);return;}
-        const passed=state.mini.data.phase==="complete"&&state.mini.data.successes===5&&state.mini.data.stageGrades.length===3;
+        const passed=state.mini.data.phase==="complete"&&state.mini.data.successes===state.mini.data.total&&state.mini.data.stageGrades.length===3;
         document.body.dataset.result=passed?"pass":"fail";
         document.title=passed?"E2_SHRIMP_ROLL_OK":"E2_SHRIMP_ROLL_FAIL";
       };

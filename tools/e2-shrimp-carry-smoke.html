@@ -76,7 +76,7 @@
 
          ?stop=pick|rolling|coated|mid   그 자리에서 멈춰 캡처합니다 (기본 mid)
          ?step=0|1|2                     멈출 단계 (기본 0 = 밀가루)
-         ?full=1                         3단계 15마리를 끝까지 돌려 통과 여부만 잽니다 */
+         ?full=1                         3단계 9마리를 끝까지 돌려 통과 여부만 잽니다 */
     const params=new URLSearchParams(location.search);
     const stopAt=params.get("stop")||"mid";
     const stopStep=Number(params.get("step")??0);
@@ -173,7 +173,7 @@
           await wait(E2_FEEL_CONFIG.stageTransitionMs+40);
         }
       }catch(error){document.body.dataset.error=`full: ${error.message}`;}
-      const passed=data().phase==="complete"&&data().successes===5&&data().stageGrades.length===3;
+      const passed=data().phase==="complete"&&data().successes===data().total&&data().stageGrades.length===3;
       document.body.dataset.result=passed?"pass":"fail";
       document.title=passed?"E2_SHRIMP_CARRY_OK":"E2_SHRIMP_CARRY_FAIL";
       settleAnimations();measure();

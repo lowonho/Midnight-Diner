@@ -77,7 +77,8 @@ const DIRECTION_SEQUENCE_CONFIG=Object.freeze({
     directions:Object.freeze(["left","up","right","down"]),
     // 철판도 한 획마다 짧은 변의 45%를 크게 밀도록 김치 볶기와 통일합니다.
     slideStep:.45,
-    wrongPenalty:12
+    wrongPenalty:10,
+    wrongOncePerStep:true
   })
 });
 
@@ -100,7 +101,11 @@ function processDirectionSequenceInput(m,direction,{sequenceKey,indexKey,onWrong
   if(!data||!config||m.complete||data.inputLocked||data.transitioning||data.phase==="complete")return false;
   const index=data[indexKey];
   if(!sequenceMatches(data[sequenceKey],index,direction)){
-    data.errors=(data.errors||0)+1;
+    const alreadyWrong=config.wrongOncePerStep&&data.wrongSteps?.includes(index);
+    if(!alreadyWrong){
+      data.errors=(data.errors||0)+1;
+      if(config.wrongOncePerStep)(data.wrongSteps||(data.wrongSteps=[])).push(index);
+    }
     audio.bad();
     onWrong?.(data,index);
     return true;
@@ -173,10 +178,10 @@ function directionSequenceClasses(index,current){
   return index<=current+2?"upcoming":"queued";
 }
 
-function showDirectionGrade(grade){
+function showDirectionGrade(grade,score=null){
   const result=dom.miniContent.querySelector("#e3Result");
   if(!result)return;
-  result.textContent=grade==="perfect"?"PERFECT":"GOOD";
+  result.textContent=Number.isFinite(score)?cookingScoreMessage(score):grade==="perfect"?"PERFECT":"GOOD";
   result.className=`e3-result show ${grade}`;
 }
 
@@ -192,12 +197,12 @@ function lockDirectionInput(m,targetSelector,message){
   },E3_FEEL_CONFIG.wrongLockMs);
 }
 
-function completeDirectionSequence(m,{workSelector,feedback,onDone}){
+function completeDirectionSequence(m,{workSelector,feedback,onDone,score=null}){
   const data=m.data,grade=directionCompletionGrade(data);
   data.completionGrade=grade;
   data.transitioning=true;data.inputLocked=true;data.phase="complete";
   dom.miniContent.querySelector(workSelector)?.classList.add("e3-complete",`cook-stage-${directionVisualStage(data.successes??data.index,data.total)}`);
-  showDirectionGrade(grade);
+  showDirectionGrade(grade,score);
   dom.miniFeedback.textContent=feedback(grade);
   miniSetTimeout(()=>{if(state.mini===m&&!m.complete)onDone(grade);},E3_FEEL_CONFIG.completeDelayMs);
 }
@@ -549,6 +554,10 @@ function setStirSpatulaState(data,dragging){
 }
 
 registerMiniEngine("stir",{
+  score(m){
+    const data=m?.data;
+    return Math.max(0,100-(data?.errors||0)*STIR_WRONG_PENALTY);
+  },
   setup(m,{set}){
     set("볶음우동 조리","화살표 방향대로 철판 위를 슬라이드해 볶아주세요!",10);
     m.data={
@@ -556,6 +565,7 @@ registerMiniEngine("stir",{
       arrows:randomFryDirections(STIR_DIRECTIONS,STIR_TOTAL),
       index:0,
       errors:0,
+      wrongSteps:[],
       total:STIR_TOTAL,
       phase:"ready",
       inputLocked:false,
@@ -612,10 +622,7 @@ function renderStirScene(){
       </div>
 
       <aside class="yk-col">
-        <div class="yk-panel yk-count">
-          <h3 class="yk-col-title">진행도</h3>
-          <strong id="stirCount">${data.index} / ${STIR_TOTAL}</strong>
-        </div>
+        ${miniScorePanelMarkup("yk-panel yk-count","yk-col-title")}
         <div class="yk-panel yk-next">
           <h3 class="yk-col-title">다음 순서</h3>
           <div class="yk-next-arrow" id="stirNextArrow">${directionArrowMarkup(data.arrows[data.index],"yk-next-arrow-asset")}</div>
@@ -650,7 +657,8 @@ function stirInput(direction,repeat=false){
     sequenceKey:"arrows",indexKey:"index",
     onWrong(){
       if(current){current.classList.remove("wrong");void current.offsetWidth;current.classList.add("wrong");miniSetTimeout(()=>current.classList.remove("wrong"),260);}
-      lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요.`);
+      lockDirectionInput(m,"#stirWorkArea",`${FRY_DIRECTION_ARROWS[data.arrows[data.index]]} 방향입니다. 철판 뒤집개를 그 방향으로 움직이세요. (${MINI_ENGINES.stir.score(m)}점)`);
+      updateMiniScore(m);
     },
     onCorrect(){
       audio.play?.("metal_scrape",{owner:m});
@@ -676,7 +684,8 @@ function stirInput(direction,repeat=false){
     onComplete(){completeDirectionSequence(m,{
       workSelector:"#stirWorkArea",
       feedback:grade=>grade==="perfect"?"철판 위 우동을 완벽하게 볶았습니다!":"우동을 맛있게 볶았습니다!",
-      onDone:()=>finishMini(Math.max(70,100-data.errors*STIR_WRONG_PENALTY))
+      score:MINI_ENGINES.stir.score(m),
+      onDone:()=>finishMini(Math.max(0,100-data.errors*STIR_WRONG_PENALTY))
     });}
   });
 }

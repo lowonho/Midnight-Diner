@@ -65,11 +65,13 @@
 
        ?step=0..4    익힘 단계 (0 반죽 · 1 살짝 · 2 잘 익음 · 3 살짝 탐 · 4 탐)
        ?side=0|1     앞면(0) / 뒷면(1)
-       ?cue=cook|flip  신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음) */
+       ?cue=cook|flip  신호 불빛을 켠 채로 찍습니다 (안 주면 신호 없음)
+       ?marker=0..1    꾹 누르고 있는 굽기 게이지 표식 위치 (기본 0.75) */
     const params = new URLSearchParams(location.search);
     const step   = params.has("step") ? Number(params.get("step")) : 2;
     const side   = params.get("side") === "1" ? 1 : 0;
     const cue    = params.get("cue") || "";
+    const marker = clamp(Number(params.get("marker") || .75),0,1);
 
     loadDayPrepAssets().then(() => {
       /* ⚠️ data 는 **엔진과 같은 함수**로 만듭니다(createTwoSideData). 손으로 베껴
@@ -84,7 +86,10 @@
       unit.flips = side;
       unit.stepIndex = cue === "flip" ? 1 : 0;
       unit.phase = cue ? "cue" : "wait";
-      unit.cueTimer = cue ? TWO_SIDE_CUE[cue].window : 1;
+      unit.cueWindow = cue ? twoSideCueWindow(state.mini.data,cue) : 1;
+      unit.cueTimer = unit.cueWindow;
+      unit.gaugeHolding = cue === "cook";
+      unit.gaugeElapsed = cue === "cook" ? PANCAKE_GAUGE_HOLD_SEC*marker : 0;
       dom.miniTitle.textContent = "김치전 굽기";
       dom.miniStation.textContent = TWO_SIDE_VIEW.pancake.subtitle;
       renderTwoSideCook();
@@ -95,6 +100,7 @@
         const target = twoSideTargetElement(state.mini.data, unit);
         target?.style.setProperty("--cue-left", "1");
         target?.classList.add("cue-on", `cue-${cue}`);
+        updatePancakeGauge(state.mini.data,unit);
       }
       /* 뒤집개 커서는 포인터를 따라다니는 DOM 한 겹입니다. 헤드리스에는 포인터가
          없으니 화구 한가운데에 세워 둡니다 — 실제로 마우스를 올렸을 때와 같은
@@ -150,10 +156,12 @@
       const board = document.querySelector(".ts-board");
       const pan   = document.querySelector(".two-side-pan");
       const food  = document.querySelector(".cook-food");
+      const gauge = document.querySelector(".pancake-timing-gauge");
       const shown = [...document.querySelectorAll(".pancake-food-asset")].filter(i => i.classList.contains("on"));
       const boardRect = rect(board), panRect = rect(pan), foodRect = rect(food);
       document.body.dataset.measure = JSON.stringify({
-        board:box(board), pan:box(pan), food:box(food),
+        board:box(board), pan:box(pan), food:box(food), gauge:box(gauge),
+        gaugeVisible:gauge ? getComputedStyle(gauge).opacity : "없음",
         // 팬이 칸 밖으로 넘치면 안 됩니다 (음수 = 여유)
         panSpill:{
           top:+(boardRect.top - panRect.top).toFixed(1),

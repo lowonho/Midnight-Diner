@@ -632,31 +632,78 @@
   30%  { opacity: .95; scale: .7; }
   100% { opacity: 0;   scale: 1.4; }
 }
-/* ── 꾹 누르기 게이지 (김치전 전용) ───────────────────────────
-   누르고 있는 동안 김치전 한가운데에 링이 차오릅니다. 다 차면 익습니다
-   (engine-e5-two-side-cook.js 의 tickTwoSideHold 가 --ts-hold 를 0→1 로 넣습니다).
-   ⚠️ conic-gradient 를 **테두리 두께만큼의 가면(mask)** 으로 잘라 링을 만듭니다.
-      네모를 돌리는 방식이 아니라서 각도가 아무리 커도 안 튑니다. */
-/* 누르고 있는 동안에는 손가락 안내를 치웁니다 — 이미 누르고 있는데 "누르세요" 를
-   겹쳐 두면 링이 가려서 얼마나 찼는지가 안 보입니다. */
-.two-side-pan.holding > .ts-tap-hint { display: none; }
-.ts-hold-ring {
-  position: absolute;
-  z-index: 10;
-  left: 50%;
-  top: 50%;
-  width: calc(190 * var(--upx));
-  height: calc(190 * var(--upx));
-  margin: calc(-95 * var(--upx)) 0 0 calc(-95 * var(--upx));
-  border-radius: 50%;
-  background: conic-gradient(#ffd27a calc(var(--ts-hold,0) * 360deg), rgba(255,236,196,.22) 0);
-  -webkit-mask: radial-gradient(farthest-side,transparent calc(100% - 9 * var(--upx)),#000 calc(100% - 8 * var(--upx)));
-  mask: radial-gradient(farthest-side,transparent calc(100% - 9 * var(--upx)),#000 calc(100% - 8 * var(--upx)));
-  filter: drop-shadow(0 0 calc(8 * var(--upx)) rgba(30,12,4,.9));
-  opacity: 0;
-  pointer-events: none;
+/* ── 타이밍 게이지 (김치전 굽기 전용) ──────────────────────────
+   김치전을 누르고 있는 동안 표식이 왼쪽에서 오른쪽으로 한 번 지나갑니다. 초록 구간은
+   75% 지점에 폭 10%로 고정되며, 손을 뗀 순간의 위치로 성공을 판정합니다. */
+.pancake-timing-gauge {
+  position:absolute;
+  z-index:12;
+  left:50%;
+  bottom:calc(26 * var(--upx));
+  display:flex;
+  width:72%;
+  flex-direction:column;
+  align-items:center;
+  gap:calc(8 * var(--upx));
+  opacity:0;
+  transform:translate(-50%,calc(8 * var(--upx)));
+  transition:opacity .12s ease,transform .12s ease;
+  pointer-events:none;
 }
-.two-side-pan.holding .ts-hold-ring { opacity: 1; }
+.pancake-cook.cue-cook > .pancake-timing-gauge {
+  opacity:1;
+  transform:translate(-50%,0);
+}
+.pancake-gauge-track {
+  position:relative;
+  display:block;
+  width:100%;
+  height:calc(34 * var(--upx));
+  overflow:hidden;
+  border:calc(3 * var(--upx)) solid #4a2815;
+  border-radius:calc(18 * var(--upx));
+  background:linear-gradient(#4d2c1b,#25140c);
+  box-shadow:inset 0 0 calc(8 * var(--upx)) rgba(0,0,0,.72),0 calc(3 * var(--upx)) calc(8 * var(--upx)) rgba(18,7,2,.65);
+}
+.pancake-timing-gauge.holding .pancake-gauge-track {
+  border-color:#ffd27a;
+  box-shadow:inset 0 0 calc(8 * var(--upx)) rgba(0,0,0,.72),0 0 calc(13 * var(--upx)) rgba(255,194,82,.76);
+}
+.pancake-gauge-zone {
+  position:absolute;
+  inset-block:0;
+  left:var(--pancake-zone-left,70%);
+  width:var(--pancake-zone-width,10%);
+  background:linear-gradient(90deg,#4e9a44,#8bd55d,#4e9a44);
+  box-shadow:inset 0 0 calc(8 * var(--upx)) rgba(230,255,172,.72),0 0 calc(10 * var(--upx)) rgba(108,211,76,.72);
+}
+.pancake-gauge-marker {
+  position:absolute;
+  z-index:2;
+  left:var(--pancake-marker,0%);
+  top:50%;
+  display:block;
+  width:calc(9 * var(--upx));
+  height:calc(46 * var(--upx));
+  border:calc(2 * var(--upx)) solid #6b3818;
+  border-radius:calc(5 * var(--upx));
+  background:#fff1b2;
+  box-shadow:0 0 calc(9 * var(--upx)) #fff1a2,0 0 calc(3 * var(--upx)) #321409;
+  transform:translate(-50%,-50%);
+}
+.pancake-timing-gauge > em {
+  padding:calc(3 * var(--upx)) calc(12 * var(--upx));
+  border:calc(2 * var(--upx)) solid rgba(255,215,137,.78);
+  border-radius:calc(13 * var(--upx));
+  background:rgba(34,17,8,.88);
+  color:#fff0bb;
+  font-size:calc(20 * var(--upx));
+  font-style:normal;
+  font-weight:900;
+  line-height:1.25;
+  text-shadow:0 calc(2 * var(--upx)) calc(3 * var(--upx)) #160703;
+  white-space:nowrap;
+}
 
 /* ── 양념 붓 (닭꼬치 전용) ───────────────────────────────────
    그 자루 안에 잠깐 붙었다 사라집니다 (engine-e5 의 applyTwoSideSauce).
@@ -1426,7 +1473,7 @@
      .ts-scene .doneness-*   익힘 게이지 몸통 · GOOD(초록) · PERFECT(금색) 구간
      .ts-scene .progress-marker  게이지 위를 지나가던 삼각 포인터
      .ts-gauge-slot .ts-action / .rebound-gauge / .skewer-flip-sequence
-   조작이 "게이지를 보고 Space" 에서 "재료를 보고 클릭·드래그" 로 바뀌면서
+   조작이 "게이지를 보고 Space" 에서 "재료를 누르고 떼기·드래그" 로 바뀌면서
    볼 것도 누를 것도 없어졌습니다. 판정에 쓰던 구간 값(goodStart 등)도 함께
    사라졌으니, 되살리려면 engine-e5-two-side-cook.js 의 TWO_SIDE_COOK_CONFIG 부터
    되돌려야 합니다 — CSS 만 되살리면 빈 띠 하나가 남습니다.

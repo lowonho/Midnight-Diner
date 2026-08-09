@@ -6,16 +6,17 @@
    [예전 방식과 무엇이 다른가]
    예전에는 아래에 익힘 게이지 한 줄이 있고, 포인터가 초록/금색 구간에 들어올 때
    Space 를 눌렀습니다. 뒤집기도 김치전 ↑꾹→↓ · 닭꼬치 ←→ 연타였습니다.
-   지금은 **게이지도 키보드도 없습니다.** 재료에 신호가 뜨고, 마우스로 답합니다.
-     · 익힘 신호(노란 불빛)  → 재료를 **클릭**   → "치이익" 하고 그 면이 익습니다
+   지금은 키보드 없이 재료에 뜨는 신호에 마우스로 답합니다.
+     · 김치전 굽기            → **꾹 누른 뒤** 게이지의 초록 구간에서 손 떼기
      · 뒤집기 신호(흰 불빛)  → 재료를 **드래그** → 김치전은 위로 튕기듯, 닭꼬치는 옆으로
      · 양념 신호(붉은 불빛)  → 꼬치를 **위아래로 드래그** → 붓이 들어와 양념을 바릅니다 (닭꼬치만)
 
    [한 판의 구성]  **자루(unit)마다 자기 할 일 목록을 하나씩 소화합니다.**
    불에 닿아 있는 **아래 면**만 익으므로, 순서가 곧 "지금 어느 면이 아래인가" 입니다.
-     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
+     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기
      닭꼬치 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기
-   닭꼬치는 양념을 바르는 동안 해당 면이 한 단계 익습니다 (TWO_SIDE_STEP_PLAN).
+   닭꼬치는 양념을 한 번 바르면 해당 면이 잘 익음(2단계)까지 갑니다
+   (TWO_SIDE_STEP_PLAN). 굽기 횟수를 줄이기 전과 같은 완성 그림을 유지하기 위함입니다.
    신호를 놓치면 해당 면에 벌점이 붙고 다음 단계로 넘어갑니다.
 
    [답하는 손짓]  굽기는 **클릭**, 뒤집기와 양념은 **드래그**입니다.
@@ -51,10 +52,11 @@
    뒤집을 때마다 아래 면이 앞↔뒤로 바뀝니다 (아래 면 = flips % 2).
 
      닭꼬치 : 앞면 양념 → 뒷면으로 뒤집기 → 뒷면 양념 → 앞면으로 뒤집기
-     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기 → 뒤집기 → 뒷면 굽기
+     김치전 : 앞면 굽기 → 뒤집기 → 뒷면 굽기 → 뒤집기 → 앞면 굽기
 
-   김치전은 한 면에 두 번씩 굽고, 닭꼬치는 한 면에 양념을 한 번씩 바릅니다.
-   양념 성공이 해당 면의 익힘도도 한 단계 올립니다 (익힘 셈은 아래 twoSideSideStage 참고).
+   김치전은 앞면 두 번·뒷면 한 번, 닭꼬치는 한 면에 양념을 한 번씩 바릅니다.
+   닭꼬치의 양념 성공은 한 번으로 해당 면을 잘 익음(2단계)까지 올립니다
+   (익힘 셈은 아래 twoSideSideStage 참고).
    ⚠️ 예전에는 cyclesPerUnit 로 만들어 냈는데, 두 요리의 순서가 서로 달라져
       규칙으로는 못 만들게 됐습니다. 순서 그대로 적는 것이 읽기도 쉽습니다. */
 const TWO_SIDE_STEP_PLAN=Object.freeze({
@@ -87,15 +89,27 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
       지나간 차례는 지나간 대로 두고 다음으로 넘어갑니다 (missTwoSideCue 참고).
    ⚠️ preheat(1.5) 는 cook 의 wait 최소값(1.4)보다 큽니다. 일부러 그렇습니다 —
       기다림이 짧게 뽑히면 예고 그림과 신호가 거의 붙어서 나옵니다(빠른 판).
-   ⚠️ window 를 넓혔습니다 (굽기 .9 → 1.9 · 뒤집기 1.6 → 2.6 · 양념 1.4 → 2.4).
-      점수는 창의 앞쪽 40% 께가 가장 좋은 **비율**이라(twoSideCueScore) 창을 넓혀도
-      만점 자리는 그대로 앞쪽입니다 — 늦게 눌러도 되는 여유만 늘어납니다.
-      대신 제한시간도 같이 늘렸습니다 (위 timeLimit). */
+   김치전의 굽기·뒤집기 신호는 둘 다 1초입니다. 아래 표의 기본 window 는
+   닭꼬치에만 그대로 쓰고, twoSideCueWindow 가 김치전일 때 1초로 바꿉니다.
+   닭꼬치 점수는 창의 앞쪽 40% 께가 가장 좋은 **비율**입니다(twoSideCueScore).
+   김치전은 성공 반응 속도를 점수에 쓰지 않고, 놓치거나 잘못 조작한 신호만
+   단계마다 한 번씩 10점 깎습니다. */
 const TWO_SIDE_CUE=Object.freeze({
   cook: Object.freeze({wait:Object.freeze([1.4,2.6]), window:1.9, preheat:1.5}),
   flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.6, preheat:0}),
   sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0})
 });
+const PANCAKE_CUE_WINDOW=1;
+/* 초록 구간은 게이지의 75% 지점에 고정하고, 폭은 전체의 10%입니다. */
+const PANCAKE_GAUGE_CENTER=.75;
+const PANCAKE_GAUGE_WIDTH=.1;
+const PANCAKE_GAUGE_HOLD_SEC=1;
+
+function twoSideCueWindow(data,kind){
+  return data?.dishStyle==="pancake"&&(kind==="cook"||kind==="flip")
+    ?PANCAKE_CUE_WINDOW
+    :TWO_SIDE_CUE[kind].window;
+}
 
 /* ── "튕기듯" 을 재는 기준 ───────────────────────────────────
    그냥 끌면 안 뒤집히고, 짧은 시간에 확 그어야 뒤집힙니다.
@@ -226,8 +240,8 @@ function createTwoSideUnits(dishStyle){
   /* sides : **앞면(0) · 뒷면(1)** 이 따로 익습니다.
        cook  그 면에 제때 답한 횟수 (성공)
        burn  그 면이 불에 닿아 있는 동안 놓친 횟수 (탐)
-     닭꼬치는 양념 성공도 cook 한 번으로 셉니다. 보이는 그림 번호는
-     twoSideSideStage 가 이 둘로 계산합니다. */
+     닭꼬치는 양념 성공 한 번을 cook 두 단계로 셉니다. 보이는 그림 번호는
+     아래 twoSideSideStage가 이 둘로 계산합니다. */
   return Array.from({length:config.units},(_,index)=>({
     index, placed:onPan, slot:onPan?index:null, done:false, served:onPan,
     steps:buildTwoSideUnitSteps(dishStyle), stepIndex:0,
@@ -261,8 +275,8 @@ function updateTwoSideSauceVisual(data,unit){
 /* 한 면의 그림 번호(0~4).
      성공(cook)은 2(잘 익음)까지만 올립니다 — 잘 구우면 절대 타지 않습니다.
      놓침(burn)은 거기서 한 칸씩 더 올립니다 → 3 살짝 탐 · 4 탐.
-   김치전은 한 면에 두 번씩 성공해 2에서 멈추고, 닭꼬치는 양념 한 번씩으로
-   양쪽이 1에서 멈춥니다.
+   김치전은 한 면에 두 번씩 성공해 2에서 멈추고, 닭꼬치는 양념 성공 한 번이
+   두 단계로 계산되어 양쪽이 2에서 멈춥니다.
    ⚠️ 아직 덜 익은 면(cook 0~1)을 놓치면 3 으로 건너뛰지 않고 1~2 로만 갑니다.
       "안 익은 것이 갑자기 새까매지는" 일이 없게 하려는 것입니다. */
 function twoSideSideStage(side){
@@ -287,10 +301,10 @@ function cookArtStep(unit,steps){
    ⚠️ **그림은 보이는 면**을 그리므로, 아래 면을 익혀도 화면은 대개 그대로입니다.
       그래도 updateTwoSideCookVisual 을 부르는 이유는 뒤집기 직후처럼 보이는 면이
       바뀐 경우를 같이 처리하기 때문입니다. */
-function raiseTwoSideCookStep(data,unit){
+function raiseTwoSideCookStep(data,unit,amount=1){
   const side=unit?.sides?.[twoSideCookingSide(unit)];
   if(!side)return;
-  side.cook=(side.cook||0)+1;
+  side.cook=(side.cook||0)+amount;
   updateTwoSideCookVisual(data,unit);
 }
 
@@ -387,9 +401,44 @@ function twoSideAllDone(data){
   return twoSideUnits(data).every(unit=>unit.done&&unit.served);
 }
 
+function pancakeRemainingSteps(data){
+  return twoSideUnits(data).reduce((sum,unit)=>sum+Math.max(0,(unit.steps?.length||0)-(unit.stepIndex||0)),0);
+}
+
+function pancakeMistakes(data){
+  const missed=(data?.cookErrors||0)+(data?.flipErrors||0);
+  return missed+(data?.timedOut?pancakeRemainingSteps(data):0);
+}
+
+function pancakeScore(data){return clamp(100-pancakeMistakes(data)*10,0,100);}
+
+function skewerRemainingSteps(data){
+  return twoSideUnits(data).reduce((sum,unit)=>sum+Math.max(0,(unit.steps?.length||0)-(unit.stepIndex||0)),0);
+}
+
+function skewerMistakes(data){
+  const unfinished=data?.timedOut
+    ?Math.max(0,skewerRemainingSteps(data)-twoSideUnits(data).filter(unit=>unit.phase==="cue"&&unit.cueMistakeCharged).length)
+    :0;
+  return (data?.skewerErrors||0)+unfinished;
+}
+
+function skewerScore(data){return clamp(100-skewerMistakes(data)*10,0,100);}
+
 registerMiniEngine("twoSideCook", {
   // 이 화면에는 키 안내가 하나도 없습니다 — 키도 받지 않습니다 (mini-engine.js 참고)
   noKeyboard:true,
+
+  score(m){
+    const data=m?.data,units=twoSideUnits(data||{});
+    if(data?.dishStyle==="pancake")return pancakeScore(data);
+    if(data?.dishStyle==="skewer")return skewerScore(data);
+    const total=units.reduce((sum,unit)=>sum+(unit.steps?.length||0),0);
+    if(!total)return 100;
+    const timingPenalty=(data.hits||[]).reduce((sum,score)=>sum+(100-score),0)/total;
+    const penalty=(data.flipErrors||0)*5+(data.cookErrors||0)*4;
+    return clamp(100-timingPenalty-penalty,0,100);
+  },
 
   setup(m, { set, dish }) {
     const isSkewer = dish.id === "skewer";
@@ -397,7 +446,7 @@ registerMiniEngine("twoSideCook", {
     set(
       isSkewer ? "닭꼬치 굽기" : "김치전 굽기",
       isSkewer ? "양념 신호에는 위아래로 붓질하고, 뒤집기 신호에는 옆으로 굴리듯 드래그하세요."
-               : "불빛이 켜지면 김치전을 꾹 누르고, 뒤집기 신호에는 위로 튕기듯 드래그하세요.",
+               : "굽기 신호에는 김치전을 꾹 누른 뒤 게이지의 초록 구간에서 떼고, 뒤집기 신호에는 위로 튕기듯 드래그하세요.",
       config.timeLimit
     );
     // skewerPatterns : 낮에 꽂아 둔 꼬치 3개의 배치. 한 판 동안 바뀌지 않으므로
@@ -409,7 +458,7 @@ registerMiniEngine("twoSideCook", {
     if(!isSkewer)audio.loop?.("pan_sizzle",m,.6);
     // 타이틀 아래 부제. 공용 패널 마크업은 그대로 두고 내용만 채웁니다.
     dom.miniStation.textContent = TWO_SIDE_VIEW[m.data.dishStyle].subtitle;
-    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 위아래 드래그 : 양념 · 옆으로 드래그 : 뒤집기":"꾹 누르기 : 굽기 · 드래그 : 위로 튕겨 뒤집기");
+    setMiniTipHint?.(isSkewer?"드래그 : 꼬치 올리기 · 위아래 드래그 : 양념 · 옆으로 드래그 : 뒤집기":"꾹 누른 뒤 초록에서 떼기 : 굽기 · 위로 드래그 : 뒤집기");
     renderTwoSideCook();
     // 팬 위에 이미 올라가 있는 자루(= 김치전)만 바로 첫 신호를 겁니다.
     twoSideUnits(m.data).forEach(unit=>{if(unit.placed)armTwoSideCue(m,unit);});
@@ -417,7 +466,6 @@ registerMiniEngine("twoSideCook", {
 
   update(m, dt) {
     updateTwoSideTime(m);
-    tickTwoSideHold(m,dt);
     twoSideUnits(m.data).forEach(unit=>tickTwoSideUnit(m,unit,dt));
   },
 
@@ -434,9 +482,8 @@ registerMiniEngine("twoSideCook", {
     // 뒤집기와 양념은 드래그라 이 길로는 답할 수 없습니다.
     const unit=twoSideUnits(m.data).find(one=>one.phase==="cue"&&twoSideStep(one)?.kind==="cook");
     if(!unit)return;
-    /* 김치전은 화면에서 **꾹 누르는** 것이지만, 이 버튼은 한 번 눌리고 마는 물건이라
-       누르고 있을 수가 없습니다. 그래서 버튼으로 들어온 것은 지금 점수로 바로 처리합니다. */
-    pressTwoSideCue(m,unit.index,twoSideHoldNeeded(m.data,unit)?twoSideCueScore(unit,"cook"):null);
+    // 버튼으로 들어온 클릭도 화면 게이지의 현재 위치로 똑같이 판정합니다.
+    pressTwoSideCue(m,unit.index);
   }
 });
 
@@ -445,7 +492,7 @@ registerMiniEngine("twoSideCook", {
 function createTwoSideData(dishStyle,{timeLimit=TWO_SIDE_COOK_CONFIG[dishStyle].timeLimit}={}){
   return {
     dishStyle, units:createTwoSideUnits(dishStyle),
-    cooked:0, hits:[], flipErrors:0, cookErrors:0, timeLimit, timedOut:false,
+    cooked:0, hits:[], flipErrors:0, cookErrors:0, skewerErrors:0, timeLimit, timedOut:false,
     skewerPatterns: dishStyle==="skewer" ? skewerCookPatterns() : null
   };
 }
@@ -453,6 +500,7 @@ function createTwoSideData(dishStyle,{timeLimit=TWO_SIDE_COOK_CONFIG[dishStyle].
 /* 남은 시간 표시. 진행도 카드 아래 가는 띠와, 멸치 손질과 같은 "남은 시간 N초" 줄입니다.
    ⚠️ 시간을 여기서 깎지 않습니다 — game.js 의 updateMini 가 m.time 을 세고 있습니다. */
 const TWO_SIDE_TIME_WARNING=7;
+const SKEWER_SERVE_GRACE_SEC=3.5;
 
 function updateTwoSideTime(m){
   const data=m.data;
@@ -469,7 +517,23 @@ function updateTwoSideTime(m){
    재료 카드에서 기다리는 꼬치는 시간이 흘러도 익지 않습니다. */
 function tickTwoSideUnit(m,unit,dt){
   const data=m.data;
-  if(data.timedOut||!unit.placed||unit.done)return;
+  if(data.timedOut||!unit.placed)return;
+  if(unit.done){
+    if(data.dishStyle==="skewer"&&!unit.served&&Number.isFinite(unit.serveTimer)){
+      unit.serveTimer-=dt;
+      if(unit.serveTimer<=0){
+        unit.serveTimer=null;
+        if(!unit.serveMistakeCharged){
+          unit.serveMistakeCharged=true;
+          data.skewerErrors=(data.skewerErrors||0)+1;
+          dom.miniFeedback.textContent=`플레이팅이 늦었어요! 완성 접시로 옮겨주세요. (${skewerScore(data)}점)`;
+          audio.bad();
+          updateMiniScore(m);
+        }
+      }
+    }
+    return;
+  }
   if(unit.phase==="wait"){
     unit.cueTimer-=dt;
     const step=twoSideStep(unit);
@@ -483,10 +547,17 @@ function tickTwoSideUnit(m,unit,dt){
     return;
   }
   if(unit.phase==="cue"){
+    if(data.dishStyle==="pancake"&&unit.gaugeHolding&&twoSideStep(unit)?.kind==="cook"){
+      unit.gaugeElapsed=(unit.gaugeElapsed||0)+dt;
+      updatePancakeGauge(data,unit);
+      if(unit.gaugeElapsed>=PANCAKE_GAUGE_HOLD_SEC)releasePancakeGaugeHold(m,unit.index);
+      return;
+    }
     unit.cueTimer-=dt;
     // 신호가 사그라드는 정도를 CSS 에 넘겨 줍니다 (테두리 빛이 옅어집니다)
     const target=twoSideTargetElement(data,unit),step=twoSideStep(unit);
-    if(target&&step)target.style.setProperty("--cue-left",clamp(unit.cueTimer/TWO_SIDE_CUE[step.kind].window,0,1).toFixed(3));
+    if(target&&step)target.style.setProperty("--cue-left",clamp(unit.cueTimer/(unit.cueWindow||twoSideCueWindow(data,step.kind)),0,1).toFixed(3));
+    updatePancakeGauge(data,unit);
     if(unit.cueTimer<=0)missTwoSideCue(m,unit);
   }
 }
@@ -507,6 +578,9 @@ function armTwoSideCue(m,unit){
   if(!step){finishTwoSideUnit(m,unit);return;}
   const range=TWO_SIDE_CUE[step.kind].wait;
   unit.phase="wait";
+  unit.cueMistakeCharged=false;
+  unit.gaugeHolding=false;
+  unit.gaugeElapsed=0;
   // 자루마다 다른 speed 를 곱합니다 — 3자루가 같은 박자로 재촉하지 않게 하는 곳입니다.
   unit.cueTimer=(range[0]+Math.random()*(range[1]-range[0]))*(unit.speed||1);
   unit.preheated=false;
@@ -518,13 +592,15 @@ function openTwoSideCue(m,unit){
   const data=m.data,step=twoSideStep(unit);
   if(!step)return;
   unit.phase="cue";
-  unit.cueTimer=TWO_SIDE_CUE[step.kind].window;
+  unit.cueWindow=twoSideCueWindow(data,step.kind);
+  unit.cueTimer=unit.cueWindow;
   clearTwoSideCue(data,unit);
   const target=twoSideTargetElement(data,unit);
   if(target){
     target.style.setProperty("--cue-left","1");
     target.classList.add("cue-on",`cue-${step.kind}`);
   }
+  updatePancakeGauge(data,unit);
   updateTwoSideHint(data);
   audio.play?.("ui_click",{owner:m,gain:.5});
 }
@@ -533,76 +609,86 @@ function openTwoSideCue(m,unit){
    창의 앞쪽 40% 께가 가장 좋고(사람이 신호를 보고 반응하는 데 걸리는 만큼 여유를
    둔 자리입니다), 거기서 멀어질수록 떨어집니다. 94점 위가 PERFECT 판정선입니다. */
 function twoSideCueScore(unit,kind){
-  const window=TWO_SIDE_CUE[kind].window;
+  const window=unit.cueWindow||TWO_SIDE_CUE[kind].window;
   const passed=clamp((window-Math.max(0,unit.cueTimer))/window,0,1);
   const off=Math.abs(passed-.4);
   if(off<=.22)return Math.round(100-off/.22*4);        // 96 ~ 100
   return Math.round(clamp(94-(off-.22)/.38*20,74,94));
 }
 
-/* ── 꾹 누르기 (김치전 전용) ──────────────────────────────────
-   김치전의 굽기 신호는 **한 번 톡 누르는 것이 아니라 눌러 두는 것**입니다.
-   팬에 올린 반죽을 지그시 눌러 붙이는 손짓이라 그렇습니다.
-   닭꼬치에는 별도 굽기 신호가 없으므로 이 홀드 로직을 사용하지 않습니다.
-
-   [점수는 **누르기 시작한 순간**으로 셉니다] 붙잡고 있는 시간은 누구나 같으므로,
-   그 시간까지 점수에 넣으면 빨리 반응한 보람이 사라집니다. */
-const TWO_SIDE_HOLD_SEC=.62;
-
-function twoSideHoldNeeded(data,unit){
-  return data?.dishStyle==="pancake"&&twoSideStep(unit)?.kind==="cook";
+/* ── 타이밍 게이지 (김치전 굽기 전용) ──────────────────────────
+   포인터는 굽기 신호의 1초 동안 왼쪽에서 오른쪽으로 한 번 지나갑니다. 굽기 순서에
+   손을 뗀 순간 초록 구간 안에 있는지만 판정합니다. */
+function pancakeGaugeBounds(){
+  return {start:PANCAKE_GAUGE_CENTER-PANCAKE_GAUGE_WIDTH/2,end:PANCAKE_GAUGE_CENTER+PANCAKE_GAUGE_WIDTH/2,width:PANCAKE_GAUGE_WIDTH};
 }
 
-// 누르기 시작. 조건이 안 맞으면 아무 일도 없습니다(false).
-function beginTwoSideHold(m,unitIndex){
-  const data=m.data,unit=twoSideUnit(data,unitIndex);
-  if(!unit||data.timedOut||!unit.placed||unit.done)return false;
-  if(!twoSideHoldNeeded(data,unit)||unit.phase!=="cue")return false;
-  data.hold={index:unit.index,left:TWO_SIDE_HOLD_SEC,score:twoSideCueScore(unit,"cook")};
-  /* "치이익" 은 **누른 순간** 납니다. 반죽이 팬에 닿는 소리라, 다 누르고 나서
-     울리면 소리가 손짓보다 늦게 따라옵니다. 소리 길이(0.7초)가 누르는 시간(0.62초)과
-     맞아떨어져서 누르고 있는 내내 지글거립니다.
-     ⚠️ 그래서 다 채운 뒤 pressTwoSideCue 로 넘어갈 때는 **다시 울리지 않습니다**
-        (tickTwoSideHold 가 alreadySizzled 로 알려 줍니다). */
-  playTwoSideSizzle(m);
-  paintTwoSideHold(data);
+function pancakeGaugeValue(unit){
+  return clamp((unit.gaugeElapsed||0)/PANCAKE_GAUGE_HOLD_SEC,0,1);
+}
+
+function pancakeGaugeHit(unit){
+  const value=pancakeGaugeValue(unit),bounds=pancakeGaugeBounds(unit);
+  return value>=bounds.start&&value<=bounds.end;
+}
+
+function updatePancakeGauge(data,unit){
+  if(data?.dishStyle!=="pancake"||twoSideStep(unit)?.kind!=="cook")return;
+  const gauge=dom.miniContent?.querySelector("#pancakeTimingGauge");
+  if(!gauge)return;
+  const bounds=pancakeGaugeBounds(unit);
+  gauge.style.setProperty("--pancake-zone-left",`${bounds.start*100}%`);
+  gauge.style.setProperty("--pancake-zone-width",`${bounds.width*100}%`);
+  gauge.style.setProperty("--pancake-marker",`${pancakeGaugeValue(unit)*100}%`);
+  gauge.classList.toggle("holding",!!unit.gaugeHolding);
+}
+
+function beginPancakeGaugeHold(m,unitIndex){
+  const data=m?.data,unit=twoSideUnit(data||{},unitIndex);
+  if(data?.dishStyle!=="pancake"||data.timedOut||!unit||unit.phase!=="cue"||twoSideStep(unit)?.kind!=="cook"||unit.gaugeHolding)return false;
+  unit.gaugeHolding=true;
+  unit.gaugeElapsed=0;
+  updatePancakeGauge(data,unit);
   return true;
 }
 
-function cancelTwoSideHold(m){
-  if(!m?.data?.hold)return;
-  m.data.hold=null;
-  paintTwoSideHold(m.data);
+function releasePancakeGaugeHold(m,unitIndex){
+  const data=m?.data,unit=twoSideUnit(data||{},unitIndex);
+  if(data?.dishStyle!=="pancake"||!unit?.gaugeHolding||unit.phase!=="cue"||twoSideStep(unit)?.kind!=="cook")return false;
+  unit.gaugeHolding=false;
+  updatePancakeGauge(data,unit);
+  return pressTwoSideCue(m,unitIndex);
 }
 
-/* 남은 시간을 0~1 로 css 에 넘겨 줍니다 — 링이 그만큼 채워집니다. */
-function paintTwoSideHold(data){
-  const pan=dom.miniContent?.querySelector("#tsPan");
-  if(!pan)return;
-  const hold=data.hold;
-  pan.classList.toggle("holding",!!hold);
-  pan.style.setProperty("--ts-hold",hold?(1-clamp(hold.left/TWO_SIDE_HOLD_SEC,0,1)).toFixed(3):"0");
+/* 김치전에서 신호가 켜진 동안 잘못 조작했을 때의 감점입니다. 굽기 게이지를 놓치면
+   바로 다음 단계로 가고, 뒤집기에서 잘못 누르거나 그으면 남은 시간에 다시 시도합니다. */
+function chargePancakeCueMistake(m,unit,message){
+  const data=m?.data,step=twoSideStep(unit);
+  if(data?.dishStyle!=="pancake"||unit?.phase!=="cue"||!step||unit.cueMistakeCharged)return false;
+  if(step.kind==="cook")data.cookErrors=(data.cookErrors||0)+1;
+  else if(step.kind==="flip")data.flipErrors=(data.flipErrors||0)+1;
+  else return false;
+  unit.cueMistakeCharged=true;
+  dom.miniFeedback.textContent=`${message} (${pancakeScore(data)}점)`;
+  audio.bad();
+  updateMiniScore(m);
+  return true;
 }
 
-function tickTwoSideHold(m,dt){
-  const data=m.data,hold=data.hold;
-  if(!hold)return;
-  const unit=twoSideUnit(data,hold.index);
-  // 붙잡고 있는 사이에 신호가 꺼졌으면(놓쳤으면) 없던 일이 됩니다
-  if(!unit||unit.phase!=="cue"||!twoSideHoldNeeded(data,unit)){cancelTwoSideHold(m);return;}
-  hold.left-=dt;
-  if(hold.left>0){paintTwoSideHold(data);return;}
-  const score=hold.score;
-  data.hold=null;
-  paintTwoSideHold(data);
-  pressTwoSideCue(m,hold.index,score,true);
+/* 닭꼬치는 같은 신호에서 몇 번 잘못 그어도 최초 한 번만 10점이 깎입니다.
+   신호는 그대로 남아 있어 제한시간 안에 올바른 방향으로 다시 시도할 수 있습니다. */
+function chargeSkewerCueMistake(m,unit,message){
+  const data=m?.data,step=twoSideStep(unit);
+  if(data?.dishStyle!=="skewer"||unit?.phase!=="cue"||!(step?.kind==="sauce"||step?.kind==="flip")||unit.cueMistakeCharged)return false;
+  data.skewerErrors=(data.skewerErrors||0)+1;
+  unit.cueMistakeCharged=true;
+  dom.miniFeedback.textContent=`${message} 남은 시간에 다시 시도하세요. (${skewerScore(data)}점)`;
+  audio.bad();
+  updateMiniScore(m);
+  return true;
 }
 
-/* scoreOverride  : 꾹 누르기가 **누르기 시작한 순간의 점수**를 들고 옵니다.
-                    안 주면 지금 시점으로 셉니다(닭꼬치의 한 번 클릭).
-   alreadySizzled : "치이익" 이 이미 울렸다는 뜻입니다 — 꾹 누르기는 누른 순간에
-                    울리므로, 다 채우고 여기로 올 때 또 울리면 두 번 납니다. */
-function pressTwoSideCue(m,unitIndex,scoreOverride=null,alreadySizzled=false){
+function pressTwoSideCue(m,unitIndex){
   if(!m)return false;
   const data=m.data,unit=twoSideUnit(data,unitIndex);
   if(!unit||data.timedOut)return false;
@@ -612,29 +698,34 @@ function pressTwoSideCue(m,unitIndex,scoreOverride=null,alreadySizzled=false){
   }
   const step=twoSideStep(unit);
   if(!step||unit.done)return false;
-  // 뒤집기·양념은 클릭이 아니라 드래그입니다. 답을 몰라 클릭한 것이므로 벌점은 없습니다.
+  // 뒤집기·양념은 클릭이 아니라 드래그입니다. 김치전 뒤집기에서 클릭하면 10점이 깎입니다.
   if(step.kind!=="cook"){
-    if(unit.phase==="cue")dom.miniFeedback.textContent=step.kind==="sauce"
-      ?"붓질하듯 위아래로 드래그해 양념을 발라주세요!"
-      :(data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!");
+    if(unit.phase==="cue"){
+      const message=step.kind==="sauce"
+        ?"붓질하듯 위아래로 드래그해 양념을 발라주세요!"
+        :(data.dishStyle==="skewer"?"꼬치를 옆으로 굴리듯 드래그하세요!":"김치전을 위로 튕기듯 드래그하세요!");
+      const charged=data.dishStyle==="skewer"
+        ?chargeSkewerCueMistake(m,unit,"클릭이 아니라 드래그해야 해요!")
+        :chargePancakeCueMistake(m,unit,"잘못 눌렀어요! 위로 튕겨 다시 뒤집어 보세요.");
+      if(!charged)dom.miniFeedback.textContent=message;
+    }
     return false;
   }
   if(unit.phase!=="cue"){
     dom.miniFeedback.textContent="아직이에요. 불빛이 켜질 때 누르세요.";
     return false;
   }
-  /* 김치전은 **꾹 누르고 있어야** 합니다. 톡 눌렀다 뗀 것은 여기서 되돌립니다 —
-     이 길로 들어온 것은 누르기가 다 차기 전에 손을 뗐다는 뜻이라 벌점은 없습니다.
-     (다 채우면 tickTwoSideHold 가 scoreOverride 를 들고 여기로 옵니다) */
-  if(scoreOverride===null&&twoSideHoldNeeded(data,unit)){
-    dom.miniFeedback.textContent="김치전은 꾹 눌러 주세요!";
-    return false;
+  if(data.dishStyle==="pancake"&&!pancakeGaugeHit(unit)){
+    chargePancakeCueMistake(m,unit,"초록 구간을 놓쳤어요! 다음 차례로 넘어갑니다.");
+    missTwoSideCue(m,unit);
+    dom.miniFeedback.textContent=`초록 구간을 놓쳤어요! 다음 차례로 넘어갑니다. (${pancakeScore(data)}점)`;
+    return true;
   }
-  data.hits.push(scoreOverride??twoSideCueScore(unit,step.kind));
+  data.hits.push(data.dishStyle==="pancake"?100:twoSideCueScore(unit,step.kind));
   // 불에 닿아 있는 면이 한 칸 익습니다 (보이는 면은 그대로입니다)
   raiseTwoSideCookStep(data,unit);
   data.cooked=(data.cooked||0)+1;
-  if(!alreadySizzled)playTwoSideSizzle(m);
+  playTwoSideSizzle(m);
   dom.miniFeedback.textContent="치이익—  노릇하게 익었습니다!";
   advanceTwoSideStep(m,unit);
   return true;
@@ -651,8 +742,9 @@ function flickTwoSideCue(m,unitIndex,kind="flip"){
   if(!step||step.kind!==kind||unit.phase!=="cue")return false;
   data.hits.push(twoSideCueScore(unit,kind));
   if(kind==="sauce"){
-    // 양념을 바르는 동안에도 아래 면은 계속 익습니다 — 그래서 한 칸 올립니다
-    raiseTwoSideCookStep(data,unit);
+    // 굽기 횟수를 줄인 현재 순서에서는 양념 한 번이 그 면의 유일한 성공입니다.
+    // 완성 UI가 살짝 익음(1)이 아니라 잘 익음(2)에 닿도록 두 칸 올립니다.
+    raiseTwoSideCookStep(data,unit,2);
     applyTwoSideSauce(m,unit.index);
   }else performTwoSideFlip(m,unit);
   advanceTwoSideStep(m,unit);
@@ -667,8 +759,12 @@ function flickTwoSideCue(m,unitIndex,kind="flip"){
 function missTwoSideCue(m,unit){
   const data=m.data,step=twoSideStep(unit);
   if(!step)return;
-  if(step.kind==="cook")data.cookErrors=(data.cookErrors||0)+1;
-  else data.flipErrors=(data.flipErrors||0)+1;
+  const alreadyCharged=(data.dishStyle==="pancake"||data.dishStyle==="skewer")&&unit.cueMistakeCharged;
+  if(!alreadyCharged){
+    if(data.dishStyle==="skewer")data.skewerErrors=(data.skewerErrors||0)+1;
+    if(step.kind==="cook")data.cookErrors=(data.cookErrors||0)+1;
+    else data.flipErrors=(data.flipErrors||0)+1;
+  }
   burnTwoSideCookStep(data,unit);
   const burnt=twoSideSideStage(unit.sides[twoSideCookingSide(unit)])>=3;
   dom.miniFeedback.textContent=burnt
@@ -676,7 +772,8 @@ function missTwoSideCue(m,unit){
     :{cook:"불빛을 놓쳤어요. 다음 차례로 넘어갑니다.",
       flip:"뒤집지 못했어요 — 그 면이 계속 불에 닿습니다.",
       sauce:"양념 바를 때를 놓쳤어요. 다음 차례로 넘어갑니다."}[step.kind];
-  audio.bad();
+  if(!alreadyCharged)audio.bad();
+  updateMiniScore(m);
   /* ⚠️ **같은 할 일을 다시 시키지 않습니다.** 예전에는 놓치면 그 신호가 다시 왔는데,
      잘하는 사람과 못하는 사람이 같은 자리에서 계속 맴돌아 판이 늘어지기만 했습니다.
      지나간 차례는 지나간 대로 두고 다음으로 넘어갑니다 — 대신 그 대가로 아래 면이
@@ -711,12 +808,14 @@ function finishTwoSideUnit(m,unit){
     const element=twoSideTargetElement(data,unit);
     element?.classList.add("unit-done");
     if(data.dishStyle==="skewer"&&!unit.served){
+      unit.serveTimer=SKEWER_SERVE_GRACE_SEC;
+      unit.serveMistakeCharged=false;
       // 이제부터 이 자루는 완성 칸으로 끌어다 놓을 수 있습니다
       element?.classList.add("ready-to-serve");
       element?.setAttribute("data-ts-serve",String(unit.index));
       bindTwoSideServePointers();
       audio.play?.("ui_click",{owner:m,gain:.6});
-      dom.miniFeedback.textContent=`${unit.index+1}번 꼬치 완성! 완성 칸으로 옮겨주세요.`;
+      dom.miniFeedback.textContent=`${unit.index+1}번 꼬치 완성! ${SKEWER_SERVE_GRACE_SEC}초 안에 완성 칸으로 옮겨주세요.`;
       updateTwoSideHint(data);
     }
     if(twoSideAllDone(data))finishTwoSideCook(m);
@@ -746,6 +845,7 @@ function serveTwoSideUnit(m,index){
   const data=m.data,unit=twoSideUnit(data,index);
   if(!unit||!unit.done||unit.served||data.timedOut)return;
   unit.served=true;
+  unit.serveTimer=null;
   // 화로의 그 자리를 다시 비웁니다 (아직 안 올린 꼬치가 있으면 그 자리에 올릴 수 있습니다)
   const slot=dom.miniContent?.querySelector(`.gs-slot.slot-${unit.slot+1}`);
   if(slot){
@@ -851,7 +951,7 @@ function applyTwoSideSauce(m,unitIndex){
 
    조리 칸(.ts-board) 한 곳에서 다 받습니다. 포인터를 잡아 두므로(setPointerCapture)
    칸 밖으로 손이 나가도 한 번의 드래그로 이어집니다.
-     · 움직이지 않고 뗐다 = 클릭  → 익힘·양념 신호에 답
+     · 김치전 굽기에서 누르고 뗌  → 손을 뗀 순간의 게이지 위치를 판정
      · 짧은 시간에 확 그었다 = 튕김 → 뒤집기 신호에 답 (TWO_SIDE_FLICK)
    ⚠️ 화면을 다시 그리지 않으므로 여기 붙인 것은 판이 끝날 때까지 그대로입니다.
       (화면을 다시 그리면 연기 기둥의 박자와 붓 연출이 끊깁니다 — renderTwoSideCook 주석)
@@ -892,17 +992,17 @@ function bindTwoSideCookPointer(){
     drag={id:event.pointerId,x:event.clientX,y:event.clientY,at:performance.now(),
           moved:false,spent:false,unit:twoSidePointerUnit(event)};
     try{board.setPointerCapture?.(event.pointerId);}catch{}
-    // 김치전 굽기 신호는 누르고 있어야 합니다 — 여기서 시계를 겁니다
-    beginTwoSideHold(twoSideMini(),drag.unit);
+    // 김치전 굽기는 여기서 홀드를 시작하고, pointerup 순간의 게이지 위치로 판정합니다.
+    drag.holding=beginPancakeGaugeHold(twoSideMini(),drag.unit);
   });
 
   board.addEventListener("pointermove",event=>{
     const m=twoSideMini();
     if(!drag||drag.id!==event.pointerId||!m)return;
+    if(drag.holding)return;
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
     if(Math.hypot(dx,dy)>=6){
       drag.moved=true;
-      cancelTwoSideHold(m);      // 손이 움직였으면 "꾹 누르기"가 아닙니다
     }
     if(drag.spent)return;                       // 이 드래그로는 이미 한 번 뒤집었습니다
     // 재는 창을 넘겼으면 지금 자리에서 다시 잽니다 —
@@ -919,12 +1019,24 @@ function bindTwoSideCookPointer(){
 
   const finish=event=>{
     if(!drag||drag.id!==event.pointerId)return;
-    const clicked=event.type==="pointerup"&&!drag.moved,unit=drag.unit;
+    const m=twoSideMini(),clicked=event.type==="pointerup"&&!drag.moved,unit=drag.unit,spent=drag.spent,holding=drag.holding;
+    if(holding){
+      const activeUnit=twoSideUnit(m?.data,unit);
+      if(event.type!=="pointerup"&&activeUnit)activeUnit.gaugeElapsed=PANCAKE_GAUGE_HOLD_SEC;
+      releasePancakeGaugeHold(m,unit);
+    }
+    if(!holding&&event.type==="pointerup"&&drag.moved&&!drag.spent){
+      const activeUnit=twoSideUnit(m?.data,unit);
+      const kind=twoSideStep(activeUnit)?.kind;
+      if(m?.data?.dishStyle==="skewer"&&(kind==="flip"||kind==="sauce")){
+        chargeSkewerCueMistake(m,activeUnit,kind==="sauce"
+          ?"양념 방향이나 거리가 부족해요! 위아래로 길게 그어 주세요."
+          :"뒤집는 방향이나 거리가 부족해요! 좌우로 길게 굴려 주세요.");
+      }else if(kind==="flip")chargePancakeCueMistake(m,activeUnit,"뒤집는 방향이나 거리가 부족해요! 위로 다시 튕겨 주세요.");
+    }
     drag=null;
     try{if(board.hasPointerCapture?.(event.pointerId))board.releasePointerCapture?.(event.pointerId);}catch{}
-    // 손을 뗐습니다. 다 채우기 전이면 누르기는 없던 일이 됩니다.
-    cancelTwoSideHold(twoSideMini());
-    if(clicked)pressTwoSideCue(twoSideMini(),unit);
+    if(!holding&&clicked&&!spent)pressTwoSideCue(m,unit);
   };
   ["pointerup","pointercancel","lostpointercapture"].forEach(type=>board.addEventListener(type,finish));
   board.addEventListener("dragstart",event=>event.preventDefault());
@@ -1041,6 +1153,7 @@ function clearTwoSideCue(data,unit=null){
     element.classList.remove("cue-on","cue-preheat","cue-cook","cue-flip","cue-sauce");
     element.style.removeProperty("--cue-left");
   });
+  if(unit){unit.gaugeHolding=false;unit.gaugeElapsed=0;}
 }
 
 /* 오른쪽 카드 맨 아래 "지금 할 일" 한 줄. 화면을 다시 그리지 않고 글자만 바꿉니다.
@@ -1048,7 +1161,7 @@ function clearTwoSideCue(data,unit=null){
       그래서 켜진 신호가 있으면 그 가운데 하나를, 없으면 남은 꼬치를 안내합니다. */
 const TWO_SIDE_NOW_TEXT=Object.freeze({
   pancake:Object.freeze({
-    waitCook:"불이 오르기를 기다리는 중…", cueCook:"지금! 김치전을 꾹 누르기",
+    waitCook:"불이 오르기를 기다리는 중…", cueCook:"지금! 꾹 누른 뒤 초록에서 떼기",
     waitFlip:"곧 뒤집기 신호가 옵니다", cueFlip:"지금! 위로 튕기듯 드래그",
     done:"완성!"
   }),
@@ -1239,7 +1352,7 @@ function charcoalSkewerMarkup(data) {
    김치전과 닭꼬치가 이 틀을 함께 씁니다. 채썰기·튀김 준비(engine-e2 의
    .fp-scene)와 같은 구성이고, 다른 것은 아래 TWO_SIDE_VIEW 표뿐입니다.
      · 왼쪽 재료 카드 목록
-     · 진행도의 분모(김치전은 굽는 횟수 4 · 닭꼬치는 자루 3개)
+     · 진행도의 분모(김치전은 굽는 횟수 3 · 닭꼬치는 자루 3개)
      · 오른쪽 조작 카드에 놓을 안내 줄
 
    ⚠️ **가운데 아래 게이지 줄이 없습니다.** 예전에는 [조리 도구] 아래에 익힘 게이지 +
@@ -1256,14 +1369,14 @@ function charcoalSkewerMarkup(data) {
 
 const TWO_SIDE_VIEW = Object.freeze({
   pancake: Object.freeze({
-    subtitle: "앞면을 누르고 뒤집어 뒷면을 누른 뒤, 다시 앞면을 눌러 주세요!",
+    subtitle: "꾹 누른 뒤 초록 구간에서 손을 떼어 굽고, 위로 튕겨 뒤집어 주세요!",
     ingredients: [{ id: "pancakeBatter", label: "김치전 반죽", count: 1, asset: "cookPancakeBatter" }],
     // 진행도의 분모 = 할 일 목록의 굽기 횟수. **순서표에서 세어 옵니다** —
     // 숫자를 손으로 적어 두면 순서를 바꿀 때 화면만 조용히 옛 값으로 남습니다.
     total: TWO_SIDE_STEP_PLAN.pancake.filter(kind => kind === "cook").length,
     countLabel: "굽기",
     guide: [
-      { icon: "click", name: "불빛이 켜지면 꾹 누르기", desc: "치이익 — 눌러 붙인 면이 익습니다" },
+      { icon: "click", name: "꾹 누른 뒤 초록에서 떼기", desc: "손을 뗀 순간의 위치로 굽습니다" },
       { icon: "drag-up", name: "뒤집기 신호엔 드래그", desc: "위로 튕기듯 샥!" }
     ]
   }),
@@ -1385,7 +1498,14 @@ function pancakePanShell(inner, extraClass = "", id = "") {
   // .ts-cue-halo   : 신호가 켜졌을 때 김치전 뒤에 깔리는 빛무리 (css 의 "신호 표시등")
   // .ts-drag-arrow : 뒤집기 신호 때 김치전 위에 겹치는 방향 화살표.
   //   김치전은 "위로 튕기듯" 한 방향이라 머리가 하나인 ↑ (arrow-once) 입니다.
-  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}${twoSideDragArrowMarkup("pancake")}${twoSideTapHintMarkup()}<i class="ts-hold-ring" aria-hidden="true"></i></div>`;
+  return `<div class="two-side-pan pancake-cook ${asset ? "has-prep-asset" : ""} ${extraClass}"${id ? ` id="${id}"` : ""}><i class="ts-cue-halo" aria-hidden="true"></i>${asset}${inner}${twoSideDragArrowMarkup("pancake")}${pancakeTimingGaugeMarkup()}</div>`;
+}
+
+function pancakeTimingGaugeMarkup(){
+  return `<div class="pancake-timing-gauge" id="pancakeTimingGauge" aria-label="꾹 누른 뒤 초록 구간에서 손 떼기">
+      <span class="pancake-gauge-track"><i class="pancake-gauge-zone"></i><b class="pancake-gauge-marker"></b></span>
+      <em>꾹 누르고, 초록에서 떼기!</em>
+    </div>`;
 }
 
 /* 굽는 김치전. 익힘 단계 5장을 같은 자리에 겹쳐 깔고 지금 단계까지를 켭니다
@@ -1425,31 +1545,19 @@ function twoSideStageMarkup(data, extraClass = "") {
     </div>`;
 }
 
-/* 오른쪽 칸. 두 얼개가 있습니다.
-     기본         [진행도 + 남은 시간 띠] · [조작 안내]        — 김치전
-     count-serve  [완성 개수 + 남은 시간 초] · [완성 담기]     — 닭꼬치
-                  (카드 크기·남은 시간 줄은 멸치 손질과 같은 규격입니다)
-   닭꼬치는 자루 3개가 따로 도는지라 "지금 할 일" 한 줄로 안내가 안 됩니다.
-   대신 남은 시간을 초로 크게 보여 주고, 조작은 아래 TIP 띠가 맡습니다. */
-function twoSideSideMarkup(view, data, { done, total, timePercent }) {
-  const time = `<p class="ts-time-left" id="tsTime"><span>남은 시간</span><b>${(data.timeLimit||0).toFixed(1)}초</b></p>`;
+/* 오른쪽 위는 두 요리 모두 공용 점수 카드이고, 아래만 요리에 따라 갈립니다.
+     김치전  [점수] · [조작 안내]
+     닭꼬치  [점수] · [완성 담기] */
+function twoSideSideMarkup(view, data) {
   if (view.sidePanel === "count-serve") {
-    return `<div class="ts-panel ts-count ts-count-big">
-          <h3 class="ts-col-title">${view.countLabel}</h3>
-          <strong><b id="tsDone">${done}</b> / ${total}</strong>
-          ${time}
-        </div>
+    return `${miniScorePanelMarkup("ts-panel ts-count ts-count-big","ts-col-title")}
         <div class="ts-panel ts-serve">
           <h3 class="ts-col-title">완성 담기</h3>
           <div class="ts-serve-figure">${twoSideServeMarkup(data)}</div>
           <p class="ts-now" id="tsNow"></p>
         </div>`;
   }
-  return `<div class="ts-panel ts-count">
-          <h3 class="ts-col-title">${view.countLabel}</h3>
-          <strong><b id="tsDone">${done}</b> / ${total}</strong>
-          <div class="ts-time" title="남은 시간"><i id="tsTimeBar" style="width:${timePercent}%"></i></div>
-        </div>
+  return `${miniScorePanelMarkup("ts-panel ts-count","ts-col-title")}
         <div class="ts-panel ts-control">
           <h3 class="ts-col-title">조작</h3>
           ${twoSideGuideMarkup(view)}
@@ -1470,13 +1578,13 @@ function twoSideScreenMarkup(view, data, { board, done, total, timePercent, scen
           <strong class="e5-result" id="e5Result" aria-live="polite"></strong>
         </div>
       </div>
-      <aside class="ts-col">${twoSideSideMarkup(view,data,{done,total,timePercent})}</aside>
+      <aside class="ts-col">${twoSideSideMarkup(view,data)}</aside>
     </div>`;
 }
 
 /* 화면은 **판이 시작할 때 한 번만** 그립니다.
    ⚠️ 예전에는 단계가 바뀔 때마다 다시 그렸습니다(굽기 → 뒤집기 → 굽기). 지금은
-      단계가 자주 바뀌는 데다(김치전 7번 · 닭꼬치 12번) 다시 그릴 때마다
+      단계가 자주 바뀌는 데다(김치전 5번 · 닭꼬치 12번) 다시 그릴 때마다
         · 연기 기둥이 새로 만들어져 박자가 끊기고
         · 진행 중인 붓·뒤집기 연출이 지워지고
         · 포인터를 잡고 있던 드래그가 끊깁니다.
@@ -1503,10 +1611,12 @@ function renderTwoSideCook() {
   updateTwoSideHint(data);
 }
 
-/* 다 익히고 뒤집고 발랐는가 + 한 번도 안 놓쳤는가.
+/* 김치전은 성공 반응 속도와 관계없이 놓친 신호만 셉니다. 닭꼬치는 기존처럼
    신호마다 매긴 점수(twoSideCueScore)가 전부 94 위여야 PERFECT 입니다.
    ⚠️ 시간이 끝나 못 마친 자루가 있으면 PERFECT 가 아닙니다. */
 function twoSideCookGrade(data){
+  if(data?.dishStyle==="pancake")return twoSideAllDone(data)&&!data.timedOut&&pancakeMistakes(data)===0?"perfect":"good";
+  if(data?.dishStyle==="skewer")return twoSideAllDone(data)&&!data.timedOut&&skewerMistakes(data)===0?"perfect":"good";
   return twoSideAllDone(data)&&!data.timedOut
     &&data.hits.every(score=>score>=94)&&!(data.flipErrors||0)&&!(data.cookErrors||0)?"perfect":"good";
 }
@@ -1518,12 +1628,16 @@ function finishTwoSideCook(m){
   const average=Math.round(data.hits.reduce((sum,score)=>sum+score,0)/Math.max(1,data.hits.length));
   // 못 마친 자루가 있으면 그만큼 깎습니다 (시간 종료로 들어온 길)
   const missing=twoSideUnits(data).filter(unit=>!unit.done).length;
-  const score=grade==="perfect"?100
+  const score=data.dishStyle==="pancake"
+    ?pancakeScore(data)
+    :data.dishStyle==="skewer"
+    ?skewerScore(data)
+    :grade==="perfect"?100
     :Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4-missing*12,40,95));
   const result=dom.miniContent.querySelector("#e5Result");
   dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
-  if(result){result.textContent=grade==="perfect"?"PERFECT":"GOOD";result.classList.add(grade,"show");}
-  dom.miniFeedback.textContent=grade==="perfect"?"양면을 완벽하게 익혔습니다!":"맛있게 구워냈습니다!";
+  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(grade,"show");}
+  dom.miniFeedback.textContent=cookingScoreMessage(score);
   finishMini(score);
 }
 
@@ -1536,6 +1650,7 @@ function timeoutTwoSideCook(m){
   const data=m.data;
   data.timedOut=true;
   clearTwoSideCue(data);
+  updateMiniScore(m);
   const board=dom.miniContent?.querySelector(".ts-board");
   if(board){
     board.classList.add("time-over");

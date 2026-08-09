@@ -140,8 +140,11 @@ const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
   7: 5
 });
 
-// 기존 미니게임 점수를 이야기 평가 세 단계로 변환하는 기준입니다.
-const STORY_SCORE_THRESHOLDS = Object.freeze({ warm: 50, great: 80 });
+// 공용 음식 평가를 이야기의 아쉽다/맛있다/완벽 세 단계로 변환합니다.
+const STORY_SCORE_THRESHOLDS = Object.freeze({
+  warm: COOKING_SCORE_RULE.tastyMin,
+  great: COOKING_SCORE_RULE.perfect
+});
 
 // 특별 손님을 실제로 만난 뒤 날짜별 기록을 채울 때와 타이틀 영구
 // 컬렉션을 만들 때 쓰는 메타데이터입니다. 진행 영업일지의 미래 목차로는
@@ -392,6 +395,7 @@ const STORY_SCENES = {
     sceneType: "prologue",
     timeOfDay: "night",
     character: "protagonist",
+    storyBgm: "storyCompany",
     /* 프롤로그 네 장면(P01~P04)은 아직 회사원 복장입니다. 첫 영업을 시작하겠다고
        마음먹는 SCN-P04 의 마지막 대사까지가 회사원이고, 그 뒤로는 전부 주방
        복장입니다. 주방 복장 원화 대신 회사원 원화를 씁니다
@@ -425,6 +429,8 @@ const STORY_SCENES = {
     sceneType: "prologue",
     timeOfDay: "night",
     character: "protagonist",
+    storyBgm: "storyCompany",
+    storyAmbient: { name: "story_rain", gain: .42 },
     protagonistCostume: "office",   // SCN-P01 주석 참고
     nextSceneId: "SCN-P03",
     interactionTarget: "restaurantDoor",
@@ -449,6 +455,8 @@ const STORY_SCENES = {
     sceneType: "prologueInteraction",
     timeOfDay: "night",
     character: "protagonist",
+    storyBgm: "storySikdang",
+    storyEntrySfx: { name: "story_open_door", gain: .9, delayBgmUntilComplete: true },
     protagonistCostume: "office",   // SCN-P01 주석 참고
     interactionTarget: "journal",
     nextSceneId: "SCN-P04",
@@ -469,6 +477,7 @@ const STORY_SCENES = {
     sceneType: "prologueInteraction",
     timeOfDay: "night",
     character: "protagonist",
+    storyBgm: "storySikdang",
     // 회사원 복장의 마지막 장면입니다. SCN-P01 주석 참고
     protagonistCostume: "office",
     completesPrologue: true,
@@ -486,6 +495,18 @@ const STORY_SCENES = {
          쓰지 않습니다. 마지못한 결심이라 담담한 calm 으로 둡니다. */
       { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.", { motion: "calm" }), timeOfDay: "day" }
     ]
+  },
+
+  "SCN-P05": {
+    id: "SCN-P05",
+    title: "영업 준비",
+    day: 1,
+    moment: "dayStart",
+    sceneType: "phaseTransition",
+    transitionOnly: true,
+    storyBgm: "day",
+    storyBgmCrossfade: 1700,
+    lines: []
   },
 
   "SCN-L01": {
@@ -1093,7 +1114,7 @@ const STORY_SCENES = {
 // 아래 STORY_SPECIAL_GUEST_BY_DAY 및 각 장면의 분기 메타데이터로 실행합니다.
 const STORY_EVENT_SCHEDULE = {
   newGame: {
-    1: ["SCN-P01", "SCN-P02", "SCN-P03", "SCN-P04"]
+    1: ["SCN-P01", "SCN-P02", "SCN-P03", "SCN-P04", "SCN-P05"]
   },
   dayStart: {
     1: ["SCN-L01", "SCN-L02"],

@@ -55,9 +55,7 @@
        크기를 재면 진짜 그림이 아니라 도형을 잰 것이 됩니다. */
     loadDayPrepAssets().then(run);
     function run(){
-    // ⚠️ set 의 세 번째 인자(제한 시간)를 mini.time 에 꼭 받아 두세요. 진짜 게임에서는
-    //    game.js 가 이 값을 깎으며 카운트다운을 돌립니다. 안 받으면 우측 카드의
-    //    '남은 시간' 이 처음 값에서 멈춰 있어 흐르는지 확인할 수 없습니다.
+    // 공용 setup 형식상 세 번째 인자를 받지만 E4는 Infinity를 넘겨 제한시간 없이 돕니다.
     MINI_ENGINES.heat.setup(mini,{set(title,description,time){dom.miniTitle.textContent=title;dom.miniDescription.textContent=description;mini.time=time;}});
     dom.miniStation.textContent="누르면 상승 · 떼면 하강";
     dom.miniOverlay.classList.add("open");
@@ -69,13 +67,13 @@
     const steps=Number(params.get("steps"))||0;
     if(steps>0){
       if(params.get("hold")==="1")MINI_ENGINES.heat.key(mini," ",{repeat:false,code:"Space"});
-      for(let i=0;i<steps&&!mini.complete;i++){mini.time=Math.max(0,mini.time-1/60);MINI_ENGINES.heat.update(mini,1/60);}
+      for(let i=0;i<steps&&!mini.complete;i++)MINI_ENGINES.heat.update(mini,1/60);
       document.body.dataset.simSeconds=(steps/60).toFixed(2);
     }else{
       let previous=performance.now();
       function frame(now){
         const dt=Math.min(.033,(now-previous)/1000);previous=now;
-        mini.time=Math.max(0,mini.time-dt);MINI_ENGINES.heat.update(mini,dt);
+        MINI_ENGINES.heat.update(mini,dt);
         if(!mini.complete)requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);

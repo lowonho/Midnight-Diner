@@ -28,11 +28,14 @@
 // 앞 4자리만 쓰고 5번 의자는 빈자리로 남겨 둡니다.
 const CUSTOMER_SEATS = COUNTER_CHAIR_CENTERS.slice(0,4).map(x=>Math.round(toLogic(x)));
 
-// 요리사가 이 지점 가까이 와야 서빙할 수 있습니다. 손님이 그려지는
-// 위치가 아니라 "카운터 너머로 접시를 건네는 자리"입니다.
-const CUSTOMER_SERVICE_Y = 475;
-const CUSTOMER_SERVE_REACH = 82;      // E 키 서빙
-const CUSTOMER_AUTO_SERVE_REACH = 64; // 가까이 가면 자동 서빙
+// 요리사가 카운터를 사이에 두고 손님 쪽으로 최대한 붙어야 서빙할 수 있습니다.
+// FRONT_STATIONS.counter.y 는 조리도구 쪽 뒷선이라 서빙 기준으로 쓰면 방향이
+// 반대가 됩니다. 실제 이동 영역의 손님 쪽 하한선을 읽어 가장 가까운 자리를 씁니다.
+const CUSTOMER_SERVICE_Y = toLogic(CHEF_WALK_AREA.bottomY);
+// 손님 좌석 x와도 거의 일치해야 합니다. 자동 반경 8은 프레임당 이동량
+// (약 5 논리 px)보다 커서 밀착했는데 판정을 건너뛰는 일은 없습니다.
+const CUSTOMER_SERVE_REACH = 12;     // E 키 서빙 · 프롬프트 표시
+const CUSTOMER_AUTO_SERVE_REACH = 8; // 완전히 붙으면 자동 서빙
 
 // 앉았을 때의 기준 y. 머리·어깨가 의자 등받이(VIEW 878)보다 위로
 // 올라오도록 맞췄습니다. 값을 키우면 손님이 의자 뒤로 가라앉습니다.

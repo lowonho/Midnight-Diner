@@ -129,6 +129,35 @@ function miniEngine(m = state.mini) {
   return MINI_ENGINES[m.engine] || null;
 }
 
+/* ---- 영업 미니게임 공용 점수 카드 ----------------------------
+   영업 중 조리 화면은 오른쪽 위 칸을 모두 점수 카드로 씁니다. 각 엔진은
+   score(m)에서 현재까지 얻은 0~100점을 계산하고, 이 공용 함수는 화면 모양과
+   갱신만 맡습니다. 이후 게임별 배점만 바꿀 때 마크업을 다시 손댈 필요가 없습니다. */
+function miniCurrentScore(m = state.mini) {
+  if (!m) return 0;
+  const engineScore = miniEngine(m)?.score?.(m);
+  const score = Number.isFinite(engineScore) ? engineScore : m.score;
+  return Math.round(clamp(Number.isFinite(score) ? score : 0, 0, 100));
+}
+
+function miniScorePanelMarkup(panelClass, titleClass, m = state.mini, extra = "") {
+  return `<div class="${panelClass} mini-score-panel">
+      <h3 class="${titleClass}">점수</h3>
+      <p class="mini-score-value"><b data-mini-score>${miniCurrentScore(m)}</b><span>점</span></p>
+      ${extra}
+    </div>`;
+}
+
+function updateMiniScore(m = state.mini, scoreOverride = null) {
+  if (!m || !dom.miniContent) return;
+  const score = Number.isFinite(scoreOverride)
+    ? Math.round(clamp(scoreOverride, 0, 100))
+    : miniCurrentScore(m);
+  dom.miniContent.querySelectorAll("[data-mini-score]").forEach(value => {
+    value.textContent = score;
+  });
+}
+
 /* ---- 여러 엔진이 함께 쓰는 도우미 ----------------------------
    왕복하는 포인터(#miniMarker)와 그 위치로 점수를 내는 계산은
    썰기·뒤집기·튀기기·직화구이가 똑같이 씁니다.

@@ -9,11 +9,40 @@ const files = ["game-data.js", "story-data.js", "story.js"];
 const sources = files.map(file => fs.readFileSync(path.join(root, file), "utf8"));
 const indexSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const storyCssSource = fs.readFileSync(path.join(root, "css", "story.css"), "utf8");
+const gameSource = fs.readFileSync(path.join(root, "game.js"), "utf8");
 const titleSource = fs.readFileSync(path.join(root, "title.js"), "utf8");
 
 if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   ||!titleSource.includes('journalLastGameplayPageId=String(pageId||"")')){
   throw new Error("영업 마감 일지는 현재 날짜 페이지를 지정해서 열 수 있어야 합니다.");
+}
+
+[
+  "assets/bgm/story/bgm_company_story.mp3",
+  "assets/bgm/story/bgm_in_first_sikdang.mp3",
+  "assets/sfx/story/sfx_rain.MP3",
+  "assets/sfx/story/sfx_open_door.MP3",
+  "assets/sfx/ui/sfx_next_book.MP3",
+  ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`)
+].forEach(asset=>{
+  if(!fs.existsSync(path.join(root,...asset.split("/"))))throw new Error(`스토리 음원 누락: ${asset}`);
+});
+if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
+  ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
+  ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
+  ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
+  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')
+  ||!Array.from({length:7},(_,index)=>index+1).every(day=>
+    gameSource.includes(`fragment_full_d${day}:["assets/sfx/story/fragments/sfx_d${day}_finish.MP3"]`)
+  )){
+  throw new Error("스토리·영업일지 음원은 BGM/SFX 레지스트리에 등록되어야 합니다.");
+}
+if(!titleSource.includes('openGameScreen();queueStoryMoments(["newGame","dayStart"]);')
+  ||!titleSource.includes("audio.startBgm();")){
+  throw new Error("새 게임은 프롤로그 BGM을 선택한 뒤 재생을 시작해야 합니다.");
+}
+if(!titleSource.includes('if(changed)audio?.play?.("journal_page_turn",{gain:.9});')){
+  throw new Error("영업일지 페이지가 실제로 바뀔 때 책장 넘김 효과음을 재생해야 합니다.");
 }
 
 [
@@ -190,6 +219,12 @@ assert(applyStoryFragmentHandoff(fullFragmentLine)
   &&fragmentLayerStyles["--fragment-art"].includes("file:///C:/Midnight%20Diner/assets/customer/Special/MoonPiece/")
   &&!fragmentLayerStyles["--fragment-art"].includes("/css/assets/"),
   "엔딩과 달빛 조각 에셋은 CSS 파일이 아닌 문서 루트 기준 절대 URL로 표시해야 합니다.");
+assert(Object.keys(STORY_FULL_FRAGMENT_SFX_BY_DAY).length===7
+  &&Object.entries(STORY_FULL_FRAGMENT_SFX_BY_DAY).every(([day,cue])=>cue==="fragment_full_d"+day)
+  &&String(playStoryFullFragmentSfx).includes("STORY_GUEST_IDS.slice(0,7)")
+  &&String(playStoryFullFragmentSfx).includes('handoff?.state!=="full"')
+  &&String(applyStoryFragmentHandoff).includes("playStoryFullFragmentSfx(line)"),
+  "Day 1~7 기본 손님의 완전한 조각 전달 순간에만 날짜별 완료음을 재생해야 합니다.");
 assert(!applyStoryFragmentHandoff(null)
   &&!("--fragment-art" in fragmentLayerStyles)
   &&!fragmentLayerClasses.has("show"),
@@ -295,7 +330,7 @@ assert(STORY_MENU_RULES.selectCount===5
 STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 메뉴 ID: "+id));
 same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
   "날짜별 일반 주문 수");
-same(STORY_SCORE_THRESHOLDS,{warm:50,great:80},"스토리 평가 점수 기준");
+same(STORY_SCORE_THRESHOLDS,{warm:71,great:100},"스토리 평가 점수 기준");
 same(GENERAL_GUEST_BUBBLES.arrival,[
   "[음식명] 하나 부탁드릴게요.",
   "오늘은 [음식명][이/가] 먹고 싶네요.",
@@ -312,23 +347,54 @@ assert(formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요
 assert(String(decorateStoryOrder).includes('pickGeneralGuestBubble("arrival",order.dishId)')
   &&!GENERAL_GUEST_BUBBLES.arrival.includes("천천히 해 주세요. 기다릴게요."),
   "일반 손님 주문 음식명을 방문 대사에 전달하고 제외한 기다림 문장을 다시 넣으면 안 됩니다.");
-assert(storyCookingTier(49,STORY_SCORE_THRESHOLDS)==="soft"
-  &&storyCookingTier(50,STORY_SCORE_THRESHOLDS)==="warm"
-  &&storyCookingTier(79,STORY_SCORE_THRESHOLDS)==="warm"
-  &&storyCookingTier(80,STORY_SCORE_THRESHOLDS)==="great",
-  "아쉽다/맛있다/완벽은 50점과 80점을 경계로 나뉘어야 합니다.");
+assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
+  &&storyCookingTier(71,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(99,STORY_SCORE_THRESHOLDS)==="warm"
+  &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
+  "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
 
-assert(Object.keys(STORY_SCENES).length===55,"새 시나리오는 총 55개 장면이어야 합니다.");
+assert(Object.keys(STORY_SCENES).length===56,"새 시나리오는 총 56개 장면이어야 합니다.");
 const requiredStaticScenes=[
-  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-L01","SCN-L02","SCN-D01",
+  "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D01",
   "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
 ];
 requiredStaticScenes.forEach(id=>assert(STORY_SCENES[id]?.id===id,"필수 장면 누락: "+id));
 assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
   "영업일지 규칙 확인 뒤 프롤로그가 끝나야 합니다.");
+const dayOnePrepTransition=STORY_SCENES["SCN-P05"];
+assert(dayOnePrepTransition.title==="영업 준비"
+  &&dayOnePrepTransition.day===1
+  &&dayOnePrepTransition.moment==="dayStart"
+  &&dayOnePrepTransition.transitionOnly===true
+  &&dayOnePrepTransition.storyBgm==="day"
+  &&dayOnePrepTransition.storyBgmCrossfade===1700
+  &&dayOnePrepTransition.lines.length===0,
+  "프롤로그 뒤에는 DAY 1 영업 준비 카드와 1.7초 BGM 크로스페이드가 있어야 합니다.");
+assert(String(applyStorySceneAudio).includes("crossfadeDuration")
+  &&String(storyAdvance).includes("storySession.scene?.transitionOnly")
+  &&gameSource.includes("crossfadeBgm(track,duration=this.bgmFadeDuration)"),
+  "영업 준비 카드는 자동 진행되며 식당·낮 BGM을 부드럽게 교차해야 합니다.");
 assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
   &&STORY_SCENES["SCN-P02"].interactionTarget==="restaurantDoor",
   "퇴근길 뒤 식당 문과 영업일지 조사 흐름을 유지해야 합니다.");
+assert(STORY_SCENES["SCN-P01"].storyBgm==="storyCompany"
+  &&STORY_SCENES["SCN-P02"].storyBgm==="storyCompany"
+  &&STORY_SCENES["SCN-P02"].storyAmbient?.name==="story_rain"
+  &&STORY_SCENES["SCN-P03"].storyBgm==="storySikdang"
+  &&STORY_SCENES["SCN-P04"].storyBgm==="storySikdang",
+  "회사·빗길·첫 식당 장면의 BGM과 빗소리 큐가 장면 경계에 맞아야 합니다.");
+const prologueDoorLine=STORY_SCENES["SCN-P02"].lines.find(line=>line.text?.includes("일단 비부터 피하자"));
+assert(!prologueDoorLine?.sfxOnComplete
+  &&STORY_SCENES["SCN-P03"].storyEntrySfx?.name==="story_open_door"
+  &&STORY_SCENES["SCN-P03"].storyEntrySfx?.delayBgmUntilComplete===true,
+  "달빛식탁에 갇히다 장면 진입 시 문소리를 먼저 재생한 뒤 식당 BGM을 시작해야 합니다.");
+assert(String(beginNextStoryScene).includes("applyStorySceneAudio(scene)")
+  &&String(restoreStoryCheckpoint).includes("applyStorySceneAudio(scene)")
+  &&String(applyStorySceneAudio).includes('entry.element.addEventListener("ended"')
+  &&String(applyStorySceneAudio).includes("audio?.setStoryBgm?.(scene.storyBgm||null)")
+  &&String(clearStoryRuntime).includes("clearStoryAudio()")
+  &&String(finishStorySession).includes("clearStoryAudio()"),
+  "스토리 음향은 장면 시작·중간 복원·종료 수명주기를 따라야 합니다.");
 assert(storySceneCardText(STORY_SCENES["SCN-P01"])==="지친 밤 - 퇴근길"
   &&!storySceneCardText(STORY_SCENES["SCN-J01"]).includes("SCN-")
   &&!storySceneCardText(STORY_SCENES["END-01"]).includes("END-"),
@@ -390,6 +456,10 @@ assert(String(storyAdvance).includes("openJournalOnAdvance")
   &&String(resumeStoryAfterJournal).includes("waitingForJournal")
   &&String(resumeStoryAfterJournal).includes("showStoryLine"),
   "프롤로그는 해당 자막 뒤 책을 열고, 닫은 뒤 다음 자막으로 복귀해야 합니다.");
+const storyAdvanceAudioSource=String(storyAdvance)+"\\n"+String(chooseStoryOption);
+assert(storyAdvanceAudioSource.includes("audio?.uiClick?.()")
+  &&!storyAdvanceAudioSource.includes("audio?.click()"),
+  "대사 진행과 선택지 확정은 합성 기계음이 아니라 설정된 UI 클릭음을 사용해야 합니다.");
 assert(p04.lines.slice(-3).every(line=>line.timeOfDay==="day")
   &&String(storyTimeOfDayOverride).includes("line.timeOfDay"),
   "프롤로그의 밤→첫째 날 낮 전환은 대사뿐 아니라 실제 배경 시간에도 반영되어야 합니다.");
@@ -426,7 +496,7 @@ assert(l02.journalVariants.shard[0].text.includes("지난 회차")
   "과거 조각 기록은 남아도 이번 회차에 조각을 다시 얻어야 합니다.");
 
 same(STORY_EVENT_SCHEDULE.newGame[1],
-  ["SCN-P01","SCN-P02","SCN-P03","SCN-P04"],"프롤로그 진입 일정");
+  ["SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05"],"프롤로그 진입 일정");
 for(let day=1;day<=7;day++){
   assert(STORY_EVENT_SCHEDULE.nightStart[day][0]==="SCN-D01",
     "매일 영업 준비 완료 뒤 밤 영업 시작 장면을 실행해야 합니다.");
@@ -468,7 +538,7 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
   same(arrival.resultSceneIds,
     {soft:prefix+"-아쉽다",warm:prefix+"-맛있다",great:prefix+"-완벽"},
     prefix+" 평가 장면 연결");
-  same(arrival.thresholds,{warm:50,great:80},prefix+" 평가 기준");
+  same(arrival.thresholds,{warm:71,great:100},prefix+" 평가 기준");
   assert(arrival.repeatEachLoop&&arrival.guestOrder&&arrival.specialCook,
     prefix+" 회차별 재방문과 기존 조리 연결");
   assert(missing?.missingMenu&&missing.wrongDish&&missing.journalClue&&missing.resultTier==null,
@@ -674,7 +744,8 @@ assert(String(finishTrueEnding).includes("clearEndingRetryCheckpoint")
   "진엔딩은 일반 엔딩의 숨은 체크포인트를 남기지 않아야 합니다.");
 
 Object.values(STORY_SCENES).forEach(scene=>{
-  assert(Array.isArray(scene.lines)&&scene.lines.length>0,scene.id+" lines 누락");
+  assert(Array.isArray(scene.lines)&&(scene.lines.length>0||scene.transitionOnly===true),
+    scene.id+" lines 누락");
   scene.lines.forEach((line,index)=>{
     assert(typeof line.text==="string"||typeof line.prompt==="string",
       scene.id+" "+index+"번 줄에 text 또는 prompt가 필요합니다.");
@@ -1054,7 +1125,7 @@ assert(state.story.loop===2&&state.day===1
   &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
   "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 
-console.log("STORY_CONTRACT_OK 55");
+console.log("STORY_CONTRACT_OK 56");
 `;
 
 const context = {
@@ -1075,6 +1146,7 @@ const context = {
   RegExp,
   Error,
   URL,
+  gameSource,
   setTimeout,
   clearTimeout
 };
