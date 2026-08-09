@@ -64,8 +64,20 @@ const STATION_SPEC = {
   //   소품 높이를 바꾸면 이 값도 같이 봐야 합니다.
   fridge:     {label:"냉장고",    standY:640, facing:"up", labelDy:-52},
   sink:       {label:"싱크대",    standY:640, facing:"up", hideLabel:true},
-  board:      {label:"도마",      standY:640, facing:"up"},
-  pot:        {label:"냄비",      standY:640, facing:"up"},
+  /* labelDx = 이름표를 오른쪽으로 옮길 거리(VIEW — labelDy 와 같은 단위).
+     기본 자리는 몸통 한가운데인데, 조각 안에서 그림이 오른쪽으로 치우친
+     둘만 눈에 보이는 중심에 맞춥니다. E 키캡과 안내 발광도 같은 값을
+     따라갑니다. (stationLabelCenterX · game.js promptXFor)
+
+     원화에서 잰 값입니다. 조각 폭 대비 비율로 환산해 두었으므로
+     STATION_ROW.width 를 바꿔도 다시 잴 필요는 없습니다.
+       도마  칼끝이 조각 x 141.5 / 245 → 논리 +9.2 → VIEW 14
+             (칼이 오른쪽 위를 향해 누워 있어서, 판이 몸통 한가운데면
+              이름표가 칼이 아니라 빈 도마 왼쪽을 가리킵니다)
+       냄비  금속 냄비 실루엣이 조각 x 43~169, 한가운데 106 / 197
+             → 논리 +3.6 → VIEW 5 */
+  board:      {label:"도마",      standY:640, facing:"up", labelDx:14},
+  pot:        {label:"냄비",      standY:640, facing:"up", labelDx:5},
   pan:        {label:"후라이팬",  standY:640, facing:"up"},
   grill:      {label:"직화구이",  standY:640, facing:"up"},
   fryer:      {label:"튀김기",    standY:640, facing:"up"},
@@ -247,6 +259,7 @@ const STATIONS = Object.fromEntries(Object.entries(STATION_SPEC).map(([id,spec])
     ix:spec.stand?toLogic(spec.stand[0]):body.x+body.w/2,   // 줄 안이면 몸통 가로 중심
     iy:toLogic(spec.stand?spec.stand[1]:spec.standY),
     labelDy:toLogic(spec.labelDy||0),
+    labelDx:toLogic(spec.labelDx||0),
     hideLabel:!!spec.hideLabel
   }];
 }));
@@ -550,6 +563,15 @@ function stationLabelTop(s){
   return s.y - STATION_LABEL_RISE + (s.labelDy||0);
 }
 
+/* 이름표 판의 가로 중심. 기본은 몸통 한가운데이고 labelDx 로 비켜 놓습니다.
+   E 키캡(game.js)과 안내 발광(fx.js)도 이 함수를 써야 셋이 한 줄로 섭니다.
+
+   ⚠️ 요리사가 서는 자리(ix)와는 다릅니다. ix 를 옮기면 판정 범위와 걸음이
+      같이 밀려서, 집기 앞에 섰는데 옆 집기가 잡히는 일이 생깁니다. */
+function stationLabelCenterX(s){
+  return s.x + s.w/2 + (s.labelDx||0);
+}
+
 /* 뒤쪽 집기의 E 키캡을 앉힐 y (논리 좌표).
 
    [왜 이름표 위인가] 원래는 집기 아랫변보다 60 아래(= y+h+60)였습니다.
@@ -579,22 +601,31 @@ function stationPromptY(s){
 }
 
 /* 이름표 한 장.
-   E 를 눌러 실제로 쓸 수 있을 때만 크게·밝게 둥실댑니다.
-   앞에 서 있기만 해서는 강조되지 않습니다. (stationUsable 참고)
-   둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep) */
+   둥실 계산은 낮 준비물과 공유합니다. (draw-utils.js labelFloatStep)
+
+   [빠르게 둥실대는 조건과 글자가 밝아지는 조건이 다릅니다]
+     둥실  지금 갈 곳이거나(안내 대상) 실제로 쓸 수 있을 때
+     글자  실제로 쓸 수 있을 때만 (stationUsable)
+
+   둘을 하나로 묶지 않은 이유가 있습니다. 글자 색은 "E 를 누르면 된다"는
+   약속이라 game.js updatePrompt() 가 키캡을 띄우는 조건과 정확히 같아야
+   합니다. 반면 둥실은 멀리서 눈에 띄라고 있는 것이라, 안내 대상이면
+   아직 닿지 않았어도 같이 흔들리는 편이 찾기 쉽습니다. 테두리 빛
+   (fx.js drawStationLabelGlow)과 같은 조건으로 켜지므로 빛과 움직임이
+   한 몸으로 붙습니다. */
 function labelStation(s,near){
   /* 이름표를 끈 집기(§1 hideLabel)는 여기서 바로 빠집니다.
      labelFloatStep 을 부르기 전에 빠져야 합니다 — 그 함수는 집기마다 둥실
      상태를 기억해 두는데, 안 그릴 것까지 부르면 쓰지도 않을 상태가 계속 쌓입니다. */
   if(s.hideLabel)return;
   const active=stationUsable(s,near);
-  const f=labelFloatStep(`station_${s.id}`,active);
+  const f=labelFloatStep(`station_${s.id}`,active||isGuidanceTarget(s));
 
   /* 이름표 폭은 글자 수가 정합니다(stationLabelPlateWidth).
      집기 폭을 따라가지 않는 이유는, 냉장고(201)·싱크대(165) 같은 큰
      집기에서 명판만 길쭉해지기 때문입니다. */
   ctx.font=STATION_LABEL_FONT;
-  const h=STATION_LABEL_H,cx=s.x+s.w/2;
+  const h=STATION_LABEL_H,cx=stationLabelCenterX(s);
   const w=stationLabelPlateWidth(s.label);
   // 기준 위치는 stationLabelTop() 이 갖고 있습니다 (E 키캡과 공유).
   // 여기서 더하는 f.dy 는 둥실 흔들림뿐입니다.
@@ -608,6 +639,10 @@ function labelStation(s,near){
      바꿨는데, 그림 판에는 바꿀 테두리가 없습니다. 대신 글자 색과
      크기(applyLabelScale)로만 강조합니다 — 앞쪽 철판 명패가 쓰는
      방식과 같습니다. (counter.js COUNTER_FLOAT) */
+  // 지금 갈 차례인 집기면 판 뒤에 빛을 깝니다. (fx.js §3 drawStationLabelGlow)
+  // 판보다 먼저 그려야 판이 빛 위에 얹혀 안쪽이 깔끔합니다.
+  drawStationLabelGlow(s,x,y,w,h);
+
   const plate=nameplateCanvas(w,h);
   if(plate){
     ctx.drawImage(plate,x,y,w,h);

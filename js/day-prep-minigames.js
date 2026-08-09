@@ -417,6 +417,10 @@ const DAY_PREP_ASSET_PATHS = Object.freeze({
      (css 의 .grill-skewer.sauced .gs-piece-glaze). 익힘 단계 그림을 갈아 끼우는 것과
      달리 겹치기만 하므로, 어느 단계에서 발라도 그 위에 윤기만 얹힙니다.
      ⚠️ 캔버스가 익힘 장과 같아야 조각에 1:1 로 겹칩니다 — 빌드에서 pad 로 맞춥니다. */
+  /* 오른쪽 '완성 담기' 칸의 접시. **위에서 내려다본 타원 쟁반 한 장**이고, 다 구운
+     꼬치는 그 위에 얹습니다 (engine-e5-two-side-cook.js 의 twoSideServeMarkup ·
+     css 의 .ts-serve-art). 파일이 없으면 예전 임시 CSS 타원(.ts-serve-dish)이 나옵니다. */
+  cookServePlate:"assets/minigame/E5/yakitori/food_chicken_skewer_plate_topview_1250x1853.webp",
   cookGlazeChicken:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_chicken_piece_overlay.webp",
   cookGlazeGreenOnion:"assets/minigame/E5/yakitori/fx_teriyaki_glaze_green_onion_piece_overlay.webp",
   /* 조작 방향 화살표 3장. 신호가 켜져 있는 동안 조리물 위에 겹쳐 뜹니다
@@ -625,6 +629,42 @@ function dayPrepCompletionScore(data={}){
   const grade=data?.completionGrade
     ||(data?.mistakes||data?.errors||data?.warnings?"good":"perfect");
   return grade==="perfect"?100:grade==="good"?80:80;
+}
+
+/* ---- 마무리 판정 문구 · 표시 --------------------------------
+   밤 조리(E3~E6)는 끝날 때 조리판 가운데에 "완벽해요! / 맛있어요! / 아쉬워요!"
+   를 띄웁니다. 낮 준비도 **같은 말**을 씁니다 — 같은 판정을 낮에는 PERFECT/GOOD,
+   밤에는 완벽해요! 로 부르면 플레이어가 두 벌을 따로 배워야 합니다.
+   문구 기준은 game-data.js 의 cookingScoreMessage 한 곳뿐입니다.
+
+   ⚠️ 여기서 정하는 것은 **판정 표시**뿐입니다. 오른쪽 진행도/완성 개수 패널은
+      각 게임이 그대로 갖고 있습니다 — 이 함수들은 그 패널을 건드리지 않습니다. */
+
+// 점수까지 확정된 마무리용(시간 종료 감점까지 반영).
+function dayPrepVerdictText(data=state.mini?.data){
+  return cookingScoreMessage(dayPrepCompletionScore(data||{}));
+}
+
+// 등급만 있는 중간 단계용(채칼 재료 하나를 끝냈을 때 등).
+function dayPrepGradeText(grade){
+  return cookingScoreMessage(grade==="perfect"?100:grade==="miss"?50:80);
+}
+
+/* 자기 판정 표시가 없던 게임(E1 칼질 · E10 멸치)에 공용 판정을 띄웁니다.
+   hostSelector 는 그 게임의 조리판입니다(position:relative 여야 합니다).
+   모양은 css/minigame/_prep-common.css 의 .prep-verdict — 밤 E5/E6 와 같은 판입니다. */
+function showDayPrepVerdict(hostSelector,data=state.mini?.data){
+  const host=dom.miniContent?.querySelector(hostSelector);
+  if(!host)return;
+  const score=dayPrepCompletionScore(data||{});
+  let verdict=host.querySelector(".prep-verdict");
+  if(!verdict){
+    verdict=document.createElement("strong");
+    verdict.setAttribute("aria-live","polite");
+    host.appendChild(verdict);
+  }
+  verdict.textContent=cookingScoreMessage(score);
+  verdict.className=`prep-verdict ${cookingScoreTier(score)} show`;
 }
 
 /* ---- 엔진 등록 창구 ----------------------------------------

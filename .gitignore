@@ -15,3 +15,6 @@ assets/Cutscene/Moonpiece/*.png
 # 헤드리스 크롬 캡처(visual smoke)가 남기는 임시 프로필과 스크린샷.
 # --user-data-dir 로 넘긴 폴더에 캐시·쿠키·DB 가 수백 개 쌓입니다.
 .tmp-*
+
+# 확인용 도구가 뽑는 그림(tools/journal-face-preview.js 등). 눈으로 보고 버립니다.
+tools/.out/

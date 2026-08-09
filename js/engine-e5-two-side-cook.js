@@ -469,10 +469,10 @@ registerMiniEngine("twoSideCook", {
     twoSideUnits(m.data).forEach(unit=>tickTwoSideUnit(m,unit,dt));
   },
 
-  /* 제한시간이 끝났습니다. 멸치 손질(engine-e10)과 같은 마감입니다 —
-     그때까지 끝낸 만큼으로 셈하고 TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
-     ⚠️ 이게 없으면 game.js 가 finishMini(35) 로 뚝 끊습니다. 꼬치를 원할 때
-        올리는 방식이 되면서 시간이 모자라는 판이 실제로 생겨 필요해졌습니다. */
+  /* 제한시간이 끝났습니다. TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
+     ⚠️ 이게 없으면 game.js 가 연출 없이 그 자리에서 끊습니다. 꼬치를 원할 때
+        올리는 방식이 되면서 시간이 모자라는 판이 실제로 생겨 필요해졌습니다.
+     ⚠️ 점수는 최저점으로 고정입니다 — mini-engine.js 의 MINI_TIMEOUT_SCORE 참고. */
   timeout(m){ timeoutTwoSideCook(m); },
 
   // ACTION 버튼(휴대용 화면의 큰 버튼)으로도 클릭 신호에 답할 수 있게 열어 둡니다.
@@ -859,7 +859,8 @@ function serveTwoSideUnit(m,index){
     stack.insertAdjacentHTML("beforeend",twoSideServedSkewerMarkup(data,unit));
     stack.querySelector(".ts-served:last-child")?.classList.add("landing");
   }
-  dom.miniContent?.querySelector(".ts-serve-plate")?.classList.add("filled");
+  /* ⚠️ 여기 있던 `.ts-serve-plate` 의 `filled` 는 뺐습니다 — 접시가 비었을 때만 띄우던
+     점선(.ts-serve-mark)을 끄려고 붙이던 표시인데, 점선을 없애면서 쓰는 곳이 사라졌습니다. */
   audio.play?.("plate_set",{owner:m,gain:.9})||audio.play?.("ui_click",{owner:m,gain:.7});
   dom.miniFeedback.textContent=`${index+1}번 꼬치를 담았습니다!`;
   updateTwoSideProgress(data);
@@ -1174,10 +1175,11 @@ const TWO_SIDE_NOW_TEXT=Object.freeze({
   })
 });
 
-/* 완성 칸의 "여기로 끌어다 담으세요" 점선. 다 구운 자루가 하나라도 있으면 켭니다.
+/* 완성 칸의 "여기로 끌어다 담으세요" 표시. 다 구운 자루가 하나라도 있으면 켭니다.
    ⚠️ 접시가 이미 차 있어도 켭니다 — 자루가 셋이라 한 번 담고 나서도 또 담아야 합니다.
-      비었을 때만 보이던 점선(.ts-serve-mark)이 첫 자루를 담는 순간 사라져서,
-      두 번째부터는 어디로 끌어야 하는지 알려 주는 것이 아무것도 없었습니다. */
+   표시는 접시 그림을 밝히는 것으로 냅니다 (css 의 .ts-serve-plate.wants-drop).
+   예전에는 접시 위에 점선 칸(.ts-serve-mark)을 띄웠는데, 그릇 안에 네모가 겹쳐
+   보여서 없앴습니다. */
 function updateTwoSideServeHint(data){
   const plate=dom.miniContent?.querySelector(".ts-serve-plate");
   plate?.classList.toggle("wants-drop",twoSideServableUnits(data).length>0);
@@ -1453,15 +1455,20 @@ function twoSideIngredientMarkup(item, data) {
    튀김(engine-e6)처럼 **다 구운 꼬치를 여기로 끌어다 담아야** 한 개로 셉니다.
    원래 이 자리는 '참고 모양'(잘 구워진 꼬치 견본)이었는데, 담는 자리가 필요해져
    통째로 바꿨습니다.
-   ⚠️ 접시는 아직 원화가 없어 **임시 CSS 도형**입니다 (css 의 .ts-serve-plate).
-      그림이 들어오면 거기에 .has-asset 갈래를 하나 만들면 됩니다 —
-      담긴 꼬치(.ts-served)는 접시 그림과 무관하게 그대로 쓸 수 있습니다. */
+   접시는 **위에서 내려다본 쟁반 원화 한 장**입니다(cookServePlate). 담긴 꼬치는
+   그 위에 얹히고, 나무 손잡이는 접시 아래 테두리 밖으로 나옵니다 — 자리는 전부
+   css 의 .ts-serve-plate / .ts-serve-stack 가 잡습니다.
+   ⚠️ 그림이 없으면 예전 임시 CSS 타원(.ts-serve-dish)으로 떨어집니다.
+      담긴 꼬치(.ts-served)는 두 갈래 모두에서 그대로 쓰입니다.
+   ⚠️ 예전에 접시 위에 띄우던 "여기 담으세요" 점선(.ts-serve-mark)은 **없앴습니다** —
+      그릇 안에 네모가 겹쳐 보였습니다. 그 안내는 이제 접시 그림 자체를 밝혀서 합니다
+      (css 의 .ts-serve-plate.wants-drop · updateTwoSideServeHint 는 그대로입니다). */
 function twoSideServeMarkup(data) {
   const served = twoSideUnits(data).filter(unit => unit.served);
-  return `<div class="ts-serve-plate ${served.length ? "filled" : ""}" data-order-target="serve" aria-label="다 구운 꼬치를 담는 접시">
-      <i class="ts-serve-dish" aria-hidden="true"></i>
+  const plate = dayPrepAssetMarkup("cookServePlate", "ts-serve-art");
+  return `<div class="ts-serve-plate ${plate ? "has-asset" : ""}" data-order-target="serve" aria-label="다 구운 꼬치를 담는 접시">
+      ${plate || `<i class="ts-serve-dish" aria-hidden="true"></i>`}
       <span class="ts-serve-stack">${served.map(unit => twoSideServedSkewerMarkup(data, unit)).join("")}</span>
-      <i class="ts-serve-mark" aria-hidden="true"></i>
     </div>`;
 }
 
@@ -1628,7 +1635,11 @@ function finishTwoSideCook(m){
   const average=Math.round(data.hits.reduce((sum,score)=>sum+score,0)/Math.max(1,data.hits.length));
   // 못 마친 자루가 있으면 그만큼 깎습니다 (시간 종료로 들어온 길)
   const missing=twoSideUnits(data).filter(unit=>!unit.done).length;
-  const score=data.dishStyle==="pancake"
+  /* ⚠️ 시간이 끝나 들어온 판은 최저점입니다 — game.js 의 finishMini 가 어차피
+     MINI_TIMEOUT_SCORE 로 덮어쓰므로, 화면에 띄우는 판정도 같은 값으로 맞춥니다.
+     (여기서 계산한 점수를 그대로 띄우면 "맛있어요!" 를 보여 주고 0 점을 주게 됩니다) */
+  const score=m.timeOver?MINI_TIMEOUT_SCORE
+    :data.dishStyle==="pancake"
     ?pancakeScore(data)
     :data.dishStyle==="skewer"
     ?skewerScore(data)
@@ -1636,13 +1647,15 @@ function finishTwoSideCook(m){
     :Math.round(clamp(average-(data.flipErrors||0)*5-(data.cookErrors||0)*4-missing*12,40,95));
   const result=dom.miniContent.querySelector("#e5Result");
   dom.miniContent.querySelector(".ts-board")?.classList.add("e5-complete");
-  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(grade,"show");}
+  // 시간 초과일 때만 붉은 판정 색을 씁니다. 나머지는 예전 그대로 perfect/good 입니다.
+  if(result){result.textContent=cookingScoreMessage(score);result.classList.add(m.timeOver?"disappointing":grade,"show");}
   dom.miniFeedback.textContent=cookingScoreMessage(score);
   finishMini(score);
 }
 
-/* 제한시간 종료. 멸치 손질(engine-e10 의 timeoutAnchovy)과 같은 마감입니다 —
-   돌던 신호를 전부 끄고 TIME OVER 를 잠깐 보여 준 뒤, 그때까지 끝낸 만큼으로 마칩니다. */
+/* 제한시간 종료. 돌던 신호를 전부 끄고 TIME OVER 를 잠깐 보여 준 뒤 마칩니다.
+   ⚠️ 점수는 여기서 정하지 않습니다 — 시간이 끝난 판은 최저점입니다
+      (mini-engine.js 의 MINI_TIMEOUT_SCORE · game.js 의 finishMini). */
 const TWO_SIDE_TIMEOUT_END_MS=1200;
 
 function timeoutTwoSideCook(m){
@@ -1657,7 +1670,7 @@ function timeoutTwoSideCook(m){
     board.insertAdjacentHTML("beforeend",
       `<div class="ts-timeout"><strong>TIME OVER</strong><span>${twoSideDone(data)} / ${TWO_SIDE_VIEW[data.dishStyle].total} 완성</span></div>`);
   }
-  dom.miniFeedback.textContent="시간이 끝났습니다. 여기까지 구운 것으로 마칩니다.";audio.bad();
+  dom.miniFeedback.textContent="시간이 끝났습니다. 시간 안에 끝내지 못하면 점수를 받지 못합니다.";audio.bad();
   miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishTwoSideCook(m);},TWO_SIDE_TIMEOUT_END_MS);
 }
 

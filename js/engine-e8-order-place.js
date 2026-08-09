@@ -524,7 +524,7 @@ function renderChickenSkewer(){
         <div class="sk-active-rack" data-order-target="skewer" data-skewer="${activeIndex}">${skewerRackMarkup(activeStack,activeIndex,{active:true,lastPlaced:data.lastPlaced,pattern:activePattern})}</div>
         <!-- 무엇을 꽂을지는 알려 주지 않습니다. 칸 색을 읽는 것이 이 게임입니다. -->
         <p class="sk-free-rule">빛나는 칸의<br /><b>테두리 색</b>에 맞춰<br /><b>아래부터 순서대로</b><br />꽂아주세요!</p>
-        ${data.finishing?`<strong class="order-result ${data.completionGrade} show">${data.completionGrade==="perfect"?"PERFECT":"GOOD"}</strong>`:""}
+        ${data.finishing?`<strong class="order-result ${data.completionGrade} show">${dayPrepGradeText(data.completionGrade)}</strong>`:""}
       </div>
 
       <aside class="sk-col">

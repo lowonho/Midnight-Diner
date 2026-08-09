@@ -32,13 +32,17 @@
 .order-source-dragging { opacity: .45; cursor: grabbing !important; }
 .order-drop-ready { outline: calc(4 * var(--upx)) solid #ffe08d; outline-offset: calc(5 * var(--upx)); filter: brightness(1.12); }
 .order-place-reject { animation: order-place-reject .34s ease; }
+/* ⚠️ 글자는 PERFECT/GOOD 이 아니라 "완벽해요! / 맛있어요!" 입니다 — 밤 조리와
+   같은 말을 씁니다(js/day-prep-minigames.js 의 dayPrepGradeText). 한글 다섯 자는
+   PERFECT 보다 넓어서 크기를 52 → 42 로 낮췄습니다.
+   글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다. */
 .order-result {
   position: absolute;
   z-index: 15;
   left: 50%;
   top: 50%;
   color: #fff0ae;
-  font-size: calc(52 * var(--upx));
+  font-size: calc(42 * var(--upx));
   font-weight: 1000;
   letter-spacing: .08em;
   text-shadow: 0 calc(4 * var(--upx)) 0 #5b2d15,0 0 calc(18 * var(--upx)) rgba(255,214,112,.75);
@@ -46,6 +50,32 @@
 }
 .order-result.good { color: #cfe7a4; }
 .order-result.show { animation: order-result-pop .72s cubic-bezier(.2,.85,.25,1) both; }
+
+/* ── 마무리 판정 (자기 판정 표시가 없던 게임용) ────────────────
+   E1 칼질 · E10 멸치는 끝나도 조리판에 아무 말이 없었습니다. 밤 조리(E5·E6)와
+   같은 모양의 판 하나를 조리판 가운데에 띄웁니다.
+   붙이는 곳은 js/day-prep-minigames.js 의 showDayPrepVerdict — 조리판이
+   position:relative 여야 가운데에 섭니다.
+   글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다.
+   ⚠️ 오른쪽 진행도/완성 개수 패널과는 상관없습니다. 이건 조리판 위에만 뜹니다. */
+.prep-verdict {
+  position: absolute;
+  z-index: 15;
+  left: 50%;
+  top: 50%;
+  color: #ffe29a;
+  font-size: calc(34 * var(--upx));
+  font-weight: 1000;
+  letter-spacing: .08em;
+  line-height: 1.15;
+  opacity: 0;
+  transform: translate(-50%,-42%) scale(.72);
+  pointer-events: none;
+}
+.prep-verdict.tasty { color: #f2c878; }
+.prep-verdict.disappointing { color: #f0a08b; }
+.prep-verdict.show { animation: prep-verdict-in .5s cubic-bezier(.2,.9,.25,1.22) forwards; }
+@keyframes prep-verdict-in { to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @keyframes order-place-reject { 25% { transform:translateX(calc(-8 * var(--upx))); } 60% { transform:translateX(calc(7 * var(--upx))); } 85% { transform:translateX(calc(-3 * var(--upx))); } }
 @keyframes order-result-pop { 0% { opacity:0; transform:translate(-50%,-40%) scale(.75); } 40%,80% { opacity:1; transform:translate(-50%,-50%) scale(1.05); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 
@@ -60,5 +90,5 @@
 @keyframes sk-next-pulse { 50% { border-color:#fff2c4; box-shadow:0 0 calc(20 * var(--upx)) rgba(255,224,141,.5); } }
 
 @media (prefers-reduced-motion:reduce) {
-  .order-place-reject,.order-result.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
+  .order-place-reject,.order-result.show,.prep-verdict.show { animation-duration:.01ms !important; animation-iteration-count:1 !important; animation-delay:0s !important; }
 }

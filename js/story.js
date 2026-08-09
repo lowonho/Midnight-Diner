@@ -375,6 +375,11 @@ function gameplayJournalGuestRecord(definition){
   else if(guest.previouslyObtainedPartial)shardNote=`전에 달빛 조각 「${definition.shardName}」의 일부를 건넨 적이 있다.`;
   return {
     guestId:definition.guestId,
+    // 아래 세 줄은 일기 장에 붙는 그림 두 장(초상화·달빛 조각)의 재료입니다.
+    // 조각 그림은 이번 회차에 실제로 받았을 때만 나옵니다(js/title.js).
+    shardId:definition.shardId,
+    shardName:definition.shardName,
+    fragmentState:currentFragmentState,
     guestName:definition.guestId==="facelessDaeun"
       &&!(guest.memoryUnlocked||Number(guest.revealedStoryLevel)>=3)
       ?(STORY_CHARACTERS.facelessDaeun?.name||"얼굴 없는 손님")
@@ -1761,9 +1766,14 @@ function storyAdvance(){
        놔두면 펼친 책 뒤로 같은 책이 한 권 더 비칩니다. */
     clearStoryPropReveal();
     audio?.uiClick?.();
-    const opened=line.journalPageId&&typeof openGameplayJournalPage==="function"
-      ?openGameplayJournalPage(line.journalPageId)
-      :typeof openGameplayJournal==="function"&&openGameplayJournal();
+    /* journalRequiredReading 인 줄(프롤로그)은 주의사항 구역을 다 펼치기
+       전에는 닫기 버튼이 잠긴 채로 열립니다. 2회차부터의 해제 판정은 title.js
+       쪽에 있습니다. 나머지 줄은 예전 그대로 열립니다. */
+    const opened=line.journalRequiredReading&&typeof openGameplayJournalRequiredReading==="function"
+      ?openGameplayJournalRequiredReading()
+      :line.journalPageId&&typeof openGameplayJournalPage==="function"
+        ?openGameplayJournalPage(line.journalPageId)
+        :typeof openGameplayJournal==="function"&&openGameplayJournal();
     if(!opened){storySession.waitingForJournal=false;showStoryLine();}
     else saveGame(true);
     return true;
@@ -1940,6 +1950,51 @@ function storyPortraitMotionArt(portraitKey,motion){
   const index=STORY_PROTAGONIST_MOTIONS[motion]||STORY_PROTAGONIST_MOTIONS[STORY_PROTAGONIST_DEFAULT_MOTION];
   return `assets/Conversation/${art.dir}/${art.stem}_motion_${index}.webp`;
 }
+
+/* 영업일지에 붙는 특별 손님 초상화입니다. 로비 컬렉션과 인게임 일기 장이
+   같은 그림 한 장을 씁니다 — 대화씬 원화의 motion_02(soft, 잔잔한 미소)입니다.
+   어느 장면에서 만났는지와 무관하게 늘 같은 얼굴이어야 기록처럼 읽힙니다.
+   그림이 없는 배역(주인공·목소리뿐인 화자)은 빈 문자열입니다. */
+const JOURNAL_GUEST_PORTRAIT_MOTION="soft";
+function storyJournalGuestPortraitArt(guestId){
+  const id=String(guestId||"");
+  if(!id||id==="protagonist")return "";
+  const key=storyPortraitKey(id);
+  return key?storyPortraitMotionArt(key,JOURNAL_GUEST_PORTRAIT_MOTION):"";
+}
+window.storyJournalGuestPortraitArt=storyJournalGuestPortraitArt;
+
+/* 일지의 초상화는 전신이 아니라 얼굴만 원형틀에 확대해 넣습니다.
+   아래는 그 얼굴이 원화(1250x1800) 어디에 있는지 적어 둔 표입니다.
+     cx·cy — 얼굴 한가운데 (원화 가로·세로의 %)
+     fh    — 잘라낼 세로 크기 (원화 세로의 %). 가로는 틀 비율에 맞춰 계산합니다.
+   인물마다 머리 크기와 높이가 제각각이라(등불 손님은 머리가 등, 작은 짐승은
+   몸이 작아 얼굴이 한참 아래) 한 가지 규칙으로는 안 맞아 눈으로 맞춘 값입니다.
+   원화를 새로 받으면 표를 고치고 아래 도구로 여덟 장을 한 줄로 뽑아 확인하세요:
+
+     node tools/journal-face-preview.js
+
+   ⚠️ 값을 고치면 css/settings.css 의 .journal-page-portrait 상자 비율(44/60)도
+      같이 봐야 합니다. 가로는 그 비율에서 나옵니다. */
+const JOURNAL_GUEST_FACE=Object.freeze({
+  rainyChild:{cx:48,cy:22,fh:32},
+  lanternGuest:{cx:61,cy:31,fh:34},
+  twinShadows:{cx:60,cy:19,fh:28},
+  crowCourier:{cx:54,cy:15,fh:26},
+  starBeast:{cx:54,cy:37,fh:32},
+  seawaterGuest:{cx:47,cy:19,fh:27},
+  schoolDoll:{cx:48,cy:19,fh:26},
+  facelessDaeun:{cx:49,cy:18,fh:25}
+});
+// 원화 크기입니다(tools/build-conversation-webp.js 의 공통 크롭 박스 비율).
+const JOURNAL_GUEST_ART_SIZE=Object.freeze({width:1250,height:1800});
+
+function storyJournalGuestFaceBox(guestId){
+  const key=storyPortraitKey(String(guestId||""));
+  const face=JOURNAL_GUEST_FACE[key];
+  return face?{...face,...JOURNAL_GUEST_ART_SIZE}:null;
+}
+window.storyJournalGuestFaceBox=storyJournalGuestFaceBox;
 
 /* ⚠️ --portrait-art 에 상대경로를 그대로 넣으면 그림이 안 나옵니다.
    커스텀 속성 안의 url() 은 그 값을 '쓰는' 스타일시트(css/story.css)를 기준으로

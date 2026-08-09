@@ -26,6 +26,11 @@ registerDayPrepSetup("anchovy",()=>setupAnchovyPrep());
 // 그 좌표는 css/day-prep-minigames.css 의 .anchovy.v01 ~ .v04 변수에 있습니다.
 const ANCHOVY_VARIANTS=Object.freeze(["01","02","03","04"]);
 
+// 마지막 한 마리를 뜯고 나서 화면을 넘기기까지 두는 시간(ms).
+// 그 사이에 도마 가운데 마무리 판정이 뜹니다. 다른 준비 게임의 완료 연출과 같은 값입니다
+// (E1 CUT_FEEL_CONFIG.completeDelayMs · E3 E3_FEEL_CONFIG.completeDelayMs = 620).
+const ANCHOVY_VERDICT_DELAY_MS=620;
+
 // 포인터로 머리를 잡아 흔드는 게임이라 키 처리는 없습니다.
 registerDayPrepEngine("anchovy",{});
 
@@ -225,5 +230,13 @@ function finishAnchovyTug(m,grip){
   dom.miniTimer.textContent=`${m.data.cleaned} / ${m.data.total}`;
   dom.miniContent.querySelector("#anchovyCount").innerHTML=`<b>${m.data.cleaned}</b> / ${m.data.total}`;
   dom.miniFeedback.textContent="흔들어 뜯기 성공!";audio.play?.("anchovy_finish",{owner:m});
-  if(m.data.cleaned===m.data.total){m.data.finishing=true;finishDayPrepTask("cleanAnchovy","멸치 손질 완료");}
+  if(m.data.cleaned===m.data.total){
+    m.data.finishing=true;
+    // 도마 가운데에 마무리 판정 — 밤 조리와 같은 문구입니다 (day-prep-minigames.js)
+    showDayPrepVerdict(".anchovy-work-area",m.data);
+    // 바로 마치면 판정이 뜨는 도중에 화면이 닫힙니다. 다른 준비 게임과 같은
+    // 박자(완료 연출 620ms)만큼 두고 넘어갑니다 — finishing 이 true 라 그동안
+    // 멸치는 더 잡히지 않습니다(anchovyMini 참고).
+    miniSetTimeout(()=>{if(state.mini===m&&!m.complete)finishDayPrepTask("cleanAnchovy","멸치 손질 완료");},ANCHOVY_VERDICT_DELAY_MS);
+  }
 }

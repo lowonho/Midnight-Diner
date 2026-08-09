@@ -384,6 +384,8 @@
                 <strong id="journalPageProgress">1 / 13</strong>
               </div>
               <div id="journalPagePortrait" class="journal-page-portrait" aria-hidden="true">?</div>
+              <!-- 인게임 일기 장에서 액자 대신 들어가는 그날 손님들의 초상화·달빛 조각입니다 -->
+              <div id="journalPageGuests" class="journal-page-guests" aria-hidden="true" hidden></div>
               <h3 id="journalPageTitle">잠긴 기록</h3>
               <small id="journalPageMeta"></small>
               <figure id="journalPageRelic" class="journal-page-relic" hidden>
@@ -456,6 +458,7 @@
     각 파일은 자기 요소의 좌표·크기·연출만 갖습니다. 게임 규칙은 game.js.
   -->
   <script src="js/decoration.js"></script>  <!-- 배경 소품(서비스 벨 · 전등 · 벽 장식 · 좌측벽 화분). js/stage.js 가 부르므로 먼저 -->
+  <script src="js/window-fx.js"></script>   <!-- 창밖 연출(낮에 지나가는 새 · 밤에 반짝이는 별). js/stage.js 가 부르므로 먼저 -->
   <script src="js/stage.js"></script>       <!-- 화면 크기 · 좌표 배율 · 레이어 · 배경 · 낮밤 -->
   <script src="js/draw-utils.js"></script>  <!-- 프레임 캔버스(ctx) · 공용 드로잉 헬퍼 -->
   <script src="js/food-props.js"></script>  <!-- 음식 그림 8종 x 조리 등급 3단계 -->
@@ -521,5 +524,6 @@
   <script src="js/save-ui.js"></script>
   <script src="js/settings-ui.js"></script><!-- 설정창 음량 슬라이더의 지나온 구간 칠(--fill). 표시 전용입니다 -->
   <script src="js/hud-list-drag-scroll.js"></script><!-- 좌측 HUD 목록을 잡고 끌어 굴리기. 표시 전용입니다 -->
+  <script src="js/rich-text.js"></script><!-- 글 속 「강조」 를 굵은 글씨로. 표시 전용입니다 -->
 </body>
 </html>

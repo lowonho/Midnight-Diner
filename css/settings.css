@@ -541,9 +541,13 @@
   transform: translateY(-50%);
   cursor: pointer;
 }
-.journal-close:hover,
+.journal-close:hover:not(:disabled),
 .journal-close:focus-visible { filter: brightness(1.12); }
 .journal-close:focus-visible { outline: calc(2 * var(--upx)) solid #ffe09a; outline-offset: calc(2 * var(--upx)); }
+/* 프롤로그처럼 끝까지 읽어야 덮을 수 있는 일지에서는 닫기 버튼을 딤드로
+   잠급니다. 흐림 정도는 좌우 넘김 화살표(.journal-page-arrow:disabled)와
+   같은 값이라 "지금은 못 누른다"가 한눈에 같은 규칙으로 읽힙니다. */
+.journal-close:disabled { opacity: .28; filter: grayscale(.6); cursor: default; }
 /* 제목과 같은 판 안에 들어가는 안내문입니다. */
 .journal-description {
   margin: 0;
@@ -664,13 +668,16 @@
   color: #4d2d1c;
   font: 700 calc(44 * var(--upx))/1 Georgia,serif;
 }
-.journal-page-portrait.has-portrait {
-  background-color: #24140e;
-  background-image: url("../assets/customer_sheet.png");
+.journal-page-portrait[hidden] { display: none; }
+/* 특별 손님 초상화입니다. 로비 컬렉션 장과 인게임 일기 장이 같은 그림 한 장을
+   씁니다 — 대화씬 원화의 motion_02 이고, 주소는 js/story.js 가 정합니다.
+   원화는 전신이라 원형틀에는 얼굴만 확대해 넣습니다. 얼마나 키워서 어디를
+   보여 줄지는(background-size·position) js/title.js 가 인물별로 넣어 줍니다.
+   여기서는 원형틀과 깔리는 방식만 정합니다. */
+.journal-page-portrait.has-art-portrait {
+  overflow: hidden;
+  background-color: #f0e6d2;
   background-repeat: no-repeat;
-  background-size: 400% 600%;
-  background-position: 0 var(--journal-portrait-y,0%);
-  image-rendering: pixelated;
 }
 .journal-page-portrait.portrait-placeholder {
   background:
@@ -702,14 +709,6 @@
 .journal-page-portrait.frame-day {
   aspect-ratio: 431 / 448;
   background-image: url("../assets/UI/Journal/ui_journal_picture_diary.webp");
-}
-.journal-page.is-locked .journal-page-portrait.has-portrait {
-  background-color: #7d6d5d;
-  background-image:
-    radial-gradient(circle at 50% 30%,#1b1613 0 17%,transparent 18%),
-    radial-gradient(ellipse at 50% 105%,#1b1613 0 43%,transparent 44%);
-  color: #f4d99b;
-  text-shadow: 0 1px calc(5 * var(--upx)) #000;
 }
 /* 엔딩 장은 컷씬 그림이 들어가는 자리라, 초상화 대신 가로로 긴
    직사각형입니다. 게임 화면과 같은 16:9 로 페이지 폭을 거의 꽉 채웁니다. */
@@ -867,6 +866,75 @@
 }
 .journal-page.is-locked .journal-page-relic-name { color: #7d6d5d; }
 
+/* ── 인게임 일기 장의 특별 손님 카드 ──────────────────────────
+   그날 만난 특별 손님의 기록이라 로비 컬렉션 장과 같은 그림 두 장이 섭니다 —
+   대화씬 초상화(1250x1800)와 그날 받은 달빛 조각입니다. 7일차처럼 손님이 둘인
+   날은 나란히 두 벌이라, 그때만 한 벌씩 작아집니다(.is-pair).
+   손님을 아직 만나지 않은 날은 카드가 없어 일기 액자가 그대로 남습니다. */
+/* 카드가 선 날은 표제 면에 그림이 둘(초상화·조각)이라, 조각 장(.has-relic)과
+   같은 방식으로 머리글·제목 여백을 조금씩 줄여 한 면에 담습니다. */
+.journal-page.has-guest-cards .journal-page-topline { margin-bottom: calc(14 * var(--upx)); }
+.journal-page.has-guest-cards h3 {
+  margin: calc(10 * var(--upx)) 0 calc(4 * var(--upx));
+  font-size: calc(26 * var(--upx));
+}
+.journal-page-guests {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: calc(16 * var(--upx));
+}
+.journal-page-guests[hidden] { display: none; }
+.journal-guest-card {
+  --journal-guest-portrait: calc(112 * var(--upx));
+  --journal-guest-shard: calc(76 * var(--upx));
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4 * var(--upx));
+  text-align: center;
+}
+.journal-page-guests.is-pair .journal-guest-card {
+  --journal-guest-portrait: calc(88 * var(--upx));
+  --journal-guest-shard: calc(58 * var(--upx));
+}
+/* 로비 컬렉션의 초상화(.journal-page-portrait)와 같은 원형틀입니다.
+   얼굴을 얼마나 키워 어디를 보여 줄지는 js/title.js 가 넣어 줍니다. */
+.journal-guest-portrait {
+  width: var(--journal-guest-portrait);
+  aspect-ratio: 44 / 60;
+  overflow: hidden;
+  border: calc(2 * var(--upx)) solid #92633b;
+  border-radius: 50%;
+  background-color: #f0e6d2;
+  background-repeat: no-repeat;
+}
+.journal-guest-name {
+  max-width: 100%;
+  color: #5b3b28;
+  font-size: calc(14 * var(--upx));
+  line-height: 1.35;
+  word-break: keep-all;
+}
+.journal-guest-shard {
+  width: var(--journal-guest-shard);
+  height: var(--journal-guest-shard);
+  margin-top: calc(2 * var(--upx));
+  background: center/contain no-repeat;
+  filter: drop-shadow(0 calc(3 * var(--upx)) calc(6 * var(--upx)) rgba(74,42,20,.45));
+}
+/* 부분 조각은 아직 다 모으지 못한 상태라 옅게 둡니다. */
+.journal-guest-shard.is-partial { opacity: .62; }
+.journal-guest-shard-name {
+  max-width: 100%;
+  color: #6d472c;
+  font-size: calc(13 * var(--upx));
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
 .journal-page small {
   max-width: 100%;
   color: #805b3b;
@@ -990,4 +1058,8 @@
   .journal-page small { font-size: calc(12 * var(--upx)); }
   .journal-page-relic { --journal-relic-size: calc(100 * var(--upx)); margin-top: calc(10 * var(--upx)); }
   .journal-page-relic-name { font-size: calc(13 * var(--upx)); }
+  .journal-guest-card { --journal-guest-portrait: calc(92 * var(--upx)); --journal-guest-shard: calc(64 * var(--upx)); }
+  .journal-page-guests.is-pair .journal-guest-card { --journal-guest-portrait: calc(72 * var(--upx)); --journal-guest-shard: calc(48 * var(--upx)); }
+  .journal-guest-name { font-size: calc(12 * var(--upx)); }
+  .journal-guest-shard-name { font-size: calc(11 * var(--upx)); }
 }

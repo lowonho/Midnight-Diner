@@ -181,7 +181,9 @@ function directionSequenceClasses(index,current){
 function showDirectionGrade(grade,score=null){
   const result=dom.miniContent.querySelector("#e3Result");
   if(!result)return;
-  result.textContent=Number.isFinite(score)?cookingScoreMessage(score):grade==="perfect"?"PERFECT":"GOOD";
+  // 점수가 있는 밤 조리는 그 점수로, 등급만 있는 낮 준비는 등급으로 —
+  // 어느 쪽이든 나오는 말은 "완벽해요! / 맛있어요! / 아쉬워요!" 한 벌입니다.
+  result.textContent=Number.isFinite(score)?cookingScoreMessage(score):dayPrepGradeText(grade);
   result.className=`e3-result show ${grade}`;
 }
 

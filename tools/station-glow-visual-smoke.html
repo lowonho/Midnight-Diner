@@ -1,0 +1,141 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- [base 가 꼭 필요합니다] js/kitchen.js 의 에셋 경로가 저장소 루트 기준이라,
+     base 없이 tools/ 에서 열면 전부 404 가 나고 도형 플레이스홀더가 그려집니다.
+     그러면 명판도 나무판 그림이 아니라 예비 도형으로 나와서, 정작 보려던
+     발광 모양이 달라집니다. 아래 로그의 "준비된 그림"이 0 이면 이 경우입니다. -->
+<base href="../">
+<title>목표 안내 발광 — visual smoke</title>
+<!-- ============================================================
+     js/fx.js §3 의 안내 발광이 어떻게 보이는지 눈으로 보는 하네스입니다.
+     예전 원+삼각형 화살표를 걷어내고, 지금 갈 집기의 **이름표 명판**
+     테두리에 흰빛을 두르는 연출입니다.
+
+     쓰는 법 (저장소 루트에서):
+       npx http-server -p 8123 .        또는 아무 정적 서버
+       tools/station-glow-visual-smoke.html?target=fridge
+       tools/station-glow-visual-smoke.html?target=pot&phase=night
+       tools/station-glow-visual-smoke.html?target=griddle    ← 명패 없는 되돌림
+       …&glow=off 를 붙이면 발광 없이 같은 화면을 찍습니다 (전/후 비교용)
+       …&freeze=1 은 숨(밝기 맥동)을 가장 밝은 순간에 고정합니다 (캡처 비교용)
+
+     [손님 발광은 여기서 안 봅니다] 손님은 밤 영업 상태·주문·스프라이트시트가
+     다 있어야 해서, 진짜 게임을 qa=1 로 띄워 보는 편이 빠릅니다.
+     ([[main-play-screen-capture-recipe]])
+
+     [왜 js/fx.js 를 그대로 불러오나] 연출을 여기 옮겨 적으면 하네스만 맞고
+     게임은 틀어집니다. 진짜 bakeGlow() / drawStationLabelGlow() 를 씁니다.
+
+     [file:// 로 열면 안 됩니다] 에셋을 <img> 로 불러오므로 http 로 띄워야
+     합니다. file:// 은 이미지가 조용히 안 뜨고 빈 화면이 됩니다.
+     ============================================================ -->
+<style>
+  body{margin:0;background:#15100c;color:#cbbfae;font:13px/1.5 Malgun Gothic,sans-serif}
+  canvas{display:block;background:#241a12}
+  #log{padding:8px 12px;white-space:pre}
+</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="log">불러오는 중…</div>
+<script>
+  /* js/kitchen.js · js/fx.js 가 로드 시점에 기대하는 전역들. js/stage.js 와 같은 값입니다. */
+  const W=1280, H=720, VIEW_W=1920, VIEW_H=1080;
+  const VIEW_SCALE=VIEW_W/W;
+  const toView =value=>value*VIEW_SCALE;
+  const toLogic=value=>value/VIEW_SCALE;
+  const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+
+  const params=new URLSearchParams(location.search);
+  const TARGET=params.get("target")||"fridge";
+
+  /* [phase 를 그냥 day 로 두면 발광이 안 나옵니다] guidanceTarget() 이
+     낮 준비 단계를 일부러 걸러내기 때문입니다 (js/fx.js §3 참고).
+     그래서 기본값이 menuSelect 입니다 — 냉장고를 가리키는 실제 상황이고,
+     집기 그림은 낮 그림을 씁니다. 밤 그림을 보려면 phase=night 를 주세요. */
+  const PHASES=["day","night","menuSelect"];
+  const state={
+    phase:PHASES.includes(params.get("phase"))?params.get("phase"):"menuSelect",
+    paused:false, mini:null, carrying:null, story:null,
+    player:{x:640,y:500}           // 쓰레기통 앞뒤 판정(trashInFront)이 씁니다
+  };
+
+  /* 앞쪽 철판·계산대. 실제 값은 js/counter.js 에 있지만 여기서는 카운터
+     전체를 띄우지 않으므로 좌표 사본만 둡니다. (되돌림 경로 확인용) */
+  const FRONT_STATIONS={
+    register:{id:"register",label:"계산대",x:0,  y:521,w:218,h:154,ix:245,iy:470},
+    griddle: {id:"griddle", label:"철판",  x:194,y:445,w:227,h:233,ix:320,iy:470},
+    counter: {id:"counter", label:"카운터",x:411,y:493,w:869,h:182,ix:700,iy:470}
+  };
+  // 카운터를 안 띄우므로 명패 컨테이너도 없습니다 → 몸통 되돌림으로 갑니다.
+  const counter={ plates:[] };
+
+  // js/fx.js 의 guidanceTarget() 이 쓰는 두 함수. 게임에서는 js/game.js 가 갖고 있습니다.
+  const currentRequirement=()=>TARGET;
+  const stationById=id=>STATIONS[id]||FRONT_STATIONS[id]||null;
+
+  /* 명판 나무판 그림. 게임에서는 js/counter.js 가 받아 두고 draw-utils.js 가
+     그걸 빌려 씁니다(같은 파일을 두 번 받지 않으려고). 카운터를 안 띄우는
+     하네스에서는 여기서 직접 채웁니다 — 안 채우면 명판이 예비 도형으로
+     그려져서 발광 모양도 진짜와 달라집니다. */
+  const counterImages={};
+  const nameplateImage=new Image();
+  nameplateImage.onload=()=>{counterImages.counter_nameplate=nameplateImage;};
+  nameplateImage.src="assets/counter/ui_nameplate.webp";
+</script>
+<!-- ⚠️ js/draw-utils.js 를 먼저 불러야 합니다. js/kitchen.js 가 이 파일의
+     NAMEPLATE_TEXT 등을 로드 시점에 씁니다. 없으면 kitchen.js 평가가
+     중간에 멈춰서, 뒤쪽 const(STATION_TOP_RATIO)가 초기화되지 않은 채
+     남고 화면에는 도형 플레이스홀더만 찍힙니다.
+     ctx / backCtx 도 이 파일이 선언합니다 — 여기서 또 선언하면
+     "Identifier 'ctx' has already been declared" 로 통째로 죽습니다. -->
+<script src="js/draw-utils.js"></script>
+<script>
+  const canvas=document.getElementById("c");
+  ctx=canvas.getContext("2d");                 // draw-utils.js 가 선언해 둔 전역에 넣습니다
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+</script>
+<script src="js/kitchen.js"></script>
+<script src="js/fx.js"></script>
+<script>
+  const expected=STATION_SLICES.flatMap(s=>[`${s.id}_day`,...(s.night?[`${s.id}_night`]:[])])
+                               .concat(["trash_day","trash_active"]);
+  const ready=()=>expected.filter(key=>stationArt[key]);
+  const plateReady=()=>!!counterImages.counter_nameplate;
+
+  /* 숨 고정 — 캡처마다 밝기가 달라지면 전/후 비교가 안 됩니다.
+     performance.now() 를 가장 밝은 순간(sin=1)이 되는 값으로 묶습니다.
+     ⚠️ 이름표 둥실(labelFloatStep)도 performance.now() 를 쓰므로 같이 멈춥니다.
+        그래서 판 자리가 프레임마다 흔들리지 않아 캡처 비교가 됩니다. */
+  if(params.has("freeze")){
+    const bright=FX_GUIDE_GLOW.breathPeriod/4*1000;
+    performance.now=()=>bright;
+  }
+
+  // 발광만 끄고 나머지는 똑같이 그립니다 (전/후 비교용).
+  const glowOn=params.get("glow")!=="off";
+  if(!glowOn){
+    const noop=()=>{};
+    drawStationLabelGlow=noop; drawFrontPlateGlow=noop;
+  }
+
+  function frame(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,VIEW_W,VIEW_H);
+    ctx.fillStyle="#241a12"; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+    ctx.setTransform(VIEW_SCALE,0,0,VIEW_SCALE,0,0);   // 두 파일 다 논리 좌표로 그립니다
+
+    drawStations();
+    drawStationLabels();    // 뒤쪽 집기 발광은 이 안에서 명판과 같이 그려집니다
+    drawFrontPlateGlow();   // 앞쪽 철판 명패 (하네스에서는 몸통 되돌림)
+
+    document.getElementById("log").textContent =
+      `target=${TARGET}  phase=${state.phase}  glow=${glowOn?"on":"off"}  ` +
+      `대상=${guidanceTarget()?.id??"없음(이 단계에는 안 그립니다)"}  ` +
+      `그리는 방식=${STATIONS[TARGET]?(plateReady()?"명판 그림":"명판 예비 도형"):"몸통 되돌림"}  ` +
+      `준비된 그림 ${ready().length}/${expected.length}`;
+    requestAnimationFrame(frame);
+  }
+  frame();
+  // 캡처 도구가 "다 준비됐다"를 알 수 있게 표시를 남깁니다.
+  const done=()=>{ if(ready().length===expected.length&&plateReady()) document.title="READY"; else setTimeout(done,60); };
+  done();
+</script>

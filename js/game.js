@@ -815,7 +815,12 @@ function miniAction() {
 }
 
 function finishMini(score) {
-  const m=state.mini;if(!m||m.complete)return;m.complete=true;score=Math.round(clamp(score,0,100));m.score=score;
+  const m=state.mini;if(!m||m.complete)return;m.complete=true;
+  /* 제한시간을 넘긴 판은 그때까지 얼마나 해 뒀든 최저점입니다.
+     엔진이 계산해 넘긴 점수가 있어도 여기서 갈아끼웁니다 — 규칙을 한 곳에 두면
+     엔진마다 마감 점수를 다시 손볼 필요가 없습니다 (mini-engine.js 참고). */
+  if(m.timeOver)score=MINI_TIMEOUT_SCORE;
+  score=Math.round(clamp(score,0,100));m.score=score;
   updateMiniScore(m,score);
   audio.stopOwner(m);audio.stopLoops();
   dom.miniFeedback.textContent=UI_TEXT.miniScore(score);
@@ -935,8 +940,14 @@ function updateMini(dt) {
   engine.update?.(m,dt);
   updateMiniScore(m);
   if(Number.isFinite(m.time)&&m.time<=0){
+    /* 제한시간 종료. 여기서는 "시간이 끝났다"는 표시만 세웁니다 —
+       실제 점수는 아래 finishMini 가 MINI_TIMEOUT_SCORE 로 강제합니다.
+       엔진의 timeout 은 TIME OVER 연출과 마무리 흐름만 맡습니다.
+       ⚠️ 이 블록은 마칠 때까지 매 프레임 다시 들어옵니다(E5 는 연출 1.2초 뒤에
+          마칩니다). 표시는 처음 한 번만 세우고, 엔진 쪽도 각자 재진입을 막습니다. */
+    if(!m.timeOver){m.timeOver=true;updateMiniScore(m);}
     if(engine.timeout)engine.timeout(m);
-    else finishMini(m.score||35);
+    else finishMini(MINI_TIMEOUT_SCORE);
   }
 }
 
@@ -987,6 +998,13 @@ function updateUI(force=false) {
 function promptYFor(station){
   return station.id==="griddle" ? station.iy-58 : stationPromptY(station);
 }
+/* E 키캡을 앉힐 x. 기본은 요리사가 서는 자리(ix)이고, 이름표를 옆으로
+   비켜 놓은 집기(kitchen.js labelDx)에서는 키캡도 같이 비킵니다 —
+   둘이 위아래 한 줄로 읽혀야 하는데 한쪽만 옮기면 어긋나 보입니다.
+   ix 자체는 건드리지 않습니다. 그건 판정과 걸음이 쓰는 값입니다. */
+function promptXFor(station){
+  return station.ix + (station.labelDx||0);
+}
 function updatePrompt(){
   const prompt=dom.stationPrompt;
   const hide=(mobileAction=false)=>{
@@ -1003,7 +1021,7 @@ function updatePrompt(){
     const station=nearestStoryCookStation(required);
     if(station?.id===required){
       text=UI_TEXT.prompt.station(station.label);
-      x=station.ix;y=promptYFor(station);
+      x=promptXFor(station);y=promptYFor(station);
     }
   }else if(state.phase==="night"&&state.carrying){
     const order=state.orders.find(o=>o.id===state.carrying.orderId);
@@ -1012,7 +1030,7 @@ function updatePrompt(){
     if(trash?.id==="trash"&&dish){
       text=UI_TEXT.prompt.discard(dish.name);
       visibleText=UI_TEXT.prompt.discardVisible;
-      x=trash.ix;y=promptYFor(trash);
+      x=promptXFor(trash);y=promptYFor(trash);
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
       x=CUSTOMER_SEATS[order.slot];y=470;
@@ -1022,7 +1040,7 @@ function updatePrompt(){
       const station=nearestStation("fridge");
       if(station?.id==="fridge"){
         text=UI_TEXT.prompt.station(station.label);
-        x=station.ix;y=promptYFor(station);
+        x=promptXFor(station);y=promptYFor(station);
       }
     }else if(state.phase==="day"){
       // 선행 작업이 남았거나 이미 끝낸 준비물에는 띄우지 않습니다.
@@ -1034,7 +1052,7 @@ function updatePrompt(){
       const station=nearestStation(required);
       if(station){
       if(station.id===required)text=UI_TEXT.prompt.station(station.label);
-      if(text){x=station.ix;y=promptYFor(station);}
+      if(text){x=promptXFor(station);y=promptYFor(station);}
       }
     }
   }
@@ -1063,11 +1081,15 @@ function draw(){
   drawStations();        // kitchen.js   주방 집기 몸통
 
   beginFrontLayer();     // ── 요리사·카운터보다 앞 ───────────
+  /* 뒤쪽 집기의 안내 발광은 kitchen.js 가 이름표를 그리면서 같이 얹고,
+     손님 발광은 customers.js 가 손님을 그리면서 같이 얹습니다. (fx.js §3)
+     여기서 따로 부르는 건 앞쪽 철판 명패뿐입니다 — 저건 Phaser 객체라
+     이 캔버스에 그리는 순서와 무관합니다. */
   drawStationLabels();   // kitchen.js   집기 이름표 (요리사에 가리면 안 됨)
   drawSignage();         // signage.js   영업중 간판
   drawPrepObjects();     // prep.js      낮 준비물
   drawCustomers();       // customers.js 손님
-  drawGuidance();        // fx.js        안내 화살표
+  drawFrontPlateGlow();  // fx.js        앞쪽 철판 명패 발광
   drawParticles();       // fx.js        파티클·팝업
 
   commitFrame();         // draw-utils.js
@@ -1078,7 +1100,7 @@ function draw(){
 // drawFrontFixtures → signage.js (drawSignage)
 // drawPrepObjects → prep.js
 // drawCustomers/Sprite/Speech → customers.js
-// drawGuidance/drawParticles → fx.js
+// drawFrontPlateGlow/drawParticles → fx.js
 // drawFixtureLabel/roundRect/wrapCanvasText → draw-utils.js
 // drawFoodProp (음식 그림) → food-props.js
 
@@ -1246,6 +1268,7 @@ Promise.all([
   loadStageAssets(),
   loadCounterAssets(),
   loadSignageAssets(),
+  loadPrepReadyBadge(),
   loadDayPrepAssets()
 ]).then(bootPhaser).catch(error=>{
   console.error(error);

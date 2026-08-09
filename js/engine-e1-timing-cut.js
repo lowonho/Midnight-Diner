@@ -728,6 +728,11 @@ function completeTimingCut(m,grade="good",missMessage=""){
     data.phase="complete";board?.classList.add("cut-complete");
     const action=dom.miniContent.querySelector("#dayPrepAction");if(action){action.disabled=true;action.textContent="손질 완료";}
     dom.miniFeedback.textContent=`${cutIngredientLabel(data)} 손질 완료!`;
+    // 낮 준비 칼질만 도마 가운데에 마무리 판정을 띄웁니다 — 밤 조리와 같은 문구·같은 판.
+    // (#cutJudgement 는 한 번 썰 때마다 뜨는 짧은 판정이라 이것과 별개입니다)
+    // ⚠️ 이 함수는 밤 두부 썰기도 지나갑니다. 밤은 지금처럼 TIP 줄에만 판정이
+    //    뜨므로(finishMini) 낮일 때만 걸어야 두 번 뜨지 않습니다.
+    if(isDayPrepMini(m))showDayPrepVerdict(".cut-board",data);
     miniSetTimeout(()=>{
       if(state.mini===m&&!m.complete&&typeof data.onComplete==="function")data.onComplete();
     },CUT_FEEL_CONFIG.completeDelayMs);

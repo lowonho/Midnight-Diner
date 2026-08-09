@@ -232,6 +232,7 @@
     linear-gradient(#4d2e1a,#33200f);
   box-shadow: inset 0 0 0 calc(3 * var(--upx)) #8b5c34, inset 0 calc(6 * var(--upx)) calc(20 * var(--upx)) rgba(0,0,0,.4);
 }
+/* 글자 뒤 판(어두운 알약)은 css/minigame-parts.css 의 공용 판정 패널이 답니다 */
 .e2-result {
   position: absolute;
   z-index: 8;
