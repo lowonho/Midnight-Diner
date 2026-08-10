@@ -42,7 +42,7 @@ try{
     const panel=dom.miniContent.querySelector(".mini-score-panel"),value=panel?.querySelector("[data-mini-score]");
     assert(dom.miniContent.querySelectorAll(".mini-score-panel").length===1&&panel?.querySelector("h3")?.textContent==="점수"&&value?.textContent==="100"&&panel?.querySelector(".mini-score-value span")?.textContent==="점",`${label} starts from 100 in the upper-right score panel`);
   };
-  assert(cookingScoreMessage(100)==="완벽해요!"&&cookingScoreMessage(99)==="맛있어요!"&&cookingScoreMessage(71)==="맛있어요!"&&cookingScoreMessage(70)==="아쉬워요!","Shared cooking score labels use 100 / 71~99 / 0~70 tiers");
+  assert(cookingScoreMessage(100)==="완벽해요!"&&cookingScoreMessage(99)==="맛있어요!"&&cookingScoreMessage(80)==="맛있어요!"&&cookingScoreMessage(79.999)==="아쉬워요!","Shared cooking score labels use exact 100 / 80~99 / below-80 tiers without rounding up");
 
   const allMenuIds=MENU_DATA.map(menu=>menu.id);
   Object.values(DAY_DATA).forEach(data=>{

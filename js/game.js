@@ -117,6 +117,7 @@ const state = {
   served:0,
   generalServed:0,
   generalSpawnedCustomers:0,
+  generalSatisfactionTotal:0,
   satisfactionTotal:0,
   fiveStar:0,
   departures:[],
@@ -140,7 +141,12 @@ function lerp(a,b,t) { return a+(b-a)*t; }
 function distance(a,b,c,d) { return Math.hypot(a-c,b-d); }
 function shuffle(arr) { return [...arr].sort(() => Math.random()-.5); }
 function formatTime(sec) { sec=Math.max(0,Math.ceil(sec)); return `${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`; }
-function avgSatisfaction() { return state.served ? Math.round(state.satisfactionTotal/state.served) : 0; }
+function generalGuestAverageScore(){
+  const served=Math.max(0,Math.floor(Number(state.generalServed)||0));
+  const total=Math.max(0,Number(state.generalSatisfactionTotal)||0);
+  return served?total/served:0;
+}
+function avgSatisfaction(){return generalGuestAverageScore();}
 
 function audioIsEnabled(){return state.audio?.enabled!==false;}
 function audioSettingIsEnabled(key){return state.audio?.[key]!==false;}
@@ -1181,7 +1187,7 @@ function updateUI(force=false) {
   dom.satisfactionLabel.textContent=isDayPreparation?UI_TEXT.satisfactionLabelPrep:UI_TEXT.satisfactionLabelOther;
   dom.satisfactionText.textContent=isDayPreparation
     ?hudSpecialGuestLabel(state.day)
-    :state.served?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
+    :state.generalServed?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;
   dom.phaseBadge.textContent=UI_TEXT.phaseBadge[state.phase]||UI_TEXT.phaseBadge[GAME_PHASES.RESULT];dom.leftTitle.textContent=isDayPreparation?UI_TEXT.leftTitlePrep:UI_TEXT.leftTitleOther;
   const prepReadyToOpen=isPrep&&prepComplete()&&!state.mini;
   dom.phaseButton.classList.toggle(UI_CLASS.hidden,!isPrep);

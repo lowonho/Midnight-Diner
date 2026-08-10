@@ -24,7 +24,7 @@ const dom={
 };
 const audio={serve(){}};
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
-function avgSatisfaction(){return state.served?Math.round(state.satisfactionTotal/state.served):0;}
+function avgSatisfaction(){return state.generalServed?state.generalSatisfactionTotal/state.generalServed:0;}
 function saveGame(){return true;}
 function updateUI(){}
 let toastMessages=[];
@@ -53,7 +53,7 @@ const resetNight=()=>{
     story:{pendingNightGuests:[],pendingResultSceneId:null},orders:[],respawns:[],departures:[],
     selectedOrderId:null,selectedMenus:DISHES.map(dish=>dish.id),inventory:makeInventory(),
     generalServed:0,generalSpawnedCustomers:0,spawnedCustomers:0,served:0,
-    nightCustomerTarget:DAY_DATA[1].generalOrderTarget,satisfactionTotal:0,fiveStar:0
+    nightCustomerTarget:DAY_DATA[1].generalOrderTarget,generalSatisfactionTotal:0,satisfactionTotal:0,fiveStar:0
   };
 };
 const order=(customerType="general")=>({
@@ -89,7 +89,7 @@ state.inventory.oden.quality=1;
 state.orders=[order("general")];
 state.carrying={orderId:1,dishId:"oden",cookScore:83};
 serveOrder(state.orders[0]);
-assert(state.departures[0]?.satisfaction===83&&state.satisfactionTotal===83,
+assert(state.departures[0]?.satisfaction===83&&state.generalSatisfactionTotal===83&&state.satisfactionTotal===83,
   "낮 준비 품질과 무관하게 밤 조리 점수가 그대로 최종 평가가 되어야 합니다.");
 
 resetNight();
@@ -121,9 +121,10 @@ updateNightObjective();
 assert(!/조리\\s*\\d+점|예상 (?:평가|만족도)\\s*\\d+점/.test(dom.objectiveBody.innerHTML),
   "음식 운반 안내에 조리 점수나 예상 평가 숫자를 표시하면 안 됩니다.");
 
-state.served=4;state.generalServed=3;state.satisfactionTotal=352;state.fiveStar=2;
+state.served=4;state.generalServed=3;state.generalSatisfactionTotal=239.5;state.satisfactionTotal=339.5;state.fiveStar=2;
 renderNightResult();
-assert(!/\\d/.test(dom.satisfactionResult.textContent)&&!/\\d/.test(dom.fiveStarResult.textContent),
+assert(dom.satisfactionResult.textContent==="아쉬워요!"
+  &&!/\\d/.test(dom.satisfactionResult.textContent)&&!/\\d/.test(dom.fiveStarResult.textContent),
   "영업 기록의 만족도와 좋은 접시는 숫자 대신 정성적인 반응으로 표시해야 합니다.");
 
 console.log("NIGHT_RESULT_FLOW_CONTRACT_OK cook-only score · special exit · final reaction · qualitative feedback");

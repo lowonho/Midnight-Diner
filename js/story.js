@@ -407,6 +407,15 @@ function gameplayJournalGuestRecord(definition){
 // 첫 장은 규칙, 둘째 장은 양면 그림 안내, 다음 여덟 장은 음식별 레시피,
 // 마지막 일곱 장은 날짜별 기록입니다.
 // 아직 만나지 않은 미래 손님의 이름·정답 음식은 미리 노출하지 않습니다.
+function storyJournalGuestKnown(guestId){
+  const guest=typeof state!=="undefined"?state.story?.guestState?.[guestId]:null;
+  const result=typeof state!=="undefined"?state.story?.guestResults?.[guestId]:null;
+  if(Number(guest?.visits)>0||guest?.previousLoopVisited||guest?.clueFound
+    ||guest?.foodConfirmed||guest?.previouslyObtainedPartial||guest?.previouslyObtainedFull
+    ||result?.visited)return true;
+  return !!window.MoonlightTableSave?.guestMet?.(guestId);
+}
+
 function getGameplayJournalPages(){
   const definitionsByGuest=Object.fromEntries(
     GAMEPLAY_JOURNAL_PAGE_DEFS.map(definition=>[definition.guestId,definition])
@@ -415,6 +424,7 @@ function getGameplayJournalPages(){
   const recipesByDish=Object.fromEntries(STORY_JOURNAL_RECIPES.map(recipe=>[recipe.dishId,recipe]));
   const menuNames=STORY_MENU_RULES.dishIds.map(id=>menusById[id]?.displayName).filter(Boolean);
   const menuRule="매일 영업일지에 적혀 있는 음식 중 세 가지를 골라 영업한다.";
+  const schoolDollRuleName=storyJournalGuestKnown("schoolDoll")?"교복 인형":"???";
   const total=2+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
   const rulesPage={
     id:"gameplay-rules",
@@ -430,7 +440,9 @@ function getGameplayJournalPages(){
     locked:false,
     rules:[
       menuRule,
-      "손님에게 항상 친절하게 대한다."
+      "손님에게 항상 친절하고 맛있는 음식을 대접한다.",
+      `일반 손님 평가가 아쉽다면 특별 손님이 찾아오지 않는다. 단, ${schoolDollRuleName}은 예외다.`,
+      "폐기는 손님 주문당 한 번 가능하다."
     ],
     menuRule,
     menuNames
@@ -1033,11 +1045,9 @@ function finishMissingStoryVisit(order){
       bubble:"다음 밤에 다시 올게요.",life:2.6,stars:0,satisfaction:null,storyMystic:true
     });
   }
-  // 다른 음식을 내어 손님이 그냥 돌아간 경우에도 "특별 손님을 처음 만난 뒤"는
-  // 지나간 것이라, 결과 장면과 같은 자리에서 SCN-T04 를 실행합니다.
-  // 이쪽은 조리 결과가 없으므로 반응 갈래를 "wrong" 으로 직접 넘깁니다.
-  setFirstSpecialGuestTutorialTier("wrong");
-  queueStoryMoments(["firstSpecialGuest"],processStoryNightTrigger);
+  // 첫 실제 특별 손님 안내는 결과 장면 완료 시 같은 대화 큐에 삽입됩니다.
+  // 여기서는 손님 좌석을 정리한 뒤 다음 야간 트리거만 이어 갑니다.
+  processStoryNightTrigger();
   updateUI(true);saveGame();
   return true;
 }
@@ -1234,12 +1244,9 @@ function storyTimeOfDayOverride(){
 function playPendingStoryResult(){
   const sceneId=state.story?.pendingResultSceneId;
   if(!sceneId||!STORY_SCENES[sceneId]||storyIsActive())return false;
-  setFirstSpecialGuestTutorialTier(STORY_SCENES[sceneId]?.resultTier);
   return playStoryScenes([sceneId],()=>{
     state.story.pendingResultSceneId=null;
-    // 첫 회차 첫째 날에만 SCN-T04 한 장면이 끼어듭니다. 다른 날·다음 회차에는
-    // 실행할 장면이 없어 queueStoryMoments 가 곧바로 다음 처리를 부릅니다.
-    queueStoryMoments(["firstSpecialGuest"],processStoryNightTrigger);
+    processStoryNightTrigger();
   });
 }
 
@@ -1308,18 +1315,38 @@ function storySpecialGuestDishChoiceLine(scene,source){
   };
 }
 
-/* 첫날 SCN-T04 가 어느 반응 뒤에 떴는지.
+/* 첫 실제 특별 손님 뒤 SCN-T04 가 어느 반응으로 이어지는지.
    ------------------------------------------------------------
    조리 결과 장면을 닫는 그 자리에서 정해지고, 곧바로 이어지는 SCN-T04 의
    대사 사본에 박힙니다(storyLinesForScene). 그래서 저장에는 넣지 않습니다 —
    체크포인트는 이미 확정된 대사 줄을 통째로 들고 있어서, 이어 하기로
    돌아와도 그때 읽던 대사가 그대로 나옵니다.
-   ⚠️ 음식 자체가 틀렸던 분기에는 결과 장면이 없어서 tier 가 없습니다.
-      그쪽은 "wrong" 을 직접 넣습니다(finishMissingStoryVisit). */
+   음식 자체가 틀린 분기는 specialGuestMissing 장면을 "wrong" 으로
+   변환합니다. 날짜가 아니라 실제 응대 완료를 기준으로 하므로 첫날 평균이
+   부족했거나 저장을 복원한 경우에도 안내가 빠지지 않습니다. */
 let firstSpecialGuestTutorialTier=null;
 
 function setFirstSpecialGuestTutorialTier(tier){
   firstSpecialGuestTutorialTier=typeof tier==="string"&&tier?tier:null;
+}
+
+function firstSpecialGuestTutorialTierForScene(scene){
+  if(scene?.sceneType==="specialGuestMissing")return "wrong";
+  if(scene?.sceneType!=="specialGuestResult")return null;
+  return ["soft","warm","great"].includes(scene.resultTier)?scene.resultTier:null;
+}
+
+function insertFirstSpecialGuestTutorialAfter(scene){
+  if(!storySession||storySession.qaPreview)return false;
+  const tier=firstSpecialGuestTutorialTierForScene(scene);
+  const tutorial=STORY_SCENES["SCN-T04"];
+  if(!tier||!tutorial||!storySceneAvailable(tutorial)||storySceneCompleted(tutorial))return false;
+  setFirstSpecialGuestTutorialTier(tier);
+  const insertAt=storySession.queueIndex+1;
+  const queuedAt=storySession.queue.indexOf(tutorial.id,insertAt);
+  if(queuedAt>=0)storySession.queue.splice(queuedAt,1);
+  storySession.queue.splice(insertAt,0,tutorial.id);
+  return true;
 }
 
 function storyResultTierVariant(scene){
@@ -2522,6 +2549,7 @@ function completeStoryScene(){
     const insertAt=storySession.queueIndex+1;
     if(storySession.queue[insertAt]!==scene.nextSceneId)storySession.queue.splice(insertAt,0,scene.nextSceneId);
   }
+  insertFirstSpecialGuestTutorialAfter(scene);
   updateRelationshipUI();
   storySession.queueIndex++;
   beginNextStoryScene();
@@ -3027,11 +3055,41 @@ function storyGeneralArrivals(){
   return served+waiting;
 }
 
+function storyNightGeneralTarget(){
+  const configured=Number(DAY_DATA?.[Number(state.day)]?.generalOrderTarget);
+  return Number.isFinite(configured)?Math.max(0,Math.floor(configured)):0;
+}
+
+function storyNightTasteGateResolved(){
+  return Math.max(0,Math.floor(Number(state.generalServed)||0))>=storyNightGeneralTarget();
+}
+
+function storyNightTasteGatePassed(){
+  const served=Math.max(0,Math.floor(Number(state.generalServed)||0));
+  const total=Math.max(0,Number(state.generalSatisfactionTotal)||0);
+  return served>0&&total>=served*COOKING_SCORE_RULE.tastyMin;
+}
+
+function storyPlanBypassesTasteGate(plan){
+  // 영업 시작 전에 찾아오는 교복 인형만 일반 손님 평균과 무관하게 만납니다.
+  return plan?.guestId==="schoolDoll"&&plan.triggerTiming==="before";
+}
+
+function storyPlanFailedTasteGate(plan){
+  return !!plan&&!storyPlanBypassesTasteGate(plan)
+    &&storyNightTasteGateResolved()&&!storyNightTasteGatePassed();
+}
+
 function storyNightPlanReady(plan){
-  if(!plan||plan.ready)return !!plan?.ready;
+  if(!plan)return false;
+  if(plan.ready){
+    return storyPlanBypassesTasteGate(plan)
+      ||(storyNightTasteGateResolved()&&storyNightTasteGatePassed());
+  }
   if((Number(plan.requiredBaseShards)||0)>storyShardCount({baseOnly:true,fullOnly:true}))return false;
   const arrived=storyGeneralArrivals();
-  if(plan.triggerTiming==="before")return arrived===0;
+  if(storyPlanBypassesTasteGate(plan))return arrived===0;
+  if(!storyNightTasteGateResolved()||!storyNightTasteGatePassed())return false;
   return arrived>=Math.max(0,Number(plan.triggerAfterGeneral)||0);
 }
 
@@ -3091,7 +3149,8 @@ function processStoryNightTrigger(){
     const impossibleFinalGuest=candidate.triggerOnNightEnd
       &&served>=Math.max(0,Number(candidate.triggerAfterGeneral)||0)
       &&(Number(candidate.requiredBaseShards)||0)>storyShardCount({baseOnly:true,fullOnly:true});
-    if(impossibleFinalGuest){
+    const insufficientGeneralTaste=storyPlanFailedTasteGate(candidate);
+    if(impossibleFinalGuest||insufficientGeneralTaste){
       const index=plans.indexOf(candidate);
       if(index>=0)plans.splice(index,1);
     }

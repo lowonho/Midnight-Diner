@@ -709,17 +709,32 @@ function restoreGameState(data){
   // 음향은 진행 슬롯과 무관한 사용자 설정입니다. 전역 설정이 아직 없는
   // 구 버전에서는 불러온 슬롯의 값을 한 번 가져와 전역 설정으로 승격합니다.
   const restoredAudio=readStoredAudioSettings()||writeAudioSettings(savedAudio);
+  const hadGeneralSatisfactionTotal=Number.isFinite(saved.generalSatisfactionTotal);
   Object.assign(state,saved);
   state.day=DayManager.setDay(saved.day);
 
   const numericDefaults={
     day:1,money:0,popularity:0,popularityBeforeResult:0,popularityDelta:0,
     dailyRevenue:0,wasteLoss:0,leftoverCount:0,discardedCount:0,discardLoss:0,nightCustomerTarget:0,
-    spawnedCustomers:0,generalSpawnedCustomers:0,served:0,generalServed:0,satisfactionTotal:0,fiveStar:0
+    spawnedCustomers:0,generalSpawnedCustomers:0,served:0,generalServed:0,generalSatisfactionTotal:0,satisfactionTotal:0,fiveStar:0
   };
   Object.entries(numericDefaults).forEach(([key,fallback])=>{
     if(!Number.isFinite(state[key]))state[key]=fallback;
   });
+
+  /* 이 필드가 없던 저장은 일반·특별 손님 점수를 satisfactionTotal 하나에
+     합쳤습니다. 현재 날짜의 특별 손님 조리 결과를 빼서 일반 손님 합계를
+     최대한 정확히 복원하고, 남은 값은 일반 손님이 받을 수 있는 범위로
+     제한합니다. SAVE_VERSION을 올려 기존 슬롯을 지우지는 않습니다. */
+  if(!hadGeneralSatisfactionTotal){
+    const storyTotal=Object.values(saved.story?.storyCookResults||{}).reduce((sum,result)=>
+      Number(result?.day)===Number(saved.day)&&Number.isFinite(Number(result?.score))
+        ?sum+Math.max(0,Number(result.score))
+        :sum
+    ,0);
+    const inferred=Math.max(0,(Number(state.satisfactionTotal)||0)-storyTotal);
+    state.generalSatisfactionTotal=Math.min(inferred,Math.max(0,state.generalServed)*100);
+  }
 
   state.audio=restoredAudio;
   state.story=normalizeStoryState(saved.story);

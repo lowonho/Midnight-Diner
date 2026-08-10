@@ -187,7 +187,7 @@ function resetDay(first=false) {
   state.ingredientSelection=state.phase===GAME_PHASES.INGREDIENT_SELECT?createIngredientSelectionState(state.selectedMenus):null;
   state.prepRun=null;state.orders=[];state.respawns=[];state.departures=[];state.carrying=null;
   if(state.story){state.story.pendingNightGuests=[];state.story.activeStoryCook=null;}
-  state.served=0;state.generalServed=0;state.generalSpawnedCustomers=0;state.satisfactionTotal=0;state.fiveStar=0;
+  state.served=0;state.generalServed=0;state.generalSpawnedCustomers=0;state.generalSatisfactionTotal=0;state.satisfactionTotal=0;state.fiveStar=0;
   state.dailyRevenue=0;state.wasteLoss=0;state.leftoverCount=0;state.discardedCount=0;state.discardLoss=0;state.popularityDelta=0;state.popularityBeforeResult=state.popularity;state.nightCustomerTarget=0;state.spawnedCustomers=0;
   state.mini=null;resetPlayerPosition();state.joyX=0;state.joyY=0;   // 시작 좌표는 player.js PLAYER_START
   dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");
@@ -409,7 +409,7 @@ function renderMenuSelection(){
          두 줄이 더 있었는데, 필수 여부는 칸 테두리(.required)와 창 위 설명줄이
          이미 말해 주고 있어서 글자로 또 적을 필요가 없었습니다. 그 자리를 그림에
          내줍니다. 글자로만 남기던 정보(필수·특별음식)는 title 로 옮깁니다.
-         등급은 기본(normal, 평범한 요리)입니다. 아직 조리 전이라 잘 만들지 못
+         등급은 기본(normal, 맛있는 요리)입니다. 아직 조리 전이라 잘 만들지 못
          만들지 정해지지 않은 자리라, 메뉴 카드·주문 말풍선과 같은 등급을 씁니다. */
       const art=typeof foodPropUrl==="function"?foodPropUrl(id):null;
       return `<button class="menu-select-option ${selected?"selected":""} ${isRequired?"required":""}" data-menu-id="${id}" type="button" aria-pressed="${selected}" title="${dish.name}${isRequired?" · 필수 메뉴":""}${special}" ${isRequired?"disabled":""}><strong>${dish.name}</strong><img class="menu-select-option-art" src="${art||""}" alt="" /></button>`;

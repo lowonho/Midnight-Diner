@@ -257,7 +257,7 @@ function beginNight() {
   state.phase="night";state.phaseTime=null;state.prepRun=null;state.selectedOrderId=null;state.carrying=null;
   resetPlayerPosition();   // 시작 좌표는 player.js PLAYER_START
   state.orders=[];state.respawns=[];state.departures=[];state.spawnedCustomers=0;
-  state.generalServed=0;state.generalSpawnedCustomers=0;
+  state.generalServed=0;state.generalSpawnedCustomers=0;state.generalSatisfactionTotal=0;
   storyNightEndNoticeShown=false;
   state.nightCustomerTarget=nightGeneralOrderTarget();
   showToast(`밤 영업 시작! 오늘의 일반 주문 목표는 ${state.nightCustomerTarget}건입니다.`);updateUI(true);saveGame();
@@ -558,7 +558,10 @@ function serveOrder(order) {
   const serviceScore=satisfaction;
   const stars=clamp(Math.ceil(serviceScore/20),1,5);
   state.served++;
-  if(!isStoryOrder)state.generalServed++;
+  if(!isStoryOrder){
+    state.generalServed++;
+    state.generalSatisfactionTotal=(Number(state.generalSatisfactionTotal)||0)+serviceScore;
+  }
   state.satisfactionTotal+=serviceScore;if(stars===5)state.fiveStar++;
   const storyResult=applyStoryCookingResult(order,serviceScore);
   const resumedStory=finishSuspendedStoryCook(order,serviceScore);

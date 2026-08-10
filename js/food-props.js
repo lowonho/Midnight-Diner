@@ -62,13 +62,13 @@ const FOOD_PROP_SIZE = { w:264, h:152 };
 const FOOD_PROP_ASPECT = FOOD_PROP_SIZE.w / FOOD_PROP_SIZE.h;
 
 /* 조리 등급 — 그림이 세 장으로 갈리는 기준입니다.
-     rough    70점 미만         아쉬운 요리
-     normal   70점 이상 100점 미만   평범한 요리
+     rough    80점 미만         아쉬운 요리
+     normal   80점 이상 100점 미만   맛있는 요리
      perfect  100점             완벽한 요리 (만점만)
    점수가 없는 자리(메뉴판 카드·손님 주문 말풍선)는 아직 조리 전이라
    FOOD_GRADE_DEFAULT 를 씁니다. */
 const FOOD_GRADES = ["rough","normal","perfect"];
-const FOOD_GRADE_MIN = { normal:70, perfect:100 };   // 이 점수부터가 그 등급
+const FOOD_GRADE_MIN = { normal:80, perfect:100 };   // 이 점수부터가 그 등급
 const FOOD_GRADE_DEFAULT = "normal";
 
 // Phaser 텍스처 키 접두사. 다른 에셋 키와 겹치지 않게만 하면 됩니다.

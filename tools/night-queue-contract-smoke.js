@@ -39,6 +39,7 @@ function playTrashDiscardAnimation(){trashAnimationCount++;}
 `;
 
 const test=`
+const source=${JSON.stringify(source)};
 const DISHES=MENU_DATA.map(menu=>({
   ...menu,
   name:menu.displayName,
@@ -60,7 +61,7 @@ const resetNight=day=>{
     player:{x:0,y:0,facing:"down"},
     story:createStoryState(),orders:[],respawns:[],departures:[],selectedOrderId:null,
     selectedMenus:DISHES.map(dish=>dish.id),inventory:makeInventory(),
-    generalServed:0,generalSpawnedCustomers:0,spawnedCustomers:0,served:0,
+    generalServed:0,generalSpawnedCustomers:0,generalSatisfactionTotal:0,spawnedCustomers:0,served:0,
     nightCustomerTarget:DAY_DATA[day].generalOrderTarget,satisfactionTotal:0,fiveStar:0
   };
   prepareStoryNight();
@@ -120,7 +121,7 @@ assert(!processStoryNightTrigger()
   &&!state.orders.some(order=>order.customerType==="story"),
   "여섯 번째 일반 손님을 대접하기 전에는 특별 손님이 들어오면 안 됩니다.");
 
-state.generalServed=6;state.orders=[];state.departures=[{slot:0,life:1}];
+state.generalServed=6;state.generalSatisfactionTotal=480;state.orders=[];state.departures=[{slot:0,life:1}];
 assert(!processStoryNightTrigger()
   &&!state.orders.some(order=>order.customerType==="story"),
   "마지막 일반 손님의 퇴장 연출이 끝나기 전에는 특별 손님이 들어오면 안 됩니다.");
@@ -141,6 +142,17 @@ rainyChild.guestOrder=true;
 assert(currentOrder()?.id===rainyChild.id,
   "대화가 끝나 주문이 정해지면 특별 손님 주문을 조리해야 합니다.");
 
+// 일반 손님 여섯 명의 실제 평균이 80점보다 낮으면 특별 손님 예약을
+// 제거하고, 등장 장면은 완료하지 않아 다음 회차에 다시 도전할 수 있습니다.
+resetNight(1);played=[];
+state.generalServed=6;state.generalSpawnedCustomers=6;state.generalSatisfactionTotal=479;
+state.orders=[];state.departures=[];
+assert(!processStoryNightTrigger()
+  &&state.orders.length===0
+  &&state.story.pendingNightGuests.length===0
+  &&!storySceneCompleted(STORY_SCENES["SCN-G1-A"]),
+  "일반 손님 실제 평균 79.83점이면 특별 손님은 오지 않고 영업 종료 대기를 남기면 안 됩니다.");
+
 // Day 7: 교복 인형은 첫 손님, 얼굴 없는 김다은은 일반 여섯 명 뒤 마지막 손님입니다.
 resetNight(7);played=[];
 assert(!ensureNightOrders()&&state.orders.length===0,
@@ -154,12 +166,22 @@ assert(state.story.pendingNightGuests.some(plan=>plan.guestId==="facelessDaeun")
   "교복 인형을 처리하는 동안 얼굴 없는 김다은의 마지막 예약을 유지해야 합니다.");
 
 state.orders=[];state.generalServed=6;state.generalSpawnedCustomers=6;
+state.generalSatisfactionTotal=480;
 STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestResult(id).fragmentState="full";});
 assert(processStoryNightTrigger()
   &&state.orders.length===1
   &&state.orders[0].guestId==="facelessDaeun"
   &&state.orders[0].storyArrival==="last",
   "기본 완전 조각 7개를 모으면 일반 손님 여섯 명 뒤 얼굴 없는 김다은이 마지막으로 입장해야 합니다.");
+
+resetNight(7);played=[];
+assert(processStoryNightTrigger()&&state.orders[0]?.guestId==="schoolDoll",
+  "교복 인형은 일반 손님 평균이 아직 없어도 영업 전 예외로 등장해야 합니다.");
+state.orders=[];state.generalServed=6;state.generalSpawnedCustomers=6;state.generalSatisfactionTotal=479;
+STORY_GUEST_IDS.slice(0,7).forEach(id=>{getStoryGuestResult(id).fragmentState="full";});
+assert(!processStoryNightTrigger()
+  &&!state.story.pendingNightGuests.some(plan=>plan.guestId==="facelessDaeun"),
+  "교복 인형은 예외지만 얼굴 없는 손님은 일반 평균 80점 미만이면 등장하면 안 됩니다.");
 
 // 선택한 세 메뉴는 한 바퀴에 한 번씩 주문되어 여섯 명 기준 정확히 두 번씩 나옵니다.
 resetNight(2);played=[];

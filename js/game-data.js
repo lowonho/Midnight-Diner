@@ -9,11 +9,13 @@ const GAME_PHASES=Object.freeze({
   RESULT:"result"
 });
 
-/* 영업 음식 평가 공용 기준. 100점만 완벽, 71~99점은 맛있음,
-   0~70점은 아쉬움입니다. 미니게임·일반 손님·이야기 손님이 모두 같이 씁니다. */
-const COOKING_SCORE_RULE=Object.freeze({perfect:100,tastyMin:71});
+/* 영업 음식 평가 공용 기준. 100점만 완벽, 80~99점은 맛있음,
+   0~79점은 아쉬움입니다. 미니게임·일반 손님·이야기 손님이 모두 같이 씁니다. */
+const COOKING_SCORE_RULE=Object.freeze({perfect:100,tastyMin:80});
 function cookingScoreTier(score){
-  const value=Math.round(Number(score)||0);
+  // 평균 점수도 같은 경계를 사용하므로 먼저 반올림하지 않습니다.
+  // 예를 들어 79.83점은 화면에서 80점처럼 보이더라도 "아쉬움"입니다.
+  const value=Math.max(0,Number(score)||0);
   return value>=COOKING_SCORE_RULE.perfect?"perfect"
     :value>=COOKING_SCORE_RULE.tastyMin?"tasty":"disappointing";
 }
