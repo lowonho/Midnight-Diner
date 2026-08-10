@@ -1371,10 +1371,11 @@ function clearStoryTyping(){
   if(storyTypingTimer){clearTimeout(storyTypingTimer);storyTypingTimer=null;}
 }
 
-function stopStoryAmbient(fadeOutDuration=0){
+function stopStoryAmbient(fadeOutDuration=null){
   const entry=storySession?.ambientAudio||null;
   if(entry){
-    const duration=Math.max(0,Number(fadeOutDuration)||0);
+    const requested=fadeOutDuration==null?entry.storyFadeOut:fadeOutDuration;
+    const duration=Math.max(0,Number(requested)||0);
     if(duration>0&&typeof audio?.fadeOutFile==="function")audio.fadeOutFile(entry,duration);
     else audio?.stopFile?.(entry);
   }
@@ -1406,7 +1407,9 @@ function applyStorySceneAudio(scene){
     stopStoryAmbient();
   }else if((currentAmbient?.name!==cue.name||!currentAmbientActive)&&storySession){
     stopStoryAmbient();
-    storySession.ambientAudio=audio?.play?.(cue.name,{loop:true,owner:storySession,gain:cue.gain??1})||null;
+    const ambient=audio?.play?.(cue.name,{loop:true,owner:storySession,gain:cue.gain??1})||null;
+    if(ambient)ambient.storyFadeOut=Math.max(0,Number(cue.fadeOut)||0);
+    storySession.ambientAudio=ambient;
   }
   const entryCue=scene?.storyEntrySfx;
   if(entryCue?.name&&storySession){
@@ -2689,19 +2692,23 @@ function finishSuspendedStoryCook(order,satisfaction){
 
 function showTitleAfterStory({save=true}={}){
   if(save)saveGame(true);
-  audio.stopAllFiles?.();
-  clearStoryRuntime();
-  state.screen="title";state.paused=true;state.mini=null;
-  stopIngredientTimer?.();
-  dom.settingsOverlay.classList.remove("open");
-  dom.resultOverlay.classList.remove("open");
-  dom.miniOverlay.classList.remove("open");
-  dom.menuSelectOverlay.classList.remove("open");
-  dom.ingredientSelectOverlay?.classList.remove("open");
-  dom.gameScreen.classList.remove("active");
-  dom.titleScreen.classList.add("active");
-  showGameHud(false);audio.stopBgm();
-  updateContinueButton();
+  const commit=()=>{
+    audio.stopAllFiles?.();
+    clearStoryRuntime();
+    state.screen="title";state.paused=true;state.mini=null;
+    stopIngredientTimer?.();
+    dom.settingsOverlay.classList.remove("open");
+    dom.resultOverlay.classList.remove("open");
+    dom.miniOverlay.classList.remove("open");
+    dom.menuSelectOverlay.classList.remove("open");
+    dom.ingredientSelectOverlay?.classList.remove("open");
+    dom.gameScreen.classList.remove("active");
+    dom.titleScreen.classList.add("active");
+    showGameHud(false);audio.stopBgm();
+    updateContinueButton();
+  };
+  if(typeof transitionToTitleScreen==="function")transitionToTitleScreen(commit);
+  else commit();
 }
 
 function archiveCurrentStoryLoopResults(){

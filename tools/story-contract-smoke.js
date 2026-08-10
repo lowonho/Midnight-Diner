@@ -530,6 +530,7 @@ assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
 assert(STORY_SCENES["SCN-P01"].storyBgm==="storyCompany"
   &&STORY_SCENES["SCN-P02"].storyBgm==="storyCompany"
   &&STORY_SCENES["SCN-P02"].storyAmbient?.name==="story_rain"
+  &&STORY_SCENES["SCN-P02"].storyAmbient?.fadeOut===1800
   &&STORY_SCENES["SCN-P03"].storyBgm==="storySikdang"
   &&STORY_SCENES["SCN-P04"].storyBgm==="storySikdang",
   "회사·빗길·첫 식당 장면의 BGM과 빗소리 큐가 장면 경계에 맞아야 합니다.");
@@ -576,6 +577,8 @@ assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
   &&String(restoreStoryCheckpoint).includes("if(!restored.suspended)applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes("currentAmbient?.name!==cue.name")
   &&String(applyStorySceneAudio).includes("if(entryCue?.name&&storySession)")
+  &&String(stopStoryAmbient).includes("entry.storyFadeOut")
+  &&String(applyStorySceneAudio).includes("ambient.storyFadeOut")
   &&String(stopStoryAmbient).includes("audio.fadeOutFile(entry,duration)")
   &&String(stopStoryEntrySfx).includes("audio.fadeOutFile(entry,duration)"),
   "스토리 앰비언스와 한 번만 재생하는 등장 효과음은 서로 다른 수명주기를 따라야 합니다.");

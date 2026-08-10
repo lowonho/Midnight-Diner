@@ -482,7 +482,7 @@ const STORY_SCENES = {
     timeOfDay: "night",
     character: "protagonist",
     storyBgm: "storyCompany",
-    storyAmbient: { name: "story_rain", gain: .42 },
+    storyAmbient: { name: "story_rain", gain: .42, fadeOut: 1800 },
     protagonistCostume: "office",   // SCN-P01 주석 참고
     nextSceneId: "SCN-P03",
     interactionTarget: "restaurantDoor",

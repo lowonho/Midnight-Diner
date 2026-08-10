@@ -10,6 +10,37 @@
 .app-screen.active { display: grid; }
 .game-screen.active { place-items: center; }
 
+/* 게임에서 타이틀로 돌아갈 때 화면 전체를 천천히 덮었다가 새 화면을 드러냅니다.
+   설정·스토리 등 모든 전역 오버레이보다 앞에 있어 전환 중 중복 입력도 막습니다. */
+.screen-fade-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  background: #050302;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .8s cubic-bezier(.4,0,.2,1), visibility 0s linear .8s;
+}
+.screen-fade-overlay.is-covering {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 1s cubic-bezier(.4,0,.2,1), visibility 0s;
+}
+.screen-fade-overlay.is-revealing {
+  opacity: 0;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .8s cubic-bezier(.4,0,.2,1), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-fade-overlay,
+  .screen-fade-overlay.is-covering,
+  .screen-fade-overlay.is-revealing { transition: none; }
+}
+
 .game-app {
   width: 100vw;
   height: 100vh;
