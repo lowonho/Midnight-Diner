@@ -94,19 +94,22 @@ const TWO_SIDE_COOK_CONFIG=Object.freeze({
    닭꼬치 점수는 창의 앞쪽 40% 께가 가장 좋은 **비율**입니다(twoSideCueScore).
    김치전은 성공 반응 속도를 점수에 쓰지 않고, 놓치거나 잘못 조작한 신호만
    단계마다 한 번씩 10점 깎습니다. */
+/* 아래 flip · sauce 의 window 는 **닭꼬치만** 쓰는 값입니다(김치전은 1초로 덮어씁니다).
+   2026-08-10 : 손댈 시간이 너무 넉넉하다 해서 조금씩 줄였습니다 — flip 2.6→2.3,
+   sauce 2.4→2.1. 자루 3개를 번갈아 보느라 아주 짧게는 못 줄입니다. */
 const TWO_SIDE_CUE=Object.freeze({
   cook: Object.freeze({wait:Object.freeze([1.4,2.6]), window:1.9, preheat:1.5}),
-  flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.6, preheat:0}),
-  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0})
+  flip: Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.3, preheat:0}),
+  sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.1, preheat:0})
 });
 const PANCAKE_CUE_WINDOW=1;
-/* 초록 구간은 폭이 전체의 10%이고, **굽기 신호마다 자리를 다시 뽑습니다**
+/* 초록 구간은 폭이 전체의 7%이고(예전 10%의 70%), **굽기 신호마다 자리를 다시 뽑습니다**
    (예전에는 75% 자리에 고정이라 몇 판만 해 보면 손이 외웠습니다).
-   ⚠️ 왼쪽 30%까지는 절대 걸치지 않습니다 — 누르자마자 떼서 맞는 자리가 있으면
+   ⚠️ 왼쪽 25%까지는 절대 걸치지 않습니다 — 누르자마자 떼서 맞는 자리가 있으면
       "꾹 누른다" 는 손짓이 사라집니다. 그래서 뽑는 한가운데의 범위는
-      [30% + 폭/2, 100% - 폭/2] 입니다. */
-const PANCAKE_GAUGE_WIDTH=.1;
-const PANCAKE_GAUGE_MIN_START=.3;
+      [25% + 폭/2, 100% - 폭/2] 입니다. */
+const PANCAKE_GAUGE_WIDTH=.07;
+const PANCAKE_GAUGE_MIN_START=.25;
 const PANCAKE_GAUGE_CENTER_RANGE=Object.freeze([PANCAKE_GAUGE_MIN_START+PANCAKE_GAUGE_WIDTH/2,1-PANCAKE_GAUGE_WIDTH/2]);
 const PANCAKE_GAUGE_HOLD_SEC=1;
 

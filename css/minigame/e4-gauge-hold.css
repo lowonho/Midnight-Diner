@@ -95,6 +95,17 @@
 /* ── 오른쪽 아래 : 조작 ─────────────────────────────────────
    누르는 동안 상승하고 떼면 하강하는 한 버튼입니다(키보드·마우스 둘 다 지원). */
 .heat-control { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(12 * var(--upx)); text-align: center; }
+/* ⚠️ 위 `justify-content:center` 만으로는 안내가 **위로 쏠립니다.** 맨 아래 감점 안내
+   (.mg-penalty)가 공용 규칙에서 `margin:auto 0 0` 이라 남는 자리를 혼자 다 먹고
+   바닥에 붙기 때문입니다 — 그러면 나눠 줄 자리가 없어 정렬이 아무 일도 안 합니다.
+   그래서 안내 묶음(.heat-keys ~ .heat-control-name) 위아래로 auto 여백을 두 개 두고
+   감점 줄의 auto 는 끕니다. 남는 자리가 그 둘에 반씩 돌아가 [제목]과 [감점 안내]
+   사이에서 묶음이 가운데에 섭니다. 감점 안내는 카드 바닥에 그대로 남습니다.
+   (E5 조작 카드 .ts-control 과 같은 처리입니다 — css/minigame/e5-two-side-cook.css)
+   ⚠️ 공용 .mg-penalty 를 고치지 마세요 — 다른 미니게임 카드들은 지금 자리가 맞습니다. */
+.heat-control .heat-keys { margin-top: auto; }
+.heat-control .heat-control-name { margin-bottom: auto; }
+.heat-control .mg-penalty { margin-top: 0; }
 .heat-keys { display: flex; flex-direction: column; align-self: stretch; gap: calc(12 * var(--upx)); }
 /* 키캡 한 줄, 설명 한 줄로 **위아래**입니다. 원래는 옆으로 나란히 뒀는데
    'SPACE' 와 '꾹 눌러 올리기' 가 한 줄에 붙어 어디까지가 키 이름인지
