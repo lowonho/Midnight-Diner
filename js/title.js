@@ -18,6 +18,10 @@ const JOURNAL_FOCUSABLE_SELECTOR=[
 // 인게임 일지는 다시 열었을 때 마지막으로 보던 장을 그대로 펼칩니다.
 // (로비 컬렉션은 언제나 첫 장부터입니다.)
 let journalLastGameplayPageId="";
+const TITLE_RETURN_FADE_OUT_MS=1000;
+const TITLE_RETURN_BLACK_HOLD_MS=120;
+const TITLE_RETURN_FADE_IN_MS=800;
+let titleReturnTransitionPending=false;
 /* 프롤로그처럼 "필독"으로 여는 일지입니다. 정해진 장을 한 번씩 다 펼치기
    전에는 닫기 버튼이 딤드로 잠기고, ESC·바깥 클릭도 듣지 않습니다.
    책을 닫는 순간 잠금은 풀리고 다음부터 여는 일지는 평소대로 닫힙니다. */
@@ -875,6 +879,50 @@ function openGameScreen(){
   requestAnimationFrame(()=>phaserScene?.scale.refresh());showGameHud(true);
 }
 
+function titleReturnTransitionIsActive(){return titleReturnTransitionPending;}
+function titleReturnDelay(duration){return new Promise(resolve=>setTimeout(resolve,Math.max(0,duration)));}
+function titleReturnReducedMotion(){return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;}
+
+async function transitionToTitleScreen(commit){
+  if(titleReturnTransitionPending||typeof commit!=="function")return false;
+  titleReturnTransitionPending=true;
+  const overlay=document.getElementById("screenFadeOverlay");
+  const reduced=titleReturnReducedMotion();
+  const fadeOutDuration=reduced?0:TITLE_RETURN_FADE_OUT_MS;
+  const blackHoldDuration=reduced?0:TITLE_RETURN_BLACK_HOLD_MS;
+  const fadeInDuration=reduced?0:TITLE_RETURN_FADE_IN_MS;
+  state.paused=true;
+  if(typeof resetPlayerKeyboardInput==="function")resetPlayerKeyboardInput();
+  else window.clearPhysicalMoveKeys?.();
+  pauseMiniAsyncTasks?.();
+  audio.fadeOutAllFiles?.(fadeOutDuration);
+  audio.fadeOutBgm?.(fadeOutDuration);
+  if(overlay){
+    overlay.classList.remove("is-covering","is-revealing");
+    overlay.setAttribute("aria-hidden","false");
+    void overlay.offsetWidth;
+    overlay.classList.add("is-covering");
+  }
+  try{
+    await titleReturnDelay(fadeOutDuration);
+    commit();
+    await titleReturnDelay(blackHoldDuration);
+    if(overlay){
+      overlay.classList.remove("is-covering");
+      overlay.classList.add("is-revealing");
+    }
+    await titleReturnDelay(fadeInDuration);
+  }finally{
+    if(overlay){
+      overlay.classList.remove("is-covering","is-revealing");
+      overlay.setAttribute("aria-hidden","true");
+    }
+    titleReturnTransitionPending=false;
+    if(dom.titleScreen.classList.contains("active"))dom.startButton?.focus?.({preventScroll:true});
+  }
+  return true;
+}
+
 function sameEndingRetryAction(left,right){
   return !!left&&!!right
     &&left.type==="endingRetryMenu"
@@ -953,6 +1001,7 @@ function startGame(){
 }
 
 function returnTitle(){
+  if(titleReturnTransitionIsActive())return;
   if(state.mini||state.story?.activeStoryCook||state.phase===GAME_PHASES.INGREDIENT_SELECT){
     showToast("진행 중인 미니게임을 마친 뒤 타이틀로 돌아갈 수 있습니다.",true);
     return;
@@ -961,11 +1010,12 @@ function returnTitle(){
     showToast("자동 저장에 실패해 타이틀로 이동하지 않았습니다.",true);
     return;
   }
-  // 캡처 단계에서 막 재생한 타이틀 복귀 클릭음은 남기고 조리음만 정리합니다.
-  audio.stopAllFiles?.("ui_click");
-  clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
-  stopIngredientTimer();
-  dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");dom.ingredientSelectOverlay.classList.remove("open");
-  dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
-  showGameHud(false);audio.stopBgm();updateContinueButton();
+  transitionToTitleScreen(()=>{
+    audio.stopAllFiles?.();
+    clearStoryRuntime();state.screen="title";state.paused=true;state.mini=null;
+    stopIngredientTimer();
+    dom.settingsOverlay.classList.remove("open");dom.resultOverlay.classList.remove("open");dom.miniOverlay.classList.remove("open");dom.menuSelectOverlay.classList.remove("open");dom.ingredientSelectOverlay.classList.remove("open");
+    dom.gameScreen.classList.remove("active");dom.titleScreen.classList.add("active");
+    showGameHud(false);audio.stopBgm();updateContinueButton();
+  });
 }

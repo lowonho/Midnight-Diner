@@ -22,6 +22,7 @@ const extractMethod=(source,signature)=>{
       fetch("../js/story.js").then(response=>response.text())
     ]);
     const fadeMethod=extractMethod(gameSource,"fadeOutFile(entry,duration=1200)");
+    const bgmFadeMethod=extractMethod(gameSource,"fadeOutBgm(duration=1200)");
     let now=0,nextFrameId=1;
     const scheduledFrames=new Map();
     const requestFrame=callback=>{
@@ -60,6 +61,22 @@ const extractMethod=(source,signature)=>{
     const finished=!audio.activeFiles.has(entry)&&element.paused&&element.volume<=.001;
     if(!started||!(middle>0&&middle<.8)||!finished)
       throw new Error(`runtime curve: ${JSON.stringify({started,middle,finished})}`);
+    const bgmElement={volume:.7,paused:false,pause(){this.paused=true;}};
+    const bgmAudio=Function("bgmElement","clamp","requestAnimationFrame","cancelAnimationFrame","performance",`return ({
+      bgmElements:new Map([["day",bgmElement]]),bgmFadeFrame:null,bgmFadeStart:0,
+      bgmStopping:false,bgmPlayPending:false,stopped:false,
+      stopBgm(){this.stopped=true;this.bgmStopping=false;bgmElement.pause();},
+      ${bgmFadeMethod}
+    });`)(bgmElement,
+      (value,min,max)=>Math.max(min,Math.min(max,value)),
+      requestFrame,cancelFrame,{now:()=>now}
+    );
+    if(!bgmAudio.fadeOutBgm(100))throw new Error("BGM fade did not start");
+    advanceFrame(170);
+    const bgmMiddle=bgmElement.volume;
+    advanceFrame(220);
+    if(!(bgmMiddle>0&&bgmMiddle<.7)||!bgmAudio.stopped||!bgmElement.paused)
+      throw new Error(`BGM runtime curve: ${JSON.stringify({bgmMiddle,stopped:bgmAudio.stopped})}`);
     if(!storySource.includes("stopStoryEntrySfx(storyEntrySfxFadeDuration(scene));"))
       throw new Error("cook transition does not request entry fade");
     if(!storySource.includes('audio.fadeOutFile(entry,duration)'))

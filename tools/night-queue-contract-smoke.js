@@ -18,7 +18,7 @@ const CUSTOMER_USABLE_SEATS=4;
 const CUSTOMER_VARIANT_COUNT=6;
 let nextOrderId=1;
 const dom={};
-const audio={serve(){}};
+const audio={played:[],serve(){},play(name){this.played.push(name);}};
 const UI_TEXT={toast:{
   discardDone:name=>name+" 폐기",
   discardLimit:name=>name+"은 이미 한 번 폐기했습니다. 손님에게 내어 주세요."
@@ -204,7 +204,7 @@ assert(new Set(generalDishIds.slice(0,3)).size===3
   "선택 메뉴 순환 분배: "+generalDishIds.join(","));
 
 // 완성 음식은 쓰레기통 가까이에서만 폐기되고, 같은 주문을 처음부터 다시 조리합니다.
-resetNight(1);played=[];nearStationId=null;trashAnimationCount=0;lastSaveAllowDuringStory=null;
+resetNight(1);played=[];audio.played=[];nearStationId=null;trashAnimationCount=0;lastSaveAllowDuringStory=null;
 const discardDish=DISHES.find(dish=>dish.id==="kimchi");
 const discardOrder={
   id:50,slot:0,dishId:discardDish.id,customerType:"general",guestOrder:true,entered:1,
@@ -228,6 +228,7 @@ assert(serviceSnapshot.join(",")===[state.served,state.generalServed,state.satis
   &&state.respawns.length===0,
   "폐기는 서빙·평가·퇴장·재입장 결과를 만들면 안 됩니다.");
 assert(trashAnimationCount===1
+  &&audio.played.join(",")==="trash_discard"
   &&toastMessages.at(-1).includes("폐기")
   &&lastSaveAllowDuringStory===false,
   "일반 주문 폐기에는 쓰레기통 연출과 안내 뒤 일반 자동저장을 남겨야 합니다.");
@@ -246,6 +247,7 @@ assert(!discardCarriedDish()
   &&discardOrder.discardedOnce===true,
   "같은 손님 주문은 두 번째 폐기를 거부하고 완성 음식을 그대로 들고 있어야 합니다.");
 assert(trashAnimationCount===animationBeforeSecondDiscard
+  &&audio.played.join(",")==="trash_discard"
   &&lastSaveAllowDuringStory===saveBeforeSecondDiscard
   &&toastMessages.at(-1).includes("손님에게 내어"),
   "두 번째 폐기는 연출·저장을 만들지 않고 손님에게 제공하라는 안내만 보여야 합니다.");

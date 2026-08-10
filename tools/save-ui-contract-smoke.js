@@ -13,6 +13,7 @@ const storySource=fs.readFileSync(path.join(root,"js/story.js"),"utf8");
 const storyDataSource=fs.readFileSync(path.join(root,"js/story-data.js"),"utf8");
 const gameSource=fs.readFileSync(path.join(root,"js/game.js"),"utf8");
 const titleCssSource=fs.readFileSync(path.join(root,"css","title.css"),"utf8");
+const appShellCssSource=fs.readFileSync(path.join(root,"css","app-shell.css"),"utf8");
 const storyCssSource=fs.readFileSync(path.join(root,"css","story.css"),"utf8");
 const hudCssSource=fs.readFileSync(path.join(root,"css","hud.css"),"utf8");
 const settingsCssSource=fs.readFileSync(path.join(root,"css","settings.css"),"utf8");
@@ -139,10 +140,10 @@ const mappedSfxPaths=[...new Set(
 const normalizedSfxPaths=[...new Set(
   (gameSource.slice(sfxGainsStart,sfxRuntimeStart).match(/assets\/sfx\/[^"']+\.MP3/g)||[])
 )];
-assert(mappedSfxPaths.length===67
-  &&normalizedSfxPaths.length===67
+assert(mappedSfxPaths.length===68
+  &&normalizedSfxPaths.length===68
   &&mappedSfxPaths.every(path=>normalizedSfxPaths.includes(path)),
-  "등록된 67개 효과음은 빠짐없이 파일별 음량 보정값을 가져야 합니다.");
+  "등록된 68개 효과음은 빠짐없이 파일별 음량 보정값을 가져야 합니다.");
 assert(saveSource.includes('const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1"')
   &&saveSource.includes("bgmEnabled:true")
   &&saveSource.includes("sfxEnabled:true")
@@ -153,6 +154,15 @@ assert(settingsCssSource.includes(".audio-toggle-button.is-off")
   &&settingsCssSource.includes(".settings-overlay.audio-muted")
   &&settingsCssSource.includes(".volume-row.is-muted"),
   "음향 OFF 상태는 설정창에서 시각적으로 구분되어야 합니다.");
+assert(indexSource.includes('id="screenFadeOverlay"')
+  &&appShellCssSource.includes(".screen-fade-overlay.is-covering")
+  &&appShellCssSource.includes(".screen-fade-overlay.is-revealing")
+  &&titleSource.includes("function transitionToTitleScreen(commit)")
+  &&titleSource.includes("audio.fadeOutAllFiles?.(fadeOutDuration)")
+  &&titleSource.includes("audio.fadeOutBgm?.(fadeOutDuration)")
+  &&gameSource.includes("fadeOutBgm(duration=1200)")
+  &&gameSource.includes("fadeOutAllFiles(duration=1200,exceptName=null)"),
+  "타이틀 복귀는 화면을 검게 덮는 동안 전체 오디오를 부드럽게 줄인 뒤 타이틀을 드러내야 합니다.");
 assert(settingsCssSource.includes('--journal-book-image: url("../assets/UI/Journal/ui_journal_book_open.webp")')
   &&/\.journal-page\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/.test(settingsCssSource)
   &&settingsCssSource.includes(".journal-page-right"),

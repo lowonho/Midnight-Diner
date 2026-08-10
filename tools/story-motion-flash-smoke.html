@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset="utf-8">
+<!-- 원화 경로("assets/...")가 저장소 뿌리 기준으로 풀리도록 base 를 올려 둡니다.
+     story.js 의 storyPortraitArtValue() 가 document.baseURI 를 씁니다. -->
+<base href="../">
+<title>STORY_MOTION_FLASH_PENDING</title>
+<body>STORY_MOTION_FLASH_PENDING</body>
+<div id="storyStage"></div>
+<script>
+"use strict";
+/* [대사의 자세가 기본 자세를 스쳐 지나가지 않는지 봅니다]
+   배우를 무대에 처음 세울 때 기본 자세(calm)로 세운 뒤 대사의 동작으로 갈아
+   끼우면, 교체가 decode() 를 기다리는 사이 기본 자세가 한 박자 보이고 나서
+   자세가 바뀝니다. 김다은처럼 장면 도중 처음 말을 시작하는 인물에게 잘 보였습니다.
+
+   --portrait-art 에 실제로 들어간 값을 순서대로 받아 적어 확인합니다.
+   원화는 진짜로 받지 않고 decode() 시점을 이 파일이 쥡니다 — 그래야
+   '디코딩을 기다리는 동안 직전 자세가 서 있는지'까지 꼬집어 볼 수 있습니다. */
+const extractBlock=(source,head,tail)=>{
+  const start=source.indexOf(head);
+  if(start<0)throw new Error(`not found: ${head}`);
+  const end=source.indexOf(tail,start);
+  if(end<0)throw new Error(`did not close: ${head}`);
+  return source.slice(start,end+tail.length);
+};
+const extractFn=(source,name)=>{
+  const signature=`function ${name}(`;
+  const start=source.indexOf(signature);
+  if(start<0)throw new Error(`function not found: ${name}`);
+  const braceStart=source.indexOf("{",start);
+  let depth=0;
+  for(let index=braceStart;index<source.length;index++){
+    if(source[index]==="{")depth++;
+    else if(source[index]==="}"&&--depth===0)return source.slice(start,index+1);
+  }
+  throw new Error(`function did not close: ${name}`);
+};
+const FN_NAMES=[
+  "storyPortraitKey","storyPortraitMotionArt","storyPortraitArtValue",
+  "storyPortraitArtImage","preloadStoryPortraitArt","setStoryPortraitArt",
+  "applyStorySpeakerMotion","applyStoryPortraitArt","storySpeakerHasPortrait",
+  "ensureStoryActor","storyStageSpeaker","setStoryPortrait"
+];
+(async()=>{
+  try{
+    const storySource=await fetch("js/story.js").then(response=>response.text());
+
+    /* 실제로 --portrait-art 에 들어간 값을 순서대로 받아 적습니다.
+       MutationObserver 는 한 박자 뒤에 모아서 오므로 지나간 값을 놓칩니다. */
+    const applied=[];
+    const setProperty=CSSStyleDeclaration.prototype.setProperty;
+    CSSStyleDeclaration.prototype.setProperty=function(name,value,priority){
+      if(name==="--portrait-art")applied.push(String(value).match(/motion_(\d+)\.webp/)?.[1]||value);
+      return setProperty.call(this,name,value,priority);
+    };
+
+    // decode() 를 손으로 풀어 주는 가짜 원화입니다.
+    const pending=[];
+    class FakeImage{
+      set src(value){this._src=value;}
+      get src(){return this._src;}
+      decode(){return new Promise(resolve=>pending.push({src:this._src,resolve}));}
+    }
+    const decodeAll=async()=>{
+      const waiting=pending.splice(0,pending.length);
+      waiting.forEach(entry=>entry.resolve());
+      await Promise.resolve();await Promise.resolve();
+    };
+
+    const source=[
+      extractBlock(storySource,"const STORY_PROTAGONIST_MOTIONS=Object.freeze({","\n});"),
+      extractBlock(storySource,"const STORY_PROTAGONIST_DEFAULT_MOTION=","\n"),
+      extractBlock(storySource,"const STORY_PORTRAIT_ART=Object.freeze({","\n});"),
+      ...FN_NAMES.map(name=>extractFn(storySource,name))
+    ].join("\n");
+    const stage=new Function("deps",`
+      "use strict";
+      const {STORY_CHARACTERS,clamp,layoutStoryActors,Image}=deps;
+      let storySession=deps.session;
+      const storyPortraitArtImages=new Map();
+      const storyPortraitArtPreloaded=new Set();
+      const window={};
+      ${source}
+      return {setStoryPortrait};
+    `)({
+      STORY_CHARACTERS:{},
+      clamp:(value,min,max)=>Math.max(min,Math.min(max,value)),
+      layoutStoryActors:()=>{},
+      Image:FakeImage,
+      session:{scene:{protagonistCostume:"chef"},actors:[]}
+    });
+
+    const artOf=()=>document.querySelector(".story-portrait.art")?.style
+      .getPropertyValue("--portrait-art").match(/motion_(\d+)\.webp/)?.[1]||"";
+    const problems=[];
+    const check=(condition,message)=>{if(!condition)problems.push(message);};
+
+    // 1) 김다은이 이 장면에서 처음 말하는 줄. 자세는 think(03).
+    //    무대에 서는 그 순간부터 03 이어야 합니다 — 01 을 거치면 안 됩니다.
+    stage.setStoryPortrait("protagonist",{speaker:"protagonist",motion:"think"});
+    check(artOf()==="03",`처음 세운 자세가 think(03)가 아닙니다: "${artOf()}"`);
+    check(!applied.includes("01"),`기본 자세(calm/01)가 화면에 들어갔습니다: ${applied.join(",")}`);
+    check(applied.join(",")==="03",`첫 줄에 들어간 자세가 03 하나가 아닙니다: ${applied.join(",")}`);
+    await decodeAll();
+    check(applied.join(",")==="03",`디코딩 뒤에 자세가 더 들어갔습니다: ${applied.join(",")}`);
+
+    // 2) 이어 말하며 자세만 바뀌는 줄(happy/07). 디코딩을 기다리는 동안에는
+    //    직전 자세가 그대로 서 있어야 합니다 — 비거나 기본 자세로 돌아가면 안 됩니다.
+    stage.setStoryPortrait("protagonist",{speaker:"protagonist",motion:"happy"});
+    check(artOf()==="03",`자세 교체를 기다리는 사이 직전 자세가 서 있지 않습니다: "${artOf()}"`);
+    await decodeAll();
+    check(artOf()==="07",`교체 뒤 자세가 happy(07)가 아닙니다: "${artOf()}"`);
+
+    // 3) 화자가 없는 내레이션 줄은 자세를 건드리지 않습니다.
+    stage.setStoryPortrait(null,{text:"내레이션"});
+    await decodeAll();
+    check(artOf()==="07",`내레이션 줄에서 자세가 바뀌었습니다: "${artOf()}"`);
+
+    check(applied.join(",")==="03,07",`전체 적용 순서가 03,07 이 아닙니다: ${applied.join(",")}`);
+    if(problems.length)throw new Error(problems.join(" / "));
+
+    document.title="STORY_MOTION_FLASH_OK";
+    document.body.firstChild.textContent=`STORY_MOTION_FLASH_OK 적용 순서 ${applied.join(",")}`;
+  }catch(error){
+    document.title="STORY_MOTION_FLASH_FAIL";
+    document.body.firstChild.textContent=`STORY_MOTION_FLASH_FAIL ${error.message}`;
+  }
+})();
+</script>

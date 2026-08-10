@@ -561,9 +561,9 @@ assert(dayOnePrepTransition.title==="영업 준비"
   &&dayOnePrepTransition.moment==="dayStart"
   &&dayOnePrepTransition.transitionOnly===true
   &&dayOnePrepTransition.storyBgm==="day"
-  &&dayOnePrepTransition.storyBgmCrossfade===1700
+  &&dayOnePrepTransition.storyBgmCrossfade===2500
   &&dayOnePrepTransition.lines.length===0,
-  "프롤로그 뒤에는 DAY 1 영업 준비 카드와 1.7초 BGM 크로스페이드가 있어야 합니다.");
+  "프롤로그 뒤에는 DAY 1 영업 준비 카드와 2.5초 BGM 크로스페이드가 있어야 합니다.");
 assert(String(applyStorySceneAudio).includes("crossfadeDuration")
   &&String(storyAdvance).includes("storySession.scene?.transitionOnly")
   &&gameSource.includes("crossfadeBgm(track,duration=this.bgmFadeDuration)"),
@@ -574,6 +574,7 @@ assert(STORY_SCENES["SCN-P03"].interactionTarget==="journal"
 assert(STORY_SCENES["SCN-P01"].storyBgm==="storyCompany"
   &&STORY_SCENES["SCN-P02"].storyBgm==="storyCompany"
   &&STORY_SCENES["SCN-P02"].storyAmbient?.name==="story_rain"
+  &&STORY_SCENES["SCN-P02"].storyAmbient?.fadeOut===1800
   &&STORY_SCENES["SCN-P03"].storyBgm==="storySikdang"
   &&STORY_SCENES["SCN-P04"].storyBgm==="storySikdang",
   "회사·빗길·첫 식당 장면의 BGM과 빗소리 큐가 장면 경계에 맞아야 합니다.");
@@ -620,6 +621,8 @@ assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
   &&String(restoreStoryCheckpoint).includes("if(!restored.suspended)applyStorySceneAudio(scene)")
   &&String(applyStorySceneAudio).includes("currentAmbient?.name!==cue.name")
   &&String(applyStorySceneAudio).includes("if(entryCue?.name&&storySession)")
+  &&String(stopStoryAmbient).includes("entry.storyFadeOut")
+  &&String(applyStorySceneAudio).includes("ambient.storyFadeOut")
   &&String(stopStoryAmbient).includes("audio.fadeOutFile(entry,duration)")
   &&String(stopStoryEntrySfx).includes("audio.fadeOutFile(entry,duration)"),
   "스토리 앰비언스와 한 번만 재생하는 등장 효과음은 서로 다른 수명주기를 따라야 합니다.");
@@ -878,11 +881,11 @@ assert(g8.requiredBaseShards===7&&g8.triggerOnNightEnd&&g8.triggerAfterGeneral==
 const g8AudioSceneIds=["SCN-G8-A","SCN-G8-B","SCN-G8-아쉽다","SCN-G8-맛있다","SCN-G8-완벽"];
 assert(g8AudioSceneIds.every(sceneId=>
   STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
-  &&STORY_SCENES[sceneId].storyBgmCrossfade===1000
+  &&STORY_SCENES[sceneId].storyBgmCrossfade===2500
   &&STORY_SCENES[sceneId].storyBgmHoldAfterFinish===true)
   &&["SCN-J02","SCN-J03"].every(sceneId=>
     STORY_SCENES[sceneId].storyBgm==="storyFacelessDaeun"
-    &&STORY_SCENES[sceneId].storyBgmCrossfade===1000),
+    &&STORY_SCENES[sceneId].storyBgmCrossfade===2500),
   "얼굴 없는 김다은의 모든 대화와 결과 장면은 전용 BGM을 유지해야 합니다.");
 assert(gameSource.includes('(state.phase!=="result"||!!this.storyBgmTrack)'),
   "결과 단계에서도 엔딩 장면 전용 BGM은 재생할 수 있어야 합니다.");
@@ -977,9 +980,9 @@ same(["SCN-J01","END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].st
   "endingLoopReturn","endingAloneMorning","endingGuestsDawn","endingOpenForever","endingMorningTogether"
 ],"다섯 엔딩 장면의 전용 BGM");
 assert(["SCN-J01","END-01","END-02","END-03","END-04"]
-  .every(id=>STORY_SCENES[id].storyBgmCrossfade===1500)
+  .every(id=>STORY_SCENES[id].storyBgmCrossfade===3000)
   &&STORY_SCENES["SCN-EPI01"].storyBgm===STORY_SCENES["END-04"].storyBgm,
-  "엔딩 BGM은 1.5초로 전환하고 진엔딩 에필로그까지 같은 곡을 이어야 합니다.");
+  "엔딩 BGM은 3초로 전환하고 진엔딩 에필로그까지 같은 곡을 이어야 합니다.");
 
 same(["END-01","END-02","END-03","END-04"].map(id=>STORY_SCENES[id].continuePolicy),
   ["nextLoop","nextLoop","nextLoop","clearRunKeepMeta"],
