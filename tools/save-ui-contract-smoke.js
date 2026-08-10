@@ -140,10 +140,10 @@ const mappedSfxPaths=[...new Set(
 const normalizedSfxPaths=[...new Set(
   (gameSource.slice(sfxGainsStart,sfxRuntimeStart).match(/assets\/sfx\/[^"']+\.MP3/g)||[])
 )];
-assert(mappedSfxPaths.length===65
-  &&normalizedSfxPaths.length===65
+assert(mappedSfxPaths.length===68
+  &&normalizedSfxPaths.length===68
   &&mappedSfxPaths.every(path=>normalizedSfxPaths.includes(path)),
-  "등록된 65개 효과음은 빠짐없이 파일별 음량 보정값을 가져야 합니다.");
+  "등록된 68개 효과음은 빠짐없이 파일별 음량 보정값을 가져야 합니다.");
 assert(saveSource.includes('const AUDIO_SETTINGS_KEY="moonlightTable.audio.v1"')
   &&saveSource.includes("bgmEnabled:true")
   &&saveSource.includes("sfxEnabled:true")

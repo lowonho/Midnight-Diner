@@ -159,6 +159,7 @@ assert(game.includes('nearestStation(state.phase==="night"&&state.carrying?"tras
   &&night.includes("order.discardedOnce=true;")
   &&night.includes("order.cookStep=0;")
   &&night.includes("order.cookScores=[];")
+  &&night.includes('audio.play("trash_discard");')
   &&night.includes("saveGame(storyCookingIsActive());")
   &&save.includes("normalized.discardedOnce=normalized.discardedOnce===true;")
   &&kitchen.includes('if(state.carrying)return s.id==="trash";')
