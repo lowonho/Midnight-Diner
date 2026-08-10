@@ -535,6 +535,7 @@ function discardCarriedDish(){
   state.carrying=null;
   syncSelectedOrderToQueue();
   if(typeof playTrashDiscardAnimation==="function")playTrashDiscardAnimation();
+  audio.play("trash_discard");
   showToast(UI_TEXT.toast.discardDone(dish.name));
   updateUI(true);
   saveGame(storyCookingIsActive());

@@ -16,7 +16,7 @@ try{
   };
   for(const [sceneId,track] of Object.entries(expected)){
     if(STORY_SCENES[sceneId]?.storyBgm!==track)throw new Error(`${sceneId} BGM mapping`);
-    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==1500)throw new Error(`${sceneId} crossfade`);
+    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==3000)throw new Error(`${sceneId} crossfade`);
     if(STORY_SCENES[sceneId]?.storyBgmHoldAfterFinish!==true)
       throw new Error(`${sceneId} BGM hold after conclusion`);
   }
@@ -24,7 +24,7 @@ try{
   for(const sceneId of facelessDaeunScenes){
     if(STORY_SCENES[sceneId]?.storyBgm!=="storyFacelessDaeun")
       throw new Error(`${sceneId} faceless Daeun BGM mapping`);
-    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==1000)
+    if(STORY_SCENES[sceneId]?.storyBgmCrossfade!==2500)
       throw new Error(`${sceneId} faceless Daeun crossfade`);
     if(STORY_SCENES[sceneId]?.storyBgmHoldAfterFinish!==true)
       throw new Error(`${sceneId} faceless Daeun BGM hold`);
