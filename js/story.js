@@ -1439,10 +1439,10 @@ function applyStorySceneAudio(scene){
   }
   const configuredCrossfade=Number(scene?.storyBgmCrossfade);
   audio?.setStoryBgm?.(scene?.storyBgm||null,{
-    // 장면별 연출값이 없더라도 BGM끼리는 기본 1.2초 동안 겹쳐 바뀝니다.
+    // 장면별 연출값이 없더라도 BGM끼리는 기본 2.5초 동안 겹쳐 바뀝니다.
     crossfadeDuration:Number.isFinite(configuredCrossfade)
       ?Math.max(0,configuredCrossfade)
-      :(audio?.bgmFadeDuration||1200)
+      :(audio?.bgmFadeDuration||2500)
   });
 }
 

@@ -341,7 +341,7 @@ const audio = {
     "assets/sfx/ui/sfx_next_book_leveled.MP3":1.0254
   }),
   preloaded:new Map(), activeFiles:new Set(), ownerFiles:new Map(), loopFiles:new Map(), variantCursor:{},
-  bgmElements:new Map(),bgmSources:new Map(),bgmGainNodes:new Map(),bgmWebAudio:false,bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:1200,bgmFadeFrame:null,
+  bgmElements:new Map(),bgmSources:new Map(),bgmGainNodes:new Map(),bgmWebAudio:false,bgmElement:null,bgmOutgoingElement:null,bgmTrack:null,storyBgmTrack:null,bgmStarted:false,bgmPlayPending:false,bgmFadeStart:0,bgmFadeDuration:2500,bgmFadeFrame:null,
   preload(){
     Object.values(this.files).flat().forEach(src=>{
       if(this.preloaded.has(src))return;
