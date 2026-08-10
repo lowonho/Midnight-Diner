@@ -514,6 +514,45 @@ const ORDER_PANEL = (()=>{
 let orderPanelImage=null;
 
 
+/* 서빙 E 키캡을 앉힐 높이 (game.js updatePrompt 가 씁니다)
+   ------------------------------------------------------------
+   예전에는 논리 470 으로 박아 두었습니다. 주문 패널이 작은 사각형이던
+   시절에는 그 자리가 머리 위 빈칸이었는데, 구름 그림으로 바뀌면서 패널이
+   (윗변 -164.7 ~ 꼬리 끝 -83.8) 그 자리를 통째로 차지했습니다. 그래서
+   키캡이 음식 그림 한가운데에 얹혀, 무엇을 내어 줄 차례인지 가렸습니다.
+
+   지금은 패널 **위**로 올리고, 값을 박는 대신 이 손님의 패널 윗변에서
+   계산합니다. 머리 높이 보정(customerHudDrop)이 손님마다 다르므로 숫자
+   하나로 박아 두면 어떤 손님에서는 다시 겹칩니다.
+
+   [부푼 크기를 기준으로 잡습니다] 지금 고른 주문이면 패널이 꼬리 끝을
+   축으로 1.06 배까지 커집니다. 작은 쪽에 맞추면 맥박마다 패널 윗변이
+   키캡을 밀고 올라옵니다.
+
+   [대사 말풍선은 계산에 넣지 않습니다] 말풍선은 4초 남짓 떴다 사라져서,
+   뜰 때마다 키캡이 그만큼 뛰어오르면 자리가 흔들려 보입니다. 말풍선
+   자리까지 늘 비워 두면(최대 두 줄 49) 키캡이 손님 머리에서 한참 떨어져
+   누구 것인지도 흐려집니다. 잠깐 겹치는 편이 낫습니다.
+
+     gap  패널(또는 이름표) 윗변과 키캡 아랫변 사이 (논리 px)
+   ------------------------------------------------------------ */
+const CUSTOMER_SERVE_PROMPT_GAP = 8;
+
+function customerServePromptY(order){
+  const H=CUSTOMER_HUD,P=ORDER_PANEL;
+  const hy=CUSTOMER_SEAT_Y+customerHudDrop(order,order.variant||0);
+  // 주문 패널이 없는 손님(구경만 하는 특별 손님)은 머리끝이 묶음의 꼭대기입니다.
+  const hasPanel=!(order.customerType==="story"&&order.guestOrder===false);
+  let top=hasPanel
+    ? H.tailY-P.bodyH-P.h*(CUSTOMER_SELECT_PULSE.max-1)
+    : H.tailY+CUSTOMER_ART_BASE.hudGap;
+  // 이름표(특별 손님)가 있으면 그 글자 윗변이 묶음의 꼭대기입니다.
+  // 12 는 이름표 글꼴 크기입니다. (아래 drawCustomers 의 bold 12px)
+  if(order.guestId)top=Math.min(top,(hasPanel?H.labelY:H.labelHeadY)-12);
+  return hy+top-CUSTOMER_SERVE_PROMPT_GAP;
+}
+
+
 /* ------------------------------------------------------------
    1-3-2. 대사 말풍선 그림
    ------------------------------------------------------------

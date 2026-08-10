@@ -1224,7 +1224,9 @@ function updatePrompt(){
       x=trash.x+trash.w/2;y=trashActionPromptY(trash);
     }else if(order&&distance(state.player.x,state.player.y,CUSTOMER_SEATS[order.slot],CUSTOMER_SERVICE_Y)<=CUSTOMER_SERVE_REACH){
       text=UI_TEXT.prompt.serve(order.slot+1);
-      x=CUSTOMER_SEATS[order.slot];y=470;
+      // 손님 머리 위 주문 패널(음식 그림)을 덮지 않는 높이입니다.
+      // 손님마다 머리 높이가 달라서 customers.js 가 계산해 줍니다.
+      x=CUSTOMER_SEATS[order.slot];y=customerServePromptY(order);
     }
   }else{
     if(state.phase===GAME_PHASES.MENU_SELECT){
