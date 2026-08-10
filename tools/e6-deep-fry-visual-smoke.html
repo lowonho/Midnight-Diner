@@ -76,7 +76,7 @@
 
        ?dish=fries   감자튀김으로 엽니다 (기본은 새우튀김)
        ?drop=N       냄비에 넣을 재료 수 (기본 3 = 정원)
-       ?cook=SEC     넣은 뒤 흘려 볼 시간(초). 3.4 미만 설익음 / 7.6 미만 잘 익음 / 그 뒤 탐
+       ?cook=SEC     넣은 뒤 흘려 볼 시간(초). 3.4 미만 설익음 / 6.0 미만 잘 익음 / 그 뒤 탐
        ?lift=N       망으로 건질 개수 (기본 0)
        ?full=1       5개를 전부 잘 익은 상태로 건져 완성까지 갑니다
        ?hold=1       마지막 끌기를 **손을 떼지 않은 채로** 멈춥니다.
@@ -163,7 +163,7 @@
     function runFullClear(){
       while (mini.data.done.length < 5 && !mini.data.finishing) {
         while (mini.data.raw && mini.data.pot.length < FRY_COOK.potLimit) dragTo("[data-fry-source='raw']", ".fry-pot", DROPS[mini.data.pot.length]);
-        tick(4);   // 3.4 ~ 7.6 사이 = 잘 익음
+        tick(4);   // 3.4 ~ 6.0 사이 = 잘 익음
         [...document.querySelectorAll("[data-fry-source='piece']")].forEach(piece => {
           if (mini.data.finishing) return;
           dragTo(`[data-fry-piece='${piece.dataset.fryPiece}']`, ".fry-rack", { x:50, y:50 });

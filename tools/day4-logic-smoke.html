@@ -504,13 +504,13 @@ try{
   pressPancake();flipPancake();pressPancake();flipPancake();pressPancake();
   assert(pancakeFlowUnit.done&&pancakeFlowUnit.stepIndex===5&&pancakeFlowUnit.flips===2
     &&twoSideCookingSide(pancakeFlowUnit)===0&&pancakeFlowUnit.sides[0].cook===2&&pancakeFlowUnit.sides[1].cook===1
-    &&PANCAKE_GAUGE_WIDTH===.1&&TWO_SIDE_VIEW.pancake.total===3&&MINI_ENGINES.twoSideCook.score(pancakeFlowMini)===100&&twoSideCookGrade(pancakeFlowMini.data)==="perfect","E5 pancake keeps a ten-percent green zone and completes at 100 after all five cues");
-  /* 초록 구간은 굽기 신호마다 자리를 다시 뽑되, 왼쪽 30% 안으로는 들어오지 않습니다
+    &&PANCAKE_GAUGE_WIDTH===.07&&TWO_SIDE_VIEW.pancake.total===3&&MINI_ENGINES.twoSideCook.score(pancakeFlowMini)===100&&twoSideCookGrade(pancakeFlowMini.data)==="perfect","E5 pancake keeps a seven-percent green zone and completes at 100 after all five cues");
+  /* 초록 구간은 굽기 신호마다 자리를 다시 뽑되, 왼쪽 25% 안으로는 들어오지 않습니다
      (누르자마자 떼서 맞는 자리가 있으면 "꾹 누르기" 가 아니게 됩니다). */
   const rolledCenters=gaugeCenters.concat(Array.from({length:200},()=>rollPancakeGaugeCenter()));
   assert(rolledCenters.every(center=>center-PANCAKE_GAUGE_WIDTH/2>=PANCAKE_GAUGE_MIN_START-1e-9&&center+PANCAKE_GAUGE_WIDTH/2<=1+1e-9)
-    &&PANCAKE_GAUGE_MIN_START===.3&&new Set(gaugeCenters).size>1
-    &&pancakeGaugeBounds({}).start===(PANCAKE_GAUGE_CENTER_RANGE[0]+PANCAKE_GAUGE_CENTER_RANGE[1])/2-PANCAKE_GAUGE_WIDTH/2,"E5 the pancake green zone is rerolled per cook cue and never reaches into the left thirty percent");
+    &&PANCAKE_GAUGE_MIN_START===.25&&new Set(gaugeCenters).size>1
+    &&pancakeGaugeBounds({}).start===(PANCAKE_GAUGE_CENTER_RANGE[0]+PANCAKE_GAUGE_CENTER_RANGE[1])/2-PANCAKE_GAUGE_WIDTH/2,"E5 the pancake green zone is rerolled per cook cue and never reaches into the left twenty-five percent");
   const timedOutPancake=createTwoSideData("pancake");timedOutPancake.timedOut=true;
   assert(pancakeRemainingSteps(timedOutPancake)===5&&pancakeScore(timedOutPancake)===50,"E5 pancake timeout deducts ten points for each of five unfinished cues");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다
@@ -606,7 +606,7 @@ try{
   MINI_ENGINES.twoSideCook.update(fastPlateMini,SKEWER_SERVE_GRACE_SEC+1);
   assert(fastPlateSkewer.served&&fastPlateSkewer.serveTimer===null&&MINI_ENGINES.twoSideCook.score(fastPlateMini)===100,"E5 plating within the grace period cancels the timer and preserves 100 points");
 
-  assert(fryStageAt(1)==="under"&&fryStageAt(FRY_COOK.underUntil)==="cooked"&&fryStageAt(FRY_COOK.cookedUntil)==="burnt"&&FRY_COOK.cookedUntil-FRY_COOK.underUntil>=4,"E6 three doneness stages with a wide enough window to lift");
+  assert(fryStageAt(1)==="under"&&fryStageAt(FRY_COOK.underUntil)==="cooked"&&fryStageAt(FRY_COOK.cookedUntil)==="burnt"&&FRY_COOK.cookedUntil-FRY_COOK.underUntil>=2.5,"E6 three doneness stages with a wide enough window to lift");
   finishedScore=null;
   const fryMini={engine:"fry",context:{mode:"cook",dishId:"shrimpTempura"},complete:false,data:{}};state.mini=fryMini;
   MINI_ENGINES.fry.setup(fryMini,{set:(title,description,time)=>{fryMini.time=time;},dish:dishById("shrimpTempura")});
