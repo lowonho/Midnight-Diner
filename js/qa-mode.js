@@ -23,9 +23,9 @@ window.QA_MODE=Object.freeze({enabled:QA_MODE_ENABLED});
 const QA_UNLOCK_CLICKS=10;        // 간판을 몇 번 눌러야 QA 버튼이 나오는지
 const QA_UNLOCK_RESET_MS=2500;    // 이 간격 안에 이어 눌러야 연속 클릭으로 셉니다
 const QA_UNLOCK_KEY="midnightDiner.qaUnlocked";
-/* 목록 정렬은 하루의 실제 진행 순서입니다. 첫날 조작 안내 세 자리
-   (prepStart · firstGuest · firstSpecialGuest)도 실제로 끼어드는 위치에
-   맞춰 사이사이에 넣었습니다. */
+/* 목록 정렬은 하루의 실제 진행 순서입니다. 첫날 조작 안내 두 자리
+   (prepStart · firstGuest)와 첫 실제 특별 손님 뒤 안내(firstSpecialGuest)도
+   실제로 끼어드는 위치에 맞춰 사이사이에 넣었습니다. */
 const QA_STORY_MOMENT_ORDER=Object.freeze({
   newGame:0,
   dayStart:1,

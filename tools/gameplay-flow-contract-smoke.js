@@ -229,8 +229,17 @@ assert(story.includes("function storyGeneralArrivals()")
   &&story.includes("if(!storyOrderDialogueReady(order))return false;")
   &&story.includes('if(state.mini||state.carrying)return false;')
   &&story.includes('if(state.departures?.length)return false;')
-  &&night.includes('entryDelay:plan&&plan.triggerTiming!=="before"&&plan.arrival!=="last" ? .65 : 0'),
+  &&/entryDelay:plan&&plan\.triggerTiming!=="before"&&plan\.arrival!=="last"\s*\?\s*\.65/.test(night),
   "특별 손님은 예약된 도착 순서를 지키고 안전한 FIFO 차례에서만 대화를 시작해야 합니다.");
+assert(gameData.includes("tastyMin:80")
+  &&game.includes("function generalGuestAverageScore()")
+  &&game.includes("function avgSatisfaction(){return generalGuestAverageScore();}")
+  &&game.includes(":state.generalServed?UI_TEXT.guestResponse(avgSatisfaction()):UI_TEXT.blank;")
+  &&night.includes("state.generalSatisfactionTotal=(Number(state.generalSatisfactionTotal)||0)+serviceScore;")
+  &&story.includes("function storyNightTasteGatePassed()")
+  &&story.includes('plan?.guestId==="schoolDoll"&&plan.triggerTiming==="before"')
+  &&story.includes("storyPlanFailedTasteGate(candidate)"),
+  "일반 손님 평균은 80점을 경계로 평가하고, 미달 시 교복 인형을 제외한 특별 손님 예약을 제거해야 합니다.");
 assert(story.includes('prompt:"어떤 음식을 내줄까?"')
   &&story.includes("order.dishId=chosenDish.id;")
   &&story.includes("order.awaitingDishChoice=false;")

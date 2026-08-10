@@ -129,6 +129,7 @@ function freshState(day=1,phase=GAME_PHASES.PREP){
     generalSpawnedCustomers:0,
     served:0,
     generalServed:0,
+    generalSatisfactionTotal:0,
     satisfactionTotal:0,
     fiveStar:0,
     audio:{enabled:true,bgmEnabled:true,sfxEnabled:true,master:0.8,bgm:0.7,sfx:0.9},
@@ -157,6 +158,9 @@ function applySlotMarker(marker,index){
   const guestId=STORY_GUEST_IDS[0];
   state.day=index+1;
   state.money=1000+index;
+  state.generalServed=2;
+  state.generalSatisfactionTotal=160+index;
+  state.satisfactionTotal=160+index;
   state.story=createStoryState();
   state.story.choices["choice-"+marker]=index;
   state.story.flags["flag-"+marker]=true;
@@ -260,6 +264,8 @@ slotMarkers.forEach(([slotId,marker,index])=>{
   const saved=readSaveData(slotId);
   const guestId=STORY_GUEST_IDS[0];
   assert(saved&&saved.nextOrderId===100+index,slotId+"의 nextOrderId가 독립적으로 저장되어야 합니다.");
+  assert(saved.state.generalSatisfactionTotal===160+index,
+    slotId+" 일반 손님 평가 합계 격리");
   same(saved.state.story.choices,{["choice-"+marker]:index},slotId+" 선택지 격리");
   same(saved.state.story.flags,{["flag-"+marker]:true},slotId+" 플래그 격리");
   assert(saved.state.story.guestState[guestId].affinity===10+index,slotId+" 손님 상태 격리");
@@ -603,6 +609,21 @@ assert(state.story.choices[choiceScene.id]===undefined,
 assert(storySession.lineIndex===choiceLineIndex
   &&storySession.lines.length===choiceBaseLineCount,
   "선택 전 복원은 선택지 줄과 원본 대사 배열을 복원해야 합니다.");
+
+const legacyMixedSatisfactionSave=JSON.parse(JSON.stringify(beforeChoiceSave));
+delete legacyMixedSatisfactionSave.state.generalSatisfactionTotal;
+legacyMixedSatisfactionSave.state.day=7;
+legacyMixedSatisfactionSave.state.generalServed=6;
+legacyMixedSatisfactionSave.state.served=8;
+legacyMixedSatisfactionSave.state.satisfactionTotal=640;
+legacyMixedSatisfactionSave.state.story.storyCookResults={
+  "SCN-G7-A":{score:70,day:7,dishId:"tteokbokki"},
+  "SCN-G8-A":{score:90,day:7,dishId:"yakisoba"},
+  "SCN-G6-A":{score:100,day:6,dishId:"shrimpTempura"}
+};
+restoreGameState(legacyMixedSatisfactionSave);
+assert(state.generalSatisfactionTotal===480,
+  "일반 손님 합계가 없던 구 저장은 현재 날짜 특별 손님 점수만 빼서 복원해야 합니다.");
 
 freshState(1,GAME_PHASES.PREP);
 assert(playStoryScenes(["SCN-P01","SCN-P02"]),"연속 프롤로그 장면을 시작할 수 있어야 합니다.");

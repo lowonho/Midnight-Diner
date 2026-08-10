@@ -27,13 +27,13 @@ if(!titleSource.includes("function openGameplayJournalPage(pageId)")
   ...Array.from({length:7},(_,index)=>`assets/sfx/story/fragments/sfx_d${index+1}_finish.MP3`),
   "assets/sfx/story/fragments/sfx_half_piece.MP3",
   "assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3",
-  "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival.MP3",
-  "assets/sfx/story/guests/sfx_story_d2_lantern_arrival.MP3",
+  "assets/sfx/story/guests/sfx_story_d1_raindrop_arrival_leveled.MP3",
+  "assets/sfx/story/guests/sfx_story_d2_lantern_arrival_leveled.MP3",
   "assets/sfx/story/guests/sfx_story_d3_twin_shadow_arrival.MP3",
-  "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival.MP3",
-  "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival.MP3",
-  "assets/sfx/story/guests/sfx_story_d6_seawater_arrival.MP3",
-  "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival.MP3"
+  "assets/sfx/story/guests/sfx_story_d4_crow_letter_arrival_leveled.MP3",
+  "assets/sfx/story/guests/sfx_story_d5_star_beast_arrival_leveled.MP3",
+  "assets/sfx/story/guests/sfx_story_d6_seawater_arrival_leveled.MP3",
+  "assets/sfx/story/guests/sfx_story_d7_clock_444_arrival_leveled.MP3"
 ].forEach(asset=>{
   if(!fs.existsSync(path.join(root,...asset.split("/"))))throw new Error(`스토리 음원 누락: ${asset}`);
 });
@@ -41,8 +41,8 @@ if(!gameSource.includes('storyCompany:"assets/bgm/story/bgm_company_story.mp3"')
   ||!gameSource.includes('storySikdang:"assets/bgm/story/bgm_in_first_sikdang.mp3"')
   ||!gameSource.includes('storyFacelessDaeun:"assets/bgm/story/bgm_story_faceless_daeun.MP3"')
   ||!gameSource.includes('story_rain:["assets/sfx/story/sfx_rain.MP3"]')
-  ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door.MP3"]')
-  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book.MP3"]')
+  ||!gameSource.includes('story_open_door:["assets/sfx/story/sfx_open_door_leveled.MP3"]')
+  ||!gameSource.includes('journal_page_turn:["assets/sfx/ui/sfx_next_book_leveled.MP3"]')
   ||!gameSource.includes('fragment_partial:["assets/sfx/story/fragments/sfx_half_piece.MP3"]')
   ||!gameSource.includes('daeun_ribbon_handoff:["assets/sfx/story/fragments/sfx_story_daeun_ribbon_handoff.MP3"]')
   ||!Array.from({length:7},(_,index)=>index+1).every(day=>
@@ -446,8 +446,18 @@ same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
 same(initialGameplayJournal[0].rules,[
   "매일 영업일지에 적혀 있는 음식 중 세 가지를 골라 영업한다.",
-  "손님에게 항상 친절하게 대한다."
-],"영업일지의 간결한 주의사항 두 가지");
+  "손님에게 항상 친절하고 맛있는 음식을 대접한다.",
+  "일반 손님들의 음식 평가 평균이 80점 미만이면 특별 손님이 찾아오지 않는다. 단, ???은 예외다."
+],"영업일지의 간결한 주의사항 세 가지는 만나지 않은 교복 인형을 먼저 밝히면 안 됩니다.");
+state.story.guestState.schoolDoll.clueFound=true;
+assert(getGameplayJournalPages()[0].rules[2]
+  ==="일반 손님들의 음식 평가 평균이 80점 미만이면 특별 손님이 찾아오지 않는다. 단, 교복 인형은 예외다.",
+  "교복 인형의 등장 대사를 듣고 음식 단서를 기록한 뒤에는 주의사항의 예외 대상을 공개해야 합니다.");
+state.story.guestState.schoolDoll.clueFound=false;
+window.MoonlightTableSave={guestMet:id=>id==="schoolDoll"};
+assert(getGameplayJournalPages()[0].rules[2].endsWith("단, 교복 인형은 예외다."),
+  "이전 진행에서 교복 인형을 만난 영구 기록이 있으면 새 진행에서도 예외 대상을 공개해야 합니다.");
+delete window.MoonlightTableSave;
 same(initialRecipePages.map(page=>page.dishId),STORY_MENU_RULES.dishIds,
   "음식별 레시피 여덟 장의 순서");
 assert(initialRecipePages.every(page=>page.ingredients.length>0&&page.prepSteps.length>0&&page.cookSteps.length>0),
@@ -458,7 +468,8 @@ assert(initialDayPages.every(page=>
 recordStorySceneOutcome(STORY_SCENES["SCN-G7-A"]);
 let daySevenPage=getGameplayJournalPages().find(page=>page.day===7);
 assert(daySevenPage.entries.length===1
-  &&daySevenPage.entries[0].guestId==="schoolDoll",
+  &&daySevenPage.entries[0].guestId==="schoolDoll"
+  &&getGameplayJournalPages()[0].rules[2].endsWith("단, 교복 인형은 예외다."),
   "7일차에는 실제로 만난 교복 인형 기록만 먼저 표시해야 합니다.");
 recordStorySceneOutcome(STORY_SCENES["SCN-G8-A"]);
 daySevenPage=getGameplayJournalPages().find(page=>page.day===7);
@@ -473,14 +484,14 @@ assert(storyDisplayName("protagonist")==="김다은"
 same(STORY_MENU_RULES.dishIds,
   ["oden","tofu","kimchi","skewer","yakisoba","shrimpTempura","tteokbokki","fries"],
   "기존 음식 8종 ID");
-assert(STORY_MENU_RULES.selectCount===5
+assert(STORY_MENU_RULES.selectCount===3
   &&STORY_MENU_RULES.requiredMenus.length===0
   &&STORY_MENU_RULES.allMenusAvailableFromDayOne,
-  "첫째 날부터 음식 8종 중 정확히 5종을 자유 선택해야 합니다.");
+  "첫째 날부터 음식 8종 중 정확히 3종을 자유 선택해야 합니다.");
 STORY_MENU_RULES.dishIds.forEach(id=>assert(!!dishById(id),"존재하지 않는 메뉴 ID: "+id));
-same(STORY_GENERAL_ORDERS_BY_DAY,{1:3,2:4,3:5,4:6,5:4,6:7,7:5},
+same(STORY_GENERAL_ORDERS_BY_DAY,{1:6,2:6,3:6,4:6,5:6,6:6,7:6},
   "날짜별 일반 주문 수");
-same(STORY_SCORE_THRESHOLDS,{warm:71,great:100},"스토리 평가 점수 기준");
+same(STORY_SCORE_THRESHOLDS,{warm:80,great:100},"스토리 평가 점수 기준");
 same(GENERAL_GUEST_BUBBLES.arrival,[
   "[음식명] 하나 부탁드릴게요.",
   "오늘은 [음식명][이/가] 먹고 싶네요.",
@@ -497,19 +508,50 @@ assert(formatGeneralGuestBubble("오늘은 [음식명][이/가] 먹고 싶네요
 assert(String(decorateStoryOrder).includes('pickGeneralGuestBubble("arrival",order.dishId)')
   &&!GENERAL_GUEST_BUBBLES.arrival.includes("천천히 해 주세요. 기다릴게요."),
   "일반 손님 주문 음식명을 방문 대사에 전달하고 제외한 기다림 문장을 다시 넣으면 안 됩니다.");
-assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
-  &&storyCookingTier(71,STORY_SCORE_THRESHOLDS)==="warm"
+assert(storyCookingTier(79.999,STORY_SCORE_THRESHOLDS)==="soft"
+  &&storyCookingTier(80,STORY_SCORE_THRESHOLDS)==="warm"
   &&storyCookingTier(99,STORY_SCORE_THRESHOLDS)==="warm"
-  &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
-  "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
+  &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great"
+  &&cookingScoreMessage(79.999)==="아쉬워요!"
+  &&cookingScoreMessage(80)==="맛있어요!"
+  &&cookingScoreMessage(100)==="완벽해요!",
+  "아쉽다/맛있다/완벽은 80점과 100점을 경계로 나뉘어야 합니다.");
 
 assert(Object.keys(STORY_SCENES).length===61,
-  "새 시나리오 57개 장면에 첫날 조작 안내 4개(SCN-T01~T04)를 더해 61개여야 합니다.");
+  "새 시나리오 57개 장면에 최초 조작 안내 4개(SCN-T01~T04)를 더해 61개여야 합니다.");
 const requiredStaticScenes=[
   "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D00","SCN-D01",
   "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
 ];
 requiredStaticScenes.forEach(id=>assert(STORY_SCENES[id]?.id===id,"필수 장면 누락: "+id));
+const firstSpecialTutorial=STORY_SCENES["SCN-T04"];
+assert(firstSpecialTutorial&&firstSpecialTutorial.maxLoop==null
+  &&STORY_EVENT_SCHEDULE.firstSpecialGuest===undefined
+  &&String(completeStoryScene).includes("insertFirstSpecialGuestTutorialAfter(scene)"),
+  "첫 특별 손님 안내는 첫날 일정이 아니라 실제 특별 손님 결과 완료 뒤에 전 회차 공통 1회로 이어져야 합니다.");
+assert(firstSpecialGuestTutorialTierForScene(STORY_SCENES["SCN-G1-B"])==="wrong"
+  &&firstSpecialGuestTutorialTierForScene(STORY_SCENES["SCN-G2-아쉽다"])==="soft"
+  &&firstSpecialGuestTutorialTierForScene(STORY_SCENES["SCN-G3-맛있다"])==="warm"
+  &&firstSpecialGuestTutorialTierForScene(STORY_SCENES["SCN-G4-완벽"])==="great"
+  &&firstSpecialGuestTutorialTierForScene(STORY_SCENES["SCN-G5-A"])==null,
+  "첫 특별 손님 안내는 오답·아쉽다·맛있다·완벽 결과만 정확한 반응 갈래로 받아야 합니다.");
+state.story=createStoryState();
+state.story.loop=2;
+storySession={queue:["SCN-G3-맛있다"],queueIndex:0,qaPreview:false};
+assert(insertFirstSpecialGuestTutorialAfter(STORY_SCENES["SCN-G3-맛있다"])
+  &&storySession.queue.join(",")==="SCN-G3-맛있다,SCN-T04"
+  &&storyLinesForScene(firstSpecialTutorial)[0]?.text.includes("조각은 반쪽뿐이네"),
+  "첫 실제 특별 손님이 다음 회차에 나타나도 결과 직후 안내를 한 번 삽입해야 합니다.");
+markStorySceneCompleted(firstSpecialTutorial);
+storySession={queue:["SCN-G4-완벽"],queueIndex:0,qaPreview:false};
+assert(!insertFirstSpecialGuestTutorialAfter(STORY_SCENES["SCN-G4-완벽"])
+  &&storySession.queue.length===1,
+  "첫 특별 손님 안내를 완료한 뒤 다른 특별 손님 결과에서 중복 재생하면 안 됩니다.");
+state.story=createStoryState();
+storySession={queue:["SCN-G1-B"],queueIndex:0,qaPreview:true};
+assert(!insertFirstSpecialGuestTutorialAfter(STORY_SCENES["SCN-G1-B"]),
+  "QA 단일 장면 미리보기에는 후속 튜토리얼을 자동 삽입하면 안 됩니다.");
+storySession=null;
 assert(STORY_SCENES["SCN-P04"].completesPrologue===true,
   "영업일지 규칙 확인 뒤 프롤로그가 끝나야 합니다.");
 const dayOnePrepTransition=STORY_SCENES["SCN-P05"];
@@ -581,10 +623,10 @@ assert(gameSource.includes("fadeOutFile(entry,duration=1200)")
   &&String(stopStoryEntrySfx).includes("audio.fadeOutFile(entry,duration)"),
   "스토리 앰비언스와 한 번만 재생하는 등장 효과음은 서로 다른 수명주기를 따라야 합니다.");
 const guestArrivalAudioFiles=[
-  "sfx_story_d1_raindrop_arrival.MP3","sfx_story_d2_lantern_arrival.MP3",
-  "sfx_story_d3_twin_shadow_arrival.MP3","sfx_story_d4_crow_letter_arrival.MP3",
-  "sfx_story_d5_star_beast_arrival.MP3","sfx_story_d6_seawater_arrival.MP3",
-  "sfx_story_d7_clock_444_arrival.MP3"
+  "sfx_story_d1_raindrop_arrival_leveled.MP3","sfx_story_d2_lantern_arrival_leveled.MP3",
+  "sfx_story_d3_twin_shadow_arrival.MP3","sfx_story_d4_crow_letter_arrival_leveled.MP3",
+  "sfx_story_d5_star_beast_arrival_leveled.MP3","sfx_story_d6_seawater_arrival_leveled.MP3",
+  "sfx_story_d7_clock_444_arrival_leveled.MP3"
 ];
 guestArrivalAudioNames.forEach((name,index)=>{
   const day=index+1;
@@ -663,9 +705,21 @@ assert(p04.lines.slice(-3).every(line=>line.timeOfDay==="day")
 assert(p04.lines.some(line=>line.text?.includes("햇빛이 들어찬다."))
   &&!p04.lines.some(line=>line.text?.includes("첫째 날의 낮빛")||line.text?.includes("첫째 날 낮으로")),
   "프롤로그의 시간 전환은 시스템식 날짜 표현 없이 햇빛과 낮의 변화로 보여야 합니다.");
-assert(STORY_SCENES["SCN-D01"].lines[0]?.text==="간판이 켜지고 달빛식탁의 밤 영업이 시작된다."
+assert(STORY_SCENES["SCN-D01"].lines[0]?.text==="간판이 켜지고 달빛식탁의 영업이 시작된다."
   &&!STORY_SCENES["SCN-D01"].lines.some(line=>line.text?.includes("선택한 다섯 메뉴")),
   "밤 영업 시작 내레이션에서 일반 손님 주문 규칙을 직접 설명하면 안 됩니다.");
+assert(STORY_SCENES["SCN-P04"].lines.at(-1)?.text==="우선 메뉴 세개를 골라서 첫 영업을 시작해 보자.",
+  "첫 영업 메뉴 선택 대사는 세 메뉴 규칙과 일치해야 합니다.");
+same([1,2,3,4,5,6].map(day=>STORY_SCENES["SCN-G"+day+"-A"].lines[0]?.text),[
+  "식당을 마감하려고 하는데 문이 다시 열린다.\\n젖은 우비의 아이가 오늘의 마지막 손님으로 들어와 다은을 바라본다.",
+  "손님이 모두 떠난 빈 자리를 치우고 있는데 식당 바닥에 길쭉한 불빛이 번진다.\\n빛이 모인 자리에는 머리 대신 낡은 종이등을 단 오늘의 마지막 손님이 나타나 있다.",
+  "식당을 마감하려고 하는 다은에게 두개의 긴 그림자가 다가온다.",
+  "손님이 모두 떠난 빈 자리를 치우고 있는데 검은 외투의 배달부가 식탁 곁에 나타나 가방을 고쳐 멘다.\\n가방 안에는 배달되지 않은 편지 한 통이 있다.",
+  "식당을 마감하려고 하는데 작은 짐승이 들어와 가장 그늘진 자리에 웅크린다.\\n몸 안에는 삼킨 별빛이 움직인다.",
+  "손님이 모두 떠난 빈 자리를 치우고 있는데 문 아래로 얕은 물결이 밀려 들어온다.\\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."
+],"1~6일차 특별 손님은 마지막 일반 손님을 직접 설명하지 않고 마감 흐름에서 자연스럽게 등장");
+assert(STORY_SCENES["SCN-G7-A"].lines[0]?.text==="영업을 시작한 순간 벽시계가 4시 44분에서 멈추고 멀리서 학교 종소리가 울린다.\\n문 앞에는 교복을 입은 소녀가 서 있다. 소녀가 식탁에 가까워지니 피부가 나무와 천으로 이루어진 것이 보였다.",
+  "7일차 교복 인형은 영업 시작 직후 식탁에 다가오는 모습으로 소개되어야 합니다.");
 assert(!STORY_SCENES["SCN-P04"].lines.some(line=>line.speaker==="journal"),
   "영업일지 규칙은 장부가 말하는 대사로 출력하면 안 됩니다.");
 same(Object.keys(FIRST_SPECIAL_GUEST_BUBBLES),expectedGameplayJournalGuestIds,
@@ -680,7 +734,7 @@ assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadow
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
 // 내일의 문을 여는 목표는 프롤로그 대사(SCN-P04)가 이미 짚어 줍니다.
-// 주의사항 장에는 매일 지켜야 할 두 가지만 남기고 목표 문장은 빼 둡니다.
+// 주의사항 장에는 매일 지켜야 할 세 가지만 남기고 목표 문장은 빼 둡니다.
 assert(!initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
   "영업일지 첫 장은 세부 등급도 내일의 문 목표도 적지 않고 매일의 영업 규칙만 남겨야 합니다.");
@@ -771,7 +825,7 @@ guestContracts.forEach(([number,day,character,dishId,shardId,shardName,timing,af
   same(arrival.resultSceneIds,
     {soft:prefix+"-아쉽다",warm:prefix+"-맛있다",great:prefix+"-완벽"},
     prefix+" 평가 장면 연결");
-  same(arrival.thresholds,{warm:71,great:100},prefix+" 평가 기준");
+  same(arrival.thresholds,{warm:80,great:100},prefix+" 평가 기준");
   assert(arrival.repeatEachLoop&&arrival.guestOrder&&arrival.specialCook,
     prefix+" 회차별 재방문과 기존 조리 연결");
   assert(missing?.missingMenu&&missing.wrongDish&&missing.journalClue&&missing.resultTier==null,
@@ -1325,6 +1379,7 @@ assert(!storyNightPlanReady({requiredBaseShards:7,triggerTiming:"after",triggerA
 getStoryGuestResult("schoolDoll").fragmentState="full";
 state.generalServed=6;
 state.generalSpawnedCustomers=6;
+state.generalSatisfactionTotal=480;
 same(storyFragmentCounts({baseOnly:true}),{count:7,partial:0,full:7},
   "기본 손님 7명의 완전 조각 계산");
 assert(storyGuestArrivalForDay(7).some(scene=>scene.id==="SCN-G8-A"),

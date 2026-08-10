@@ -92,7 +92,7 @@ const FIRST_SPECIAL_GUEST_BUBBLES = Object.freeze({
 
 const STORY_MENU_RULES = Object.freeze({
   dishIds: Object.freeze(["oden", "tofu", "kimchi", "skewer", "yakisoba", "shrimpTempura", "tteokbokki", "fries"]),
-  selectCount: 5,
+  selectCount: 3,
   requiredMenus: Object.freeze([]),
   allMenusAvailableFromDayOne: true
 });
@@ -156,13 +156,13 @@ const STORY_JOURNAL_RECIPES = Object.freeze([
 })));
 
 const STORY_GENERAL_ORDERS_BY_DAY = Object.freeze({
-  1: 3,
-  2: 4,
-  3: 5,
+  1: 6,
+  2: 6,
+  3: 6,
   4: 6,
-  5: 4,
-  6: 7,
-  7: 5
+  5: 6,
+  6: 6,
+  7: 6
 });
 
 // 공용 음식 평가를 이야기의 아쉽다/맛있다/완벽 세 단계로 변환합니다.
@@ -177,7 +177,7 @@ const STORY_SCORE_THRESHOLDS = Object.freeze({
 const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   {
     guestId: "rainyChild", title: "1일차 — 비에 젖은 아이", dayLabel: "1일차",
-    appearanceCondition: "1일차 밤 · 일반 손님 1명 응대 후", displayName: "비에 젖은 아이",
+    appearanceCondition: "1일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "비에 젖은 아이",
     portraitRow: 0, trace: "젖은 우비와 창가 자리에 남은 빗물",
     dishId: "kimchi", dishName: "김치전",
     clue: "비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식. 빗소리보다 먼저 지글거렸다.",
@@ -193,7 +193,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "lanternGuest", title: "2일차 — 등불을 머리에 인 손님", dayLabel: "2일차",
-    appearanceCondition: "2일차 밤 · 영업 시작 직후", displayName: "등불을 머리에 인 손님",
+    appearanceCondition: "2일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "등불을 머리에 인 손님",
     portraitRow: 1, trace: "머리 대신 달린 낡은 종이등과 테이블에 남은 온기",
     dishId: "oden", dishName: "어묵탕",
     clue: "나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식.",
@@ -209,7 +209,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "twinShadows", title: "3일차 — 둘이 붙은 그림자", dayLabel: "3일차",
-    appearanceCondition: "3일차 밤 · 일반 손님 2명 응대 후", displayName: "둘이 붙은 그림자",
+    appearanceCondition: "3일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "둘이 붙은 그림자",
     portraitRow: 2, trace: "한 사람처럼 붙은 모습과 바닥에 따로 드리운 두 그림자",
     dishId: "tofu", dishName: "두부김치",
     clue: "부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴.",
@@ -225,7 +225,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "crowCourier", title: "4일차 — 까마귀 우편배달부", dayLabel: "4일차",
-    appearanceCondition: "4일차 밤 · 일반 손님 3명 응대 후", displayName: "까마귀 우편배달부",
+    appearanceCondition: "4일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "까마귀 우편배달부",
     portraitRow: 3, trace: "검은 외투와 가방 속에 남은 배달되지 않은 편지",
     dishId: "skewer", dishName: "닭꼬치",
     clue: "불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식.",
@@ -241,7 +241,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "starBeast", title: "5일차 — 별을 먹는 작은 짐승", dayLabel: "5일차",
-    appearanceCondition: "5일차 밤 · 일반 손님 3명 응대 후", displayName: "별을 먹는 작은 짐승",
+    appearanceCondition: "5일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "별을 먹는 작은 짐승",
     portraitRow: 4, trace: "작은 몸 안에서 움직이는 삼킨 별빛",
     dishId: "fries", dishName: "감자튀김",
     clue: "손으로 집어 먹는 길고 노란 음식. 먹고 나면 손끝에 소금이 반짝였다.",
@@ -257,7 +257,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "seawaterGuest", title: "6일차 — 바닷물로 된 손님", dayLabel: "6일차",
-    appearanceCondition: "6일차 밤 · 일반 손님 7명 응대 후", displayName: "바닷물로 된 손님",
+    appearanceCondition: "6일차 밤 · 일반 손님 6명의 평균 평가가 80점 이상", displayName: "바닷물로 된 손님",
     portraitRow: 5, trace: "사람 형태의 몸 안에서 움직이는 작은 파도와 물고기",
     dishId: "shrimpTempura", dishName: "새우튀김",
     clue: "뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식.",
@@ -273,7 +273,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "schoolDoll", title: "7일차 — 멈춰버린 교복 인형", dayLabel: "7일차",
-    appearanceCondition: "7일차 밤 · 영업 시작 직후", displayName: "멈춰버린 교복 인형",
+    appearanceCondition: "7일차 밤 · 영업 시작 직후 (일반 손님 평균 평가 예외)", displayName: "멈춰버린 교복 인형",
     portraitRow: 6, trace: "나무와 천으로 된 피부, 4시 44분에 멈춘 벽시계",
     dishId: "tteokbokki", dishName: "떡볶이",
     clue: "방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식.",
@@ -289,7 +289,7 @@ const GAMEPLAY_JOURNAL_PAGE_DEFS = Object.freeze([
   },
   {
     guestId: "facelessDaeun", title: "마지막 예약 — 얼굴 없는 김다은", dayLabel: "마지막 예약",
-    appearanceCondition: "7일차 폐점 후 · 현재 회차 기본 손님 7명의 완전한 달빛 조각을 모두 획득", displayName: "얼굴 없는 김다은",
+    appearanceCondition: "7일차 폐점 후 · 일반 손님 평균 80점 이상 및 현재 회차 기본 손님 7명의 완전한 달빛 조각을 모두 획득", displayName: "얼굴 없는 김다은",
     portraitRow: 7, trace: "김다은과 같은 옷, 비어 있는 얼굴과 장부에 남은 자신의 필체",
     dishId: "yakisoba", dishName: "볶음우동",
     clue: "야근 중 팬 하나에 급히 볶아 동료들과 나누어 먹던 굵은 면 요리.",
@@ -563,7 +563,7 @@ const STORY_SCENES = {
       { ...storyLine("protagonist", "방금까지 한밤중이었는데… 갑자기 낮이 됐어?", { motion: "think" }), timeOfDay: "day" },
       /* 회사원 김다은은 아직 지쳐 있는 인물이라 resolve(주먹+불꽃)처럼 밝은 동작은
          쓰지 않습니다. 마지못한 결심이라 담담한 calm 으로 둡니다. */
-      { ...storyLine("protagonist", "우선 다섯 가지를 골라서 첫 영업을 시작해 보자.", { motion: "calm" }), timeOfDay: "day" }
+      { ...storyLine("protagonist", "우선 메뉴 세개를 골라서 첫 영업을 시작해 보자.", { motion: "calm" }), timeOfDay: "day" }
     ]
   },
 
@@ -658,12 +658,12 @@ const STORY_SCENES = {
     character: "protagonist",
     repeatEachDay: true,
     lines: [
-      storyNarration("간판이 켜지고 달빛식탁의 밤 영업이 시작된다."),
+      storyNarration("간판이 켜지고 달빛식탁의 영업이 시작된다."),
       storyLine("protagonist", "준비는 끝났어. 오늘 영업을 시작하자.", { motion: "cook" })
     ]
   },
 
-  /* ── 첫 회차 첫째 날에만 붙는 짧은 조작 안내 (SCN-T01~T04) ─────
+  /* ── 처음 한 번만 붙는 짧은 조작 안내 (SCN-T01~T04) ──────────
      하루의 흐름(냉장고 → 손질 → 조리 → 특별 손님)을 처음 만나는 자리마다
      다은이 한두 마디로 다음에 할 일을 말해 줍니다. 규칙을 새로 설명하는
      창이 아니라 평소와 같은 대화 장면이라, 읽고 나면 그대로 게임으로
@@ -673,11 +673,9 @@ const STORY_SCENES = {
         storySceneShowsIntroCard() 의 제외 목록에 있어서 「DAY 1」 메타
         카드가 뜨지 않습니다. 한 줄짜리 안내마다 카드가 앞서면 흐름이
         끊기고, 첫째 날에는 이미 SCN-P05 가 그 카드를 띄웠습니다.
-     ⚠️ maxLoop:1 — 이 안내는 **1회차에서만** 나옵니다. 2회차부터는 같은
-        자리에 SCN-L01/L02 의 회상 대사가 붙고 플레이어도 이미 아는
-        조작입니다. (반복 표시 키가 없는 장면이라 완료 기록만으로도 한
-        번뿐이지만, 회귀 전용 장면들과 같은 방식으로 조건을 눈에 보이게
-        적어 둡니다)
+     ⚠️ maxLoop:1 — SCN-T01~T03은 **1회차에서만** 나옵니다. SCN-T04는
+        날짜와 회차를 제한하지 않고, 실제로 처음 응대한 특별 손님의 결과
+        장면 뒤에 story.js가 한 번만 붙입니다. 완료 키는 전 회차 공통입니다.
      ⚠️ spotlight — 대사가 끝나면 그 이름의 대상만 남기고 화면이 잠깐
         어두워집니다. 대상 좌표와 연출은 js/tutorial-spotlight.js 에 있고,
         여기에는 "무엇을 짚을지" 이름만 적습니다. SCN-T04 에는 없습니다 —
@@ -748,9 +746,9 @@ const STORY_SCENES = {
      아쉽다와 다른 음식만 같은 sad 를 씁니다. 화내는 angry 를 써 봤지만
      손님에게 성내는 것처럼 읽혀서 되돌린 자리입니다.
 
-     [뜻대로 안 된 두 갈래만 두 줄입니다] 아쉽다와 다른 음식에는 다음 날을
-     보는 다짐(resolve)이 한 줄 더 붙습니다. 가라앉은 채로 끝내면 첫날부터
-     실패만 남는데, 이 두 갈래야말로 "내일 다시 해 보면 된다"를 알려 줘야
+     [뜻대로 안 된 두 갈래만 두 줄입니다] 아쉽다와 다른 음식에는 다음 응대를
+     보는 다짐(resolve)이 한 줄 더 붙습니다. 가라앉은 채로 끝내면 실패만
+     남는데, 이 두 갈래야말로 "다음에 다시 해 보면 된다"를 알려 줘야
      하는 자리입니다. 잘 풀린 완벽·맛있다에는 붙이지 않습니다.
 
      마지막 한 줄은 어느 갈래에서도 같습니다 — 손님이 특별하든 아니든
@@ -761,23 +759,23 @@ const STORY_SCENES = {
   "SCN-T04": {
     id: "SCN-T04",
     title: "첫 준비 · 특별한 손님",
+    // 실제 재생 날짜를 제한하지 않습니다. QA 목록에서 대표로 묶을 날짜만 1일차입니다.
     day: 1,
     moment: "firstSpecialGuest",
     sceneType: "tutorialHint",
     timeOfDay: "night",
     character: "protagonist",
-    maxLoop: 1,
     resultTierHint: true,
     tierVariants: {
       great: [storyLine("protagonist", "…정말 특별한 손님이구나. 달빛 조각까지 온전히 두고 갔어.", { motion: "happy" })],
       warm:  [storyLine("protagonist", "…정말 특별한 손님이구나. 그래도 조각은 반쪽뿐이네.", { motion: "think" })],
       soft: [
         storyLine("protagonist", "…정말 특별한 손님이구나. 내 음식은 그 기억까지 닿지 못했나 봐.", { motion: "sad" }),
-        storyLine("protagonist", "내일은 더 잘 만들어 보자.", { motion: "resolve" })
+        storyLine("protagonist", "다음에는 더 잘 만들어 보자.", { motion: "resolve" })
       ],
       wrong: [
         storyLine("protagonist", "…정말 특별한 손님이구나. 찾던 음식이 아예 아니었던 거야.", { motion: "sad" }),
-        storyLine("protagonist", "내일은 손님이 찾는 게 뭔지 더 잘 알아보자.", { motion: "resolve" })
+        storyLine("protagonist", "다음에는 손님이 찾는 게 뭔지 더 잘 알아보자.", { motion: "resolve" })
       ],
       default: [storyLine("protagonist", "…정말 특별한 손님이구나.", { motion: "soft" })]
     },
@@ -799,7 +797,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "첫째 날의 아이는 비 오는 날 팬 위에서 둥글게 부쳐 먹던 붉은 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 식사를 마치고 자리에서 사라진다.\n문이 다시 열리고 젖은 우비의 아이가 오늘의 마지막 손님으로 들어와 다은을 바라본다."),
+      storyNarration("식당을 마감하려고 하는데 문이 다시 열린다.\n젖은 우비의 아이가 오늘의 마지막 손님으로 들어와 다은을 바라본다."),
       storyLine("rainyChild", "비 오는 날 먹는 거 있어요?", { motion: "calm" }),
       storyLine("protagonist", "어떤 음식인데?", { motion: "think" }),
       storyLine("rainyChild", "빗소리보다 먼저 지글거리고, 빨갛고 둥근 거요.", { motion: "think" })
@@ -844,7 +842,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "둘째 날의 등불 손님은 나무꼬치에 꿰인 긴 재료가 따뜻한 국물에 잠긴 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 나가자 식당 바닥에 길쭉한 불빛이 번진다.\n빛이 모인 자리에는 머리 대신 낡은 종이등을 단 오늘의 마지막 손님이 나타나 있다."),
+      storyNarration("손님이 모두 떠난 빈 자리를 치우고 있는데 식당 바닥에 길쭉한 불빛이 번진다.\n빛이 모인 자리에는 머리 대신 낡은 종이등을 단 오늘의 마지막 손님이 나타나 있다."),
       storyLine("lanternGuest", "손끝이 따뜻해지는 국물이 있습니까?", { motion: "calm" }),
       storyLine("protagonist", "무슨 국물인지 기억나요?", { motion: "think" }),
       storyLine("lanternGuest", "긴 것들이 국물 안에 잠겨 있었습니다. 길을 떠나기 전에 두 손으로 그릇을 감쌌지요.", { motion: "think" })
@@ -889,7 +887,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "셋째 날의 두 그림자는 부드러운 흰 음식과 뜨거운 붉은 음식이 한 접시에 함께 놓인 메뉴를 찾았다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 식사를 마치고 자리를 떠난다.\n뒤이어 오늘의 마지막 손님이 들어와 다은을 바라본다. 한 사람처럼 보이지만 바닥에는 그림자가 두 개다."),
+      storyNarration("식당을 마감하려고 하는 다은에게 두개의 긴 그림자가 다가온다."),
       storyLine("leftShadow", "흰 것이 먼저였어.", { motion: "think" }),
       storyLine("rightShadow", "아니야. 붉은 것이 옆에 있었어.", { motion: "angry" }),
       storyLine("twinShadows", "둘이 한 접시에 있던 음식을 주세요.", { motion: "calm" })
@@ -937,7 +935,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "넷째 날의 배달부는 불에 구운 작은 조각들이 꼬치에 차례로 꿰인 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 식사를 마치자 검은 외투의 배달부가 오늘의 마지막 손님으로 빈 테이블 곁에 나타나 가방을 고쳐 멘다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
+      storyNarration("손님이 모두 떠난 빈 자리를 치우고 있는데 검은 외투의 배달부가 식탁 곁에 나타나 가방을 고쳐 멘다.\n가방 안에는 배달되지 않은 편지 한 통이 있다."),
       storyLine("crowCourier", "걸으면서 한 손으로 먹을 수 있는 음식이 필요합니다.", { motion: "calm" }),
       storyLine("protagonist", "어떤 모양이었죠?", { motion: "think" }),
       storyLine("crowCourier", "불 냄새가 났고, 작은 조각들이 꼬치에 차례로 꿰여 있었습니다.", { motion: "think" })
@@ -982,7 +980,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "다섯째 날의 작은 짐승은 손으로 집어 먹는 길고 노란 음식과 손끝에 남는 소금을 기억했다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 식사를 마치자 작은 짐승이 오늘의 마지막 손님으로 들어와 가장 그늘진 자리에 웅크린다.\n몸 안에는 삼킨 별빛이 움직인다."),
+      storyNarration("식당을 마감하려고 하는데 작은 짐승이 들어와 가장 그늘진 자리에 웅크린다.\n몸 안에는 삼킨 별빛이 움직인다."),
       storyLine("starBeast", "손으로 집어 먹는 노란 거 있어?", { motion: "calm" }),
       storyLine("protagonist", "더 기억나는 건?", { motion: "think" }),
       storyLine("starBeast", "길쭉했고, 먹고 나면 손끝에 소금이 반짝였어.", { motion: "think" })
@@ -1027,7 +1025,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 6,
     journalClue: "여섯째 날의 손님은 뜨거운 기름을 지나 겉은 바삭해지고 속에서는 바다 냄새가 나는 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("마지막 일반 손님이 나가자 문 아래로 얕은 물결이 밀려 들어온다.\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."),
+      storyNarration("손님이 모두 떠난 빈 자리를 치우고 있는데 문 아래로 얕은 물결이 밀려 들어온다.\n사람 형태의 손님 몸 안에서는 작은 파도와 물고기가 움직인다."),
       storyLine("seawaterGuest", "바다에서 온 음식이 있습니까?", { motion: "calm" }),
       storyLine("protagonist", "국물 요리인가요?", { motion: "think" }),
       storyLine("seawaterGuest", "아닙니다. 뜨거운 기름을 지나왔습니다. 겉은 바삭하고 속은 바다 냄새가 나지요.", { motion: "think" })
@@ -1072,7 +1070,7 @@ const STORY_SCENES = {
     triggerAfterGeneral: 0,
     journalClue: "일곱째 날의 교복 인형은 방과 후 종이컵에 담아 먹던 붉고 맵고 말랑한 음식을 찾았다.",
     arrivalLines: [
-      storyNarration("영업 준비 완료를 누르는 순간 벽시계가 4시 44분에서 멈추고 멀리서 학교 종소리가 울린다.\n문 앞에는 교복을 입은 소녀가 서 있다. 가까이 보면 피부는 나무와 천으로 만들어져 있다."),
+      storyNarration("영업을 시작한 순간 벽시계가 4시 44분에서 멈추고 멀리서 학교 종소리가 울린다.\n문 앞에는 교복을 입은 소녀가 서 있다. 소녀가 식탁에 가까워지니 피부가 나무와 천으로 이루어진 것이 보였다."),
       storyLine("schoolDoll", "학교 끝나고 먹던 게 있어요?", { motion: "calm" }),
       storyLine("protagonist", "무슨 음식인데?", { motion: "think" }),
       storyLine("schoolDoll", "종이컵에 담겨 있었고 빨갛고 매웠어요. 씹으면 말랑했고요.", { motion: "think" })
@@ -1374,21 +1372,17 @@ const STORY_EVENT_SCHEDULE = {
     6: ["SCN-D00", "SCN-L02"],
     7: ["SCN-D00", "SCN-L02"]
   },
-  /* 아래 세 자리는 첫 회차 첫째 날 안내(SCN-T02~T04) 전용 진입점입니다.
+  /* 아래 두 자리는 첫 회차 첫째 날 안내(SCN-T02~T03) 전용 진입점입니다.
      낮 준비·밤 영업의 기존 진입점(dayStart/nightStart)과 달리 "그 일이 막
      끝난 직후"에만 의미가 있어서 따로 둡니다.
        prepStart          냉장고에서 재료를 다 찾은 순간 (ingredient-select.js)
        firstGuest         밤 영업 첫 손님이 자리에 앉은 뒤 (night.js beginNight)
-       firstSpecialGuest  특별 손님 응대를 마친 뒤 (story.js)
      날짜 표에 1일차만 있으므로 다른 날에는 아무것도 실행되지 않습니다. */
   prepStart: {
     1: ["SCN-T02"]
   },
   firstGuest: {
     1: ["SCN-T03"]
-  },
-  firstSpecialGuest: {
-    1: ["SCN-T04"]
   },
   nightStart: {
     1: ["SCN-D01"],
