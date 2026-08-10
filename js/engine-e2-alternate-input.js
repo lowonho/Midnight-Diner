@@ -165,7 +165,7 @@ function setupMandoline(taskId,stageGrades=[]){
   setDayPrepData(createAlternateFeelState({mode:"mandoline",...task,successInputs:0,expected:task.directions[0],stageGrades:[...stageGrades]}));
   dom.miniTitle.textContent=`${task.label} 채썰기`;
   dom.miniStation.textContent=`${task.label}${koObjectParticle(task.label)} 직접 잡고 채칼 방향으로 크게 왕복해 주세요!`;
-  dom.miniDescription.textContent="재료를 잡아 왼쪽 위와 오른쪽 아래로 끝까지 왕복하세요. 오른쪽 ◀ ▶ 버튼을 번갈아 눌러도 됩니다.";
+  dom.miniDescription.textContent="재료를 잡아 왼쪽 위와 오른쪽 아래로 끝까지 왕복하세요.";
   renderMandoline();
 }
 
@@ -240,12 +240,14 @@ function renderMandoline(){
     done,
     total:chain.length,
     percent,
-    keys:data.directions.map(direction=>({value:direction,glyph:MANDOLINE_ARROWS[direction]})),
-    expectedIndex:data.directions.indexOf(data.expected),
-    keyLink:"또는",
+    // 키 버튼 줄 대신 마우스 그림입니다 — 키보드를 뺀 뒤로 직접 잡고 미는
+    // 조작 하나만 남았는데도 ◀ ▶ 키캡이 남아 있어 방향키 게임처럼 보였습니다.
+    // (감자 전분 털기·새우 굴리기와 같은 조작 카드입니다)
+    controlMarkup:MANDOLINE_DRAG_CONTROL_MARKUP,
     controlName:"재료를 잡고<br />대각선으로 크게 왕복",
+    controlDesc:"왼쪽 위와 오른쪽 아래로<br />끝까지 밀어 주세요",
     phase:data.phase
-  },direction=>mandolineInput(direction,false));
+  });
   bindMandolineDrag();
   updateMandolineDragPose(data);
 }
@@ -309,7 +311,6 @@ function mandolineInput(direction,repeat=false,pointerDriven=false){
   // 다시 그린 직후에 붙여야 애니메이션이 살아납니다 (튀김 준비의 흔들림과 같은 이유)
   const ingredient=dom.miniContent.querySelector("#mandolineIngredient");
   if(ingredient&&!pointerDriven){void ingredient.offsetWidth;ingredient.classList.add(`move-${direction}`);}
-  dom.miniContent.querySelector(`[data-fry-prep-key="${direction}"]`)?.classList.add("pressed");
   if(data.successInputs>=data.totalInputs)finishMandolineStep(m);
   return true;
 }
@@ -375,8 +376,17 @@ function fryPrepIngredientMarkup(item){
    화살표도 ↔ 하나로 같습니다.
    (봉투는 대각선으로도 흔들 수 있지만 한 번으로 세는 기준은 가로 거리뿐이라
     ↔ 가 맞습니다 — FRIES_BAG_DRAG_CONFIG 쪽 설명 참고)
-   그림 자체는 css/minigame/e2-fry-prep.css 의 .fp-drag-mouse 임시 도형입니다. */
-const FRY_PREP_DRAG_CONTROL_MARKUP='<div class="fp-drag-control" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>';
+   그림 자체는 css/minigame/e2-fry-prep.css 의 .fp-drag-mouse 임시 도형입니다.
+
+   채칼(diag)만 같은 그림을 눕혀서 씁니다 — 좌우가 아니라 채칼 날 방향
+   (왼쪽 위 ↔ 오른쪽 아래)으로 왕복하니까요. 눕히는 각도는 css 쪽
+   .fp-drag-control.diag 에 있습니다. 대각선 양방향 화살표(⤡)를 그대로 쓰지
+   않은 것은 도트 글꼴에 그 글자가 없어 네모로 뜨기 때문입니다. */
+function fryPrepDragControlMarkup(extraClass=""){
+  return `<div class="fp-drag-control${extraClass?` ${extraClass}`:""}" aria-hidden="true"><i class="fp-drag-mouse"></i><b>↔</b></div>`;
+}
+const FRY_PREP_DRAG_CONTROL_MARKUP=fryPrepDragControlMarkup();
+const MANDOLINE_DRAG_CONTROL_MARKUP=fryPrepDragControlMarkup("diag");
 
 // view = { ingredients, stage(가운데 마크업), done, total, percent,
 //          keys, expectedIndex, keyLink, controlMarkup, controlName, controlDesc }
