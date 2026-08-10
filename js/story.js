@@ -1204,7 +1204,9 @@ function restoreStoryCheckpoint(checkpoint){
   document.getElementById("storyDayLabel").textContent=storySceneDayLabel(scene);
   // 조리 중 체크포인트를 불러올 때는 이미 끝난 등장 대화 테마를 다시 시작하지 않습니다.
   if(!restored.suspended)applyStorySceneAudio(scene);
-  restored.actorIds.forEach(ensureStoryActor);
+  // 자세는 넘기지 않습니다 — 저장에는 배우 id 만 남고, 이어서 나올 대사가
+  // 자기 자세를 정합니다. forEach 를 그대로 넘기면 인덱스가 동작으로 들어갑니다.
+  restored.actorIds.forEach(id=>ensureStoryActor(id));
 
   if(restored.suspended){
     pendingOrder.specialRecipe=!!restored.pendingCook.config.special;
@@ -2235,8 +2237,7 @@ function setStoryPortraitArt(portrait,source){
 
 /* 말하는 사람의 동작만 바꿉니다. 나머지 배우는 마지막 동작 그대로 어두워진 채
    서 있습니다 — 대사마다 전원이 같이 움직이면 누가 말하는지 흐려집니다. */
-function applyStorySpeakerMotion(line){
-  const speakerId=line?.speaker;
+function applyStorySpeakerMotion(speakerId,motion){
   if(!speakerId)return;
   const portraitKey=storyPortraitKey(speakerId);
   if(!portraitKey)return;
@@ -2245,10 +2246,11 @@ function applyStorySpeakerMotion(line){
   const actor=(storySession?.actors||[]).find(entry=>entry.id===actorId);
   const portrait=actor?.element.querySelector(".story-portrait.art");
   if(!portrait)return;
-  setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,line.motion));
+  setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,motion));
 }
 
-function applyStoryPortraitArt(portrait,speakerId){
+/* motion 을 주면 그 자세로, 안 주면 기본 자세(calm)로 세웁니다. */
+function applyStoryPortraitArt(portrait,speakerId,motion){
   const portraitKey=storyPortraitKey(speakerId);
   if(portraitKey){
     const art=STORY_PORTRAIT_ART[portraitKey];
@@ -2257,7 +2259,7 @@ function applyStoryPortraitArt(portrait,speakerId){
     // 인물마다 캔버스에 그려진 크기와 발끝 높이가 달라 상자 치수를 따로 넣습니다.
     portrait.style.setProperty("--art-height",`${art.height}%`);
     portrait.style.setProperty("--art-drop",`${-art.drop}%`);
-    setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,STORY_PROTAGONIST_DEFAULT_MOTION));
+    setStoryPortraitArt(portrait,storyPortraitMotionArt(portraitKey,motion||STORY_PROTAGONIST_DEFAULT_MOTION));
     return;
   }
   const character=STORY_CHARACTERS[speakerId];
@@ -2283,7 +2285,14 @@ function storySpeakerHasPortrait(speakerId){
   return !!character&&(!!character.art||character.portraitRow!=null);
 }
 
-function ensureStoryActor(speakerId){
+/* [배우를 세울 때 이 줄의 자세로 바로 세웁니다]
+   예전에는 무조건 기본 자세(calm)로 세운 뒤 곧이어 대사의 동작으로 갈아
+   끼웠습니다. 그런데 교체는 decode() 를 기다렸다 반영되므로(setStoryPortraitArt),
+   그 사이 기본 자세가 한 박자 눈에 보였다가 자세가 바뀌었습니다 — 김다은처럼
+   장면 도중 처음 말을 시작하는 인물에서 특히 잘 보였습니다.
+   그래서 처음 세울 때부터 그 줄의 동작으로 그립니다. 이미 서 있는 배우는
+   motion 을 주면 자세만 갱신합니다(건너뛰기·QA 복원으로 지나간 줄을 되짚을 때). */
+function ensureStoryActor(speakerId,motion){
   if(!storySession||!speakerId)return null;
   if(!storySpeakerHasPortrait(speakerId))return null;
   if(!storySession.actors)storySession.actors=[];
@@ -2293,7 +2302,10 @@ function ensureStoryActor(speakerId){
     ?"twinShadows"
     :speakerId;
   const existing=storySession.actors.find(actor=>actor.id===actorId);
-  if(existing)return existing;
+  if(existing){
+    if(motion)applyStorySpeakerMotion(speakerId,motion);
+    return existing;
+  }
   const stage=document.getElementById("storyStage");
   if(!stage)return null;
   const element=document.createElement("div");
@@ -2301,7 +2313,7 @@ function ensureStoryActor(speakerId){
   element.dataset.speaker=actorId;
   const portrait=document.createElement("div");
   portrait.className="story-portrait";
-  applyStoryPortraitArt(portrait,actorId);
+  applyStoryPortraitArt(portrait,actorId,motion);
   element.appendChild(portrait);
   stage.appendChild(element);
   const actor={id:actorId,element};
@@ -2351,7 +2363,9 @@ function storyStageSpeaker(speakerId){
 function setStoryPortrait(speakerId,line=null){
   if(!storySession)return;
   const stageSpeakerId=storyStageSpeaker(speakerId);
-  if(stageSpeakerId)ensureStoryActor(stageSpeakerId);
+  /* 화자가 적힌 줄이면 그 줄의 동작까지 같이 넘겨, 새로 서는 배우가 처음부터
+     그 자세로 서게 합니다. 화자가 없는(이어받은) 줄은 자세를 건드리지 않습니다. */
+  if(stageSpeakerId)ensureStoryActor(stageSpeakerId,line?.speaker?line.motion:null);
   const activeActorId=["leftShadow","rightShadow","twinShadows"].includes(stageSpeakerId)
     ?"twinShadows"
     :stageSpeakerId;
@@ -2360,7 +2374,7 @@ function setStoryPortrait(speakerId,line=null){
   });
   // 동작(그림)은 실제로 화자가 적힌 줄에서만 바꿉니다 — 이어받은 줄에서는
   // 직전 자세 그대로 서 있어야 자막 한 줄에 자세가 튀지 않습니다.
-  applyStorySpeakerMotion(line);
+  applyStorySpeakerMotion(line?.speaker,line?.motion);
 }
 
 function storyGuestIdForScene(scene){
@@ -3277,7 +3291,7 @@ function runStoryQaFromQuery(){
   for(let i=0;i<lineIndex;i++){
     const line=storySession?.lines[i];
     if(line?.reveal)revealCharacterName(line.reveal,false);
-    if(line?.speaker)ensureStoryActor(line.speaker);
+    if(line?.speaker)ensureStoryActor(line.speaker,line.motion);
   }
   if(storySession&&lineIndex<storySession.lines.length){storySession.lineIndex=lineIndex;showStoryLine();}
   if(typeof qaActivateStoryAudio==="function")qaActivateStoryAudio(qaScene,{waitForGesture:true});
