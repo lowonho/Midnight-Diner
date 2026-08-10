@@ -259,6 +259,7 @@ function startIngredientSelection(){
     dom.ingredientSelectOverlay.classList.remove("open");
     showToast("냉장고에서 찾을 재료는 없어요. 바로 손질을 시작합니다.");
     updateUI(true);saveGame();
+    queueDayPrepStartStory();
     return true;
   }
   state.phase=GAME_PHASES.INGREDIENT_SELECT;state.phaseTime=null;state.paused=false;
@@ -278,7 +279,17 @@ function continueIngredientSelection(){
   dom.ingredientSelectOverlay.classList.remove("open");
   showToast("필요한 재료를 모두 챙겼어요. 이제 손질을 시작해볼까요?");
   updateUI(true);saveGame();
+  queueDayPrepStartStory();
   return true;
+}
+
+/* 냉장고를 닫고 손질 단계로 넘어오는 두 갈래(재료를 다 찾은 경우 · 찾을 재료가
+   아예 없는 경우)가 공유하는 이야기 진입점입니다. 지금은 첫 회차 첫째 날의
+   안내 한 장면(SCN-T02)만 걸려 있고 다른 날에는 아무 일도 하지 않습니다.
+   story.js 가 없는 계약 테스트에서도 손질 진입 자체는 막지 않습니다. */
+function queueDayPrepStartStory(){
+  if(typeof queueStoryMoments!=="function")return false;
+  return queueStoryMoments(["prepStart"]);
 }
 
 /* ---- 칸 누르기 ------------------------------------------------ */

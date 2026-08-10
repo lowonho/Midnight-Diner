@@ -23,25 +23,34 @@ window.QA_MODE=Object.freeze({enabled:QA_MODE_ENABLED});
 const QA_UNLOCK_CLICKS=10;        // 간판을 몇 번 눌러야 QA 버튼이 나오는지
 const QA_UNLOCK_RESET_MS=2500;    // 이 간격 안에 이어 눌러야 연속 클릭으로 셉니다
 const QA_UNLOCK_KEY="midnightDiner.qaUnlocked";
+/* 목록 정렬은 하루의 실제 진행 순서입니다. 첫날 조작 안내 세 자리
+   (prepStart · firstGuest · firstSpecialGuest)도 실제로 끼어드는 위치에
+   맞춰 사이사이에 넣었습니다. */
 const QA_STORY_MOMENT_ORDER=Object.freeze({
   newGame:0,
   dayStart:1,
-  nightStart:2,
-  specialGuest:3,
-  specialGuestMissing:4,
-  specialGuestResult:5,
-  nightEnd:6,
-  nightJudgement:7,
-  ending:8,
-  epilogue:9
+  prepStart:2,
+  nightStart:3,
+  firstGuest:4,
+  specialGuest:5,
+  specialGuestMissing:6,
+  specialGuestResult:7,
+  firstSpecialGuest:8,
+  nightEnd:9,
+  nightJudgement:10,
+  ending:11,
+  epilogue:12
 });
 const QA_STORY_MOMENT_LABELS=Object.freeze({
   newGame:"프롤로그",
   dayStart:"낮 시작",
+  prepStart:"재료 손질",
   nightStart:"밤 영업",
+  firstGuest:"첫 손님",
   specialGuest:"특별 손님",
   specialGuestMissing:"음식 미준비",
   specialGuestResult:"조리 결과",
+  firstSpecialGuest:"특별 손님 이후",
   nightEnd:"마감",
   nightJudgement:"일곱째 밤 판정",
   ending:"엔딩",

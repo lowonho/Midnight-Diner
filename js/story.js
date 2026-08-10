@@ -414,7 +414,7 @@ function getGameplayJournalPages(){
   const menusById=Object.fromEntries(MENU_DATA.map(menu=>[menu.id,menu]));
   const recipesByDish=Object.fromEntries(STORY_JOURNAL_RECIPES.map(recipe=>[recipe.dishId,recipe]));
   const menuNames=STORY_MENU_RULES.dishIds.map(id=>menusById[id]?.displayName).filter(Boolean);
-  const menuRule="매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.";
+  const menuRule="매일 영업일지에 적혀 있는 음식 중 세 가지를 골라 영업한다.";
   const total=2+STORY_MENU_RULES.dishIds.length+GAMEPLAY_JOURNAL_DAY_GUEST_IDS.length;
   const rulesPage={
     id:"gameplay-rules",
@@ -592,6 +592,9 @@ function storySpeakerLabel(line){
 function storySceneShowsIntroCard(scene){
   return ![
     "specialGuestArrival","specialGuestMissing","specialGuestResult",
+    // 첫날 조작 안내(SCN-T01~T04)는 한두 마디짜리라 앞에 메타 카드를 세우면
+    // 카드가 대사보다 길어집니다. 첫째 날 카드는 이미 SCN-P05 가 띄웁니다.
+    "tutorialHint",
     "dynamicJournalHint","endingJudgement"
   ].includes(scene?.sceneType);
 }
@@ -1030,7 +1033,11 @@ function finishMissingStoryVisit(order){
       bubble:"다음 밤에 다시 올게요.",life:2.6,stars:0,satisfaction:null,storyMystic:true
     });
   }
-  processStoryNightTrigger();
+  // 다른 음식을 내어 손님이 그냥 돌아간 경우에도 "특별 손님을 처음 만난 뒤"는
+  // 지나간 것이라, 결과 장면과 같은 자리에서 SCN-T04 를 실행합니다.
+  // 이쪽은 조리 결과가 없으므로 반응 갈래를 "wrong" 으로 직접 넘깁니다.
+  setFirstSpecialGuestTutorialTier("wrong");
+  queueStoryMoments(["firstSpecialGuest"],processStoryNightTrigger);
   updateUI(true);saveGame();
   return true;
 }
@@ -1140,6 +1147,9 @@ function clearStoryRuntime(){
   applyStoryFragmentHandoff(null);
   clearStoryPropReveal();
   applyStoryEndingBackground(null);
+  // 화면이 통째로 바뀌는 자리(타이틀·불러오기)라 짚어 주던 어둠도 걷습니다.
+  if(typeof resetTutorialSpotlight==="function")resetTutorialSpotlight();
+  setFirstSpecialGuestTutorialTier(null);
   if(storyRevealTimer){clearTimeout(storyRevealTimer);storyRevealTimer=null;}
   const revealNotice=document.getElementById("storyRevealNotice");
   const overlay=document.getElementById("storyOverlay");
@@ -1222,9 +1232,12 @@ function storyTimeOfDayOverride(){
 function playPendingStoryResult(){
   const sceneId=state.story?.pendingResultSceneId;
   if(!sceneId||!STORY_SCENES[sceneId]||storyIsActive())return false;
+  setFirstSpecialGuestTutorialTier(STORY_SCENES[sceneId]?.resultTier);
   return playStoryScenes([sceneId],()=>{
     state.story.pendingResultSceneId=null;
-    processStoryNightTrigger();
+    // 첫 회차 첫째 날에만 SCN-T04 한 장면이 끼어듭니다. 다른 날·다음 회차에는
+    // 실행할 장면이 없어 queueStoryMoments 가 곧바로 다음 처리를 부릅니다.
+    queueStoryMoments(["firstSpecialGuest"],processStoryNightTrigger);
   });
 }
 
@@ -1293,6 +1306,27 @@ function storySpecialGuestDishChoiceLine(scene,source){
   };
 }
 
+/* 첫날 SCN-T04 가 어느 반응 뒤에 떴는지.
+   ------------------------------------------------------------
+   조리 결과 장면을 닫는 그 자리에서 정해지고, 곧바로 이어지는 SCN-T04 의
+   대사 사본에 박힙니다(storyLinesForScene). 그래서 저장에는 넣지 않습니다 —
+   체크포인트는 이미 확정된 대사 줄을 통째로 들고 있어서, 이어 하기로
+   돌아와도 그때 읽던 대사가 그대로 나옵니다.
+   ⚠️ 음식 자체가 틀렸던 분기에는 결과 장면이 없어서 tier 가 없습니다.
+      그쪽은 "wrong" 을 직접 넣습니다(finishMissingStoryVisit). */
+let firstSpecialGuestTutorialTier=null;
+
+function setFirstSpecialGuestTutorialTier(tier){
+  firstSpecialGuestTutorialTier=typeof tier==="string"&&tier?tier:null;
+}
+
+function storyResultTierVariant(scene){
+  const variants=scene?.tierVariants;
+  if(!variants)return null;
+  const variant=variants[firstSpecialGuestTutorialTier]||variants.default;
+  return Array.isArray(variant)?variant:null;
+}
+
 function storyLinesForScene(scene){
   let source=scene.lines||[];
   let replacements={};
@@ -1306,6 +1340,12 @@ function storyLinesForScene(scene){
       "[영업일지 단서]":missing?.journalClue||"아직 알아내지 못한 단서",
       "[음식명]":dish?.name||dish?.displayName||"아직 모르는 음식"
     };
+  }
+  /* 반응별 첫 줄은 **앞에** 붙습니다. 영업일지 반응(journalVariants)이 뒤에
+     붙는 것과 반대라, 두 갈래를 한 줄로 합치지 않고 따로 둡니다. */
+  if(scene.resultTierHint){
+    const variant=storyResultTierVariant(scene);
+    if(variant)source=[...variant,...source];
   }
   if(scene.requiresDishChoice)source=[...source,storySpecialGuestDishChoiceLine(scene,source)];
   return source.map(line=>{
@@ -2443,6 +2483,11 @@ function completeStoryScene(){
   if(!storySession)return;
   const scene=storySession.scene;
   markStorySceneCompleted(scene);
+  /* 대사가 끝난 뒤 짚어 줄 대상. 대화가 아직 화면을 덮고 있는 동안에는
+     켜지 않고, 오버레이가 닫히는 finishStorySession 에서 켭니다.
+     QA 미리보기는 아무 날짜·아무 국면에서나 장면을 여는 자리라, 거기서
+     엉뚱한 집기를 짚지 않도록 뺍니다. */
+  if(scene.spotlight&&!storySession.qaPreview)storySession.pendingSpotlight=scene.spotlight;
   if(scene.completesPrologue)state.story.prologueComplete=true;
   if(scene.ending)state.story.endingSeen=true;
   if(scene.autoOpenJournal)storySession.openJournalAfterFinish=true;
@@ -2891,6 +2936,7 @@ function finishStorySession(){
   const conclusionAction=storySession.conclusionAction||null;
   const openJournalAfterFinish=!!storySession.openJournalAfterFinish;
   const openMenuAfterFinish=!!storySession.openMenuAfterFinish;
+  const pendingSpotlight=storySession.pendingSpotlight||null;
   storySession=null;
   state.paused=state.phase==="result"?true:wasPaused;
   audio?.syncBgm?.();
@@ -2914,6 +2960,12 @@ function finishStorySession(){
   }
   if(state.story?.pendingResultSceneId&&!conclusionAction)setTimeout(playPendingStoryResult,0);
   if(conclusionAction)setTimeout(()=>runStoryConclusion(conclusionAction),0);
+  /* 짚어 주기는 맨 마지막입니다. 위 콜백이 곧바로 다음 대화를 열 수 있어서
+     (특별 손님 순번 재개 등), 그때는 화면이 다시 대사창으로 덮이므로
+     켜지 않습니다. */
+  if(pendingSpotlight&&!storyIsActive()&&typeof showTutorialSpotlight==="function"){
+    showTutorialSpotlight(pendingSpotlight);
+  }
 }
 
 function prepareStoryNight(){
@@ -2976,8 +3028,40 @@ function storyOrderDialogueReady(order){
   return served>=Math.max(0,Number(scene?.triggerAfterGeneral)||0);
 }
 
+/* 첫 회차 첫째 날의 조리 안내(SCN-T03)를 띄울 차례인가.
+   ------------------------------------------------------------
+   "첫 손님이 **자리에 앉는 것을 다 보고 나서**" 가 조건입니다. 손님은
+   좌석 위에서 내려앉는 연출로 등장하는데(customers.js §1-3 · order.entered
+   가 0→1), 그 도중에 대사창이 화면을 덮으면 손님이 언제 어디로 들어왔는지가
+   통째로 가려집니다. 그래서 앉는 중에는 그냥 넘기고, 다 앉은 다음 프레임에
+   실행합니다. 진행도는 밤 화면이 매 프레임 올려 줍니다(night.js
+   updateNightOrderEntrances).
+
+   [아직 아무도 대접하지 않았을 때만] generalServed 가 0 인 동안만 봅니다.
+   말 그대로 그날의 첫 손님이라는 뜻이고, 밤 중반에 세이브를 불러왔을 때
+   뒤늦게 튀어나오지 않게 막아 줍니다. */
+function firstGuestTutorialDue(){
+  if(state.mini||state.carrying)return false;
+  if(Math.floor(Number(state.generalServed)||0)>0)return false;
+  const due=storySceneIdsForMoment("firstGuest").some(id=>{
+    const scene=STORY_SCENES[id];
+    return scene&&storySceneAvailable(scene)&&!storySceneCompleted(scene);
+  });
+  if(!due)return false;
+  return (state.orders||[]).some(order=>
+    order.customerType!=="story"
+    &&(Number(order.entryDelay)||0)<=0
+    &&(Number(order.entered)||0)>=1
+  );
+}
+
 function processStoryNightTrigger(){
   if(state.phase!==GAME_PHASES.OPEN||storyIsActive()||state.story?.pendingResultSceneId)return false;
+  // 특별 손님 판정보다 먼저 봅니다. 첫날 첫 손님과 특별 손님은 애초에 같은
+  // 순간에 오지 않지만(특별 손님은 일반 여섯 명 뒤), 순서를 못박아 두면
+  // 나중에 손님 순번을 바꿔도 안내가 대화 사이에 끼어들지 않습니다.
+  // 특별 손님을 부른 것이 아니므로 돌려주는 값은 언제나 false 입니다.
+  if(firstGuestTutorialDue()){queueStoryMoments(["firstGuest"]);return false;}
   const hasActiveStoryVisit=state.orders.some(order=>order.customerType==="story"||order.storySceneId);
   if(hasActiveStoryVisit){resumeDeferredStoryOrderScene();return false;}
   const plans=state.story?.pendingNightGuests||[];

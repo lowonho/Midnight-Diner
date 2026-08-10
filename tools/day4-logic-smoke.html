@@ -458,7 +458,7 @@ try{
   assert(beginPancakeGaugeHold(pancakeMini,0)===true&&pancakeUnit.gaugeHolding,"E5 pressing down starts the pancake timing gauge");
   MINI_ENGINES.twoSideCook.update(pancakeMini,PANCAKE_GAUGE_HOLD_SEC*firstGaugeCenter);
   const pancakeGauge=dom.miniContent.querySelector("#pancakeTimingGauge");
-  assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook")&&pancakeGauge.classList.contains("holding")&&pancakeUnit.cueTimer===pancakeUnit.cueWindow&&Math.abs(parseFloat(pancakeGauge.style.getPropertyValue("--pancake-marker"))-75)<.001&&pancakeGaugeHit(pancakeUnit),"E5 holding freezes the start deadline and moves the marker into the green zone at 75 percent");
+  assert(dom.miniContent.querySelector("#tsPan.cue-on.cue-cook")&&pancakeGauge.classList.contains("holding")&&pancakeUnit.cueTimer===pancakeUnit.cueWindow&&Math.abs(parseFloat(pancakeGauge.style.getPropertyValue("--pancake-marker"))-firstGaugeCenter*100)<.001&&pancakeGaugeHit(pancakeUnit),"E5 holding freezes the start deadline and moves the marker into the middle of the green zone");
   assert(releasePancakeGaugeHold(pancakeMini,0)===true&&pancakeUnit.stepIndex===1&&pancakeMini.data.cookErrors===0&&MINI_ENGINES.twoSideCook.score(pancakeMini)===100,"E5 releasing inside green succeeds with no deduction and consumes the cook cue");
   /* ⚠️ 익는 것은 **불에 닿아 있는 아래 면**입니다. 처음에는 앞면(0)이 아래이고
      보이는 면은 뒷면(1)이라, 굽고 나서도 **화면 색은 그대로**여야 합니다
@@ -504,7 +504,13 @@ try{
   pressPancake();flipPancake();pressPancake();flipPancake();pressPancake();
   assert(pancakeFlowUnit.done&&pancakeFlowUnit.stepIndex===5&&pancakeFlowUnit.flips===2
     &&twoSideCookingSide(pancakeFlowUnit)===0&&pancakeFlowUnit.sides[0].cook===2&&pancakeFlowUnit.sides[1].cook===1
-    &&gaugeCenters.every(center=>Math.abs(center-.75)<1e-9)&&PANCAKE_GAUGE_WIDTH===.1&&TWO_SIDE_VIEW.pancake.total===3&&MINI_ENGINES.twoSideCook.score(pancakeFlowMini)===100&&twoSideCookGrade(pancakeFlowMini.data)==="perfect","E5 pancake keeps a ten-percent green zone at 75 percent and completes at 100 after all five cues");
+    &&PANCAKE_GAUGE_WIDTH===.1&&TWO_SIDE_VIEW.pancake.total===3&&MINI_ENGINES.twoSideCook.score(pancakeFlowMini)===100&&twoSideCookGrade(pancakeFlowMini.data)==="perfect","E5 pancake keeps a ten-percent green zone and completes at 100 after all five cues");
+  /* 초록 구간은 굽기 신호마다 자리를 다시 뽑되, 왼쪽 30% 안으로는 들어오지 않습니다
+     (누르자마자 떼서 맞는 자리가 있으면 "꾹 누르기" 가 아니게 됩니다). */
+  const rolledCenters=gaugeCenters.concat(Array.from({length:200},()=>rollPancakeGaugeCenter()));
+  assert(rolledCenters.every(center=>center-PANCAKE_GAUGE_WIDTH/2>=PANCAKE_GAUGE_MIN_START-1e-9&&center+PANCAKE_GAUGE_WIDTH/2<=1+1e-9)
+    &&PANCAKE_GAUGE_MIN_START===.3&&new Set(gaugeCenters).size>1
+    &&pancakeGaugeBounds({}).start===(PANCAKE_GAUGE_CENTER_RANGE[0]+PANCAKE_GAUGE_CENTER_RANGE[1])/2-PANCAKE_GAUGE_WIDTH/2,"E5 the pancake green zone is rerolled per cook cue and never reaches into the left thirty percent");
   const timedOutPancake=createTwoSideData("pancake");timedOutPancake.timedOut=true;
   assert(pancakeRemainingSteps(timedOutPancake)===5&&pancakeScore(timedOutPancake)===50,"E5 pancake timeout deducts ten points for each of five unfinished cues");
   // ⚠️ 다 구운 것(done)만으로는 부족합니다 — 닭꼬치는 완성 칸에 담아야(served) 끝입니다

@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/hud.css" />
   <link rel="stylesheet" href="css/interaction.css" />
   <link rel="stylesheet" href="css/story.css" />
+  <link rel="stylesheet" href="css/tutorial-spotlight.css" /><!-- 첫날 안내 뒤 대상만 남기고 어둡게 -->
   <link rel="stylesheet" href="css/settings.css" />
   <link rel="stylesheet" href="css/save-slots.css" />
   <link rel="stylesheet" href="css/minigame-parts.css" /><!-- 미니게임 3열 화면 공용 조각 (아래 두 파일보다 먼저 두어야 게임별 조정이 덮어씁니다) -->
@@ -199,6 +200,30 @@
               <div id="joystickKnob" class="joystick-knob"></div>
             </div>
             <button id="actionButton" class="action-button" type="button">ACTION</button>
+          </div>
+
+          <!-- 첫날 안내 대사 뒤에 손댈 대상만 남기고 어둡게 덮는 층입니다.
+               구멍 자리는 js/tutorial-spotlight.js 가 채웁니다. viewBox 는
+               게임 논리 좌표(1280x720) 그대로이고, preserveAspectRatio="none"
+               이라 프레임 크기가 바뀌어도 좌표를 손볼 필요가 없습니다. -->
+          <div id="tutorialSpotlight" class="tutorial-spotlight" aria-hidden="true">
+            <svg viewBox="0 0 1280 720" preserveAspectRatio="none" focusable="false">
+              <defs>
+                <filter id="tutorialSpotlightSoften" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="13" />
+                </filter>
+                <mask id="tutorialSpotlightMask">
+                  <rect x="0" y="0" width="1280" height="720" fill="#fff" />
+                  <!-- 검정 사각형이 곧 구멍입니다. 흐리기를 묶어 걸어 가장자리를 번지게 합니다. -->
+                  <g id="tutorialSpotlightHoles" filter="url(#tutorialSpotlightSoften)"></g>
+                </mask>
+              </defs>
+              <!-- 진하기(fill-opacity)와 위 흐리기(stdDeviation)의 실제 값은
+                   js/tutorial-spotlight.js 의 TUTORIAL_SPOTLIGHT 가 켤 때마다
+                   덮어씁니다. 여기 숫자는 스크립트 없이 열어 봤을 때의 초깃값입니다. -->
+              <rect class="tutorial-spotlight-veil" x="0" y="0" width="1280" height="720"
+                    fill="#060403" fill-opacity=".68" mask="url(#tutorialSpotlightMask)" />
+            </svg>
           </div>
 
           <section id="storyOverlay" class="story-overlay" role="dialog" aria-modal="true" aria-labelledby="storySceneTitle">
@@ -480,6 +505,7 @@
   <script src="js/day4-prep-data.js"></script> <!-- Day 4 준비 횟수 · 홀드 · 레시피 데이터 -->
   <script src="js/prep.js"></script>        <!-- 낮 준비물 -->
   <script src="js/fx.js"></script>          <!-- 파티클 · 팝업 · 안내 화살표 -->
+  <script src="js/tutorial-spotlight.js"></script><!-- 첫날 안내 뒤 대상만 남기고 어둡게. js/story.js 가 부릅니다 -->
   <script src="js/story-data.js"></script>
   <script src="js/story-cinematic.js"></script><!-- 프롤로그 등 스토리 전용 자동 이동 연출 -->
   <script src="js/story-prop-reveal.js"></script><!-- 대사 앞에 소품 한 점을 띄우는 연출(프롤로그 영업일지) -->

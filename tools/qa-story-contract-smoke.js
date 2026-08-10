@@ -106,10 +106,10 @@ function same(actual,expected,message){
 check(window.QA_MODE.enabled===true,"qa=1에서 QA 저장 방지 모드가 활성화되어야 합니다.");
 const progressBefore=JSON.stringify(state.story);
 const entries=qaStorySceneList();
-check(entries.length===75,
-  "57개 장면에 day:null 반복 장면 D00·L02·D01의 Day 2~7 복제 18개를 더해 75개 항목이어야 합니다.");
+check(entries.length===79,
+  "61개 장면에 day:null 반복 장면 D00·L02·D01의 Day 2~7 복제 18개를 더해 79개 항목이어야 합니다.");
 same([...new Set(entries.map(entry=>entry.id))].sort(),Object.keys(STORY_SCENES).sort(),
-  "QA 일차별 목록은 새 57개 장면을 모두 포함해야 합니다.");
+  "QA 일차별 목록은 새 61개 장면을 모두 포함해야 합니다.");
 same([...new Set(entries.map(entry=>entry.day))],[0,1,2,3,4,5,6,7],
   "프롤로그 0일차와 영업 1~7일차가 모두 표시되어야 합니다.");
 same(entries.filter(entry=>entry.day===0).map(entry=>entry.id),

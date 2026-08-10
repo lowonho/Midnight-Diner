@@ -188,8 +188,13 @@ function updatePlayer(dt){
   // 메뉴 선택도 주방 안에서 냉장고까지 직접 걸어가는 단계입니다.
   // 단, 냉장고의 메뉴판을 펼친 뒤에는 키보드와 모바일 조이스틱이 뒤쪽
   // 요리사를 움직이지 않게 현재 입력값까지 비웁니다.
+  /* 첫날 안내가 화면을 어둡게 덮고 무언가를 짚어 주는 짧은 동안에는 발을
+     묶어 둡니다(js/tutorial-spotlight.js). 어둠이 걷히기 시작하면 바로
+     풀립니다. 누르고 있던 키를 따로 기억하지 않으므로, 풀린 다음 프레임에
+     여전히 누르고 있으면 그대로 이어서 걷습니다. */
   if(state.mini||dom.menuSelectOverlay?.classList.contains(UI_CLASS.overlayOpen)
-    ||!["menuSelect","day","night"].includes(state.phase)){
+    ||!["menuSelect","day","night"].includes(state.phase)
+    ||(typeof tutorialSpotlightHoldsInput==="function"&&tutorialSpotlightHoldsInput())){
     p.moving=false;state.joyX=0;state.joyY=0;return;
   }
   let vx=0,vy=0;

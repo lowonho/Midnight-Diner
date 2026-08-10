@@ -445,7 +445,7 @@ assert(initialGameplayJournal[1].artLeft==="assets/UI/Journal/ui_log_story_guest
 same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
   "주의사항에는 기존 음식 여덟 가지를 빠짐없이 표시해야 합니다.");
 same(initialGameplayJournal[0].rules,[
-  "매일 영업일지에 적혀 있는 음식 중 다섯 가지를 골라 영업한다.",
+  "매일 영업일지에 적혀 있는 음식 중 세 가지를 골라 영업한다.",
   "손님에게 항상 친절하게 대한다."
 ],"영업일지의 간결한 주의사항 두 가지");
 same(initialRecipePages.map(page=>page.dishId),STORY_MENU_RULES.dishIds,
@@ -503,7 +503,8 @@ assert(storyCookingTier(70,STORY_SCORE_THRESHOLDS)==="soft"
   &&storyCookingTier(100,STORY_SCORE_THRESHOLDS)==="great",
   "아쉽다/맛있다/완벽은 70점과 100점을 경계로 나뉘어야 합니다.");
 
-assert(Object.keys(STORY_SCENES).length===57,"새 시나리오는 총 57개 장면이어야 합니다.");
+assert(Object.keys(STORY_SCENES).length===61,
+  "새 시나리오 57개 장면에 첫날 조작 안내 4개(SCN-T01~T04)를 더해 61개여야 합니다.");
 const requiredStaticScenes=[
   "SCN-P01","SCN-P02","SCN-P03","SCN-P04","SCN-P05","SCN-L01","SCN-L02","SCN-D00","SCN-D01",
   "SCN-J01","SCN-J02","SCN-J03","END-01","END-02","END-03","END-04","SCN-EPI01"
@@ -1418,7 +1419,7 @@ assert(state.story.loop===2&&state.day===1
   &&state.story.completed.persistedScene&&state.story.seenScenes.persistedScene,
   "beginNextStoryLoop는 먼저 현재 결과를 병합한 뒤 루프·Day1을 갱신하고 현재 결과만 초기화해야 합니다.");
 
-console.log("STORY_CONTRACT_OK 57");
+console.log("STORY_CONTRACT_OK 61");
 `;
 
 const context = {
