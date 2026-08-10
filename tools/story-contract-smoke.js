@@ -447,11 +447,12 @@ same(initialGameplayJournal[0].menuNames,DISHES.map(dish=>dish.name),
 same(initialGameplayJournal[0].rules,[
   "매일 영업일지에 적혀 있는 음식 중 세 가지를 골라 영업한다.",
   "손님에게 항상 친절하고 맛있는 음식을 대접한다.",
-  "일반 손님들의 음식 평가 평균이 80점 미만이면 특별 손님이 찾아오지 않는다. 단, ???은 예외다."
-],"영업일지의 간결한 주의사항 세 가지는 만나지 않은 교복 인형을 먼저 밝히면 안 됩니다.");
+  "일반 손님 평가가 아쉽다면 특별 손님이 찾아오지 않는다. 단, ???은 예외다.",
+  "폐기는 손님 주문당 한 번 가능하다."
+],"영업일지의 간결한 주의사항 네 가지는 만나지 않은 교복 인형을 먼저 밝히면 안 됩니다.");
 state.story.guestState.schoolDoll.clueFound=true;
 assert(getGameplayJournalPages()[0].rules[2]
-  ==="일반 손님들의 음식 평가 평균이 80점 미만이면 특별 손님이 찾아오지 않는다. 단, 교복 인형은 예외다.",
+  ==="일반 손님 평가가 아쉽다면 특별 손님이 찾아오지 않는다. 단, 교복 인형은 예외다.",
   "교복 인형의 등장 대사를 듣고 음식 단서를 기록한 뒤에는 주의사항의 예외 대상을 공개해야 합니다.");
 state.story.guestState.schoolDoll.clueFound=false;
 window.MoonlightTableSave={guestMet:id=>id==="schoolDoll"};
@@ -734,7 +735,7 @@ assert(String(ensureStoryActor).includes('"leftShadow","rightShadow","twinShadow
   &&String(ensureStoryActor).includes('?"twinShadows"'),
   "둘이 붙은 그림자는 화자 이름만 바뀌고 무대 배우는 하나를 공유해야 합니다.");
 // 내일의 문을 여는 목표는 프롤로그 대사(SCN-P04)가 이미 짚어 줍니다.
-// 주의사항 장에는 매일 지켜야 할 세 가지만 남기고 목표 문장은 빼 둡니다.
+// 주의사항 장에는 매일 지켜야 할 네 가지만 남기고 목표 문장은 빼 둡니다.
 assert(!initialGameplayJournal[0].rules.some(rule=>rule.includes("내일로 가는 문"))
   &&!initialGameplayJournal[0].rules.some(rule=>rule.includes("완전한 조각")),
   "영업일지 첫 장은 세부 등급도 내일의 문 목표도 적지 않고 매일의 영업 규칙만 남겨야 합니다.");

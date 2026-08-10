@@ -441,7 +441,8 @@ function getGameplayJournalPages(){
     rules:[
       menuRule,
       "손님에게 항상 친절하고 맛있는 음식을 대접한다.",
-      `일반 손님들의 음식 평가 평균이 80점 미만이면 특별 손님이 찾아오지 않는다. 단, ${schoolDollRuleName}은 예외다.`
+      `일반 손님 평가가 아쉽다면 특별 손님이 찾아오지 않는다. 단, ${schoolDollRuleName}은 예외다.`,
+      "폐기는 손님 주문당 한 번 가능하다."
     ],
     menuRule,
     menuNames
