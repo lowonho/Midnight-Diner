@@ -663,6 +663,129 @@ const STORY_SCENES = {
     ]
   },
 
+  /* ── 첫 회차 첫째 날에만 붙는 짧은 조작 안내 (SCN-T01~T04) ─────
+     하루의 흐름(냉장고 → 손질 → 조리 → 특별 손님)을 처음 만나는 자리마다
+     다은이 한두 마디로 다음에 할 일을 말해 줍니다. 규칙을 새로 설명하는
+     창이 아니라 평소와 같은 대화 장면이라, 읽고 나면 그대로 게임으로
+     돌아갑니다.
+
+     ⚠️ 넷 다 sceneType 이 "tutorialHint" 입니다. 이 값이 story.js
+        storySceneShowsIntroCard() 의 제외 목록에 있어서 「DAY 1」 메타
+        카드가 뜨지 않습니다. 한 줄짜리 안내마다 카드가 앞서면 흐름이
+        끊기고, 첫째 날에는 이미 SCN-P05 가 그 카드를 띄웠습니다.
+     ⚠️ maxLoop:1 — 이 안내는 **1회차에서만** 나옵니다. 2회차부터는 같은
+        자리에 SCN-L01/L02 의 회상 대사가 붙고 플레이어도 이미 아는
+        조작입니다. (반복 표시 키가 없는 장면이라 완료 기록만으로도 한
+        번뿐이지만, 회귀 전용 장면들과 같은 방식으로 조건을 눈에 보이게
+        적어 둡니다)
+     ⚠️ spotlight — 대사가 끝나면 그 이름의 대상만 남기고 화면이 잠깐
+        어두워집니다. 대상 좌표와 연출은 js/tutorial-spotlight.js 에 있고,
+        여기에는 "무엇을 짚을지" 이름만 적습니다. SCN-T04 에는 없습니다 —
+        손님을 보낸 뒤라 지금 가서 눌러야 할 것이 없습니다. */
+  "SCN-T01": {
+    id: "SCN-T01",
+    title: "첫 준비 · 냉장고",
+    day: 1,
+    moment: "dayStart",
+    sceneType: "tutorialHint",
+    timeOfDay: "day",
+    character: "protagonist",
+    maxLoop: 1,
+    spotlight: "fridge",
+    lines: [
+      storyLine("protagonist", "일단 냉장고에 뭐가 있는지 확인해보자.", { motion: "think" }),
+      storyLine("protagonist", "주방 안쪽 냉장고를 뒤져보면 오늘 낼 메뉴를 정할 수 있겠지.", { motion: "calm" })
+    ]
+  },
+
+  "SCN-T02": {
+    id: "SCN-T02",
+    title: "첫 준비 · 재료 손질",
+    day: 1,
+    moment: "prepStart",
+    sceneType: "tutorialHint",
+    timeOfDay: "day",
+    character: "protagonist",
+    maxLoop: 1,
+    spotlight: "prepTable",
+    lines: [
+      storyLine("protagonist", "필요한 재료는 다 꺼냈고… 이제 테이블에서 재료를 다듬어볼까?", { motion: "think" }),
+      storyLine("protagonist", "왼쪽 준비 목록에 적힌 순서대로 하나씩 손질하면 되겠다.", { motion: "calm" })
+    ]
+  },
+
+  "SCN-T03": {
+    id: "SCN-T03",
+    title: "첫 준비 · 첫 주문",
+    day: 1,
+    moment: "firstGuest",
+    sceneType: "tutorialHint",
+    timeOfDay: "night",
+    character: "protagonist",
+    maxLoop: 1,
+    spotlight: "kitchen",
+    lines: [
+      storyLine("protagonist", "첫 주문이다!", { motion: "happy" }),
+      storyLine("protagonist", "낮에 다듬어 둔 재료로 주방에서 요리를 마무리해보자.", { motion: "cook" })
+    ]
+  },
+
+  /* 특별 손님을 처음 보내고 난 뒤 한마디.
+     ------------------------------------------------------------
+     첫 줄은 방금 받은 반응에 따라 갈립니다. 손님이 완벽하다고 했는데
+     "못 닿았나 봐" 라고 하면 화면과 대사가 어긋나기 때문입니다.
+     열쇠는 결과 장면의 resultTier 와 같고(story.js storyResultTierVariant),
+     음식 자체가 틀렸던 분기만 tier 가 없어서 "wrong" 으로 따로 넘깁니다.
+       great 완벽   온전한 달빛 조각을 받음
+       warm  맛있다  부분 조각만 받음
+       soft  아쉽다  조각 없음
+       wrong 다른 음식  찾던 음식이 아니라 그냥 돌아감
+     default 는 저장 복원이나 QA 미리보기처럼 반응을 알 수 없을 때만 씁니다.
+
+     동작도 갈래를 따라갑니다(story.js STORY_PROTAGONIST_MOTIONS).
+       happy 조각을 온전히 받은 기쁨   think 반쪽에 대한 아쉬운 셈
+       sad   못 닿았다 · 음식부터 틀렸다 — 둘 다 가라앉는 쪽입니다
+     아쉽다와 다른 음식만 같은 sad 를 씁니다. 화내는 angry 를 써 봤지만
+     손님에게 성내는 것처럼 읽혀서 되돌린 자리입니다.
+
+     [뜻대로 안 된 두 갈래만 두 줄입니다] 아쉽다와 다른 음식에는 다음 날을
+     보는 다짐(resolve)이 한 줄 더 붙습니다. 가라앉은 채로 끝내면 첫날부터
+     실패만 남는데, 이 두 갈래야말로 "내일 다시 해 보면 된다"를 알려 줘야
+     하는 자리입니다. 잘 풀린 완벽·맛있다에는 붙이지 않습니다.
+
+     마지막 한 줄은 어느 갈래에서도 같습니다 — 손님이 특별하든 아니든
+     다은이 일상으로 돌아가고 싶은 마음은 그대로라, 그 온도 차가 이 장면의
+     요점입니다. 그래서 앞줄이 기쁘든 가라앉았든 여기서는 아무 감정도 얹지
+     않은 평온한 calm 으로 되돌아갑니다. 슬픈 sad 로 두면 "돌아가고 싶다"가
+     신세 한탄으로 읽혀서, 담담하게 사실만 말하는 쪽으로 바꾼 자리입니다. */
+  "SCN-T04": {
+    id: "SCN-T04",
+    title: "첫 준비 · 특별한 손님",
+    day: 1,
+    moment: "firstSpecialGuest",
+    sceneType: "tutorialHint",
+    timeOfDay: "night",
+    character: "protagonist",
+    maxLoop: 1,
+    resultTierHint: true,
+    tierVariants: {
+      great: [storyLine("protagonist", "…정말 특별한 손님이구나. 달빛 조각까지 온전히 두고 갔어.", { motion: "happy" })],
+      warm:  [storyLine("protagonist", "…정말 특별한 손님이구나. 그래도 조각은 반쪽뿐이네.", { motion: "think" })],
+      soft: [
+        storyLine("protagonist", "…정말 특별한 손님이구나. 내 음식은 그 기억까지 닿지 못했나 봐.", { motion: "sad" }),
+        storyLine("protagonist", "내일은 더 잘 만들어 보자.", { motion: "resolve" })
+      ],
+      wrong: [
+        storyLine("protagonist", "…정말 특별한 손님이구나. 찾던 음식이 아예 아니었던 거야.", { motion: "sad" }),
+        storyLine("protagonist", "내일은 손님이 찾는 게 뭔지 더 잘 알아보자.", { motion: "resolve" })
+      ],
+      default: [storyLine("protagonist", "…정말 특별한 손님이구나.", { motion: "soft" })]
+    },
+    lines: [
+      storyLine("protagonist", "달빛 조각을 얼른 모아서 일상으로 돌아가고 싶다.", { motion: "calm" })
+    ]
+  },
+
   ...createSpecialGuestArc({
     number: 1,
     day: 1,
@@ -1243,13 +1366,29 @@ const STORY_EVENT_SCHEDULE = {
   /* 첫째 날의 날짜 카드는 프롤로그 끝(SCN-P05) 또는 회귀 첫 장면(SCN-L01)이
      이미 띄웁니다. 그래서 SCN-D00 은 둘째 날부터만 겹칩니다. */
   dayStart: {
-    1: ["SCN-L01", "SCN-L02"],
+    1: ["SCN-T01", "SCN-L01", "SCN-L02"],
     2: ["SCN-D00", "SCN-L02"],
     3: ["SCN-D00", "SCN-L02"],
     4: ["SCN-D00", "SCN-L02"],
     5: ["SCN-D00", "SCN-L02"],
     6: ["SCN-D00", "SCN-L02"],
     7: ["SCN-D00", "SCN-L02"]
+  },
+  /* 아래 세 자리는 첫 회차 첫째 날 안내(SCN-T02~T04) 전용 진입점입니다.
+     낮 준비·밤 영업의 기존 진입점(dayStart/nightStart)과 달리 "그 일이 막
+     끝난 직후"에만 의미가 있어서 따로 둡니다.
+       prepStart          냉장고에서 재료를 다 찾은 순간 (ingredient-select.js)
+       firstGuest         밤 영업 첫 손님이 자리에 앉은 뒤 (night.js beginNight)
+       firstSpecialGuest  특별 손님 응대를 마친 뒤 (story.js)
+     날짜 표에 1일차만 있으므로 다른 날에는 아무것도 실행되지 않습니다. */
+  prepStart: {
+    1: ["SCN-T02"]
+  },
+  firstGuest: {
+    1: ["SCN-T03"]
+  },
+  firstSpecialGuest: {
+    1: ["SCN-T04"]
   },
   nightStart: {
     1: ["SCN-D01"],

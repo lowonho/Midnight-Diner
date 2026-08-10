@@ -1,0 +1,45 @@
+/* 첫날 안내 짚어 주기 (#tutorialSpotlight)
+   ------------------------------------------------------------
+   구멍 자리와 시간값은 js/tutorial-spotlight.js 가 정합니다.
+   여기에는 "어디에 깔리고 어떻게 들고 나는지"만 있습니다.
+
+   [z-index 30] HUD(5)·상호작용 키캡(7·25)보다 위입니다 — "대상 말고
+   전부"를 어둡게 해야 해서 화면 안의 판들도 같이 덮습니다. 대신 메뉴
+   선택창(35)·미니게임(40)·대사창(45)·알림(100~)보다는 아래라, 그중
+   무엇이든 열리면 그 창은 원래 밝기로 읽힙니다. 짚어 주기가 끝나기 전에
+   플레이어가 냉장고를 눌러도 선택창이 어두워지지 않는 이유입니다.
+
+   [pointer-events:none] 화면을 덮지만 입력은 통과시킵니다. 짚어 주는
+   동안에도 걸어가거나 바로 E 를 누를 수 있어야 합니다. */
+.tutorial-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  /* 들어올 때(340ms)와 나갈 때(620ms)의 길이가 다릅니다. 천천히 걷혀야
+     "다 봤으니 이제 가라"로 읽힙니다. 두 값 모두 js 쪽 fadeInMs /
+     fadeOutMs 와 같아야 합니다. */
+  transition: opacity 340ms ease-out, visibility 340ms;
+}
+.tutorial-spotlight.show {
+  opacity: 1;
+  visibility: visible;
+}
+.tutorial-spotlight:not(.show) {
+  transition: opacity 620ms ease-in, visibility 620ms;
+}
+
+/* svg 자체를 프레임에 그대로 늘립니다. viewBox 가 논리 좌표(1280x720)이고
+   preserveAspectRatio="none" 이라, js 가 넘기는 좌표를 변환 없이 씁니다. */
+.tutorial-spotlight svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-spotlight,
+  .tutorial-spotlight:not(.show) { transition: opacity 120ms linear, visibility 120ms; }
+}

@@ -100,9 +100,14 @@ const TWO_SIDE_CUE=Object.freeze({
   sauce:Object.freeze({wait:Object.freeze([.8,1.6]),  window:2.4, preheat:0})
 });
 const PANCAKE_CUE_WINDOW=1;
-/* 초록 구간은 게이지의 75% 지점에 고정하고, 폭은 전체의 10%입니다. */
-const PANCAKE_GAUGE_CENTER=.75;
+/* 초록 구간은 폭이 전체의 10%이고, **굽기 신호마다 자리를 다시 뽑습니다**
+   (예전에는 75% 자리에 고정이라 몇 판만 해 보면 손이 외웠습니다).
+   ⚠️ 왼쪽 30%까지는 절대 걸치지 않습니다 — 누르자마자 떼서 맞는 자리가 있으면
+      "꾹 누른다" 는 손짓이 사라집니다. 그래서 뽑는 한가운데의 범위는
+      [30% + 폭/2, 100% - 폭/2] 입니다. */
 const PANCAKE_GAUGE_WIDTH=.1;
+const PANCAKE_GAUGE_MIN_START=.3;
+const PANCAKE_GAUGE_CENTER_RANGE=Object.freeze([PANCAKE_GAUGE_MIN_START+PANCAKE_GAUGE_WIDTH/2,1-PANCAKE_GAUGE_WIDTH/2]);
 const PANCAKE_GAUGE_HOLD_SEC=1;
 
 function twoSideCueWindow(data,kind){
@@ -598,6 +603,8 @@ function openTwoSideCue(m,unit){
   unit.phase="cue";
   unit.cueWindow=twoSideCueWindow(data,step.kind);
   unit.cueTimer=unit.cueWindow;
+  // 굽기 신호마다 초록 구간의 자리를 새로 뽑습니다 (자루마다 따로).
+  if(data.dishStyle==="pancake"&&step.kind==="cook")unit.gaugeCenter=rollPancakeGaugeCenter();
   clearTwoSideCue(data,unit);
   const target=twoSideTargetElement(data,unit);
   if(target){
@@ -622,9 +629,22 @@ function twoSideCueScore(unit,kind){
 
 /* ── 타이밍 게이지 (김치전 굽기 전용) ──────────────────────────
    포인터는 굽기 신호의 1초 동안 왼쪽에서 오른쪽으로 한 번 지나갑니다. 굽기 순서에
-   손을 뗀 순간 초록 구간 안에 있는지만 판정합니다. */
-function pancakeGaugeBounds(){
-  return {start:PANCAKE_GAUGE_CENTER-PANCAKE_GAUGE_WIDTH/2,end:PANCAKE_GAUGE_CENTER+PANCAKE_GAUGE_WIDTH/2,width:PANCAKE_GAUGE_WIDTH};
+   손을 뗀 순간 초록 구간 안에 있는지만 판정합니다.
+   초록 구간의 자리는 자루마다 unit.gaugeCenter 에 들고 있습니다 — 굽기 신호를 켤 때
+   (openTwoSideCue) 새로 뽑고, 아직 안 뽑혔으면 범위 한가운데를 씁니다. */
+function rollPancakeGaugeCenter(){
+  const [min,max]=PANCAKE_GAUGE_CENTER_RANGE;
+  return min+Math.random()*(max-min);
+}
+
+function pancakeGaugeCenter(unit){
+  const [min,max]=PANCAKE_GAUGE_CENTER_RANGE;
+  return Number.isFinite(unit?.gaugeCenter)?clamp(unit.gaugeCenter,min,max):(min+max)/2;
+}
+
+function pancakeGaugeBounds(unit){
+  const center=pancakeGaugeCenter(unit);
+  return {start:center-PANCAKE_GAUGE_WIDTH/2,end:center+PANCAKE_GAUGE_WIDTH/2,width:PANCAKE_GAUGE_WIDTH};
 }
 
 function pancakeGaugeValue(unit){
